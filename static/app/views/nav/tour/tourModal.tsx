@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {darkTheme} from 'sentry/utils/theme';
 
 interface NavTourModalProps {
   closeModal: () => void;
@@ -81,7 +80,7 @@ const TourContainer = styled('div')<{prefersDarkMode: boolean}>`
     margin: -${space(4)};
   }
   border-radius: ${p => p.theme.borderRadius};
-  background: ${p => (p.prefersDarkMode ? darkTheme.purple300 : darkTheme.surface400)};
+  background: ${p => p.theme.tour.background};
   overflow: hidden;
 `;
 
@@ -90,7 +89,7 @@ const TextContainer = styled('div')`
 `;
 
 const Header = styled('div')<{prefersDarkMode: boolean}>`
-  color: ${p => (p.prefersDarkMode ? p.theme.white : darkTheme.headingColor)};
+  color: ${p => p.theme.tour.header};
   font-size: ${p => p.theme.headerFontSize};
   font-weight: ${p => p.theme.fontWeightBold};
 `;

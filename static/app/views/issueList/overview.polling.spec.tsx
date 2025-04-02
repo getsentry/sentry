@@ -63,7 +63,7 @@ describe('IssueList -> Polling', function () {
   /* helpers */
   const renderComponent = async () => {
     render(<IssueList {...routerProps} {...defaultProps} />, {
-      disableRouterMocks: true,
+      enableRouterMocks: false,
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/',

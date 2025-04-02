@@ -85,13 +85,14 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-from sentry.monitors.models import Monitor, MonitorType, ScheduleType
+from sentry.monitors.models import Monitor, ScheduleType
 from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
@@ -449,6 +450,12 @@ class ExhaustiveFixtures(Fixtures):
             project=project, raw='{"hello":"hello"}', schema={"hello": "hello"}
         )
         ProjectRedirect.record(project, f"project_slug_in_{slug}")
+        ProjectSDK.objects.create(
+            project=project,
+            event_type=EventType.PROFILE_CHUNK.value,
+            sdk_name="sentry.python",
+            sdk_version="2.41.0",
+        )
         self.create_notification_action(organization=org, projects=[project])
 
         # Auth*
@@ -495,7 +502,6 @@ class ExhaustiveFixtures(Fixtures):
         Monitor.objects.create(
             organization_id=project.organization.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
             owner_user_id=owner_id,
         )
@@ -685,8 +691,8 @@ class ExhaustiveFixtures(Fixtures):
         )
         detector.workflow_condition_group = detector_conditions
 
-        AlertRuleDetector.objects.create(detector=detector, alert_rule=alert)
-        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule=alert)
+        AlertRuleDetector.objects.create(detector=detector, alert_rule_id=alert.id)
+        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule_id=alert.id)
         ActionGroupStatus.objects.create(action=send_notification_action, group=group)
 
         TempestCredentials.objects.create(

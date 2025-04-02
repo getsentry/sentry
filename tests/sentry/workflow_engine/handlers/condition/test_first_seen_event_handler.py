@@ -16,7 +16,7 @@ class TestFirstSeenEventCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.job = WorkflowEventData(
+        self.event_data = WorkflowEventData(
             event=self.group_event,
             group_state=GroupState(
                 {
@@ -62,26 +62,26 @@ class TestFirstSeenEventCondition(ConditionTestCase):
             dc.save()
 
     def test(self):
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
-        assert self.job.group_state
-        self.job.group_state["is_new"] = False
-        self.assert_does_not_pass(self.dc, self.job)
+        assert self.event_data.group_state
+        self.event_data.group_state["is_new"] = False
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_with_environment(self):
-        self.job = replace(self.job, workflow_env=self.environment)
-        assert self.job.group_state
+        self.event_data = replace(self.event_data, workflow_env=self.environment)
+        assert self.event_data.group_state
 
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
-        self.job.group_state["is_new"] = False
-        self.job.group_state["is_new_group_environment"] = True
-        self.assert_passes(self.dc, self.job)
+        self.event_data.group_state["is_new"] = False
+        self.event_data.group_state["is_new_group_environment"] = True
+        self.assert_passes(self.dc, self.event_data)
 
-        self.job.group_state["is_new"] = True
-        self.job.group_state["is_new_group_environment"] = False
-        self.assert_does_not_pass(self.dc, self.job)
+        self.event_data.group_state["is_new"] = True
+        self.event_data.group_state["is_new_group_environment"] = False
+        self.assert_does_not_pass(self.dc, self.event_data)
 
-        self.job.group_state["is_new"] = False
-        self.job.group_state["is_new_group_environment"] = False
-        self.assert_does_not_pass(self.dc, self.job)
+        self.event_data.group_state["is_new"] = False
+        self.event_data.group_state["is_new_group_environment"] = False
+        self.assert_does_not_pass(self.dc, self.event_data)

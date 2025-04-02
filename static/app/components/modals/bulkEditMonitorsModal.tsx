@@ -242,5 +242,3 @@ const MonitorSlug = styled('div')`
   gap: ${space(1)};
   align-items: center;
 `;
-
-export default BulkEditMonitorsModal;

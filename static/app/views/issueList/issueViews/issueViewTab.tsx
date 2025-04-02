@@ -16,7 +16,7 @@ import {
   IssueViewsContext,
   TEMPORARY_TAB_KEY,
 } from 'sentry/views/issueList/issueViews/issueViews';
-import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/nav/issueViews/useUpdateGroupSearchViewLastVisited';
+import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/nav/secondary/sections/issues/issueViews/useUpdateGroupSearchViewLastVisited';
 
 interface IssueViewTabProps {
   editingTabKey: string | null;

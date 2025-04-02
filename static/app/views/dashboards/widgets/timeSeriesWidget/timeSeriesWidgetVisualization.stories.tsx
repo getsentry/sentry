@@ -17,6 +17,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import type {LegendSelection, Release, TimeSeries, TimeSeriesMeta} from '../common/types';
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
+import {sampleScoreTimeSeries} from './fixtures/sampleScoreTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
 import {spanSamplesWithDurations} from './fixtures/spanSamplesWithDurations';
 import {Area} from './plottables/area';
@@ -59,25 +60,26 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         <p>
           <JSXNode name="TimeSeriesWidgetVisualization" /> is a feature-full time series
           chart, designed to plot data returned from <code>/events-stats/</code> endpoints
-          in Explore, Dashboards, and other similar UIs.
+          in Explore, Dashboards, and other similar UIs. It includes features like:
         </p>
+
+        <ul>
+          <li>automatically scaling mis-matched units</li>
+          <li>visually deemphasizing incomplete ingestion buckets</li>
+          <li>plotting lines, area, and bars on the same visualization</li>
+          <li>
+            skipping <code>null</code> values while plotting
+          </li>
+          <li>
+            stripping legend names of internal information like <code>equation|</code>{' '}
+            prefixes
+          </li>
+          <li>automatically stretching to fit the parent</li>
+          <li>intelligently formatting the axes</li>
+          <li>and more!</li>
+        </ul>
+
         <p>
-          It includes features like:
-          <ul>
-            <li>automatically scaling mis-matched units</li>
-            <li>visually deemphasizing incomplete ingestion buckets</li>
-            <li>plotting lines, area, and bars on the same visualization</li>
-            <li>
-              skipping <code>null</code> values while plotting
-            </li>
-            <li>
-              stripping legend names of internal information like <code>equation|</code>{' '}
-              prefixes
-            </li>
-            <li>automatically stretching to fit the parent</li>
-            <li>intelligently formatting the axes</li>
-            <li>and more!</li>
-          </ul>
           If you (or someone you know) is plotting Sentry data and the X axis is time, you
           should be using this component! It's highly configurable, and should suit your
           needs. If it doesn't, reach out to the Dashboards team.
@@ -214,6 +216,51 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 />
           `}
         </CodeSnippet>
+      </Fragment>
+    );
+  });
+
+  story('Data Types', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="TimeSeriesWidgetVisualization" /> can plot most, but not all data
+          types that come back from our time series endpoints. The supported data types
+          are:
+        </p>
+
+        <ul>
+          <li>
+            <code>number</code>
+          </li>
+          <li>
+            <code>integer</code>
+          </li>
+          <li>
+            <code>duration</code>
+          </li>
+          <li>
+            <code>percentage</code>
+          </li>
+          <li>
+            <code>size</code>
+          </li>
+          <li>
+            <code>rate</code>
+          </li>
+          <li>
+            <code>score</code>
+          </li>
+        </ul>
+
+        <p>
+          Each of those types has specific behavior in its axes range, axis value
+          formatting, tooltip formatting, unit scaling, and so on. For example, the{' '}
+          <code>score</code> type always uses the 0-100 Y axis range.
+        </p>
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization plottables={[new Area(sampleScoreTimeSeries)]} />
+        </MediumWidget>
       </Fragment>
     );
   });
@@ -624,23 +671,34 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         </p>
         <p>
           You can also provide aliases for plottables like <code>Line</code> This will
-          give the legends and tooltips a friendlier name. In this example, verbose names
-          like "p99(span.duration)" are truncated, and the p99 series is hidden by
-          default.
+          give the legends and tooltips a friendlier name. In the first example, verbose
+          names like "p99(span.duration)" are truncated, and the p99 series is hidden by
+          default. The legend will always include an entry for every plottable, even if
+          some plottables have the same alias, as you can see in the second example.
         </p>
 
         <code>{JSON.stringify(legendSelection)}</code>
 
-        <MediumWidget>
-          <TimeSeriesWidgetVisualization
-            plottables={[
-              new Area(sampleDurationTimeSeries, {alias: 'p50'}),
-              new Area(sampleDurationTimeSeries2, {alias: 'p99'}),
-            ]}
-            legendSelection={legendSelection}
-            onLegendSelectionChange={setLegendSelection}
-          />
-        </MediumWidget>
+        <SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Area(sampleDurationTimeSeries, {alias: 'p50'}),
+                new Area(sampleDurationTimeSeries2, {alias: 'p99'}),
+              ]}
+              legendSelection={legendSelection}
+              onLegendSelectionChange={setLegendSelection}
+            />
+          </MediumWidget>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Area(sampleDurationTimeSeries, {alias: 'Duration'}),
+                new Area(sampleDurationTimeSeries2, {alias: 'Duration'}),
+              ]}
+            />
+          </MediumWidget>
+        </SideBySide>
       </Fragment>
     );
   });

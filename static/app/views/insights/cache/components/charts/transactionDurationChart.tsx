@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import {t} from 'sentry/locale';
 import type {
   EChartHighlightHandler,
@@ -36,6 +38,7 @@ export function TransactionDurationChart({
   onHighlight,
   highlightedSpanId,
 }: Props) {
+  const theme = useTheme();
   const {transaction} = useLocationQuery({
     fields: {
       project: decodeScalar,
@@ -120,7 +123,7 @@ export function TransactionDurationChart({
         aggregateOutputFormat="duration"
         loading={isPending}
         onHighlight={handleChartHighlight}
-        chartColors={[AVG_COLOR]}
+        chartColors={[AVG_COLOR(theme)]}
         type={ChartType.LINE}
       />
     </ChartPanel>

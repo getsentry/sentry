@@ -4,7 +4,7 @@ import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
+import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
 
 import type {SpanSlug} from '../suspectSpans/types';

@@ -6,6 +6,7 @@ from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
+from rest_framework import status
 
 from fixtures.integrations.stub_service import StubService
 from sentry.middleware.integrations.parsers.jira_server import JiraServerRequestParser
@@ -29,7 +30,7 @@ class JiraServerRequestParserTest(TestCase):
     factory = RequestFactory()
 
     def get_response(self, req: HttpRequest) -> HttpResponse:
-        return HttpResponse(status=200, content="passthrough")
+        return HttpResponse(status=status.HTTP_200_OK, content="passthrough")
 
     @override_regions(region_config)
     def setUp(self):
@@ -51,7 +52,7 @@ class JiraServerRequestParserTest(TestCase):
             response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         assert response.content == b""
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
@@ -85,6 +86,32 @@ class JiraServerRequestParserTest(TestCase):
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
+    def test_routing_endpoint_with_integration_no_organization_integration(self):
+        integration = self.create_provider_integration(
+            provider="jira_server",
+            external_id="jira_server:2",
+        )
+
+        route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
+
+        request = self.factory.post(
+            route, data=issue_updated_payload, content_type="application/json"
+        )
+        parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
+
+        with mock.patch(
+            "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
+        ) as mock_get_token:
+            mock_get_token.return_value = integration
+            response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.content == b""
+        assert len(responses.calls) == 0
+
+    @override_regions(region_config)
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @responses.activate
     def test_routing_webhook_with_mailbox_buckets_low_volume(self):
         route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
 
@@ -99,7 +126,7 @@ class JiraServerRequestParserTest(TestCase):
             mock_get_token.return_value = self.integration
             response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.content == b""
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
@@ -131,7 +158,7 @@ class JiraServerRequestParserTest(TestCase):
             mock_get_token.return_value = self.integration
             response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.content == b""
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
@@ -163,7 +190,7 @@ class JiraServerRequestParserTest(TestCase):
 
         cache.delete(use_bucket_key)
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.content == b""
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
@@ -187,7 +214,7 @@ class JiraServerRequestParserTest(TestCase):
             mock_get_token.return_value = self.integration
             response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         assert response.content == b""
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
@@ -206,7 +233,7 @@ class JiraServerRequestParserTest(TestCase):
         parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()

@@ -211,7 +211,7 @@ export const createForm = <
     children: React.ReactNode;
     formState: FormState<FormFields, FieldErrors>;
   }) {
-    return <FormContext.Provider value={formState}>{children}</FormContext.Provider>;
+    return <FormContext value={formState}>{children}</FormContext>;
   }
 
   const useFormField = <K extends keyof FormFields>(name: K) => {

@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -6,7 +7,6 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import {Alert} from 'sentry/components/core/alert';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -53,10 +53,10 @@ type Props = {
 };
 
 export function ScreenCharts({yAxes, additionalFilters}: Props) {
+  const theme = useTheme();
   const pageFilter = usePageFilters();
   const location = useLocation();
   const {isProjectCrossPlatform, selectedPlatform: platform} = useCrossPlatformProject();
-
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
 
   const {
@@ -144,7 +144,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
               } as SeriesDataUnit;
             }) ?? [];
 
-          const color = isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1];
+          const color = isPrimary ? theme.chart.colors[3][0] : theme.chart.colors[3][1];
           transformedReleaseSeries[yAxis]![release] = {
             seriesName: formatVersion(label, true),
             color,
@@ -191,6 +191,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     primaryRelease,
     secondaryRelease,
     data: deviceClassEvents,
+    theme,
   });
 
   function renderCharts() {

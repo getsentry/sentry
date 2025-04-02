@@ -71,7 +71,7 @@ function LogsSectionContent() {
         onSearch={setLogsQuery}
       />
       <TableContainer>
-        <LogsTable tableData={tableData.logsData} />
+        <LogsTable tableData={tableData.logsData} showHeader={false} />
       </TableContainer>
     </Fragment>
   );

@@ -25,8 +25,13 @@ import {
   useSetLogsCursor,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
-import {LogTableBody, LogTableRow} from 'sentry/views/explore/logs/styles';
+import {
+  FirstTableHeadCell,
+  LogTableBody,
+  LogTableRow,
+} from 'sentry/views/explore/logs/styles';
 import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
@@ -36,20 +41,29 @@ const LOGS_INSTRUCTIONS_URL = 'https://github.com/getsentry/sentry/discussions/8
 
 export type LogsTableProps = {
   tableData: UseExploreLogsTableResult;
+  allowPagination?: boolean;
   showHeader?: boolean;
 };
 
-export function LogsTable({tableData, showHeader}: LogsTableProps) {
+export function LogsTable({
+  tableData,
+  showHeader = true,
+  allowPagination = true,
+}: LogsTableProps) {
   const fields = useLogsFields();
   const search = useLogsSearch();
   const setCursor = useSetLogsCursor();
   const isTableEditingFrozen = useLogsIsTableEditingFrozen();
+  const {attributes: stringAttributes} = useTraceItemAttributes('string');
+  const {attributes: numberAttributes} = useTraceItemAttributes('number');
+
   const {data, isError, isPending, pageLinks, meta} = tableData;
 
   const tableRef = useRef<HTMLTableElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
     minimumColumnWidth: 50,
+    prefixColumnWidth: 'min-content',
   });
 
   const isEmpty = !isPending && !isError && (data?.length ?? 0) === 0;
@@ -60,15 +74,22 @@ export function LogsTable({tableData, showHeader}: LogsTableProps) {
   return (
     <Fragment>
       <Table ref={tableRef} styles={initialTableStyles}>
-        {showHeader === false ? null : (
+        {showHeader ? (
           <TableHead>
             <LogTableRow>
+              <FirstTableHeadCell isFirst align="left">
+                <TableHeadCellContent isFrozen />
+              </FirstTableHeadCell>
               {fields.map((field, index) => {
                 const direction = sortBys.find(s => s.field === field)?.kind;
 
                 const fieldType = meta?.fields?.[field];
                 const align = logsFieldAlignment(field, fieldType);
-                const headerLabel = getTableHeaderLabel(field);
+                const headerLabel = getTableHeaderLabel(
+                  field,
+                  stringAttributes,
+                  numberAttributes
+                );
 
                 if (isPending) {
                   return <TableHeadCell key={index} isFirst={index === 0} />;
@@ -112,8 +133,8 @@ export function LogsTable({tableData, showHeader}: LogsTableProps) {
               })}
             </LogTableRow>
           </TableHead>
-        )}
-        <LogTableBody>
+        ) : null}
+        <LogTableBody showHeader={showHeader}>
           {isPending && (
             <TableStatus>
               <LoadingIndicator />
@@ -156,7 +177,7 @@ export function LogsTable({tableData, showHeader}: LogsTableProps) {
           ))}
         </LogTableBody>
       </Table>
-      <Pagination pageLinks={pageLinks} onCursor={setCursor} />
+      {allowPagination ? <Pagination pageLinks={pageLinks} onCursor={setCursor} /> : null}
     </Fragment>
   );
 }

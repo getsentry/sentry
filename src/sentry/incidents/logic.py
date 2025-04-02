@@ -404,6 +404,7 @@ def get_metric_issue_aggregates(
                 offset=0,
                 limit=1,
                 referrer=Referrer.API_ALERTS_ALERT_RULE_CHART.value,
+                sampling_mode=None,
                 config=SearchResolverConfig(
                     auto_fields=True,
                 ),

@@ -19,7 +19,6 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -76,6 +75,16 @@ export interface TimeSeriesWidgetVisualizationProps {
   releases?: Release[];
 
   /**
+   * Defines the legend's visibility.
+   *
+   * - `auto`: Show the legend if there are multiple series.
+   * - `never`: Never show the legend.
+   *
+   * Default: `auto`
+   */
+  showLegend?: 'auto' | 'never';
+
+  /**
    * Show releases as either lines per release or a bubble for a group of releases.
    */
   showReleaseAs?: 'bubble' | 'line';
@@ -124,6 +133,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             {...props}
             ref={chartRendererRef}
             disableReleaseNavigation
+            onZoom={() => {}}
             plottables={props.plottables.map(plottable =>
               plottable.constrain(trimStart, trimEnd)
             )}
@@ -178,7 +188,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, registerWithWidgetSyncContext]
   );
 
-  const chartZoomProps = useChartZoom({
+  const {onDataZoom, ...chartZoomProps} = useChartZoom({
     saveOnZoom: true,
   });
 
@@ -301,8 +311,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const palette =
     paletteSize > 0
-      ? getChartColorPalette(paletteSize - 2) // -2 because getColorPalette artificially adds 1, I'm not sure why
+      ? theme.chart.getColorPalette(paletteSize - 2) // -2 because getColorPalette artificially adds 1, I'm not sure why
       : [];
+
+  // Create a lookup of series names (given to ECharts) to labels (from
+  // Plottable). This makes it easier to look up alises when rendering tooltips
+  // and legends
+  const aliases = Object.fromEntries(
+    props.plottables.map(plottable => [plottable.name, plottable.label])
+  );
 
   // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
@@ -345,9 +362,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
-      nameFormatter: function (name, nameFormatterParams) {
+      nameFormatter: function (seriesName, nameFormatterParams) {
         if (!nameFormatterParams) {
-          return name;
+          return seriesName;
         }
 
         if (
@@ -356,10 +373,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         ) {
           // For scatter series, the third point in the `data` array should be the sample's ID
           const sampleId = nameFormatterParams.data.at(2);
-          return defined(sampleId) ? sampleId.toString() : name;
+          return defined(sampleId) ? sampleId.toString() : seriesName;
         }
 
-        return name;
+        return aliases[seriesName] ?? seriesName;
       },
       valueFormatter: function (value, _field, valueFormatterParams) {
         // Use the series to figure out the corresponding `Plottable`, and get the field type. From that, use whichever unit we chose for that field type.
@@ -398,7 +415,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     visibleSeriesCount += 1;
   }
 
-  const showLegend = visibleSeriesCount > 1;
+  const showLegendProp = props.showLegend ?? 'auto';
+  const showLegend = showLegendProp !== 'never' && visibleSeriesCount > 1;
 
   // Keep track of which `Series[]` indexes correspond to which `Plottable` so
   // we can look up the types in the tooltip. We need this so we can find the
@@ -492,7 +510,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
               left: 0,
               formatter(seriesName: string) {
                 return truncationFormatter(
-                  seriesName,
+                  aliases[seriesName] ?? seriesName,
                   true,
                   // Escaping the legend string will cause some special
                   // characters to render as their HTML equivalents.
@@ -533,7 +551,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       }}
       yAxes={yAxes}
       {...chartZoomProps}
-      {...(props.onZoom ? {onDataZoom: props.onZoom} : {})}
+      onDataZoom={props.onZoom ?? onDataZoom}
       isGroupedByDate
       useMultilineDate
       start={start ? new Date(start) : undefined}

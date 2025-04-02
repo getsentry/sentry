@@ -69,6 +69,7 @@ class BaseAuthIndexEndpoint(Endpoint):
         assert organization_context, "Failed to fetch organization in _reauthenticate_with_sso"
         raise SsoRequired(
             organization=organization_context.organization,
+            request=request,
             after_login_redirect=redirect,
         )
 

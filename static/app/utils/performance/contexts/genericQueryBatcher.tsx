@@ -267,13 +267,13 @@ export function QueryBatchNode(props: {
   };
 
   return (
-    <BatchNodeContext.Provider
+    <BatchNodeContext
       value={{
         id,
         batchProperty,
       }}
     >
       {children({queryBatching})}
-    </BatchNodeContext.Provider>
+    </BatchNodeContext>
   );
 }

@@ -117,6 +117,10 @@ describe('OrganizationStats', function () {
     expect(screen.getAllByText('Invalid')[0]).toBeInTheDocument();
     expect(screen.getAllByText('15')[0]).toBeInTheDocument();
 
+    expect(
+      screen.queryByText('*This is an estimation, and may not be 100% accurate.')
+    ).not.toBeInTheDocument();
+
     // Correct API Calls
     const mockExpectations = {
       UsageStatsOrg: {
@@ -175,7 +179,7 @@ describe('OrganizationStats', function () {
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
-    expect(screen.getByTestId('empty-message')).toBeInTheDocument();
+    expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
   });
 
   it('renders with just errors category for errors-only self-hosted', async () => {
@@ -380,6 +384,8 @@ describe('OrganizationStats', function () {
       router: newOrg.router,
       organization: newOrg.organization,
     });
+
+    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     await userEvent.click(screen.getByTestId('proj-1'));
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     expect(screen.getAllByText('proj-1')).toHaveLength(2);
@@ -516,6 +522,33 @@ describe('OrganizationStats', function () {
 
     expect(
       await screen.findByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
+  });
+
+  it('shows estimation text when profile duration category is selected', async () => {
+    const newOrg = initializeOrg({
+      organization: {
+        features: [
+          'global-views',
+          'team-insights',
+          'continuous-profiling-stats',
+          'continuous-profiling',
+        ],
+      },
+    });
+
+    render(
+      <OrganizationStats
+        {...defaultProps}
+        location={{...defaultProps.location, query: {dataCategory: 'profileDuration'}}}
+        organization={newOrg.organization}
+      />,
+      {
+        router: newOrg.router,
+      }
+    );
+    expect(
+      await screen.findByText('*This is an estimation, and may not be 100% accurate.')
     ).toBeInTheDocument();
   });
 

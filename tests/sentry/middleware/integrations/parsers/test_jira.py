@@ -5,6 +5,7 @@ from unittest.mock import patch
 import responses
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
+from rest_framework import status
 
 from sentry.integrations.models.integration import Integration
 from sentry.middleware.integrations.classifications import IntegrationClassification
@@ -67,7 +68,7 @@ class JiraRequestParserTest(TestCase):
 
             response = parser.get_response()
             assert isinstance(response, HttpResponse)
-            assert response.status_code == 200
+            assert response.status_code == status.HTTP_200_OK
             assert response.content == b"passthrough"
             assert_no_webhook_payloads()
 
@@ -89,7 +90,7 @@ class JiraRequestParserTest(TestCase):
             response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         assert response.content == b"region response"
         assert_no_webhook_payloads()
 
@@ -113,7 +114,7 @@ class JiraRequestParserTest(TestCase):
         # There are 5 retries.
         assert len(responses.calls) == 6
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         assert response.content == b"passthrough"
         assert_no_webhook_payloads()
 
@@ -131,13 +132,36 @@ class JiraRequestParserTest(TestCase):
             response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.content == b""
 
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             mailbox_name=f"jira:{integration.id}", region_names=[region.name], request=request
         )
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
+    def test_get_response_missing_org_integration(self):
+        request = self.factory.post(path=f"{self.path_base}/issue-updated/")
+        parser = JiraRequestParser(request, self.get_response)
+
+        integration = self.create_provider_integration(
+            provider="jira",
+            external_id="blag",
+        )
+        assert_no_webhook_payloads()
+        with patch.object(parser, "get_integration_from_request") as method:
+            method.return_value = integration
+            response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.content == b""
+
+        assert len(responses.calls) == 0
+        assert_no_webhook_payloads()
 
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -152,7 +176,7 @@ class JiraRequestParserTest(TestCase):
             response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
@@ -181,7 +205,7 @@ class JiraRequestParserTest(TestCase):
 
         # Response should go to first region
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         assert response.content == b"region response"
         assert len(responses.calls) == 1
         assert_no_webhook_payloads()

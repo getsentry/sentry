@@ -28,11 +28,6 @@ import type {CallbackDataParams} from 'echarts/types/dist/shared';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {
-  type ChartColorPalette,
-  getChartColorPalette,
-} from 'sentry/constants/chartPalette';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import type {
   EChartBrushEndHandler,
@@ -156,7 +151,9 @@ export interface BaseChartProps {
   colors?:
     | string[]
     | readonly string[]
-    | ((theme: Theme) => string[] | ChartColorPalette[number]);
+    | ((
+        theme: Theme
+      ) => string[] | ReturnType<Theme['chart']['getColorPalette']> | undefined);
   'data-test-id'?: string;
   /**
    * DataZoom (allows for zooming of chart)
@@ -396,8 +393,8 @@ function BaseChart({
   const color =
     resolveColors ||
     (series.length
-      ? getChartColorPalette(series.length)
-      : CHART_PALETTE[CHART_PALETTE.length - 1]);
+      ? theme.chart.getColorPalette(series.length)
+      : theme.chart.colors[theme.chart.colors.length - 1]);
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =

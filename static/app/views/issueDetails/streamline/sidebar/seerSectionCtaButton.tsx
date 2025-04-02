@@ -194,7 +194,11 @@ export function SeerSectionCtaButton({
       onClick={handleOpenDrawer}
       analyticsEventKey="issue_details.seer_opened"
       analyticsEventName="Issue Details: Seer Opened"
-      analyticsParams={{has_streamlined_ui: hasStreamlinedUI}}
+      analyticsParams={{
+        has_streamlined_ui: hasStreamlinedUI,
+        autofix_exists: Boolean(autofixData?.steps?.length),
+        autofix_step_type: lastStep?.type ?? null,
+      }}
     >
       {getButtonText()}
       <ChevronContainer>

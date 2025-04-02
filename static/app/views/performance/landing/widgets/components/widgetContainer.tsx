@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
@@ -77,6 +78,7 @@ function WidgetContainerInner(props: Props) {
     setRowChartSettings,
     ...rest
   } = props;
+  const theme = useTheme();
   const performanceType = usePerformanceDisplayType();
   let _chartSetting = getChartSetting(
     index,
@@ -118,7 +120,7 @@ function WidgetContainerInner(props: Props) {
     setChartSettingState(_chartSetting);
   }, [rest.defaultChartSetting, _chartSetting]);
 
-  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
+  const chartDefinition = WIDGET_DEFINITIONS({organization, theme})[chartSetting];
 
   // Construct an EventView that matches this widget's definition. The
   // `eventView` from the props is the _landing page_ EventView, which is different
@@ -226,11 +228,12 @@ export function WidgetInteractiveTitle({
   rowChartSettings: PerformanceWidgetSetting[];
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const organization = useOrganization();
   const menuOptions: Array<SelectOption<string>> = [];
 
-  const settingsMap = WIDGET_DEFINITIONS({organization});
+  const settingsMap = WIDGET_DEFINITIONS({organization, theme});
   for (const setting of allowedCharts) {
     const options = settingsMap[setting];
     menuOptions.push({
@@ -240,7 +243,7 @@ export function WidgetInteractiveTitle({
     });
   }
 
-  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
+  const chartDefinition = WIDGET_DEFINITIONS({organization, theme})[chartSetting];
 
   if (chartDefinition.allowsOpenInDiscover) {
     menuOptions.push({label: t('Open in Discover'), value: 'open_in_discover'});
@@ -291,11 +294,12 @@ export function WidgetContainerActions({
   rowChartSettings: PerformanceWidgetSetting[];
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const organization = useOrganization();
   const menuOptions: Array<SelectOption<PerformanceWidgetSetting>> = [];
 
-  const settingsMap = WIDGET_DEFINITIONS({organization});
+  const settingsMap = WIDGET_DEFINITIONS({organization, theme});
   for (const setting of allowedCharts) {
     const options = settingsMap[setting];
     menuOptions.push({
@@ -305,7 +309,7 @@ export function WidgetContainerActions({
     });
   }
 
-  const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
+  const chartDefinition = WIDGET_DEFINITIONS({organization, theme})[chartSetting];
 
   function handleWidgetActionChange(value: string) {
     if (value === 'open_in_discover') {

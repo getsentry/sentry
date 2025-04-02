@@ -9,9 +9,7 @@ import {
   IssueType,
 } from 'sentry/types/group';
 
-import type {RawSpanType} from '../spans/types';
-
-import type {TraceContextSpanProxy} from './spanEvidence';
+import type {RawSpanType, TraceContextSpanProxy} from '../spans/types';
 
 export function getSpanInfoFromTransactionEvent(
   event: Pick<
