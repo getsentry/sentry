@@ -99,9 +99,6 @@ class OptionsStore:
         """
         Fetches a value from the options store.
         """
-        assert (
-            self.cache is not None
-        ), "Option requested before cache initialization, which could result in excessive store queries"
         result = self.get_cache(key, silent=silent)
         if result is not None:
             return result
@@ -128,6 +125,10 @@ class OptionsStore:
         First check against our local in-process cache, falling
         back to the network cache.
         """
+        assert (
+            self.cache is not None
+        ), f"Option '{key.name}' requested before cache initialization, which could result in excessive store queries"
+
         value = self.get_local_cache(key)
         if value is not None:
             return value
