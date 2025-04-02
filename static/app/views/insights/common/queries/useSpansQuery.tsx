@@ -102,9 +102,16 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
   const location = useLocation();
   const organization = useOrganization();
   const {isReady: pageFiltersReady} = usePageFilters();
+
+  const usesRelativeDateRange =
+    !defined(eventView.start) &&
+    !defined(eventView.end) &&
+    defined(eventView.statsPeriod);
+
   const intervalInMilliseconds = eventView.interval
     ? intervalToMilliseconds(eventView.interval)
     : undefined;
+
   const result = useGenericDiscoverQuery<
     {
       data: any[];
@@ -136,9 +143,11 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       staleTime:
-        !defined(intervalInMilliseconds) || intervalInMilliseconds === 0
-          ? Infinity
-          : intervalInMilliseconds,
+        usesRelativeDateRange &&
+        defined(intervalInMilliseconds) &&
+        intervalInMilliseconds !== 0
+          ? intervalInMilliseconds
+          : Infinity,
     },
     referrer,
   });
@@ -199,7 +208,9 @@ export function useWrappedDiscoverQuery<T>({
     !defined(eventView.end) &&
     defined(eventView.statsPeriod);
 
-  const statsPeriodInMilliseconds = getStaleTimeForRelativePeriod(eventView.statsPeriod);
+  const statsPeriodInMilliseconds = getStaleTimeForRelativePeriodTable(
+    eventView.statsPeriod
+  );
 
   const result = useDiscoverQuery({
     eventView,
@@ -344,7 +355,8 @@ function mergeIntervals(first: Interval[], second: Interval[]) {
   });
   return target;
 }
-function getStaleTimeForRelativePeriod(statsPeriod: string | undefined) {
+
+function getStaleTimeForRelativePeriodTable(statsPeriod: string | undefined) {
   if (!defined(statsPeriod)) {
     return Infinity;
   }

@@ -85,6 +85,11 @@ export const useSortedTimeSeries = <
     eventView.interval = interval;
   }
 
+  const usesRelativeDateRange =
+    !defined(eventView.start) &&
+    !defined(eventView.end) &&
+    defined(eventView.statsPeriod);
+
   const intervalInMilliseconds = eventView.interval
     ? intervalToMilliseconds(eventView.interval)
     : undefined;
@@ -113,9 +118,11 @@ export const useSortedTimeSeries = <
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       staleTime:
-        !defined(intervalInMilliseconds) || intervalInMilliseconds === 0
-          ? Infinity
-          : intervalInMilliseconds,
+        usesRelativeDateRange &&
+        defined(intervalInMilliseconds) &&
+        intervalInMilliseconds !== 0
+          ? intervalInMilliseconds
+          : Infinity,
     },
     referrer,
   });
