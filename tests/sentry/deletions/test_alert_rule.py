@@ -14,12 +14,13 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import Incident
 from sentry.models.organization import Organization
-from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.workflow_engine.models import AlertRuleDetector, AlertRuleWorkflow
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-class DeleteAlertRuleTest(TestCase, HybridCloudTestMixin):
+class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
     def test_simple(self):
         organization = self.create_organization()
         alert_rule = self.create_alert_rule(organization=organization)
@@ -33,6 +34,11 @@ class DeleteAlertRuleTest(TestCase, HybridCloudTestMixin):
             alert_rule=alert_rule,
         )
 
+        detector = self.create_detector()
+        workflow = self.create_workflow()
+        AlertRuleDetector.objects.create(alert_rule_id=alert_rule.id, detector=detector)
+        AlertRuleWorkflow.objects.create(alert_rule_id=alert_rule.id, workflow=workflow)
+
         self.ScheduledDeletion.schedule(instance=alert_rule, days=0)
 
         with self.tasks():
@@ -42,6 +48,8 @@ class DeleteAlertRuleTest(TestCase, HybridCloudTestMixin):
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
         assert not AlertRuleTrigger.objects.filter(id=alert_rule_trigger.id).exists()
         assert not Incident.objects.filter(id=incident.id).exists()
+        assert not AlertRuleDetector.objects.filter(alert_rule_id=alert_rule.id).exists()
+        assert not AlertRuleWorkflow.objects.filter(alert_rule_id=alert_rule.id).exists()
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")

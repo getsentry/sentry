@@ -9,13 +9,13 @@ def _update_workflow_engine_models(instance: RuleSnooze, is_enabled: bool) -> No
         return
 
     if instance.rule:
-        alert_rule_workflow = AlertRuleWorkflow.objects.filter(rule=instance.rule).first()
+        alert_rule_workflow = AlertRuleWorkflow.objects.filter(rule_id=instance.rule.id).first()
         if alert_rule_workflow and alert_rule_workflow.workflow:
             alert_rule_workflow.workflow.update(enabled=is_enabled)
 
     elif instance.alert_rule:
         alert_rule_detector = AlertRuleDetector.objects.filter(
-            alert_rule=instance.alert_rule
+            alert_rule_id=instance.alert_rule.id
         ).first()
         if alert_rule_detector and alert_rule_detector.detector:
             alert_rule_detector.detector.update(enabled=is_enabled)

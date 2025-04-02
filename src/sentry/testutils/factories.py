@@ -42,7 +42,6 @@ from sentry.incidents.logic import (
     query_datasets_to_type,
 )
 from sentry.incidents.models.alert_rule import (
-    AlertRule,
     AlertRuleDetectionType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
@@ -2257,22 +2256,22 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_alert_rule_workflow(
-        alert_rule: AlertRule | None = None,
-        rule: Rule | None = None,
+        alert_rule_id: int | None = None,
+        rule_id: int | None = None,
         workflow: Workflow | None = None,
         **kwargs,
     ) -> AlertRuleWorkflow:
-        if rule is None and alert_rule is None:
+        if rule_id is None and alert_rule_id is None:
             raise ValueError("Either rule or alert_rule must be provided")
 
-        if rule is not None and alert_rule is not None:
+        if rule_id is not None and alert_rule_id is not None:
             raise ValueError("Only one of rule or alert_rule can be provided")
 
         if workflow is None:
             workflow = Factories.create_workflow()
 
         return AlertRuleWorkflow.objects.create(
-            alert_rule=alert_rule, rule=rule, workflow=workflow, **kwargs
+            alert_rule_id=alert_rule_id, rule_id=rule_id, workflow=workflow, **kwargs
         )
 
     @staticmethod
