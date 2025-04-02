@@ -82,10 +82,9 @@ func application(_ application: UIApplication,
         // Sample rate for profiling, applied on top of TracesSampleRate.
         // We recommend adjusting this value in production.
         options.profilesSampleRate = 1.0`
-            : ${
-              params.isProfilingSelected &&
-              params.profilingOptions?.defaultProfilingMode === 'continuous'
-                ? `
+            : params.isProfilingSelected &&
+                params.profilingOptions?.defaultProfilingMode === 'continuous'
+              ? `
 
         // Configure the profiler to start profiling when there is an active root span
         // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
@@ -93,8 +92,7 @@ func application(_ application: UIApplication,
           $0.lifecycle = .trace
           $0.sessionSampleRate = 1.0
         }`
-                : ''
-            }
+              : ''
         }
     }
 
@@ -129,10 +127,9 @@ struct SwiftUIApp: App {
             // Sample rate for profiling, applied on top of TracesSampleRate.
             // We recommend adjusting this value in production.
             options.profilesSampleRate = 1.0`
-                : ${
-                  params.isProfilingSelected &&
-                  params.profilingOptions?.defaultProfilingMode === 'continuous'
-                    ? `
+                : params.isProfilingSelected &&
+                    params.profilingOptions?.defaultProfilingMode === 'continuous'
+                  ? `
 
             // Configure the profiler to start profiling when there is an active root span
             // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
@@ -140,8 +137,7 @@ struct SwiftUIApp: App {
               $0.lifecycle = .trace
               $0.sessionSampleRate = 1.0
             }`
-                    : ''
-                }
+                  : ''
             }
         }
     }
