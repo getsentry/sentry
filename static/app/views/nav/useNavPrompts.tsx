@@ -30,19 +30,17 @@ export function useNavPrompts({
     options: {enabled: hasNavigationV2Banner},
   });
 
+  const shouldShowHelpMenuDot =
+    hasNavigationV2Banner &&
+    isDropdownPromptDismissed === false &&
+    (collapsed || isSidebarPromptDismissed);
+
   return {
     shouldShowSidebarBanner:
       hasNavigationV2Banner && !collapsed && isSidebarPromptDismissed === false,
-    shouldShowHelpMenuDot:
-      hasNavigationV2Banner &&
-      isDropdownPromptDismissed === false &&
-      (collapsed || isSidebarPromptDismissed),
+    shouldShowHelpMenuDot,
     onOpenHelpMenu: () => {
-      if (
-        hasNavigationV2Banner &&
-        isSidebarPromptDismissed === true &&
-        isDropdownPromptDismissed === false
-      ) {
+      if (shouldShowHelpMenuDot) {
         dismissDropdownPrompt();
       }
     },
