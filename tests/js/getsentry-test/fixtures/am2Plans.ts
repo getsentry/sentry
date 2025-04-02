@@ -117,187 +117,224 @@ const AM2_PLANS: Record<string, Plan> = {
           events: 50000,
           unitPrice: 0.089,
           price: 0,
+          onDemandPrice: 0.1157
         },
         {
           events: 100000,
-          unitPrice: 0.05,
+          unitPrice: 0.089,
           price: 4500,
+          onDemandPrice: 0.1157
         },
         {
           events: 200000,
           unitPrice: 0.05,
           price: 9500,
+          onDemandPrice: 0.065
         },
         {
           events: 300000,
           unitPrice: 0.05,
           price: 14500,
+          onDemandPrice: 0.065
         },
         {
           events: 400000,
           unitPrice: 0.05,
           price: 19500,
+          onDemandPrice: 0.065
         },
         {
           events: 500000,
-          unitPrice: 0.03,
+          unitPrice: 0.05,
           price: 24500,
+          onDemandPrice: 0.065
         },
         {
           events: 1000000,
           unitPrice: 0.03,
           price: 39500,
+          onDemandPrice: 0.039
         },
         {
           events: 1500000,
           unitPrice: 0.03,
           price: 54500,
+          onDemandPrice: 0.039
         },
         {
           events: 2000000,
           unitPrice: 0.03,
           price: 69500,
+          onDemandPrice: 0.039
         },
         {
           events: 3000000,
           unitPrice: 0.03,
           price: 99500,
+          onDemandPrice: 0.039
         },
         {
           events: 4000000,
           unitPrice: 0.03,
           price: 129500,
+          onDemandPrice: 0.039
         },
         {
           events: 5000000,
           unitPrice: 0.03,
           price: 159500,
+          onDemandPrice: 0.039
         },
         {
           events: 6000000,
           unitPrice: 0.03,
           price: 189500,
+          onDemandPrice: 0.039
         },
         {
           events: 7000000,
           unitPrice: 0.03,
           price: 219500,
+          onDemandPrice: 0.039
         },
         {
           events: 8000000,
           unitPrice: 0.03,
           price: 249500,
+          onDemandPrice: 0.039
         },
         {
           events: 9000000,
           unitPrice: 0.03,
           price: 279500,
+          onDemandPrice: 0.039
         },
         {
           events: 10000000,
-          unitPrice: 0.0251,
+          unitPrice: 0.03,
           price: 309500,
+          onDemandPrice: 0.039
         },
         {
           events: 11000000,
           unitPrice: 0.0251,
           price: 334500,
+          onDemandPrice: 0.03263
         },
         {
           events: 12000000,
           unitPrice: 0.0251,
           price: 359500,
+          onDemandPrice: 0.03263
         },
         {
           events: 13000000,
           unitPrice: 0.0251,
           price: 384500,
+          onDemandPrice: 0.03263
         },
         {
           events: 14000000,
           unitPrice: 0.0251,
           price: 409500,
+          onDemandPrice: 0.03263
         },
         {
           events: 15000000,
           unitPrice: 0.0251,
           price: 434500,
+          onDemandPrice: 0.03263
         },
         {
           events: 16000000,
           unitPrice: 0.0251,
           price: 459500,
+          onDemandPrice: 0.03263
         },
         {
           events: 17000000,
           unitPrice: 0.0251,
           price: 484500,
+          onDemandPrice: 0.03263
         },
         {
           events: 18000000,
           unitPrice: 0.0251,
           price: 509500,
+          onDemandPrice: 0.03263
         },
         {
           events: 19000000,
           unitPrice: 0.0251,
           price: 534500,
+          onDemandPrice: 0.03263
         },
         {
           events: 20000000,
-          unitPrice: 0.0132,
+          unitPrice: 0.0251,
           price: 559500,
+          onDemandPrice: 0.03263
         },
         {
           events: 21000000,
-          unitPrice: 0.0132,
+          unitPrice: 0.0144,
           price: 573900,
+          onDemandPrice: 0.01872
         },
         {
           events: 22000000,
-          unitPrice: 0.0132,
+          unitPrice: 0.0144,
           price: 588300,
+          onDemandPrice: 0.01872
         },
         {
           events: 23000000,
-          unitPrice: 0.0132,
+          unitPrice: 0.0144,
           price: 602700,
+          onDemandPrice: 0.01872
         },
         {
           events: 24000000,
-          unitPrice: 0.0132,
+          unitPrice: 0.0144,
           price: 617100,
+          onDemandPrice: 0.01872
         },
         {
           events: 25000000,
-          unitPrice: 0.0132,
+          unitPrice: 0.0144,
           price: 631500,
+          onDemandPrice: 0.01872
         },
         {
           events: 30000000,
+          unitPrice: 0.0144,
           price: 703500,
-          unitPrice: 0.0132,
+          onDemandPrice: 0.01872
         },
         {
           events: 35000000,
+          unitPrice: 0.0144,
           price: 775500,
-          unitPrice: 0.0132,
+          onDemandPrice: 0.01872
         },
         {
           events: 40000000,
+          unitPrice: 0.0144,
           price: 847500,
-          unitPrice: 0.0132,
+          onDemandPrice: 0.01872
         },
         {
           events: 45000000,
+          unitPrice: 0.0144,
           price: 919500,
-          unitPrice: 0.0132,
+          onDemandPrice: 0.01872
         },
         {
           events: 50000000,
+          unitPrice: 0.0144,
           price: 991500,
-          unitPrice: 0.0132,
-        },
+          onDemandPrice: 0.01872
+        }
       ],
       transactions: [
         {
@@ -879,193 +916,228 @@ const AM2_PLANS: Record<string, Plan> = {
     onDemandCategories: AM2_CATEGORIES,
     hasOnDemandModes: true,
     planCategories: {
-      errors: [
-        {
-          events: 50000,
-          unitPrice: 0.029,
-          price: 0,
-        },
-        {
-          events: 100000,
-          unitPrice: 0.0175,
-          price: 1500,
-        },
-        {
-          events: 200000,
-          unitPrice: 0.0175,
-          price: 3200,
-        },
-        {
-          events: 300000,
-          unitPrice: 0.0175,
-          price: 5000,
-        },
-        {
-          events: 400000,
-          unitPrice: 0.0175,
-          price: 6700,
-        },
-        {
-          events: 500000,
-          unitPrice: 0.015,
-          price: 8500,
-        },
-        {
-          events: 1000000,
-          unitPrice: 0.015,
-          price: 16000,
-        },
-        {
-          events: 1500000,
-          unitPrice: 0.015,
-          price: 23500,
-        },
-        {
-          events: 2000000,
-          unitPrice: 0.015,
-          price: 31000,
-        },
-        {
-          events: 3000000,
-          unitPrice: 0.015,
-          price: 46000,
-        },
-        {
-          events: 4000000,
-          unitPrice: 0.015,
-          price: 61000,
-        },
-        {
-          events: 5000000,
-          unitPrice: 0.015,
-          price: 76000,
-        },
-        {
-          events: 6000000,
-          unitPrice: 0.015,
-          price: 91000,
-        },
-        {
-          events: 7000000,
-          unitPrice: 0.015,
-          price: 106000,
-        },
-        {
-          events: 8000000,
-          unitPrice: 0.015,
-          price: 121000,
-        },
-        {
-          events: 9000000,
-          unitPrice: 0.015,
-          price: 136000,
-        },
-        {
-          events: 10000000,
-          unitPrice: 0.013,
-          price: 151000,
-        },
-        {
-          events: 11000000,
-          unitPrice: 0.013,
-          price: 164000,
-        },
-        {
-          events: 12000000,
-          unitPrice: 0.013,
-          price: 177000,
-        },
-        {
-          events: 13000000,
-          unitPrice: 0.013,
-          price: 190000,
-        },
-        {
-          events: 14000000,
-          unitPrice: 0.013,
-          price: 203000,
-        },
-        {
-          events: 15000000,
-          unitPrice: 0.013,
-          price: 216000,
-        },
-        {
-          events: 16000000,
-          price: 229000,
-          unitPrice: 0.013,
-        },
-        {
-          events: 17000000,
-          price: 242000,
-          unitPrice: 0.013,
-        },
-        {
-          events: 18000000,
-          price: 255000,
-          unitPrice: 0.013,
-        },
-        {
-          events: 19000000,
-          price: 268000,
-          unitPrice: 0.013,
-        },
-        {
-          events: 20000000,
-          price: 281000,
-          unitPrice: 0.011,
-        },
-        {
-          events: 21000000,
-          price: 293000,
-          unitPrice: 0.011,
-        },
-        {
-          events: 22000000,
-          price: 305000,
-          unitPrice: 0.011,
-        },
-        {
-          events: 23000000,
-          price: 317000,
-          unitPrice: 0.011,
-        },
-        {
-          events: 24000000,
-          price: 329000,
-          unitPrice: 0.011,
-        },
-        {
-          events: 25000000,
-          price: 341000,
-          unitPrice: 0.011,
-        },
-        {
-          events: 30000000,
-          price: 401000,
-          unitPrice: 0.011,
-        },
-        {
-          events: 35000000,
-          price: 461000,
-          unitPrice: 0.011,
-        },
-        {
-          events: 40000000,
-          price: 521000,
-          unitPrice: 0.011,
-        },
-        {
-          events: 45000000,
-          price: 581000,
-          unitPrice: 0.011,
-        },
-        {
-          events: 50000000,
-          price: 641000,
-          unitPrice: 0.011,
-        },
-      ],
+      errors: [{
+        events: 50000,
+        unitPrice: 0.029,
+        price: 0,
+        onDemandPrice: 0.0377
+      },
+      {
+        events: 100000,
+        unitPrice: 0.029,
+        price: 1500,
+        onDemandPrice: 0.0377
+      },
+      {
+        events: 200000,
+        unitPrice: 0.0175,
+        price: 3200,
+        onDemandPrice: 0.02275
+      },
+      {
+        events: 300000,
+        unitPrice: 0.0175,
+        price: 5000,
+        onDemandPrice: 0.02275
+      },
+      {
+        events: 400000,
+        unitPrice: 0.0175,
+        price: 6700,
+        onDemandPrice: 0.02275
+      },
+      {
+        events: 500000,
+        unitPrice: 0.0175,
+        price: 8500,
+        onDemandPrice: 0.02275
+      },
+      {
+        events: 1000000,
+        unitPrice: 0.015,
+        price: 16000,
+        onDemandPrice: 0.0195
+      },
+      {
+        events: 1500000,
+        unitPrice: 0.015,
+        price: 23500,
+        onDemandPrice: 0.0195
+      },
+      {
+        events: 2000000,
+        unitPrice: 0.015,
+        price: 31000,
+        onDemandPrice: 0.0195
+      },
+      {
+        events: 3000000,
+        unitPrice: 0.015,
+        price: 46000,
+        onDemandPrice: 0.0195
+      },
+      {
+        events: 4000000,
+        unitPrice: 0.015,
+        price: 61000,
+        onDemandPrice: 0.0195
+      },
+      {
+        events: 5000000,
+        unitPrice: 0.015,
+        price: 76000,
+        onDemandPrice: 0.0195
+      },
+      {
+        events: 6000000,
+        unitPrice: 0.015,
+        price: 91000,
+        onDemandPrice: 0.0195
+      },
+      {
+        events: 7000000,
+        unitPrice: 0.015,
+        price: 106000,
+        onDemandPrice: 0.0195
+      },
+      {
+        events: 8000000,
+        unitPrice: 0.015,
+        price: 121000,
+        onDemandPrice: 0.0195
+      },
+      {
+        events: 9000000,
+        unitPrice: 0.015,
+        price: 136000,
+        onDemandPrice: 0.0195
+      },
+      {
+        events: 10000000,
+        unitPrice: 0.015,
+        price: 151000,
+        onDemandPrice: 0.0195
+      },
+      {
+        events: 11000000,
+        unitPrice: 0.013,
+        price: 164000,
+        onDemandPrice: 0.0169
+      },
+      {
+        events: 12000000,
+        unitPrice: 0.013,
+        price: 177000,
+        onDemandPrice: 0.0169
+      },
+      {
+        events: 13000000,
+        unitPrice: 0.013,
+        price: 190000,
+        onDemandPrice: 0.0169
+      },
+      {
+        events: 14000000,
+        unitPrice: 0.013,
+        price: 203000,
+        onDemandPrice: 0.0169
+      },
+      {
+        events: 15000000,
+        unitPrice: 0.013,
+        price: 216000,
+        onDemandPrice: 0.0169
+      },
+      {
+        events: 16000000,
+        unitPrice: 0.013,
+        price: 229000,
+        onDemandPrice: 0.0169
+      },
+      {
+        events: 17000000,
+        unitPrice: 0.013,
+        price: 242000,
+        onDemandPrice: 0.0169
+      },
+      {
+        events: 18000000,
+        unitPrice: 0.013,
+        price: 255000,
+        onDemandPrice: 0.0169
+      },
+      {
+        events: 19000000,
+        unitPrice: 0.013,
+        price: 268000,
+        onDemandPrice: 0.0169
+      },
+      {
+        events: 20000000,
+        unitPrice: 0.013,
+        price: 281000,
+        onDemandPrice: 0.0169
+      },
+      {
+        events: 21000000,
+        unitPrice: 0.012,
+        price: 293000,
+        onDemandPrice: 0.0156
+      },
+      {
+        events: 22000000,
+        unitPrice: 0.012,
+        price: 305000,
+        onDemandPrice: 0.0156
+      },
+      {
+        events: 23000000,
+        unitPrice: 0.012,
+        price: 317000,
+        onDemandPrice: 0.0156
+      },
+      {
+        events: 24000000,
+        unitPrice: 0.012,
+        price: 329000,
+        onDemandPrice: 0.0156
+      },
+      {
+        events: 25000000,
+        unitPrice: 0.012,
+        price: 341000,
+        onDemandPrice: 0.0156
+      },
+      {
+        events: 30000000,
+        unitPrice: 0.012,
+        price: 401000,
+        onDemandPrice: 0.0156
+      },
+      {
+        events: 35000000,
+        unitPrice: 0.012,
+        price: 461000,
+        onDemandPrice: 0.0156
+      },
+      {
+        events: 40000000,
+        unitPrice: 0.012,
+        price: 521000,
+        onDemandPrice: 0.0156
+      },
+      {
+        events: 45000000,
+        unitPrice: 0.012,
+        price: 581000,
+        onDemandPrice: 0.0156
+      },
+      {
+        events: 50000000,
+        unitPrice: 0.012,
+        price: 641000,
+        onDemandPrice: 0.0156
+      }],
       transactions: [
         {
           events: 100000,
