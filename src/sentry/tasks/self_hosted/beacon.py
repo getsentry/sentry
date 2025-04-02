@@ -106,6 +106,7 @@ def get_category_event_count_24h() -> dict[str, int]:
 
 @instrumented_task(
     name="sentry.tasks.send_beacon",
+    queue="update",
     taskworker_config=TaskworkerConfig(namespace=selfhosted_tasks),
 )
 def send_beacon() -> None:
@@ -210,6 +211,7 @@ def send_beacon() -> None:
 
 @instrumented_task(
     name="sentry.tasks.send_beacon_metric",
+    queue="update",
     taskworker_config=TaskworkerConfig(namespace=selfhosted_tasks),
 )
 def send_beacon_metric(metrics: list[dict[str, Any]], **kwargs: object) -> None:
