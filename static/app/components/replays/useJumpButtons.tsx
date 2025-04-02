@@ -28,7 +28,10 @@ export default function useJumpButtons({
       targetOffsetMs: currentTime,
       allowExact: true,
     });
-    const index = frames.findIndex(spanFrame => frame === spanFrame);
+    if (!frame) {
+      return frames.length - 1;
+    }
+    const index = frames.indexOf(frame);
     // index is -1 at end of replay, so use last index
     return index === -1 ? frames.length - 1 : index;
   }, [currentTime, frames]);
