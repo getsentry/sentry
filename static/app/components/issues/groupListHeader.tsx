@@ -22,7 +22,7 @@ function GroupListHeader({
       <IssueWrapper hideDivider>{t('Issue')}</IssueWrapper>
       {withColumns.includes('lastSeen') && (
         <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
-          {t('First Seen')}
+          {t('Last Seen')}
         </LastSeenWrapper>
       )}
       {withColumns.includes('firstSeen') && (
