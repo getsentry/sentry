@@ -278,19 +278,6 @@ export function EventGraph({
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRenderer: ({ref: chartRef}) => {
-      return (
-        <EventGraph
-          ref={chartRef}
-          group={group}
-          event={event}
-          showSummary={false}
-          showReleasesAs="line"
-          disableZoomNavigation
-          {...styleProps}
-        />
-      );
-    },
     alignInMiddle: true,
     legendSelected: legendSelected.Releases,
     desiredBuckets: eventSeries.length,

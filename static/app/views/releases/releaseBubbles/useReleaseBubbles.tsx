@@ -1,4 +1,4 @@
-import {type ReactElement, useMemo, useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import type {
   CustomSeriesOption,
@@ -34,10 +34,7 @@ import {
   BUBBLE_SERIES_ID,
 } from 'sentry/views/releases/releaseBubbles/constants';
 import {createReleaseBubbleHighlighter} from 'sentry/views/releases/releaseBubbles/createReleaseBubbleHighlighter';
-import type {
-  Bucket,
-  ChartRendererProps,
-} from 'sentry/views/releases/releaseBubbles/types';
+import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/releases/releaseBubbles/utils/createReleaseBuckets';
 
 interface CreateReleaseBubbleMouseListenersParams {
@@ -47,7 +44,6 @@ interface CreateReleaseBubbleMouseListenersParams {
   location: LocationDescriptorObject;
   navigate: ReactRouter3Navigate;
   projects: readonly number[];
-  chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
 }
 
 /**
@@ -56,7 +52,6 @@ interface CreateReleaseBubbleMouseListenersParams {
  */
 function createReleaseBubbleMouseListeners({
   alignInMiddle,
-  chartRenderer,
   navigate,
   color,
   location,
@@ -346,11 +341,6 @@ interface UseReleaseBubblesParams {
    * The size (height) of the bubble
    */
   bubbleSize?: number;
-  /**
-   * This is a callback function that is used in ReleasesDrawer when rendering
-   * the chart inside of the drawer.
-   */
-  chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
   datetime?: Parameters<typeof normalizeDateTimeParams>[0];
   /**
    * Number of desired bubbles/buckets to create
@@ -375,7 +365,6 @@ interface UseReleaseBubblesParams {
 }
 
 export function useReleaseBubbles({
-  chartRenderer,
   releases,
   minTime,
   maxTime,
@@ -495,7 +484,6 @@ export function useReleaseBubbles({
      */
     releaseBubbleEventHandlers: createReleaseBubbleMouseListeners({
       alignInMiddle,
-      chartRenderer,
       navigate,
       location,
       color: theme.blue400,
