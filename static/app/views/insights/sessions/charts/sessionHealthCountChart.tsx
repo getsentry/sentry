@@ -17,6 +17,7 @@ export default function SessionHealthCountChart() {
 
   return (
     <InsightsLineChartWidget
+      title={CHART_TITLES.SessionHealthCountChart}
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.SessionHealthCountChart} />
       )}

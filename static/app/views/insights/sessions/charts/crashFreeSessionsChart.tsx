@@ -18,6 +18,7 @@ export default function CrashFreeSessionsChart() {
 
   return (
     <InsightsLineChartWidget
+      title={CHART_TITLES.CrashFreeSessionsChart}
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.CrashFreeSessionsChart} />
       )}

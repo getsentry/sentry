@@ -14,6 +14,11 @@ export default function NewAndResolvedIssueChart({type}: {type: 'issue' | 'feedb
 
   return (
     <InsightsBarChartWidget
+      title={
+        type === 'issue'
+          ? CHART_TITLES.NewAndResolvedIssueChart
+          : CHART_TITLES.NewAndResolvedFeedbackChart
+      }
       interactiveTitle={() => (
         <ChartSelectionTitle
           title={

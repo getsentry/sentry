@@ -15,6 +15,7 @@ export default function ReleaseSessionCountChart() {
 
   return (
     <InsightsLineChartWidget
+      title={CHART_TITLES.ReleaseSessionCountChart}
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.ReleaseSessionCountChart} />
       )}

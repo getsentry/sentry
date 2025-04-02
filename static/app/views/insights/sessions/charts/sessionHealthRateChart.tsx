@@ -17,6 +17,7 @@ export default function SessionHealthRateChart() {
 
   return (
     <InsightsAreaChartWidget
+      title={CHART_TITLES.SessionHealthRateChart}
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.SessionHealthRateChart} />
       )}

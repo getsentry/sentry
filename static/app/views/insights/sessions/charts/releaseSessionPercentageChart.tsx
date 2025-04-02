@@ -15,6 +15,7 @@ export default function ReleaseSessionPercentageChart() {
 
   return (
     <InsightsAreaChartWidget
+      title={CHART_TITLES.ReleaseSessionPercentageChart}
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.ReleaseSessionPercentageChart} />
       )}

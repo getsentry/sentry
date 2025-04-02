@@ -9,6 +9,7 @@ export default function ReleaseNewIssuesChart() {
 
   return (
     <InsightsLineChartWidget
+      title={CHART_TITLES.ReleaseNewIssuesChart}
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.ReleaseNewIssuesChart} />
       )}

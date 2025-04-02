@@ -17,6 +17,7 @@ export default function UserHealthRateChart() {
 
   return (
     <InsightsAreaChartWidget
+      title={CHART_TITLES.UserHealthRateChart}
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.UserHealthRateChart} />
       )}

@@ -14,6 +14,7 @@ export default function ErrorFreeSessionsChart() {
 
   return (
     <InsightsLineChartWidget
+      title={CHART_TITLES.ErrorFreeSessionsChart}
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.ErrorFreeSessionsChart} />
       )}

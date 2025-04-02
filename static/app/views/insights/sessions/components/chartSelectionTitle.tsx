@@ -10,6 +10,10 @@ import {
 import {useInsightLayoutContext} from 'sentry/views/insights/sessions/components/insightLayoutContext';
 
 interface Props {
+  /**
+   * `title` is required so we can render a name even if ChartPlacementContext
+   * is not in use.
+   */
   title: string;
 }
 
