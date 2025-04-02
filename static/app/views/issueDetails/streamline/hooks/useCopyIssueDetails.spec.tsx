@@ -42,7 +42,10 @@ describe('useCopyIssueDetails', () => {
   // Create a mock AutofixData with steps that includes root cause and solution steps
   const mockAutofixData: AutofixData = {
     created_at: '2023-01-01T00:00:00Z',
-    repositories: [],
+    request: {
+      repos: [],
+    },
+    codebases: {},
     run_id: '123',
     status: AutofixStatus.COMPLETED,
     steps: [
