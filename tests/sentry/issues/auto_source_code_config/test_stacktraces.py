@@ -71,6 +71,20 @@ BASIC_FRAME = {"in_app": True, "filename": "foo"}
             ],
             id="python_paths",
         ),
+        pytest.param(
+            [
+                # This frame is excluded because it has already been categorized
+                {"module": "android.app", "in_app": False, "data": {"category": "foo"}},
+                {"module": "com.example.foo", "in_app": False, "data": {}},
+                {"module": "com.example.bar", "in_app": False},
+            ],
+            "java",
+            [
+                {"module": "com.example.foo", "in_app": False, "data": {}},
+                {"module": "com.example.bar", "in_app": False},
+            ],
+            id="java_module_with_category",
+        ),
     ],
 )
 def test_get_frames_to_process(
