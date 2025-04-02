@@ -452,7 +452,7 @@ function UsageChartBody({
             tooltip: {show: false},
             itemStyle: {
               decal: {
-                color: 'rgba(255, 255, 255, 0.2)',
+                color: theme.subText,
                 dashArrayX: [1, 0],
                 dashArrayY: [3, 5],
                 rotation: -Math.PI / 4,

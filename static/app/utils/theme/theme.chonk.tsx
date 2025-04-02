@@ -814,7 +814,7 @@ const generateAliases = (
   /**
    * Color for the 'others' series in topEvent charts
    */
-  chartOther: colors.gray200,
+  chartOther: tokens.content.muted,
 
   /**
    * Default Progressbar color
