@@ -99,6 +99,7 @@ function PrimaryNavigationQuotaExceeded({
 }) {
   const [exceededCategories, setExceededCategories] = useState<string[]>([]);
   const [promptsToCheck, setPromptsToCheck] = useState<string[]>([]);
+  const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
     if (!subscription.categories) {
@@ -142,21 +143,19 @@ function PrimaryNavigationQuotaExceeded({
     {staleTime: 0, enabled: promptsToCheck.length > 0}
   );
 
-  // const promptIsDismissedForBillingPeriod = (prompt: {
-  //   dismissed_ts?: number;
-  //   snoozed_ts?: number;
-  // }) => {
-  //   const {snoozed_ts, dismissed_ts} = prompt || {};
-  //   const time = snoozed_ts || dismissed_ts;
-  //   if (!time) {
-  //     return false;
-  //   }
-  //   const onDemandPeriodEnd = new Date(subscription.onDemandPeriodEnd);
-  //   onDemandPeriodEnd.setHours(23, 59, 59);
-  //   return time <= onDemandPeriodEnd.getTime() / 1000;
-  // };
-
-  const [isDismissed, setIsDismissed] = useState(false);
+  // const promptIsDismissedForBillingPeriod = useCallback(
+  //   (prompt: {dismissed_ts?: number; snoozed_ts?: number}) => {
+  //     const {snoozed_ts, dismissed_ts} = prompt || {};
+  //     const time = snoozed_ts || dismissed_ts;
+  //     if (!time) {
+  //       return false;
+  //     }
+  //     const onDemandPeriodEnd = new Date(subscription.onDemandPeriodEnd);
+  //     onDemandPeriodEnd.setHours(23, 59, 59);
+  //     return time <= onDemandPeriodEnd.getTime() / 1000;
+  //   },
+  //   [subscription.onDemandPeriodEnd]
+  // );
 
   // const isAllDismissedForPeriod = useMemo(() => {
   //   return (
