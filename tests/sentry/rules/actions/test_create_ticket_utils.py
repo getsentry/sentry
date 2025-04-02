@@ -38,7 +38,7 @@ class CreateTicketUtilsTest(TestCase):
             self.event, workflow_id, installation, generate_footer
         )
 
-        expected_url = f"/organizations/{self.organization.slug}/workflows/{workflow_id}/"
+        expected_url = f"/organizations/{self.organization.id}/workflows/{workflow_id}/"
         assert (
             description
             == f"Test description\n\nThis issue was created by a workflow: {expected_url}"

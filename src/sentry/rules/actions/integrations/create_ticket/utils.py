@@ -18,6 +18,7 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
+from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
     IntegrationInstallationConfigurationError,
@@ -73,7 +74,7 @@ def build_description_workflow_engine_ui(
     generate_footer: Callable[[str], str],
 ) -> str:
     project = event.group.project
-    workflow_url = f"/organizations/{project.organization.slug}/workflows/{workflow_id}/"
+    workflow_url = create_link_to_workflow(project.organization.id, workflow_id)
 
     description: str = installation.get_group_description(event.group, event) + generate_footer(
         workflow_url
