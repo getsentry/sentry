@@ -17,6 +17,7 @@ import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSe
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import type {DisplayType, Widget, WidgetQuery} from '../types';
 import {WidgetType} from '../types';
@@ -160,7 +161,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     pageFilters: PageFilters,
     onDemandControlContext?: OnDemandControlContext,
     referrer?: string,
-    mepSetting?: MEPState | null
+    mepSetting?: MEPState | null,
+    samplingMode?: SamplingMode
   ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Get the result type of the series. ie duration, size, percentage, etc
