@@ -23,8 +23,6 @@ import {
   useAutofixData,
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
-import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
-import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {IconCode, IconCopy, IconOpen} from 'sentry/icons';
