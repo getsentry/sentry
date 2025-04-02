@@ -52,7 +52,7 @@ class ResolvedColumn:
     secondary_alias: bool = False
 
     def __post_init__(self):
-        if not self.search_type not in constants.VALID_UNITS_MAP:
+        if self.search_type not in constants.VALID_UNITS_MAP:
             return
 
         valid_units = constants.VALID_UNITS_MAP[
