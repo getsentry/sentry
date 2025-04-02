@@ -41,6 +41,7 @@ export interface InsightsTimeSeriesWidgetProps extends WidgetTitleProps {
   aliases?: Record<string, string>;
   description?: React.ReactNode;
   height?: string | number;
+  interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
   stacked?: boolean;
@@ -76,8 +77,10 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     }),
   };
 
-  const Title = (
-    <Widget.WidgetTitle title={props.title} interactiveTitle={props.interactiveTitle} />
+  const Title = props.interactiveTitle ? (
+    props.interactiveTitle()
+  ) : (
+    <Widget.WidgetTitle title={props.title} />
   );
 
   // TODO: Instead of using `ChartContainer`, enforce the height from the parent layout
