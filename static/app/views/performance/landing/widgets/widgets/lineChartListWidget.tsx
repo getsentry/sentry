@@ -178,7 +178,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             {field: SpanMetricsField.SPAN_OP},
             {field: SpanMetricsField.SPAN_GROUP},
             {field: 'project.id'},
-            {field: SpanMetricsField.SPAN_DESCRIPTION},
+            {field: SpanMetricsField.NORMALIZED_DESCRIPTION},
             {field: `sum(${SpanMetricsField.SPAN_SELF_TIME})`},
             {field: `avg(${SpanMetricsField.SPAN_SELF_TIME})`},
             {field},
@@ -196,7 +196,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           mutableSearch.removeFilter('event.type');
           eventView.additionalConditions.removeFilter('event.type');
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
-          mutableSearch.addFilterValue('has', 'span.description');
+          mutableSearch.addFilterValue('has', 'sentry.normalized_description');
           mutableSearch.addFilterValue('span.module', 'db');
           eventView.query = mutableSearch.formatString();
         } else if (
@@ -351,7 +351,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           if (
             !provided.widgetData.list.data[selectedListIndex]?.transaction &&
             !provided.widgetData.list.data[selectedListIndex]?.[
-              SpanMetricsField.SPAN_DESCRIPTION
+              SpanMetricsField.NORMALIZED_DESCRIPTION
             ] &&
             !provided.widgetData.list.data[selectedListIndex]?.[
               SpanMetricsField.SPAN_DOMAIN
@@ -646,7 +646,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           );
         case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
         case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES: {
-          const description = listItem[SpanMetricsField.SPAN_DESCRIPTION] as string;
+          const description = listItem[SpanMetricsField.NORMALIZED_DESCRIPTION] as string;
           const group = listItem[SpanMetricsField.SPAN_GROUP] as string;
           const projectID = listItem['project.id'] as number;
           const timeSpentPercentage = listItem[fieldString] as number;

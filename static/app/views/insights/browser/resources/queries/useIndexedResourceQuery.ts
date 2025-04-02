@@ -67,7 +67,7 @@ export const useIndexedResourcesQuery = ({
     result?.data?.data.map(row => ({
       project: row.project as string,
       'transaction.id': row['transaction.id'] as string,
-      [NORMALIZED_DESCRIPTION]: row[NORMALIZED_DESCRIPTION]?.toString(),
+      [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION]?.toString(),
       [RAW_DOMAIN]: row[RAW_DOMAIN]?.toString(),
       'measurements.http.response_content_length': row[
         `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`
