@@ -2,19 +2,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
-from uuid import uuid4
 
 from sentry import features
 from sentry.incidents.metric_alert_detector import MetricAlertsDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.grouptype import GroupCategory, GroupType
-from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
+from sentry.workflow_engine.handlers.detector import (
+    DetectorOccurrence,
+    EventData,
+    StatefulDetectorHandler,
+)
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey
 
@@ -24,26 +25,20 @@ COMPARISON_DELTA_CHOICES.append(None)
 
 class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):
     def build_occurrence_and_event_data(
-        self, group_key: DetectorGroupKey, value: int, new_status: PriorityLevel
-    ) -> tuple[IssueOccurrence, dict[str, Any]]:
+        self, group_key: DetectorGroupKey, new_status: PriorityLevel
+    ) -> tuple[DetectorOccurrence, EventData]:
         # Returning a placeholder for now, this may require us passing more info
 
-        occurrence = IssueOccurrence(
-            id=str(uuid4()),
-            project_id=self.detector.project_id,
-            event_id=str(uuid4()),
-            fingerprint=self.build_fingerprint(group_key),
+        # don't want to expose fingerprint, event_id, project_id, id, detection_time, or initial_issue_priority.
+        # -- platform should handle all of this.
+        occurrence = DetectorOccurrence(
             issue_title="Some Issue",
             subtitle="Some subtitle",
-            resource_id=None,
-            evidence_data={"detector_id": self.detector.id, "value": value},
-            evidence_display=[],
             type=MetricAlertFire,
-            detection_time=datetime.now(UTC),
             level="error",
-            culprit="Some culprit",
-            initial_issue_priority=new_status.value,
+            culprit="Some culprit",  # TODO -- should this be done in the detector as the data condition?
         )
+
         event_data = {
             "timestamp": occurrence.detection_time,
             "project_id": occurrence.project_id,

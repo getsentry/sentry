@@ -1,15 +1,29 @@
 import abc
 import dataclasses
 import logging
+from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Any, Generic, TypeVar
 
-from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
+
+
+@dataclasses.dataclass(frozen=True)
+class DetectorOccurrence(IssueOccurrence):
+    id: str | None
+    project_id: int | None
+    # Event id pointing to an event in nodestore
+    event_id: str | None
+    fingerprint: Sequence[str] | None
+    evidence_data: Mapping[str, Any] | None
+    evidence_display: Sequence[IssueEvidence] | None
+    detection_time: datetime | None
 
 
 @dataclasses.dataclass(frozen=True)

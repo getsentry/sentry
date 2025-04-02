@@ -1,6 +1,8 @@
 import abc
-from datetime import timedelta
+from collections.abc import Mapping
+from datetime import datetime, timedelta
 from typing import Any, TypeVar
+from uuid import uuid4
 
 from django.conf import settings
 from django.db.models import Q
@@ -15,6 +17,7 @@ from sentry.utils.iterators import chunked
 from sentry.workflow_engine.handlers.detector.base import (
     DetectorEvaluationResult,
     DetectorHandler,
+    DetectorOccurrence,
     DetectorStateData,
 )
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
@@ -23,6 +26,7 @@ from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 T = TypeVar("T")
 REDIS_TTL = int(timedelta(days=7).total_seconds())
+EventData = Mapping[str, Any]
 
 
 def get_redis_client() -> RetryingRedisCluster:
@@ -63,8 +67,9 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
 
     @abc.abstractmethod
     def build_occurrence_and_event_data(
-        self, group_key: DetectorGroupKey, value: int, new_status: PriorityLevel
-    ) -> tuple[IssueOccurrence, dict[str, Any]]:
+        self, group_key: DetectorGroupKey, new_status: PriorityLevel
+    ) -> tuple[DetectorOccurrence, EventData]:
+        # TODO how could we decorate the issue occurrence with the detector information?
         pass
 
     def build_fingerprint(self, group_key) -> list[str]:
@@ -209,9 +214,26 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
                     new_substatus=None,
                 )
             else:
-                result, event_data = self.build_occurrence_and_event_data(
-                    group_key, value, PriorityLevel(new_status)
+                detector_occurrence, event_data = self.build_occurrence_and_event_data(
+                    group_key, PriorityLevel(new_status)
                 )
+
+                result = IssueOccurrence(
+                    id=detector_occurrence.id or str(uuid4()),
+                    project_id=detector_occurrence.project_id or self.detector.project_id,
+                    event_id=detector_occurrence.event_id or str(uuid4()),
+                    detection_time=detector_occurrence.detection_time or datetime.now(),
+                    resource_id=detector_occurrence.resource_id,
+                    fingerprint=self.build_fingerprint(group_key),
+                    evidence_data={
+                        **detector_occurrence.evidence_data,
+                        "detector_id": self.detector.id,
+                        "value": value,
+                    },
+                    evidence_display=detector_occurrence.evidence_display or [],
+                    initial_issue_priority=new_status,
+                )
+
             return DetectorEvaluationResult(
                 group_key=group_key,
                 is_active=is_active,
