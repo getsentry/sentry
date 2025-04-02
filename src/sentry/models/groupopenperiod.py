@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.postgres.fields import DateTimeRangeField
 from django.db import models
 from django.utils import timezone
 
@@ -6,10 +7,10 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
-# This class would be necessary for the exclusion constraint below.
-# class TsTzRange(models.Func):
-#     function = "TSTZRANGE"
-#     output_field = DateTimeRangeField()
+
+class TsTzRange(models.Func):
+    function = "TSTZRANGE"
+    output_field = DateTimeRangeField()
 
 
 @region_silo_model
