@@ -111,7 +111,7 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
 
         if not detector_id and not workflow_id:
             raise serializers.ValidationError(
-                {"detail": "detector_id or workflow_id must be provided."}
+                {"detail": "detector_id and/or workflow_id must be provided."}
             )
 
         queryset = DetectorWorkflow.objects.filter(workflow__organization=organization)
