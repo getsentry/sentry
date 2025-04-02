@@ -18,7 +18,6 @@ import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 const {
   SPAN_DOMAIN,
   SPAN_GROUP,
-  SPAN_DESCRIPTION,
   SPAN_OP,
   SPAN_SELF_TIME,
   RESOURCE_RENDER_BLOCKING_STATUS,
@@ -26,6 +25,7 @@ const {
   PROJECT_ID,
   FILE_EXTENSION,
   USER_GEO_SUBREGION,
+  NORMALIZED_DESCRIPTION,
 } = SpanMetricsField;
 
 const {TIME_SPENT_PERCENTAGE} = SpanFunction;
@@ -39,7 +39,9 @@ type Props = {
   query?: string;
 };
 
-export const DEFAULT_RESOURCE_FILTERS = ['!span.description:"browser-extension://*"'];
+export const DEFAULT_RESOURCE_FILTERS = [
+  '!sentry.normalized_description:"browser-extension://*"',
+];
 
 export const getResourcesEventViewQuery = (
   resourceFilters: Partial<ModuleFilters>,
@@ -85,7 +87,7 @@ export const useResourcesQuery = ({
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [
-        SPAN_DESCRIPTION,
+        NORMALIZED_DESCRIPTION,
         SPAN_OP,
         'count()',
         `avg(${SPAN_SELF_TIME})`,
@@ -123,7 +125,7 @@ export const useResourcesQuery = ({
 
   const data = result?.data?.data.map(row => ({
     [SPAN_OP]: row[SPAN_OP]!.toString() as `resource.${string}`,
-    [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION]!.toString(),
+    [NORMALIZED_DESCRIPTION]: row[NORMALIZED_DESCRIPTION]!.toString(),
     ['avg(span.self_time)']: row[`avg(${SPAN_SELF_TIME})`] as number,
     'count()': row['count()'] as number,
     'epm()': row['epm()'] as number,

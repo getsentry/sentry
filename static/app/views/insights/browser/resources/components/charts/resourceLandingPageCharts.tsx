@@ -11,7 +11,7 @@ import {
 } from 'sentry/views/insights/common/views/spans/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
-const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
+const {SPAN_SELF_TIME, NORMALIZED_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
 
 type Props = {
   appliedFilters: ModuleFilters;
@@ -73,7 +73,7 @@ const buildDiscoverQueryConditions = (appliedFilters: ModuleFilters) => {
       return `${key}:${value}`;
     });
 
-  result.push(`has:${SPAN_DESCRIPTION}`);
+  result.push(`has:${NORMALIZED_DESCRIPTION}`);
 
   return result.join(' ');
 };

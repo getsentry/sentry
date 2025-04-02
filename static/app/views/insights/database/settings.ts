@@ -18,7 +18,7 @@ export const BASE_URL = 'database';
 
 export const BASE_FILTERS = {
   'span.module': ModuleName.DB,
-  has: 'span.description',
+  has: 'sentry.normalized_description',
 };
 
 export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
