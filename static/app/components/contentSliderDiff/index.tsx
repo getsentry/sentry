@@ -172,11 +172,11 @@ const DiffHeader = styled('div')`
   justify-content: space-between;
 
   & > *:first-child {
-    color: ${p => p.theme.red300};
+    color: ${p => p.theme.error};
   }
 
   & > *:last-child {
-    color: ${p => p.theme.green300};
+    color: ${p => p.theme.success};
   }
   margin-bottom: ${space(0.5)};
 `;
@@ -244,11 +244,11 @@ const Cover = styled('div')`
   left: 0px;
   top: 0px;
 
-  border-color: ${p => p.theme.green300};
+  border-color: ${p => p.theme.success};
   & + & {
     border: ${BORDER_WIDTH}px solid;
     border-radius: ${space(0.5)} 0 0 ${space(0.5)};
-    border-color: ${p => p.theme.red300};
+    border-color: ${p => p.theme.error};
     border-right-width: 0;
   }
 `;
