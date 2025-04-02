@@ -206,7 +206,7 @@ class SpansBuffer:
                         ]
                         queue_keys.append(f"span-buf:q:{shard}")
 
-                    results = p.execute()
+                results = p.execute()
 
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             queue_deletes: dict[str, set[bytes]] = {}
