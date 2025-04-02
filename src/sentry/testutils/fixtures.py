@@ -668,6 +668,12 @@ class Fixtures:
     def create_detector_workflow(self, *args, **kwargs):
         return Factories.create_detector_workflow(*args, **kwargs)
 
+    def create_alert_rule_detector(self, *args, **kwargs):
+        return Factories.create_alert_rule_detector(*args, **kwargs)
+
+    def create_action_alert_rule_trigger_action(self, *args, **kwargs):
+        return Factories.create_action_alert_rule_trigger_action(*args, **kwargs)
+
     def create_alert_rule_workflow(self, *args, **kwargs):
         return Factories.create_alert_rule_workflow(*args, **kwargs)
 
