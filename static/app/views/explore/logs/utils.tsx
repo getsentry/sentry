@@ -137,7 +137,10 @@ export function removePrefixes(key: string) {
 
 export function adjustAliases(key: string) {
   switch (key) {
-    case OurLogKnownFieldKey.SENTRY_PROJECT_ID:
+    case 'sentry.project_id':
+      warn(
+        fmt`Field ${key} is deprecated. Please use ${OurLogKnownFieldKey.PROJECT_ID} instead.`
+      );
       return OurLogKnownFieldKey.PROJECT_ID; // Public alias since int<->string alias reversing is broken. Should be removed in the future.
     default:
       return key;

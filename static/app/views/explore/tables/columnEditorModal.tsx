@@ -28,6 +28,7 @@ interface ColumnEditorModalProps extends ModalRenderProps {
   numberTags: TagCollection;
   onColumnsChange: (fields: string[]) => void;
   stringTags: TagCollection;
+  hiddenKeys?: string[];
 }
 
 export function ColumnEditorModal({
@@ -39,6 +40,7 @@ export function ColumnEditorModal({
   onColumnsChange,
   numberTags,
   stringTags,
+  hiddenKeys,
 }: ColumnEditorModalProps) {
   const tags: Array<SelectOption<string>> = useMemo(() => {
     const allTags = [
@@ -75,19 +77,21 @@ export function ColumnEditorModal({
         };
       }),
     ];
-    allTags.sort((a, b) => {
-      if (a.label < b.label) {
-        return -1;
-      }
+    allTags
+      .filter(tag => !hiddenKeys?.includes(tag.label))
+      .sort((a, b) => {
+        if (a.label < b.label) {
+          return -1;
+        }
 
-      if (a.label > b.label) {
-        return 1;
-      }
+        if (a.label > b.label) {
+          return 1;
+        }
 
-      return 0;
-    });
+        return 0;
+      });
     return allTags;
-  }, [columns, stringTags, numberTags]);
+  }, [columns, stringTags, numberTags, hiddenKeys]);
 
   // We keep a temporary state for the columns so that we can apply the changes
   // only when the user clicks on the apply button.
