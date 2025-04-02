@@ -43,12 +43,12 @@ function QuotaExceededContent({
   exceededCategories,
   subscription,
   organization,
-  onDismiss,
+  onCheck,
   isDismissed,
 }: {
   exceededCategories: string[];
   isDismissed: boolean;
-  onDismiss: () => void;
+  onCheck: (checked: boolean) => void;
   organization: Organization;
   subscription: Subscription;
 }) {
@@ -92,9 +92,8 @@ function QuotaExceededContent({
             <Checkbox
               name="dismiss"
               checked={isDismissed}
-              disabled={isDismissed}
-              onChange={() => {
-                onDismiss();
+              onChange={e => {
+                onCheck(e.target.checked);
               }}
             />
             <CheckboxLabel>{t("Don't annoy me again")}</CheckboxLabel>
@@ -130,7 +129,7 @@ function PrimaryNavigationQuotaExceeded({
     })
     .filter(Boolean) as string[];
 
-  const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompts({
+  const {isLoading, isError, isPromptDismissed, dismissPrompt, showPrompt} = usePrompts({
     features: promptsToCheck,
     organization,
     daysToSnooze: -1 * getDaysSinceDate(subscription.onDemandPeriodEnd),
@@ -140,7 +139,6 @@ function PrimaryNavigationQuotaExceeded({
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-    state: overlayState,
   } = usePrimaryButtonOverlay({});
   const theme = useTheme();
   const prefersStackedNav = usePrefersStackedNav();
@@ -153,11 +151,14 @@ function PrimaryNavigationQuotaExceeded({
     return null;
   }
 
-  const onDismiss = () => {
+  const onCheckboxChange = (checked: boolean) => {
     promptsToCheck.forEach(prompt => {
-      dismissPrompt(prompt);
+      if (checked) {
+        dismissPrompt(prompt);
+      } else {
+        showPrompt(prompt);
+      }
     });
-    overlayState.close();
   };
 
   const hasDismissedAllPrompts = () => {
@@ -167,8 +168,8 @@ function PrimaryNavigationQuotaExceeded({
   return (
     <Fragment>
       <SidebarButton
-        analyticsKey="quotaExceeded"
-        label={t('Billing Overage')}
+        analyticsKey="billingStatus"
+        label={t('Billing Status')}
         buttonProps={{...overlayTriggerProps, style: {backgroundColor: theme.warning}}}
       >
         <motion.div {...(isOpen || hasDismissedAllPrompts() ? {} : ANIMATE_PROPS)}>
@@ -182,7 +183,7 @@ function PrimaryNavigationQuotaExceeded({
             subscription={subscription}
             organization={organization}
             isDismissed={hasDismissedAllPrompts()}
-            onDismiss={onDismiss}
+            onCheck={onCheckboxChange}
           />
         </PrimaryButtonOverlay>
       )}
@@ -232,6 +233,7 @@ const ActionContainer = styled('div')`
 const DismissContainer = styled('div')`
   display: flex;
   flex-direction: row;
+  align-items: center;
 `;
 
 const CheckboxLabel = styled('span')`
