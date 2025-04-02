@@ -217,6 +217,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="number",
         ),
         ResolvedAttribute(
+            public_alias="received",
+            internal_name="sentry.received",
+            search_type="number",
+        ),
+        ResolvedAttribute(
             public_alias="mobile.frames_delay",
             internal_name="frames.delay",
             search_type="second",
@@ -296,11 +301,6 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="db.system",
             search_type="string",
             secondary_alias=True,
-        ),
-        ResolvedAttribute(
-            public_alias="project_id",
-            internal_name="sentry.project_id",
-            search_type="integer",
         ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("environment"),
