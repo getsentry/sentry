@@ -874,6 +874,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
             {
                 "query": "",
                 "project": [self.project.id],
+                "statsPeriod": "1h",
                 "dataSource": "spans",
             },
         )

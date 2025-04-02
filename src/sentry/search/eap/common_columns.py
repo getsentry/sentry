@@ -16,8 +16,6 @@ COMMON_COLUMNS = [
     ResolvedAttribute(
         public_alias="project_id",
         internal_name="sentry.project_id",
-        internal_type=constants.INT,
-        search_type="string",
-        secondary_alias=True,
+        search_type="integer",
     ),
 ]
