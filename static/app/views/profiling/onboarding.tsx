@@ -292,7 +292,7 @@ export function Onboarding() {
     projectSlug: project.slug,
     isFeedbackSelected: false,
     isPerformanceSelected: true,
-    isProfilingSelected: false,
+    isProfilingSelected: true,
     isReplaySelected: false,
     sourcePackageRegistries: {
       isLoading: false,
@@ -300,10 +300,17 @@ export function Onboarding() {
     },
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
     docsLocation: DocsPageLocation.PROFILING_PAGE,
+    profilingOptions: {
+      defaultProfilingMode: organization.features.includes('continuous-profiling')
+        ? 'continuous'
+        : 'transaction',
+    },
     newOrg: false,
     urlPrefix,
     isSelfHosted,
   };
+
+  const introduction = profilingDocs.introduction?.(docParams);
 
   const steps = [
     ...profilingDocs.install(docParams),
@@ -313,6 +320,7 @@ export function Onboarding() {
   return (
     <OnboardingPanel project={project}>
       <BodyTitle>{t('Set up the Sentry SDK')}</BodyTitle>
+      {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <GuidedSteps>
         {steps
           // Only show non-optional steps
