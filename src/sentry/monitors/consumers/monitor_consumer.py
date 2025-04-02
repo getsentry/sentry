@@ -40,7 +40,6 @@ from sentry.monitors.models import (
     MonitorEnvironmentLimitsExceeded,
     MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
-    MonitorType,
 )
 from sentry.monitors.processing_errors.errors import (
     CheckinEnvironmentMismatch,
@@ -154,7 +153,6 @@ def _ensure_monitor_with_config(
             defaults={
                 "name": monitor_slug,
                 "status": ObjectStatus.ACTIVE,
-                "type": MonitorType.CRON_JOB,
                 "config": validated_config,
                 "owner_user_id": owner_user_id,
                 "owner_team_id": owner_team_id,
@@ -409,6 +407,9 @@ def update_existing_check_in(
 
     # IN_PROGRESS heartbeats bump the date_updated
     if updated_status == CheckInStatus.IN_PROGRESS:
+        # XXX(epurkhiser): Tracking metrics on updating the date_updated since
+        # we may weant to remove this 'heart-beat' feature.
+        metrics.incr("monitors.in_progress_heart_beat", tags=metric_kwargs)
         updated_checkin["date_updated"] = start_time
 
     existing_check_in.update(**updated_checkin)

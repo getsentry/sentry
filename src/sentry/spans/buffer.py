@@ -112,6 +112,16 @@ class Span(NamedTuple):
     payload: bytes
     is_segment_span: bool = False
 
+    def effective_parent_id(self):
+        # Note: For the case where the span's parent is in another project, we
+        # will still flush the segment-without-root-span as one unit, just
+        # after span_buffer_timeout_secs rather than
+        # span_buffer_root_timeout_secs.
+        if self.is_segment_span:
+            return self.span_id
+        else:
+            return self.parent_span_id or self.span_id
+
 
 class OutputSpan(NamedTuple):
     payload: dict[str, Any]
@@ -129,6 +139,7 @@ class SpansBuffer:
         self.span_buffer_timeout_secs = span_buffer_timeout_secs
         self.span_buffer_root_timeout_secs = span_buffer_root_timeout_secs
         self.redis_ttl = redis_ttl
+        self.add_buffer_sha: str | None = None
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -153,69 +164,63 @@ class SpansBuffer:
             deadlines. Used for unit-testing and managing backlogging behavior.
         """
 
-        with metrics.timer("spans.buffer.process_spans.insert_spans"):
-            queue_keys = []
-            is_root_span_count = 0
+        queue_keys = []
+        is_root_span_count = 0
+        has_root_span_count = 0
+        min_redirect_depth = float("inf")
+        max_redirect_depth = float("-inf")
+
+        with metrics.timer("spans.buffer.process_spans.push_payloads"):
+            trees = self._group_by_parent(spans)
 
             with self.client.pipeline(transaction=False) as p:
-                for span in spans:
-                    # (parent_span_id) -> [Span]
-                    shard = self.assigned_shards[int(span.trace_id, 16) % len(self.assigned_shards)]
-                    queue_key = f"span-buf:q:{shard}"
+                for (project_and_trace, parent_span_id), subsegment in trees.items():
+                    set_key = f"span-buf:s:{{{project_and_trace}}}:{parent_span_id}"
+                    p.sadd(set_key, *[span.payload for span in subsegment])
 
-                    # Note: For the case where the span's parent is in another project, we
-                    # will still flush the segment-without-root-span as one unit, just
-                    # after span_buffer_timeout_secs rather than
-                    # span_buffer_root_timeout_secs.
-                    is_root_span = span.is_segment_span
+                p.execute()
 
-                    if is_root_span:
-                        is_root_span_count += 1
-                        parent_span_id = span.span_id
-                    else:
-                        parent_span_id = span.parent_span_id or span.span_id
+        with metrics.timer("spans.buffer.process_spans.insert_spans"):
+            # Workaround to make `evalsha` work in pipelines. We load ensure the
+            # script is loaded just before calling it below. This calls `SCRIPT
+            # EXISTS` once per batch.
+            add_buffer_sha = self._ensure_script()
 
-                    # hack to make redis-cluster-py pipelines work well with
-                    # scripts. we cannot use EVALSHA or "the normal way to do
-                    # scripts in sentry" easily until we get rid of
-                    # redis-cluster-py sentrywide. this probably leaves a bit of
-                    # perf on the table as we send the full lua sourcecode with every span.
-                    p.eval(
-                        add_buffer_script.script,
-                        1,
-                        f"{span.project_id}:{span.trace_id}",
-                        span.payload,
-                        "true" if is_root_span else "false",
-                        span.span_id,
-                        parent_span_id,
-                        self.redis_ttl,
-                    )
+            with self.client.pipeline(transaction=False) as p:
+                for (project_and_trace, parent_span_id), subsegment in trees.items():
+                    for span in subsegment:
+                        p.execute_command(
+                            "EVALSHA",
+                            add_buffer_sha,
+                            1,
+                            project_and_trace,
+                            "true" if span.is_segment_span else "false",
+                            span.span_id,
+                            parent_span_id,
+                            self.redis_ttl,
+                        )
 
-                    queue_keys.append(queue_key)
+                        is_root_span_count += int(span.is_segment_span)
+                        shard = self.assigned_shards[
+                            int(span.trace_id, 16) % len(self.assigned_shards)
+                        ]
+                        queue_keys.append(f"span-buf:q:{shard}")
 
                 results = p.execute()
 
         with metrics.timer("spans.buffer.process_spans.update_queue"):
-            queue_delete_items: dict[str, set[bytes]] = {}
-            queue_add_items: dict[str, MutableMapping[str | bytes, int]] = {}
-
-            has_root_span_count = 0
-            min_hole_size = float("inf")
-            max_hole_size = float("-inf")
+            queue_deletes: dict[str, set[bytes]] = {}
+            queue_adds: dict[str, MutableMapping[str | bytes, int]] = {}
 
             assert len(queue_keys) == len(results)
 
-            for queue_key, (hole_size, delete_item, add_item, has_root_span) in zip(
+            for queue_key, (redirect_depth, delete_item, add_item, has_root_span) in zip(
                 queue_keys, results
             ):
-                # For each span, hole_size measures how long it took to
-                # find the corresponding intermediate segment. Larger
-                # numbers loosely correlate with fewer siblings per tree
-                # level.
-                min_hole_size = min(min_hole_size, hole_size)
-                max_hole_size = max(max_hole_size, hole_size)
+                min_redirect_depth = min(min_redirect_depth, redirect_depth)
+                max_redirect_depth = max(max_redirect_depth, redirect_depth)
 
-                delete_set = queue_delete_items.setdefault(queue_key, set())
+                delete_set = queue_deletes.setdefault(queue_key, set())
                 delete_set.add(delete_item)
                 # if we are going to add this item, we should not need to
                 # delete it from redis
@@ -226,23 +231,22 @@ class SpansBuffer:
                 # usual.
                 if has_root_span:
                     has_root_span_count += 1
-                    timestamp = now + self.span_buffer_root_timeout_secs
+                    offset = self.span_buffer_root_timeout_secs
                 else:
-                    timestamp = now + self.span_buffer_timeout_secs
+                    offset = self.span_buffer_timeout_secs
 
-                zadd_items = queue_add_items.setdefault(queue_key, {})
-                zadd_items[add_item] = timestamp
+                zadd_items = queue_adds.setdefault(queue_key, {})
+                zadd_items[add_item] = now + offset
                 if delete_item != add_item:
                     zadd_items.pop(delete_item, None)
 
             with self.client.pipeline(transaction=False) as p:
-                for queue_key, adds in queue_add_items.items():
+                for queue_key, adds in queue_adds.items():
                     if adds:
                         p.zadd(queue_key, adds)
                         p.expire(queue_key, self.redis_ttl)
 
-                for queue_key, deletes in queue_delete_items.items():
-                    # set can be empty as we both push and pop from it.
+                for queue_key, deletes in queue_deletes.items():
                     if deletes:
                         p.zrem(queue_key, *deletes)
 
@@ -251,9 +255,46 @@ class SpansBuffer:
         metrics.timing("spans.buffer.process_spans.num_spans", len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_has_root_spans", has_root_span_count)
+        metrics.timing("span.buffer.hole_size.min", min_redirect_depth)
+        metrics.timing("span.buffer.hole_size.max", max_redirect_depth)
 
-        metrics.timing("span.buffer.hole_size.min", min_hole_size)
-        metrics.timing("span.buffer.hole_size.max", max_hole_size)
+    def _ensure_script(self):
+        if self.add_buffer_sha is not None:
+            if self.client.script_exists(self.add_buffer_sha)[0]:
+                return self.add_buffer_sha
+
+        self.add_buffer_sha = self.client.script_load(add_buffer_script.script)
+        return self.add_buffer_sha
+
+    def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[str, str], list[Span]]:
+        """
+        Groups partial trees of spans by their top-most parent span ID in the
+        provided list. The result is a dictionary where the keys identify a
+        top-most known parent, and the value is a flat list of all its
+        transitive children.
+
+        :param spans: List of spans to be grouped.
+        :return: Dictionary of grouped spans. The key is a tuple of
+            the `project_and_trace`, and the `parent_span_id`.
+        """
+        trees: dict[tuple[str, str], list[Span]] = {}
+        redirects: dict[str, dict[str, str]] = {}
+
+        for span in spans:
+            project_and_trace = f"{span.project_id}:{span.trace_id}"
+            parent = span.effective_parent_id()
+
+            trace_redirects = redirects.setdefault(project_and_trace, {})
+            while redirect := trace_redirects.get(parent):
+                parent = redirect
+
+            subsegment = trees.setdefault((project_and_trace, parent), [])
+            if parent != span.span_id:
+                subsegment.extend(trees.pop((project_and_trace, span.span_id), []))
+                trace_redirects[span.span_id] = parent
+            subsegment.append(span)
+
+        return trees
 
     def flush_segments(
         self, now: int, max_segments: int = 0
@@ -339,7 +380,7 @@ class SpansBuffer:
                     hrs_key = b"span-buf:hrs:" + segment_key
                     p.get(hrs_key)
                     p.delete(hrs_key)
-                    p.delete(segment_key)
+                    p.unlink(segment_key)
 
                     project_id, trace_id, _ = parse_segment_key(segment_key)
                     redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)

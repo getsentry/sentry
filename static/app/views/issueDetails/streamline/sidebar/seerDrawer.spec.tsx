@@ -40,47 +40,65 @@ describe('SeerDrawer', () => {
   // Create autofix data with various repository configurations for testing notices
   const mockAutofixWithReadableRepos = AutofixDataFixture({
     steps: [AutofixStepFixture()],
-    repositories: [
-      {
-        name: 'org/repo',
-        provider: 'github',
-        integration_id: '123',
-        default_branch: 'main',
-        external_id: 'repo-123',
-        url: 'https://github.com/org/repo',
+    request: {
+      repos: [
+        {
+          name: 'org/repo',
+          provider: 'github',
+          owner: 'org',
+          external_id: 'repo-123',
+        },
+      ],
+    },
+    codebases: {
+      'repo-123': {
+        repo_external_id: 'repo-123',
         is_readable: true,
+        is_writeable: true,
       },
-    ],
+    },
   });
 
   const mockAutofixWithUnreadableGithubRepos = AutofixDataFixture({
     steps: [AutofixStepFixture()],
-    repositories: [
-      {
-        name: 'org/repo',
-        provider: 'github',
-        integration_id: '123',
-        default_branch: 'main',
-        external_id: 'repo-123',
-        url: 'https://github.com/org/repo',
+    request: {
+      repos: [
+        {
+          name: 'org/repo',
+          provider: 'github',
+          owner: 'org',
+          external_id: 'repo-123',
+        },
+      ],
+    },
+    codebases: {
+      'repo-123': {
+        repo_external_id: 'repo-123',
         is_readable: false,
+        is_writeable: false,
       },
-    ],
+    },
   });
 
   const mockAutofixWithUnreadableNonGithubRepos = AutofixDataFixture({
     steps: [AutofixStepFixture()],
-    repositories: [
-      {
-        name: 'org/gitlab-repo',
-        provider: 'gitlab',
-        integration_id: '123',
-        default_branch: 'main',
-        external_id: 'repo-123',
-        url: 'https://gitlab.com/org/gitlab-repo',
+    request: {
+      repos: [
+        {
+          name: 'org/gitlab-repo',
+          provider: 'gitlab',
+          owner: 'org',
+          external_id: 'repo-123',
+        },
+      ],
+    },
+    codebases: {
+      'repo-123': {
+        repo_external_id: 'repo-123',
         is_readable: false,
+        is_writeable: false,
       },
-    ],
+    },
   });
 
   beforeEach(() => {

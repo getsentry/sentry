@@ -37,7 +37,7 @@ describe('logFieldsTree', () => {
       {
         type: 'str',
         value: '123',
-        name: OurLogKnownFieldKey.SENTRY_PROJECT_ID,
+        name: 'sentry.project_id',
       } as TraceItemResponseAttribute,
       {
         type: 'str',
@@ -61,7 +61,6 @@ describe('logFieldsTree', () => {
             },
             useFullSeverityText: false,
             renderSeverityCircle: false,
-            wrapBody: false,
             organization,
             location: LocationFixture(),
           }}

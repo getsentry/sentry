@@ -1,22 +1,23 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import PageWithProviders from 'sentry/views/insights/queues/views/destinationSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/useReleaseStats');
 
 describe('destinationSummaryPage', () => {
   const organization = OrganizationFixture({
     features: ['insights-addon-modules'],
   });
+  const project = ProjectFixture({firstTransactionEvent: true});
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -38,22 +39,11 @@ describe('destinationSummaryPage', () => {
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
     search: '',
-    query: {statsPeriod: '10d', project: '1'},
+    query: {statsPeriod: '10d', project: project.id},
     hash: '',
     state: undefined,
     action: 'PUSH',
     key: '',
-  });
-
-  jest.mocked(useProjects).mockReturnValue({
-    projects: [],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-    fetching: false,
-    hasMore: null,
-    fetchError: null,
-    initiallyLoaded: false,
   });
 
   jest.mocked(useReleaseStats).mockReturnValue({
@@ -68,6 +58,7 @@ describe('destinationSummaryPage', () => {
   let eventsStatsMock: jest.Mock;
 
   beforeEach(() => {
+    ProjectsStore.loadInitialData([project]);
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',

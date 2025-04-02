@@ -6,7 +6,6 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
-    MonitorType,
     ScheduleType,
 )
 from sentry.testutils.cases import APITestCase, TransactionTestCase
@@ -22,7 +21,6 @@ class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase, HybridCloud
         monitor = Monitor.objects.create(
             organization_id=project.organization.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
         monitor_env = MonitorEnvironment.objects.create(
