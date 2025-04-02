@@ -18,17 +18,15 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.registry import TaskNamespace, taskregistry
+from sentry.taskworker.namespaces import demomode_tasks
 from sentry.utils.db import atomic_transaction
 from sentry.utils.rollback_metrics import incr_rollback_metrics
-
-demo_mode_tasks: TaskNamespace = taskregistry.create_namespace("demomode")
 
 
 @instrumented_task(
     name="sentry.demo_mode.tasks.sync_artifact_bundles",
     queue="demo_mode",
-    taskworker=TaskworkerConfig(namespace=demo_mode_tasks),
+    taskworker=TaskworkerConfig(namespace=demomode_tasks),
 )
 def sync_artifact_bundles():
 
