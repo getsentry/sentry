@@ -45,6 +45,7 @@ export function InsightsSecondaryNav() {
   const location = useLocation();
   const baseUrl = `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}`;
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
+  useReleasesDrawer();
 
   useReleasesDrawer();
 
