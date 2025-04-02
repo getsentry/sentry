@@ -36,7 +36,7 @@ export function OptInBanner({collapsed, organization}: Props) {
         <FeatureBadge type="alpha" />
       </Title>
       <Description>
-        {t('Say hello to your improved sidebar—less clutter, clearer workflows.')}
+        {t('Say hello to your improved sidebar — less clutter, clearer workflows.')}
       </Description>
       <OptInButton
         priority="primary"
