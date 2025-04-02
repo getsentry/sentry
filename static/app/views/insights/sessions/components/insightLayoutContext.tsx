@@ -12,21 +12,16 @@ import {
 
 type TChart = keyof typeof CHART_MAP;
 type Option = {label: string; value: TChart};
-interface TContext {
+
+const Context = createContext<{
   chartOptions: Option[];
   chartsByIndex: readonly TChart[];
   onChange: (index: number, chart: Option) => void;
-  view: DomainView;
-}
-
-const defaultContext: TContext = {
+}>({
   chartOptions: [],
   chartsByIndex: [],
   onChange: () => {},
-  view: 'frontend',
-};
-
-const Context = createContext<TContext>(defaultContext);
+});
 
 interface Props {
   children: ReactNode;
@@ -63,12 +58,10 @@ export function InsightLayoutContext({children, view}: Props) {
     setChartsByIndex(prev => prev.toSpliced(index, 1, selection.value));
   }, []);
 
-  return (
-    <Context value={{view, chartsByIndex, chartOptions, onChange}}>{children}</Context>
-  );
+  return <Context value={{chartsByIndex, chartOptions, onChange}}>{children}</Context>;
 }
 
-export function useInsightLayoutContext(): TContext {
+export function useInsightLayoutContext() {
   return useContext(Context);
 }
 

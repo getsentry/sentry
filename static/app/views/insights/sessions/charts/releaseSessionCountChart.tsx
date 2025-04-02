@@ -15,8 +15,9 @@ export default function ReleaseSessionCountChart() {
 
   return (
     <InsightsLineChartWidget
-      title={CHART_TITLES.ReleaseSessionCountChart}
-      interactiveTitle={() => <ChartSelectionTitle />}
+      interactiveTitle={() => (
+        <ChartSelectionTitle title={CHART_TITLES.ReleaseSessionCountChart} />
+      )}
       description={t(
         'The total number of sessions per release. The 5 most recent releases are shown.'
       )}

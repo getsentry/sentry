@@ -17,8 +17,9 @@ export default function UserHealthCountChart() {
 
   return (
     <InsightsLineChartWidget
-      title={CHART_TITLES.UserHealthCountChart}
-      interactiveTitle={() => <ChartSelectionTitle />}
+      interactiveTitle={() => (
+        <ChartSelectionTitle title={CHART_TITLES.UserHealthCountChart} />
+      )}
       description={tct(
         'Breakdown of total [linkUsers:users], grouped by [linkStatus:health status].',
         {

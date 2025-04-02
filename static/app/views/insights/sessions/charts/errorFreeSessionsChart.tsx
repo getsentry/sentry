@@ -14,8 +14,9 @@ export default function ErrorFreeSessionsChart() {
 
   return (
     <InsightsLineChartWidget
-      title={CHART_TITLES.ErrorFreeSessionsChart}
-      interactiveTitle={() => <ChartSelectionTitle />}
+      interactiveTitle={() => (
+        <ChartSelectionTitle title={CHART_TITLES.ErrorFreeSessionsChart} />
+      )}
       description={tct(
         'The percent of sessions terminating without a single error occurring. See [link:session status].',
         {

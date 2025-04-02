@@ -9,8 +9,9 @@ export default function ReleaseNewIssuesChart() {
 
   return (
     <InsightsLineChartWidget
-      title={CHART_TITLES.ReleaseNewIssuesChart}
-      interactiveTitle={() => <ChartSelectionTitle />}
+      interactiveTitle={() => (
+        <ChartSelectionTitle title={CHART_TITLES.ReleaseNewIssuesChart} />
+      )}
       description={t('New issue counts over time, grouped by release.')}
       series={series}
       isLoading={isPending}

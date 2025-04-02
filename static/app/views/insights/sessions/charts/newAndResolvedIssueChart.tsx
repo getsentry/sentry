@@ -14,12 +14,15 @@ export default function NewAndResolvedIssueChart({type}: {type: 'issue' | 'feedb
 
   return (
     <InsightsBarChartWidget
-      title={
-        type === 'issue'
-          ? CHART_TITLES.NewAndResolvedIssueChart_issue
-          : t('User Feedback')
-      }
-      interactiveTitle={() => <ChartSelectionTitle />}
+      interactiveTitle={() => (
+        <ChartSelectionTitle
+          title={
+            type === 'issue'
+              ? CHART_TITLES.NewAndResolvedIssueChart
+              : CHART_TITLES.NewAndResolvedFeedbackChart
+          }
+        />
+      )}
       description={t('New and resolved %s counts over time.', type)}
       aliases={aliases}
       series={series}

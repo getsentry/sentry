@@ -2,13 +2,24 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {space} from 'sentry/styles/space';
-import {useChartPlacementContext} from 'sentry/views/insights/sessions/components/chartPlacementContext';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {
+  MISSING_CONTEXT_PROVIDER,
+  useChartPlacementContext,
+} from 'sentry/views/insights/sessions/components/chartPlacementContext';
 import {useInsightLayoutContext} from 'sentry/views/insights/sessions/components/insightLayoutContext';
 
-export default function ChartSelectionTitle() {
+interface Props {
+  title: string;
+}
+
+export default function ChartSelectionTitle({title}: Props) {
   const {chartsByIndex, chartOptions, onChange} = useInsightLayoutContext();
   const {index} = useChartPlacementContext();
 
+  if (index === MISSING_CONTEXT_PROVIDER) {
+    return <Widget.WidgetTitle title={title} />;
+  }
   return (
     <StyledCompactSelect
       triggerProps={{borderless: true, size: 'zero'}}
@@ -24,7 +35,7 @@ export default function ChartSelectionTitle() {
 
 const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
-   * setting this higher up causes it to trickle into the menues */
+   * setting this higher up causes it to trickle into the menus */
   font-weight: ${p => p.theme.fontWeightNormal};
   margin: -${space(0.5)} -${space(1)} -${space(0.25)};
   min-width: 0;

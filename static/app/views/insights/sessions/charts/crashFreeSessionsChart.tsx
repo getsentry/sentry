@@ -18,8 +18,9 @@ export default function CrashFreeSessionsChart() {
 
   return (
     <InsightsLineChartWidget
-      title={CHART_TITLES.CrashFreeSessionsChart}
-      interactiveTitle={() => <ChartSelectionTitle />}
+      interactiveTitle={() => (
+        <ChartSelectionTitle title={CHART_TITLES.CrashFreeSessionsChart} />
+      )}
       description={tct(
         'The percent of sessions terminating without a crash. See [link:session status].',
         {

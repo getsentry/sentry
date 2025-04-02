@@ -17,8 +17,9 @@ export default function SessionHealthCountChart() {
 
   return (
     <InsightsLineChartWidget
-      title={CHART_TITLES.SessionHealthCountChart}
-      interactiveTitle={() => <ChartSelectionTitle />}
+      interactiveTitle={() => (
+        <ChartSelectionTitle title={CHART_TITLES.SessionHealthCountChart} />
+      )}
       description={tct(
         'The count of sessions with each health status. See [link:session status].',
         {

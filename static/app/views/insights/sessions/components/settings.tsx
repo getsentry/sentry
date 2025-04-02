@@ -14,7 +14,8 @@ import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealt
 export const CHART_MAP = {
   CrashFreeSessionsChart,
   ErrorFreeSessionsChart,
-  NewAndResolvedIssueChart_issue: () => <NewAndResolvedIssueChart type="issue" />,
+  NewAndResolvedIssueChart: () => <NewAndResolvedIssueChart type="issue" />,
+  NewAndResolvedFeedbackChart: () => <NewAndResolvedIssueChart type="feedback" />,
   ReleaseNewIssuesChart,
   ReleaseSessionCountChart,
   ReleaseSessionPercentageChart,
@@ -24,10 +25,11 @@ export const CHART_MAP = {
   UserHealthRateChart,
 };
 
-export const CHART_TITLES = {
+export const CHART_TITLES: Record<keyof typeof CHART_MAP, string> = {
   CrashFreeSessionsChart: t('Crash Free Sessions'),
   ErrorFreeSessionsChart: t('Error Free Sessions'),
-  NewAndResolvedIssueChart_issue: t('Issues'),
+  NewAndResolvedIssueChart: t('Issues'),
+  NewAndResolvedFeedbackChart: t('User Feedback'),
   ReleaseNewIssuesChart: t('New Issues by Release'),
   ReleaseSessionCountChart: t('Total Sessions by Release'),
   ReleaseSessionPercentageChart: t('Release Adoption'),
@@ -45,7 +47,7 @@ export const PAGE_CHART_OPTIONS: Record<
     // ORDER MATTERS HERE
     // The order things are listed is the order rendered
     'ErrorFreeSessionsChart',
-    'NewAndResolvedIssueChart_issue',
+    'NewAndResolvedIssueChart',
     'SessionHealthCountChart',
     'SessionHealthRateChart',
     'UserHealthCountChart',
@@ -77,7 +79,7 @@ export const DEFAULT_LAYOUTS: Record<
     'ErrorFreeSessionsChart',
     'UserHealthRateChart',
     'UserHealthCountChart',
-    'NewAndResolvedIssueChart_issue',
+    'NewAndResolvedIssueChart',
     'SessionHealthRateChart',
   ],
   mobile: [

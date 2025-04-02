@@ -15,8 +15,9 @@ export default function ReleaseSessionPercentageChart() {
 
   return (
     <InsightsAreaChartWidget
-      title={CHART_TITLES.ReleaseSessionPercentageChart}
-      interactiveTitle={() => <ChartSelectionTitle />}
+      interactiveTitle={() => (
+        <ChartSelectionTitle title={CHART_TITLES.ReleaseSessionPercentageChart} />
+      )}
       description={t(
         'The percentage of total sessions that each release accounted for. The 5 most recent releases are shown.'
       )}

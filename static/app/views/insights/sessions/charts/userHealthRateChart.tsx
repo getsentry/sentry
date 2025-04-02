@@ -17,8 +17,9 @@ export default function UserHealthRateChart() {
 
   return (
     <InsightsAreaChartWidget
-      title={CHART_TITLES.UserHealthRateChart}
-      interactiveTitle={() => <ChartSelectionTitle />}
+      interactiveTitle={() => (
+        <ChartSelectionTitle title={CHART_TITLES.UserHealthRateChart} />
+      )}
       description={tct(
         'The percent of [linkUsers:users] with each [linkStatus:health status].',
         {

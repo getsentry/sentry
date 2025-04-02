@@ -17,8 +17,9 @@ export default function SessionHealthRateChart() {
 
   return (
     <InsightsAreaChartWidget
-      title={CHART_TITLES.SessionHealthRateChart}
-      interactiveTitle={() => <ChartSelectionTitle />}
+      interactiveTitle={() => (
+        <ChartSelectionTitle title={CHART_TITLES.SessionHealthRateChart} />
+      )}
       description={tct(
         'The percent of sessions with each health status. See [link:session status].',
         {
