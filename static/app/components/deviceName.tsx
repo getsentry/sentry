@@ -26,7 +26,6 @@ interface DeviceNameProps {
 
 /**
  * This is used to map iOS Device Names to model name.
- * This asynchronously loads the ios-device-list library because of its size
  */
 function DeviceName({value, children}: DeviceNameProps): React.ReactElement | null {
   const deviceName = useMemo(() => deviceNameMapper(value), [value]);

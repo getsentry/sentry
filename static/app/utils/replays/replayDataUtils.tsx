@@ -1,6 +1,7 @@
 import invariant from 'invariant';
 import {duration} from 'moment-timezone';
 
+import {deviceNameMapper} from 'sentry/components/deviceName';
 import isValidDate from 'sentry/utils/date/isValidDate';
 import getMinMax from 'sentry/utils/getMinMax';
 import type {ReplayRecord} from 'sentry/views/replays/types';
@@ -24,6 +25,9 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
       : {}),
     ...(apiResponse.device?.brand ? {'device.brand': [apiResponse.device.brand]} : {}),
     ...(apiResponse.device?.family ? {'device.family': [apiResponse.device.family]} : {}),
+    ...(apiResponse.device?.model
+      ? {'device.model': [deviceNameMapper(apiResponse.device.model)]}
+      : {}),
     ...(apiResponse.device?.model_id
       ? {'device.model_id': [apiResponse.device.model_id]}
       : {}),
