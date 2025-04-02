@@ -10,6 +10,7 @@ class AlertRuleDeletionTask(ModelDeletionTask[AlertRule]):
     def get_child_relations(self, instance: AlertRule) -> list[BaseRelation]:
         from sentry.incidents.models.alert_rule import AlertRuleTrigger
         from sentry.incidents.models.incident import Incident
+        from sentry.workflow_engine.models import AlertRuleDetector, AlertRuleWorkflow
 
-        model_list = (AlertRuleTrigger, Incident)
+        model_list = (AlertRuleTrigger, Incident, AlertRuleDetector, AlertRuleWorkflow)
         return [ModelRelation(m, {"alert_rule_id": instance.id}) for m in model_list]

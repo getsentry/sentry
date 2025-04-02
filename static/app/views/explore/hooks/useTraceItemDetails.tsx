@@ -65,10 +65,10 @@ type TraceItemDetailsQueryParams = {
 };
 
 export type TraceItemResponseAttribute =
-  | {type: 'str'; value: string}
-  | {type: 'int'; value: number}
-  | {type: 'float'; value: number}
-  | {type: 'bool'; value: boolean};
+  | {name: string; type: 'str'; value: string}
+  | {name: string; type: 'int'; value: number}
+  | {name: string; type: 'float'; value: number}
+  | {name: string; type: 'bool'; value: boolean};
 
 /**
  * Query hook fetching trace item details in EAP.
