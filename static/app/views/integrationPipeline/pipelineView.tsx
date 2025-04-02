@@ -4,6 +4,7 @@ import {createMemoryRouter, RouterProvider} from 'react-router-dom';
 import Indicators from 'sentry/components/indicators';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
+import GithubInstallationSelect from 'sentry/views/integrationPipeline/githubInstallationSelect';
 
 import AwsLambdaCloudformation from './awsLambdaCloudformation';
 import AwsLambdaFailureDetails from './awsLambdaFailureDetails';
@@ -15,6 +16,7 @@ const pipelineMapper: Record<string, [React.ComponentType<any>, string]> = {
   awsLambdaFunctionSelect: [AwsLambdaFunctionSelect, 'AWS Lambda Select Lambdas'],
   awsLambdaCloudformation: [AwsLambdaCloudformation, 'AWS Lambda Create Cloudformation'],
   awsLambdaFailureDetails: [AwsLambdaFailureDetails, 'AWS Lambda View Failures'],
+  githubInstallationSelect: [GithubInstallationSelect, 'Github Select Installation'],
 };
 
 type Props = {

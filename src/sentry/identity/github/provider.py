@@ -17,6 +17,19 @@ def get_user_info(access_token):
     return resp.json()
 
 
+def get_user_info_installations(access_token):
+    with http.build_session() as session:
+        resp = session.get(
+            "https://api.github.com/user/installations",
+            headers={
+                "Accept": "application/vnd.github.machine-man-preview+json",
+                "Authorization": f"token {access_token}",
+            },
+        )
+        resp.raise_for_status()
+    return resp.json()
+
+
 # GitHub has 2 types of apps -- GitHub apps and OAuth apps. SSO is implemented
 # using OAuth App, but signup and integrations use the github app. When github
 # apps have API parity with OAuth apps, we should move SSO to it as well.
