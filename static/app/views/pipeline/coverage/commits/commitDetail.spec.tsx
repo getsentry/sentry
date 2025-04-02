@@ -7,7 +7,7 @@ import CommitDetailPage from 'sentry/views/pipeline/coverage/commits/commitDetai
 const COVERAGE_FEATURE = 'codecov-ui';
 
 describe('CommitDetailPage', () => {
-  it('renders the passed children', () => {
+  it('renders the placeholder content', () => {
     render(<CommitDetailPage />, {
       organization: OrganizationFixture({features: [COVERAGE_FEATURE]}),
     });
