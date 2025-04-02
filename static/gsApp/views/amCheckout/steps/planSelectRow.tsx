@@ -53,8 +53,14 @@ type Props = {
    * Optional warning at the bottom of the row
    */
   planWarning?: React.ReactNode;
-
+  /**
+   * Optional flag to show default pay as you go values
+   */
   shouldShowDefaultPayAsYouGo?: boolean;
+  /**
+   * Optional flag to show event price tags
+   */
+  shouldShowEventPrice?: boolean;
 };
 
 function PlanSelectRow({
@@ -72,6 +78,7 @@ function PlanSelectRow({
   discountInfo,
   badge,
   shouldShowDefaultPayAsYouGo = false,
+  shouldShowEventPrice = false,
 }: Props) {
   const billingInterval = getShortInterval(plan.billingInterval);
   const {features, description, hasMoreLink} = planContent;
@@ -84,11 +91,15 @@ function PlanSelectRow({
 
   const describeId = `plan-details-${plan.id}`;
   const hasFeatures = !!Object.keys(features || {}).length;
-  const errorsStartingPrice = plan.planCategories.errors
-    ? plan.planCategories.errors[1]?.onDemandPrice
+  const errorsStartingPrice = shouldShowEventPrice
+    ? plan.planCategories.errors
+      ? plan.planCategories.errors[1]?.onDemandPrice
+      : null
     : null;
-  const spansStartingPrice = plan.planCategories.spans
-    ? plan.planCategories.spans[1]?.onDemandPrice
+  const spansStartingPrice = shouldShowEventPrice
+    ? plan.planCategories.spans
+      ? plan.planCategories.spans[1]?.onDemandPrice
+      : null
     : null;
 
   return (
