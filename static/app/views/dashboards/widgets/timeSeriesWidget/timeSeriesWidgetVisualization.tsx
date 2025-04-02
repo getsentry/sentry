@@ -313,6 +313,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       ? theme.chart.getColorPalette(paletteSize - 2) // -2 because getColorPalette artificially adds 1, I'm not sure why
       : [];
 
+  // Create a lookup of series names (given to ECharts) to labels (from
+  // Plottable). This makes it easier to look up alises when rendering tooltips
+  // and legends
+  const aliases = Object.fromEntries(
+    props.plottables.map(plottable => [plottable.name, plottable.label])
+  );
+
   // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,
@@ -368,7 +375,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return defined(sampleId) ? sampleId.toString() : seriesName;
         }
 
-        return seriesName;
+        return aliases[seriesName] ?? seriesName;
       },
       valueFormatter: function (value, _field, valueFormatterParams) {
         // Use the series to figure out the corresponding `Plottable`, and get the field type. From that, use whichever unit we chose for that field type.
@@ -502,7 +509,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
               left: 0,
               formatter(seriesName: string) {
                 return truncationFormatter(
-                  seriesName,
+                  aliases[seriesName] ?? seriesName,
                   true,
                   // Escaping the legend string will cause some special
                   // characters to render as their HTML equivalents.
