@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
@@ -119,7 +119,7 @@ function DiffSides({
   const beforeElemRef = useRef<HTMLDivElement>(null);
   const dividerElem = useRef<HTMLDivElement>(null);
 
-  const resizableDrawer = useResizableDrawer({
+  const {onMouseDown} = useResizableDrawer({
     direction: 'left',
     initialSize: viewDimensions.width / 2,
     min: 0,
@@ -138,14 +138,6 @@ function DiffSides({
     },
   });
 
-  const handleDividerMouseDown: React.MouseEventHandler<HTMLElement> = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
-      onDividerMouseDown?.(event);
-      resizableDrawer.onMouseDown(event);
-    },
-    [onDividerMouseDown, resizableDrawer]
-  );
-
   return (
     <Fragment>
       <Cover style={{width}} data-test-id="after-content">
@@ -161,7 +153,10 @@ function DiffSides({
       <Divider
         data-test-id="divider"
         ref={dividerElem}
-        onMouseDown={handleDividerMouseDown}
+        onMouseDown={event => {
+          onDividerMouseDown?.(event);
+          onMouseDown(event);
+        }}
       />
     </Fragment>
   );
@@ -177,11 +172,11 @@ const DiffHeader = styled('div')`
   justify-content: space-between;
 
   & > *:first-child {
-    color: ${p => p.theme.red300};
+    color: ${p => p.theme.error};
   }
 
   & > *:last-child {
-    color: ${p => p.theme.green300};
+    color: ${p => p.theme.success};
   }
   margin-bottom: ${space(0.5)};
 `;
@@ -214,16 +209,16 @@ const Divider = styled('div')`
   cursor: ew-resize;
   width: var(--line-width);
   height: 100%;
-  background: ${p => p.theme.purple400};
+  background: ${p => p.theme.diffSliderDivider};
   position: absolute;
   top: 0;
   transform: translate(-0.5px, 0);
 
   &::before,
   &::after {
-    background: ${p => p.theme.purple400};
+    background: ${p => p.theme.diffSliderDivider};
     border-radius: var(--handle-size);
-    border: var(--line-width) solid ${p => p.theme.purple400};
+    border: var(--line-width) solid ${p => p.theme.diffSliderDivider};
     content: '';
     height: var(--handle-size);
     position: absolute;
@@ -249,11 +244,11 @@ const Cover = styled('div')`
   left: 0px;
   top: 0px;
 
-  border-color: ${p => p.theme.green300};
+  border-color: ${p => p.theme.success};
   & + & {
     border: ${BORDER_WIDTH}px solid;
     border-radius: ${space(0.5)} 0 0 ${space(0.5)};
-    border-color: ${p => p.theme.red300};
+    border-color: ${p => p.theme.error};
     border-right-width: 0;
   }
 `;

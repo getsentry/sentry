@@ -28,15 +28,13 @@ export default storyBook('ContentSliderDiff', (story, APIReference) => {
         <p>
           An example <JSXNode name="ContentSliderDiff" /> using images looks like this:
         </p>
-        <div style={{width: 600}}>
-          <ContentSliderDiff
-            beforeContent={<img src={BadStackTraceExample} />}
-            afterContent={<img src={GoodStackTraceExample} />}
-            beforeHelp="This is the before image"
-            afterHelp="This is the after image"
-            minHeight="300px"
-          />
-        </div>
+        <ContentSliderDiff
+          beforeContent={<img src={BadStackTraceExample} />}
+          afterContent={<img src={GoodStackTraceExample} />}
+          beforeHelp="This is the before image"
+          afterHelp="This is the after image"
+          minHeight="300px"
+        />
       </Fragment>
     );
   });
