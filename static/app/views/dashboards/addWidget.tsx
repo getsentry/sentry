@@ -95,7 +95,7 @@ function AddWidget({onAddWidget, onAddWidgetFromNewWidgetBuilder}: Props) {
                 'aria-label': t('Add Widget'),
                 size: 'md',
                 showChevron: false,
-                icon: <IconAdd isCircled size="lg" color="inactive" />,
+                icon: <IconAdd isCircled size="lg" color="gray300" />,
                 borderless: true,
               }}
             />
@@ -104,7 +104,7 @@ function AddWidget({onAddWidget, onAddWidgetFromNewWidgetBuilder}: Props) {
           <InnerWrapper onClick={() => onAddWidget(defaultDataset)}>
             <AddButton
               data-test-id="widget-add"
-              icon={<IconAdd size="lg" isCircled color="inactive" />}
+              icon={<IconAdd size="lg" isCircled color="gray300" />}
               aria-label={t('Add widget')}
             />
           </InnerWrapper>
