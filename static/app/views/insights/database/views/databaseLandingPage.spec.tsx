@@ -305,7 +305,7 @@ describe('DatabaseLandingPage', function () {
           per_page: 50,
           project: [],
           query:
-            'span.module:db has:span.description span.action:SELECT span.domain:organizations',
+            'span.module:db has:sentry.normalized_description span.action:SELECT span.domain:organizations',
           referrer: 'api.starfish.span-landing-page-metrics-chart',
           statsPeriod: '10d',
           topEvents: undefined,
