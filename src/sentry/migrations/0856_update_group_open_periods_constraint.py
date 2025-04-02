@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     checked = False
 
     dependencies = [
-        ("sentry", "0854_add_project_sdk_model"),
+        ("sentry", "0855_give_monitor_type_a_db_default"),
     ]
 
     operations = [
