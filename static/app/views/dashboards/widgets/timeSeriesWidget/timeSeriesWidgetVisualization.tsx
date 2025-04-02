@@ -354,9 +354,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
-      nameFormatter: function (name, nameFormatterParams) {
+      nameFormatter: function (seriesName, nameFormatterParams) {
         if (!nameFormatterParams) {
-          return name;
+          return seriesName;
         }
 
         if (
@@ -365,10 +365,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         ) {
           // For scatter series, the third point in the `data` array should be the sample's ID
           const sampleId = nameFormatterParams.data.at(2);
-          return defined(sampleId) ? sampleId.toString() : name;
+          return defined(sampleId) ? sampleId.toString() : seriesName;
         }
 
-        return name;
+        return seriesName;
       },
       valueFormatter: function (value, _field, valueFormatterParams) {
         // Use the series to figure out the corresponding `Plottable`, and get the field type. From that, use whichever unit we chose for that field type.
