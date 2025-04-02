@@ -1,7 +1,9 @@
+import type {RefObject} from 'react';
 import type {Theme} from '@emotion/react';
 import type {ScatterSeriesOption, SeriesOption} from 'echarts';
 
 import {t} from 'sentry/locale';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import type {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {scaleTabularDataColumn} from 'sentry/utils/tabularData/scaleTabularDataColumn';
@@ -28,6 +30,10 @@ type ValidSampleRow = {
   id: string;
   timestamp: string;
 };
+
+export interface SamplesPlottableRef {
+  highlight: (sample: ValidSampleRow) => void;
+}
 
 export type SamplesConfig = {
   /**
@@ -66,14 +72,36 @@ export class Samples implements Plottable {
   sampleTableData: Readonly<TabularData>;
   #timestamps: readonly string[];
   config: Readonly<SamplesConfig>;
+  ref?: RefObject<unknown>;
 
-  constructor(samples: TabularData, config: SamplesConfig) {
+  constructor(samples: TabularData, config: SamplesConfig, ref?: RefObject<unknown>) {
     this.sampleTableData = samples;
     this.#timestamps = samples.data
       .filter(isValidSampleRow)
       .map(sample => sample.timestamp)
       .toSorted();
     this.config = config;
+    this.ref = ref;
+  }
+
+  handleChartRef(chartRef: ReactEchartsRef) {
+    if (!this.ref) {
+      return;
+    }
+
+    this.ref.current = {
+      highlight: (sample: ValidSampleRow | undefined) => {
+        const chart = chartRef.getEchartsInstance();
+        const seriesName = this.name;
+
+        if (sample) {
+          const dataIndex = this.sampleTableData.data.findIndex(row => row === sample);
+          chart.dispatchAction({type: 'highlight', seriesName, dataIndex});
+        } else {
+          chart.dispatchAction({type: 'downplay', seriesName});
+        }
+      },
+    };
   }
 
   get isEmpty(): boolean {

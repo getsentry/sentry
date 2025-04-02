@@ -1,9 +1,11 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import shuffle from 'lodash/shuffle';
 import moment from 'moment-timezone';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Button} from 'sentry/components/core/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
@@ -23,7 +25,7 @@ import {spanSamplesWithDurations} from './fixtures/spanSamplesWithDurations';
 import {Area} from './plottables/area';
 import {Bars} from './plottables/bars';
 import {Line} from './plottables/line';
-import {Samples} from './plottables/samples';
+import {Samples, type SamplesPlottableRef} from './plottables/samples';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -548,6 +550,58 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             />
           </MediumWidget>
         </SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Actions and Events', () => {
+    const samplesRef = useRef<SamplesPlottableRef>(null);
+
+    return (
+      <Fragment>
+        <p>
+          In some cases, you may need more fine-grained control over the actions and
+          events your chart responds to. The recommended way to listen to events is via
+          callback configuration options.
+        </p>
+
+        <p>
+          The recommended way to trigger actions on your charts is via refs passed to
+          plottables. Right now, only the <code>Samples</code> plottabl supports this. In
+          the example below, you can trigger the "highlight" action plottable by clicking
+          a button.
+        </p>
+
+        <Button
+          size="sm"
+          onClick={() => {
+            const sample = shuffle(spanSamplesWithDurations.data).at(0) as {
+              id: string;
+              timestamp: string;
+            };
+
+            if (samplesRef.current) {
+              samplesRef.current.highlight(sample);
+            }
+          }}
+        >
+          Highlight Random Sample
+        </Button>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[
+              new Line(sampleDurationTimeSeries),
+              new Samples(
+                spanSamplesWithDurations,
+                {
+                  attributeName: 'p99(span.duration)',
+                },
+                samplesRef
+              ),
+            ]}
+          />
+        </MediumWidget>
       </Fragment>
     );
   });
