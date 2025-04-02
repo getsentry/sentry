@@ -232,7 +232,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         ) {
           // Set fields
           eventView.fields = [
-            {field: SpanMetricsField.SPAN_DESCRIPTION},
+            {field: SpanMetricsField.NORMALIZED_DESCRIPTION},
             {field: SpanMetricsField.SPAN_OP},
             {field: 'project.id'},
             {field: SpanMetricsField.SPAN_GROUP},

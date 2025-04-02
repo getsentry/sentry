@@ -7,8 +7,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
-const {NORMALIZED_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN} =
-  SpanIndexedField;
+const {SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN} = SpanIndexedField;
 
 type Options = {
   enabled?: boolean;
@@ -37,7 +36,7 @@ export const useIndexedResourcesQuery = ({
         'project',
         'span.group',
         RAW_DOMAIN,
-        NORMALIZED_DESCRIPTION,
+        SPAN_DESCRIPTION,
         `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`,
       ],
       name: 'Indexed Resource Query',

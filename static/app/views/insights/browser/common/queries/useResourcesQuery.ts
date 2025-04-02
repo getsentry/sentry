@@ -40,7 +40,7 @@ type Props = {
 };
 
 export const DEFAULT_RESOURCE_FILTERS = [
-  '!sentry.noramlized_description:"browser-extension://*"',
+  '!sentry.normalized_description:"browser-extension://*"',
 ];
 
 export const getResourcesEventViewQuery = (
