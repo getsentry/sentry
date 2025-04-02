@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Literal, TypeAlias, TypedDict
+from typing import Any, Literal, TypeAlias, TypedDict, cast
 
 from dateutil.tz import tz
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
@@ -39,7 +39,7 @@ class ResolvedColumn:
     )
     # The public type for this column
     search_type: constants.SearchType
-    # The unit for this column
+    # The type of unit stored for this column
     unit: constants.Units | None = None
     # The internal rpc type for this column, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
@@ -52,14 +52,18 @@ class ResolvedColumn:
     secondary_alias: bool = False
 
     def __post_init__(self):
-        valid_units = constants.VALID_UNITS_MAP.get(self.search_type)  # Get allowed units
-
-        if valid_units is not None:
-            if self.unit is None or self.unit not in valid_units:
-                raise ValueError(
-                    f"Invalid unit '{self.unit}' for search type '{self.search_type}'. Must be one of {valid_units}."
-                )
+        if not self.search_type not in constants.VALID_UNITS_MAP:
             return
+
+        valid_units = constants.VALID_UNITS_MAP[
+            cast(constants.UnitfulSearchTypes, self.search_type)
+        ]
+
+        if self.unit is None or self.unit not in valid_units:
+            raise ValueError(
+                f"Invalid unit '{self.unit}' for search type '{self.search_type}'. Must be one of {valid_units}."
+            )
+        return
 
         if self.unit is not None:
             raise ValueError(f"Search type '{self.search_type}' does not expect a unit.")
@@ -249,13 +253,7 @@ class FunctionDefinition:
     # The search_type the argument should be the default type for this column
     default_search_type: constants.SearchType
     # The default unit for this column, we should be to override this when we reolve the formula
-    default_unit: (
-        constants.DurationUnit
-        | constants.NumberUnit
-        | constants.SizeUnit
-        | constants.RateUnit
-        | None
-    ) = None
+    default_unit: constants.Units | None = None
     # Try to infer the search type from the function arguments
     infer_search_type_from_arguments: bool = True
     # The internal rpc type for this function, optional as it can mostly be inferred from search_type

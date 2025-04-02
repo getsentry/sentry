@@ -7,7 +7,6 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
@@ -111,7 +110,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         default_search_type="integer",
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={*constants.DURATION_TYPE},
+                attribute_types={"duration"},
                 validator=literal_validator(
                     ["measurements.app_start_warm", "measurements.app_start_cold"]
                 ),

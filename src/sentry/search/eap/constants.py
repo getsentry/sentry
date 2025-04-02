@@ -57,9 +57,9 @@ VALID_UNITS_MAP: dict[UnitfulSearchTypes, tuple[Units]] = {
 }
 
 
-SIZE_TYPE: set[SearchType] = set(SIZE_UNITS.keys())
+SIZE_TYPE: set[Units] = set(SIZE_UNITS.keys())
 
-DURATION_TYPE: set[SearchType] = set(DURATION_UNITS.keys())
+DURATION_TYPE: set[Units] = set(DURATION_UNITS.keys())
 
 STRING = AttributeKey.TYPE_STRING
 BOOLEAN = AttributeKey.TYPE_BOOLEAN

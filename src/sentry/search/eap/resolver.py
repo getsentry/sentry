@@ -873,18 +873,17 @@ class SearchResolver:
                 resolved_argument = parsed_arg.proto_definition
             resolved_arguments.append(resolved_argument)
 
+        search_type = function_definition.default_search_type
+        unit = function_definition.default_unit
+
         # We assume the first argument contains the resolved search_type as this is always the case for now
-        if len(parsed_args) == 0 or not isinstance(parsed_args[0], ResolvedAttribute):
-            search_type = function_definition.default_search_type
-            unit = function_definition.default_unit
-        else:
-            search_type = (
-                parsed_args[0].search_type
-                if function_definition.infer_search_type_from_arguments
-                else function_definition.default_search_type
-            )
-            if isinstance(parsed_args[0], ResolvedAttribute):
-                unit = parsed_args[0].unit
+        if (
+            len(parsed_args) > 0
+            and function_definition.infer_search_type_from_arguments
+            and isinstance(parsed_args[0], ResolvedAttribute)
+        ):
+            search_type = parsed_args[0].search_type
+            unit = parsed_args[0].unit
 
         resolved_function = function_definition.resolve(
             alias=alias,
