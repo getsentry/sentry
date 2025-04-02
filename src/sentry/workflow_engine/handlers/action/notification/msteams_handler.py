@@ -1,3 +1,4 @@
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.workflow_engine.handlers.action.notification.base import IntegrationActionHandler
 from sentry.workflow_engine.handlers.action.notification.common import (
@@ -11,7 +12,7 @@ from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 @action_handler_registry.register(Action.Type.MSTEAMS)
 class MSTeamsActionHandler(IntegrationActionHandler):
     group = ActionHandler.Group.NOTIFICATION
-    provider_slug = "msteams"
+    provider_slug = IntegrationProviderSlug.MSTEAMS
 
     config_schema = MESSAGING_ACTION_CONFIG_SCHEMA
 

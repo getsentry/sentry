@@ -74,7 +74,7 @@ describe('useRedirectNavV2Routes', () => {
             slug: 'org-slug',
             features: [],
           }),
-          disableRouterMocks: true,
+          enableRouterMocks: false,
           initialRouterConfig: {
             location: {
               pathname: '/projects/123/',
@@ -91,7 +91,7 @@ describe('useRedirectNavV2Routes', () => {
         <TestComponent oldPathPrefix="/projects/" newPathPrefix="/insights/projects/" />,
         {
           organization,
-          disableRouterMocks: true,
+          enableRouterMocks: false,
           initialRouterConfig: {
             location: {
               pathname: '/projects/123/',
@@ -109,7 +109,7 @@ describe('useRedirectNavV2Routes', () => {
         <TestComponent oldPathPrefix="/projects/" newPathPrefix="/insights/projects/" />,
         {
           organization,
-          disableRouterMocks: true,
+          enableRouterMocks: false,
           initialRouterConfig: {
             location: {
               pathname: '/other-projects/123/',
@@ -132,7 +132,7 @@ describe('useRedirectNavV2Routes', () => {
         <TestComponent oldPathPrefix="/projects/" newPathPrefix="/insights/projects/" />,
         {
           organization,
-          disableRouterMocks: true,
+          enableRouterMocks: false,
           initialRouterConfig: {
             location: {
               pathname: '/organizations/org-slug/projects/123/',
@@ -152,7 +152,7 @@ describe('useRedirectNavV2Routes', () => {
         <TestComponent oldPathPrefix="/projects/" newPathPrefix="/insights/projects/" />,
         {
           organization,
-          disableRouterMocks: true,
+          enableRouterMocks: false,
           initialRouterConfig: {
             location: {
               pathname: '/organizations/org-slug/other-projects/123/',
