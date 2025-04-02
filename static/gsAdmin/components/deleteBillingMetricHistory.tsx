@@ -73,6 +73,7 @@ function DeleteBillingMetricHistoryModal({
   );
   const onSubmit = () => {
     if (dataCategory === null) {
+      addErrorMessage('Please select a data category.');
       return;
     }
 
