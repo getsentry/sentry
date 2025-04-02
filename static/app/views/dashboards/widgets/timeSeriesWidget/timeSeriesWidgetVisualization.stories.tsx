@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
@@ -25,7 +25,7 @@ import {spanSamplesWithDurations} from './fixtures/spanSamplesWithDurations';
 import {Area} from './plottables/area';
 import {Bars} from './plottables/bars';
 import {Line} from './plottables/line';
-import {Samples, type SamplesPlottableRef} from './plottables/samples';
+import {Samples} from './plottables/samples';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -555,7 +555,10 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   });
 
   story('Actions and Events', () => {
-    const samplesRef = useRef<SamplesPlottableRef>(null);
+    const aggregatePlottable = new Line(sampleDurationTimeSeries);
+    const samplesPlottable = new Samples(spanSamplesWithDurations, {
+      attributeName: 'p99(span.duration)',
+    });
 
     return (
       <Fragment>
@@ -566,23 +569,24 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         </p>
 
         <p>
-          The recommended way to trigger actions on your charts is via refs passed to
-          plottables. Right now, only the <code>Samples</code> plottabl supports this. In
-          the example below, you can trigger the "highlight" action plottable by clicking
-          a button.
+          The recommended way to trigger actions on your charts is to invoke methods
+          available on instances of <code>Plottable</code> objects. Right now, only the{' '}
+          <code>Samples</code> plottabl supports this. In the example below, you can
+          trigger the "highlight" action plottable by clicking a button, which invokes{' '}
+          <code>Samples.highlight</code>.
         </p>
 
         <Button
           size="sm"
           onClick={() => {
+            samplesPlottable.highlight(undefined);
+
             const sample = shuffle(spanSamplesWithDurations.data).at(0) as {
               id: string;
               timestamp: string;
             };
 
-            if (samplesRef.current) {
-              samplesRef.current.highlight(sample);
-            }
+            samplesPlottable.highlight(sample);
           }}
         >
           Highlight Random Sample
@@ -590,16 +594,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
         <MediumWidget>
           <TimeSeriesWidgetVisualization
-            plottables={[
-              new Line(sampleDurationTimeSeries),
-              new Samples(
-                spanSamplesWithDurations,
-                {
-                  attributeName: 'p99(span.duration)',
-                },
-                samplesRef
-              ),
-            ]}
+            plottables={[aggregatePlottable, samplesPlottable]}
           />
         </MediumWidget>
       </Fragment>
