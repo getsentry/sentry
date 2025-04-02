@@ -29,7 +29,7 @@ def fetch_issue_summary(group: Group) -> dict[str, Any] | None:
     try:
         with sentry_sdk.start_span(op="ai_summary.fetch_issue_summary_for_alert"):
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(get_issue_summary, group)
+                future = executor.submit(get_issue_summary, group, source="alert")
                 summary_result, status_code = future.result(timeout=timeout)
 
                 if status_code == 200:

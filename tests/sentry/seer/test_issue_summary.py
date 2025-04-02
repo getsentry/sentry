@@ -394,8 +394,16 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         mock_group.get_latest_event.assert_not_called()
         mock_get_event_by_id.assert_has_calls(
             [
-                call("test_project_id", "test_event_id", group_id="test_group_id"),
-                call("test_project_id", "test_event_id", group_id="test_group_id"),
+                call(
+                    "test_project_id",
+                    "test_event_id",
+                    group_id="test_group_id",
+                ),
+                call(
+                    "test_project_id",
+                    "test_event_id",
+                    group_id="test_group_id",
+                ),
             ]
         )
         mock_serialize.assert_called_once()

@@ -28,7 +28,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data == mock_summary_data
         mock_get_issue_summary.assert_called_once_with(
-            group=self.group, user=ANY, force_event_id="test_event_id"
+            group=self.group, user=ANY, force_event_id="test_event_id", source="issue_details"
         )
 
     @patch("sentry.api.endpoints.group_ai_summary.get_issue_summary")
@@ -41,7 +41,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data == mock_summary_data
         mock_get_issue_summary.assert_called_once_with(
-            group=self.group, user=ANY, force_event_id=None
+            group=self.group, user=ANY, force_event_id=None, source="issue_details"
         )
 
     @patch("sentry.api.endpoints.group_ai_summary.get_issue_summary")
@@ -54,5 +54,5 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
         assert response.data == error_data
         mock_get_issue_summary.assert_called_once_with(
-            group=self.group, user=ANY, force_event_id=None
+            group=self.group, user=ANY, force_event_id=None, source="issue_details"
         )
