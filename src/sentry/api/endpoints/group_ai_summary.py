@@ -39,7 +39,7 @@ class GroupAiSummaryEndpoint(GroupAiEndpoint):
         force_event_id = data.get("event_id", None)
 
         summary_data, status_code = get_issue_summary(
-            group=group, user=request.user, force_event_id=force_event_id
+            group=group, user=request.user, force_event_id=force_event_id, source="issue_details"
         )
 
         return Response(summary_data, status=status_code)

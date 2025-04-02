@@ -796,11 +796,6 @@ const generateAliases = (
   formPlaceholder: colors.gray300,
 
   /**
-   * Default form text color
-   */
-  formText: colors.gray300,
-
-  /**
    *
    */
   rowBackground: tokens.background.primary,
