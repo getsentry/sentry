@@ -6,7 +6,7 @@ import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
@@ -106,6 +106,11 @@ function ManageDashboards() {
   const [{rowCount, columnCount}, setGridSize] = useState({
     rowCount: DASHBOARD_GRID_DEFAULT_NUM_ROWS,
     columnCount: DASHBOARD_GRID_DEFAULT_NUM_COLUMNS,
+  });
+
+  const [isAddingDashboardTemplate, setIsAddingDashboardTemplate] = useState({
+    isAdding: false,
+    dashboardId: '',
   });
 
   const {
@@ -260,7 +265,16 @@ function ManageDashboards() {
             title={dashboard.title}
             description={dashboard.description}
             onPreview={() => onPreview(dashboard.id)}
-            onAdd={() => onAdd(dashboard)}
+            onAdd={() => {
+              setIsAddingDashboardTemplate({isAdding: true, dashboardId: dashboard.id});
+              onAdd(dashboard).finally(() => {
+                setIsAddingDashboardTemplate({isAdding: false, dashboardId: ''});
+              });
+            }}
+            isAddingDashboardTemplate={
+              dashboard.id === isAddingDashboardTemplate.dashboardId &&
+              isAddingDashboardTemplate.isAdding
+            }
             key={dashboard.title}
           />
         ))}
@@ -395,6 +409,8 @@ function ManageDashboards() {
       dashboard_title: dashboard.title,
       was_previewed: false,
     });
+
+    addLoadingMessage(t('Adding dashboard from template...'));
 
     const newDashboard = await createDashboard(
       api,

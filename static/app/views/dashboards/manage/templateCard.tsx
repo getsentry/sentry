@@ -8,12 +8,19 @@ import {space} from 'sentry/styles/space';
 
 type Props = {
   description: string;
+  isAddingDashboardTemplate: boolean;
   onAdd: () => void;
   onPreview: () => void;
   title: string;
 };
 
-function TemplateCard({title, description, onPreview, onAdd}: Props) {
+function TemplateCard({
+  title,
+  description,
+  onPreview,
+  onAdd,
+  isAddingDashboardTemplate,
+}: Props) {
   return (
     <StyledCard>
       <Header>
@@ -24,7 +31,11 @@ function TemplateCard({title, description, onPreview, onAdd}: Props) {
         </Title>
       </Header>
       <ButtonContainer>
-        <StyledButton onClick={onAdd} icon={<IconAdd isCircled />}>
+        <StyledButton
+          onClick={onAdd}
+          icon={<IconAdd isCircled />}
+          busy={isAddingDashboardTemplate}
+        >
           {t('Add Dashboard')}
         </StyledButton>
         <StyledButton priority="primary" onClick={onPreview}>
