@@ -292,8 +292,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         return decision
 
     def handle_unit_meta(
-        self, result_meta: dict[str, str]
+        self, result_meta: dict[str, str], units_meta: dict[str, str] | None = None
     ) -> tuple[dict[str, str], dict[str, str | None]]:
+        # In the eap span resolver, units are determined within the `ResolvedCoumn`
+        if units_meta is not None:
+            return result_meta, units_meta
         units: dict[str, str | None] = {}
         meta: dict[str, str] = result_meta.copy()
         for key, value in result_meta.items():
@@ -330,13 +333,14 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
             meta = results.get("meta", {})
             fields_meta = meta.get("fields", {})
+            units_meta = meta.get("units", {})
 
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 discoverSplitDecision = meta.pop("discoverSplitDecision", None)
                 query = meta.pop("query", None)
-                fields, units = self.handle_unit_meta(fields_meta)
+                fields, units = self.handle_unit_meta(fields_meta, units_meta)
                 meta = {
                     "fields": fields,
                     "units": units,

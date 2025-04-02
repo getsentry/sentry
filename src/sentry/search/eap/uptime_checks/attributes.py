@@ -63,8 +63,7 @@ UPTIME_CHECK_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="http_status_code",
             internal_name="http_status_code",
-            search_type="number",
-            unit="integer",
+            search_type="integer",
         ),
         ResolvedAttribute(
             public_alias="trace_id",

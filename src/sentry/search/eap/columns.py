@@ -402,8 +402,8 @@ def simple_sentry_field(field) -> ResolvedAttribute:
 
 def simple_measurements_field(
     field,
-    search_type: constants.SearchType = "number",
-    unit: constants.ValidUnits | None = "integer",
+    search_type: Literal["duration", "size", "number", "integer"] = "number",
+    unit: constants.ValidUnits | None = None,
     secondary_alias: bool = False,
 ) -> ResolvedAttribute:
     """For a good number of fields, the public alias matches the internal alias

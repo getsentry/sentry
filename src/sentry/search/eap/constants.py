@@ -43,8 +43,8 @@ AGGREGATION_OPERATOR_MAP = {
     "<=": AggregationComparisonFilter.OP_LESS_THAN_OR_EQUALS,
 }
 
-UnitlessSearchTypes = Literal["string", "boolean", "number"]
-UnitfulSearchTypes = Literal["duration", "percentage", "rate", "size"]
+UnitlessSearchTypes = Literal["string", "boolean", "number", "integer", "percentage"]
+UnitfulSearchTypes = Literal["duration", "rate", "size"]
 
 SearchType = Union[UnitlessSearchTypes, UnitfulSearchTypes]
 
@@ -53,7 +53,6 @@ ValidUnits = DurationUnit | RateUnit | NumberUnit | SizeUnit
 VALID_UNITS_MAP: dict[str, tuple[ValidUnits]] = {
     "duration": DurationUnit.__args__,
     "rate": RateUnit.__args__,
-    "number": NumberUnit.__args__,
     "size": SizeUnit.__args__,
 }
 

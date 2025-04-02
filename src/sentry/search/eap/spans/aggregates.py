@@ -168,15 +168,12 @@ SPAN_AGGREGATE_DEFINITIONS = {
     "count_sample": AggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         infer_search_type_from_arguments=False,
-        default_search_type="integer",
+        default_search_type="number",
+        default_unit="integer",
         processor=count_processor,
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "size",
-                },
+                attribute_types={"duration", "number", "size"},
                 default_arg="span.duration",
             )
         ],
@@ -185,6 +182,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
     "p50": AggregateDefinition(
         internal_function=Function.FUNCTION_P50,
         default_search_type="duration",
+        default_unit="millisecond",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={"duration", "number", "size"},
@@ -195,6 +193,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
     "p50_sample": AggregateDefinition(
         internal_function=Function.FUNCTION_P50,
         default_search_type="duration",
+        default_unit="millisecond",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={
@@ -210,6 +209,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
     "p75": AggregateDefinition(
         internal_function=Function.FUNCTION_P75,
         default_search_type="duration",
+        default_unit="millisecond",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={"duration", "number", "size"},
@@ -220,6 +220,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
     "p90": AggregateDefinition(
         internal_function=Function.FUNCTION_P90,
         default_search_type="duration",
+        default_unit="millisecond",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={
@@ -234,6 +235,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
     "p95": AggregateDefinition(
         internal_function=Function.FUNCTION_P95,
         default_search_type="duration",
+        default_unit="millisecond",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={
@@ -248,6 +250,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
     "p99": AggregateDefinition(
         internal_function=Function.FUNCTION_P99,
         default_search_type="duration",
+        default_unit="millisecond",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={"duration", "number", "size"},
@@ -258,6 +261,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
     "p100": AggregateDefinition(
         internal_function=Function.FUNCTION_MAX,
         default_search_type="duration",
+        default_unit="millisecond",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={"duration", "number", "size"},
@@ -268,6 +272,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
     "max": AggregateDefinition(
         internal_function=Function.FUNCTION_MAX,
         default_search_type="duration",
+        default_unit="millisecond",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={"duration", "number", "percentage", "size"},
@@ -278,6 +283,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
     "min": AggregateDefinition(
         internal_function=Function.FUNCTION_MIN,
         default_search_type="duration",
+        default_unit="millisecond",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={"duration", "number", "percentage", "size"},
@@ -287,7 +293,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
     ),
     "count_unique": AggregateDefinition(
         internal_function=Function.FUNCTION_UNIQ,
-        default_search_type="integer",
+        default_search_type="number",
+        default_unit="integer",
         infer_search_type_from_arguments=False,
         processor=count_processor,
         arguments=[
@@ -298,7 +305,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
     ),
     "performance_score": AggregateDefinition(
         internal_function=Function.FUNCTION_AVG,
-        default_search_type="integer",
+        default_search_type="number",
+        default_unit="integer",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={"duration", "number", "percentage", "size"},
