@@ -105,7 +105,7 @@ def run_table_query(
     """Process the results"""
     final_data: SnubaData = []
     final_confidence: ConfidenceData = []
-    final_meta: EventsMeta = EventsMeta(fields={})
+    final_meta: EventsMeta = EventsMeta(fields={}, units={})
     # Mapping from public alias to resolved column so we know type etc.
     columns_by_name = {col.public_alias: col for col in columns}
 
@@ -119,6 +119,7 @@ def run_table_query(
             continue
         resolved_column = columns_by_name[attribute]
         final_meta["fields"][attribute] = resolved_column.search_type
+        final_meta["units"][attribute] = resolved_column.unit
 
         # When there's no aggregates reliabilities is an empty array
         has_reliability = len(column_value.reliabilities) > 0

@@ -2196,7 +2196,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             assert response.status_code == 200, response.content
             assert response.data["data"] == [{"foo": "bar", "count()": 1}]
 
-    @pytest.mark.xfail(reason="spm is not implemented, as spm will be replaced with spm")
+    @pytest.mark.xfail(reason="spm is not implemented, as spm will be replaced with epm")
     def test_spm(self):
         super().test_spm()
 
@@ -2212,9 +2212,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         )
         response = self.do_request(
             {
-                "field": ["description", "epm()"],
+                "field": ["span.description", "epm()"],
                 "query": "",
-                "orderby": "description",
+                "orderby": "span.description",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
@@ -2226,11 +2226,13 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(data) == 1
         assert data == [
             {
-                "description": "foo",
+                "span.description": "foo",
                 "epm()": 1 / (90 * 24 * 60),
             },
         ]
         assert meta["dataset"] == self.dataset
+        assert meta["units"] == {"span.description": None, "epm()": "1/minute"}
+        assert meta["fields"] == {"span.description": "string", "epm()": "rate"}
 
     def test_is_transaction(self):
         self.store_spans(

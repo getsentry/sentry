@@ -39,6 +39,8 @@ class ResolvedColumn:
     )
     # The public type for this column
     search_type: constants.SearchType
+    # The unit for this column
+    unit: constants.ValidUnits | None = None
     # The internal rpc type for this column, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
     # Processor is the function run in the post process step to transform a row into the final result
@@ -48,6 +50,19 @@ class ResolvedColumn:
     # Indicates this attribute is a secondary alias for the attribute.
     # It exists for compatibility or convenience reasons and should NOT be preferred.
     secondary_alias: bool = False
+
+    def __post_init__(self):
+        valid_units = constants.VALID_UNITS_MAP.get(self.search_type)  # Get allowed units
+
+        if valid_units is not None:
+            if self.unit is None or self.unit not in valid_units.__args__:
+                raise ValueError(
+                    f"Invalid unit '{self.unit}' for search type '{self.search_type}'. Must be one of {valid_units.__args__}."
+                )
+            return
+
+        if self.unit is not None:
+            raise ValueError(f"Search type '{self.search_type}' does not expect a unit.")
 
     def process_column(self, value: Any) -> Any:
         """Given the value from results, return a processed value if a processor is defined otherwise return it"""
@@ -66,7 +81,10 @@ class ResolvedColumn:
         if self.internal_type is not None:
             return self.internal_type
         else:
-            return constants.TYPE_MAP[self.search_type]
+            if self.unit is not None:
+                return constants.TYPE_MAP[self.unit]
+            else:
+                return constants.TYPE_MAP[self.search_type]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -227,6 +245,14 @@ class FunctionDefinition:
     arguments: list[ValueArgumentDefinition | AttributeArgumentDefinition]
     # The search_type the argument should be the default type for this column
     default_search_type: constants.SearchType
+    # The default unit for this column, we should be to override this when we reolve the formula
+    default_unit: (
+        constants.DurationUnit
+        | constants.NumberUnit
+        | constants.SizeUnit
+        | constants.RateUnit
+        | None
+    ) = None
     # Try to infer the search type from the function arguments
     infer_search_type_from_arguments: bool = True
     # The internal rpc type for this function, optional as it can mostly be inferred from search_type
@@ -286,6 +312,7 @@ class AggregateDefinition(FunctionDefinition):
             public_alias=alias,
             internal_name=self.internal_function,
             search_type=search_type,
+            unit=self.default_unit,
             internal_type=self.internal_type,
             processor=self.processor,
             extrapolation=self.extrapolation,
@@ -319,6 +346,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
             public_alias=alias,
             internal_name=self.internal_function,
             search_type=search_type,
+            unit=self.default_unit,
             internal_type=self.internal_type,
             filter=filter,
             key=key,
@@ -356,6 +384,7 @@ class FormulaDefinition(FunctionDefinition):
         return ResolvedFormula(
             public_alias=alias,
             search_type=search_type,
+            unit=self.default_unit,
             formula=self.formula_resolver(resolved_arguments, resolver_settings),
             is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
@@ -374,6 +403,7 @@ def simple_sentry_field(field) -> ResolvedAttribute:
 def simple_measurements_field(
     field,
     search_type: constants.SearchType = "number",
+    unit: constants.ValidUnits | None = "integer",
     secondary_alias: bool = False,
 ) -> ResolvedAttribute:
     """For a good number of fields, the public alias matches the internal alias
@@ -382,6 +412,7 @@ def simple_measurements_field(
         public_alias=f"measurements.{field}",
         internal_name=field,
         search_type=search_type,
+        unit=unit,
         secondary_alias=secondary_alias,
     )
 

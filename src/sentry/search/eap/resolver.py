@@ -89,15 +89,9 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown function {function_name}")
 
-    def check_if_function_is_enabled(self, function_name: str) -> bool:
+    def check_if_function_is_disabled(self, function_name: str) -> bool:
         function_definition = self.get_function_definition(function_name)
-        if not function_definition.private:
-            return True
-
-        if function_name in self.config.functions_acl:
-            return True
-
-        return False
+        return function_definition.private and function_name not in self.config.functions_acl
 
     @sentry_sdk.trace
     def resolve_meta(self, referrer: str, sampling_mode: str | None = None) -> RequestMeta:
@@ -800,7 +794,7 @@ class SearchResolver:
         # Alias defaults to the name of the function
         alias = match.group("alias") or column
 
-        if not self.check_if_function_is_enabled(function_name):
+        if self.check_if_function_is_disabled(function_name):
             raise InvalidSearchQuery(f"The function {function_name} is not allowed for this query")
 
         function_definition = self.get_function_definition(function_name)

@@ -42,7 +42,8 @@ UPTIME_CHECK_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="duration_ms",
             internal_name="duration_ms",
-            search_type="number",
+            search_type="duration",
+            unit="millisecond",
         ),
         ResolvedAttribute(
             public_alias="region",
@@ -63,6 +64,7 @@ UPTIME_CHECK_ATTRIBUTE_DEFINITIONS = {
             public_alias="http_status_code",
             internal_name="http_status_code",
             search_type="number",
+            unit="integer",
         ),
         ResolvedAttribute(
             public_alias="trace_id",

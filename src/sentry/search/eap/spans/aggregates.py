@@ -88,13 +88,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "percentage",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types={"duration", "number", "percentage", "size"},
             ),
             AttributeArgumentDefinition(attribute_types={"string"}),
             ValueArgumentDefinition(argument_types={"string"}),
@@ -106,13 +100,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         default_search_type="integer",
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "percentage",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types={"duration", "number", "percentage", "size"},
                 validator=literal_validator(WEB_VITALS_MEASUREMENTS),
             )
         ],
@@ -139,12 +127,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types={"duration", "number", "size"},
                 default_arg="span.duration",
             )
         ],
@@ -154,13 +137,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "percentage",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types={"duration", "number", "percentage", "size"},
                 default_arg="span.duration",
             )
         ],
@@ -170,13 +147,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "percentage",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types={"duration", "number", "percentage", "size"},
                 default_arg="span.duration",
             )
         ],
@@ -189,12 +160,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
         processor=count_processor,
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types={"duration", "number", "size"},
                 default_arg="span.duration",
             )
         ],
@@ -209,8 +175,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
+                    "size",
                 },
                 default_arg="span.duration",
             )
@@ -222,12 +187,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types={"duration", "number", "size"},
                 default_arg="span.duration",
             )
         ],
@@ -240,8 +200,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
+                    "size",
                 },
                 default_arg="span.duration",
             )
@@ -253,12 +212,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types={"duration", "number", "size"},
                 default_arg="span.duration",
             )
         ],
@@ -271,8 +225,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
+                    "size",
                 },
                 default_arg="span.duration",
             )
@@ -286,8 +239,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
+                    "size",
                 },
                 default_arg="span.duration",
             )
@@ -298,12 +250,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types={"duration", "number", "size"},
                 default_arg="span.duration",
             )
         ],
@@ -313,12 +260,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types={"duration", "number", "size"},
                 default_arg="span.duration",
             )
         ],
@@ -328,13 +270,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "percentage",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types={"duration", "number", "percentage", "size"},
                 default_arg="span.duration",
             )
         ],
@@ -344,13 +280,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "percentage",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types={"duration", "number", "percentage", "size"},
                 default_arg="span.duration",
             )
         ],
@@ -371,13 +301,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
         default_search_type="integer",
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "percentage",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types={"duration", "number", "percentage", "size"},
                 validator=literal_validator(WEB_VITALS_MEASUREMENTS),
             ),
         ],
