@@ -106,7 +106,7 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import RuleSource
-from sentry.monitors.models import Monitor, MonitorEnvironment,ScheduleType
+from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.new_migrations.monkey.state import SentryProjectState
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
