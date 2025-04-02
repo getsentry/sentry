@@ -29,6 +29,8 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
+    checked = False
+
     dependencies = [
         ("sentry", "0852_delete_new_groups_column"),
     ]
