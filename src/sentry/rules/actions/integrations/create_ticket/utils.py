@@ -5,6 +5,7 @@ from collections.abc import Callable, Sequence
 
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.exceptions import InvalidIdentity
@@ -65,6 +66,21 @@ def create_link(
     )
 
 
+def build_description_workflow_engine_ui(
+    event: GroupEvent,
+    workflow_id: int,
+    installation: IntegrationInstallation,
+    generate_footer: Callable[[str], str],
+) -> str:
+    project = event.group.project
+    workflow_url = f"/organizations/{project.organization.slug}/workflows/{workflow_id}/"
+
+    description: str = installation.get_group_description(event.group, event) + generate_footer(
+        workflow_url
+    )
+    return description
+
+
 def build_description(
     event: GroupEvent,
     rule_id: int,
@@ -94,6 +110,13 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
         integration_id = future.kwargs.get("integration_id")
         generate_footer = future.kwargs.get("generate_footer")
 
+        # If we invoked this handler from the notification action, we need to replace the rule_id with the legacy_rule_id, so we link notifications correctly
+        action_id = None
+        if features.has("organizations:workflow-engine-trigger-actions", organization):
+            # In the Notification Action, we store the rule_id in the action_id field
+            action_id = rule_id
+            rule_id = data.get("legacy_rule_id")
+
         integration = integration_service.get_integration(
             integration_id=integration_id,
             provider=provider,
@@ -106,7 +129,14 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
 
         installation = integration.get_installation(organization.id)
         data["title"] = installation.get_group_title(event.group, event)
-        data["description"] = build_description(event, rule_id, installation, generate_footer)
+        if features.has("organizations:workflow-engine-ui-links", organization):
+            workflow_id = data.get("workflow_id")
+            assert workflow_id is not None
+            data["description"] = build_description_workflow_engine_ui(
+                event, workflow_id, installation, generate_footer
+            )
+        else:
+            data["description"] = build_description(event, rule_id, installation, generate_footer)
 
         if data.get("dynamic_form_fields"):
             del data["dynamic_form_fields"]
@@ -130,6 +160,9 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             lifecycle.add_extra("provider", provider)
             lifecycle.add_extra("integration_id", integration.id)
             lifecycle.add_extra("rule_id", rule_id)
+
+            if action_id:
+                lifecycle.add_extra("action_id", action_id)
 
             try:
                 response = installation.create_issue(data)
