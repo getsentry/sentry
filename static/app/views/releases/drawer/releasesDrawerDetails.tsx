@@ -2,14 +2,32 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
+import {Button} from 'sentry/components/core/button';
+import {
+  EventDrawerBody,
+  EventDrawerContainer,
+  EventDrawerHeader,
+  EventNavigator,
+  Header,
+  NavigationCrumbs,
+} from 'sentry/components/events/eventDrawer';
+import Link from 'sentry/components/links/link';
+import {PlatformList} from 'sentry/components/platformList';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {CommitsFilesSection} from 'sentry/views/releases/drawer/commitsFilesSection';
 import {DeploysCard} from 'sentry/views/releases/drawer/deploysCard';
 import {FoldSection, SectionDivider} from 'sentry/views/releases/drawer/foldSection';
 import {GeneralCard} from 'sentry/views/releases/drawer/generalCard';
 import {NewIssues} from 'sentry/views/releases/drawer/newIssues';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
+import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
 import {useReleaseMeta} from 'sentry/views/releases/utils/useReleaseMeta';
 
 interface ReleasesDrawerDetailsProps {
@@ -23,52 +41,109 @@ export function ReleasesDrawerDetails({release, projectId}: ReleasesDrawerDetail
     isError: isMetaError,
     data: releaseMeta,
   } = useReleaseMeta({release});
+  const location = useLocation();
+  const organization = useOrganization();
+  const releaseDetailsQuery = useReleaseDetails({release});
   const project = useProjectFromId({project_id: projectId});
   const projectSlug = project?.slug;
+  const {release: _, ...locationQueryWithoutRelease} = location.query;
 
   if (!projectId || !projectSlug) {
     // TODO: Error handling... not sure when this would happen
     return <Alert type="error">{t('Project not found')}</Alert>;
   }
 
+  const crumbs = [
+    {
+      label: (
+        <Link
+          to={{
+            query: locationQueryWithoutRelease,
+          }}
+        >
+          {t('Releases')}
+        </Link>
+      ),
+    },
+    {label: formatVersion(release)},
+  ];
+
   return (
-    <div>
-      <FoldSection title={t('Details')} sectionKey={'details'}>
-        <Details>
-          <GeneralCard
+    <EventDrawerContainer>
+      <EventDrawerHeader>
+        <NavigationCrumbs crumbs={crumbs} />
+      </EventDrawerHeader>
+      <EventNavigator>
+        <HeaderToolbar>
+          <ReleaseWithPlatform>
+            <PlatformList
+              platforms={releaseDetailsQuery.data?.projects.map(({platform}) => platform)}
+            />
+            {formatVersion(release)}
+          </ReleaseWithPlatform>
+
+          <Button
+            to={normalizeUrl({
+              pathname: makeReleasesPathname({
+                path: `/${encodeURIComponent(release)}/`,
+                organization,
+              }),
+              query: {
+                project: projectId,
+              },
+            })}
+            size="xs"
+            onClick={() => {
+              trackAnalytics('releases.drawer_view_full_details', {
+                organization: organization.id,
+                project_id: String(projectId),
+              });
+            }}
+          >
+            {t('View Full Details')}
+          </Button>
+        </HeaderToolbar>
+      </EventNavigator>
+      <EventDrawerBody>
+        <div>
+          <FoldSection title={t('Details')} sectionKey={'details'}>
+            <Details>
+              <GeneralCard
+                isMetaError={isMetaError}
+                projectSlug={projectSlug}
+                release={release}
+                releaseMeta={releaseMeta}
+              />
+
+              <DeploysCard release={release} projectSlug={projectSlug} />
+            </Details>
+          </FoldSection>
+
+          <CommitsFilesSection
+            isLoadingMeta={isLoadingMeta}
             isMetaError={isMetaError}
+            releaseMeta={releaseMeta}
             projectSlug={projectSlug}
             release={release}
-            releaseMeta={releaseMeta}
           />
+          <SectionDivider />
 
-          <DeploysCard release={release} projectSlug={projectSlug} />
-        </Details>
-      </FoldSection>
-
-      <CommitsFilesSection
-        isLoadingMeta={isLoadingMeta}
-        isMetaError={isMetaError}
-        releaseMeta={releaseMeta}
-        projectSlug={projectSlug}
-        release={release}
-      />
-      <SectionDivider />
-
-      <FoldSection
-        sectionKey="issues"
-        title={
-          <TitleWithBadge>
-            <span>{t('New Issues')}</span>
-            <Badge type="default">
-              {isLoadingMeta ? '-' : (releaseMeta?.newGroups ?? '0')}
-            </Badge>
-          </TitleWithBadge>
-        }
-      >
-        <NewIssues projectId={projectId} release={release} />
-      </FoldSection>
-    </div>
+          <FoldSection
+            sectionKey="issues"
+            title={
+              <TitleWithBadge>
+                <span>{t('New Issues')}</span>
+                <Badge type="default">
+                  {isLoadingMeta ? '-' : (releaseMeta?.newGroups ?? '0')}
+                </Badge>
+              </TitleWithBadge>
+            }
+          >
+            <NewIssues projectId={projectId} release={release} />
+          </FoldSection>
+        </div>
+      </EventDrawerBody>
+    </EventDrawerContainer>
   );
 }
 
@@ -80,4 +155,16 @@ const Details = styled('div')`
 `;
 const TitleWithBadge = styled('div')`
   display: flex;
+`;
+
+const ReleaseWithPlatform = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+const HeaderToolbar = styled(Header)`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;

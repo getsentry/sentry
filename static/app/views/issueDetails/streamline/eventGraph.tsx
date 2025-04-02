@@ -44,6 +44,7 @@ import {
 import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/hooks/useReleaseMarkLineSeries';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 
 const enum EventGraphSeries {
@@ -305,6 +306,8 @@ export function EventGraph({
       period: eventView.statsPeriod,
     },
   });
+
+  useReleasesDrawer();
 
   const handleConnectRef = useCallback(
     (e: ReactEchartsRef | null) => {

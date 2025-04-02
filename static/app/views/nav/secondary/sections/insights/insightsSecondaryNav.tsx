@@ -36,6 +36,7 @@ import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
 const platformsUsingOverviewAsProjectDetails: PlatformKey[] = ['php-laravel'];
 
@@ -44,6 +45,8 @@ export function InsightsSecondaryNav() {
   const location = useLocation();
   const baseUrl = `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}`;
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
+
+  useReleasesDrawer();
 
   const {projects} = useProjects();
 
