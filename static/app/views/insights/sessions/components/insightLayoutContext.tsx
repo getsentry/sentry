@@ -1,7 +1,8 @@
 import type {ReactNode} from 'react';
-import {createContext, useCallback, useContext, useEffect, useState} from 'react';
+import {createContext, useCallback, useContext} from 'react';
 
-import localStorage from 'sentry/utils/localStorage';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
   CHART_MAP,
@@ -28,25 +29,12 @@ interface Props {
   view: DomainView;
 }
 
-const localStorageKey = 'insights-sessions-layout';
-const getLocalStorage = () => {
-  return JSON.parse(localStorage.getItem(localStorageKey) || '{}');
-};
-
 export function InsightLayoutContext({children, view}: Props) {
-  const [chartsByIndex, setChartsByIndex] = useState<readonly TChart[]>(
-    () => getLocalStorage()[view] ?? DEFAULT_LAYOUTS[view]
-  );
+  const organization = useOrganization();
 
-  useEffect(() => {
-    localStorage.setItem(
-      localStorageKey,
-      JSON.stringify({
-        ...getLocalStorage(),
-        [view]: chartsByIndex,
-      })
-    );
-  }, [chartsByIndex, view]);
+  const [chartsByIndex, setChartsByIndex] = useLocalStorageState<
+    (typeof DEFAULT_LAYOUTS)[DomainView]
+  >(`insights-sessions-layout-${organization.slug}-${view}`, DEFAULT_LAYOUTS[view]);
 
   const chartOptions = PAGE_CHART_OPTIONS[view].map(opt => ({
     value: opt,
@@ -54,9 +42,12 @@ export function InsightLayoutContext({children, view}: Props) {
     disabled: chartsByIndex.includes(opt),
   }));
 
-  const onChange = useCallback((index: number, selection: Option) => {
-    setChartsByIndex(prev => prev.toSpliced(index, 1, selection.value));
-  }, []);
+  const onChange = useCallback(
+    (index: number, selection: Option) => {
+      setChartsByIndex(prev => prev.toSpliced(index, 1, selection.value));
+    },
+    [setChartsByIndex]
+  );
 
   return <Context value={{chartsByIndex, chartOptions, onChange}}>{children}</Context>;
 }
