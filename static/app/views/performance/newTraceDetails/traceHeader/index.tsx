@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -6,6 +7,7 @@ import DiscoverButton from 'sentry/components/discoverButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -26,6 +28,7 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import Highlights from 'sentry/views/performance/newTraceDetails/traceHeader/highlights';
 import {PlaceHolder} from 'sentry/views/performance/newTraceDetails/traceHeader/placeholder';
 import Projects from 'sentry/views/performance/newTraceDetails/traceHeader/projects';
+import ScrollToSectionLinks from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 
 import {isRootEvent} from '../../traceDetails/utils';
@@ -49,8 +52,6 @@ export interface TraceMetadataHeaderProps {
   tree: TraceTree;
   project?: Project;
 }
-
-export const TRACE_FORMAT_PREFERENCE_KEY = 'trace_format_preference';
 
 const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation'];
 
@@ -224,7 +225,10 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           </ButtonBar>
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.HeaderRow>
-          <Title tree={props.tree} representativeEvent={representativeEvent} />
+          <Title
+            representativeEvent={representativeEvent}
+            rootEventResults={props.rootEventResults}
+          />
           <Meta
             organization={props.organization}
             rootEventResults={props.rootEventResults}
@@ -243,9 +247,19 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             project={project}
             organization={props.organization}
           />
-          <Projects projects={projects} logs={props.logs} tree={props.tree} />
+          <Flex>
+            <ScrollToSectionLinks tree={props.tree} />
+            <Projects projects={projects} logs={props.logs} tree={props.tree} />
+          </Flex>
         </TraceHeaderComponents.HeaderRow>
       </TraceHeaderComponents.HeaderContent>
     </TraceHeaderComponents.HeaderLayout>
   );
 }
+
+const Flex = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  flex-direction: row;
+  align-items: center;
+`;
