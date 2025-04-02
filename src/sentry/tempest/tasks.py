@@ -11,12 +11,10 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.registry import taskregistry
+from sentry.taskworker.namespaces import tempest_tasks
 from sentry.tempest.models import MessageType, TempestCredentials
 
 logger = logging.getLogger(__name__)
-
-tempest_tasks = taskregistry.create_namespace("tempest")
 
 
 @instrumented_task(

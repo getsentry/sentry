@@ -7,7 +7,7 @@ from sentry.net.http import Session
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.registry import TaskNamespace, taskregistry
+from sentry.taskworker.namespaces import sdk_control_tasks, sdk_tasks
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -19,9 +19,6 @@ LAYER_INDEX_CACHE_KEY = "sentry:release-registry-layer-versions"
 REQUEST_TIMEOUT = 10
 
 CACHE_TTL = 3600
-
-sdk_tasks: TaskNamespace = taskregistry.create_namespace("sdk")
-sdk_control_tasks: TaskNamespace = taskregistry.create_namespace("sdk.control")
 
 
 def _fetch_registry_url(relative_url):
