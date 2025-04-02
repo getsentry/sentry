@@ -16,6 +16,13 @@ type Query = {
   }>;
 };
 
+export type SortOption =
+  | 'name'
+  | 'dateAdded'
+  | 'dateUpdated'
+  | 'mostPopular'
+  | 'recentlyViewed';
+
 // Comes from ExploreSavedQueryModelSerializer
 export type SavedQuery = {
   createdBy: Actor;
@@ -36,25 +43,47 @@ export type SavedQuery = {
 };
 
 type Props = {
+  cursor?: string;
   exclude?: 'owned' | 'shared';
   perPage?: number;
-  sortBy?: 'lastVisited' | 'dateAdded' | 'dateUpdated' | 'mostPopular';
+  query?: string;
+  sortBy?: SortOption;
   starred?: boolean;
 };
 
-export function useGetSavedQueries({sortBy, exclude, starred, perPage = 5}: Props) {
+export function useGetSavedQueries({
+  sortBy,
+  exclude,
+  starred,
+  perPage = 5,
+  cursor,
+  query,
+}: Props) {
   const organization = useOrganization();
-  const {data, isLoading} = useApiQuery<SavedQuery[]>(
+
+  const {data, isLoading, getResponseHeader} = useApiQuery<SavedQuery[]>(
     [
       `/organizations/${organization.slug}/explore/saved/`,
-      {query: {sortBy, exclude, per_page: perPage, starred: starred ? 1 : undefined}},
+      {
+        query: {
+          sortBy,
+          exclude,
+          per_page: perPage,
+          starred: starred ? 1 : undefined,
+          cursor,
+          query,
+          cursor_name: 'curs',
+        },
+      },
     ],
     {
       staleTime: 0,
     }
   );
 
-  return {data, isLoading};
+  const pageLinks = getResponseHeader?.('Link');
+
+  return {data, isLoading, pageLinks};
 }
 
 export function useInvalidateSavedQueries() {
