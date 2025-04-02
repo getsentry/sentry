@@ -787,14 +787,14 @@ class SubscriptionProcessor:
         # Schedule the actions to be fired
         for action in actions_to_fire:
             transaction.on_commit(
-                lambda: handle_trigger_action.delay(
+                handle_trigger_action.s(
                     action_id=action.id,
                     incident_id=incident.id,
                     project_id=self.subscription.project_id,
                     method=method,
                     new_status=new_status,
                     metric_value=metric_value,
-                ),
+                ).delay,
                 using=router.db_for_write(AlertRule),
             )
 
