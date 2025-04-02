@@ -1,5 +1,4 @@
 import {createContext, Fragment, useContext} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import type {AnimationProps} from 'framer-motion';
@@ -10,7 +9,6 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useMedia from 'sentry/utils/useMedia';
 
 import {
   DEFAULT_WIDTH_PERCENT,
@@ -60,17 +58,15 @@ export function DrawerPanel({
 }: DrawerPanelProps & {
   ref?: React.Ref<HTMLDivElement>;
 }) {
-  const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent} =
+  const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
     useDrawerResizing({
       drawerKey,
       drawerWidth,
     });
-  const theme = useTheme();
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
   // Calculate actual drawer width in pixels
   const actualDrawerWidth =
-    (window.innerWidth * (isSmallScreen ? 100 : persistedWidthPercent)) / 100;
+    (window.innerWidth * (enabled ? persistedWidthPercent : 100)) / 100;
 
   return (
     <DrawerContainer>
@@ -81,10 +77,10 @@ export function DrawerPanel({
           collapsed={false}
           ref={mergeRefs(panelRef, ref)}
           transitionProps={transitionProps}
-          panelWidth={isSmallScreen ? '100%' : 'var(--drawer-width)'}
+          panelWidth="var(--drawer-width)" // Initial width only
           className="drawer-panel"
         >
-          {drawerKey && !isSmallScreen && (
+          {drawerKey && enabled && (
             <ResizeHandle
               ref={resizeHandleRef}
               onMouseDown={handleResizeStart}

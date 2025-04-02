@@ -18,6 +18,7 @@ interface UseDrawerResizingOptions {
 }
 
 interface UseDrawerResizingResult {
+  enabled: boolean;
   handleResizeStart: (e: React.MouseEvent) => void;
   panelRef: React.RefObject<HTMLDivElement>;
   persistedWidthPercent: number;
@@ -172,6 +173,7 @@ export function useDrawerResizing({
     resizeHandleRef,
     handleResizeStart,
     persistedWidthPercent,
+    enabled: !isSmallScreen && !!drawerKey,
   };
 }
 
