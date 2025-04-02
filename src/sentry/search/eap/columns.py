@@ -81,10 +81,12 @@ class ResolvedColumn:
         if self.internal_type is not None:
             return self.internal_type
         else:
-            if self.unit is not None:
+            if isinstance(self.search_type, constants.ValidUnits):
                 return constants.TYPE_MAP[self.unit]
+            elif isinstance(self.search_type, constants.UnitlessSearchTypes):
+                return constants.TYPE_MAP.get(self.search_type)
             else:
-                return constants.TYPE_MAP[self.search_type]
+                raise ValueError(f"Invalid search type or unit: {self.search_type}, {self.unit}")
 
 
 @dataclass(frozen=True, kw_only=True)

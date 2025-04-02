@@ -1,4 +1,5 @@
-from typing import Literal, Union
+from types import UnionType
+from typing import Literal, Union, get_args
 
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import AggregationComparisonFilter
@@ -51,9 +52,9 @@ SearchType = Union[UnitlessSearchTypes, UnitfulSearchTypes]
 ValidUnits = DurationUnit | RateUnit | NumberUnit | SizeUnit
 
 VALID_UNITS_MAP: dict[str, tuple[ValidUnits]] = {
-    "duration": DurationUnit.__args__,
-    "rate": RateUnit.__args__,
-    "size": SizeUnit.__args__,
+    "duration": get_args(DurationUnit),
+    "rate": get_args(RateUnit),
+    "size": get_args(SizeUnit),
 }
 
 
@@ -72,7 +73,7 @@ TYPE_TO_STRING_MAP = {
     INT: "integer",
 }
 
-TYPE_MAP: dict[ValidUnits | UnitlessSearchTypes, AttributeKey.Type.ValueType] = {
+TYPE_MAP: dict[UnionType[ValidUnits, UnitlessSearchTypes], AttributeKey.Type.ValueType] = {
     "bit": DOUBLE,
     "byte": DOUBLE,
     "kibibyte": DOUBLE,

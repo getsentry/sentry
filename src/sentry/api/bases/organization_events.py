@@ -292,7 +292,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         return decision
 
     def handle_unit_meta(
-        self, result_meta: dict[str, str], units_meta: dict[str, str] | None = None
+        self, result_meta: dict[str, str], units_meta: dict[str, str | None] | None = None
     ) -> tuple[dict[str, str], dict[str, str | None]]:
         # In the eap span resolver, units are determined within the `ResolvedCoumn`
         if units_meta is not None:
