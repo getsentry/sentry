@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from typing import Any, Generic, TypeVar
 
+from jsonschema import ValidationError as JsonValidationError
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
@@ -40,8 +41,8 @@ class BaseDataConditionValidator(
 
         try:
             return validate_json_schema(value, handler.comparison_json_schema)
-        except Exception as e:
-            raise serializers.ValidationError(str(e))
+        except JsonValidationError:
+            raise serializers.ValidationError("Invalid JSON Schema for comparison")
 
     @abstractmethod
     def validate_condition_result(self, value: Any) -> ConditionResult:
