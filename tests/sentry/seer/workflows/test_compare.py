@@ -15,8 +15,8 @@ def test_keyed_kl_score():
     scores = keyed_kl_score(
         baseline,
         outliers,
-        total_a=sum(map(lambda v: v[2], baseline)),
-        total_b=sum(map(lambda v: v[2], outliers)),
+        total_a=sum(i[2] for i in baseline),
+        total_b=sum(i[2] for i in outliers),
     )
     assert scores[0][0] == "key"
     assert math.isclose(scores[0][1], 0.297377, rel_tol=1e-3)
@@ -31,32 +31,32 @@ def test_keyed_kl_score():
     scores = keyed_kl_score(
         baseline,
         outliers,
-        total_a=sum(map(lambda v: v[2], baseline)),
-        total_b=sum(map(lambda v: v[2], outliers)),
+        total_a=sum(i[2] for i in baseline),
+        total_b=sum(i[2] for i in outliers),
     )
     assert scores[0][0] == "key"
     assert math.isclose(scores[0][1], 8.58, rel_tol=1e-3)
 
 
 def test_kl_score():
-    baseline = [("true", 10.0), ("false", 200.0)]
-    outliers = [("true", 10.0)]
+    baseline = [("true", 10), ("false", 200)]
+    outliers = [("true", 10)]
     assert math.isclose(
         kl_score(
             baseline,
             outliers,
-            total_a=sum(map(lambda v: v[1], baseline)),
-            total_b=sum(map(lambda v: v[1], outliers)),
+            total_a=sum(i[1] for i in baseline),
+            total_b=sum(i[1] for i in outliers),
         ),
         8.58,
         rel_tol=1e-3,
     )
 
-    baseline = [("true", 100.0), ("false", 200.0)]
-    outliers = [("true", 10.0), ("false", 20.0)]
+    baseline = [("true", 100), ("false", 200)]
+    outliers = [("true", 10), ("false", 20)]
     assert 0.00000001 > kl_score(
         baseline,
         outliers,
-        total_a=sum(map(lambda v: v[1], baseline)),
-        total_b=sum(map(lambda v: v[1], outliers)),
+        total_a=sum(i[1] for i in baseline),
+        total_b=sum(i[1] for i in outliers),
     )  # Essentially 0.
