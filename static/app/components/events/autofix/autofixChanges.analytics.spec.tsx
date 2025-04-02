@@ -179,6 +179,12 @@ describe('AutofixChanges', () => {
       },
     });
 
+    MockApiClient.addMockResponse({
+      url: '/issues/123/autofix/update/',
+      method: 'POST',
+      body: {ok: true},
+    });
+
     jest.mocked(useAutofixRepos).mockReturnValue({
       repos: [
         {
@@ -186,14 +192,14 @@ describe('AutofixChanges', () => {
           owner: 'org',
           provider: 'github',
           provider_raw: 'github',
-          external_id: 'repo-123',
+          external_id: '100',
           is_readable: true,
           is_writeable: true,
         },
       ],
       codebases: {
-        'repo-123': {
-          repo_external_id: 'repo-123',
+        '100': {
+          repo_external_id: '100',
           is_readable: true,
           is_writeable: true,
         },
