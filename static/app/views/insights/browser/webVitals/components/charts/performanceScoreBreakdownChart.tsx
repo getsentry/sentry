@@ -92,7 +92,7 @@ export function PerformanceScoreBreakdownChart({
   const webVitalsThatHaveData: WebVitals[] = vitalScoresData
     ? ORDER.filter(webVital => {
         const key = `performance_score(measurements.score.${webVital})` as const;
-        const series = vitalScoresData[key]!;
+        const series = vitalScoresData[key];
 
         return series.data.some(datum => datum.value > 0);
       })
@@ -103,7 +103,7 @@ export function PerformanceScoreBreakdownChart({
   const allSeries: DiscoverSeries[] = vitalScoresData
     ? ORDER.map((webVital, index) => {
         const key = `performance_score(measurements.score.${webVital})` as const;
-        const series = vitalScoresData[key]!;
+        const series = vitalScoresData[key];
 
         const scaledSeries: DiscoverSeries = {
           ...series,
