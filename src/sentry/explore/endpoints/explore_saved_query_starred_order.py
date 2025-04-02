@@ -60,7 +60,7 @@ class ExploreSavedQueryStarredOrderEndpoint(OrganizationEndpoint):
                     user_id=request.user.id,
                     new_query_positions=query_ids,
                 )
-        except (IntegrityError, ValueError) as e:
-            raise ParseError(detail=str(e))
+        except (IntegrityError, ValueError):
+            raise ParseError("Mismatch between existing and provided starred queries.")
 
         return Response(status=status.HTTP_204_NO_CONTENT)
