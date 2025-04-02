@@ -822,6 +822,11 @@ const generateAliases = (
   chartOther: colors.gray200,
 
   /**
+   * Color of the divider used in the content slider diff
+   */
+  diffSliderDivider: colors.blue500,
+
+  /**
    * Default Progressbar color
    */
   progressBar: colors.chonk.blue400,

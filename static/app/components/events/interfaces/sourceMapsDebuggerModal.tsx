@@ -9,7 +9,6 @@ import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Flex} from 'sentry/components/container/flex';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Alert} from 'sentry/components/core/alert';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
@@ -456,7 +455,7 @@ function DebuggerSection({
   title: React.ReactNode;
 }) {
   return (
-    <DebuggerSectionContainer column gap={space(1.5)}>
+    <DebuggerSectionContainer>
       <h5>{title}</h5>
       {children}
     </DebuggerSectionContainer>
@@ -1935,7 +1934,10 @@ const ScrapingSymbolificationErrorMessage = styled('p')`
   margin-top: -${space(1)};
 `;
 
-const DebuggerSectionContainer = styled(Flex)`
+const DebuggerSectionContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
   h5 {
     margin-bottom: 0;
     font-size: ${p => p.theme.fontSizeExtraLarge};
