@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Card from 'sentry/components/card';
@@ -8,19 +9,14 @@ import {space} from 'sentry/styles/space';
 
 type Props = {
   description: string;
-  isAddingDashboardTemplate: boolean;
-  onAdd: () => void;
+  onAdd: () => Promise<void>;
   onPreview: () => void;
   title: string;
 };
 
-function TemplateCard({
-  title,
-  description,
-  onPreview,
-  onAdd,
-  isAddingDashboardTemplate,
-}: Props) {
+function TemplateCard({title, description, onPreview, onAdd}: Props) {
+  const [isAddingDashboardTemplate, setIsAddingDashboardTemplate] = useState(false);
+
   return (
     <StyledCard>
       <Header>
@@ -32,7 +28,12 @@ function TemplateCard({
       </Header>
       <ButtonContainer>
         <StyledButton
-          onClick={onAdd}
+          onClick={() => {
+            setIsAddingDashboardTemplate(true);
+            onAdd().finally(() => {
+              setIsAddingDashboardTemplate(false);
+            });
+          }}
           icon={<IconAdd isCircled />}
           busy={isAddingDashboardTemplate}
         >

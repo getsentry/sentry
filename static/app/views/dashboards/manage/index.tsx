@@ -108,11 +108,6 @@ function ManageDashboards() {
     columnCount: DASHBOARD_GRID_DEFAULT_NUM_COLUMNS,
   });
 
-  const [isAddingDashboardTemplate, setIsAddingDashboardTemplate] = useState({
-    isAdding: false,
-    dashboardId: '',
-  });
-
   const {
     data: dashboards,
     isLoading,
@@ -265,16 +260,7 @@ function ManageDashboards() {
             title={dashboard.title}
             description={dashboard.description}
             onPreview={() => onPreview(dashboard.id)}
-            onAdd={() => {
-              setIsAddingDashboardTemplate({isAdding: true, dashboardId: dashboard.id});
-              onAdd(dashboard).finally(() => {
-                setIsAddingDashboardTemplate({isAdding: false, dashboardId: ''});
-              });
-            }}
-            isAddingDashboardTemplate={
-              dashboard.id === isAddingDashboardTemplate.dashboardId &&
-              isAddingDashboardTemplate.isAdding
-            }
+            onAdd={() => onAdd(dashboard)}
             key={dashboard.title}
           />
         ))}
