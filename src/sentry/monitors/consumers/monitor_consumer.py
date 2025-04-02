@@ -40,7 +40,6 @@ from sentry.monitors.models import (
     MonitorEnvironmentLimitsExceeded,
     MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
-    MonitorType,
 )
 from sentry.monitors.processing_errors.errors import (
     CheckinEnvironmentMismatch,
@@ -154,7 +153,6 @@ def _ensure_monitor_with_config(
             defaults={
                 "name": monitor_slug,
                 "status": ObjectStatus.ACTIVE,
-                "type": MonitorType.CRON_JOB,
                 "config": validated_config,
                 "owner_user_id": owner_user_id,
                 "owner_team_id": owner_team_id,
