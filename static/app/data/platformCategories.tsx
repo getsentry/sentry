@@ -328,8 +328,6 @@ export const profiling: PlatformKey[] = [
   'python-tryton',
   'python-wsgi',
   'python-serverless',
-  // rust
-  'rust',
   // php
   'php',
   'php-laravel',
