@@ -15,9 +15,7 @@ import {
   useLogsSearch,
   useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -36,9 +34,7 @@ export function TraceViewLogsDataProvider({
       limitToTraceId={traceSlug}
       analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
     >
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-        <LogsPageDataProvider>{children}</LogsPageDataProvider>
-      </TraceItemAttributeProvider>
+      <LogsPageDataProvider>{children}</LogsPageDataProvider>
     </LogsPageParamsProvider>
   );
 }
