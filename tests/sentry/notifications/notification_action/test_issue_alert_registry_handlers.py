@@ -149,7 +149,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
 
-    @with_feature("organizations:workflow-engine-ui")
+    @with_feature("organizations:workflow-engine-ui-links")
     def test_create_rule_instance_from_action_with_workflow_engine_ui_feature_flag(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         rule = self.handler.create_rule_instance_from_action(
@@ -204,7 +204,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
 
-    @with_feature("organizations:workflow-engine-ui")
+    @with_feature("organizations:workflow-engine-ui-links")
     def test_create_rule_instance_from_action_no_environment_with_workflow_engine_ui_feature_flag(
         self,
     ):
