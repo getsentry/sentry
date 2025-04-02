@@ -24,8 +24,8 @@ from sentry.snuba.outcomes import (
     run_outcomes_query_totals,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.self_hosted import selfhosted_tasks
 from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import selfhosted_tasks
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
 

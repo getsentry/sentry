@@ -3218,3 +3218,8 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "taskworker.selfhosted.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

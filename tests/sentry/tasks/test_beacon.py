@@ -11,7 +11,7 @@ import sentry
 from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.broadcast import Broadcast
-from sentry.tasks.self_hosted.beacon import BEACON_URL, send_beacon, send_beacon_metric
+from sentry.tasks.beacon import BEACON_URL, send_beacon, send_beacon_metric
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
@@ -93,9 +93,9 @@ class SendBeaconTest(OutcomesSnubaTest):
             3,  # Num of outcomes to be stored
         )
 
-    @patch("sentry.tasks.self_hosted.beacon.get_all_package_versions")
-    @patch("sentry.tasks.self_hosted.beacon.safe_urlopen")
-    @patch("sentry.tasks.self_hosted.beacon.safe_urlread")
+    @patch("sentry.tasks.beacon.get_all_package_versions")
+    @patch("sentry.tasks.beacon.safe_urlopen")
+    @patch("sentry.tasks.beacon.safe_urlread")
     @responses.activate
     def test_simple(
         self,
@@ -153,9 +153,9 @@ class SendBeaconTest(OutcomesSnubaTest):
 
         assert options.get("sentry:latest_version") == "1.0.0"
 
-    @patch("sentry.tasks.self_hosted.beacon.get_all_package_versions")
-    @patch("sentry.tasks.self_hosted.beacon.safe_urlopen")
-    @patch("sentry.tasks.self_hosted.beacon.safe_urlread")
+    @patch("sentry.tasks.beacon.get_all_package_versions")
+    @patch("sentry.tasks.beacon.safe_urlopen")
+    @patch("sentry.tasks.beacon.safe_urlread")
     @responses.activate
     def test_no_cpu_ram_usage(
         self,
@@ -213,9 +213,9 @@ class SendBeaconTest(OutcomesSnubaTest):
 
         assert options.get("sentry:latest_version") == "1.0.0"
 
-    @patch("sentry.tasks.self_hosted.beacon.get_all_package_versions")
-    @patch("sentry.tasks.self_hosted.beacon.safe_urlopen")
-    @patch("sentry.tasks.self_hosted.beacon.safe_urlread")
+    @patch("sentry.tasks.beacon.get_all_package_versions")
+    @patch("sentry.tasks.beacon.safe_urlopen")
+    @patch("sentry.tasks.beacon.safe_urlread")
     @responses.activate
     def test_anonymous(
         self,
@@ -272,9 +272,9 @@ class SendBeaconTest(OutcomesSnubaTest):
 
         assert options.get("sentry:latest_version") == "1.0.0"
 
-    @patch("sentry.tasks.self_hosted.beacon.get_all_package_versions")
-    @patch("sentry.tasks.self_hosted.beacon.safe_urlopen")
-    @patch("sentry.tasks.self_hosted.beacon.safe_urlread")
+    @patch("sentry.tasks.beacon.get_all_package_versions")
+    @patch("sentry.tasks.beacon.safe_urlopen")
+    @patch("sentry.tasks.beacon.safe_urlread")
     @responses.activate
     def test_with_broadcasts(
         self,
@@ -336,9 +336,9 @@ class SendBeaconTest(OutcomesSnubaTest):
 
         assert not broadcast.is_active
 
-    @patch("sentry.tasks.self_hosted.beacon.get_all_package_versions")
-    @patch("sentry.tasks.self_hosted.beacon.safe_urlopen")
-    @patch("sentry.tasks.self_hosted.beacon.safe_urlread")
+    @patch("sentry.tasks.beacon.get_all_package_versions")
+    @patch("sentry.tasks.beacon.safe_urlopen")
+    @patch("sentry.tasks.beacon.safe_urlread")
     @responses.activate
     def test_disabled(
         self,
@@ -356,9 +356,9 @@ class SendBeaconTest(OutcomesSnubaTest):
 
         assert not safe_urlopen.mock_calls
 
-    @patch("sentry.tasks.self_hosted.beacon.get_all_package_versions")
-    @patch("sentry.tasks.self_hosted.beacon.safe_urlopen")
-    @patch("sentry.tasks.self_hosted.beacon.safe_urlread")
+    @patch("sentry.tasks.beacon.get_all_package_versions")
+    @patch("sentry.tasks.beacon.safe_urlopen")
+    @patch("sentry.tasks.beacon.safe_urlread")
     @responses.activate
     def test_debug(
         self,
@@ -376,7 +376,7 @@ class SendBeaconTest(OutcomesSnubaTest):
 
         assert not safe_urlopen.mock_calls
 
-    @patch("sentry.tasks.self_hosted.beacon.safe_urlopen")
+    @patch("sentry.tasks.beacon.safe_urlopen")
     @responses.activate
     def test_metrics(
         self,
