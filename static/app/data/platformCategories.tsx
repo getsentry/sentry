@@ -354,7 +354,6 @@ export const profiling: PlatformKey[] = [
 ];
 
 export const releaseHealth: PlatformKey[] = [
-  // frontend
   'javascript',
   'javascript-react',
   'javascript-angular',
