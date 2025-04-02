@@ -9,6 +9,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
+import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
   type AutofixFeedback,
@@ -43,7 +44,6 @@ import useApi from 'sentry/utils/useApi';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
-import {useTextSelection} from './useTextSelection';
 
 export function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
@@ -163,39 +163,37 @@ function SolutionDescription({
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const selection = useTextSelection(containerRef);
-
   return (
     <SolutionDescriptionWrapper>
-      <AnimatePresence>
-        {selection && (
-          <AutofixHighlightPopup
-            selectedText={selection.selectedText}
-            referenceElement={selection.referenceElement}
-            groupId={groupId}
-            runId={runId}
-            stepIndex={previousDefaultStepIndex ?? 0}
-            retainInsightCardIndex={
-              previousInsightCount !== undefined && previousInsightCount >= 0
-                ? previousInsightCount
-                : null
-            }
-          />
-        )}
-      </AnimatePresence>
-      <div ref={containerRef}>
-        {description && (
+      {description && (
+        <AutofixHighlightWrapper
+          groupId={groupId}
+          runId={runId}
+          stepIndex={previousDefaultStepIndex ?? 0}
+          retainInsightCardIndex={
+            previousInsightCount !== undefined && previousInsightCount >= 0
+              ? previousInsightCount
+              : null
+          }
+        >
           <Description
             dangerouslySetInnerHTML={{__html: singleLineRenderer(description)}}
           />
-        )}
-        <SolutionEventList
-          events={solution}
-          onDeleteItem={onDeleteItem}
-          onToggleActive={onToggleActive}
-        />
-      </div>
+        </AutofixHighlightWrapper>
+      )}
+      <SolutionEventList
+        events={solution}
+        onDeleteItem={onDeleteItem}
+        onToggleActive={onToggleActive}
+        groupId={groupId}
+        runId={runId}
+        stepIndex={previousDefaultStepIndex ?? 0}
+        retainInsightCardIndex={
+          previousInsightCount !== undefined && previousInsightCount >= 0
+            ? previousInsightCount
+            : null
+        }
+      />
     </SolutionDescriptionWrapper>
   );
 }
@@ -208,27 +206,25 @@ const Description = styled('div')`
 
 type SolutionEventListProps = {
   events: AutofixSolutionTimelineEvent[];
+  groupId: string;
   onDeleteItem: (index: number) => void;
   onToggleActive: (index: number) => void;
+  runId: string;
+  retainInsightCardIndex?: number | null;
+  stepIndex?: number;
 };
 
 function SolutionEventList({
   events,
   onDeleteItem,
   onToggleActive,
+  groupId,
+  runId,
+  stepIndex = 0,
+  retainInsightCardIndex = null,
 }: SolutionEventListProps) {
   // Track which events are expanded
-  const [expandedItems, setExpandedItems] = useState<number[]>(() => {
-    if (!events?.length || events.length > 3) {
-      return [];
-    }
-
-    // For 3 or fewer items, find the first highlighted and active item or default to first item
-    const firstHighlightedIndex = events.findIndex(
-      event => event.is_most_important_event && event.is_active !== false
-    );
-    return [firstHighlightedIndex === -1 ? 0 : firstHighlightedIndex];
-  });
+  const [expandedItems, setExpandedItems] = useState<number[]>([]);
 
   const toggleItem = useCallback((index: number) => {
     setExpandedItems(current =>
@@ -283,11 +279,18 @@ function SolutionEventList({
                 isSelected={isSelected}
                 data-test-id={`autofix-solution-timeline-item-${index}`}
               >
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: singleLineRenderer(event.title),
-                  }}
-                />
+                <AutofixHighlightWrapper
+                  groupId={groupId}
+                  runId={runId}
+                  stepIndex={stepIndex}
+                  retainInsightCardIndex={retainInsightCardIndex}
+                >
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: singleLineRenderer(event.title),
+                    }}
+                  />
+                </AutofixHighlightWrapper>
                 <IconWrapper>
                   {!isHumanAction && event.code_snippet_and_analysis && isSelected && (
                     <StyledIconChevron
@@ -333,11 +336,18 @@ function SolutionEventList({
                     transition={{duration: 0.2}}
                   >
                     <Timeline.Text>
-                      <StyledSpan
-                        dangerouslySetInnerHTML={{
-                          __html: singleLineRenderer(event.code_snippet_and_analysis),
-                        }}
-                      />
+                      <AutofixHighlightWrapper
+                        groupId={groupId}
+                        runId={runId}
+                        stepIndex={stepIndex}
+                        retainInsightCardIndex={retainInsightCardIndex}
+                      >
+                        <StyledSpan
+                          dangerouslySetInnerHTML={{
+                            __html: singleLineRenderer(event.code_snippet_and_analysis),
+                          }}
+                        />
+                      </AutofixHighlightWrapper>
                     </Timeline.Text>
                   </AnimatedContent>
                 )}

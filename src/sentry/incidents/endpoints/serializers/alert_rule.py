@@ -151,11 +151,15 @@ class AlertRuleSerializer(Serializer):
 
                     action["sentryAppInstallationUuid"] = rpc_install.uuid
 
-                    component = prepare_ui_component(
-                        rpc_install,
-                        rpc_component,
-                        None,
-                        action.get("settings"),
+                    component = (
+                        prepare_ui_component(
+                            rpc_install,
+                            rpc_component,
+                            None,
+                            action.get("settings"),
+                        )
+                        if rpc_component
+                        else None
                     )
                     if component is None:
                         errors.append({"detail": f"Could not fetch details from {rpc_app.name}"})

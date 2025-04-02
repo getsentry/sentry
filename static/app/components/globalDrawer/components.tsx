@@ -19,10 +19,6 @@ import {
 
 const DrawerWidthContext = createContext<number | undefined>(undefined);
 
-export function useDrawerWidth() {
-  return useContext(DrawerWidthContext);
-}
-
 interface DrawerContentContextType {
   ariaLabel: string;
   onClose: DrawerOptions['onClose'];

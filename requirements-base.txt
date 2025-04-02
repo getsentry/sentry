@@ -16,7 +16,7 @@ django-csp>=3.8
 django-pg-zero-downtime-migrations>=0.16
 Django>=5.1.7
 djangorestframework>=3.15.1
-drf-spectacular>=0.26.3
+drf-spectacular>=0.27.2
 sentry-forked-email-reply-parser>=0.5.12.post1
 google-api-core>=2.19.1
 google-auth>=2.29.0
@@ -71,7 +71,7 @@ sentry-ophio==1.0.0
 sentry-protos>=0.1.65
 sentry-redis-tools>=0.5.0
 sentry-relay>=0.9.7
-sentry-sdk[http2]>=2.25.0
+sentry-sdk[http2]>=2.25.1
 slack-sdk>=3.27.2
 snuba-sdk>=3.0.43
 simplejson>=3.17.6
