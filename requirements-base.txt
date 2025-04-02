@@ -69,7 +69,7 @@ sentry-arroyo>=2.20.6
 sentry-kafka-schemas>=1.1.4
 sentry-ophio==1.0.0
 sentry-protos>=0.1.65
-sentry-redis-tools>=0.4.0
+sentry-redis-tools>=0.5.0
 sentry-relay>=0.9.7
 sentry-sdk[http2]>=2.25.0
 slack-sdk>=3.27.2

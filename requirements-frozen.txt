@@ -128,7 +128,7 @@ sentry-forked-email-reply-parser==0.5.12.post1
 sentry-kafka-schemas==1.1.4
 sentry-ophio==1.0.0
 sentry-protos==0.1.65
-sentry-redis-tools==0.4.0
+sentry-redis-tools==0.5.0
 sentry-relay==0.9.7
 sentry-sdk==2.25.0
 sentry-usage-accountant==0.0.10
