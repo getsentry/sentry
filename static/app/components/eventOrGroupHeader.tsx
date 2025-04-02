@@ -93,7 +93,7 @@ function EventOrGroupHeader({
   });
 
   function getTitleChildren() {
-    const {isBookmarked, hasSeen} = data as Group;
+    const {isBookmarked} = data as Group;
     return (
       <Fragment>
         {!hideIcons && isBookmarked && (
@@ -102,13 +102,7 @@ function EventOrGroupHeader({
           </IconWrapper>
         )}
         <ErrorBoundary customComponent={() => <EventTitleError />} mini>
-          <StyledEventOrGroupTitle
-            data={data}
-            // hasSeen is undefined for GroupTombstone
-            hasSeen={hasSeen === undefined ? true : hasSeen}
-            withStackTracePreview
-            query={query}
-          />
+          <StyledEventOrGroupTitle data={data} withStackTracePreview query={query} />
         </ErrorBoundary>
       </Fragment>
     );
@@ -199,8 +193,6 @@ const TitleWithoutLink = styled('span')`
 
 export default EventOrGroupHeader;
 
-const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
-  hasSeen: boolean;
-}>`
-  font-weight: ${p => (p.hasSeen ? p.theme.fontWeightNormal : p.theme.fontWeightBold)};
+const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
