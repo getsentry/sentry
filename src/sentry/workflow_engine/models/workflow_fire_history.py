@@ -1,6 +1,7 @@
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import CharField, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
+from sentry.db.models.fields.uuid import UUIDField
 
 
 @region_silo_model
