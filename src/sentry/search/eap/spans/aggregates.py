@@ -167,7 +167,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
     "count_sample": AggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         infer_search_type_from_arguments=False,
-        default_search_type="number",
+        default_search_type="interg",
         default_unit="integer",
         processor=count_processor,
         arguments=[
@@ -292,8 +292,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
     ),
     "count_unique": AggregateDefinition(
         internal_function=Function.FUNCTION_UNIQ,
-        default_search_type="number",
-        default_unit="integer",
+        default_search_type="integer",
         infer_search_type_from_arguments=False,
         processor=count_processor,
         arguments=[
@@ -304,8 +303,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
     ),
     "performance_score": AggregateDefinition(
         internal_function=Function.FUNCTION_AVG,
-        default_search_type="number",
-        default_unit="integer",
+        default_search_type="integer",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={"duration", "number", "percentage", "size"},

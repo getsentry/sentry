@@ -48,7 +48,7 @@ UnitfulSearchTypes = Literal["duration", "rate", "size"]
 
 SearchType = Union[UnitlessSearchTypes, UnitfulSearchTypes]
 
-Units = DurationUnit | RateUnit | NumberUnit | SizeUnit
+Units = DurationUnit | RateUnit | SizeUnit
 
 VALID_UNITS_MAP: dict[UnitfulSearchTypes, tuple[Units]] = {
     "duration": get_args(DurationUnit),
