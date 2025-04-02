@@ -94,7 +94,6 @@ function GroupList({
   groupStatsPeriod,
   onActionTaken,
 }: GroupListProps) {
-  const organization = useOrganization();
   const theme = useTheme();
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
@@ -109,9 +108,8 @@ function GroupList({
 
   const columns: GroupListColumn[] = [
     'graph',
-    ...(organization.features.includes('issue-stream-table-layout')
-      ? ['firstSeen' as const, 'lastSeen' as const]
-      : []),
+    'firstSeen',
+    'lastSeen',
     'event',
     'users',
     'priority',
