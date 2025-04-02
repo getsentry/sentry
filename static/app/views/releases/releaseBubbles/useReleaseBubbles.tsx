@@ -8,11 +8,11 @@ import type {
   CustomSeriesRenderItemReturn,
 } from 'echarts';
 import type {EChartsInstance} from 'echarts-for-react';
+import type {LocationDescriptorObject} from 'history';
 import moment from 'moment-timezone';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
-import useDrawer, {type DrawerConfig} from 'sentry/components/globalDrawer';
 import type {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tn} from 'sentry/locale';
 import type {
@@ -24,10 +24,11 @@ import type {
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {getFormat} from 'sentry/utils/dates';
+import {useLocation} from 'sentry/utils/useLocation';
+import {type ReactRouter3Navigate, useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
-import {ReleasesDrawer} from 'sentry/views/releases/drawer/releasesDrawer';
 import {
   BUBBLE_AREA_SERIES_ID,
   BUBBLE_SERIES_ID,
@@ -41,13 +42,10 @@ import {createReleaseBuckets} from 'sentry/views/releases/releaseBubbles/utils/c
 
 interface CreateReleaseBubbleMouseListenersParams {
   alignInMiddle: boolean;
-  buckets: Bucket[];
   color: string;
   environments: readonly string[];
-  openDrawer: (
-    renderer: DrawerConfig['renderer'],
-    options: DrawerConfig['options']
-  ) => void;
+  location: LocationDescriptorObject;
+  navigate: ReactRouter3Navigate;
   projects: readonly number[];
   chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
 }
@@ -59,9 +57,9 @@ interface CreateReleaseBubbleMouseListenersParams {
 function createReleaseBubbleMouseListeners({
   alignInMiddle,
   chartRenderer,
+  navigate,
   color,
-  openDrawer,
-  buckets,
+  location,
   projects,
   environments,
 }: CreateReleaseBubbleMouseListenersParams) {
@@ -79,24 +77,16 @@ function createReleaseBubbleMouseListeners({
       // drawer.
       closeModal();
 
-      openDrawer(
-        () => (
-          <ReleasesDrawer
-            startTs={data.start}
-            endTs={data.final ?? data.end}
-            releases={data.releases}
-            buckets={buckets}
-            projects={projects}
-            environments={environments}
-            chartRenderer={chartRenderer}
-          />
-        ),
-        {
-          shouldCloseOnLocationChange: () => false,
-          ariaLabel: t('Releases drawer'),
-          transitionProps: {stiffness: 1000},
-        }
-      );
+      navigate({
+        query: {
+          ...location.query,
+          showReleasesDrawer: 1,
+          rdStart: data.start,
+          rdEnd: data.end,
+          rdProject: projects,
+          rdEnv: environments,
+        },
+      });
     },
     onMouseOut: (
       params: Parameters<EChartMouseOutHandler>[0],
@@ -399,7 +389,8 @@ export function useReleaseBubbles({
   desiredBuckets = 10,
 }: UseReleaseBubblesParams) {
   const organization = useOrganization();
-  const {openDrawer} = useDrawer();
+  const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const {options} = useUser();
   const {selection} = usePageFilters();
@@ -504,10 +495,10 @@ export function useReleaseBubbles({
      */
     releaseBubbleEventHandlers: createReleaseBubbleMouseListeners({
       alignInMiddle,
-      buckets,
       chartRenderer,
+      navigate,
+      location,
       color: theme.blue400,
-      openDrawer,
       projects: projects ?? selection.projects,
       environments: environments ?? selection.environments,
     }),
