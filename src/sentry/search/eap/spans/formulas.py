@@ -165,6 +165,7 @@ def get_count_of_vital(vital: str, settings: ResolverSettings) -> float:
         orderby=None,
         offset=0,
         limit=1,
+        sampling_mode=None,
         config=SearchResolverConfig(
             auto_fields=True,
         ),
