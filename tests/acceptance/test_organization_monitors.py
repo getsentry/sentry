@@ -9,7 +9,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorStatus,
-    MonitorType,
     ScheduleType,
 )
 from sentry.testutils.cases import AcceptanceTestCase
@@ -85,7 +84,6 @@ class OrganizationMontorsTest(AcceptanceTestCase):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="My Monitor",
             config={
                 "schedule": "0 0 * * *",
@@ -124,7 +122,6 @@ class OrganizationMontorsTest(AcceptanceTestCase):
         Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="My Monitor",
             config={
                 "schedule": "0 0 * * *",

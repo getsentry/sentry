@@ -4,7 +4,7 @@ from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectkey import ProjectKey
 from sentry.monitors.constants import PermitCheckInStatus
-from sentry.monitors.models import Monitor, MonitorType
+from sentry.monitors.models import Monitor
 from sentry.quotas.base import Quota, QuotaConfig, QuotaScope, SeatAssignmentResult
 from sentry.testutils.cases import TestCase
 from sentry.utils.outcomes import Outcome
@@ -105,7 +105,6 @@ class QuotaTest(TestCase):
             project_id=self.project.id,
             name="test monitor",
             status=ObjectStatus.ACTIVE,
-            type=MonitorType.CRON_JOB,
         )
         assert self.backend.assign_monitor_seat(monitor) == Outcome.ACCEPTED
 
@@ -116,7 +115,6 @@ class QuotaTest(TestCase):
             project_id=self.project.id,
             name="test monitor",
             status=ObjectStatus.ACTIVE,
-            type=MonitorType.CRON_JOB,
         )
         assert (
             self.backend.check_accept_monitor_checkin(

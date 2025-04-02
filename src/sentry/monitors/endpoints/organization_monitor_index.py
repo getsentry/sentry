@@ -41,7 +41,6 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorLimitsExceeded,
     MonitorStatus,
-    MonitorType,
 )
 from sentry.monitors.serializers import (
     MonitorBulkEditResponse,
@@ -233,13 +232,6 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                         )
                     except ValueError:
                         queryset = queryset.none()
-                elif key == "type":
-                    try:
-                        queryset = queryset.filter(
-                            type__in=map_value_to_constant(MonitorType, value)
-                        )
-                    except ValueError:
-                        queryset = queryset.none()
                 else:
                     queryset = queryset.none()
 
@@ -294,7 +286,6 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                 name=result["name"],
                 slug=result.get("slug"),
                 status=result["status"],
-                type=result["type"],
                 config=result["config"],
             )
         except MonitorLimitsExceeded as e:

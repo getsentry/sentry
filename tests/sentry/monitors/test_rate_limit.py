@@ -1,12 +1,6 @@
 from unittest import mock
 
-from sentry.monitors.models import (
-    Monitor,
-    MonitorEnvironment,
-    MonitorStatus,
-    MonitorType,
-    ScheduleType,
-)
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, ScheduleType
 from sentry.monitors.rate_limit import get_project_monitor_quota
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
@@ -33,7 +27,6 @@ class MonitorRateLimit(TestCase):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": "*/5 * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
 
@@ -52,7 +45,6 @@ class MonitorRateLimit(TestCase):
         monitor2 = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=project2.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": "*/5 * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
         MonitorEnvironment.objects.create(

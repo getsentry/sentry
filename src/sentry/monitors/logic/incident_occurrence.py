@@ -265,7 +265,6 @@ def get_monitor_environment_context(monitor_environment: MonitorEnvironment):
         "name": monitor_environment.monitor.name,
         "config": monitor_environment.monitor.config,
         "status": monitor_environment.get_status_display(),
-        "type": monitor_environment.monitor.get_type_display(),
     }
 
 
