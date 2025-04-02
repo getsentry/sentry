@@ -101,7 +101,7 @@ if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false)
 
 function createCopyDSNAction(params: {orgId?: string; projectId?: string}) {
   return {
-    title: t('Copy Project DSN to Clipboard'),
+    title: t('Copy Project (%s) DSN to Clipboard', params.projectId),
     description: t('Copies the Project DSN to the clipboard.'),
     isHidden: () => !params.orgId || !params.projectId, // visible if both orgId and projectId are present
     requiresSuperuser: false,
