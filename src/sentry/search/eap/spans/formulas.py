@@ -595,10 +595,7 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=time_spent_percentage,
         is_aggregate=True,
-        check_if_enabled=lambda params: (
-            params.is_timeseries_request is False,
-            "not supported for timeseries requests",
-        ),
+        private=True,
     ),
     "epm": FormulaDefinition(
         default_search_type="number", arguments=[], formula_resolver=epm, is_aggregate=True
