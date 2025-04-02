@@ -7,7 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.bases.organization import OrganizationDetectorPermission
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -20,7 +20,10 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers import DetectorWorkflowSerializer
-from sentry.workflow_engine.endpoints.validators.detector_workflow import DetectorWorkflowValidator
+from sentry.workflow_engine.endpoints.validators.detector_workflow import (
+    DetectorWorkflowValidator,
+    check_can_edit_detector,
+)
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 
 
@@ -32,7 +35,7 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
-    permission_classes = (OrganizationPermission,)
+    permission_classes = (OrganizationDetectorPermission,)
 
     @extend_schema(
         operation_id="Fetch Connected Detectors and Workflows",
@@ -114,7 +117,11 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
                 {"detail": "detector_id and/or workflow_id must be provided."}
             )
 
-        queryset = DetectorWorkflow.objects.filter(workflow__organization=organization)
+        queryset = (
+            DetectorWorkflow.objects.filter(workflow__organization=organization)
+            .select_related("detector")
+            .select_related("detector__project")
+        )
 
         if workflow_id:
             queryset = queryset.filter(workflow_id=workflow_id)
@@ -124,6 +131,10 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
 
         if not queryset:
             return Response(status=status.HTTP_404_NOT_FOUND)
+
+        # check that the user has permission to edit all detectors before deleting
+        for detector_workflow in queryset:
+            check_can_edit_detector(detector_workflow.detector, request)
 
         for detector_workflow in queryset:
             RegionScheduledDeletion.schedule(detector_workflow, days=0, actor=request.user)

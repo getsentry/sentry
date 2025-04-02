@@ -178,6 +178,131 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
             self.organization.slug,
         )
 
+    def test_team_admin_create(self):
+        team_admin_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin_user,
+            role="member",
+            organization=self.organization,
+        )
+        self.login_as(user=team_admin_user)
+
+        detector = self.create_detector(
+            project=self.create_project(organization=self.organization),
+            created_by_id=1,
+        )
+        body_params = {
+            "detectorId": detector.id,
+            "workflowId": self.unconnected_workflow.id,
+        }
+        self.get_success_response(
+            self.organization.slug,
+            **body_params,
+        )
+
+        # team admins can modify detectors created by Sentry
+        sentry_detector = self.create_detector(
+            project=self.create_project(organization=self.organization),
+        )
+        body_params = {
+            "detectorId": sentry_detector.id,
+            "workflowId": self.unconnected_workflow.id,
+        }
+        self.get_success_response(self.organization.slug, **body_params)
+
+        self.organization.update_option("sentry:alerts_member_write", False)
+
+        # team admins can modify detectors for projects they have access to
+        detector = self.create_detector(
+            project=self.create_project(organization=self.organization, teams=[self.team]),
+            created_by_id=1,
+        )
+        body_params = {
+            "detectorId": detector.id,
+            "workflowId": self.unconnected_workflow.id,
+        }
+        self.get_success_response(
+            self.organization.slug,
+            **body_params,
+        )
+
+        # team admins can not modify detectors for projects they don't have access to
+        other_detector = self.create_detector(
+            project=self.create_project(organization=self.organization, teams=[]),
+            created_by_id=1,
+        )
+        body_params = {
+            "detectorId": other_detector.id,
+            "workflowId": self.unconnected_workflow.id,
+        }
+        self.get_error_response(self.organization.slug, **body_params, status_code=403)
+
+    def test_member_create(self):
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=user,
+            role="member",
+            organization=self.organization,
+        )
+        self.login_as(user=user)
+
+        detector = self.create_detector(
+            project=self.create_project(organization=self.organization),
+            created_by_id=1,
+        )
+        body_params = {
+            "detectorId": detector.id,
+            "workflowId": self.unconnected_workflow.id,
+        }
+        self.get_success_response(
+            self.organization.slug,
+            **body_params,
+        )
+
+        # members can not modify detectors for projects they don't have access to
+        other_detector = self.create_detector(
+            project=self.create_project(organization=self.organization, teams=[]),
+            created_by_id=1,
+        )
+        body_params = {
+            "detectorId": other_detector.id,
+            "workflowId": self.unconnected_workflow.id,
+        }
+        self.get_error_response(self.organization.slug, **body_params, status_code=403)
+
+        # members can never modify detectors created by Sentry
+        sentry_detector = self.create_detector(
+            project=self.create_project(organization=self.organization),
+        )
+        body_params = {
+            "detectorId": sentry_detector.id,
+            "workflowId": self.unconnected_workflow.id,
+        }
+        self.get_error_response(self.organization.slug, **body_params, status_code=403)
+
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        # members can not modify detectors for any projects when alerts_member_write is false
+        detector = self.create_detector(
+            project=self.create_project(organization=self.organization, teams=[self.team]),
+            created_by_id=1,
+        )
+        body_params = {
+            "detectorId": detector.id,
+            "workflowId": self.unconnected_workflow.id,
+        }
+        self.get_error_response(
+            self.organization.slug,
+            **body_params,
+            status_code=403,
+        )
+
 
 @region_silo_test
 class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAPITestCase):
@@ -250,3 +375,170 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
         self.get_error_response(
             self.organization.slug,
         )
+
+    def test_team_admin_delete(self):
+        team_admin_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin_user,
+            role="member",
+            organization=self.organization,
+        )
+        self.login_as(user=team_admin_user)
+
+        detector = self.create_detector(
+            project=self.create_project(organization=self.organization),
+            created_by_id=1,
+        )
+        self.create_detector_workflow(
+            detector=detector,
+            workflow=self.workflow_1,
+        )
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"detector_id": detector.id, "workflow_id": self.workflow_1.id},
+        )
+
+        # team admins can modify detectors created by Sentry
+        sentry_detector = self.create_detector(
+            project=self.create_project(organization=self.organization),
+        )
+        self.create_detector_workflow(
+            detector=sentry_detector,
+            workflow=self.workflow_1,
+        )
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"detector_id": sentry_detector.id, "workflow_id": self.workflow_1.id},
+        )
+
+        self.organization.update_option("sentry:alerts_member_write", False)
+
+        # team admins can modify detectors for projects they have access to
+        project_detector = self.create_detector(
+            project=self.create_project(organization=self.organization, teams=[self.team]),
+            created_by_id=1,
+        )
+        self.create_detector_workflow(
+            detector=project_detector,
+            workflow=self.workflow_1,
+        )
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"detector_id": project_detector.id, "workflow_id": self.workflow_1.id},
+        )
+
+        # team admins can not modify detectors for projects they don't have access to
+        other_detector = self.create_detector(
+            project=self.create_project(organization=self.organization, teams=[]),
+            created_by_id=1,
+        )
+        self.create_detector_workflow(
+            detector=other_detector,
+            workflow=self.workflow_1,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"detector_id": other_detector.id, "workflow_id": self.workflow_1.id},
+            status_code=403,
+        )
+
+    def test_member_delete(self):
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=user,
+            role="member",
+            organization=self.organization,
+        )
+        self.login_as(user=user)
+
+        detector = self.create_detector(
+            project=self.create_project(organization=self.organization),
+            created_by_id=1,
+        )
+        self.create_detector_workflow(
+            detector=detector,
+            workflow=self.workflow_1,
+        )
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"detector_id": detector.id, "workflow_id": self.workflow_1.id},
+        )
+
+        # members can not modify detectors for projects they don't have access to
+        other_detector = self.create_detector(
+            project=self.create_project(organization=self.organization, teams=[]),
+            created_by_id=1,
+        )
+        self.create_detector_workflow(
+            detector=other_detector,
+            workflow=self.workflow_1,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"detector_id": other_detector.id, "workflow_id": self.workflow_1.id},
+            status_code=403,
+        )
+
+        # members can never modify detectors created by Sentry
+        sentry_detector = self.create_detector(
+            project=self.create_project(organization=self.organization),
+        )
+        self.create_detector_workflow(
+            detector=sentry_detector,
+            workflow=self.workflow_1,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"detector_id": sentry_detector.id, "workflow_id": self.workflow_1.id},
+            status_code=403,
+        )
+
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+
+        # members can not modify detectors for any projects when alerts_member_write is false
+        detector = self.create_detector(
+            project=self.create_project(organization=self.organization, teams=[self.team]),
+            created_by_id=1,
+        )
+        self.create_detector_workflow(
+            detector=detector,
+            workflow=self.workflow_1,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"detector_id": detector.id, "workflow_id": self.workflow_1.id},
+            status_code=403,
+        )
+
+    def test_batch_delete_no_permission(self):
+        self.organization.update_option("sentry:alerts_member_write", False)
+        user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=user,
+            role="member",
+            organization=self.organization,
+        )
+        self.login_as(user=user)
+
+        # nothing is deleted when the user does not have permission to all detectors
+        detector = self.create_detector(
+            project=self.create_project(organization=self.organization, teams=[self.team]),
+            created_by_id=1,
+        )
+        self.create_detector_workflow(
+            detector=detector,
+            workflow=self.workflow_1,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"workflow_id": self.workflow_1.id},
+            status_code=403,
+        )
+        assert DetectorWorkflow.objects.filter(workflow_id=self.workflow_1.id).count() == 3
