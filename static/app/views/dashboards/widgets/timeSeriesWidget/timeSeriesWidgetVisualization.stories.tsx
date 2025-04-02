@@ -668,23 +668,34 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         </p>
         <p>
           You can also provide aliases for plottables like <code>Line</code> This will
-          give the legends and tooltips a friendlier name. In this example, verbose names
-          like "p99(span.duration)" are truncated, and the p99 series is hidden by
-          default.
+          give the legends and tooltips a friendlier name. In the first example, verbose
+          names like "p99(span.duration)" are truncated, and the p99 series is hidden by
+          default. The legend will always include an entry for every plottable, even if
+          some plottables have the same alias, as you can see in the second example.
         </p>
 
         <code>{JSON.stringify(legendSelection)}</code>
 
-        <MediumWidget>
-          <TimeSeriesWidgetVisualization
-            plottables={[
-              new Area(sampleDurationTimeSeries, {alias: 'p50'}),
-              new Area(sampleDurationTimeSeries2, {alias: 'p99'}),
-            ]}
-            legendSelection={legendSelection}
-            onLegendSelectionChange={setLegendSelection}
-          />
-        </MediumWidget>
+        <SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Area(sampleDurationTimeSeries, {alias: 'p50'}),
+                new Area(sampleDurationTimeSeries2, {alias: 'p99'}),
+              ]}
+              legendSelection={legendSelection}
+              onLegendSelectionChange={setLegendSelection}
+            />
+          </MediumWidget>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Area(sampleDurationTimeSeries, {alias: 'Duration'}),
+                new Area(sampleDurationTimeSeries2, {alias: 'Duration'}),
+              ]}
+            />
+          </MediumWidget>
+        </SideBySide>
       </Fragment>
     );
   });
