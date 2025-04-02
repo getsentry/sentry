@@ -75,6 +75,16 @@ export interface TimeSeriesWidgetVisualizationProps {
   releases?: Release[];
 
   /**
+   * Defines the legend's visibility.
+   *
+   * - `auto`: Show the legend if there are multiple series.
+   * - `never`: Never show the legend.
+   *
+   * Default: `auto`
+   */
+  showLegend?: 'auto' | 'never';
+
+  /**
    * Show releases as either lines per release or a bubble for a group of releases.
    */
   showReleaseAs?: 'bubble' | 'line';
@@ -397,7 +407,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     visibleSeriesCount += 1;
   }
 
-  const showLegend = visibleSeriesCount > 1;
+  const showLegendProp = props.showLegend ?? 'auto';
+  const showLegend = showLegendProp !== 'never' && visibleSeriesCount > 1;
 
   // Keep track of which `Series[]` indexes correspond to which `Plottable` so
   // we can look up the types in the tooltip. We need this so we can find the
