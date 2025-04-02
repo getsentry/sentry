@@ -1,7 +1,7 @@
 import {
   StacktraceContext,
   useStacktraceContext,
-} from 'sentry/components/events/interfaces/astackTraceContext';
+} from 'sentry/components/events/interfaces/stackTraceContext';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';

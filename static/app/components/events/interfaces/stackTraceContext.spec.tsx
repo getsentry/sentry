@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import * as useLocalStorageStateModule from 'sentry/utils/useLocalStorageState';
 
-import {StacktraceContext, useStacktraceContext} from './astackTraceContext';
+import {StacktraceContext, useStacktraceContext} from './stackTraceContext';
 
 describe('StacktraceContext', () => {
   function TestComponent() {

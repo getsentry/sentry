@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {useStacktraceContext} from 'sentry/components/events/interfaces/astackTraceContext';
+import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconSort} from 'sentry/icons';

@@ -9,7 +9,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   StacktraceContext,
   useStacktraceContext,
-} from 'sentry/components/events/interfaces/astackTraceContext';
+} from 'sentry/components/events/interfaces/stackTraceContext';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
 import {
   getMappedThreadState,
