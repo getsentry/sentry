@@ -209,6 +209,9 @@ from sentry.issues.endpoints import (
 from sentry.issues.endpoints.organization_group_search_view_starred_order import (
     OrganizationGroupSearchViewStarredOrderEndpoint,
 )
+from sentry.issues.endpoints.organization_group_suspect_attributes import (
+    OrganizationGroupSuspectAttributesEndpoint,
+)
 from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
 from sentry.monitors.endpoints.organization_monitor_checkin_index import (
     OrganizationMonitorCheckInIndexEndpoint,
@@ -774,6 +777,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/values/$",
             GroupTagKeyValuesEndpoint.as_view(),
             name=f"{name_prefix}-group-tag-key-values",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/suspect/(?:flags|tags)/$",
+            OrganizationGroupSuspectAttributesEndpoint.as_view(),
+            name=f"{name_prefix}-group-suspect-attributes",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/(?:user-feedback|user-reports)/$",

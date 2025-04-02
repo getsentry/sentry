@@ -214,10 +214,10 @@ Retrieve a collection of confidence scores for all feature flags associated with
 
 **Attributes**
 
-| Column | Type   | Description                                                                  |
-| ------ | ------ | ---------------------------------------------------------------------------- |
-| flag   | string | The name of the flag.                                                        |
-| score  | number | The flag confidence score, ranging from 0-100, where 100 is most suspicious. |
+| Column | Type   | Description                           |
+| ------ | ------ | ------------------------------------- |
+| flag   | string | The name of the flag.                 |
+| score  | number | A suspicion score from 0 to infinity. |
 
 - Response 200
 
