@@ -63,7 +63,9 @@ function AccordionRow({
         data-test-id="accordion-title"
       >
         {title}
-        {!disabled && <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />}
+        {!disabled && (
+          <IconChevron color="subText" direction={isExpanded ? 'up' : 'down'} size="sm" />
+        )}
       </Title>
 
       <motion.div
