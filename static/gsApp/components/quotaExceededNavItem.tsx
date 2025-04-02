@@ -190,14 +190,6 @@ function PrimaryNavigationQuotaExceeded({
     return null;
   }
 
-  // setIsDismissed(
-  //   !!prompts?.features &&
-  //     promptsToCheck.every(prompt => {
-  //       const promptData = prompts.features?.[prompt];
-  //       return promptData && promptIsDismissedForBillingPeriod(promptData);
-  //     })
-  // );
-
   const animateProps: MotionProps = {
     animate: {
       rotate: [0, -15, 15, -15, 15, -15, 0],
