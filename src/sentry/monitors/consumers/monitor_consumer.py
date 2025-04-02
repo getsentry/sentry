@@ -409,6 +409,9 @@ def update_existing_check_in(
 
     # IN_PROGRESS heartbeats bump the date_updated
     if updated_status == CheckInStatus.IN_PROGRESS:
+        # XXX(epurkhiser): Tracking metrics on updating the date_updated since
+        # we may weant to remove this 'heart-beat' feature.
+        metrics.incr("monitors.in_progress_heart_beat", tags=metric_kwargs)
         updated_checkin["date_updated"] = start_time
 
     existing_check_in.update(**updated_checkin)
