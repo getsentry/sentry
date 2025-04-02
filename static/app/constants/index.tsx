@@ -397,6 +397,27 @@ export const DATA_CATEGORY_INFO = {
     uid: 21,
     isBilledCategory: true,
   },
+
+  [DataCategoryExact.LOG_ITEM]: {
+    name: DataCategoryExact.LOG_ITEM,
+    apiName: 'log_item',
+    plural: 'log_items',
+    displayName: 'log',
+    titleName: t('Logs'),
+    productName: t('Logging'),
+    uid: 23,
+    isBilledCategory: true,
+  },
+  [DataCategoryExact.LOG_BYTE]: {
+    name: DataCategoryExact.LOG_BYTE,
+    apiName: 'log_byte',
+    plural: 'log_bytess',
+    displayName: 'log byte',
+    titleName: t('Logs (bytes)'),
+    productName: t('Logging'),
+    uid: 24,
+    isBilledCategory: false,
+  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters
