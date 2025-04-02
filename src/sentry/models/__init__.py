@@ -55,6 +55,7 @@ from .groupresolution import *  # NOQA
 from .grouprulestatus import *  # NOQA
 from .groupsearchview import *  # NOQA
 from .groupsearchviewlastvisited import *  # NOQA
+from .groupsearchviewpermission import *  # NOQA
 from .groupsearchviewstarred import *  # NOQA
 from .groupseen import *  # NOQA
 from .groupshare import *  # NOQA

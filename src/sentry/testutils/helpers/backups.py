@@ -70,6 +70,10 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewProject
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
+from sentry.models.groupsearchviewpermission import (
+    GroupSearchViewPermission,
+    GroupSearchViewPermissionTeam,
+)
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -630,6 +634,13 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             group_search_view=group_search_view,
             position=0,
+        )
+        group_search_view_permission = GroupSearchViewPermission.objects.create(
+            groupsearchview=group_search_view,
+        )
+        GroupSearchViewPermissionTeam.objects.create(
+            team=team,
+            permissions=group_search_view_permission,
         )
 
         Activity.objects.create(
