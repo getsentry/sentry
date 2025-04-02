@@ -4494,6 +4494,262 @@ describe('Customer Details', function () {
       });
     });
   });
+
+  describe('delete billing metric history', function () {
+    // Add afterEach to clean up after tests
+    afterEach(function () {
+      MockApiClient.clearMockResponses();
+      jest.restoreAllMocks();
+      ModalStore.reset();
+    });
+
+    it('renders and properly functions', async function () {
+      // Set up organization with the required feature flag
+      const orgWithDeleteFeature = OrganizationFixture({
+        features: ['delete-billing-metric-history-admin'],
+      });
+      setUpMocks(orgWithDeleteFeature);
+
+      // Mock the billing config API call
+      const billingConfigMock = MockApiClient.addMockResponse({
+        url: '/api/0/billing-config/',
+        body: {
+          category_info: {
+            '1': {
+              api_name: 'errors',
+              billed_category: 1,
+              display_name: 'Errors',
+              name: 'errors',
+              order: 1,
+              product_name: 'Error Tracking',
+              singular: 'error',
+              tally_type: 1,
+            },
+            '2': {
+              api_name: 'transactions',
+              billed_category: 2,
+              display_name: 'Transactions',
+              name: 'transactions',
+              order: 2,
+              product_name: 'Performance',
+              singular: 'transaction',
+              tally_type: 2,
+            },
+          },
+          outcomes: {
+            '0': 'Accepted',
+            '1': 'Filtered',
+            '2': 'Rate Limited',
+          },
+          reason_codes: {
+            '0': 'Default',
+            '1': 'Quota',
+            '2': 'Rate Limit',
+          },
+        },
+      });
+
+      // Mock success indicator
+      const successIndicator = jest.spyOn(
+        require('sentry/actionCreators/indicator'),
+        'addSuccessMessage'
+      );
+
+      // Mock the API endpoint for deleting billing metric history
+      const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({
+        url: `/api/0/_admin/${orgWithDeleteFeature.slug}/delete-billing-metric-history/`,
+        method: 'POST',
+        body: {},
+      });
+
+      render(
+        <CustomerDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+          params={{orgId: orgWithDeleteFeature.slug}}
+        />
+      );
+
+      await screen.findByRole('heading', {name: 'Customers'});
+      renderGlobalModal();
+
+      // Open the actions dropdown
+      await userEvent.click(
+        screen.getAllByRole('button', {name: /customers actions/i})[1]!
+      );
+
+      // Click on the "Delete Billing Metric History" option
+      await userEvent.click(screen.getByText('Delete Billing Metric History'));
+
+      // Check modal content
+      await screen.findByText('Delete Billing Metric History');
+      expect(
+        screen.getByText('Delete billing metric history for a specific data category.')
+      ).toBeInTheDocument();
+
+      // Ensure billing config was loaded
+      expect(billingConfigMock).toHaveBeenCalled();
+
+      // Wait for the select field to be populated with choices
+      await waitFor(() => {
+        const selectField = screen.getByRole('textbox', {name: 'Data Category'});
+        expect(selectField).toBeInTheDocument();
+      });
+
+      // Select a data category
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Data Category'}),
+        'Transactions (2)'
+      );
+
+      // Click the Delete button
+      await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
+
+      // Check that the API call was made with the correct parameters
+      await waitFor(() => {
+        expect(deleteBillingMetricHistoryMock).toHaveBeenCalledWith(
+          `/api/0/_admin/${orgWithDeleteFeature.slug}/delete-billing-metric-history/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: {
+              data_category: 2,
+            },
+          })
+        );
+      });
+
+      // Check that the success message was shown
+      expect(successIndicator).toHaveBeenCalledWith(
+        'Successfully deleted billing metric history.'
+      );
+    });
+
+    it('does not show option when feature flag is missing', async function () {
+      // Set up organization without the feature flag
+      const orgWithoutDeleteFeature = OrganizationFixture({
+        features: [],
+      });
+      setUpMocks(orgWithoutDeleteFeature);
+
+      render(
+        <CustomerDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+          params={{orgId: orgWithoutDeleteFeature.slug}}
+        />
+      );
+
+      await screen.findByRole('heading', {name: 'Customers'});
+
+      // Open the actions dropdown
+      await userEvent.click(
+        screen.getAllByRole('button', {name: /customers actions/i})[1]!
+      );
+
+      // The delete option should not be present
+      expect(screen.queryByText('Delete Billing Metric History')).not.toBeInTheDocument();
+    });
+
+    it('handles API error gracefully', async function () {
+      // Set up organization with the required feature flag
+      const orgWithDeleteFeature = OrganizationFixture({
+        features: ['delete-billing-metric-history-admin'],
+      });
+      setUpMocks(orgWithDeleteFeature);
+
+      // Mock the billing config API call
+      MockApiClient.addMockResponse({
+        url: '/api/0/billing-config/',
+        body: {
+          category_info: {
+            '1': {
+              api_name: 'errors',
+              billed_category: 1,
+              display_name: 'Errors',
+              name: 'errors',
+              order: 1,
+              product_name: 'Error Tracking',
+              singular: 'error',
+              tally_type: 1,
+            },
+          },
+          outcomes: {'0': 'Accepted'},
+          reason_codes: {'0': 'Default'},
+        },
+      });
+
+      // Mock the error indicator
+      const errorIndicator = jest.spyOn(
+        require('sentry/actionCreators/indicator'),
+        'addErrorMessage'
+      );
+
+      // Mock the API endpoint to return an error
+      const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({
+        url: `/api/0/_admin/${orgWithDeleteFeature.slug}/delete-billing-metric-history/`,
+        method: 'POST',
+        statusCode: 400,
+        body: {
+          detail: 'An error occurred while deleting billing metric history.',
+        },
+      });
+
+      render(
+        <CustomerDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+          params={{orgId: orgWithDeleteFeature.slug}}
+        />
+      );
+      renderGlobalModal();
+
+      await screen.findByRole('heading', {name: 'Customers'});
+
+      // Open the actions dropdown
+      await userEvent.click(
+        screen.getAllByRole('button', {
+          name: 'Customers Actions',
+        })[1]!
+      );
+
+      // Click on the "Delete Billing Metric History" option
+      await userEvent.click(screen.getByText('Delete Billing Metric History'));
+
+      // Check modal content
+      await screen.findByText('Delete Billing Metric History');
+      expect(
+        screen.getByText('Delete billing metric history for a specific data category.')
+      ).toBeInTheDocument();
+
+      // Select a data category
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Data Category'}),
+        'Errors (1)'
+      );
+
+      // Click the Delete button
+      await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
+
+      // Check that the API call was made
+      expect(deleteBillingMetricHistoryMock).toHaveBeenCalled();
+
+      // Check that the error message was shown
+      await waitFor(() => {
+        expect(errorIndicator).toHaveBeenCalledWith(
+          'An error occurred while deleting billing metric history.'
+        );
+      });
+    });
+  });
 });
 
 describe('Gift Categories Availability', function () {

@@ -45,6 +45,7 @@ import OrganizationStatus from 'admin/components/customers/organizationStatus';
 import PendingChanges from 'admin/components/customers/pendingChanges';
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import DetailsPage from 'admin/components/detailsPage';
+import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
 import ForkCustomerAction from 'admin/components/forkCustomer';
 import triggerEndPeriodEarlyModal from 'admin/components/nextBillingPeriodAction';
 import triggerProvisionSubscription from 'admin/components/provisionSubscriptionAction';
@@ -364,6 +365,9 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
 
     const orgFeatures = organization?.features ?? [];
     const hasAdminTestFeatures = orgFeatures.includes('add-billing-metric-usage-admin');
+    const hasAdminDeleteBillingMetricHistory = orgFeatures.includes(
+      'delete-billing-metric-history-admin'
+    );
 
     const activeDataType = this.activeDataType;
     return (
@@ -754,6 +758,18 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
               visible: hasAdminTestFeatures,
               onAction: () =>
                 addBillingMetricUsage({
+                  onSuccess: () => this.reloadData(),
+                  organization,
+                }),
+            },
+            {
+              key: 'deleteBillingMetricHistory',
+              name: 'Delete Billing Metric History',
+              help: 'Delete billing metric history for a specific data category.',
+              skipConfirmModal: true,
+              visible: hasAdminDeleteBillingMetricHistory,
+              onAction: () =>
+                deleteBillingMetricHistory({
                   onSuccess: () => this.reloadData(),
                   organization,
                 }),
