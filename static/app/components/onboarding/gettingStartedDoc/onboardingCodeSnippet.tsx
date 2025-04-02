@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import {createPortal} from 'react-dom';
+import beautify from 'js-beautify';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {AuthTokenGenerator} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -27,7 +28,11 @@ export function replaceTokensWithSpan(element: HTMLElement) {
 /**
  * Code snippet component that replaces `___ORG_AUTH_TOKEN___` inside snippets with AuthTokenGenerator.
  */
-export function OnboardingCodeSnippet({children, ...props}: OnboardingCodeSnippetProps) {
+export function OnboardingCodeSnippet({
+  children,
+  language,
+  ...props
+}: OnboardingCodeSnippetProps) {
   const [authTokenNodes, setAuthTokenNodes] = useState<HTMLSpanElement[]>([]);
 
   const handleAfterHighlight = useCallback((element: HTMLElement) => {
@@ -36,9 +41,15 @@ export function OnboardingCodeSnippet({children, ...props}: OnboardingCodeSnippe
 
   return (
     <Fragment>
-      <CodeSnippet {...props} onAfterHighlight={handleAfterHighlight}>
-        {/* Trim whitespace from code snippets */}
-        {children.trim()}
+      <CodeSnippet language={language} {...props} onAfterHighlight={handleAfterHighlight}>
+        {/* Trim whitespace from code snippets and beautify javascript code */}
+        {language === 'javascript'
+          ? beautify.js(children, {
+              indent_size: 2,
+              e4x: true,
+              brace_style: 'preserve-inline',
+            })
+          : children.trim()}
       </CodeSnippet>
       {authTokenNodes.map(node => createPortal(<AuthTokenGenerator />, node))}
     </Fragment>

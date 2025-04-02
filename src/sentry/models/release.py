@@ -45,6 +45,7 @@ from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import hash_values, md5_text
 from sentry.utils.numbers import validate_bigint
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -457,6 +458,7 @@ class Release(Model):
 
                     metric_tags["created"] = "true"
                 except IntegrityError:
+                    incr_rollback_metrics(cls)
                     metric_tags["created"] = "false"
                     release = cls.objects.get(
                         organization_id=project.organization_id, version=version
@@ -524,11 +526,13 @@ class Release(Model):
                     with atomic_transaction(using=router.db_for_write(model)):
                         model.objects.filter(release_id=release.id).update(**update_kwargs)
                 except IntegrityError:
+                    incr_rollback_metrics(model)
                     for item in model.objects.filter(release_id=release.id):
                         try:
                             with atomic_transaction(using=router.db_for_write(model)):
                                 model.objects.filter(id=item.id).update(**update_kwargs)
                         except IntegrityError:
+                            incr_rollback_metrics(model)
                             item.delete()
 
             Group.objects.filter(first_release=release).update(first_release=to_release)
@@ -561,6 +565,7 @@ class Release(Model):
                     project.flags.has_releases = True
                     project.update(flags=F("flags").bitor(Project.flags.has_releases))
         except IntegrityError:
+            incr_rollback_metrics(ReleaseProject)
             obj = None
             created = False
 

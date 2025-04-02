@@ -45,7 +45,7 @@ class OpsgenieClient(ApiClient):
             rule_urls.append(organization.absolute_url(path))
         return rule_urls
 
-    def _get_issue_alert_payload(
+    def build_issue_alert_payload(
         self,
         data,
         rules,
@@ -85,40 +85,32 @@ class OpsgenieClient(ApiClient):
             }
         return payload
 
-    def send_notification(
+    def send_notification(self, data):
+        headers = self._get_auth_headers()
+        with record_event(OnCallInteractionType.CREATE).capture():
+            resp = self.post("/alerts", data=data, headers=headers)
+        return resp
+
+    # TODO(iamrajjoshi): We need to delete this method during notification platform
+    def send_metric_alert_notification(
         self,
         data,
-        priority: OpsgeniePriority | None = None,
-        rules=None,
-        notification_uuid: str | None = None,
     ):
         headers = self._get_auth_headers()
         interaction_type = OnCallInteractionType.CREATE
-        if isinstance(data, (Event, GroupEvent)):
-            group = data.group
-            event = data
-            payload = self._get_issue_alert_payload(
-                data=data,
-                rules=rules,
-                event=event,
-                group=group,
-                priority=priority,
-                notification_uuid=notification_uuid,
+        # if we're closing the alert—meaning that the Sentry alert was resolved
+        if data.get("identifier"):
+            interaction_type = OnCallInteractionType.RESOLVE
+            alias = data["identifier"]
+            resp = self.post(
+                f"/alerts/{alias}/close",
+                data={},
+                params={"identifierType": "alias"},
+                headers=headers,
             )
-        else:
-            # if we're closing the alert—meaning that the Sentry alert was resolved
-            if data.get("identifier"):
-                interaction_type = OnCallInteractionType.RESOLVE
-                alias = data["identifier"]
-                resp = self.post(
-                    f"/alerts/{alias}/close",
-                    data={},
-                    params={"identifierType": "alias"},
-                    headers=headers,
-                )
-                return resp
-            # this is a metric alert
-            payload = data
+            return resp
+        # this is a metric alert
+        payload = data
         with record_event(interaction_type).capture():
             resp = self.post("/alerts", data=payload, headers=headers)
         return resp

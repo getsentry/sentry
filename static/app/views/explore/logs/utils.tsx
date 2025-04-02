@@ -9,6 +9,7 @@ import {
   CurrencyUnit,
   DurationUnit,
   fieldAlignment,
+  prettifyTagKey,
 } from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -135,9 +136,16 @@ export function removePrefixes(key: string) {
   return key.replace('log.', '').replace('sentry.', '');
 }
 
+export function prettifyAttributeName(name: string) {
+  return removePrefixes(prettifyTagKey(name));
+}
+
 export function adjustAliases(key: string) {
   switch (key) {
-    case OurLogKnownFieldKey.SENTRY_PROJECT_ID:
+    case 'sentry.project_id':
+      warn(
+        fmt`Field ${key} is deprecated. Please use ${OurLogKnownFieldKey.PROJECT_ID} instead.`
+      );
       return OurLogKnownFieldKey.PROJECT_ID; // Public alias since int<->string alias reversing is broken. Should be removed in the future.
     default:
       return key;

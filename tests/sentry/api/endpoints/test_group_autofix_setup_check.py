@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 from sentry.api.endpoints.group_autofix_setup_check import get_repos_and_access
-from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -113,22 +112,6 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         assert response.data["genAIConsent"] == {
             "ok": False,
             "reason": None,
-        }
-
-    def test_no_code_mappings(self):
-        RepositoryProjectPathConfig.objects.filter(
-            organization_integration_id=self.organization_integration.id
-        ).delete()
-
-        group = self.create_group()
-        self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200
-        assert response.data["integration"] == {
-            "ok": False,
-            "reason": "integration_no_code_mappings",
         }
 
     def test_missing_integration(self):

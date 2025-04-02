@@ -73,13 +73,6 @@ describe('IssueListActions', function () {
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
       });
 
-      it('can bulk select', async function () {
-        render(<WrappedComponent queryCount={1500} />);
-
-        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-      });
-
       it('bulk resolves', async function () {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
@@ -89,7 +82,9 @@ describe('IssueListActions', function () {
         render(<WrappedComponent queryCount={1500} />);
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select the first 1,000 issues that match this search query/)
+        );
 
         await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
@@ -117,7 +112,9 @@ describe('IssueListActions', function () {
         render(<WrappedComponent queryCount={1500} />);
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select the first 1,000 issues that match this search query/)
+        );
         await userEvent.click(await screen.findByRole('button', {name: 'Set Priority'}));
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
 
@@ -150,7 +147,9 @@ describe('IssueListActions', function () {
         const checkbox = screen.getByRole('checkbox', {name: 'Select all'});
         await userEvent.click(checkbox);
         expect(checkbox).toBeChecked();
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select all 15 issues that match this search query/)
+        );
       });
 
       it('bulk resolves', async function () {
@@ -163,7 +162,9 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select all 15 issues that match this search query/)
+        );
 
         await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
@@ -493,7 +494,9 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select all 100 issues that match this search query/)
+        );
 
         await userEvent.click(
           await screen.findByRole('button', {name: 'More issue actions'})
@@ -541,7 +544,9 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select all 100 issues that match this search query/)
+        );
 
         await userEvent.click(
           await screen.findByRole('button', {name: 'More issue actions'})

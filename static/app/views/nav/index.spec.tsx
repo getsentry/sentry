@@ -92,7 +92,7 @@ describe('Nav', function () {
       </NavContextProvider>,
       {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-        disableRouterMocks: true,
+        enableRouterMocks: false,
         initialRouterConfig: {
           route,
           location: {

@@ -9,6 +9,7 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
+import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
@@ -374,8 +375,8 @@ function IssueListActions({
         onSelectStatsPeriod={onSelectStatsPeriod}
       />
       {!allResultsVisible && pageSelected && (
-        <StyledAlert type="warning" system>
-          <SelectAllNotice data-test-id="issue-list-select-all-notice">
+        <Alert system type="warning">
+          <Flex justify="center" wrap="wrap">
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (
                 tct(
@@ -396,10 +397,7 @@ function IssueListActions({
                   '%s issues on this page selected.',
                   numIssues
                 )}
-                <SelectAllLink
-                  onClick={() => setAllInQuerySelected(true)}
-                  data-test-id="issue-list-select-all-notice-link"
-                >
+                <SelectAllLink onClick={() => setAllInQuerySelected(true)}>
                   {queryCount >= BULK_LIMIT
                     ? tct(
                         'Select the first [count] issues that match this search query.',
@@ -413,8 +411,8 @@ function IssueListActions({
                 </SelectAllLink>
               </Fragment>
             )}
-          </SelectAllNotice>
-        </StyledAlert>
+          </Flex>
+        </Alert>
       )}
     </StickyActions>
   );
@@ -542,17 +540,6 @@ const NarrowHeaderButtonsWrapper = styled(motion.div)`
   white-space: nowrap;
 `;
 
-const SelectAllNotice = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-
-  a:not([role='button']) {
-    color: ${p => p.theme.linkColor};
-    border-bottom: none;
-  }
-`;
-
 const SelectAllLink = styled('a')`
   margin-left: ${space(1)};
 `;
@@ -560,10 +547,6 @@ const SelectAllLink = styled('a')`
 const AnimatedHeaderItemsContainer = styled(motion.div)`
   display: flex;
   align-items: center;
-`;
-
-const StyledAlert = styled(Alert)`
-  border-bottom: none;
 `;
 
 export {IssueListActions};
