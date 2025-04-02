@@ -55,9 +55,9 @@ class ResolvedColumn:
         valid_units = constants.VALID_UNITS_MAP.get(self.search_type)  # Get allowed units
 
         if valid_units is not None:
-            if self.unit is None or self.unit not in valid_units.__args__:
+            if self.unit is None or self.unit not in valid_units:
                 raise ValueError(
-                    f"Invalid unit '{self.unit}' for search type '{self.search_type}'. Must be one of {valid_units.__args__}."
+                    f"Invalid unit '{self.unit}' for search type '{self.search_type}'. Must be one of {valid_units}."
                 )
             return
 

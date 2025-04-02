@@ -50,11 +50,11 @@ SearchType = Union[UnitlessSearchTypes, UnitfulSearchTypes]
 
 ValidUnits = DurationUnit | RateUnit | NumberUnit | SizeUnit
 
-VALID_UNITS_MAP: dict[UnitfulSearchTypes, set[ValidUnits]] = {
-    "duration": DurationUnit,
-    "rate": RateUnit,
-    "number": NumberUnit,
-    "size": SizeUnit,
+VALID_UNITS_MAP: dict[str, tuple[ValidUnits]] = {
+    "duration": DurationUnit.__args__,
+    "rate": RateUnit.__args__,
+    "number": NumberUnit.__args__,
+    "size": SizeUnit.__args__,
 }
 
 

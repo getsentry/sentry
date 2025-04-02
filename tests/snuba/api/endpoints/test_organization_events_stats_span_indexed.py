@@ -300,12 +300,16 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             )
             assert response.status_code == 200, response.content
             data = response.data["data"]
+            meta = response.data["meta"]
             assert len(data) == 6
             assert response.data["meta"]["dataset"] == self.dataset
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
+
+            assert meta["units"] == {"span.description": None, "epm()": "1/minute"}
+            assert meta["fields"] == {"span.description": "string", "epm()": "rate"}
 
     def test_throughput_epm_day_rollup(self):
         # Each of these denotes how many events to create in each minute
