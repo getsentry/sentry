@@ -183,9 +183,11 @@ export const LogAttributesRendererMap: Record<
   [OurLogKnownFieldKey.TIMESTAMP]: props => {
     return TimestampRenderer(props);
   },
+  [OurLogKnownFieldKey.TRACE_ID]: props => {
+    return TraceIDRenderer(props);
+  },
   [OurLogKnownFieldKey.SEVERITY_TEXT]: SeverityTextRenderer,
   [OurLogKnownFieldKey.BODY]: LogBodyRenderer,
-  [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
 };
 
 export function getLogFieldRenderer(field: OurLogFieldKey) {

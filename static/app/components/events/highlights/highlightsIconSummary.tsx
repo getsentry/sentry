@@ -22,8 +22,9 @@ import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconAttachment, IconReleases, IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
+import type {Event, EventTag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -143,36 +144,61 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
             </IconContainer>
           ))}
           {releaseTag && projectSlug && projectId && (
-            <IconContainer key="release">
-              <IconWrapper>
-                <IconReleases size="sm" color="subText" />
-              </IconWrapper>
-              <IconDescription aria-label={t('Event release')}>
-                <VersionHoverCard
-                  organization={organization}
-                  projectSlug={projectSlug}
-                  releaseVersion={releaseTag.value}
-                >
-                  <StyledVersion version={releaseTag.value} projectId={projectId} />
-                </VersionHoverCard>
-              </IconDescription>
-            </IconContainer>
+            <ReleaseHighlight
+              organization={organization}
+              projectSlug={projectSlug}
+              projectId={projectId}
+              releaseTag={releaseTag}
+            />
           )}
-          {environmentTag && (
-            <IconContainer key="environment">
-              <IconWrapper>
-                <IconWindow size="sm" color="subText" />
-              </IconWrapper>
-              <IconDescription aria-label={t('Event environment')}>
-                <Tooltip title={t('Environment')}>{environmentTag.value}</Tooltip>
-              </IconDescription>
-            </IconContainer>
-          )}
+          {environmentTag && <EnvironmentHighlight environmentTag={environmentTag} />}
         </ScrollCarousel>
       </IconBar>
       <SectionDivider style={{marginTop: space(1)}} />
     </Fragment>
   ) : null;
+}
+
+export function ReleaseHighlight({
+  releaseTag,
+  organization,
+  projectSlug,
+  projectId,
+}: {
+  organization: Organization;
+  projectId: string;
+  projectSlug: string;
+  releaseTag: EventTag;
+}) {
+  return (
+    <IconContainer key="release">
+      <IconWrapper>
+        <IconReleases size="sm" color="subText" />
+      </IconWrapper>
+      <IconDescription aria-label={t('Event release')}>
+        <VersionHoverCard
+          organization={organization}
+          projectSlug={projectSlug}
+          releaseVersion={releaseTag.value}
+        >
+          <StyledVersion version={releaseTag.value} projectId={projectId} />
+        </VersionHoverCard>
+      </IconDescription>
+    </IconContainer>
+  );
+}
+
+export function EnvironmentHighlight({environmentTag}: {environmentTag: EventTag}) {
+  return (
+    <IconContainer key="environment">
+      <IconWrapper>
+        <IconWindow size="sm" color="subText" />
+      </IconWrapper>
+      <IconDescription aria-label={t('Event environment')}>
+        <Tooltip title={t('Environment')}>{environmentTag.value}</Tooltip>
+      </IconDescription>
+    </IconContainer>
+  );
 }
 
 const IconBar = styled('div')`

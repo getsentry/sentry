@@ -11,10 +11,12 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {
   isEAPError,
   isTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 import {TraceDrawerComponents} from '../traceDrawer/details/styles';
 import type {TraceTree} from '../traceModels/traceTree';
@@ -51,9 +53,10 @@ const SectionBody = styled('div')<{rightAlign?: boolean}>`
 `;
 
 interface MetaProps {
+  logs: OurLogsResponseItem[];
   meta: TraceMeta | undefined;
   organization: Organization;
-  representativeEvent: TraceTree.TraceEvent | null;
+  representativeEvent: TraceTree.TraceEvent | OurLogsResponseItem | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   tree: TraceTree;
 }
@@ -70,8 +73,10 @@ function getRootDuration(event: TraceTree.TraceEvent | null) {
     true
   );
 }
+
 export function Meta(props: MetaProps) {
   const traceNode = props.tree.root.children[0]!;
+  const {timestamp} = useTraceQueryParams();
 
   const uniqueErrorIssues = useMemo(() => {
     if (!traceNode) {
@@ -113,6 +118,14 @@ export function Meta(props: MetaProps) {
 
   const uniqueIssuesCount = uniqueErrorIssues.length + uniquePerformanceIssues.length;
 
+  // If there is no trace data, use the timestamp from the query params as an approximation for
+  // the age of the trace.
+  const ageStartTimestamp =
+    traceNode?.space[0] ?? (timestamp ? timestamp * 1000 : undefined);
+
+  const hasSpans = (props.meta?.span_count ?? 0) > 0;
+  const hasLogs = props.logs.length > 0;
+
   return (
     <MetaWrapper>
       <MetaSection
@@ -129,28 +142,34 @@ export function Meta(props: MetaProps) {
           )
         }
       />
-      <MetaSection
-        headingText={t('Spans')}
-        bodyText={props.meta?.span_count ?? '\u2014'}
-      />
-      {traceNode ? (
+      {hasSpans ? (
+        <MetaSection headingText={t('Spans')} bodyText={props.meta?.span_count} />
+      ) : null}
+      {ageStartTimestamp ? (
         <MetaSection
           headingText={t('Age')}
           bodyText={
             <TimeSince
               unitStyle="extraShort"
-              date={new Date(traceNode.space[0])}
+              date={new Date(ageStartTimestamp)}
               tooltipShowSeconds
               suffix=""
             />
           }
         />
       ) : null}
-      {traceNode ? (
+      {hasSpans ? (
         <MetaSection
           headingText={t('Root Duration')}
           rightAlignBody
-          bodyText={getRootDuration(props.representativeEvent)}
+          bodyText={getRootDuration(props.representativeEvent as TraceTree.TraceEvent)}
+        />
+      ) : null}
+      {!hasSpans && hasLogs ? (
+        <MetaSection
+          rightAlignBody
+          headingText={t('Logs')}
+          bodyText={props.logs.length}
         />
       ) : null}
     </MetaWrapper>

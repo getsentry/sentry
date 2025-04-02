@@ -1,11 +1,10 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useProjects from 'sentry/utils/useProjects';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 import {
   isEAPError,
   isTraceError,
@@ -14,68 +13,74 @@ import {
 import type {TraceTree} from '../traceModels/traceTree';
 
 interface TitleProps {
-  representativeEvent: TraceTree.TraceEvent | null;
-  traceSlug: string;
+  representativeEvent: TraceTree.TraceEvent | OurLogsResponseItem | null;
   tree: TraceTree;
 }
-
-function getTitle(event: TraceTree.TraceEvent | null) {
-  if (!event || !('transaction' in event) || isEAPError(event) || isTraceError(event)) {
+function getTitle(event: TraceTree.TraceEvent | OurLogsResponseItem | null): {
+  subtitle: string | undefined;
+  title: string;
+} | null {
+  if (!event) {
     return null;
   }
 
-  const op = 'transaction.op' in event ? event['transaction.op'] : event.op;
+  // Handle log events
+  if (OurLogKnownFieldKey.SEVERITY_TEXT in event) {
+    return {
+      title: t('Trace'),
+      subtitle: event[OurLogKnownFieldKey.BODY],
+    };
+  }
 
-  return (
-    <Fragment>
-      <strong>{op} - </strong>
-      {event.transaction}
-    </Fragment>
-  );
+  // Handle error events
+  if (isEAPError(event) || isTraceError(event)) {
+    const subtitle = isEAPError(event) ? event.description : event.title || event.message;
+
+    return {
+      title: t('Trace'),
+      subtitle,
+    };
+  }
+
+  if (!('transaction' in event)) {
+    return null;
+  }
+
+  // Normalize operation field access across event types
+  const op =
+    'transaction.op' in event ? event['transaction.op'] : 'op' in event ? event.op : '';
+
+  return {
+    title: op || t('Trace'),
+    subtitle: event.transaction,
+  };
 }
 
-export function Title({traceSlug, representativeEvent}: TitleProps) {
+export function Title({representativeEvent}: TitleProps) {
   const traceTitle = getTitle(representativeEvent);
-  const {projects} = useProjects();
-  const project = projects.find(p => p.slug === representativeEvent?.project_slug);
 
   return (
     <div>
       {traceTitle ? (
         <TitleWrapper>
-          {project && (
-            <ProjectBadge
-              hideName
-              project={project}
-              avatarSize={20}
-              avatarProps={{
-                hasTooltip: true,
-                tooltip: project.slug,
-              }}
-            />
-          )}
-          <TitleText>{traceTitle}</TitleText>
+          <TitleText>{traceTitle.title}</TitleText>
+          {traceTitle.subtitle && <SubtitleText>{traceTitle.subtitle}</SubtitleText>}
         </TitleWrapper>
       ) : (
-        <TitleText>
-          <strong>{t('Trace')}</strong>
-        </TitleText>
+        <TitleText>{t('Trace')}</TitleText>
       )}
-      <SubtitleText>
-        Trace ID: {traceSlug}
-        <CopyToClipboardButton borderless size="zero" iconSize="xs" text={traceSlug} />
-      </SubtitleText>
     </div>
   );
 }
 
 const TitleWrapper = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
+  align-items: flex-start;
+  flex-direction: column;
 `;
 
 const TitleText = styled('div')`
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   ${p => p.theme.overflowEllipsis};
 `;

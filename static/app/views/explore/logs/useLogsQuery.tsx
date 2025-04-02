@@ -1,5 +1,6 @@
 import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   useLogsBaseSearch,
   useLogsCursor,
@@ -56,12 +57,14 @@ export function useExploreLogsTableRow(props: {
   traceId: string;
   enabled?: boolean;
 }) {
+  const {isReady: pageFiltersReady} = usePageFilters();
   return useTraceItemDetails({
     traceItemId: String(props.logId),
     projectId: props.projectId,
     traceId: props.traceId,
     dataset: DiscoverDatasets.OURLOGS,
     referrer: 'api.explore.log-item-details',
+    enabled: pageFiltersReady,
   });
 }
 

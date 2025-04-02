@@ -9,7 +9,6 @@ import {
   useQueryClient,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {
   getRetryDelay,
@@ -71,10 +70,10 @@ type TraceItemDetailsQueryParams = {
 };
 
 export type TraceItemResponseAttribute =
-  | {type: 'str'; value: string}
-  | {type: 'int'; value: number}
-  | {type: 'float'; value: number}
-  | {type: 'bool'; value: boolean};
+  | {name: string; type: 'str'; value: string}
+  | {name: string; type: 'int'; value: number}
+  | {name: string; type: 'float'; value: number}
+  | {name: string; type: 'bool'; value: boolean};
 
 /**
  * Query hook fetching trace item details in EAP.
@@ -82,8 +81,7 @@ export type TraceItemResponseAttribute =
 export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: props.projectId});
-  const {isReady: pageFiltersReady} = usePageFilters();
-  const enabled = pageFiltersReady && (props.enabled ?? true) && !!project;
+  const enabled = (props.enabled ?? true) && !!project;
 
   if (!project) {
     captureException(
@@ -107,7 +105,7 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
       queryParams,
     }),
     {
-      enabled: enabled && pageFiltersReady,
+      enabled,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       staleTime: Infinity,
