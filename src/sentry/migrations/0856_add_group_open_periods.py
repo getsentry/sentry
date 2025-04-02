@@ -32,7 +32,7 @@ class Migration(CheckedMigration):
     checked = False
 
     dependencies = [
-        ("sentry", "0852_delete_new_groups_column"),
+        ("sentry", "0855_update_group_open_periods_constraint"),
     ]
 
     operations = [
