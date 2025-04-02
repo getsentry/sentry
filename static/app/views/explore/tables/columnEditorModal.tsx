@@ -43,7 +43,7 @@ export function ColumnEditorModal({
   hiddenKeys,
 }: ColumnEditorModalProps) {
   const tags: Array<SelectOption<string>> = useMemo(() => {
-    const allTags = [
+    let allTags = [
       ...columns
         .filter(
           column =>
@@ -77,9 +77,9 @@ export function ColumnEditorModal({
         };
       }),
     ];
-    allTags
-      .filter(tag => !hiddenKeys?.includes(tag.label))
-      .sort((a, b) => {
+    allTags = allTags
+      .filter(tag => !(hiddenKeys ?? []).includes(tag.label))
+      .toSorted((a, b) => {
         if (a.label < b.label) {
           return -1;
         }
