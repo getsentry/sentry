@@ -31,8 +31,6 @@ class MetricAlertComparisonConditionValidator(
     supported_condition_results = frozenset(
         (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM)
     )
-    condition_group_id = serializers.IntegerField(required=True)
-    id = serializers.IntegerField(required=False)
 
     def validate_type(self, value: str) -> Condition:
         try:
