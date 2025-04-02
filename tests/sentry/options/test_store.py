@@ -53,13 +53,23 @@ class OptionsStoreTest(TestCase):
         store = OptionsStore(cache=None)
         key = self.key
 
-        assert store.get(key) is None
+        with pytest.raises(AssertionError) as e:
+            store.get(key)
 
-        with pytest.raises(AssertionError):
+        assert (
+            str(e.value)
+            == "Option requested before cache initialization, which could result in excessive store queries"
+        )
+
+        with pytest.raises(AssertionError) as e:
             store.set(key, "bar", UpdateChannel.CLI)
 
-        with pytest.raises(AssertionError):
+        assert str(e.value) == "cache must be configured before mutating options"
+
+        with pytest.raises(AssertionError) as e:
             store.delete(key)
+
+        assert str(e.value) == "cache must be configured before mutating options"
 
     @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     def test_db_and_cache_unavailable(self):
