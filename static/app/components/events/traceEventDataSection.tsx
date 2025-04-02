@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {useStacktraceContext} from 'sentry/components/events/interfaces/stacktraceContext';
+import {useStacktraceContext} from 'sentry/components/events/interfaces/astackTraceContext';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconSort} from 'sentry/icons';
@@ -37,13 +37,12 @@ type Props = {
   eventId: Event['id'];
   hasAbsoluteAddresses: boolean;
   hasAbsoluteFilePaths: boolean;
-  hasAppOnlyFrames: boolean;
   hasMinified: boolean;
   hasNewestFirst: boolean;
+  hasOnlyInAppFrames: boolean;
   hasVerboseFunctionNames: boolean;
   platform: PlatformKey;
   projectSlug: Project['slug'];
-  recentFirst: boolean;
   stackTraceNotFound: boolean;
   title: React.ReactNode;
   type: string;
@@ -63,7 +62,7 @@ export function TraceEventDataSection({
   hasVerboseFunctionNames,
   hasAbsoluteFilePaths,
   hasAbsoluteAddresses,
-  hasAppOnlyFrames,
+  hasOnlyInAppFrames,
   isNestedSection = false,
 }: Props) {
   const api = useApi();
@@ -357,7 +356,7 @@ export function TraceEventDataSection({
             {!displayOptions.includes('raw-stack-trace') && (
               <Tooltip
                 title={t('Only full version available')}
-                disabled={hasAppOnlyFrames}
+                disabled={hasOnlyInAppFrames}
               >
                 <SegmentedControl
                   size="xs"
@@ -365,7 +364,7 @@ export function TraceEventDataSection({
                   value={isFullStackTrace ? 'full' : 'relevant'}
                   onChange={handleFilterFramesChange}
                 >
-                  <SegmentedControl.Item key="relevant" disabled={!hasAppOnlyFrames}>
+                  <SegmentedControl.Item key="relevant" disabled={!hasOnlyInAppFrames}>
                     {t('Most Relevant')}
                   </SegmentedControl.Item>
                   <SegmentedControl.Item key="full">

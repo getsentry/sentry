@@ -11,13 +11,30 @@ type DisplayOptions =
   | 'raw-stack-trace'
   | 'verbose-function-names';
 
-interface IssueStacktraceContextType {
+interface StackTraceContextOptions {
+  children: React.ReactNode;
+  hasSystemFrames: boolean;
+  projectSlug: string;
+  /**
+   * Override the default newest frames first
+   * @default true
+   */
+  defaultIsNewestFramesFirst?: boolean;
+  /**
+   * Override any options and force the stack trace to be full
+   * @default false
+   */
+  forceFullStackTrace?: boolean;
+}
+
+interface StacktraceContextType {
   /**
    * Display options for the stack trace
    */
   displayOptions: DisplayOptions[];
   /**
-   * Display full stack trace or filter to relevant frames
+   * Display full stack trace or filter to relevant frames.
+   * This should only be used to control the full/relevant toggle.
    * @default false
    */
   isFullStackTrace: boolean;
@@ -48,7 +65,7 @@ interface IssueStacktraceContextType {
   stackView: StackView;
 }
 
-export const IssueStacktraceContext = createContext<IssueStacktraceContextType>({
+export const IssueStacktraceContext = createContext<StacktraceContextType>({
   stackView: StackView.APP,
   stackType: StackType.ORIGINAL,
   displayOptions: [],
@@ -59,22 +76,18 @@ export const IssueStacktraceContext = createContext<IssueStacktraceContextType>(
   setIsNewestFramesFirst: () => {},
 });
 
-interface StacktraceEntrypointProps {
-  children: React.ReactNode;
-  hasFullStackTrace: boolean;
-  hasSystemFrames: boolean;
-  projectSlug: string;
-}
-
 export function StacktraceContext({
   children,
   projectSlug,
   hasSystemFrames,
-  hasFullStackTrace,
-}: StacktraceEntrypointProps) {
+  forceFullStackTrace = false,
+  defaultIsNewestFramesFirst = true,
+}: StackTraceContextOptions) {
   const organization = useOrganization();
-  const [isFullStackTrace, setIsFullStackTrace] = useState(() => hasFullStackTrace);
-  const [isNewestFramesFirst, setIsNewestFramesFirst] = useState(true);
+  const [isFullStackTrace, setIsFullStackTrace] = useState(false);
+  const [isNewestFramesFirst, setIsNewestFramesFirst] = useState(
+    defaultIsNewestFramesFirst
+  );
 
   const [displayOptions, setDisplayOptions] = useLocalStorageState<DisplayOptions[]>(
     `issue-details-stracktrace-display-${organization.slug}-${projectSlug}`,
@@ -83,7 +96,7 @@ export function StacktraceContext({
 
   const stackView = displayOptions.includes('raw-stack-trace')
     ? StackView.RAW
-    : isFullStackTrace
+    : isFullStackTrace || forceFullStackTrace
       ? StackView.FULL
       : StackView.APP;
 
@@ -95,7 +108,7 @@ export function StacktraceContext({
   return (
     <IssueStacktraceContext.Provider
       value={{
-        isFullStackTrace,
+        isFullStackTrace: isFullStackTrace || forceFullStackTrace,
         setIsFullStackTrace,
         isNewestFramesFirst,
         setIsNewestFramesFirst,

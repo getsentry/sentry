@@ -9,7 +9,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   StacktraceContext,
   useStacktraceContext,
-} from 'sentry/components/events/interfaces/stacktraceContext';
+} from 'sentry/components/events/interfaces/astackTraceContext';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
 import {
   getMappedThreadState,
@@ -245,6 +245,12 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     setActiveThread(threads[nextIndex]);
   }
 
+  const hasOnlyInAppFrames = Boolean(
+    exception?.values?.some(value =>
+      value.stacktrace?.frames?.some(frame => !frame.inApp)
+    ) || activeThread?.stacktrace?.frames?.some(frame => !frame.inApp)
+  );
+
   const threadComponent = (
     <Fragment>
       {hasMoreThanOneThread && (
@@ -318,7 +324,8 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
       )}
       <StacktraceContext
         projectSlug={projectSlug}
-        hasFullStackTrace={stackView === StackView.FULL}
+        forceFullStackTrace={hasOnlyInAppFrames ? stackView === StackView.FULL : true}
+        defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
         hasSystemFrames={
           exception?.values?.some(value => value.stacktrace?.hasSystemFrames) ?? false
         }
@@ -327,7 +334,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
           type={SectionKey.THREADS}
           projectSlug={projectSlug}
           eventId={event.id}
-          recentFirst={isStacktraceNewestFirst()}
           title={hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
           platform={platform}
           isNestedSection={hasMoreThanOneThread}
@@ -363,11 +369,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
             ) ||
             !!activeThread?.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
           }
-          hasAppOnlyFrames={
-            !!exception?.values?.some(
-              value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
-            ) || !!activeThread?.stacktrace?.frames?.some(frame => frame.inApp !== true)
-          }
+          hasOnlyInAppFrames={hasOnlyInAppFrames}
           hasNewestFirst={
             !!exception?.values?.some(
               value => (value.stacktrace?.frames ?? []).length > 1

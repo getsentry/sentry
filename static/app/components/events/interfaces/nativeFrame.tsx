@@ -6,6 +6,7 @@ import {Chevron} from 'sentry/components/chevron';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {useStacktraceContext} from 'sentry/components/events/interfaces/astackTraceContext';
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {
@@ -17,7 +18,6 @@ import {
   isExpandable,
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
-import {useStacktraceContext} from 'sentry/components/events/interfaces/stacktraceContext';
 import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';

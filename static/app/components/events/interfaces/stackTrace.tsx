@@ -1,4 +1,7 @@
-import {StacktraceContext} from 'sentry/components/events/interfaces/stacktraceContext';
+import {
+  StacktraceContext,
+  useStacktraceContext,
+} from 'sentry/components/events/interfaces/astackTraceContext';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -19,13 +22,35 @@ type Props = {
   hideGuide?: boolean;
 };
 
-export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Props) {
+function StackTraceContentWrapper({
+  event,
+  data,
+  groupingCurrentLevel,
+  platform,
+}: Pick<Props, 'event' | 'data' | 'groupingCurrentLevel'> & {
+  platform: PlatformKey;
+}) {
+  const {isNewestFramesFirst, stackView} = useStacktraceContext();
+
   const entryIndex = event.entries.findIndex(
     eventEntry => eventEntry.type === EntryType.STACKTRACE
   );
-
   const meta = event._meta?.entries?.[entryIndex]?.data;
 
+  return (
+    <StackTraceContent
+      meta={meta}
+      event={event}
+      platform={platform}
+      stacktrace={data}
+      groupingCurrentLevel={groupingCurrentLevel}
+      newestFirst={isNewestFramesFirst}
+      stackView={stackView}
+    />
+  );
+}
+
+export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Props) {
   function getPlatform(): PlatformKey {
     const framePlatform = data.frames?.find(frame => !!frame.platform);
     return framePlatform?.platform ?? event.platform ?? 'other';
@@ -34,10 +59,13 @@ export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Pro
   const platform = getPlatform();
   const stackTraceNotFound = !(data.frames ?? []).length;
 
+  const hasOnlyInAppFrames = !!data.frames?.some(frame => !frame.inApp);
+
   return (
     <StacktraceContext
       projectSlug={projectSlug}
-      hasFullStackTrace={!data.hasSystemFrames}
+      forceFullStackTrace={hasOnlyInAppFrames ? !data.hasSystemFrames : true}
+      defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
       hasSystemFrames={data.hasSystemFrames}
     >
       <TraceEventDataSection
@@ -46,7 +74,6 @@ export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Pro
         eventId={event.id}
         platform={platform}
         stackTraceNotFound={stackTraceNotFound}
-        recentFirst={isStacktraceNewestFirst()}
         title={t('Stack Trace')}
         hasMinified={false}
         hasVerboseFunctionNames={
@@ -59,18 +86,17 @@ export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Pro
         }
         hasAbsoluteFilePaths={!!data.frames?.some(frame => !!frame.filename)}
         hasAbsoluteAddresses={!!data.frames?.some(frame => !!frame.instructionAddr)}
-        hasAppOnlyFrames={!!data.frames?.some(frame => frame.inApp !== true)}
+        hasOnlyInAppFrames={hasOnlyInAppFrames}
         hasNewestFirst={(data.frames ?? []).length > 1}
       >
         {stackTraceNotFound ? (
           <NoStackTraceMessage />
         ) : (
-          <StackTraceContent
-            meta={meta}
+          <StackTraceContentWrapper
             event={event}
-            platform={platform}
-            stacktrace={data}
+            data={data}
             groupingCurrentLevel={groupingCurrentLevel}
+            platform={platform}
           />
         )}
       </TraceEventDataSection>

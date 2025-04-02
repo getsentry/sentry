@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {StacktraceContext} from 'sentry/components/events/interfaces/stacktraceContext';
+import {StacktraceContext} from 'sentry/components/events/interfaces/astackTraceContext';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionType} from 'sentry/types/event';
@@ -51,10 +51,15 @@ export function Exception({
 
   const stackTraceNotFound = !(data.values ?? []).length;
 
+  const hasOnlyInAppFrames = !!data.values?.some(value =>
+    value.stacktrace?.frames?.some(frame => !frame.inApp)
+  );
+
   return (
     <StacktraceContext
       projectSlug={projectSlug}
-      hasFullStackTrace={!data.hasSystemFrames}
+      forceFullStackTrace={hasOnlyInAppFrames ? !data.hasSystemFrames : true}
+      defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
       hasSystemFrames={data.hasSystemFrames}
     >
       <TraceEventDataSection
@@ -62,7 +67,6 @@ export function Exception({
         type={EntryType.EXCEPTION}
         projectSlug={projectSlug}
         eventId={event.id}
-        recentFirst={isStacktraceNewestFirst()}
         platform={event.platform ?? 'other'}
         hasMinified={!!data.values?.some(value => value.rawStacktrace)}
         hasVerboseFunctionNames={
@@ -86,11 +90,7 @@ export function Exception({
             value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
           )
         }
-        hasAppOnlyFrames={
-          !!data.values?.some(
-            value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
-          )
-        }
+        hasOnlyInAppFrames={hasOnlyInAppFrames}
         hasNewestFirst={
           !!data.values?.some(value => (value.stacktrace?.frames ?? []).length > 1)
         }
