@@ -9,6 +9,7 @@ import {
   CurrencyUnit,
   DurationUnit,
   fieldAlignment,
+  prettifyTagKey,
 } from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -133,6 +134,10 @@ export function logsFieldAlignment(...args: Parameters<typeof fieldAlignment>) {
 
 export function removePrefixes(key: string) {
   return key.replace('log.', '').replace('sentry.', '');
+}
+
+export function prettifyAttributeName(name: string) {
+  return removePrefixes(prettifyTagKey(name));
 }
 
 export function adjustAliases(key: string) {
