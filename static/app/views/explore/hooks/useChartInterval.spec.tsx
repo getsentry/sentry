@@ -21,7 +21,7 @@ describe('useChartInterval', function () {
       return null;
     }
 
-    render(<TestPage />, {disableRouterMocks: true});
+    render(<TestPage />, {enableRouterMocks: false});
 
     expect(intervalOptions).toEqual([
       {value: '1h', label: '1 hour'},

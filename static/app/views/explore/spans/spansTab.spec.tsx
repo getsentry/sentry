@@ -52,7 +52,7 @@ jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(fu
 });
 
 describe('SpansTabContent', function () {
-  const {organization, project, router} = initializeOrg({
+  const {organization, project} = initializeOrg({
     organization: {features: ['visibility-explore-rpc']},
   });
 
@@ -111,7 +111,7 @@ describe('SpansTabContent', function () {
         maxPickableDays={7}
         relativeOptions={{'1h': 'Last hour', '24h': 'Last 24 hours', '7d': 'Last 7 days'}}
       />,
-      {disableRouterMocks: true, router, organization}
+      {enableRouterMocks: false, organization}
     );
 
     await screen.findByText(/No spans found/);
@@ -169,7 +169,7 @@ describe('SpansTabContent', function () {
         maxPickableDays={7}
         relativeOptions={{'1h': 'Last hour', '24h': 'Last 24 hours', '7d': 'Last 7 days'}}
       />,
-      {disableRouterMocks: true, router, organization: schemaHintsOrganization}
+      {enableRouterMocks: false, organization: schemaHintsOrganization}
     );
     expect(screen.getByText('stringTag1')).toBeInTheDocument();
     expect(screen.getByText('stringTag2')).toBeInTheDocument();

@@ -34,7 +34,7 @@ describe('PipelineSecondaryNav', () => {
         <div id="main" />
       </NavContextProvider>,
       {
-        disableRouterMocks: true,
+        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/test-org-slug/pipeline/',
@@ -54,7 +54,7 @@ describe('PipelineSecondaryNav', () => {
       </NavContextProvider>,
       {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-        disableRouterMocks: true,
+        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/test-org-slug/pipeline/coverage/',
@@ -77,7 +77,7 @@ describe('PipelineSecondaryNav', () => {
       </NavContextProvider>,
       {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-        disableRouterMocks: true,
+        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/test-org-slug/pipeline/tests/',
