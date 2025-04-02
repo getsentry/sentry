@@ -53,6 +53,8 @@ class ResolvedColumn:
 
     def __post_init__(self):
         if self.search_type not in constants.VALID_UNITS_MAP:
+            if self.unit is not None:
+                raise ValueError(f"Search type '{self.search_type}' does not expect a unit.")
             return
 
         valid_units = constants.VALID_UNITS_MAP[
@@ -63,9 +65,6 @@ class ResolvedColumn:
             raise ValueError(
                 f"Invalid unit '{self.unit}' for search type '{self.search_type}'. Must be one of {valid_units}."
             )
-
-        if self.unit is not None:
-            raise ValueError(f"Search type '{self.search_type}' does not expect a unit.")
 
     def process_column(self, value: Any) -> Any:
         """Given the value from results, return a processed value if a processor is defined otherwise return it"""
