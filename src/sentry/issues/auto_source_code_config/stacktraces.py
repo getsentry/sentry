@@ -33,7 +33,10 @@ def get_frames_to_process(data: NodeData | dict[str, Any], platform: str) -> lis
 
 
 def _check_not_categorized(frame: dict[str, Any]) -> bool:
-    return frame.get("data", {}).get("category") is None
+    data = frame.get("data", {})
+    if data:
+        return "category" not in data
+    return True
 
 
 def get_stacktraces(data: NodeData | dict[str, Any]) -> list[dict[str, Any]]:
