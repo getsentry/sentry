@@ -985,10 +985,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             assert "IntegrationError" not in blocks["blocks"][0]["text"]["text"]
 
             # Verify that the AI content is used in the context block
-            content_block = blocks["blocks"][2]["elements"][0]["text"]
+            content_block = blocks["blocks"][1]["elements"][0]["text"]
             assert "Identity not found" in content_block
 
-            content_block = blocks["blocks"][3]["elements"][0]["text"]
+            content_block = blocks["blocks"][2]["elements"][0]["text"]
             assert "This is a possible cause" in content_block
 
     @override_options({"alerts.issue_summary_timeout": 5})
