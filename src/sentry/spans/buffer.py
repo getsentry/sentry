@@ -139,7 +139,7 @@ class SpansBuffer:
         self.span_buffer_timeout_secs = span_buffer_timeout_secs
         self.span_buffer_root_timeout_secs = span_buffer_root_timeout_secs
         self.redis_ttl = redis_ttl
-        self.add_buffer_sha = None
+        self.add_buffer_sha: str | None = None
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -259,8 +259,8 @@ class SpansBuffer:
         metrics.timing("span.buffer.hole_size.max", max_redirect_depth)
 
     def _ensure_script(self):
-        if self.add_buffer_sha:
-            if self.client.script_exists(self.add_buffer_sha) == [1]:
+        if self.add_buffer_sha is not None:
+            if self.client.script_exists(self.add_buffer_sha)[0]:
                 return self.add_buffer_sha
 
         self.add_buffer_sha = self.client.script_load(add_buffer_script.script)
@@ -277,8 +277,8 @@ class SpansBuffer:
         :return: Dictionary of grouped spans. The key is a tuple of
             the `project_and_trace`, and the `parent_span_id`.
         """
-        trees = {}
-        redirects = {}
+        trees: dict[tuple[str, str], list[Span]] = {}
+        redirects: dict[str, dict[str, str]] = {}
 
         for span in spans:
             project_and_trace = f"{span.project_id}:{span.trace_id}"
