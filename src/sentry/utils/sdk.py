@@ -18,7 +18,7 @@ from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
-from sentry_sdk.types import Event, Hint
+from sentry_sdk.types import Event, Hint, Log
 from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
@@ -257,7 +257,7 @@ def before_send(event: Event, _: Hint) -> Event | None:
     return event
 
 
-def before_send_log(log: Any, _: Hint) -> Any:
+def before_send_log(log: Log, _: Hint) -> Log:
     if in_random_rollout("ourlogs.sentry-emit-rollout"):
         return log
     return None
