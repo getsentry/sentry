@@ -24,12 +24,31 @@ class MockDataConditionHandler(DataConditionHandler):
     }
 
 
-class MockConditionValidator(BaseDataConditionValidator[MockModel]):
+class MockConditionValidator(BaseDataConditionValidator[int, bool]):
     field1 = serializers.CharField()
 
     class Meta:
         model = MockModel
         fields = "__all__"
+
+    def validate_comparison(self, value) -> int:
+        if not isinstance(value, int):
+            raise serializers.ValidationError("Comparison must be an integer")
+        return value
+
+    def validate_condition_result(self, value) -> bool:
+        return bool(value)
+
+
+class MockComplexConditionValidator(BaseDataConditionValidator[dict, bool]):
+    field1 = serializers.CharField()
+
+    class Meta:
+        model = MockModel
+        fields = "__all__"
+
+    def validate_condition_result(self, value) -> bool:
+        return bool(value)
 
 
 class TestBaseDataConditionValidator(TestCase):
@@ -39,8 +58,8 @@ class TestBaseDataConditionValidator(TestCase):
             "field1": "test",
             "type": Condition.EQUAL,
             "comparison": 1,
-            "condition_result": True,
-            "condition_group": self.condition_group.id,
+            "conditionResult": True,
+            "conditionGroupId": self.condition_group.id,
         }
 
     def test_conditions__valid_condition(self):
@@ -77,7 +96,7 @@ class TestBaseDataConditionValidator(TestCase):
             "type": Condition.AGE_COMPARISON,
             "comparison": {"foo": "bar"},
         }
-        validator = MockConditionValidator(data=valid_data)
+        validator = MockComplexConditionValidator(data=valid_data)
         assert validator.is_valid() is True
 
     @mock.patch(
@@ -90,7 +109,7 @@ class TestBaseDataConditionValidator(TestCase):
             "type": Condition.AGE_COMPARISON,
             "comparison": {"invalid": "value"},
         }
-        validator = MockConditionValidator(data=valid_data)
+        validator = MockComplexConditionValidator(data=valid_data)
         assert validator.is_valid() is False
 
     def test_condition_result__primitive_value__bool(self):
@@ -110,10 +129,10 @@ class TestBaseDataConditionValidator(TestCase):
 
     def test_condition_result__complex_value__dict(self):
         invalid_data = {**self.valid_data, "condition_result": {"key": "value"}}
-        validator = MockConditionValidator(data=invalid_data)
+        validator = MockComplexConditionValidator(data=invalid_data)
         assert validator.is_valid() is False
 
     def test_condition_result__complex_value__array(self):
         invalid_data = {**self.valid_data, "condition_result": ["foo"]}
-        validator = MockConditionValidator(data=invalid_data)
+        validator = MockComplexConditionValidator(data=invalid_data)
         assert validator.is_valid() is False

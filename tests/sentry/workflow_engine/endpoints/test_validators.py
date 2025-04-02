@@ -5,9 +5,11 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, ValidationError
 
 from sentry import audit_log
-from sentry.incidents.endpoints.validators import NumericComparisonConditionValidator
 from sentry.incidents.grouptype import MetricAlertFire
-from sentry.incidents.metric_alert_detector import MetricAlertsDetectorValidator
+from sentry.incidents.metric_alert_detector import (
+    MetricAlertComparisonConditionValidator,
+    MetricAlertsDetectorValidator,
+)
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupCategory, GroupType
@@ -83,7 +85,7 @@ class TestBaseDataSourceValidator(TestCase):
         )
 
 
-class MockDataConditionValidator(NumericComparisonConditionValidator):
+class MockDataConditionValidator(MetricAlertComparisonConditionValidator):
     supported_conditions = frozenset([Condition.GREATER_OR_EQUAL, Condition.LESS_OR_EQUAL])
     supported_condition_results = frozenset([DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW])
 

@@ -4,7 +4,6 @@ from typing import Any
 from rest_framework import serializers
 
 from sentry import audit_log
-from sentry.incidents.endpoints.validators import NumericComparisonConditionValidator
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.snuba.subscriptions import update_snuba_query
@@ -12,6 +11,9 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDetectorTypeValidator,
+)
+from sentry.workflow_engine.endpoints.validators.base.data_condition import (
+    BaseDataConditionValidator,
 )
 from sentry.workflow_engine.models import DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
@@ -22,13 +24,45 @@ from sentry.workflow_engine.types import (
 )
 
 
-class MetricAlertComparisonConditionValidator(NumericComparisonConditionValidator):
+class MetricAlertComparisonConditionValidator(
+    BaseDataConditionValidator[float, DetectorPriorityLevel]
+):
     supported_conditions = frozenset((Condition.GREATER, Condition.LESS))
     supported_condition_results = frozenset(
         (DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM)
     )
     condition_group_id = serializers.IntegerField(required=True)
     id = serializers.IntegerField(required=False)
+
+    def validate_type(self, value: str) -> Condition:
+        try:
+            type = Condition(value)
+        except ValueError:
+            type = None
+
+        if type not in self.supported_conditions:
+            raise serializers.ValidationError(f"Unsupported type {value}")
+
+        return type
+
+    def validate_comparison(self, value: float | int | str) -> float:
+        try:
+            value = float(value)
+        except ValueError:
+            raise serializers.ValidationError("A valid number is required.")
+
+        return value
+
+    def validate_condition_result(self, value: str) -> DetectorPriorityLevel:
+        try:
+            result = DetectorPriorityLevel(int(value))
+        except ValueError:
+            result = None
+
+        if result not in self.supported_condition_results:
+            raise serializers.ValidationError("Unsupported condition result")
+
+        return result
 
 
 class MetricAlertConditionGroupValidator(BaseDataConditionGroupValidator):
