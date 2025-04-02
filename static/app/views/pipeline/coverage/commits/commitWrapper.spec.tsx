@@ -2,17 +2,17 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import CommitsPageWrapper from 'sentry/views/pipeline/coverage/commits/commitWrapper';
+import CommitDetailWrapper from 'sentry/views/pipeline/coverage/commits/commitWrapper';
 
 const COVERAGE_FEATURE = 'codecov-ui';
 
-describe('CoveragePageWrapper', () => {
+describe('CommitDetailWrapper', () => {
   describe('when the wrapper is used', () => {
     it('renders the passed children', () => {
       render(
-        <CommitsPageWrapper>
+        <CommitDetailWrapper>
           <p>Test content</p>
-        </CommitsPageWrapper>,
+        </CommitDetailWrapper>,
         {organization: OrganizationFixture({features: [COVERAGE_FEATURE]})}
       );
 
@@ -22,9 +22,9 @@ describe('CoveragePageWrapper', () => {
 
     it('renders the document title', () => {
       render(
-        <CommitsPageWrapper>
+        <CommitDetailWrapper>
           <p>Test content</p>
-        </CommitsPageWrapper>,
+        </CommitDetailWrapper>,
         {organization: OrganizationFixture({features: [COVERAGE_FEATURE]})}
       );
 

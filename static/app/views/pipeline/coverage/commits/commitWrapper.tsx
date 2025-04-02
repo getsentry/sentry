@@ -9,7 +9,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-export default function CommitsPageWrapper({children}: Props) {
+export default function CommitDetailWrapper({children}: Props) {
   const organization = useOrganization();
 
   return (
