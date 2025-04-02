@@ -7,9 +7,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {IssueViewNavItems} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
 import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/nav/secondary/sections/issues/issueViews/useUpdateGroupSearchViewLastVisited';
+import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
 export function IssuesSecondaryNav() {
   const organization = useOrganization();
@@ -35,7 +37,9 @@ export function IssuesSecondaryNav() {
 
   return (
     <SecondaryNav>
-      <SecondaryNav.Header>{t('Issues')}</SecondaryNav.Header>
+      <SecondaryNav.Header>
+        {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.ISSUES].label}
+      </SecondaryNav.Header>
       <SecondaryNav.Body>
         <SecondaryNav.Section>
           <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">

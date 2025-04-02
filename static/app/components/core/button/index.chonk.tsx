@@ -56,8 +56,6 @@ export function getChonkButtonStyles(
   const type = chonkPriorityToType(p.priority);
   const size = chonkSizeMapping(p.size);
 
-  const translate = size === 'medium' || size === 'small' ? 4 : 3;
-
   return {
     position: 'relative',
     display: 'inline-block',
@@ -74,7 +72,7 @@ export function getChonkButtonStyles(
     borderTopWidth: `3px`,
     background: 'none',
 
-    minHeight:
+    height:
       size === 'large'
         ? '37px'
         : size === 'medium'
@@ -144,10 +142,10 @@ export function getChonkButtonStyles(
             color: getChonkButtonTheme(type, p.theme).color,
 
             '&::after': {
-              transform: `translateY(-${translate}px)`,
+              transform: `translateY(-3px)`,
             },
             '> span:last-child': {
-              transform: `translateY(-${translate}px)`,
+              transform: `translateY(-3px)`,
             },
           },
 
