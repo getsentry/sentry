@@ -54,14 +54,15 @@ export function DrawerPanel({
 }: DrawerPanelProps & {
   ref?: React.Ref<HTMLDivElement>;
 }) {
-  const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent} =
+  const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
     useDrawerResizing({
       drawerKey,
       drawerWidth,
     });
 
   // Calculate actual drawer width in pixels
-  const actualDrawerWidth = (window.innerWidth * persistedWidthPercent) / 100;
+  const actualDrawerWidth =
+    (window.innerWidth * (enabled ? persistedWidthPercent : 100)) / 100;
 
   return (
     <DrawerContainer>
@@ -75,7 +76,7 @@ export function DrawerPanel({
           panelWidth="var(--drawer-width)" // Initial width only
           className="drawer-panel"
         >
-          {drawerKey && (
+          {drawerKey && enabled && (
             <ResizeHandle
               ref={resizeHandleRef}
               onMouseDown={handleResizeStart}
