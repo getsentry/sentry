@@ -2,6 +2,7 @@ import re
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
+from math import floor
 from typing import TypedDict
 
 import sentry_sdk
@@ -490,7 +491,23 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             and data.get("limit") is None
             and has_columns
         ):
-            raise serializers.ValidationError({"limit": "limit is required."})
+            defaultLimit = 5
+            maxLimit = 10
+            numQueries = len(data.get("queries", []))
+            numYAxes = len(data.get("queries", [])[0].get("aggregates", []))
+            limit = defaultLimit
+
+            if numQueries == 0 or numYAxes == 0:
+                limit = defaultLimit
+            else:
+                limit = floor(maxLimit / (numQueries * numYAxes))
+
+            sentry_sdk.capture_message(
+                f"Dashboard Widget limit was not set. Suggested maximum limit is {limit}."
+            )
+            raise serializers.ValidationError(
+                {"limit": f"limit is required. The maximum limit is ${limit}."}
+            )
         # Validate widget thresholds
         thresholds = data.get("thresholds")
         if thresholds:
