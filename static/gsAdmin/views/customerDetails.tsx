@@ -43,9 +43,9 @@ import {
 } from 'admin/components/customers/customerStatsFilters';
 import OrganizationStatus from 'admin/components/customers/organizationStatus';
 import PendingChanges from 'admin/components/customers/pendingChanges';
+import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import DetailsPage from 'admin/components/detailsPage';
-import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
 import ForkCustomerAction from 'admin/components/forkCustomer';
 import triggerEndPeriodEarlyModal from 'admin/components/nextBillingPeriodAction';
 import triggerProvisionSubscription from 'admin/components/provisionSubscriptionAction';
