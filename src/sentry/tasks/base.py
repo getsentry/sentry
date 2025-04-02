@@ -7,7 +7,7 @@ from collections.abc import Callable, Iterable
 from datetime import datetime
 from typing import Any, ParamSpec, TypeVar
 
-from celery import Task, current_task
+from celery import Task
 from django.conf import settings
 from django.db.models import Model
 from kombu import Producer
@@ -16,6 +16,7 @@ from sentry import options
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.retry import retry_task
 from sentry.taskworker.task import Task as TaskworkerTask
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
@@ -250,7 +251,7 @@ def retry(
                 raise
             except on as exc:
                 capture_exception()
-                current_task.retry(exc=exc)
+                retry_task(exc)
 
         return wrapped
 
