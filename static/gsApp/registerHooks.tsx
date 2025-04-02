@@ -37,7 +37,6 @@ import {OrganizationHeader} from 'getsentry/components/organizationHeader';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
-import QuotaExceededSidebarItem from 'getsentry/components/quotaExceededSidebarItem';
 import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
 import ReplayZendeskFeedback from 'getsentry/components/replayZendeskFeedback';
 import SidebarNavigationItem from 'getsentry/components/sidebarNavigationItem';
@@ -79,6 +78,7 @@ import {
   ProfilingBetaAlertBanner,
   ProfilingUpgradePlanButton,
 } from './components/profiling/alerts';
+import PrimaryNavigationQuotaExceeded from './components/quotaExceededNavItem';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import ReplaySettingsAlert from './components/replaySettingsAlert';
 import useButtonTracking from './hooks/useButtonTracking';
@@ -125,7 +125,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'sidebar:bottom-items': props => (
     <Fragment>
       <TryBusinessSidebarItem key="try-business-sidebar-item" {...props} />
-      <QuotaExceededSidebarItem key="quota-exceeded-sidebar-item" {...props} />
+      <PrimaryNavigationQuotaExceeded key="quota-exceeded-sidebar-item" {...props} />
     </Fragment>
   ),
 
