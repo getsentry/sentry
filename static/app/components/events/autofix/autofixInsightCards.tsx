@@ -232,17 +232,15 @@ function AutofixInsightCard({
                   >
                     <ContextBody>
                       {insight.justification || !insight.change_diff ? (
-                        <p>
-                          <div
-                            dangerouslySetInnerHTML={{
-                              __html: marked(
-                                replaceHeadersWithBold(
-                                  insight.justification || t('No details here.')
-                                )
-                              ),
-                            }}
-                          />
-                        </p>
+                        <MiniHeader
+                          dangerouslySetInnerHTML={{
+                            __html: marked(
+                              replaceHeadersWithBold(
+                                insight.justification || t('No details here.')
+                              )
+                            ),
+                          }}
+                        />
                       ) : (
                         <DiffContainer>
                           <AutofixDiff
