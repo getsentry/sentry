@@ -1,11 +1,13 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
+import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
+import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
@@ -14,11 +16,7 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
-
-import AutofixHighlightPopup from './autofixHighlightPopup';
-import {useTextSelection} from './useTextSelection';
 
 export function ExpandableInsightContext({
   children,
@@ -61,27 +59,6 @@ export function ExpandableInsightContext({
   );
 }
 
-const animationProps: AnimationProps = {
-  exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
-  initial: {opacity: 0, height: 0, scale: 0.8},
-  animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
-    duration: 1.0,
-    height: {
-      type: 'spring',
-      bounce: 0.2,
-    },
-    scale: {
-      type: 'spring',
-      bounce: 0.2,
-    },
-    y: {
-      type: 'tween',
-      ease: 'easeOut',
-    },
-  }),
-};
-
 interface AutofixInsightCardProps {
   groupId: string;
   hasCardAbove: boolean;
@@ -91,6 +68,7 @@ interface AutofixInsightCardProps {
   insightCount: number;
   runId: string;
   stepIndex: number;
+  isNewInsight?: boolean;
 }
 
 function AutofixInsightCard({
@@ -102,12 +80,9 @@ function AutofixInsightCard({
   groupId,
   runId,
   insightCount,
+  isNewInsight,
 }: AutofixInsightCardProps) {
   const isLastInsightInStep = index === insightCount - 1;
-  const headerRef = useRef<HTMLDivElement>(null);
-  const justificationRef = useRef<HTMLDivElement>(null);
-  const headerSelection = useTextSelection(headerRef);
-  const justificationSelection = useTextSelection(justificationRef);
   const isUserMessage = insight.justification === 'USER';
   const [expanded, setExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -144,30 +119,8 @@ function AutofixInsightCard({
 
   return (
     <ContentWrapper>
-      <AnimatePresence>
-        {headerSelection && (
-          <AutofixHighlightPopup
-            selectedText={headerSelection.selectedText}
-            referenceElement={headerSelection.referenceElement}
-            groupId={groupId}
-            runId={runId}
-            stepIndex={stepIndex}
-            retainInsightCardIndex={insightCardAboveIndex}
-          />
-        )}
-        {justificationSelection && (
-          <AutofixHighlightPopup
-            selectedText={justificationSelection.selectedText}
-            referenceElement={justificationSelection.referenceElement}
-            groupId={groupId}
-            runId={runId}
-            stepIndex={stepIndex}
-            retainInsightCardIndex={insightCardAboveIndex}
-          />
-        )}
-      </AnimatePresence>
-      <AnimatePresence initial>
-        <AnimationWrapper key="content" {...animationProps}>
+      <AnimatePresence initial={isNewInsight}>
+        <AnimationWrapper key="content">
           {hasCardAbove && (
             <ChainLink
               stepIndex={stepIndex}
@@ -176,7 +129,7 @@ function AutofixInsightCard({
               insightCount={insightCount}
             />
           )}
-          <InsightContainer>
+          <InsightContainer data-new-insight={isNewInsight ? 'true' : 'false'}>
             {isEditing ? (
               <EditContainer>
                 <form onSubmit={handleSubmit}>
@@ -217,12 +170,19 @@ function AutofixInsightCard({
                 onClick={isUserMessage ? undefined : toggleExpand}
                 isUserMessage={isUserMessage}
               >
-                <MiniHeader
-                  ref={headerRef}
-                  dangerouslySetInnerHTML={{
-                    __html: singleLineRenderer(insight.insight),
-                  }}
-                />
+                <AutofixHighlightWrapper
+                  groupId={groupId}
+                  runId={runId}
+                  stepIndex={stepIndex}
+                  retainInsightCardIndex={insightCardAboveIndex}
+                >
+                  <MiniHeader
+                    dangerouslySetInnerHTML={{
+                      __html: singleLineRenderer(insight.insight),
+                    }}
+                  />
+                </AutofixHighlightWrapper>
+
                 <RightSection>
                   {!isUserMessage && (
                     <Button
@@ -262,18 +222,36 @@ function AutofixInsightCard({
                     bounce: 0.1,
                   }}
                 >
-                  <ContextBody>
-                    <p
-                      ref={justificationRef}
-                      dangerouslySetInnerHTML={{
-                        __html: marked(
-                          replaceHeadersWithBold(
-                            insight.justification || t('No details here.')
-                          )
-                        ),
-                      }}
-                    />
-                  </ContextBody>
+                  <AutofixHighlightWrapper
+                    groupId={groupId}
+                    runId={runId}
+                    stepIndex={stepIndex}
+                    retainInsightCardIndex={insightCardAboveIndex}
+                  >
+                    <ContextBody>
+                      {insight.justification || !insight.change_diff ? (
+                        <p
+                          dangerouslySetInnerHTML={{
+                            __html: marked(
+                              replaceHeadersWithBold(
+                                insight.justification || t('No details here.')
+                              )
+                            ),
+                          }}
+                        />
+                      ) : (
+                        <DiffContainer>
+                          <AutofixDiff
+                            diff={insight.change_diff}
+                            groupId={groupId}
+                            runId={runId}
+                            editable={false}
+                            isExpandable={false}
+                          />
+                        </DiffContainer>
+                      )}
+                    </ContextBody>
+                  </AutofixHighlightWrapper>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -356,6 +334,18 @@ function AutofixInsightCards({
   shouldCollapseByDefault,
 }: AutofixInsightCardsProps) {
   const [isCollapsed, setIsCollapsed] = useState(!!shouldCollapseByDefault);
+  const previousInsightsRef = useRef<AutofixInsight[]>([]);
+  const [newInsightIndices, setNewInsightIndices] = useState<number[]>([]);
+
+  // Compare current insights with previous insights to determine which ones are new
+  useEffect(() => {
+    if (insights.length === previousInsightsRef.current.length + 1) {
+      setNewInsightIndices([insights.length - 1]);
+    } else {
+      setNewInsightIndices([]);
+    }
+    previousInsightsRef.current = [...insights];
+  }, [insights]);
 
   useEffect(() => {
     setIsCollapsed(!!shouldCollapseByDefault);
@@ -398,6 +388,7 @@ function AutofixInsightCards({
                       groupId={groupId}
                       runId={runId}
                       insightCount={validInsightCount}
+                      isNewInsight={newInsightIndices.includes(index)}
                     />
                   ) : null
                 )}
@@ -576,16 +567,24 @@ const InsightsContainer = styled('div')`
 const InsightContainer = styled(motion.div)`
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
-  animation: fadeFromActive 1.2s ease-out;
 
-  @keyframes fadeFromActive {
-    from {
-      background-color: ${p => p.theme.active};
-      border-color: ${p => p.theme.active};
-    }
-    to {
-      background-color: ${p => p.theme.background};
-      border-color: ${p => p.theme.innerBorder};
+  &[data-new-insight='true'] {
+    animation: fadeFromActive 0.8s ease-in-out;
+    @keyframes fadeFromActive {
+      from {
+        background-color: ${p => p.theme.active};
+        border-color: ${p => p.theme.active};
+        scale: 0.8;
+        height: 0;
+        opacity: 0;
+      }
+      to {
+        background-color: ${p => p.theme.background};
+        border-color: ${p => p.theme.innerBorder};
+        scale: 1;
+        height: auto;
+        opacity: 1;
+      }
     }
   }
 `;
@@ -688,16 +687,15 @@ const ContextBody = styled('div')`
 const AnimationWrapper = styled(motion.div)`
   transform-origin: top center;
 
-  &.new-insight {
+  &[data-new-insight='true'] {
     animation: textFadeFromActive 1.2s ease-out;
-  }
-
-  @keyframes textFadeFromActive {
-    from {
-      color: ${p => p.theme.white};
-    }
-    to {
-      color: inherit;
+    @keyframes textFadeFromActive {
+      from {
+        color: ${p => p.theme.white};
+      }
+      to {
+        color: inherit;
+      }
     }
   }
 `;
@@ -765,6 +763,10 @@ const AddButton = styled(Button)`
     color: ${p => p.theme.pink400};
   }
   margin-right: ${space(1)};
+`;
+
+const DiffContainer = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 export default AutofixInsightCards;

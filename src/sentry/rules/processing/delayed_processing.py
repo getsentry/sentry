@@ -230,7 +230,22 @@ def build_group_to_groupevent(
     group_id_to_group: dict[int, Group],
     project_id: int,
 ) -> dict[Group, GroupEvent]:
+
+    project = fetch_project(project_id)
+    if project:
+        if features.has("projects:num-events-issue-debugging", project):
+            logger.info(
+                "delayed_processing.build_group_to_groupevent_input",
+                extra={
+                    "parsed_rulegroup_to_event_data": parsed_rulegroup_to_event_data,
+                    "bulk_event_id_to_events": bulk_event_id_to_events,
+                    "bulk_occurrence_id_to_occurrence": bulk_occurrence_id_to_occurrence,
+                    "group_id_to_group": group_id_to_group,
+                    "project_id": project_id,
+                },
+            )
     group_to_groupevent = {}
+
     for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
         event_id = instance_data.get("event_id")
         occurrence_id = instance_data.get("occurrence_id")
@@ -246,7 +261,7 @@ def build_group_to_groupevent(
         group = group_id_to_group.get(int(rule_group[1]))
 
         if not group or not event:
-            if random.random() < 0.01:
+            if features.has("projects:num-events-issue-debugging", project):
                 logger.info(
                     "delayed_processing.missing_event_or_group",
                     extra={
@@ -502,8 +517,20 @@ def fire_rules(
             ).values()
 
             # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
+            not_sent = 0
             for callback, futures in callback_and_futures:
-                safe_execute(callback, groupevent, futures)
+                results = safe_execute(callback, groupevent, futures)
+                if results is None:
+                    not_sent += 1
+
+            if features.has("projects:num-events-issue-debugging", project):
+                logger.info(
+                    "delayed_processing.rules_fired",
+                    extra={
+                        "total": len(callback_and_futures),
+                        "not_sent": not_sent,
+                    },
+                )
 
 
 def cleanup_redis_buffer(
@@ -578,7 +605,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
         rules_to_fire = get_rules_to_fire(
             condition_group_results, rules_to_slow_conditions, rules_to_groups, project.id
         )
-        if has_workflow_engine:
+        if has_workflow_engine or features.has("projects:num-events-issue-debugging", project):
             logger.info(
                 "delayed_processing.rules_to_fire",
                 extra={

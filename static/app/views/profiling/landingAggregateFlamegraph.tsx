@@ -10,6 +10,7 @@ import {AggregateFlamegraphSidePanel} from 'sentry/components/profiling/flamegra
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
@@ -54,12 +55,14 @@ function decodeViewOrDefault(
 
 interface AggregateFlamegraphToolbarProps {
   canvasPoolManager: CanvasPoolManager;
+  expanded: boolean;
   frameFilter: 'system' | 'application' | 'all';
   hideSystemFrames: boolean;
   onFrameFilterChange: (value: 'system' | 'application' | 'all') => void;
   onHideRegressionsClick: () => void;
   onVisualizationChange: (value: 'flamegraph' | 'call tree') => void;
   scheduler: CanvasScheduler;
+  setExpanded: (expanded: boolean) => void;
   setHideSystemFrames: (value: boolean) => void;
   visualization: 'flamegraph' | 'call tree';
 }
@@ -118,9 +121,42 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
         value={props.frameFilter}
         options={frameSelectOptions}
       />
+      <CollapseExpandButtonContainer>
+        <CollapseExpandButton
+          aria-label={props.expanded ? t('Collapse sidebar') : t('Expande sidebar')}
+          size="xs"
+          icon={<IconDoubleChevron direction={props.expanded ? 'right' : 'left'} />}
+          onClick={() => props.setExpanded(!props.expanded)}
+        />
+      </CollapseExpandButtonContainer>
     </AggregateFlamegraphToolbarContainer>
   );
 }
+
+const CollapseExpandButtonContainer = styled('div')`
+  width: 28px;
+`;
+
+const CollapseExpandButton = styled(Button)`
+  width: 28px;
+  margin-right: -9px;
+  border-right: 0px;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
+`;
+
+function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
+  return (
+    <DoubleChevronWrapper>
+      <IconChevron style={{marginRight: `-3px`}} {...props} />
+      <IconChevron style={{marginLeft: `-3px`}} {...props} />
+    </DoubleChevronWrapper>
+  );
+}
+
+const DoubleChevronWrapper = styled('div')`
+  display: flex;
+`;
 
 export function LandingAggregateFlamegraph(): React.ReactNode {
   const location = useLocation();
@@ -187,6 +223,8 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
     return setHideRegressions(!hideRegressions);
   }, [hideRegressions, setHideRegressions]);
 
+  const [showSidePanel, setShowSidePanel] = useState(true);
+
   return (
     <ProfileGroupProvider
       traceID=""
@@ -197,29 +235,31 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
       <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
         <FlamegraphThemeProvider>
           <FlamegraphProvider>
-            <AggregateFlamegraphContainer>
-              <AggregateFlamegraphToolbar
-                scheduler={scheduler}
-                canvasPoolManager={canvasPoolManager}
-                visualization={visualization}
-                onVisualizationChange={onVisualizationChange}
-                frameFilter={frameFilter}
-                onFrameFilterChange={onFrameFilterChange}
-                hideSystemFrames={false}
-                setHideSystemFrames={noop}
-                onHideRegressionsClick={onHideRegressionsClick}
-              />
-              {status === 'pending' ? (
-                <RequestStateMessageContainer>
-                  <LoadingIndicator />
-                </RequestStateMessageContainer>
-              ) : status === 'error' ? (
-                <RequestStateMessageContainer>
-                  {t('There was an error loading the flamegraph.')}
-                </RequestStateMessageContainer>
-              ) : null}
-              {visualization === 'flamegraph' ? (
-                <AggregateFlamegraphCanvasContainer>
+            <AggregateFlamegraphLayout>
+              <AggregateFlamegraphContainer>
+                <AggregateFlamegraphToolbar
+                  scheduler={scheduler}
+                  canvasPoolManager={canvasPoolManager}
+                  visualization={visualization}
+                  onVisualizationChange={onVisualizationChange}
+                  frameFilter={frameFilter}
+                  onFrameFilterChange={onFrameFilterChange}
+                  hideSystemFrames={false}
+                  setHideSystemFrames={noop}
+                  onHideRegressionsClick={onHideRegressionsClick}
+                  expanded={showSidePanel}
+                  setExpanded={setShowSidePanel}
+                />
+                {status === 'pending' ? (
+                  <RequestStateMessageContainer>
+                    <LoadingIndicator />
+                  </RequestStateMessageContainer>
+                ) : status === 'error' ? (
+                  <RequestStateMessageContainer>
+                    {t('There was an error loading the flamegraph.')}
+                  </RequestStateMessageContainer>
+                ) : null}
+                {visualization === 'flamegraph' ? (
                   <AggregateFlamegraph
                     filter={frameFilter}
                     status={status}
@@ -227,18 +267,18 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
                     canvasPoolManager={canvasPoolManager}
                     scheduler={scheduler}
                   />
-                  <AggregateFlamegraphSidePanel scheduler={scheduler} />
-                </AggregateFlamegraphCanvasContainer>
-              ) : (
-                <AggregateFlamegraphTreeTable
-                  recursion={null}
-                  expanded={false}
-                  withoutBorders
-                  frameFilter={frameFilter}
-                  canvasPoolManager={canvasPoolManager}
-                />
-              )}
-            </AggregateFlamegraphContainer>
+                ) : (
+                  <AggregateFlamegraphTreeTable
+                    recursion={null}
+                    expanded={false}
+                    withoutBorders
+                    frameFilter={frameFilter}
+                    canvasPoolManager={canvasPoolManager}
+                  />
+                )}
+              </AggregateFlamegraphContainer>
+              {showSidePanel && <AggregateFlamegraphSidePanel scheduler={scheduler} />}
+            </AggregateFlamegraphLayout>
           </FlamegraphProvider>
         </FlamegraphThemeProvider>
       </FlamegraphStateProvider>
@@ -252,10 +292,13 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
  */
 const toolbarHeight = '41px';
 
-const AggregateFlamegraphCanvasContainer = styled('div')`
-  position: relative;
+const AggregateFlamegraphLayout = styled('div')`
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  left: 0px;
+  top: 0px;
   display: grid;
-  height: calc(100% - ${toolbarHeight});
   grid-template-columns: 1fr auto;
 `;
 
@@ -292,9 +335,4 @@ const AggregateFlamegraphContainer = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
-  height: 100%;
-  width: 100%;
-  position: absolute;
-  left: 0px;
-  top: 0px;
 `;

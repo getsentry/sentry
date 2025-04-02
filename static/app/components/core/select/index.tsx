@@ -364,7 +364,10 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: ControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {size, maxMenuWidth, isInsideModal, isSearchable, isDisabled} = props;
+  const {size, maxMenuWidth, isInsideModal} = props;
+
+  const isSearchable = props.isSearchable || props.searchable;
+  const isDisabled = props.isDisabled || props.disabled;
 
   const defaultStyles = useMemo(() => {
     return theme.isChonk

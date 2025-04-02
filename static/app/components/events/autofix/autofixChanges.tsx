@@ -9,6 +9,7 @@ import {Button, LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
+import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import {
   type AutofixChangesStep,
@@ -22,7 +23,6 @@ import {
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
-import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {IconCode, IconCopy, IconOpen} from 'sentry/icons';
@@ -39,6 +39,7 @@ type AutofixChangesProps = {
   runId: string;
   step: AutofixChangesStep;
   agentCommentThread?: CommentThread;
+  isChangesFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 };
@@ -56,30 +57,28 @@ function AutofixRepoChange({
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const selection = useTextSelection(containerRef);
-
   return (
     <Content>
-      {selection && (
-        <AutofixHighlightPopup
-          selectedText={selection.selectedText}
-          referenceElement={selection.referenceElement}
-          groupId={groupId}
-          runId={runId}
-          stepIndex={previousDefaultStepIndex ?? 0}
-          retainInsightCardIndex={
-            previousInsightCount !== undefined && previousInsightCount >= 0
-              ? previousInsightCount
-              : null
-          }
-        />
-      )}
       <RepoChangesHeader>
-        <div ref={containerRef}>
-          <PullRequestTitle>{change.repo_name}</PullRequestTitle>
-          <Title>{change.title}</Title>
-          <p dangerouslySetInnerHTML={{__html: singleLineRenderer(change.description)}} />
+        <div>
+          <AutofixHighlightWrapper
+            groupId={groupId}
+            runId={runId}
+            stepIndex={previousDefaultStepIndex ?? 0}
+            retainInsightCardIndex={
+              previousInsightCount !== undefined && previousInsightCount >= 0
+                ? previousInsightCount
+                : null
+            }
+          >
+            <div>
+              <PullRequestTitle>{change.repo_name}</PullRequestTitle>
+              <Title>{change.title}</Title>
+              <p
+                dangerouslySetInnerHTML={{__html: singleLineRenderer(change.description)}}
+              />
+            </div>
+          </AutofixHighlightWrapper>
         </div>
       </RepoChangesHeader>
       <AutofixDiff
@@ -426,6 +425,7 @@ export function AutofixChanges({
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
+  isChangesFirstAppearance,
 }: AutofixChangesProps) {
   const {data} = useAutofixData({groupId});
   const [isBusy, setIsBusy] = useState(false);
@@ -469,7 +469,7 @@ export function AutofixChanges({
     step.changes.every(change => change.branch_name);
 
   return (
-    <AnimatePresence initial>
+    <AnimatePresence initial={isChangesFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <ChangesContainer>
           <ClippedBox clipHeight={408}>
