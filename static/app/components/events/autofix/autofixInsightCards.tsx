@@ -176,13 +176,11 @@ function AutofixInsightCard({
                   stepIndex={stepIndex}
                   retainInsightCardIndex={insightCardAboveIndex}
                 >
-                  <MiniHeader>
-                    <div
-                      dangerouslySetInnerHTML={{
-                        __html: singleLineRenderer(insight.insight),
-                      }}
-                    />
-                  </MiniHeader>
+                  <MiniHeader
+                    dangerouslySetInnerHTML={{
+                      __html: singleLineRenderer(insight.insight),
+                    }}
+                  />
                 </AutofixHighlightWrapper>
 
                 <RightSection>
@@ -232,7 +230,7 @@ function AutofixInsightCard({
                   >
                     <ContextBody>
                       {insight.justification || !insight.change_diff ? (
-                        <MiniHeader
+                        <p
                           dangerouslySetInnerHTML={{
                             __html: marked(
                               replaceHeadersWithBold(
