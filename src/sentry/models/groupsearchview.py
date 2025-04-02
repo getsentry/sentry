@@ -45,14 +45,10 @@ class GroupSearchViewProject(DefaultFieldsModel):
 
 class GroupSearchViewVisibility:
     ORGANIZATION = "organization"
-    OWNER = "owner"
 
     @classmethod
     def as_choices(cls) -> list[tuple[str, Any]]:
-        return [
-            (cls.ORGANIZATION, _("Organization")),
-            (cls.OWNER, _("Only for me")),
-        ]
+        return [(cls.ORGANIZATION, _("Organization"))]
 
 
 @region_silo_model
@@ -68,7 +64,7 @@ class GroupSearchView(DefaultFieldsModelExisting):
 
     visibility = models.CharField(
         max_length=16,
-        db_default=GroupSearchViewVisibility.OWNER,
+        db_default=GroupSearchViewVisibility.ORGANIZATION,
         choices=GroupSearchViewVisibility.as_choices(),
     )
 
