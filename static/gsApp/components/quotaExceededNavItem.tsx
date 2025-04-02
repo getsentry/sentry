@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type MotionProps} from 'framer-motion';
@@ -97,8 +97,14 @@ function PrimaryNavigationQuotaExceeded({
   organization: Organization;
   subscription: Subscription;
 }) {
-  const exceededCategories = useMemo(() => {
-    return sortCategoriesWithKeys(subscription?.categories ?? {})
+  const [exceededCategories, setExceededCategories] = useState<string[]>([]);
+  const [promptsToCheck, setPromptsToCheck] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!subscription.categories) {
+      return;
+    }
+    const result = sortCategoriesWithKeys(subscription?.categories ?? {})
       .filter(
         ([category]) =>
           category !== DataCategory.SPANS_INDEXED ||
@@ -110,70 +116,73 @@ function PrimaryNavigationQuotaExceeded({
         }
         return acc;
       }, [] as string[]);
+    setExceededCategories(result);
+    setPromptsToCheck(
+      result
+        .map(category => {
+          const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+          if (categoryInfo) {
+            return `${categoryInfo.snakeCasePlural ?? category}_overage_alert`;
+          }
+          return null;
+        })
+        .filter(Boolean) as string[]
+    );
   }, [subscription.categories, subscription.hadCustomDynamicSampling]);
 
-  const promptsToCheck = useMemo(() => {
-    return exceededCategories
-      .map(category => {
-        const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
-        if (categoryInfo) {
-          return `${categoryInfo.snakeCasePlural ?? category}_overage_alert`;
-        }
-        return null;
-      })
-      .filter(Boolean) as string[];
-  }, [exceededCategories]);
-
-  const prompts = usePromptsCheck(
+  const {
+    // data: prompts,
+    isPending,
+    isError,
+  } = usePromptsCheck(
     {
       organization,
       feature: promptsToCheck,
     },
-    {staleTime: 0}
+    {staleTime: 0, enabled: promptsToCheck.length > 0}
   );
 
-  const promptIsDismissedForBillingPeriod = useCallback(
-    (prompt: {dismissed_ts?: number; snoozed_ts?: number}) => {
-      const {snoozed_ts, dismissed_ts} = prompt || {};
-      const time = snoozed_ts || dismissed_ts;
-      if (!time) {
-        return false;
-      }
-      const onDemandPeriodEnd = new Date(subscription.onDemandPeriodEnd);
-      onDemandPeriodEnd.setHours(23, 59, 59);
-      return time <= onDemandPeriodEnd.getTime() / 1000;
-    },
-    [subscription.onDemandPeriodEnd]
-  );
+  // const promptIsDismissedForBillingPeriod = (prompt: {
+  //   dismissed_ts?: number;
+  //   snoozed_ts?: number;
+  // }) => {
+  //   const {snoozed_ts, dismissed_ts} = prompt || {};
+  //   const time = snoozed_ts || dismissed_ts;
+  //   if (!time) {
+  //     return false;
+  //   }
+  //   const onDemandPeriodEnd = new Date(subscription.onDemandPeriodEnd);
+  //   onDemandPeriodEnd.setHours(23, 59, 59);
+  //   return time <= onDemandPeriodEnd.getTime() / 1000;
+  // };
 
-  const allDismissedForPeriod = useMemo(() => {
-    return (
-      !!prompts.data &&
-      !!prompts.data &&
-      promptsToCheck.every(prompt => {
-        const promptData = prompts.data.features?.[prompt];
-        return promptData && promptIsDismissedForBillingPeriod(promptData);
-      })
-    );
-  }, [prompts.data, promptsToCheck, promptIsDismissedForBillingPeriod]);
+  const [isDismissed, setIsDismissed] = useState(false);
 
-  const [isDismissed, setIsDismissed] = useState(allDismissedForPeriod);
+  // const isAllDismissedForPeriod = useMemo(() => {
+  //   return (
+  //     !!prompts?.features &&
+  //     promptsToCheck.every(prompt => {
+  //       const promptData = prompts.features?.[prompt];
+  //       return promptData && promptIsDismissedForBillingPeriod(promptData);
+  //     })
+  //   );
+  // }, [prompts, promptsToCheck, promptIsDismissedForBillingPeriod]);
 
   const {
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
     state: overlayState,
-  } = usePrimaryButtonOverlay({defaultOpen: !allDismissedForPeriod && !isDismissed});
+  } = usePrimaryButtonOverlay({});
   const theme = useTheme();
-
   const api = useApi();
+  const prefersStackedNav = usePrefersStackedNav();
 
   const shouldShow =
-    usePrefersStackedNav() &&
+    prefersStackedNav &&
     exceededCategories.length > 0 &&
     !subscription.hasOverageNotificationsDisabled;
-  if (!shouldShow) {
+  if (!shouldShow || isPending || isError) {
     return null;
   }
 
@@ -190,6 +199,18 @@ function PrimaryNavigationQuotaExceeded({
       delay: 2,
       repeatDelay: 1,
     },
+  };
+
+  const onDismiss = () => {
+    promptsToCheck.forEach(prompt => {
+      promptsUpdate(api, {
+        organization,
+        feature: prompt,
+        status: 'dismissed',
+      });
+    });
+    setIsDismissed(true);
+    overlayState.close();
   };
 
   return (
@@ -210,17 +231,7 @@ function PrimaryNavigationQuotaExceeded({
             subscription={subscription}
             organization={organization}
             isDismissed={isDismissed}
-            onDismiss={() => {
-              promptsToCheck.forEach(prompt => {
-                promptsUpdate(api, {
-                  organization,
-                  feature: prompt,
-                  status: 'dismissed',
-                });
-              });
-              setIsDismissed(true);
-              overlayState.close();
-            }}
+            onDismiss={onDismiss}
           />
         </PrimaryButtonOverlay>
       )}

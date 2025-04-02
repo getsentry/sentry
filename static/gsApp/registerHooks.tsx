@@ -125,7 +125,10 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'sidebar:bottom-items': props => (
     <Fragment>
       <TryBusinessSidebarItem key="try-business-sidebar-item" {...props} />
-      <PrimaryNavigationQuotaExceeded key="quota-exceeded-sidebar-item" {...props} />
+      <PrimaryNavigationQuotaExceeded
+        key="quota-exceeded-sidebar-item"
+        organization={props.organization}
+      />
     </Fragment>
   ),
 
