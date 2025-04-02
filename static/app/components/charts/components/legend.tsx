@@ -44,7 +44,12 @@ export default function Legend(
         lineHeight: 14,
       },
       inactiveColor: theme.inactive,
-    },
+      pageTextStyle: {
+        color: theme.textColor,
+      },
+      pageIconColor: theme.textColor,
+      pageIconInactiveColor: theme.subText,
+    } satisfies LegendComponentOption,
     rest
   );
 }
