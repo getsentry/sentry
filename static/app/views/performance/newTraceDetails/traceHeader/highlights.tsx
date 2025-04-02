@@ -58,7 +58,7 @@ function LogsHighlights({
   }
 
   const attributes = data?.attributes;
-  const releaseAttr = attributes?.find(attr => attr.name === 'release');
+  const releaseAttr = attributes?.find(attr => attr.name === 'sentry.release');
   const environmentAttr = attributes?.find(attr => attr.name === 'environment');
 
   return (
