@@ -22,13 +22,18 @@ def get_frames_to_process(data: NodeData | dict[str, Any], platform: str) -> lis
             if frame is None:
                 continue
 
-            if platform_config.creates_in_app_stack_trace_rules():
+            # We do not process frames that have already been categorized
+            if platform_config.creates_in_app_stack_trace_rules() and _check_not_categorized(frame):
                 frames_to_process.append(frame)
 
             elif frame.get("in_app") and frame.get("filename"):
                 frames_to_process.append(frame)
 
     return list(frames_to_process)
+
+
+def _check_not_categorized(frame: dict[str, Any]) -> bool:
+    return frame.get("data", {}).get("category") is None
 
 
 def get_stacktraces(data: NodeData | dict[str, Any]) -> list[dict[str, Any]]:
