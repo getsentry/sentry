@@ -43,6 +43,7 @@ class Migration(CheckedMigration):
                     (TSTZRANGE("date_started", "date_ended", '[)')) WITH &&
                 );""",
                     use_statement_timeout=False,
+                    hints={"tables": ["sentry_groupopenperiod"]},
                 )
             ],
             state_operations=[
