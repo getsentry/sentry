@@ -11,30 +11,35 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
 describe('PrimaryNavigationQuotaExceeded', function () {
   const organization = OrganizationFixture();
-  const subscription = SubscriptionFixture({
-    organization,
-    plan: 'am3_business',
-  });
-  subscription.categories.errors!.usageExceeded = true;
-  subscription.categories.replays!.usageExceeded = true;
-  subscription.categories.spans!.usageExceeded = true;
-  SubscriptionStore.set(organization.slug, subscription);
-  ConfigStore.set(
-    'user',
-    UserFixture({
-      options: {
-        ...UserFixture().options,
-        prefersStackedNavigation: true,
-      },
-    })
-  );
 
-  it('should render', async function () {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+    });
+    subscription.categories.errors!.usageExceeded = true;
+    subscription.categories.replays!.usageExceeded = true;
+    subscription.categories.spans!.usageExceeded = true;
+    SubscriptionStore.set(organization.slug, subscription);
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        options: {
+          ...UserFixture().options,
+          prefersStackedNavigation: true,
+        },
+      })
+    );
+
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/subscriptions/${organization.slug}/`,
       body: {},
     });
+  });
+
+  it('should render', async function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/prompts-activity/`,
@@ -50,12 +55,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
       body: {},
     });
 
-    render(
-      <PrimaryNavigationQuotaExceeded
-        organization={organization}
-        subscription={subscription}
-      />
-    );
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
     // open the alert
     await userEvent.click(await screen.findByRole('button', {name: 'Billing Overage'}));

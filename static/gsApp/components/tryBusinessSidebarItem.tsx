@@ -21,7 +21,7 @@ import {hasPerformance, isBizPlanFamily} from 'getsentry/utils/billing';
 
 const AUTO_OPEN_HASH = '#try-business';
 
-type Props = Parameters<Hooks['sidebar:bottom-items']>[0] & {
+type Props = Parameters<Hooks['sidebar:try-business']>[0] & {
   organization: Organization;
   subscription: Subscription;
 };

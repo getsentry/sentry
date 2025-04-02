@@ -981,6 +981,7 @@ class GSBanner extends Component<Props, State> {
     let eventTypes: EventType[] = [];
 
     if (prefersStackedNav()) {
+      // new nav uses sidebar quota alert (see quotaExceededNavItem.tsx)
       return null;
     }
 

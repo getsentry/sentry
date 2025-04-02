@@ -1,4 +1,4 @@
-import {Fragment, lazy} from 'react';
+import {lazy} from 'react';
 
 import LazyLoad from 'sentry/components/lazyLoad';
 import {IconBusiness} from 'sentry/icons';
@@ -122,14 +122,14 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'sidebar:organization-dropdown-menu': hookSidebarDropdownMenu,
   'sidebar:help-menu': hookSidebarHelpMenu,
   'sidebar:item-label': () => LabelWithPowerIcon,
-  'sidebar:bottom-items': props => (
-    <Fragment>
-      <TryBusinessSidebarItem key="try-business-sidebar-item" {...props} />
-      <PrimaryNavigationQuotaExceeded
-        key="quota-exceeded-sidebar-item"
-        organization={props.organization}
-      />
-    </Fragment>
+  'sidebar:try-business': props => (
+    <TryBusinessSidebarItem key="try-business-sidebar-item" {...props} />
+  ),
+  'sidebar:billing-status': props => (
+    <PrimaryNavigationQuotaExceeded
+      key="quota-exceeded-sidebar-item"
+      organization={props.organization}
+    />
   ),
 
   /**

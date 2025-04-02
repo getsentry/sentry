@@ -1,16 +1,16 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type MotionProps} from 'framer-motion';
 
-import {promptsUpdate, usePromptsCheck} from 'sentry/actionCreators/prompts';
+import {usePrompts} from 'sentry/actionCreators/prompts';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {SidebarButton} from 'sentry/views/nav/primary/components';
 import {
@@ -23,6 +23,21 @@ import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/billing';
 import {listDisplayNames, sortCategoriesWithKeys} from 'getsentry/utils/dataCategory';
+
+const ANIMATE_PROPS: MotionProps = {
+  animate: {
+    rotate: [0, -15, 15, -15, 15, -15, 0],
+    scale: [1, 1.25, 1.25, 1.25, 1.25, 1.25, 1],
+  },
+  transition: {
+    duration: 0.7,
+    repeat: Infinity,
+    repeatType: 'loop',
+    type: 'easeOut',
+    delay: 2,
+    repeatDelay: 1,
+  },
+};
 
 function QuotaExceededContent({
   exceededCategories,
@@ -100,7 +115,6 @@ function PrimaryNavigationQuotaExceeded({
   const [exceededCategories, setExceededCategories] = useState<string[]>([]);
   const [promptsToCheck, setPromptsToCheck] = useState<string[]>([]);
   const [isDismissed, setIsDismissed] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
     if (!subscription.categories) {
@@ -132,31 +146,11 @@ function PrimaryNavigationQuotaExceeded({
     );
   }, [subscription.categories, subscription.hadCustomDynamicSampling]);
 
-  const {
-    data: prompts,
-    isPending,
-    isError,
-  } = usePromptsCheck(
-    {
-      organization,
-      feature: promptsToCheck,
-    },
-    {staleTime: 0, enabled: promptsToCheck.length > 0}
-  );
-
-  const promptIsDismissedForBillingPeriod = useCallback(
-    (prompt: {dismissed_ts?: number; snoozed_ts?: number}) => {
-      const {snoozed_ts, dismissed_ts} = prompt || {};
-      const time = snoozed_ts || dismissed_ts;
-      if (!time) {
-        return false;
-      }
-      const onDemandPeriodEnd = new Date(subscription.onDemandPeriodEnd);
-      onDemandPeriodEnd.setHours(23, 59, 59);
-      return time <= onDemandPeriodEnd.getTime() / 1000;
-    },
-    [subscription.onDemandPeriodEnd]
-  );
+  const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompts({
+    features: promptsToCheck,
+    organization,
+    daysToSnooze: -1 * getDaysSinceDate(subscription.onDemandPeriodEnd),
+  });
 
   const {
     isOpen,
@@ -165,53 +159,27 @@ function PrimaryNavigationQuotaExceeded({
     state: overlayState,
   } = usePrimaryButtonOverlay({});
   const theme = useTheme();
-  const api = useApi();
   const prefersStackedNav = usePrefersStackedNav();
 
   useEffect(() => {
-    if (!hasLoaded && prompts?.features) {
-      if (
-        promptsToCheck.every(prompt => {
-          const promptData = prompts.features?.[prompt];
-          return promptData && promptIsDismissedForBillingPeriod(promptData);
-        })
-      ) {
+    if (!isLoading && !isError) {
+      if (Object.values(isPromptDismissed).every(Boolean)) {
         setIsDismissed(true);
       }
-      setHasLoaded(true);
     }
-  }, [hasLoaded, prompts?.features, promptsToCheck, promptIsDismissedForBillingPeriod]);
+  }, [isPromptDismissed, isLoading, isError, isOpen, overlayState]);
 
   const shouldShow =
     prefersStackedNav &&
     exceededCategories.length > 0 &&
     !subscription.hasOverageNotificationsDisabled;
-  if (!shouldShow || isPending || isError) {
+  if (!shouldShow || isLoading || isError) {
     return null;
   }
 
-  const animateProps: MotionProps = {
-    animate: {
-      rotate: [0, -15, 15, -15, 15, -15, 0],
-      scale: [1, 1.25, 1.25, 1.25, 1.25, 1.25, 1],
-    },
-    transition: {
-      duration: 0.7,
-      repeat: Infinity,
-      repeatType: 'loop',
-      type: 'easeOut',
-      delay: 2,
-      repeatDelay: 1,
-    },
-  };
-
   const onDismiss = () => {
     promptsToCheck.forEach(prompt => {
-      promptsUpdate(api, {
-        organization,
-        feature: prompt,
-        status: 'dismissed',
-      });
+      dismissPrompt(prompt);
     });
     setIsDismissed(true);
     overlayState.close();
@@ -224,7 +192,7 @@ function PrimaryNavigationQuotaExceeded({
         label={t('Billing Overage')}
         buttonProps={{...overlayTriggerProps, style: {backgroundColor: theme.warning}}}
       >
-        <motion.div {...(isOpen || isDismissed ? {} : animateProps)}>
+        <motion.div {...(isOpen || isDismissed ? {} : ANIMATE_PROPS)}>
           <IconWarning />
         </motion.div>
       </SidebarButton>

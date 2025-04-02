@@ -1,11 +1,16 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import type {Client} from 'sentry/api';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {
+  getApiQueryData,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type PromptsUpdateParams = {
@@ -135,6 +140,164 @@ export function usePromptsCheck(
   );
 }
 
+/**
+ * Get the status of many prompts in a single query
+ */
+export function usePrompts({
+  features,
+  organization,
+  projectId,
+  daysToSnooze,
+  options,
+}: {
+  features: string[];
+  organization: Organization | null;
+  daysToSnooze?: number;
+  options?: Partial<UseApiQueryOptions<PromptResponse>>;
+  projectId?: string;
+}) {
+  const api = useApi({persistInFlight: true});
+  const prompts = usePromptsCheck({feature: features, organization, projectId}, options);
+  const queryClient = useQueryClient();
+  const isPromptDismissed: Record<string, boolean> = useMemo(() => {
+    if (prompts.isSuccess) {
+      return features.reduce(
+        (acc, feature) => {
+          const prompt = prompts.data.features?.[feature];
+          acc[feature] = promptIsDismissed(
+            {dismissedTime: prompt?.dismissed_ts, snoozedTime: prompt?.snoozed_ts},
+            daysToSnooze
+          );
+          return acc;
+        },
+        {} as Record<string, boolean>
+      );
+    }
+    return {};
+  }, [prompts.isSuccess, prompts.data?.features, features, daysToSnooze]);
+
+  const getCachedData = useCallback(() => {
+    // this is necessary in the case multiple prompts need to be updated in sequence
+    return getApiQueryData<PromptResponse>(
+      queryClient,
+      makePromptsCheckQueryKey({organization, feature: features, projectId})
+    );
+  }, [queryClient, organization, features, projectId]);
+
+  const dismissPrompt = useCallback(
+    (feature: string) => {
+      if (!organization) {
+        return;
+      }
+      promptsUpdate(api, {
+        organization,
+        projectId,
+        feature,
+        status: 'dismissed',
+      });
+
+      const existingData = getCachedData();
+
+      // Update cached query data
+      // Will set prompt to dismissed
+      setApiQueryData<PromptResponse>(
+        queryClient,
+        makePromptsCheckQueryKey({
+          organization,
+          feature: features,
+          projectId,
+        }),
+        () => {
+          const dismissedTs = Date.now() / 1000;
+          return {
+            data: {dismissed_ts: dismissedTs},
+            features: {...existingData?.features, [feature]: {dismissed_ts: dismissedTs}},
+          };
+        }
+      );
+    },
+    [api, organization, projectId, queryClient, features, getCachedData]
+  );
+
+  const snoozePrompt = useCallback(
+    (feature: string) => {
+      if (!organization) {
+        return;
+      }
+      promptsUpdate(api, {
+        organization,
+        projectId,
+        feature,
+        status: 'snoozed',
+      });
+
+      const existingData = getCachedData();
+
+      // Update cached query data
+      // Will set prompt to snoozed
+      setApiQueryData<PromptResponse>(
+        queryClient,
+        makePromptsCheckQueryKey({
+          organization,
+          feature,
+          projectId,
+        }),
+        () => {
+          const snoozedTs = Date.now() / 1000;
+          return {
+            data: {snoozed_ts: snoozedTs},
+            features: {...existingData?.features, [feature]: {snoozed_ts: snoozedTs}},
+          };
+        }
+      );
+    },
+    [api, organization, projectId, queryClient, getCachedData]
+  );
+
+  const showPrompt = useCallback(
+    (feature: string) => {
+      if (!organization) {
+        return;
+      }
+      promptsUpdate(api, {
+        organization,
+        projectId,
+        feature,
+        status: 'visible',
+      });
+
+      const existingData = getCachedData();
+
+      // Update cached query data
+      // Will clear the status/timestamps of a prompt that is dismissed or snoozed
+      setApiQueryData<PromptResponse>(
+        queryClient,
+        makePromptsCheckQueryKey({
+          organization,
+          feature,
+          projectId,
+        }),
+        () => {
+          return {
+            data: {},
+            features: {...existingData?.features, [feature]: {}},
+          };
+        }
+      );
+    },
+    [api, organization, projectId, queryClient, getCachedData]
+  );
+
+  return {
+    isLoading: prompts.isPending,
+    isError: prompts.isError,
+    isPromptDismissed,
+    dismissPrompt,
+    snoozePrompt,
+    showPrompt,
+  };
+}
+
 export function usePrompt({
   feature,
   organization,
@@ -183,10 +346,10 @@ export function usePrompt({
         projectId,
       }),
       () => {
-        const dimissedTs = Date.now() / 1000;
+        const dismissedTs = Date.now() / 1000;
         return {
-          data: {dismissed_ts: dimissedTs},
-          features: {[feature]: {dismissed_ts: dimissedTs}},
+          data: {dismissed_ts: dismissedTs},
+          features: {[feature]: {dismissed_ts: dismissedTs}},
         };
       }
     );
