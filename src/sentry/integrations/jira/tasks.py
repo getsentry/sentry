@@ -11,6 +11,7 @@ from sentry.plugins.base import plugins
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 @instrumented_task(
@@ -66,6 +67,7 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
                         relationship=GroupLink.Relationship.references,
                     )
             except IntegrityError:
+                incr_rollback_metrics(GroupLink)
                 continue
 
             plugin_issue.delete()

@@ -75,7 +75,9 @@ export default function EmptyState() {
                 </p>
                 <p>
                   <BoldText>{t('Note:')}</BoldText>{' '}
-                  {t('Both screenshots and images consume from your attachments quota.')}
+                  {t(
+                    'Both screenshots and crash dump files consume from your attachments quota.'
+                  )}
                 </p>
               </DescriptionWrapper>
               <GuidedSteps.StepButtons />

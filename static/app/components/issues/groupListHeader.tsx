@@ -30,15 +30,15 @@ function GroupListHeader({
       {hasNewLayout ? (
         <Fragment>
           <NarrowIssueWrapper hideDivider>{t('Issue')}</NarrowIssueWrapper>
-          {withColumns.includes('firstSeen') && (
-            <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
-              {t('First Seen')}
-            </FirstSeenWrapper>
-          )}
           {withColumns.includes('lastSeen') && (
             <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
-              {t('Age')}
+              {t('Last Seen')}
             </LastSeenWrapper>
+          )}
+          {withColumns.includes('firstSeen') && (
+            <AgeWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
+              {t('Age')}
+            </AgeWrapper>
           )}
           {withColumns.includes('lastTriggered') && (
             <NarrowLastTriggeredLabel align="right">
@@ -128,11 +128,11 @@ const NarrowIssueWrapper = styled(GroupListHeaderLabel)`
   padding-left: ${space(2)};
 `;
 
-const FirstSeenWrapper = styled(GroupListHeaderLabel)`
+const LastSeenWrapper = styled(GroupListHeaderLabel)`
   width: 80px;
 `;
 
-const LastSeenWrapper = styled(GroupListHeaderLabel)`
+const AgeWrapper = styled(GroupListHeaderLabel)`
   width: 50px;
 `;
 

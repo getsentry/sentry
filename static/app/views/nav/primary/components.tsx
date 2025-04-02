@@ -299,7 +299,7 @@ const NavLinkLabel = styled('div')`
   align-items: center;
   justify-content: center;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  margin-top: ${space(0.25)};
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 export const NavButton = styled('button', {

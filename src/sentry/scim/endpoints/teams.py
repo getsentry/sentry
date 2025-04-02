@@ -39,6 +39,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 from ...signals import team_created
 from ...utils.snowflake import MaxSnowflakeRetryError
@@ -270,6 +271,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
                     sender=None,
                 )
             except (IntegrityError, MaxSnowflakeRetryError):
+                incr_rollback_metrics(Team)
                 return Response(
                     {
                         "non_field_errors": [CONFLICTING_SLUG_ERROR],
