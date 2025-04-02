@@ -62,6 +62,7 @@ export function useExploreLogsTableRow(props: {
     traceId: props.traceId,
     traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details',
+    enabled: props.enabled,
   });
 }
 

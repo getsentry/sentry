@@ -8,7 +8,12 @@ import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {space} from 'sentry/styles/space';
 import {unreachable} from 'sentry/utils/unreachable';
-import {TableBody, TableBodyCell, TableRow} from 'sentry/views/explore/components/table';
+import {
+  TableBody,
+  TableBodyCell,
+  TableHeadCell,
+  TableRow,
+} from 'sentry/views/explore/components/table';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 
 export const StyledPanel = styled(Panel)`
@@ -37,9 +42,13 @@ export const StyledPanelItem = styled(PanelItem)<{
 `;
 
 export const LogTableRow = styled(TableRow)`
-  cursor: pointer;
-
   &:not(thead > &) {
+    cursor: pointer;
+
+    &:hover {
+      background-color: ${p => p.theme.backgroundSecondary};
+    }
+
     &:not(:last-child) {
       border-bottom: 0;
     }
@@ -102,10 +111,6 @@ export const DetailsGrid = styled(StyledPanel)`
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   padding: ${space(1)} ${space(2)};
-`;
-
-export const NonClickableCell = styled('div')`
-  cursor: auto;
 `;
 
 export const LogDetailsTitle = styled('div')`
@@ -193,7 +198,6 @@ export const WrappingText = styled('div')<{wrap?: boolean}>`
   overflow: hidden;
   text-overflow: ellipsis;
   ${p => (p.wrap ? 'text-wrap: auto;' : '')}
-  cursor: auto;
 `;
 
 export const AlignedCellContent = styled('div')<{
@@ -203,6 +207,17 @@ export const AlignedCellContent = styled('div')<{
   align-items: center;
   flex-direction: row;
   justify-content: ${p => p.align || 'left'};
+  font-family: ${p => p.theme.text.familyMono};
+`;
+
+export const FirstTableHeadCell = styled(TableHeadCell)`
+  padding-right: ${space(1)};
+  padding-left: ${space(2)};
+`;
+
+export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
+  padding-right: 0;
+  padding-left: ${space(1)};
 `;
 
 export function getLogColors(level: SeverityLevel, theme: Theme) {

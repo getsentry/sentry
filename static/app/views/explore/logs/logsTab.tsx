@@ -27,6 +27,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {HiddenLogDetailFields} from 'sentry/views/explore/logs/constants';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -70,6 +71,7 @@ export function LogsTabContent({
           onColumnsChange={setFields}
           stringTags={stringTags}
           numberTags={numberTags}
+          hiddenKeys={HiddenLogDetailFields}
         />
       ),
       {closeEvents: 'escape-key'}
