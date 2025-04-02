@@ -1,16 +1,16 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
-import groupBy from 'lodash/groupBy';
 import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
 import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Select} from 'sentry/components/core/select';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import SearchBar from 'sentry/components/searchBar';
@@ -26,36 +26,37 @@ import type {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
-import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
+import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
   getAlertText,
   getCategoriesForIntegration,
-  getIntegrationStatus,
+  getProviderIntegrationStatus,
   getSentryAppInstallStatus,
   isDocIntegration,
   isPlugin,
   isSentryApp,
+  sortIntegrations,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import withOrganization from 'sentry/utils/withOrganization';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
+import IntegrationRow from 'sentry/views/settings/organizationIntegrations/integrationRow';
 import ReinstallAlert from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
-
-import {POPULARITY_WEIGHT} from './constants';
-import IntegrationRow from './integrationRow';
 
 const FirstPartyIntegrationAlert = HookOrDefault({
   hookName: 'component:first-party-integration-alert',
   defaultComponent: () => null,
 });
 
-const fuseOptions = {
+const fuseOptions: Fuse.IFuseOptions<AppOrProviderOrPlugin> = {
   threshold: 0.3,
   location: 0,
   distance: 100,
@@ -63,516 +64,470 @@ const fuseOptions = {
   keys: ['slug', 'key', 'name', 'id'],
 };
 
-type Props = RouteComponentProps & {
-  hideHeader: boolean;
-  organization: Organization;
-};
-
-type State = {
-  appInstalls: SentryAppInstallation[] | null;
-  config: {providers: IntegrationProvider[]} | null;
-  displayedList: AppOrProviderOrPlugin[];
-  docIntegrations: DocIntegration[] | null;
-  integrations: Integration[] | null;
-  list: AppOrProviderOrPlugin[];
-  orgOwnedApps: SentryApp[] | null;
-  plugins: PluginWithProjectList[] | null;
-  publishedApps: SentryApp[] | null;
-  searchInput: string;
-  selectedCategory: string;
-  extraApp?: SentryApp;
-  fuzzy?: Fuse<AppOrProviderOrPlugin>;
-};
-
+/**
+ * Debounce the tracking of integration search events to avoid spamming the
+ * analytics endpoint.
+ */
 const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
-
-export class IntegrationListDirectory extends DeprecatedAsyncComponent<
-  Props & DeprecatedAsyncComponent['props'],
-  State & DeprecatedAsyncComponent['state']
-> {
-  // Some integrations require visiting a different website to add them. When
-  // we come back to the tab we want to show our integrations as soon as we can.
-  shouldReload = true;
-  reloadOnVisible = true;
-  shouldReloadOnVisible = true;
-
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      list: [],
-      displayedList: [],
-      selectedCategory: '',
-    };
-  }
-
-  onLoadAllEndpointsSuccess() {
-    const {publishedApps, orgOwnedApps, extraApp, plugins, docIntegrations} = this.state;
-    const published = publishedApps || [];
-    // If we have an extra app in state from query parameter, add it as org owned app
-    if (orgOwnedApps !== null && extraApp) {
-      orgOwnedApps.push(extraApp);
-    }
-
-    // we don't want the app to render twice if its the org that created
-    // the published app.
-    const orgOwned = orgOwnedApps?.filter(
-      app => !published.find(p => p.slug === app.slug)
-    );
-
-    /**
-     * We should have three sections:
-     * 1. Public apps and integrations available to everyone
-     * 2. Unpublished apps available to that org
-     * 3. Internal apps available to that org
-     */
-
-    const combined = ([] as AppOrProviderOrPlugin[])
-      .concat(published)
-      .concat(orgOwned ?? [])
-      .concat(this.providers)
-      .concat(plugins ?? [])
-      .concat(docIntegrations ?? []);
-
-    const list = this.sortIntegrations(combined);
-
-    const {searchInput, selectedCategory} = this.getFilterParameters();
-
-    this.setState({list, searchInput, selectedCategory}, () => {
-      this.updateDisplayedList();
-      this.trackPageViewed();
-    });
-  }
-
-  trackPageViewed() {
-    // count the number of installed apps
-
-    const {integrations, publishedApps, plugins} = this.state;
-    const integrationsInstalled = new Set();
-    // add installed integrations
-    integrations?.forEach((integration: Integration) => {
-      integrationsInstalled.add(integration.provider.key);
-    });
-    // add sentry apps
-    publishedApps?.filter(this.getAppInstall).forEach((sentryApp: SentryApp) => {
-      integrationsInstalled.add(sentryApp.slug);
-    });
-    // add plugins
-    plugins?.forEach((plugin: PluginWithProjectList) => {
-      if (plugin.projectList.length) {
-        integrationsInstalled.add(plugin.slug);
-      }
-    });
-    trackIntegrationAnalytics(
-      'integrations.index_viewed',
-      {
-        integrations_installed: integrationsInstalled.size,
-        view: 'integrations_directory',
-        organization: this.props.organization,
-      },
-      {startSession: true}
-    );
-  }
-
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
-    const baseEndpoints: Array<[string, string, any] | [string, string]> = [
-      ['config', `/organizations/${organization.slug}/config/integrations/`],
-      [
-        'integrations',
-        `/organizations/${organization.slug}/integrations/`,
-        {query: {includeConfig: 0}},
-      ],
-      ['orgOwnedApps', `/organizations/${organization.slug}/sentry-apps/`],
-      ['publishedApps', '/sentry-apps/', {query: {status: 'published'}}],
-      ['appInstalls', `/organizations/${organization.slug}/sentry-app-installations/`],
-      ['plugins', `/organizations/${organization.slug}/plugins/configs/`],
-      ['docIntegrations', '/doc-integrations/'],
-    ];
-    /**
-     * optional app to load for super users
-     * should only be done for unpublished integrations from another org
-     * but no checks are in place to ensure the above condition
-     */
-    const extraAppSlug = new URLSearchParams(this.props.location.search).get('extra_app');
-    if (extraAppSlug) {
-      baseEndpoints.push(['extraApp', `/sentry-apps/${extraAppSlug}/`]);
-    }
-
-    return baseEndpoints;
-  }
-
-  // State
-
-  get unmigratableReposByOrg() {
-    // Group by [GitHub|BitBucket|VSTS] Org name
-    return groupBy(this.state.unmigratableRepos, repo => repo.name.split('/')[0]);
-  }
-
-  get providers(): IntegrationProvider[] {
-    return this.state.config?.providers ?? [];
-  }
-
-  getAppInstall = (app: SentryApp) =>
-    this.state.appInstalls?.find(i => i.app.slug === app.slug);
-
-  // Returns 0 if uninstalled, 1 if pending, and 2 if installed
-  getInstallValue(integration: AppOrProviderOrPlugin) {
-    const {integrations} = this.state;
-
-    if (isPlugin(integration)) {
-      return integration.projectList.length > 0 ? 2 : 0;
-    }
-
-    if (isSentryApp(integration)) {
-      const install = this.getAppInstall(integration);
-      if (install) {
-        return install.status === 'pending' ? 1 : 2;
-      }
-      return 0;
-    }
-
-    if (isDocIntegration(integration)) {
-      return 0;
-    }
-
-    return integrations?.find(i => i.provider.key === integration.key) ? 2 : 0;
-  }
-
-  getInstallStatuses(integrations: Integration[]) {
-    const statusList = integrations?.map(getIntegrationStatus);
-    // if we have conflicting statuses, we have a priority order
-    if (statusList.includes('active')) {
-      return 'Installed';
-    }
-    if (statusList.includes('disabled')) {
-      return 'Disabled';
-    }
-    if (statusList.includes('pending_deletion')) {
-      return 'Pending Deletion';
-    }
-    return 'Not Installed';
-  }
-
-  getPopularityWeight = (integration: AppOrProviderOrPlugin) => {
-    if (isSentryApp(integration) || isDocIntegration(integration)) {
-      return integration?.popularity ?? 1;
-    }
-    return POPULARITY_WEIGHT[integration.slug] ?? 1;
-  };
-
-  sortByName = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
-    a.slug.localeCompare(b.slug);
-
-  sortByPopularity = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
-    const weightA = this.getPopularityWeight(a);
-    const weightB = this.getPopularityWeight(b);
-    return weightB - weightA;
-  };
-
-  sortByInstalled = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
-    this.getInstallValue(b) - this.getInstallValue(a);
-
-  sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
-    return integrations.sort((a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
-      // sort by whether installed first
-      const diffWeight = this.sortByInstalled(a, b);
-      if (diffWeight !== 0) {
-        return diffWeight;
-      }
-      // then sort by popularity
-      const diffPop = this.sortByPopularity(a, b);
-      if (diffPop !== 0) {
-        return diffPop;
-      }
-      // then sort by name
-      return this.sortByName(a, b);
-    });
-  }
-
-  async componentDidUpdate(_: Props, prevState: State) {
-    if (this.state.list.length !== prevState.list.length) {
-      await this.createSearch();
-    }
-  }
-
-  async createSearch() {
-    const {list} = this.state;
-    this.setState({
-      fuzzy: await createFuzzySearch(list || [], fuseOptions),
-    });
-  }
-
-  debouncedTrackIntegrationSearch = debounce((search: string, numResults: number) => {
+const debouncedTrackIntegrationSearch = debounce(
+  (props: {num_results: number; organization: Organization; search_term: string}) => {
     trackIntegrationAnalytics('integrations.directory_item_searched', {
       view: 'integrations_directory',
-      search_term: search,
-      num_results: numResults,
-      organization: this.props.organization,
+      ...props,
     });
-  }, TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS);
+  },
+  TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS
+);
 
-  /**
-   * Get filter parameters and guard against `qs.parse` returning arrays.
-   */
-  getFilterParameters = (): {searchInput: string; selectedCategory: string} => {
-    const {category, search} = qs.parse(this.props.location.search);
+function useIntegrationList() {
+  const queryOptions = {staleTime: 0};
+  const organization = useOrganization();
+  const [searchParams] = useSearchParams();
+  const extraAppSlug = searchParams.get('extra_app');
 
-    const selectedCategory = Array.isArray(category) ? category[0]! : category || '';
-    const searchInput = Array.isArray(search) ? search[0]! : search || '';
+  const {
+    data: config = {providers: []},
+    isPending: isConfigPending,
+    isError: isConfigError,
+  } = useApiQuery<{
+    providers: IntegrationProvider[];
+  }>([`/organizations/${organization.slug}/config/integrations/`], queryOptions);
+  const {
+    data: integrations = [],
+    isPending: isIntegrationsPending,
+    isError: isIntegrationsError,
+  } = useApiQuery<Integration[]>(
+    [`/organizations/${organization.slug}/integrations/`, {query: {includeConfig: 0}}],
+    queryOptions
+  );
+  const {
+    data: orgOwnedApps = [],
+    isPending: isOrgOwnedAppsPending,
+    isError: isOrgOwnedAppsError,
+  } = useApiQuery<SentryApp[]>(
+    [`/organizations/${organization.slug}/sentry-apps/`],
+    queryOptions
+  );
+  const {
+    data: publishedApps = [],
+    isPending: isPublishedAppsPending,
+    isError: isPublishedAppsError,
+  } = useApiQuery<SentryApp[]>(
+    ['/sentry-apps/', {query: {status: 'published'}}],
+    queryOptions
+  );
+  const {
+    data: appInstalls = [],
+    isPending: isAppInstallsPending,
+    isError: isAppInstallsError,
+  } = useApiQuery<SentryAppInstallation[]>(
+    [`/organizations/${organization.slug}/sentry-app-installations/`],
+    queryOptions
+  );
+  const {
+    data: plugins = [],
+    isPending: isPluginsPending,
+    isError: isPluginsError,
+  } = useApiQuery<PluginWithProjectList[]>(
+    [`/organizations/${organization.slug}/plugins/configs/`],
+    queryOptions
+  );
+  const {
+    data: docIntegrations = [],
+    isPending: isDocIntegrationsPending,
+    isError: isDocIntegrationsError,
+  } = useApiQuery<DocIntegration[]>(['/doc-integrations/'], queryOptions);
+  const {
+    data: extraApp,
+    isPending: isExtraAppPending,
+    isError: isExtraAppError,
+  } = useApiQuery<SentryApp>([`/sentry-apps/${extraAppSlug ?? ''}/`], {
+    ...queryOptions,
+    enabled: !!extraAppSlug,
+  });
 
-    return {searchInput, selectedCategory};
-  };
+  const anyPending =
+    isConfigPending ||
+    isIntegrationsPending ||
+    isOrgOwnedAppsPending ||
+    isPublishedAppsPending ||
+    isAppInstallsPending ||
+    isPluginsPending ||
+    isDocIntegrationsPending ||
+    isExtraAppPending;
 
-  /**
-   * Update the query string with the current filter parameter values.
-   */
-  updateQueryString = () => {
-    const {searchInput, selectedCategory} = this.state;
+  const anyError =
+    isConfigError ||
+    isIntegrationsError ||
+    isOrgOwnedAppsError ||
+    isPublishedAppsError ||
+    isAppInstallsError ||
+    isPluginsError ||
+    isDocIntegrationsError ||
+    isExtraAppError;
 
-    const searchString = qs.stringify({
-      ...qs.parse(this.props.location.search),
-      search: searchInput ? searchInput : undefined,
-      category: selectedCategory ? selectedCategory : undefined,
-    });
-
-    this.props.router.replace({
-      pathname: this.props.location.pathname,
-      search: searchString ? `?${searchString}` : undefined,
-    });
-  };
-
-  /**
-   * Filter the integrations list by ANDing together the search query and the category select.
-   */
-  updateDisplayedList = (): AppOrProviderOrPlugin[] => {
-    const {fuzzy, list, searchInput, selectedCategory} = this.state;
-
-    let displayedList = list;
-
-    if (searchInput && fuzzy) {
-      const searchResults = fuzzy.search(searchInput);
-      displayedList = this.sortIntegrations(searchResults.map(i => i.item));
+  const sentryAppList = useMemo(() => {
+    const list = orgOwnedApps ?? [];
+    // Add the extra app if it exists
+    if (extraApp) {
+      list.push(extraApp);
     }
+    const publishedAppSlugSet = new Set(publishedApps.map(app => app.slug));
+    // Omit this organization's published apps since orgOwnedApps already includes them
+    return list.filter(app => !publishedAppSlugSet.has(app.slug));
+  }, [orgOwnedApps, extraApp, publishedApps]);
 
-    if (selectedCategory) {
-      displayedList = displayedList.filter(integration =>
-        getCategoriesForIntegration(integration).includes(selectedCategory)
+  const list = useMemo(() => {
+    const combinedList: AppOrProviderOrPlugin[] = [];
+    combinedList.concat(publishedApps);
+    combinedList.concat(sentryAppList);
+    combinedList.concat(config.providers);
+    combinedList.concat(plugins);
+    combinedList.concat(docIntegrations);
+    return combinedList;
+  }, [config, publishedApps, sentryAppList, plugins, docIntegrations]);
+
+  return {
+    anyPending,
+    anyError,
+    providers: config.providers,
+    docIntegrations,
+    integrations,
+    orgOwnedApps,
+    appInstalls,
+    plugins,
+    publishedApps,
+    list,
+  };
+}
+
+export function IntegrationListDirectory() {
+  const title = t('Integrations');
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('');
+  const {appInstalls, anyPending, integrations, list, anyError, publishedApps, plugins} =
+    useIntegrationList();
+  const fuzzy = useFuzzySearch<AppOrProviderOrPlugin>(list, fuseOptions);
+
+  const displayList = useMemo(() => {
+    const listToDisplay =
+      search && fuzzy ? fuzzy.search(search).map(result => result.item) : [...list];
+
+    if (category) {
+      listToDisplay.filter(integration =>
+        getCategoriesForIntegration(integration).includes(category)
       );
     }
 
-    this.setState({displayedList});
-
-    return displayedList;
-  };
-
-  handleSearchChange = (value: string) => {
-    this.setState({searchInput: value}, () => {
-      this.updateQueryString();
-      const result = this.updateDisplayedList();
-      if (value) {
-        this.debouncedTrackIntegrationSearch(value, result.length);
-      }
+    return sortIntegrations({
+      list: listToDisplay,
+      sentryAppInstalls: appInstalls,
+      integrationInstalls: integrations,
     });
-  };
+  }, [list, appInstalls, integrations, category, search, fuzzy]);
 
-  onCategorySelect = ({value: category}: {value: string}) => {
-    this.setState({selectedCategory: category}, () => {
-      this.updateQueryString();
-      this.updateDisplayedList();
+  const getAppInstall = useCallback(
+    (app: SentryApp) => appInstalls.find(i => i.app.slug === app.slug),
+    [appInstalls]
+  );
 
-      if (category) {
+  const onCategoryChange = useCallback(
+    (newCategory: string) => {
+      setCategory(newCategory);
+      navigate({
+        ...location,
+        search: qs.stringify({...location.query, category: newCategory}),
+      });
+      if (newCategory) {
         trackIntegrationAnalytics('integrations.directory_category_selected', {
           view: 'integrations_directory',
-          category,
-          organization: this.props.organization,
+          category: newCategory,
+          organization,
         });
       }
-    });
-  };
+    },
+    [location, navigate, organization]
+  );
 
-  getCategoryLabel = (value: string) => {
-    if (value === 'api') {
-      return 'API';
-    }
-    return startCase(value);
-  };
+  const onSearchChange = useCallback(
+    (newSearch: string) => {
+      setSearch(newSearch);
+      navigate({
+        ...location,
+        search: qs.stringify({...location.query, search: newSearch}),
+      });
+      if (newSearch) {
+        debouncedTrackIntegrationSearch({
+          search_term: newSearch,
+          num_results: list.length,
+          organization,
+        });
+      }
+    },
+    [location, navigate, organization, list.length]
+  );
 
-  // Rendering
-  renderProvider = (provider: IntegrationProvider) => {
-    const {organization} = this.props;
-    // find the integration installations for that provider
-    const integrations =
-      this.state.integrations?.filter(i => i.provider.key === provider.key) ?? [];
-
-    return (
-      <IntegrationRow
-        key={`row-${provider.key}`}
-        data-test-id="integration-row"
-        organization={organization}
-        type="firstParty"
-        slug={provider.slug}
-        displayName={provider.name}
-        status={this.getInstallStatuses(integrations)}
-        publishStatus="published"
-        configurations={integrations.length}
-        categories={getCategoriesForIntegration(provider)}
-        alertText={getAlertText(integrations)}
-        resolveText={t('Update Now')}
-        customAlert={
-          <FirstPartyIntegrationAlert integrations={integrations} wrapWithContainer />
+  /**
+   * Track the page view only when all data has been loaded
+   */
+  useEffect(() => {
+    if (!anyError && !anyPending) {
+      // count the number of installed apps
+      const integrationsInstalled = new Set();
+      // add installed integrations
+      integrations?.forEach((integration: Integration) => {
+        integrationsInstalled.add(integration.provider.key);
+      });
+      // add sentry apps
+      publishedApps?.filter(getAppInstall).forEach((sentryApp: SentryApp) => {
+        integrationsInstalled.add(sentryApp.slug);
+      });
+      // add plugins
+      plugins?.forEach((plugin: PluginWithProjectList) => {
+        if (plugin.projectList.length) {
+          integrationsInstalled.add(plugin.slug);
         }
-      />
-    );
-  };
+      });
 
-  renderPlugin = (plugin: PluginWithProjectList) => {
-    const {organization} = this.props;
-    const isLegacy = plugin.isHidden;
-    const displayName = `${plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
-    // hide legacy integrations if we don't have any projects with them
-    if (isLegacy && !plugin.projectList.length) {
-      return null;
+      trackIntegrationAnalytics(
+        'integrations.index_viewed',
+        {
+          view: 'integrations_directory',
+          integrations_installed: integrationsInstalled.size,
+          organization,
+        },
+        {startSession: true}
+      );
     }
-    return (
-      <IntegrationRow
-        key={`row-plugin-${plugin.id}`}
-        data-test-id="integration-row"
-        organization={organization}
-        type="plugin"
-        slug={plugin.slug}
-        displayName={displayName}
-        status={plugin.projectList.length ? 'Installed' : 'Not Installed'}
-        publishStatus="published"
-        configurations={plugin.projectList.length}
-        categories={getCategoriesForIntegration(plugin)}
-        plugin={plugin}
-      />
-    );
-  };
+  }, [
+    anyError,
+    anyPending,
+    organization,
+    integrations,
+    publishedApps,
+    plugins,
+    getAppInstall,
+  ]);
 
-  // render either an internal or non-internal app
-  renderSentryApp = (app: SentryApp) => {
-    const {organization} = this.props;
-    const status = getSentryAppInstallStatus(this.getAppInstall(app));
-    const categories = getCategoriesForIntegration(app);
+  const renderProvider = useCallback(
+    (provider: IntegrationProvider) => {
+      const providerIntegrations =
+        integrations?.filter(i => i.provider.key === provider.key) ?? [];
+      return (
+        <IntegrationRow
+          key={`row-${provider.key}`}
+          data-test-id="integration-row"
+          organization={organization}
+          type="firstParty"
+          slug={provider.slug}
+          displayName={provider.name}
+          status={getProviderIntegrationStatus(providerIntegrations)}
+          publishStatus="published"
+          configurations={providerIntegrations.length}
+          categories={getCategoriesForIntegration(provider)}
+          alertText={getAlertText(providerIntegrations)}
+          resolveText={t('Update Now')}
+          customAlert={
+            <FirstPartyIntegrationAlert
+              integrations={providerIntegrations}
+              wrapWithContainer
+            />
+          }
+        />
+      );
+    },
+    [organization, integrations]
+  );
 
-    return (
-      <IntegrationRow
-        key={`sentry-app-row-${app.slug}`}
-        data-test-id="integration-row"
-        organization={organization}
-        type="sentryApp"
-        slug={app.slug}
-        displayName={app.name}
-        status={status}
-        publishStatus={app.status}
-        configurations={0}
-        categories={categories}
-        customIcon={<SentryAppAvatar sentryApp={app} size={36} />}
-      />
-    );
-  };
+  const renderPlugin = useCallback(
+    (plugin: PluginWithProjectList) => {
+      const isLegacy = plugin.isHidden;
+      const displayName = `${plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
+      // hide legacy integrations if we don't have any projects with them
+      if (isLegacy && !plugin.projectList.length) {
+        return null;
+      }
+      return (
+        <IntegrationRow
+          key={`row-plugin-${plugin.id}`}
+          data-test-id="integration-row"
+          organization={organization}
+          type="plugin"
+          slug={plugin.slug}
+          displayName={displayName}
+          status={plugin.projectList.length ? 'Installed' : 'Not Installed'}
+          publishStatus="published"
+          configurations={plugin.projectList.length}
+          categories={getCategoriesForIntegration(plugin)}
+          plugin={plugin}
+        />
+      );
+    },
+    [organization]
+  );
 
-  renderDocIntegration = (doc: DocIntegration) => {
-    const {organization} = this.props;
-    return (
-      <IntegrationRow
-        key={`doc-int-${doc.slug}`}
-        data-test-id="integration-row"
-        organization={organization}
-        type="docIntegration"
-        slug={doc.slug}
-        displayName={doc.name}
-        publishStatus="published"
-        configurations={0}
-        categories={getCategoriesForIntegration(doc)}
-        customIcon={<DocIntegrationAvatar docIntegration={doc} size={36} />}
-      />
-    );
-  };
+  const renderSentryApp = useCallback(
+    (app: SentryApp) => {
+      const status = getSentryAppInstallStatus(getAppInstall(app));
+      const categories = getCategoriesForIntegration(app);
+      return (
+        <IntegrationRow
+          key={`sentry-app-row-${app.slug}`}
+          data-test-id="integration-row"
+          organization={organization}
+          type="sentryApp"
+          slug={app.slug}
+          displayName={app.name}
+          status={status}
+          publishStatus={app.status}
+          configurations={0}
+          categories={categories}
+          customIcon={<SentryAppAvatar sentryApp={app} size={36} />}
+        />
+      );
+    },
+    [organization, getAppInstall]
+  );
 
-  renderIntegration = (integration: AppOrProviderOrPlugin) => {
-    if (isSentryApp(integration)) {
-      return this.renderSentryApp(integration);
-    }
-    if (isPlugin(integration)) {
-      return this.renderPlugin(integration);
-    }
-    if (isDocIntegration(integration)) {
-      return this.renderDocIntegration(integration);
-    }
-    return this.renderProvider(integration);
-  };
+  const renderDocIntegration = useCallback(
+    (doc: DocIntegration) => {
+      return (
+        <IntegrationRow
+          key={`doc-int-${doc.slug}`}
+          data-test-id="integration-row"
+          organization={organization}
+          type="docIntegration"
+          slug={doc.slug}
+          displayName={doc.name}
+          publishStatus="published"
+          configurations={0}
+          categories={getCategoriesForIntegration(doc)}
+          customIcon={<DocIntegrationAvatar docIntegration={doc} size={36} />}
+        />
+      );
+    },
+    [organization]
+  );
 
-  renderBody() {
-    const {organization} = this.props;
-    const {displayedList, list, searchInput, selectedCategory, integrations} = this.state;
-    const title = t('Integrations');
-    const categoryList = uniq(list.flatMap(getCategoriesForIntegration)).sort();
+  const renderIntegration = useCallback(
+    (integration: AppOrProviderOrPlugin) => {
+      if (isSentryApp(integration)) {
+        return renderSentryApp(integration);
+      }
+      if (isPlugin(integration)) {
+        return renderPlugin(integration);
+      }
+      if (isDocIntegration(integration)) {
+        return renderDocIntegration(integration);
+      }
+      return renderProvider(integration);
+    },
+    [renderSentryApp, renderPlugin, renderDocIntegration, renderProvider]
+  );
 
-    return (
-      <Fragment>
-        <SentryDocumentTitle title={title} orgSlug={organization.slug} />
-        {!this.props.hideHeader && (
-          <SettingsPageHeader
-            title={title}
-            body={
-              <ActionContainer>
-                <Select
-                  name="select-categories"
-                  onChange={this.onCategorySelect}
-                  value={selectedCategory}
-                  options={[
-                    {value: '', label: t('All Categories')},
-                    ...categoryList.map(category => ({
-                      value: category,
-                      label: this.getCategoryLabel(category),
-                    })),
-                  ]}
-                />
-                <SearchBar
-                  query={searchInput || ''}
-                  onChange={this.handleSearchChange}
-                  placeholder={t('Filter Integrations...')}
-                  aria-label={t('Filter')}
-                  width="100%"
-                  data-test-id="search-bar"
-                />
-              </ActionContainer>
-            }
-            action={<CreateIntegrationButton analyticsView="integrations_directory" />}
-          />
-        )}
-        <OrganizationPermissionAlert access={['org:integrations']} />
-        <ReinstallAlert integrations={integrations} />
-        <Panel>
-          <PanelBody data-test-id="integration-panel">
-            {displayedList.length ? (
-              displayedList.map(this.renderIntegration)
-            ) : (
-              <EmptyResultsContainer>
-                <EmptyResultsBody>
-                  {tct('No Integrations found for "[searchTerm]".', {
-                    searchTerm: searchInput,
-                  })}
-                </EmptyResultsBody>
-                <EmptyResultsBodyBold>
-                  {t("Not seeing what you're looking for?")}
-                </EmptyResultsBodyBold>
-                <EmptyResultsBody>
-                  {tct('[link:Build it on the Sentry Integration Platform.]', {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/" />
-                    ),
-                  })}
-                </EmptyResultsBody>
-              </EmptyResultsContainer>
-            )}
-          </PanelBody>
-        </Panel>
-      </Fragment>
-    );
+  if (anyPending) {
+    return <LoadingIndicator />;
   }
+
+  return (
+    <Fragment>
+      <SentryDocumentTitle title={title} orgSlug={organization.slug} />
+      <IntegrationSettingsHeader
+        title={title}
+        list={list}
+        category={category}
+        onChangeCategory={onCategoryChange}
+        search={search}
+        onChangeSearch={onSearchChange}
+      />
+      <OrganizationPermissionAlert access={['org:integrations']} />
+      <ReinstallAlert integrations={integrations} />
+      <Panel>
+        <PanelBody data-test-id="integration-panel">
+          {displayList.length ? (
+            displayList.map(renderIntegration)
+          ) : (
+            <IntegrationResultsEmpty searchTerm={search} />
+          )}
+        </PanelBody>
+      </Panel>
+    </Fragment>
+  );
+}
+
+function IntegrationSettingsHeader({
+  title,
+  list,
+  category,
+  onChangeCategory,
+  search,
+  onChangeSearch,
+}: {
+  category: string;
+  list: AppOrProviderOrPlugin[];
+  onChangeCategory: (category: string) => void;
+  onChangeSearch: (search: string) => void;
+  search: string;
+  title: string;
+}) {
+  const getCategoryLabel = useCallback((c: string) => {
+    return c === 'api' ? 'API' : startCase(c);
+  }, []);
+
+  const categoryOptions = useMemo(() => {
+    const categoryList = uniq(list.flatMap(getCategoriesForIntegration))
+      .sort()
+      .map(c => ({value: c, label: getCategoryLabel(c)}));
+    return [{value: '', label: t('All Categories')}, ...categoryList];
+  }, [list, getCategoryLabel]);
+
+  return (
+    <SettingsPageHeader
+      title={title}
+      body={
+        <ActionContainer>
+          <Select
+            name="select-categories"
+            onChange={onChangeCategory}
+            value={category}
+            options={categoryOptions}
+          />
+          <SearchBar
+            query={search}
+            onChange={onChangeSearch}
+            placeholder={t('Filter Integrations...')}
+            aria-label={t('Filter')}
+            width="100%"
+            data-test-id="search-bar"
+          />
+        </ActionContainer>
+      }
+      action={<CreateIntegrationButton analyticsView="integrations_directory" />}
+    />
+  );
+}
+
+function IntegrationResultsEmpty({searchTerm}: {searchTerm: string}) {
+  return (
+    <EmptyResultsContainer>
+      <EmptyResultsBody>
+        {tct('No Integrations found for "[searchTerm]".', {searchTerm})}
+      </EmptyResultsBody>
+      <EmptyResultsBodyBold>
+        {t("Not seeing what you're looking for?")}
+      </EmptyResultsBodyBold>
+      <EmptyResultsBody>
+        {tct('[link:Build it on the Sentry Integration Platform.]', {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/" />
+          ),
+        })}
+      </EmptyResultsBody>
+    </EmptyResultsContainer>
+  );
 }
 
 const ActionContainer = styled('div')`
@@ -599,5 +554,3 @@ const EmptyResultsBody = styled('div')`
 const EmptyResultsBodyBold = styled(EmptyResultsBody)`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
-
-export default withOrganization(IntegrationListDirectory);
