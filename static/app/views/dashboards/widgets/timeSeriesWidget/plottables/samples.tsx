@@ -92,7 +92,7 @@ export class Samples implements Plottable {
     const seriesName = this.name;
 
     if (sample && isValidSampleRow(sample)) {
-      const dataIndex = this.sampleTableData.data.findIndex(row => row === sample);
+      const dataIndex = this.sampleTableData.data.indexOf(sample);
       chart.dispatchAction({type: 'highlight', seriesName, dataIndex});
     } else {
       chart.dispatchAction({type: 'downplay', seriesName});
