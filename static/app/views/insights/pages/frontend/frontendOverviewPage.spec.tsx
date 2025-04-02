@@ -4,18 +4,15 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import FrontendOverviewPage from 'sentry/views/insights/pages/frontend/frontendOverviewPage';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useOrganization');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 const organization = OrganizationFixture({features: ['performance-view']});
 const pageFilterSelection = PageFiltersFixture({
@@ -28,8 +25,8 @@ const pageFilterSelection = PageFiltersFixture({
   },
 });
 const projects = [
-  ProjectFixture({id: '1', platform: 'javascript-react'}),
-  ProjectFixture({id: '2', platform: undefined}),
+  ProjectFixture({id: '1', platform: 'javascript-react', firstTransactionEvent: true}),
+  ProjectFixture({id: '2', platform: undefined, firstTransactionEvent: true}),
 ];
 
 let mainTableApiCall: jest.Mock;
@@ -201,15 +198,5 @@ const setupMocks = () => {
     shouldPersist: true,
     selection: pageFilterSelection,
   });
-  jest.mocked(useProjects).mockReturnValue({
-    projects,
-    fetchError: null,
-    hasMore: false,
-    initiallyLoaded: true,
-    onSearch: () => Promise.resolve(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-    fetching: false,
-  });
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
+  ProjectsStore.loadInitialData(projects);
 };

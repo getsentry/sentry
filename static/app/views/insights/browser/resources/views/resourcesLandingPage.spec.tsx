@@ -3,12 +3,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import ResourcesLandingPage from 'sentry/views/insights/browser/resources/views/resourcesLandingPage';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {
@@ -25,10 +25,6 @@ const {EPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-
 jest.mock('sentry/utils/useReleaseStats');
 
 const requestMocks: Record<string, jest.Mock> = {};
@@ -136,7 +132,6 @@ describe('ResourcesLandingPage', function () {
 });
 
 const setupMocks = () => {
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
@@ -164,16 +159,9 @@ const setupMocks = () => {
     key: '',
   });
 
-  jest.mocked(useProjects).mockReturnValue({
-    fetchError: null,
-    fetching: false,
-    hasMore: false,
-    initiallyLoaded: true,
-    projects: [ProjectFixture({hasInsightsAssets: true})],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-  });
+  ProjectsStore.loadInitialData([
+    ProjectFixture({hasInsightsAssets: true, firstTransactionEvent: true}),
+  ]);
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
     isPending: false,

@@ -12,26 +12,15 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
-import useProjects from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-
-jest.mock('sentry/utils/useProjects');
 
 const {organization, project} = initializeOrg();
 
-jest.mocked(useProjects).mockReturnValue({
-  fetching: false,
-  projects: [project],
-  fetchError: null,
-  hasMore: false,
-  initiallyLoaded: true,
-  onSearch: () => Promise.resolve(),
-  reloadProjects: jest.fn(),
-  placeholders: [],
-});
+ProjectsStore.loadInitialData([project]);
 
 const mockInvalidateQueries = jest.fn();
 

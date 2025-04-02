@@ -9,13 +9,12 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pagePerformanceTable';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('PagePerformanceTable', function () {
@@ -44,23 +43,14 @@ describe('PagePerformanceTable', function () {
       },
     });
 
-    jest.mocked(useProjects).mockReturnValue({
-      projects: [
-        ProjectFixture({
-          id: '11276',
-          name: 'frontend',
-          slug: 'frontend',
-          platform: 'python',
-        }),
-      ],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        id: '11276',
+        name: 'frontend',
+        slug: 'frontend',
+        platform: 'python',
+      }),
+    ]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
