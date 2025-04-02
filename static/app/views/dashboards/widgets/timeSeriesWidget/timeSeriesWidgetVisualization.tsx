@@ -133,6 +133,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             {...props}
             ref={chartRendererRef}
             disableReleaseNavigation
+            onZoom={() => {}}
             plottables={props.plottables.map(plottable =>
               plottable.constrain(trimStart, trimEnd)
             )}
@@ -187,7 +188,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, registerWithWidgetSyncContext]
   );
 
-  const chartZoomProps = useChartZoom({
+  const {onDataZoom, ...chartZoomProps} = useChartZoom({
     saveOnZoom: true,
   });
 
@@ -313,6 +314,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       ? theme.chart.getColorPalette(paletteSize - 2) // -2 because getColorPalette artificially adds 1, I'm not sure why
       : [];
 
+  // Create a lookup of series names (given to ECharts) to labels (from
+  // Plottable). This makes it easier to look up alises when rendering tooltips
+  // and legends
+  const aliases = Object.fromEntries(
+    props.plottables.map(plottable => [plottable.name, plottable.label])
+  );
+
   // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,
@@ -354,9 +362,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
-      nameFormatter: function (name, nameFormatterParams) {
+      nameFormatter: function (seriesName, nameFormatterParams) {
         if (!nameFormatterParams) {
-          return name;
+          return seriesName;
         }
 
         if (
@@ -365,10 +373,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         ) {
           // For scatter series, the third point in the `data` array should be the sample's ID
           const sampleId = nameFormatterParams.data.at(2);
-          return defined(sampleId) ? sampleId.toString() : name;
+          return defined(sampleId) ? sampleId.toString() : seriesName;
         }
 
-        return name;
+        return aliases[seriesName] ?? seriesName;
       },
       valueFormatter: function (value, _field, valueFormatterParams) {
         // Use the series to figure out the corresponding `Plottable`, and get the field type. From that, use whichever unit we chose for that field type.
@@ -502,7 +510,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
               left: 0,
               formatter(seriesName: string) {
                 return truncationFormatter(
-                  seriesName,
+                  aliases[seriesName] ?? seriesName,
                   true,
                   // Escaping the legend string will cause some special
                   // characters to render as their HTML equivalents.
@@ -543,7 +551,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       }}
       yAxes={yAxes}
       {...chartZoomProps}
-      {...(props.onZoom ? {onDataZoom: props.onZoom} : {})}
+      onDataZoom={props.onZoom ?? onDataZoom}
       isGroupedByDate
       useMultilineDate
       start={start ? new Date(start) : undefined}

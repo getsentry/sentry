@@ -3,12 +3,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import ResourcesLandingPage from 'sentry/views/insights/browser/resources/views/resourcesLandingPage';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {
@@ -16,7 +16,7 @@ const {
   SPAN_GROUP,
   HTTP_RESPONSE_CONTENT_LENGTH,
   SPAN_DOMAIN,
-  SPAN_DESCRIPTION,
+  NORMALIZED_DESCRIPTION,
   PROJECT_ID,
   RESOURCE_RENDER_BLOCKING_STATUS,
   SPAN_OP,
@@ -25,10 +25,6 @@ const {EPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-
 jest.mock('sentry/utils/useReleaseStats');
 
 const requestMocks: Record<string, jest.Mock> = {};
@@ -80,7 +76,7 @@ describe('ResourcesLandingPage', function () {
         ],
         "per_page": 100,
         "project": [],
-        "query": "has:span.description span.module:resource !span.description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
+        "query": "has:sentry.normalized_description span.module:resource !sentry.normalized_description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
         "referrer": "api.starfish.get-span-domains",
         "sort": "-count",
         "statsPeriod": "10d",
@@ -108,7 +104,7 @@ describe('ResourcesLandingPage', function () {
         "dataset": "spansMetrics",
         "environment": [],
         "field": [
-          "span.description",
+          "sentry.normalized_description",
           "span.op",
           "count()",
           "avg(span.self_time)",
@@ -121,7 +117,7 @@ describe('ResourcesLandingPage', function () {
         ],
         "per_page": 100,
         "project": [],
-        "query": "!span.description:"browser-extension://*" ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) ",
+        "query": "!sentry.normalized_description:"browser-extension://*" ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) ",
         "referrer": "api.performance.browser.resources.main-table",
         "sort": "-time_spent_percentage()",
         "statsPeriod": "10d",
@@ -136,7 +132,6 @@ describe('ResourcesLandingPage', function () {
 });
 
 const setupMocks = () => {
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
@@ -164,16 +159,9 @@ const setupMocks = () => {
     key: '',
   });
 
-  jest.mocked(useProjects).mockReturnValue({
-    fetchError: null,
-    fetching: false,
-    hasMore: false,
-    initiallyLoaded: true,
-    projects: [ProjectFixture({hasInsightsAssets: true})],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-  });
+  ProjectsStore.loadInitialData([
+    ProjectFixture({hasInsightsAssets: true, firstTransactionEvent: true}),
+  ]);
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
     isPending: false,
@@ -198,7 +186,7 @@ const setupMockRequests = (organization: Organization) => {
           [`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]: 123,
           [`avg(${SPAN_SELF_TIME})`]: 123,
           [RESOURCE_RENDER_BLOCKING_STATUS]: 123,
-          [SPAN_DESCRIPTION]: 'https://*.sentry-cdn.com/123.js',
+          [NORMALIZED_DESCRIPTION]: 'https://*.sentry-cdn.com/123.js',
           [SPAN_DOMAIN]: ['https://*.sentry-cdn.com'],
           [PROJECT_ID]: 123,
           [SPAN_OP]: 'resource.script',
@@ -212,7 +200,7 @@ const setupMockRequests = (organization: Organization) => {
           [`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]: 123,
           [`avg(${SPAN_SELF_TIME})`]: 123,
           [RESOURCE_RENDER_BLOCKING_STATUS]: 123,
-          [SPAN_DESCRIPTION]: 'https://*.sentry-cdn.com/456.js',
+          [NORMALIZED_DESCRIPTION]: 'https://*.sentry-cdn.com/456.js',
           [SPAN_DOMAIN]: ['https://*.sentry-cdn.com'],
           [PROJECT_ID]: 123,
           [SPAN_OP]: 'resource.script',
