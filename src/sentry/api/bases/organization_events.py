@@ -333,7 +333,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
             meta = results.get("meta", {})
             fields_meta = meta.get("fields", {})
-            units_meta = meta.get("units", {})
+            units_meta = meta.get("units", None)
 
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)

@@ -1,4 +1,3 @@
-from types import UnionType
 from typing import Literal, Union, get_args
 
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
@@ -49,9 +48,9 @@ UnitfulSearchTypes = Literal["duration", "rate", "size"]
 
 SearchType = Union[UnitlessSearchTypes, UnitfulSearchTypes]
 
-ValidUnits = DurationUnit | RateUnit | NumberUnit | SizeUnit
+Units = DurationUnit | RateUnit | NumberUnit | SizeUnit
 
-VALID_UNITS_MAP: dict[str, tuple[ValidUnits]] = {
+VALID_UNITS_MAP: dict[UnitfulSearchTypes, tuple[Units]] = {
     "duration": get_args(DurationUnit),
     "rate": get_args(RateUnit),
     "size": get_args(SizeUnit),
@@ -73,7 +72,7 @@ TYPE_TO_STRING_MAP = {
     INT: "integer",
 }
 
-TYPE_MAP: dict[UnionType[ValidUnits, UnitlessSearchTypes], AttributeKey.Type.ValueType] = {
+TYPE_MAP: dict[Units | UnitlessSearchTypes, AttributeKey.Type.ValueType] = {
     "bit": DOUBLE,
     "byte": DOUBLE,
     "kibibyte": DOUBLE,
@@ -96,7 +95,6 @@ TYPE_MAP: dict[UnionType[ValidUnits, UnitlessSearchTypes], AttributeKey.Type.Val
     "hour": DOUBLE,
     "day": DOUBLE,
     "week": DOUBLE,
-    "duration": DOUBLE,
     "percentage": DOUBLE,
     "1/hour": DOUBLE,
     "1/minute": DOUBLE,

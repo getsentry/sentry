@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from re import Match
-from typing import Any, Literal, cast
+from typing import Any, Literal, cast, get_args
 
 import sentry_sdk
 from parsimonious.exceptions import ParseError
@@ -696,7 +696,7 @@ class SearchResolver:
 
     def get_field_type(self, column: str) -> str:
         resolved_column, _ = self.resolve_column(column)
-        return resolved_column.search_type
+        return resolved_column.unit or resolved_column.search_type
 
     @sentry_sdk.trace
     def resolve_attributes(
@@ -752,9 +752,22 @@ class SearchResolver:
             if column.startswith("sentry_tags"):
                 field = f"sentry.{field}"
 
-            search_type = cast(constants.SearchType, field_type)
+            search_type: constants.SearchType | None = None
+            unit: constants.Units | None = None
+            if field_type in get_args(constants.SearchType):
+                search_type = cast(constants.SearchType, field_type)
+            else:
+                unit = cast(constants.Units, field_type)
+                for search_type in constants.VALID_UNITS_MAP.keys():
+                    if field_type in search_type:
+                        search_type = search_type
+                        break
+
+            if search_type is None or unit is None:
+                raise ValueError(f"Invalid search type or unit: {search_type}, {unit}")
+
             column_definition = ResolvedAttribute(
-                public_alias=column, internal_name=field, search_type=search_type
+                public_alias=column, internal_name=field, search_type=search_type, unit=unit
             )
             column_context = None
 
@@ -851,6 +864,7 @@ class SearchResolver:
             parsed_args.append(parsed_argument)
 
         resolved_arguments = []
+
         for parsed_arg in parsed_args:
             if not isinstance(parsed_arg, ResolvedAttribute):
                 resolved_argument = parsed_arg
@@ -862,16 +876,20 @@ class SearchResolver:
         # We assume the first argument contains the resolved search_type as this is always the case for now
         if len(parsed_args) == 0 or not isinstance(parsed_args[0], ResolvedAttribute):
             search_type = function_definition.default_search_type
+            unit = function_definition.default_unit
         else:
             search_type = (
                 parsed_args[0].search_type
                 if function_definition.infer_search_type_from_arguments
                 else function_definition.default_search_type
             )
+            if isinstance(parsed_args[0], ResolvedAttribute):
+                unit = parsed_args[0].unit
 
         resolved_function = function_definition.resolve(
             alias=alias,
             search_type=search_type,
+            unit=unit,
             resolved_arguments=resolved_arguments,
             snuba_params=self.params,
         )

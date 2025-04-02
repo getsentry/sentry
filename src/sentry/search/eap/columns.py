@@ -40,7 +40,7 @@ class ResolvedColumn:
     # The public type for this column
     search_type: constants.SearchType
     # The unit for this column
-    unit: constants.ValidUnits | None = None
+    unit: constants.Units | None = None
     # The internal rpc type for this column, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
     # Processor is the function run in the post process step to transform a row into the final result
@@ -80,13 +80,14 @@ class ResolvedColumn:
         """The proto's AttributeKey type for this column"""
         if self.internal_type is not None:
             return self.internal_type
-        else:
-            if isinstance(self.search_type, constants.ValidUnits):
-                return constants.TYPE_MAP[self.unit]
-            elif isinstance(self.search_type, constants.UnitlessSearchTypes):
-                return constants.TYPE_MAP.get(self.search_type)
-            else:
-                raise ValueError(f"Invalid search type or unit: {self.search_type}, {self.unit}")
+
+        if self.unit is not None:
+            return constants.TYPE_MAP[self.unit]
+
+        if self.search_type in constants.TYPE_MAP:
+            return constants.TYPE_MAP[self.search_type]
+
+        raise ValueError(f"Invalid search type: {self.search_type}")
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -274,6 +275,7 @@ class FunctionDefinition:
         self,
         alias: str,
         search_type: constants.SearchType,
+        unit: constants.Units | None,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
     ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
@@ -293,6 +295,7 @@ class AggregateDefinition(FunctionDefinition):
         self,
         alias: str,
         search_type: constants.SearchType,
+        unit: constants.Units | None,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
     ) -> ResolvedAggregate:
@@ -314,7 +317,7 @@ class AggregateDefinition(FunctionDefinition):
             public_alias=alias,
             internal_name=self.internal_function,
             search_type=search_type,
-            unit=self.default_unit,
+            unit=unit,
             internal_type=self.internal_type,
             processor=self.processor,
             extrapolation=self.extrapolation,
@@ -340,6 +343,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
         self,
         alias: str,
         search_type: constants.SearchType,
+        unit: constants.Units | None,
         resolved_arguments: ResolvedArguments,
         snuba_params: SnubaParams,
     ) -> ResolvedConditionalAggregate:
@@ -348,7 +352,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
             public_alias=alias,
             internal_name=self.internal_function,
             search_type=search_type,
-            unit=self.default_unit,
+            unit=unit,
             internal_type=self.internal_type,
             filter=filter,
             key=key,
@@ -371,6 +375,7 @@ class FormulaDefinition(FunctionDefinition):
         self,
         alias: str,
         search_type: constants.SearchType,
+        unit: constants.Units | None,
         resolved_arguments: list[AttributeKey | Any],
         snuba_params: SnubaParams,
     ) -> ResolvedFormula:
@@ -386,7 +391,7 @@ class FormulaDefinition(FunctionDefinition):
         return ResolvedFormula(
             public_alias=alias,
             search_type=search_type,
-            unit=self.default_unit,
+            unit=unit,
             formula=self.formula_resolver(resolved_arguments, resolver_settings),
             is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
@@ -404,8 +409,8 @@ def simple_sentry_field(field) -> ResolvedAttribute:
 
 def simple_measurements_field(
     field,
-    search_type: Literal["duration", "size", "number", "integer"] = "number",
-    unit: constants.ValidUnits | None = None,
+    search_type: Literal["duration", "size", "number", "integer", "percentage"] = "number",
+    unit: constants.Units | None = None,
     secondary_alias: bool = False,
 ) -> ResolvedAttribute:
     """For a good number of fields, the public alias matches the internal alias
