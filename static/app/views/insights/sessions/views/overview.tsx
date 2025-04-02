@@ -17,9 +17,8 @@ import {
   type DomainView,
   useDomainViewFilters,
 } from 'sentry/views/insights/pages/useFilters';
-import {ChartPlacementContext} from 'sentry/views/insights/sessions/components/chartPlacementContext';
+import {ChartPlacementSlot} from 'sentry/views/insights/sessions/components/chartPlacement';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
-import {InsightLayoutContext} from 'sentry/views/insights/sessions/components/insightLayoutContext';
 import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
@@ -87,44 +86,44 @@ function ViewSpecificCharts({
   switch (view) {
     case FRONTEND_LANDING_SUB_PATH: {
       return (
-        <InsightLayoutContext view={view}>
+        <Fragment>
           <ModuleLayout.Half>
-            <ChartPlacementContext index={0} />
+            <ChartPlacementSlot view={view} index={0} />
           </ModuleLayout.Half>
           <ModuleLayout.Half>
-            <ChartPlacementContext index={1} />
+            <ChartPlacementSlot view={view} index={1} />
           </ModuleLayout.Half>
 
           <ModuleLayout.Third>
-            <ChartPlacementContext index={2} />
+            <ChartPlacementSlot view={view} index={2} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementContext index={3} />
+            <ChartPlacementSlot view={view} index={3} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementContext index={4} />
+            <ChartPlacementSlot view={view} index={4} />
           </ModuleLayout.Third>
-        </InsightLayoutContext>
+        </Fragment>
       );
     }
     case MOBILE_LANDING_SUB_PATH: {
       return (
-        <InsightLayoutContext view={view}>
+        <Fragment>
           <ModuleLayout.Half>
-            <ChartPlacementContext index={0} />
+            <ChartPlacementSlot view={view} index={0} />
           </ModuleLayout.Half>
           <ModuleLayout.Half>
-            <ChartPlacementContext index={1} />
+            <ChartPlacementSlot view={view} index={1} />
           </ModuleLayout.Half>
 
           <ModuleLayout.Third>
-            <ChartPlacementContext index={2} />
+            <ChartPlacementSlot view={view} index={2} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementContext index={3} />
+            <ChartPlacementSlot view={view} index={3} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementContext index={4} />
+            <ChartPlacementSlot view={view} index={4} />
           </ModuleLayout.Third>
 
           <ModuleLayout.Full>
@@ -134,7 +133,7 @@ function ViewSpecificCharts({
             </FilterWrapper>
             <ReleaseHealth filters={filters} />
           </ModuleLayout.Full>
-        </InsightLayoutContext>
+        </Fragment>
       );
     }
     default:

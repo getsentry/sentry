@@ -3,11 +3,7 @@ import styled from '@emotion/styled';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {space} from 'sentry/styles/space';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {
-  MISSING_CONTEXT_PROVIDER,
-  useChartPlacementContext,
-} from 'sentry/views/insights/sessions/components/chartPlacementContext';
-import {useInsightLayoutContext} from 'sentry/views/insights/sessions/components/insightLayoutContext';
+import {useChartPlacementContext} from 'sentry/views/insights/sessions/components/chartPlacement';
 
 interface Props {
   /**
@@ -18,10 +14,9 @@ interface Props {
 }
 
 export default function ChartSelectionTitle({title}: Props) {
-  const {chartsByIndex, chartOptions, onChange} = useInsightLayoutContext();
-  const {index} = useChartPlacementContext();
+  const {chartName, chartOptions, onChange} = useChartPlacementContext();
 
-  if (index === MISSING_CONTEXT_PROVIDER) {
+  if (!chartName) {
     return <Widget.WidgetTitle title={title} />;
   }
   return (
@@ -29,9 +24,9 @@ export default function ChartSelectionTitle({title}: Props) {
       triggerProps={{borderless: true, size: 'zero'}}
       offset={4}
       options={chartOptions}
-      value={chartsByIndex[index]}
+      value={chartName}
       onChange={selection => {
-        onChange(index, selection as (typeof chartOptions)[number]);
+        onChange(selection as (typeof chartOptions)[number]);
       }}
     />
   );
