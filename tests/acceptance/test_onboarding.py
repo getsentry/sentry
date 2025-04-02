@@ -1,9 +1,7 @@
-from selenium.common.exceptions import TimeoutException
-
 from sentry.models.project import Project
+from sentry.testutils.asserts import verify_project_deletion
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
-from sentry.utils.retries import TimedRetryPolicy
 
 
 @no_silo_test
@@ -18,7 +16,7 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-    def test_onboarding(self):
+    def start_onboarding(self):
         self.browser.get("/onboarding/%s/" % self.org.slug)
 
         # Welcome step
@@ -28,29 +26,68 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         # Platform selection step
         self.browser.wait_until('[data-test-id="onboarding-step-select-platform"]')
 
-        @TimedRetryPolicy.wrap(timeout=5, exceptions=((TimeoutException,)))
-        def click_platform_select_name(browser):
-            # Select and create React project
-            browser.click('[data-test-id="platform-javascript-react"]')
+    def click_on_platform(self, platform):
+        self.browser.click(f'[data-test-id="platform-{platform}"]')
 
-            # Project getting started loads
-            browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-
-        click_platform_select_name(self.browser)
+    def verify_project_creation(self, platform, heading):
+        # Wait for the project setup page to load
+        self.browser.wait_until(xpath=f'//h2[text()="Configure {heading} SDK"]')
 
         # Verify project was created for org
-        project = Project.objects.get(organization=self.org)
-        assert project.name == "javascript-react"
-        assert project.platform == "javascript-react"
+        project = Project.objects.get(organization=self.org, slug=platform)
+        assert project.name == platform
+        assert project.platform == platform
 
-        # Click on back button
+    def test_onboarding_happy_path(self):
+        # Start onboarding
+        self.start_onboarding()
+
+        # Select React platform
+        self.click_on_platform("javascript-react")
+
+        # Verify project creation and docs load
+        self.verify_project_creation("javascript-react", "React")
+
+    def test_project_deletion_on_going_back(self):
+        # Start onboarding
+        self.start_onboarding()
+
+        # Select Next.js platform
+        self.click_on_platform("javascript-nextjs")
+
+        # Verify project creation and docs load
+        self.verify_project_creation("javascript-nextjs", "Next.js")
+
+        # Click on custom back button
         self.browser.click('[aria-label="Back"]')
 
-        # Assert no deletion confirm dialog is shown
-        assert not self.browser.element_exists("[role='dialog']")
+        # Verify project was deleted
+        verify_project_deletion(self.org, "javascript-nextjs")
 
-        # Platform selection step
-        self.browser.wait_until('[data-test-id="onboarding-step-select-platform"]')
+        # Select React platform
+        self.click_on_platform("javascript-react")
+
+        # Verify project creation and docs load
+        self.verify_project_creation("javascript-react", "React")
+
+        # Click on the browser native back button
+        self.browser.back()
+
+        # Verify project was deleted
+        verify_project_deletion(self.org, "javascript-react")
+
+        # Click on skip onboarding
+        self.browser.click(xpath='//a[text()="Skip Onboarding"]')
+
+        # Go to the projects overview page
+        self.browser.get("/organizations/%s/projects/" % self.org.slug)
+
+        # Verify that all projects are gone
+        self.browser.wait_until(xpath='//h1[text()="Remain Calm"]')
+
+    def test_framework_modal_open_by_selecting_vanilla_platform(self):
+        # Start onboarding
+        self.start_onboarding()
 
         # Select generic platform
         self.browser.click('[data-test-id="platform-javascript"]')
@@ -68,5 +105,5 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.browser.click('[data-test-id="platform-javascript"]')
         self.browser.click('[aria-label="Configure SDK"]')
 
-        # Project getting started loads
-        self.browser.wait_until(xpath='//h2[text()="Configure Browser JavaScript SDK"]')
+        # Verify project creation and docs load
+        self.verify_project_creation("javascript", "Browser JavaScript")

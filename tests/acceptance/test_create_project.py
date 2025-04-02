@@ -1,5 +1,4 @@
-from selenium.webdriver.common.by import By
-
+from sentry.testutils.asserts import verify_project_deletion
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -14,9 +13,19 @@ class CreateProjectTest(AcceptanceTestCase):
 
         self.path = f"/organizations/{self.org.slug}/projects/new/"
 
-    def test_no_teams(self):
+    def select_platform_and_create_project(self, platform, heading):
+        self.browser.click(f'[data-test-id="platform-{platform}"]')
+        self.browser.click('[data-test-id="create-project"]')
+
+        # Wait for the project setup page to load
+        self.browser.wait_until(xpath=f'//h2[text()="Configure {heading} SDK"]')
+
+    def load_project_creation_page(self):
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading")
+        self.browser.wait_until('[aria-label="Create Project"]')
+
+    def test_no_teams(self):
+        self.load_project_creation_page()
 
         self.browser.click(None, "//*[text()='Select a Team']")
         self.browser.click('[data-test-id="create-team-option"]')
@@ -32,16 +41,36 @@ class CreateProjectTest(AcceptanceTestCase):
     def test_select_correct_platform(self):
         self.create_team(organization=self.org, name="team three")
 
-        self.browser.get(self.path)
-        self.browser.wait_until_not(".loading")
+        self.load_project_creation_page()
 
-        self.browser.click('[data-test-id="platform-javascript-react"]')
-        self.browser.wait_until_not(".loading")
-        self.browser.click('[data-test-id="create-project"]')
+        # Select React platform
+        self.select_platform_and_create_project("javascript-react", "React")
 
-        self.browser.wait_until_not(".loading")
-        self.browser.wait_until("h2")
+    def test_project_deletion_on_going_back(self):
+        self.create_team(organization=self.org, name="team three")
 
-        title = self.browser.find_element(by=By.CSS_SELECTOR, value="h2")
+        self.load_project_creation_page()
 
-        assert "React" in title.text
+        # Select PHP Laravel platform
+        self.select_platform_and_create_project("php-laravel", "Laravel")
+
+        # Click on custom back button
+        self.browser.click('[aria-label="Back to Platform Selection"]')
+
+        # Verify project was deleted
+        verify_project_deletion(self.org, "platform-php-laravel")
+
+        # Select Next.js platform
+        self.select_platform_and_create_project("javascript-nextjs", "Next.js")
+
+        # Click on the browser native back button
+        self.browser.back()
+
+        # Verify project was deleted
+        verify_project_deletion(self.org, "javascript-nextjs")
+
+        # Go to the projects overview page
+        self.browser.get("/organizations/%s/projects/" % self.org.slug)
+
+        # Verify that all projects are gone
+        self.browser.wait_until(xpath='//h1[text()="Remain Calm"]')

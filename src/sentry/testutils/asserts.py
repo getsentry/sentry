@@ -1,10 +1,15 @@
+import time
 from functools import reduce
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import StreamingHttpResponse
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -43,6 +48,22 @@ def assert_status_code(response, minimum: int, maximum: int | None = None):
         response.status_code,
         response.getvalue() if isinstance(response, StreamingHttpResponse) else response.content,
     )
+
+
+def verify_project_deletion(org: Organization, platform: str):
+    # Poll the database to check if the project was deleted
+    # the timeout is set to 10 seconds
+    start_time = time.time()
+    while time.time() - start_time < 10:
+        try:
+            # we need to check for the status here because we do soft deletions
+            Project.objects.get(organization=org, slug=platform, status=ObjectStatus.ACTIVE)
+        except ObjectDoesNotExist:
+            # If the project doesn't exist anymore, it's deleted
+            return  # The project was successfully deleted
+
+    # If timeout reached and the project still exists, fail the test
+    assert False, f"Project with slug '{platform}' was not deleted within 10 seconds"
 
 
 @assume_test_silo_mode(SiloMode.CONTROL)
