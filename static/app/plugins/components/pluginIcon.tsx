@@ -29,9 +29,8 @@ import victorops from 'sentry-logos/logo-victorops.svg';
 import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 
 // Map of plugin id -> logo filename
-export const DEFAULT_ICON = placeholder;
-export const ICON_PATHS = {
-  _default: DEFAULT_ICON,
+const PLUGIN_ICONS = {
+  placeholder,
   sentry,
   browsers: sentry,
   device: sentry,
@@ -67,33 +66,49 @@ export const ICON_PATHS = {
   vsts,
   vercel,
   victorops,
-};
+} satisfies Record<string, string>;
 
-type Props = {
-  /**
-   * @default '_default'
-   */
-  pluginId?: string;
+export interface PluginIconProps extends React.RefAttributes<HTMLDivElement> {
+  pluginId: string | keyof typeof PLUGIN_ICONS;
   /**
    * @default 20
    */
   size?: number;
-};
+}
 
-const PluginIcon = styled('div')<Props>`
+export function PluginIcon({pluginId, size = 20, ref}: PluginIconProps) {
+  return (
+    <StyledPluginIcon size={size} pluginSrc={getPluginIconSource(pluginId)} ref={ref} />
+  );
+}
+
+const StyledPluginIcon = styled('div')<{
+  pluginSrc: string;
+  size: number;
+}>`
   position: relative;
-  height: ${p => p.size ?? 20}px;
-  width: ${p => p.size ?? 20}px;
-  min-width: ${p => p.size ?? 20}px;
+  height: ${p => p.size}px;
+  width: ${p => p.size}px;
+  min-width: ${p => p.size}px;
   border-radius: 2px;
   border: 0;
   display: inline-block;
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${({pluginId = '_default'}) =>
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    (pluginId !== undefined && ICON_PATHS[pluginId]) || DEFAULT_ICON});
+  background-image: url(${p => p.pluginSrc});
 `;
 
-export default PluginIcon;
+function getPluginIconSource(
+  pluginId: PluginIconProps['pluginId']
+): (typeof PLUGIN_ICONS)[keyof typeof PLUGIN_ICONS] {
+  if (!pluginId) {
+    return PLUGIN_ICONS.placeholder;
+  }
+
+  if (pluginId in PLUGIN_ICONS) {
+    return PLUGIN_ICONS[pluginId as keyof typeof PLUGIN_ICONS];
+  }
+
+  return PLUGIN_ICONS.placeholder;
+}

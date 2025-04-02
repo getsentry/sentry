@@ -131,6 +131,8 @@ export type CodeSnippetContext = {
 export type AutofixInsight = {
   insight: string;
   justification: string;
+  change_diff?: FilePatch[];
+  type?: 'insight' | 'file_change';
 };
 
 export interface AutofixDefaultStep extends BaseStep {
