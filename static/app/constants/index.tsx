@@ -397,7 +397,6 @@ export const DATA_CATEGORY_INFO = {
     uid: 21,
     isBilledCategory: true,
   },
-
   [DataCategoryExact.LOG_ITEM]: {
     name: DataCategoryExact.LOG_ITEM,
     apiName: 'log_item',
@@ -406,14 +405,14 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Logs'),
     productName: t('Logging'),
     uid: 23,
-    isBilledCategory: true,
+    isBilledCategory: false,
   },
   [DataCategoryExact.LOG_BYTE]: {
     name: DataCategoryExact.LOG_BYTE,
     apiName: 'log_byte',
-    plural: 'log_bytess',
+    plural: 'log_bytes',
     displayName: 'log byte',
-    titleName: t('Logs (bytes)'),
+    titleName: t('Logs Storage'),
     productName: t('Logging'),
     uid: 24,
     isBilledCategory: false,

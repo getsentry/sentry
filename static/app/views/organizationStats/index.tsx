@@ -264,7 +264,10 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       if (DATA_CATEGORY_INFO.transaction.plural === opt.value) {
         return !organization.features.includes('spans-usage-tracking');
       }
-      if (DATA_CATEGORY_INFO.logItem.plural === opt.value) {
+      if (
+        DATA_CATEGORY_INFO.logItem.plural === opt.value ||
+        DATA_CATEGORY_INFO.logByte.plural === opt.value
+      ) {
         return organization.features.includes('ourlogs-stats');
       }
       if (
