@@ -105,7 +105,6 @@ type Data = {
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
-  const [isProgressivelyLoading, setIsProgressivelyLoading] = useState(false);
 
   const onDataFetched = (newData: Data) => {
     if (props.onDataFetched && newData.tableResults) {
@@ -251,7 +250,6 @@ function WidgetCard(props: Props) {
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           noVisualizationPadding
-          isProgressivelyLoading={isProgressivelyLoading}
         >
           <WidgetCardChartContainer
             location={location}
@@ -273,7 +271,6 @@ function WidgetCard(props: Props) {
             widgetLegendState={widgetLegendState}
             showConfidenceWarning={showConfidenceWarning}
             minTableColumnWidth={minTableColumnWidth}
-            onProgressivelyLoading={setIsProgressivelyLoading}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>
