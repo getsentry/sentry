@@ -9,7 +9,7 @@ class WorkflowFireHistory(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     workflow = FlexibleForeignKey("workflow_engine.Workflow")
-    group = FlexibleForeignKey("sentry.Group", db_constraint=False)
+    group = FlexibleForeignKey("sentry.Group")
     event_id = CharField(max_length=32)
     notification_uuid = UUIDField(auto_add=True, unique=True)
 
