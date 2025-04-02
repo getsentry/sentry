@@ -142,9 +142,9 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                     "server": "1234567890",
                     "channel_id": "channel456",
                     "tags": "environment,user,my_tag",
+                    "legacy_rule_id": self.rule.id,
                 }
             ],
-            "legacy_rule_id": self.rule.id,
         }
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
@@ -170,6 +170,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                     "server": "1234567890",
                     "channel_id": "channel456",
                     "tags": "environment,user,my_tag",
+                    "workflow_id": self.workflow.id,
                 }
             ]
         }
@@ -196,9 +197,9 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                     "server": "1234567890",
                     "channel_id": "channel456",
                     "tags": "environment,user,my_tag",
+                    "legacy_rule_id": self.rule.id,
                 }
             ],
-            "legacy_rule_id": self.rule.id,
         }
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
@@ -226,6 +227,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                     "server": "1234567890",
                     "channel_id": "channel456",
                     "tags": "environment,user,my_tag",
+                    "workflow_id": self.workflow.id,
                 }
             ]
         }
