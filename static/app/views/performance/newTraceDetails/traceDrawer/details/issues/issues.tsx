@@ -19,11 +19,7 @@ import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {
-  TraceError,
-  TraceErrorOrIssue,
-  TracePerformanceIssue,
-} from 'sentry/utils/performance/quickTrace/types';
+import type {TracePerformanceIssue} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -40,7 +36,7 @@ import {TraceDrawerComponents} from '../styles';
 import {IssueSummary} from './issueSummary';
 
 type IssueProps = {
-  issue: TraceErrorOrIssue;
+  issue: TraceTree.TraceIssue;
   organization: Organization;
 };
 
@@ -63,7 +59,10 @@ const issueOrderPriority: Record<keyof Theme['level'], number> = {
   unknown: 6,
 };
 
-function sortIssuesByLevel(a: TraceError, b: TraceError): number {
+function sortIssuesByLevel(
+  a: TraceTree.TraceErrorIssue,
+  b: TraceTree.TraceErrorIssue
+): number {
   // If the level is not defined in the priority map, default to unknown
   const aPriority = issueOrderPriority[a.level] ?? issueOrderPriority.unknown;
   const bPriority = issueOrderPriority[b.level] ?? issueOrderPriority.unknown;
@@ -352,7 +351,7 @@ function LegacyIssue(
   ) : null;
 }
 type IssueListProps = {
-  issues: TraceErrorOrIssue[];
+  issues: TraceTree.TraceIssue[];
   node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
 };
@@ -360,7 +359,7 @@ type IssueListProps = {
 export function IssueList({issues, node, organization}: IssueListProps) {
   const hasTraceNewUi = useHasTraceNewUi();
   const uniqueErrorIssues = useMemo(() => {
-    const unique: TraceError[] = [];
+    const unique: TraceTree.TraceErrorIssue[] = [];
 
     const seenIssues: Set<number> = new Set();
 
@@ -451,7 +450,7 @@ function IssueListHeader({
   errorIssues,
   performanceIssues,
 }: {
-  errorIssues: TraceError[];
+  errorIssues: TraceTree.TraceErrorIssue[];
   node: TraceTreeNode<TraceTree.NodeValue>;
   performanceIssues: TracePerformanceIssue[];
 }) {

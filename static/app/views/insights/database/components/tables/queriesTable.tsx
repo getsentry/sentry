@@ -29,14 +29,14 @@ type Row = Pick<
   | 'span.description'
   | 'span.group'
   | 'span.action'
-  | 'spm()'
+  | 'epm()'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
   | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
-  'span.description' | 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
+  'span.description' | 'epm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -46,7 +46,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
+    key: 'epm()',
     name: `${t('Queries')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -62,10 +62,10 @@ const COLUMN_ORDER: Column[] = [
   },
 ];
 
-const SORTABLE_FIELDS = ['avg(span.self_time)', 'spm()', 'time_spent_percentage()'];
+const SORTABLE_FIELDS = ['avg(span.self_time)', 'epm()', 'time_spent_percentage()'];
 
 type ValidSort = Sort & {
-  field: 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()';
+  field: 'epm()' | 'avg(span.self_time)' | 'time_spent_percentage()';
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {

@@ -101,6 +101,8 @@ const AM3_DS_FEATURES = [
   'dynamic-sampling-custom',
 ];
 
+const BUDGET_TERM = 'pay-as-you-go';
+
 const AM3_PLANS: Record<string, Plan> = {
   am3_business: {
     id: 'am3_business',
@@ -127,6 +129,7 @@ const AM3_PLANS: Record<string, Plan> = {
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -838,6 +841,7 @@ const AM3_PLANS: Record<string, Plan> = {
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -1333,6 +1337,7 @@ const AM3_PLANS: Record<string, Plan> = {
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -1426,6 +1431,7 @@ const AM3_PLANS: Record<string, Plan> = {
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -1519,6 +1525,7 @@ const AM3_PLANS: Record<string, Plan> = {
     availableCategories: AM3_DS_CATEGORIES,
     onDemandCategories: AM3_DS_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -1620,6 +1627,7 @@ const AM3_PLANS: Record<string, Plan> = {
     availableCategories: AM3_DS_CATEGORIES,
     onDemandCategories: AM3_DS_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -1721,6 +1729,7 @@ const AM3_PLANS: Record<string, Plan> = {
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -1814,6 +1823,7 @@ const AM3_PLANS: Record<string, Plan> = {
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -1907,6 +1917,7 @@ const AM3_PLANS: Record<string, Plan> = {
     availableCategories: AM3_DS_CATEGORIES,
     onDemandCategories: AM3_DS_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -2008,6 +2019,7 @@ const AM3_PLANS: Record<string, Plan> = {
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -2503,6 +2515,7 @@ const AM3_PLANS: Record<string, Plan> = {
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -2998,6 +3011,7 @@ const AM3_PLANS: Record<string, Plan> = {
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
