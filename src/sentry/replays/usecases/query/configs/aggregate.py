@@ -159,6 +159,7 @@ search_config["trace"] = search_config["trace_ids"]
 search_config["url"] = search_config["urls"]
 search_config["user.ip"] = search_config["user.ip_address"]
 search_config["screens"] = search_config["urls"]
+search_config["screen"] = search_config["urls"]
 search_config["count_screens"] = search_config["count_urls"]
 
 # Field-names which could not be found in the set are tag-keys and will, by default, look for
