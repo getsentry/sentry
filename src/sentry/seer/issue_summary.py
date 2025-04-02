@@ -160,6 +160,7 @@ def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
         filter=event_filter,
         referrer="api.group_ai_summary",
         tenant_ids={"organization_id": organization.id},
+        limit=5,
     )
     connected_events = sorted(
         connected_events, key=lambda event: event.datetime
