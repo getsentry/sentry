@@ -24,6 +24,7 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
       : {}),
     ...(apiResponse.device?.brand ? {'device.brand': [apiResponse.device.brand]} : {}),
     ...(apiResponse.device?.family ? {'device.family': [apiResponse.device.family]} : {}),
+    ...(apiResponse.device?.model ? {'device.model': [apiResponse.device.model]} : {}),
     ...(apiResponse.device?.model_id
       ? {'device.model_id': [apiResponse.device.model_id]}
       : {}),
