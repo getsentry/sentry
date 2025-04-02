@@ -1,13 +1,16 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {motion, type MotionProps} from 'framer-motion';
 
+import {promptsUpdate, usePromptsCheck} from 'sentry/actionCreators/prompts';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import useApi from 'sentry/utils/useApi';
 import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {SidebarButton} from 'sentry/views/nav/primary/components';
 import {
@@ -25,8 +28,12 @@ function QuotaExceededContent({
   exceededCategories,
   subscription,
   organization,
+  onDismiss,
+  isDismissed,
 }: {
   exceededCategories: string[];
+  isDismissed: boolean;
+  onDismiss: () => void;
   organization: Organization;
   subscription: Subscription;
 }) {
@@ -69,9 +76,11 @@ function QuotaExceededContent({
           <DismissContainer>
             <Checkbox
               name="dismiss"
-              checked={false}
-              disabled={false}
-              onChange={() => {}}
+              checked={isDismissed}
+              disabled={isDismissed}
+              onChange={() => {
+                onDismiss();
+              }}
             />
             <CheckboxLabel>{t("Don't annoy me again")}</CheckboxLabel>
           </DismissContainer>
@@ -88,45 +97,111 @@ function PrimaryNavigationQuotaExceeded({
   organization: Organization;
   subscription: Subscription;
 }) {
+  const exceededCategories = useMemo(() => {
+    return sortCategoriesWithKeys(subscription?.categories ?? {})
+      .filter(
+        ([category]) =>
+          category !== DataCategory.SPANS_INDEXED ||
+          subscription?.hadCustomDynamicSampling
+      )
+      .reduce((acc, [category, currentHistory]) => {
+        if (currentHistory.usageExceeded) {
+          acc.push(category);
+        }
+        return acc;
+      }, [] as string[]);
+  }, [subscription.categories, subscription.hadCustomDynamicSampling]);
+
+  const promptsToCheck = useMemo(() => {
+    return exceededCategories
+      .map(category => {
+        const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+        if (categoryInfo) {
+          return `${categoryInfo.snakeCasePlural ?? category}_overage_alert`;
+        }
+        return null;
+      })
+      .filter(Boolean) as string[];
+  }, [exceededCategories]);
+
+  const prompts = usePromptsCheck(
+    {
+      organization,
+      feature: promptsToCheck,
+    },
+    {staleTime: 0}
+  );
+
+  const promptIsDismissedForBillingPeriod = useCallback(
+    (prompt: {dismissed_ts?: number; snoozed_ts?: number}) => {
+      const {snoozed_ts, dismissed_ts} = prompt || {};
+      const time = snoozed_ts || dismissed_ts;
+      if (!time) {
+        return false;
+      }
+      const onDemandPeriodEnd = new Date(subscription.onDemandPeriodEnd);
+      onDemandPeriodEnd.setHours(23, 59, 59);
+      return time <= onDemandPeriodEnd.getTime() / 1000;
+    },
+    [subscription.onDemandPeriodEnd]
+  );
+
+  const allDismissedForPeriod = useMemo(() => {
+    return (
+      !!prompts.data &&
+      !!prompts.data &&
+      promptsToCheck.every(prompt => {
+        const promptData = prompts.data.features?.[prompt];
+        return promptData && promptIsDismissedForBillingPeriod(promptData);
+      })
+    );
+  }, [prompts.data, promptsToCheck, promptIsDismissedForBillingPeriod]);
+
+  const [isDismissed, setIsDismissed] = useState(allDismissedForPeriod);
+
   const {
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-  } = usePrimaryButtonOverlay({defaultOpen: true});
+    state: overlayState,
+  } = usePrimaryButtonOverlay({defaultOpen: !allDismissedForPeriod && !isDismissed});
   const theme = useTheme();
 
-  const exceededCategories = sortCategoriesWithKeys(subscription?.categories ?? {})
-    .filter(
-      ([category]) =>
-        category !== DataCategory.SPANS_INDEXED || subscription?.hadCustomDynamicSampling
-    )
-    .reduce((acc, [category, currentHistory]) => {
-      if (currentHistory.usageExceeded) {
-        acc.push(category);
-      }
-      return acc;
-    }, [] as string[]);
-
-  const hasExceeded = Object.values(subscription.categories ?? {}).some(
-    ({usageExceeded}) => usageExceeded
-  );
+  const api = useApi();
 
   const shouldShow =
     usePrefersStackedNav() &&
-    hasExceeded &&
+    exceededCategories.length > 0 &&
     !subscription.hasOverageNotificationsDisabled;
   if (!shouldShow) {
     return null;
   }
 
+  const animateProps: MotionProps = {
+    animate: {
+      rotate: [0, -15, 15, -15, 15, -15, 0],
+      scale: [1, 1.25, 1.25, 1.25, 1.25, 1.25, 1],
+    },
+    transition: {
+      duration: 0.7,
+      repeat: Infinity,
+      repeatType: 'loop',
+      type: 'easeOut',
+      delay: 2,
+      repeatDelay: 1,
+    },
+  };
+
   return (
     <Fragment>
       <SidebarButton
         analyticsKey="quotaExceeded"
-        label={t('Quota Exceeded')}
+        label={t('Billing Overage')}
         buttonProps={{...overlayTriggerProps, style: {backgroundColor: theme.warning}}}
       >
-        <IconWarning />
+        <motion.div {...(isOpen || isDismissed ? {} : animateProps)}>
+          <IconWarning />
+        </motion.div>
       </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
@@ -134,6 +209,18 @@ function PrimaryNavigationQuotaExceeded({
             exceededCategories={exceededCategories}
             subscription={subscription}
             organization={organization}
+            isDismissed={isDismissed}
+            onDismiss={() => {
+              promptsToCheck.forEach(prompt => {
+                promptsUpdate(api, {
+                  organization,
+                  feature: prompt,
+                  status: 'dismissed',
+                });
+              });
+              setIsDismissed(true);
+              overlayState.close();
+            }}
           />
         </PrimaryButtonOverlay>
       )}
