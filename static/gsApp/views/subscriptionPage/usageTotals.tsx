@@ -36,7 +36,7 @@ import {
   formatUsageWithUnits,
   getActiveProductTrial,
   getPotentialProductTrial,
-  isAm3Plan,
+  isAm2Plan,
   isUnlimitedReserved,
   MILLISECONDS_IN_HOUR,
 } from 'getsentry/utils/billing';
@@ -506,7 +506,7 @@ function UsageTotals({
     ? {
         ...addBillingStatTotals(totals, [
           eventTotals[getChunkCategoryFromDuration(category)] ?? EMPTY_STAT_TOTAL,
-          isAm3Plan(subscription.plan) && category === DataCategory.PROFILE_DURATION
+          !isAm2Plan(subscription.plan) && category === DataCategory.PROFILE_DURATION
             ? (eventTotals[DataCategory.PROFILES] ?? EMPTY_STAT_TOTAL)
             : EMPTY_STAT_TOTAL,
         ]),
