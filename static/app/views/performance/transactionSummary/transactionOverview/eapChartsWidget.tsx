@@ -93,7 +93,7 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
 
   const {title, description} = getWidgetContents(selectedWidget);
 
-  const {plottables, isPending, error} = useWidgetChartQuery({
+  const {plottables, isPending, isError} = useWidgetChartQuery({
     selectedWidget,
     transactionName,
   });
@@ -107,7 +107,7 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
         </Widget.WidgetToolbar>
       }
       Visualization={
-        isPending || error ? (
+        isPending || isError ? (
           <TimeSeriesWidgetVisualization.LoadingPlaceholder />
         ) : (
           <TimeSeriesWidgetVisualization plottables={plottables} />

@@ -130,7 +130,7 @@ export type SpanIndexedQueryFilters = {
 export type SpanStringArrayFields = 'span.domain';
 
 export const COUNTER_AGGREGATES = ['sum', 'avg', 'min', 'max', 'p100'] as const;
-export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p95', 'p99'] as const;
+export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p90', 'p95', 'p99'] as const;
 
 export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as const;
 
