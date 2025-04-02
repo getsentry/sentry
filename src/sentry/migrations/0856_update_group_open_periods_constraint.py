@@ -6,6 +6,7 @@ from django.db import migrations, models
 
 import sentry.models.groupopenperiod
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -33,21 +34,35 @@ class Migration(CheckedMigration):
             model_name="groupopenperiod",
             name="exclude_open_period_overlap",
         ),
-        migrations.AddConstraint(
-            model_name="groupopenperiod",
-            constraint=django.contrib.postgres.constraints.ExclusionConstraint(
-                expressions=[
-                    (models.F("group"), "="),
-                    (
-                        sentry.models.groupopenperiod.TsTzRange(
-                            "date_started",
-                            "date_ended",
-                            django.contrib.postgres.fields.ranges.RangeBoundary(),
-                        ),
-                        "&&",
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                SafeRunSQL(
+                    """ALTER TABLE "sentry_groupopenperiod"
+                ADD CONSTRAINT "exclude_open_period_overlap" EXCLUDE USING GIST (
+                    "group_id" gist_int8_ops WITH =,
+                    (TSTZRANGE("date_started", "date_ended", '[)')) WITH &&
+                );""",
+                    use_statement_timeout=False,
+                )
+            ],
+            state_operations=[
+                migrations.AddConstraint(
+                    model_name="groupopenperiod",
+                    constraint=django.contrib.postgres.constraints.ExclusionConstraint(
+                        expressions=[
+                            (models.F("group"), "="),
+                            (
+                                sentry.models.groupopenperiod.TsTzRange(
+                                    "date_started",
+                                    "date_ended",
+                                    django.contrib.postgres.fields.ranges.RangeBoundary(),
+                                ),
+                                "&&",
+                            ),
+                        ],
+                        name="exclude_open_period_overlap",
                     ),
-                ],
-                name="exclude_open_period_overlap",
-            ),
+                ),
+            ],
         ),
     ]
