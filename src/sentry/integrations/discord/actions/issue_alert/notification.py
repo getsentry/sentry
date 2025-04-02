@@ -85,7 +85,6 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             "notifications.sent",
             instance="discord.notifications",
             tags={
-                "issue_category": event.group.issue_category,
                 "issue_type": event.group.issue_type.slug,
             },
             skip_internal=False,

@@ -42,7 +42,6 @@ class NotifyEventAction(EventAction):
                 "notifications.sent",
                 instance=plugin.slug,
                 tags={
-                    "issue_category": event.group.issue_category,
                     "issue_type": event.group.issue_type.slug,
                 },
                 skip_internal=False,

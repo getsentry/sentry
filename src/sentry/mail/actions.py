@@ -62,7 +62,6 @@ class NotifyEmailAction(EventAction):
             "notifications.sent",
             instance=self.metrics_slug,
             tags={
-                "issue_category": group.issue_category,
                 "issue_type": group.issue_type.slug,
             },
             skip_internal=False,

@@ -468,7 +468,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "notifications.sent",
             instance="slack.notification",
             tags={
-                "issue_category": event.group.issue_category,
                 "issue_type": event.group.issue_type.slug,
             },
             skip_internal=False,
