@@ -146,7 +146,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                       <TimeSeriesWidgetVisualization
                         {...visualizationProps}
                         {...enableReleaseBubblesProps}
-                        disableZoomNavigation
+                        onZoom={() => {}}
                         legendSelection={props.legendSelection}
                         onLegendSelectionChange={props.onLegendSelectionChange}
                         releases={releases ?? []}
