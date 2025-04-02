@@ -1,4 +1,3 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -21,11 +20,10 @@ interface Props {
 function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   const organization = useOrganization();
 
-  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
   const hasIssueViews = organization.features.includes('issue-stream-custom-views');
 
   return (
-    <FiltersContainer hasNewLayout={hasNewLayout}>
+    <FiltersContainer>
       <GuideAnchor
         target="issue_views_page_filters_persistence"
         disabled={!hasIssueViews}
@@ -39,65 +37,41 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
 
       <Search {...{query, onSearch}} />
 
-      {organization.features.includes('issue-stream-table-layout') && (
-        <Sort
-          query={query}
-          sort={sort}
-          onSelect={onSortChange}
-          triggerSize="md"
-          showIcon={false}
-        />
-      )}
+      <Sort
+        query={query}
+        sort={sort}
+        onSelect={onSortChange}
+        triggerSize="md"
+        showIcon={false}
+      />
     </FiltersContainer>
   );
 }
 
-const FiltersContainer = styled('div')<{hasNewLayout: boolean}>`
+const FiltersContainer = styled('div')`
   display: grid;
   column-gap: ${space(1)};
   row-gap: ${space(1)};
   margin-bottom: ${space(2)};
   width: 100%;
 
-  ${p =>
-    p.hasNewLayout
-      ? css`
-          grid-template-columns: 100%;
-          grid-template-areas:
-            'page-filters'
-            'search'
-            'sort';
+  grid-template-columns: 100%;
+  grid-template-areas:
+    'page-filters'
+    'search'
+    'sort';
 
-          @media (min-width: ${p.theme.breakpoints.xsmall}) {
-            grid-template-columns: auto 1fr;
-            grid-template-areas:
-              'page-filters sort'
-              'search search';
-          }
+  @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'page-filters sort'
+      'search search';
+  }
 
-          @media (min-width: ${p.theme.breakpoints.large}) {
-            grid-template-columns: auto 1fr auto;
-            grid-template-areas: 'page-filters search sort';
-          }
-        `
-      : css`
-          grid-template-columns: 100%;
-          grid-template-areas:
-            'page-filters'
-            'search';
-
-          @media (min-width: ${p.theme.breakpoints.xsmall}) {
-            grid-template-columns: auto 1fr;
-            grid-template-areas:
-              'page-filters sort'
-              'search search';
-          }
-
-          @media (min-width: ${p.theme.breakpoints.large}) {
-            grid-template-columns: auto 1fr;
-            grid-template-areas: 'page-filters search';
-          }
-        `}
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: 'page-filters search sort';
+  }
 `;
 
 const Search = styled(IssueSearchWithSavedSearches)`
