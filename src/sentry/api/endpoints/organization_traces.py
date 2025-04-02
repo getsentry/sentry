@@ -1997,17 +1997,17 @@ def format_trace_result(
 ) -> TraceResult:
     result: TraceResult = {
         "trace": "",
-        "numErrors": 0,  # TODO
-        "numOccurrences": 0,  # TODO
+        "numErrors": 0,
+        "numOccurrences": 0,
         "matchingSpans": 0,
         "numSpans": 0,
-        "project": None,  # TODO
-        "name": None,  # TODO
-        "rootDuration": None,  # TODO
-        "duration": 0,  # TODO
+        "project": None,
+        "name": None,
+        "rootDuration": None,
+        "duration": 0,
         "start": 0,
-        "end": 0,  # TODO
-        "breakdowns": [],  # TODO
+        "end": 0,
+        "breakdowns": [],
     }
 
     for attribute in trace.attributes:
