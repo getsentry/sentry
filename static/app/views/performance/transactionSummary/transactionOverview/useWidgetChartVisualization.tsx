@@ -6,10 +6,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
 
@@ -18,26 +17,16 @@ type Options = {
   transactionName: string;
 };
 
-type SpanSeriesData = Record<string, DiscoverSeries>;
-type DurationPercentilesSeriesData = Array<
-  Pick<
-    EAPSpanResponse,
-    | 'p100(span.duration)'
-    | 'p99(span.duration)'
-    | 'p95(span.duration)'
-    | 'p90(span.duration)'
-    | 'p75(span.duration)'
-    | 'p50(span.duration)'
-  >
->;
-
 /**
- * Determines the query to use for the widget charts based on the selected widget and returns plottable data
+ * Returns the representative visualization for the selected widget. Handles data fetching, error handling, and loading states.
  *
  * @param options
- * @returns Plottable[]
+ * @returns Visualization
  */
-export function useWidgetChartQuery({selectedWidget, transactionName}: Options) {
+export function useWidgetChartVisualization({
+  selectedWidget,
+  transactionName,
+}: Options): React.ReactNode {
   const location = useLocation();
   const spanCategoryUrlParam = decodeScalar(
     location.query?.[SpanIndexedField.SPAN_CATEGORY]
@@ -51,7 +40,7 @@ export function useWidgetChartQuery({selectedWidget, transactionName}: Options) 
 
   const {
     data: spanSeriesData,
-    isPending,
+    isPending: isSpanSeriesPending,
     isError: isSpanSeriesError,
   } = useSpanIndexedSeries(
     {
@@ -91,41 +80,13 @@ export function useWidgetChartQuery({selectedWidget, transactionName}: Options) 
       'api.transaction-summary.span-category-filter'
     );
 
-  let representativeData: SpanSeriesData | DurationPercentilesSeriesData;
-
   if (selectedWidget === EAPWidgetType.DURATION_BREAKDOWN) {
-    representativeData = spanSeriesData;
-  } else {
-    representativeData = durationPercentilesSeriesData;
-  }
+    if (isSpanSeriesPending || isSpanSeriesError) {
+      return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
+    }
 
-  const plottables = getPlottables(
-    selectedWidget,
-    representativeData,
-    isPending,
-    isSpanSeriesError || isDurationPercentilesError
-  );
-
-  return {
-    plottables,
-    isPending,
-    isError: isSpanSeriesError || isDurationPercentilesError,
-  };
-}
-
-function getPlottables(
-  selectedWidget: EAPWidgetType,
-  data: SpanSeriesData | DurationPercentilesSeriesData,
-  isPending: boolean,
-  isError: boolean
-) {
-  if (isPending || isError) {
-    return [];
-  }
-
-  if (selectedWidget === EAPWidgetType.DURATION_BREAKDOWN) {
     const timeSeries: TimeSeries[] = [];
-    Object.entries(data as SpanSeriesData).forEach(([key, value]) => {
+    Object.entries(spanSeriesData).forEach(([key, value]) => {
       timeSeries.push({
         field: key,
         meta: {
@@ -141,12 +102,17 @@ function getPlottables(
     });
 
     const plottables = timeSeries.map(series => new Area(series));
-    return plottables;
+
+    return <TimeSeriesWidgetVisualization plottables={plottables} />;
   }
 
   if (selectedWidget === EAPWidgetType.DURATION_PERCENTILES) {
-    console.dir(data);
+    if (isDurationPercentilesError) {
+      return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
+    }
+
+    return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
   }
 
-  return [];
+  return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
 }

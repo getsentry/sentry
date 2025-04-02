@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
-import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {useWidgetChartQuery} from 'sentry/views/performance/transactionSummary/transactionOverview/useWidgetChartQuery';
+import {useWidgetChartVisualization} from 'sentry/views/performance/transactionSummary/transactionOverview/useWidgetChartVisualization';
 
 export enum EAPWidgetType {
   DURATION_BREAKDOWN = 'duration_breakdown',
@@ -93,7 +92,7 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
 
   const {title, description} = getWidgetContents(selectedWidget);
 
-  const {plottables, isPending, isError} = useWidgetChartQuery({
+  const visualization = useWidgetChartVisualization({
     selectedWidget,
     transactionName,
   });
@@ -106,13 +105,7 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
           <Widget.WidgetDescription title={title} description={description} />
         </Widget.WidgetToolbar>
       }
-      Visualization={
-        isPending || isError ? (
-          <TimeSeriesWidgetVisualization.LoadingPlaceholder />
-        ) : (
-          <TimeSeriesWidgetVisualization plottables={plottables} />
-        )
-      }
+      Visualization={visualization}
       Footer={
         <FooterContainer>
           <CompactSelect
