@@ -1,6 +1,8 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Avatar from 'sentry/components/core/avatar';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -18,6 +20,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
 
@@ -54,6 +57,16 @@ export function SavedQueriesTable({mode, perPage}: Props) {
   const filteredData = data?.filter(row => row.query?.length > 0) ?? [];
   const {deleteQuery} = useDeleteQuery();
   const {starQuery} = useStarQuery();
+  const {updateQueryFromSavedQuery} = useSaveQuery();
+
+  const getHandleUpdateFromSavedQuery = useCallback(
+    (savedQuery: SavedQuery) => {
+      return (name: string) => {
+        return updateQueryFromSavedQuery({...savedQuery, name});
+      };
+    },
+    [updateQueryFromSavedQuery]
+  );
 
   const renderBodyCell = (col: Column, row: SavedQuery) => {
     if (col.key === 'name') {
@@ -69,10 +82,24 @@ export function SavedQueriesTable({mode, perPage}: Props) {
         <Center>
           <DropdownMenu
             items={[
-              // TODO
               {
                 key: 'rename',
                 label: t('Rename'),
+                onAction: () => {
+                  openSaveQueryModal({
+                    organization,
+                    queries: row.query.map((query, queryIndex) => ({
+                      query: query.query,
+                      groupBys: query.groupby,
+                      visualizes: query.visualize.map((v, visualizationIndex) => ({
+                        ...v,
+                        label: `visualization-${queryIndex}-${visualizationIndex}`,
+                      })),
+                    })),
+                    saveQuery: getHandleUpdateFromSavedQuery(row),
+                    name: row.name,
+                  });
+                },
               },
               {
                 key: 'duplicate',

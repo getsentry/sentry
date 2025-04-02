@@ -71,4 +71,31 @@ describe('SaveQueryModal', function () {
 
     await waitFor(() => expect(saveQuery).toHaveBeenCalled());
   });
+
+  it('should render rename ui', function () {
+    const saveQuery = jest.fn();
+    render(
+      <SaveQueryModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => {}}
+        organization={initialData.organization}
+        queries={[
+          {
+            query: 'span.op:pageload',
+            visualizes: [{chartType: 1, yAxes: ['avg(span.duration)'], label: 'A'}],
+            groupBys: ['span.op'],
+          },
+        ]}
+        saveQuery={saveQuery}
+        name="Initial Query Name"
+      />
+    );
+
+    expect(screen.getByRole('textbox')).toHaveValue('Initial Query Name');
+    expect(screen.getByText('Rename Query')).toBeInTheDocument();
+    expect(screen.getByText('Save Changes')).toBeInTheDocument();
+  });
 });
