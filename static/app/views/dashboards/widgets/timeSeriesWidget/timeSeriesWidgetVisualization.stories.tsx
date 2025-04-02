@@ -60,25 +60,26 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         <p>
           <JSXNode name="TimeSeriesWidgetVisualization" /> is a feature-full time series
           chart, designed to plot data returned from <code>/events-stats/</code> endpoints
-          in Explore, Dashboards, and other similar UIs.
+          in Explore, Dashboards, and other similar UIs. It includes features like:
         </p>
+
+        <ul>
+          <li>automatically scaling mis-matched units</li>
+          <li>visually deemphasizing incomplete ingestion buckets</li>
+          <li>plotting lines, area, and bars on the same visualization</li>
+          <li>
+            skipping <code>null</code> values while plotting
+          </li>
+          <li>
+            stripping legend names of internal information like <code>equation|</code>{' '}
+            prefixes
+          </li>
+          <li>automatically stretching to fit the parent</li>
+          <li>intelligently formatting the axes</li>
+          <li>and more!</li>
+        </ul>
+
         <p>
-          It includes features like:
-          <ul>
-            <li>automatically scaling mis-matched units</li>
-            <li>visually deemphasizing incomplete ingestion buckets</li>
-            <li>plotting lines, area, and bars on the same visualization</li>
-            <li>
-              skipping <code>null</code> values while plotting
-            </li>
-            <li>
-              stripping legend names of internal information like <code>equation|</code>{' '}
-              prefixes
-            </li>
-            <li>automatically stretching to fit the parent</li>
-            <li>intelligently formatting the axes</li>
-            <li>and more!</li>
-          </ul>
           If you (or someone you know) is plotting Sentry data and the X axis is time, you
           should be using this component! It's highly configurable, and should suit your
           needs. If it doesn't, reach out to the Dashboards team.
@@ -226,30 +227,32 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <JSXNode name="TimeSeriesWidgetVisualization" /> can plot most, but not all data
           types that come back from our time series endpoints. The supported data types
           are:
-          <ul>
-            <li>
-              <code>number</code>
-            </li>
-            <li>
-              <code>integer</code>
-            </li>
-            <li>
-              <code>duration</code>
-            </li>
-            <li>
-              <code>percentage</code>
-            </li>
-            <li>
-              <code>size</code>
-            </li>
-            <li>
-              <code>rate</code>
-            </li>
-            <li>
-              <code>score</code>
-            </li>
-          </ul>
         </p>
+
+        <ul>
+          <li>
+            <code>number</code>
+          </li>
+          <li>
+            <code>integer</code>
+          </li>
+          <li>
+            <code>duration</code>
+          </li>
+          <li>
+            <code>percentage</code>
+          </li>
+          <li>
+            <code>size</code>
+          </li>
+          <li>
+            <code>rate</code>
+          </li>
+          <li>
+            <code>score</code>
+          </li>
+        </ul>
+
         <p>
           Each of those types has specific behavior in its axes range, axis value
           formatting, tooltip formatting, unit scaling, and so on. For example, the{' '}

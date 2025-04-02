@@ -4,8 +4,8 @@ import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {NAV_GROUP_LABELS} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 
 type Props = {
@@ -26,7 +26,9 @@ export function SecondaryMobile({handleClickBack}: Props) {
           size="xs"
           borderless
         />
-        <HeaderLabel>{activeGroup ? NAV_GROUP_LABELS[activeGroup] : ''}</HeaderLabel>
+        <HeaderLabel>
+          {activeGroup ? PRIMARY_NAV_GROUP_CONFIG[activeGroup].label : ''}
+        </HeaderLabel>
       </GroupHeader>
       <ContentWrapper ref={setSecondaryNavEl} />
     </SecondaryMobileWrapper>
