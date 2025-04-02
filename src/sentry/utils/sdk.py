@@ -257,7 +257,7 @@ def before_send(event: Event, _: Hint) -> Event | None:
     return event
 
 
-def before_send_log(log: Log, _: Hint) -> Log:
+def before_send_log(log: Log, _: Hint) -> Log | None:
     if in_random_rollout("ourlogs.sentry-emit-rollout"):
         return log
     return None
