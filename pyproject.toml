@@ -405,6 +405,7 @@ module = [
     "sentry.testutils.helpers.task_runner",
     "sentry.testutils.helpers.usage_accountant",
     "sentry.testutils.pytest.json_report_reruns",
+    "sentry.testutils.pytest.show_flaky_failures",
     "sentry.testutils.skips",
     "sentry.toolbar.utils.*",
     "sentry.types.*",
