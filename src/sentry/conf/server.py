@@ -1523,12 +1523,16 @@ if os.environ.get("OPENAPIGENERATE", False):
         "DEFAULT_GENERATOR_CLASS": "sentry.apidocs.hooks.CustomGenerator",
         "DESCRIPTION": "Sentry Public API",
         "DISABLE_ERRORS_AND_WARNINGS": False,
+        "ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE": False,
         # We override the default behavior to skip adding the choice name to the bullet point if
         # it's identical to the choice value by monkey patching build_choice_description_list.
         "ENUM_GENERATE_CHOICE_DESCRIPTION": True,
         "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
-        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
+        "POSTPROCESSING_HOOKS": [
+            "sentry.apidocs.hooks.custom_postprocessing_hook",
+            "drf_spectacular.hooks.postprocess_schema_enum_id_removal",
+        ],
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
         "SERVERS": [
             {
