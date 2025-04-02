@@ -112,11 +112,11 @@ describe('DatabaseLandingPage', function () {
         data: [
           {
             'span.group': '271536360c0b6f89',
-            'span.description': 'SELECT * FROM users',
+            'sentry.normalized_description': 'SELECT * FROM users',
           },
           {
             'span.group': '360c0b6f89271536',
-            'span.description': 'SELECT * FROM organizations',
+            'sentry.normalized_description': 'SELECT * FROM organizations',
           },
         ],
       },
@@ -161,7 +161,7 @@ describe('DatabaseLandingPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:db has:span.description',
+          query: 'span.module:db has:sentry.normalized_description',
           referrer: 'api.starfish.span-landing-page-metrics-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -187,7 +187,7 @@ describe('DatabaseLandingPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:db has:span.description',
+          query: 'span.module:db has:sentry.normalized_description',
           referrer: 'api.starfish.span-landing-page-metrics-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -207,7 +207,7 @@ describe('DatabaseLandingPage', function () {
           field: [
             'project.id',
             'span.group',
-            'span.description',
+            'sentry.normalized_description',
             'span.action',
             'epm()',
             'avg(span.self_time)',
@@ -216,7 +216,7 @@ describe('DatabaseLandingPage', function () {
           ],
           per_page: 25,
           project: [],
-          query: 'span.module:db has:span.description',
+          query: 'span.module:db has:sentry.normalized_description',
           referrer: 'api.starfish.use-span-list',
           sort: '-time_spent_percentage()',
           statsPeriod: '10d',
@@ -278,7 +278,7 @@ describe('DatabaseLandingPage', function () {
           per_page: 50,
           project: [],
           query:
-            'span.module:db has:span.description span.action:SELECT span.domain:organizations',
+            'span.module:db has:sentry.normalized_description span.action:SELECT span.domain:organizations',
           referrer: 'api.starfish.span-landing-page-metrics-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -305,7 +305,7 @@ describe('DatabaseLandingPage', function () {
           per_page: 50,
           project: [],
           query:
-            'span.module:db has:span.description span.action:SELECT span.domain:organizations',
+            'span.module:db has:sentry.normalized_description span.action:SELECT span.domain:organizations',
           referrer: 'api.starfish.span-landing-page-metrics-chart',
           statsPeriod: '10d',
           topEvents: undefined,
@@ -325,7 +325,7 @@ describe('DatabaseLandingPage', function () {
           field: [
             'project.id',
             'span.group',
-            'span.description',
+            'sentry.normalized_description',
             'span.action',
             'epm()',
             'avg(span.self_time)',
@@ -335,7 +335,7 @@ describe('DatabaseLandingPage', function () {
           per_page: 25,
           project: [],
           query:
-            'span.module:db has:span.description span.action:SELECT span.domain:organizations',
+            'span.module:db has:sentry.normalized_description span.action:SELECT span.domain:organizations',
           referrer: 'api.starfish.use-span-list',
           sort: '-time_spent_percentage()',
           statsPeriod: '10d',

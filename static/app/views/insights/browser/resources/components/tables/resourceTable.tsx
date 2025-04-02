@@ -41,7 +41,7 @@ import {
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {
-  SPAN_DESCRIPTION,
+  NORMALIZED_DESCRIPTION,
   SPAN_OP,
   SPAN_SELF_TIME,
   HTTP_RESPONSE_CONTENT_LENGTH,
@@ -62,7 +62,7 @@ type Row = {
   'avg(span.self_time)': number;
   'epm()': number;
   'project.id': number;
-  'span.description': string;
+  'sentry.normalized_description': string;
   'span.group': string;
   'span.op': `resource.${'script' | 'img' | 'css' | 'iframe' | string}`;
   'sum(span.self_time)': number;
@@ -93,7 +93,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
 
   const columnOrder: Array<GridColumnOrder<keyof Row>> = [
     {
-      key: SPAN_DESCRIPTION,
+      key: NORMALIZED_DESCRIPTION,
       width: COL_WIDTH_UNDEFINED,
       name: `${DATA_TYPE} ${t('Description')}`,
     },
@@ -131,8 +131,8 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
 
-    if (key === SPAN_DESCRIPTION) {
-      const fileExtension = row[SPAN_DESCRIPTION].split('.').pop() || '';
+    if (key === NORMALIZED_DESCRIPTION) {
+      const fileExtension = row[NORMALIZED_DESCRIPTION].split('.').pop() || '';
       const extraLinkQueryParams = {};
       if (filters[SpanMetricsField.USER_GEO_SUBREGION]) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -146,7 +146,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
             moduleName={ModuleName.RESOURCE}
             projectId={row[PROJECT_ID]}
             spanOp={row[SPAN_OP]}
-            description={row[SPAN_DESCRIPTION]}
+            description={row[NORMALIZED_DESCRIPTION]}
             group={row[SPAN_GROUP]}
             extraLinkQueryParams={extraLinkQueryParams}
           />
@@ -163,7 +163,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       return <DurationCell milliseconds={row[key]} />;
     }
     if (key === SPAN_OP) {
-      const fileExtension = row[SPAN_DESCRIPTION].split('.').pop() || '';
+      const fileExtension = row[NORMALIZED_DESCRIPTION].split('.').pop() || '';
       const spanOp = row[key];
       if (fileExtension === 'js' || spanOp === 'resource.script') {
         return <span>{t('JavaScript')}</span>;
