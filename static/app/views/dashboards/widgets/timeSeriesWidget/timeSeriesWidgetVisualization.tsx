@@ -55,13 +55,6 @@ export interface TimeSeriesWidgetVisualizationProps {
    */
   disableReleaseNavigation?: boolean;
   /**
-   * Disables navigation via router when the chart is zoomed. This is so the
-   * release bubbles can zoom in on the chart when it renders and not trigger
-   * navigation (which would update the page filters and affect the main
-   * chart).
-   */
-  disableZoomNavigation?: boolean;
-  /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
@@ -130,7 +123,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             {...props}
             ref={chartRendererRef}
             disableReleaseNavigation
-            disableZoomNavigation
+            onZoom={() => {}}
             plottables={props.plottables.map(plottable =>
               plottable.constrain(trimStart, trimEnd)
             )}
@@ -540,7 +533,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       }}
       yAxes={yAxes}
       {...chartZoomProps}
-      {...(props.disableZoomNavigation ? {} : {onDataZoom: props.onZoom ?? onDataZoom})}
+      onDataZoom={props.onZoom ?? onDataZoom}
       isGroupedByDate
       useMultilineDate
       start={start ? new Date(start) : undefined}
