@@ -483,7 +483,8 @@ function AutofixSolutionDisplay({
   const containerRef = useRef<HTMLDivElement>(null);
   const iconFixRef = useRef<HTMLDivElement>(null);
 
-  const changesDisabled = repos.every(repo => repo.is_readable === false);
+  const hasNoRepos = repos.length === 0;
+  const cantReadRepos = repos.every(repo => repo.is_readable === false);
 
   const handleAddInstruction = () => {
     if (instructions.trim()) {
@@ -577,16 +578,20 @@ function AutofixSolutionDisplay({
             <ButtonBar merged>
               <Button
                 title={
-                  changesDisabled
+                  hasNoRepos
                     ? t(
-                        'You need to set up the GitHub integration for Autofix to write code for you.'
+                        'You need to set up the GitHub integration and configure repository access for Autofix to write code for you.'
                       )
-                    : undefined
+                    : cantReadRepos
+                      ? t(
+                          "We can't access any of your repos. Check your GitHub integration and configure repository access for Autofix to write code for you."
+                        )
+                      : undefined
                 }
                 size="sm"
                 priority={solutionSelected ? 'default' : 'primary'}
                 busy={isPending}
-                disabled={changesDisabled}
+                disabled={hasNoRepos || cantReadRepos}
                 onClick={() => {
                   handleContinue({
                     mode: 'fix',
