@@ -173,47 +173,51 @@ class SpansBuffer:
         min_redirect_depth = float("inf")
         max_redirect_depth = float("-inf")
 
+        trees = self._group_by_parent(spans)
+
         with metrics.timer("spans.buffer.process_spans.push_payloads"):
             with self.client.pipeline(transaction=False) as p:
-                for span in spans:
-                    parent_span_id = span.effective_parent_id()
-                    set_key = f"span-buf:s:{{{span.project_id}:{span.trace_id}}}:{parent_span_id}"
-                    p.sadd(set_key, span.payload)
+                for (project_and_trace, parent_span_id), subsegment in trees.items():
+                    set_key = f"span-buf:s:{{{project_and_trace}}}:{parent_span_id}"
+                    p.sadd(set_key, *[span.payload for span in subsegment])
 
                 p.execute()
 
         with metrics.timer("spans.buffer.process_spans.insert_spans"):
             with self.client.pipeline(transaction=False) as p:
-                for span in spans:
-                    # hack to make redis-cluster-py pipelines work well with
-                    # scripts. we cannot use EVALSHA or "the normal way to do
-                    # scripts in sentry" easily until we get rid of
-                    # redis-cluster-py sentrywide. this probably leaves a bit of
-                    # perf on the table as we send the full lua sourcecode with every span.
-                    p.eval(
-                        add_buffer_script.script,
-                        1,
-                        f"{span.project_id}:{span.trace_id}",
-                        "true" if span.is_segment_span else "false",
-                        span.span_id,
-                        span.effective_parent_id(),
-                        self.redis_ttl,
-                    )
+                for (project_and_trace, parent_span_id), subsegment in trees.items():
+                    for span in subsegment:
+                        # hack to make redis-cluster-py pipelines work well with
+                        # scripts. we cannot use EVALSHA or "the normal way to do
+                        # scripts in sentry" easily until we get rid of
+                        # redis-cluster-py sentrywide. this probably leaves a bit of
+                        # perf on the table as we send the full lua sourcecode with every span.
+                        p.eval(
+                            add_buffer_script.script,
+                            1,
+                            project_and_trace,
+                            "true" if span.is_segment_span else "false",
+                            span.span_id,
+                            parent_span_id,
+                            self.redis_ttl,
+                        )
 
-                    shard = self.assigned_shards[int(span.trace_id, 16) % len(self.assigned_shards)]
-                    queue_keys.append(f"span-buf:q:{shard}")
+                        shard = self.assigned_shards[
+                            int(span.trace_id, 16) % len(self.assigned_shards)
+                        ]
+                        queue_keys.append(f"span-buf:q:{shard}")
 
-                results = iter(p.execute())
-                for redirect_depth, delete_item, item, has_root_span in results:
-                    # For each span, redirect_depth measures how long it took to
-                    # find the corresponding intermediate segment. Larger
-                    # numbers loosely correlate with fewer siblings per tree
-                    # level.
-                    min_redirect_depth = min(min_redirect_depth, redirect_depth)
-                    max_redirect_depth = max(max_redirect_depth, redirect_depth)
-                    queue_delete_items.append(delete_item)
-                    queue_items.append(item)
-                    queue_item_has_root_span.append(has_root_span)
+                    results = iter(p.execute())
+                    for redirect_depth, delete_item, item, has_root_span in results:
+                        # For each span, redirect_depth measures how long it took to
+                        # find the corresponding intermediate segment. Larger
+                        # numbers loosely correlate with fewer siblings per tree
+                        # level.
+                        min_redirect_depth = min(min_redirect_depth, redirect_depth)
+                        max_redirect_depth = max(max_redirect_depth, redirect_depth)
+                        queue_delete_items.append(delete_item)
+                        queue_items.append(item)
+                        queue_item_has_root_span.append(has_root_span)
 
         with metrics.timer("spans.buffer.process_spans.update_queue"):
             with self.client.pipeline(transaction=False) as p:
@@ -241,6 +245,26 @@ class SpansBuffer:
         metrics.timing("spans.buffer.process_spans.num_has_root_spans", has_root_span_count)
         metrics.timing("span.buffer.hole_size.min", min_redirect_depth)
         metrics.timing("span.buffer.hole_size.max", max_redirect_depth)
+
+    # TODO: type aliases
+    def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[str, str], list[Span]]:
+        # TODO: Doc
+        trees = {}
+        redirects = {}
+
+        for span in spans:
+            project_and_trace = f"{span.project_id}:{span.trace_id}"
+            parent = span.effective_parent_id()
+
+            trace_redirects = redirects.setdefault(project_and_trace, {})
+            while redirect := trace_redirects.get(parent):
+                parent = redirect
+            if parent != span.span_id:
+                trace_redirects[span.span_id] = parent
+
+            trees.setdefault((project_and_trace, parent), []).append(span)
+
+        return trees
 
     def flush_segments(
         self, now: int, max_segments: int = 0

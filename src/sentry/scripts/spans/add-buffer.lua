@@ -43,7 +43,7 @@ redis.call("expire", main_redirect_key, set_timeout)
 local set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, set_span_id)
 if not is_root_span then
     redis.call("sunionstore", set_key, set_key, span_key)
-    redis.call("del", span_key)
+    redis.call("unlink", span_key)
 end
 redis.call("expire", set_key, set_timeout)
 
