@@ -220,7 +220,7 @@ export function SearchQueryBuilderParametersCombobox({
         onCommit();
       }
     },
-    [inputChanged, dispatch, onCommit, token]
+    [inputChanged, dispatch, token, onCommit]
   );
 
   const handleOptionSelected = useCallback(
