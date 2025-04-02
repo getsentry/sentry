@@ -91,7 +91,9 @@ export function LogsIssuesSection({
         isOnEmbeddedView={isOnEmbeddedView}
         limitToTraceId={limitToTraceId}
       >
-        <LogsSectionContent tableData={tableData} openDrawer={onOpenLogsDrawer} />
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+          <LogsSectionContent tableData={tableData} openDrawer={onOpenLogsDrawer} />
+        </TraceItemAttributeProvider>
       </LogsPageParamsProvider>
     </InterimSection>
   );
