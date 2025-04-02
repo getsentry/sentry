@@ -6,7 +6,7 @@ import PullDetailWrapper from 'sentry/views/pipeline/coverage/pulls/pullWraper';
 
 const COVERAGE_FEATURE = 'codecov-ui';
 
-describe('CoveragePageWrapper', () => {
+describe('PullDetailWrapper', () => {
   describe('when the wrapper is used', () => {
     it('renders the passed children', () => {
       render(
