@@ -17,6 +17,7 @@ import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSe
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import type {DisplayType, Widget, WidgetQuery} from '../types';
 import {WidgetType} from '../types';
@@ -28,7 +29,6 @@ import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 import {SpansConfig} from './spans';
 import {TransactionsConfig} from './transactions';
-import {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 export type WidgetBuilderSearchBarProps = {
   getFilterWarning: SearchBarProps['getFilterWarning'];

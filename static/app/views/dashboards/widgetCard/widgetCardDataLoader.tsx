@@ -20,10 +20,10 @@ type Results = {
   loading: boolean;
   confidence?: Confidence;
   errorMessage?: string;
+  isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
-  isProgressivelyLoading?: boolean;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
