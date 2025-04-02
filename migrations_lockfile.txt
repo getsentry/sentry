@@ -17,7 +17,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0857_update_group_open_periods_constraint
+sentry: 0858_backfill_groupsearchviews_with_org_visibility
 
 social_auth: 0002_default_auto_field
 
