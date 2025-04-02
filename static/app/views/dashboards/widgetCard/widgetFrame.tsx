@@ -22,7 +22,6 @@ export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   badgeProps?: string | string[];
   borderless?: boolean;
   children?: React.ReactNode;
-  isProgressivelyLoading?: boolean;
   noVisualizationPadding?: boolean;
   onFullScreenViewClick?: () => void | Promise<void>;
   revealActions?: 'always' | 'hover';
