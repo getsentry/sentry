@@ -1,18 +1,63 @@
+from typing import Any
 from unittest import mock
 
-from rest_framework import serializers
+from rest_framework.serializers import ValidationError
 
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.endpoints.validators.base import BaseDataConditionValidator
+from sentry.workflow_engine.endpoints.validators.base import (
+    AbstractDataConditionValidator,
+    BaseDataConditionValidator,
+)
 from sentry.workflow_engine.models import Condition
 from sentry.workflow_engine.types import DataConditionHandler
-from tests.sentry.workflow_engine.test_base import MockModel
 
 
 class MockDataConditionHandler(DataConditionHandler):
+    comparison_json_schema = {"type": "number"}
+    condition_result_schema = {"type": "boolean"}
+
+
+@mock.patch(
+    "sentry.workflow_engine.registry.condition_handler_registry.get",
+    return_value=MockDataConditionHandler,
+)
+class TestBaseDataConditionValidator(TestCase):
+    def setUp(self):
+        self.condition_group = self.create_data_condition_group()
+        self.valid_data = {
+            "type": Condition.EVENT_ATTRIBUTE,
+            "comparison": 1,
+            "conditionResult": True,
+            "conditionGroupId": self.condition_group.id,
+        }
+
+    def test_conditions__valid_condition(self, mock_handler_get):
+        validator = BaseDataConditionValidator(data=self.valid_data)
+        assert validator.is_valid() is True
+
+    def test_conditions__no_type(self, mock_handler_get):
+        invalid_data = {"comparison": 0}
+        validator = BaseDataConditionValidator(data=invalid_data)
+        assert validator.is_valid() is False
+
+    def test_conditions__invalid_condition_type(self, mock_handler_get):
+        invalid_data = {**self.valid_data, "type": "invalid-type"}
+        validator = BaseDataConditionValidator(data=invalid_data)
+        assert validator.is_valid() is False
+
+    def test_comparison__no_comparison(self, mock_handler_get):
+        invalid_data = {"type": Condition.EQUAL}
+        validator = BaseDataConditionValidator(data=invalid_data)
+        assert validator.is_valid() is False
+
+    def test_comparison__primitive_value(self, mock_handler_get):
+        valid_data = {**self.valid_data, "comparison": 1}
+        validator = BaseDataConditionValidator(data=valid_data)
+        assert validator.is_valid() is True
+
+
+class MockComplexDataConditionHandler(DataConditionHandler):
     comparison_json_schema = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "The configuration schema for a Data Condition Comparison",
         "type": "object",
         "properties": {
             "foo": {
@@ -23,116 +68,97 @@ class MockDataConditionHandler(DataConditionHandler):
         "additionalProperties": False,
     }
 
-
-class MockConditionValidator(BaseDataConditionValidator[int, bool]):
-    field1 = serializers.CharField()
-
-    class Meta:
-        model = MockModel
-        fields = "__all__"
-
-    def validate_comparison(self, value) -> int:
-        if not isinstance(value, int):
-            raise serializers.ValidationError("Comparison must be an integer")
-        return value
-
-    def validate_condition_result(self, value) -> bool:
-        return bool(value)
+    condition_result_schema = {
+        "type": "object",
+        "properties": {
+            "bar": {
+                "type": ["string"],
+            },
+        },
+        "required": ["bar"],
+        "additionalProperties": False,
+    }
 
 
-class MockComplexConditionValidator(BaseDataConditionValidator[dict, bool]):
-    field1 = serializers.CharField()
-
-    class Meta:
-        model = MockModel
-        fields = "__all__"
-
-    def validate_condition_result(self, value) -> bool:
-        return bool(value)
-
-
-class TestBaseDataConditionValidator(TestCase):
+@mock.patch(
+    "sentry.workflow_engine.registry.condition_handler_registry.get",
+    return_value=MockComplexDataConditionHandler,
+)
+class TestComplexBaseDataConditionValidator(TestCase):
     def setUp(self):
         self.condition_group = self.create_data_condition_group()
         self.valid_data = {
             "field1": "test",
+            "type": Condition.EVENT_ATTRIBUTE,
+            "comparison": 1,
+            "conditionResult": {"bar": "baz"},
+            "conditionGroupId": self.condition_group.id,
+        }
+
+    def test_comparison__complex_value(self, mock_handler_get):
+        valid_data = {
+            **self.valid_data,
+            "comparison": {"foo": "bar"},
+        }
+        validator = BaseDataConditionValidator(data=valid_data)
+        assert validator.is_valid() is True
+
+    def test_comparison__complex_value__invalid(self, mock_handler_get):
+        valid_data = {
+            **self.valid_data,
+            "comparison": {"invalid": "value"},
+        }
+        validator = BaseDataConditionValidator(data=valid_data)
+        assert validator.is_valid() is False
+
+    def test_condition_result__complex_value__dict(self, mock_handler_get):
+        validator = BaseDataConditionValidator(data=self.valid_data)
+        assert validator.is_valid() is False
+
+    def test_condition_result__complex_value__array(self, mock_handler_get):
+        invalid_data = {**self.valid_data, "condition_result": ["foo"]}
+        validator = BaseDataConditionValidator(data=invalid_data)
+        assert validator.is_valid() is False
+
+
+class ExampleConditionValidator(AbstractDataConditionValidator[int, bool]):
+    def validate_comparison(self, value: Any) -> int:
+        if isinstance(value, int):
+            return value
+        else:
+            raise ValidationError("Comparison must be an integer")
+
+    def validate_condition_result(self, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        else:
+            raise ValidationError("Condition result must be a boolean")
+
+
+class TestAbstractConditionValidator(TestCase):
+    def setUp(self):
+        self.condition_group = self.create_data_condition_group()
+        self.valid_data = {
             "type": Condition.EQUAL,
             "comparison": 1,
             "conditionResult": True,
             "conditionGroupId": self.condition_group.id,
         }
 
-    def test_conditions__valid_condition(self):
-        validator = MockConditionValidator(data=self.valid_data)
+    def test_validate_comparison(self):
+        validator = ExampleConditionValidator(data=self.valid_data)
         assert validator.is_valid() is True
 
-    def test_conditions__no_type(self):
-        invalid_data = {"comparison": 0}
-        validator = MockConditionValidator(data=invalid_data)
+    def test_validate_condition_result(self):
+        validator = ExampleConditionValidator(data=self.valid_data)
+        assert validator.is_valid() is True
+
+    def test_validate_comparison__invalid(self):
+        invalid_data = {**self.valid_data, "comparison": "invalid"}
+        validator = ExampleConditionValidator(data=invalid_data)
         assert validator.is_valid() is False
 
-    def test_conditions__invalid_condition_type(self):
-        invalid_data = {**self.valid_data, "type": "invalid-type"}
-        validator = MockConditionValidator(data=invalid_data)
-        assert validator.is_valid() is False
-
-    def test_comparison__no_comparison(self):
-        invalid_data = {"type": Condition.EQUAL}
-        validator = MockConditionValidator(data=invalid_data)
-        assert validator.is_valid() is False
-
-    def test_comparison__primitive_value(self):
-        valid_data = {**self.valid_data, "comparison": 1}
-        validator = MockConditionValidator(data=valid_data)
-        assert validator.is_valid() is True
-
-    @mock.patch(
-        "sentry.workflow_engine.registry.condition_handler_registry.get",
-        return_value=MockDataConditionHandler,
-    )
-    def test_comparison__complex_value(self, mock_handler_get):
-        valid_data = {
-            **self.valid_data,
-            "type": Condition.AGE_COMPARISON,
-            "comparison": {"foo": "bar"},
-        }
-        validator = MockComplexConditionValidator(data=valid_data)
-        assert validator.is_valid() is True
-
-    @mock.patch(
-        "sentry.workflow_engine.registry.condition_handler_registry.get",
-        return_value=MockDataConditionHandler(),
-    )
-    def test_comparison__complex_value__invalid(self, mock_handler_get):
-        valid_data = {
-            **self.valid_data,
-            "type": Condition.AGE_COMPARISON,
-            "comparison": {"invalid": "value"},
-        }
-        validator = MockComplexConditionValidator(data=valid_data)
-        assert validator.is_valid() is False
-
-    def test_condition_result__primitive_value__bool(self):
-        valid_data = {**self.valid_data, "condition_result": True}
-        validator = MockConditionValidator(data=valid_data)
-        assert validator.is_valid() is True
-
-    def test_condition_result__primitive_value__int(self):
-        valid_data = {**self.valid_data, "condition_result": 1}
-        validator = MockConditionValidator(data=valid_data)
-        assert validator.is_valid() is True
-
-    def test_condition_result__primitive_value__string(self):
-        valid_data = {**self.valid_data, "condition_result": "foo"}
-        validator = MockConditionValidator(data=valid_data)
-        assert validator.is_valid() is True
-
-    def test_condition_result__complex_value__dict(self):
-        invalid_data = {**self.valid_data, "condition_result": {"key": "value"}}
-        validator = MockComplexConditionValidator(data=invalid_data)
-        assert validator.is_valid() is False
-
-    def test_condition_result__complex_value__array(self):
-        invalid_data = {**self.valid_data, "condition_result": ["foo"]}
-        validator = MockComplexConditionValidator(data=invalid_data)
+    def test_validate_condition_result__invalid(self):
+        invalid_data = {**self.valid_data, "conditionResult": "invalid"}
+        validator = ExampleConditionValidator(data=invalid_data)
         assert validator.is_valid() is False

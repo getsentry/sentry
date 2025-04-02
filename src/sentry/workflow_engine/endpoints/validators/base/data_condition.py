@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Any, Generic, TypeVar
 
 from jsonschema import ValidationError as JsonValidationError
@@ -14,7 +15,7 @@ ComparisonType = TypeVar("ComparisonType")
 ConditionResult = TypeVar("ConditionResult")
 
 
-class BaseDataConditionValidator(
+class AbstractDataConditionValidator(
     CamelSnakeSerializer,
     Generic[ComparisonType, ConditionResult],
 ):
@@ -24,6 +25,18 @@ class BaseDataConditionValidator(
     condition_result = serializers.JSONField(required=True)
     condition_group_id = serializers.IntegerField(required=True)
 
+    @abstractmethod
+    def validate_comparison(self, value: Any) -> ComparisonType:
+        pass
+
+    @abstractmethod
+    def validate_condition_result(self, value: Any) -> ConditionResult:
+        pass
+
+
+class BaseDataConditionValidator(
+    AbstractDataConditionValidator[Any, Any],
+):
     def _get_handler(self) -> DataConditionHandler | None:
         condition_type = self.initial_data.get("type")
         if condition_type in CONDITION_OPS:
@@ -34,18 +47,29 @@ class BaseDataConditionValidator(
         except NoRegistrationExistsError:
             raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
 
-    def validate_comparison(self, value: Any) -> ComparisonType:
+    def validate_comparison(self, value: Any) -> Any:
         handler = self._get_handler()
+
         if not handler:
-            raise serializers.ValidationError("Invalid JSON Schema for comparison")
+            raise serializers.ValidationError(
+                "Condition Operators should implement their own validators."
+            )
 
         try:
             return validate_json_schema(value, handler.comparison_json_schema)
         except JsonValidationError:
-            raise serializers.ValidationError("Invalid JSON Schema for comparison")
+            raise serializers.ValidationError(
+                f"Value, {value} does not match JSON Schema for comparison"
+            )
 
-    def validate_condition_result(self, value: Any) -> ConditionResult:
-        """
-        TODO - Still working through this -- getting close, but think it might be another json schema on the handler
-        """
-        raise NotImplementedError("Subclasses must implement this method")
+    def validate_condition_result(self, value: Any) -> Any:
+        handler = self._get_handler()
+        if not handler:
+            raise serializers.ValidationError("Invalid JSON Schema for condition result")
+
+        try:
+            return validate_json_schema(value, handler.condition_result_schema)
+        except JsonValidationError:
+            raise serializers.ValidationError(
+                f"Vaule, {value}, does not match JSON Schema for condition result"
+            )

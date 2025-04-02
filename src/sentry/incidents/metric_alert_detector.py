@@ -13,7 +13,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDetectorTypeValidator,
 )
 from sentry.workflow_engine.endpoints.validators.base.data_condition import (
-    BaseDataConditionValidator,
+    AbstractDataConditionValidator,
 )
 from sentry.workflow_engine.models import DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
@@ -25,7 +25,7 @@ from sentry.workflow_engine.types import (
 
 
 class MetricAlertComparisonConditionValidator(
-    BaseDataConditionValidator[float, DetectorPriorityLevel]
+    AbstractDataConditionValidator[float, DetectorPriorityLevel]
 ):
     supported_conditions = frozenset((Condition.GREATER, Condition.LESS))
     supported_condition_results = frozenset(
