@@ -144,7 +144,10 @@ class BaseIssueAlertHandler(ABC):
             if alert_rule_workflow.rule is None:
                 raise ValueError("Rule not found when querying for AlertRuleWorkflow")
 
-            data["legacy_rule_id"] = alert_rule_workflow.rule.id
+            data["actions"][0]["legacy_rule_id"] = alert_rule_workflow.rule.id
+        # In the new UI, we need this for to build the link to the new rule in the notification action
+        else:
+            data["actions"][0]["workflow_id"] = job.workflow_id
 
         rule = Rule(
             id=action.id,
