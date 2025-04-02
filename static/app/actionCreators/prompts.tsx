@@ -239,7 +239,7 @@ export function usePrompts({
         queryClient,
         makePromptsCheckQueryKey({
           organization,
-          feature,
+          feature: features,
           projectId,
         }),
         () => {
@@ -251,7 +251,7 @@ export function usePrompts({
         }
       );
     },
-    [api, organization, projectId, queryClient, getCachedData]
+    [api, organization, projectId, queryClient, getCachedData, features]
   );
 
   const showPrompt = useCallback(
@@ -274,7 +274,7 @@ export function usePrompts({
         queryClient,
         makePromptsCheckQueryKey({
           organization,
-          feature,
+          feature: features,
           projectId,
         }),
         () => {
@@ -285,7 +285,7 @@ export function usePrompts({
         }
       );
     },
-    [api, organization, projectId, queryClient, getCachedData]
+    [api, organization, projectId, queryClient, getCachedData, features]
   );
 
   return {

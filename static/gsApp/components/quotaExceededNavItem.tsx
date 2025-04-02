@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type MotionProps} from 'framer-motion';
@@ -112,39 +112,23 @@ function PrimaryNavigationQuotaExceeded({
   organization: Organization;
   subscription: Subscription;
 }) {
-  const [exceededCategories, setExceededCategories] = useState<string[]>([]);
-  const [promptsToCheck, setPromptsToCheck] = useState<string[]>([]);
-  const [isDismissed, setIsDismissed] = useState(false);
-
-  useEffect(() => {
-    if (!subscription.categories) {
-      return;
-    }
-    const result = sortCategoriesWithKeys(subscription?.categories ?? {})
-      .filter(
-        ([category]) =>
-          category !== DataCategory.SPANS_INDEXED ||
-          subscription?.hadCustomDynamicSampling
-      )
-      .reduce((acc, [category, currentHistory]) => {
-        if (currentHistory.usageExceeded) {
-          acc.push(category);
-        }
-        return acc;
-      }, [] as string[]);
-    setExceededCategories(result);
-    setPromptsToCheck(
-      result
-        .map(category => {
-          const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
-          if (categoryInfo) {
-            return `${categoryInfo.snakeCasePlural ?? category}_overage_alert`;
-          }
-          return null;
-        })
-        .filter(Boolean) as string[]
-    );
-  }, [subscription.categories, subscription.hadCustomDynamicSampling]);
+  const exceededCategories = sortCategoriesWithKeys(subscription?.categories ?? {})
+    .filter(
+      ([category]) =>
+        category !== DataCategory.SPANS_INDEXED || subscription?.hadCustomDynamicSampling
+    )
+    .reduce((acc, [category, currentHistory]) => {
+      if (currentHistory.usageExceeded) {
+        acc.push(category);
+      }
+      return acc;
+    }, [] as string[]);
+  const promptsToCheck = exceededCategories
+    .map(category => {
+      const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+      return `${categoryInfo?.snakeCasePlural ?? category}_overage_alert`;
+    })
+    .filter(Boolean) as string[];
 
   const {isLoading, isError, isPromptDismissed, dismissPrompt} = usePrompts({
     features: promptsToCheck,
@@ -161,14 +145,6 @@ function PrimaryNavigationQuotaExceeded({
   const theme = useTheme();
   const prefersStackedNav = usePrefersStackedNav();
 
-  useEffect(() => {
-    if (!isLoading && !isError) {
-      if (Object.values(isPromptDismissed).every(Boolean)) {
-        setIsDismissed(true);
-      }
-    }
-  }, [isPromptDismissed, isLoading, isError, isOpen, overlayState]);
-
   const shouldShow =
     prefersStackedNav &&
     exceededCategories.length > 0 &&
@@ -181,8 +157,11 @@ function PrimaryNavigationQuotaExceeded({
     promptsToCheck.forEach(prompt => {
       dismissPrompt(prompt);
     });
-    setIsDismissed(true);
     overlayState.close();
+  };
+
+  const hasDismissedAllPrompts = () => {
+    return Object.values(isPromptDismissed).every(Boolean);
   };
 
   return (
@@ -192,7 +171,7 @@ function PrimaryNavigationQuotaExceeded({
         label={t('Billing Overage')}
         buttonProps={{...overlayTriggerProps, style: {backgroundColor: theme.warning}}}
       >
-        <motion.div {...(isOpen || isDismissed ? {} : ANIMATE_PROPS)}>
+        <motion.div {...(isOpen || hasDismissedAllPrompts() ? {} : ANIMATE_PROPS)}>
           <IconWarning />
         </motion.div>
       </SidebarButton>
@@ -202,7 +181,7 @@ function PrimaryNavigationQuotaExceeded({
             exceededCategories={exceededCategories}
             subscription={subscription}
             organization={organization}
-            isDismissed={isDismissed}
+            isDismissed={hasDismissedAllPrompts()}
             onDismiss={onDismiss}
           />
         </PrimaryButtonOverlay>
