@@ -22,6 +22,7 @@ class Migration(CheckedMigration):
     # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
 
     is_post_deployment = False
+    checked = False
 
     dependencies = [
         ("sentry", "0854_add_project_sdk_model"),
