@@ -16,10 +16,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
-import {
-  SAMPLING_MODE,
-  type SamplingMode,
-} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {
   convertEventsStatsToTimeSeriesData,
@@ -125,14 +122,6 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
   );
 }
 
-const DEFAULT_SAMPLING_STATE = {
-  confidence: null,
-  isSampled: null,
-  loading: false,
-  sampleCount: undefined,
-  data: undefined,
-};
-
 function SpansWidgetQueriesProgressiveLoadingImpl({
   children,
   api,
@@ -147,23 +136,6 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
   const config = SpansConfig;
   const organization = useOrganization();
 
-  const [preflightComplete, setPreflightComplete] = useState(false);
-  const [samplingStates, setSamplingStates] = useState<
-    Record<
-      SamplingMode,
-      {
-        confidence: Confidence | null;
-        isSampled: boolean | null;
-        loading: boolean;
-        sampleCount: number | undefined;
-        data?: SeriesResult;
-      }
-    >
-  >({
-    [SAMPLING_MODE.PREFLIGHT]: DEFAULT_SAMPLING_STATE,
-    [SAMPLING_MODE.BEST_EFFORT]: DEFAULT_SAMPLING_STATE,
-  });
-
   const afterFetchSeriesData = (result: SeriesResult) => {
     const {seriesConfidence, seriesSampleCount, seriesIsSampled} =
       getConfidenceInformation(result);
@@ -174,45 +146,6 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
       isSampled: seriesIsSampled,
     });
   };
-
-  const handleDataFetch = useCallback(
-    (sampling: SamplingMode) => (results: OnDataFetchedProps) => {
-      // Batch the updates to the sampling states to avoid unnecessary re-renders
-      if (sampling === SAMPLING_MODE.PREFLIGHT) {
-        setSamplingStates(prev => ({
-          ...prev,
-          [sampling]: {
-            ...prev[sampling],
-            confidence: results.confidence ?? null,
-            sampleCount: results.sampleCount,
-            isSampled: results.isSampled ?? null,
-            timeseriesResults: results.timeseriesResults,
-            tableResults: results.tableResults,
-            loading: false,
-          },
-          [SAMPLING_MODE.BEST_EFFORT]: {
-            ...prev[SAMPLING_MODE.BEST_EFFORT],
-            loading: true,
-          },
-        }));
-        setPreflightComplete(true);
-      } else {
-        setSamplingStates(prev => ({
-          ...prev,
-          [sampling]: {
-            ...prev[sampling],
-            confidence: results.confidence ?? null,
-            sampleCount: results.sampleCount,
-            isSampled: results.isSampled ?? null,
-            timeseriesResults: results.timeseriesResults,
-            tableResults: results.tableResults,
-            loading: false,
-          },
-        }));
-      }
-    },
-    []
-  );
 
   return getDynamicText({
     value: (
@@ -227,7 +160,6 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
         dashboardFilters={dashboardFilters}
         afterFetchSeriesData={afterFetchSeriesData}
         samplingMode={SAMPLING_MODE.PREFLIGHT}
-        onDataFetched={handleDataFetch(SAMPLING_MODE.PREFLIGHT)}
       >
         {lowFidelityProps => (
           <Fragment>
@@ -235,7 +167,12 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
              * params or dashboard filters) will cause this to refetch both the preflight and best effort data
              * at the same time
             ) */}
-            {preflightComplete ? (
+            {lowFidelityProps.loading ? (
+              children({
+                ...lowFidelityProps,
+                isProgressivelyLoading: lowFidelityProps.loading,
+              })
+            ) : (
               <GenericWidgetQueries<SeriesResult, TableResult>
                 config={config}
                 api={api}
@@ -247,33 +184,25 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
                 dashboardFilters={dashboardFilters}
                 afterFetchSeriesData={afterFetchSeriesData}
                 samplingMode={SAMPLING_MODE.BEST_EFFORT}
-                onDataFetched={handleDataFetch(SAMPLING_MODE.BEST_EFFORT)}
               >
                 {highFidelityProps =>
                   children({
                     ...highFidelityProps,
                     ...(highFidelityProps.loading
                       ? {
-                          ...samplingStates[SAMPLING_MODE.PREFLIGHT],
+                          ...lowFidelityProps,
                           loading: true,
                         }
                       : {
-                          ...samplingStates[SAMPLING_MODE.BEST_EFFORT],
+                          ...highFidelityProps,
                         }),
                     isProgressivelyLoading:
-                      samplingStates[SAMPLING_MODE.BEST_EFFORT].loading &&
+                      highFidelityProps.loading &&
                       !lowFidelityProps.errorMessage &&
                       !highFidelityProps.errorMessage,
                   })
                 }
               </GenericWidgetQueries>
-            ) : (
-              children({
-                ...lowFidelityProps,
-                isProgressivelyLoading:
-                  lowFidelityProps.loading ||
-                  samplingStates[SAMPLING_MODE.BEST_EFFORT].loading,
-              })
             )}
           </Fragment>
         )}
