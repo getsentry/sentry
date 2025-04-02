@@ -5,6 +5,7 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import {
@@ -12,6 +13,7 @@ import {
   useGenericDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -83,6 +85,10 @@ export const useSortedTimeSeries = <
     eventView.interval = interval;
   }
 
+  const intervalInMilliseconds = eventView.interval
+    ? intervalToMilliseconds(eventView.interval)
+    : undefined;
+
   const result = useGenericDiscoverQuery<
     MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
     DiscoverQueryProps
@@ -106,7 +112,10 @@ export const useSortedTimeSeries = <
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
-      staleTime: Infinity,
+      staleTime:
+        !defined(intervalInMilliseconds) || intervalInMilliseconds === 0
+          ? Infinity
+          : intervalInMilliseconds,
     },
     referrer,
   });

@@ -104,7 +104,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
   const {isReady: pageFiltersReady} = usePageFilters();
   const intervalInMilliseconds = eventView.interval
     ? intervalToMilliseconds(eventView.interval)
-    : 0;
+    : undefined;
   const result = useGenericDiscoverQuery<
     {
       data: any[];
@@ -135,7 +135,10 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
-      staleTime: intervalInMilliseconds === 0 ? Infinity : intervalInMilliseconds,
+      staleTime:
+        !defined(intervalInMilliseconds) || intervalInMilliseconds === 0
+          ? Infinity
+          : intervalInMilliseconds,
     },
     referrer,
   });
