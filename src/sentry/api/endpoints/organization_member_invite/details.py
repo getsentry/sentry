@@ -1,9 +1,11 @@
 from typing import Any
 
+from django.db import router, transaction
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import audit_log, features, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -16,10 +18,13 @@ from sentry.api.serializers.rest_framework.organizationmemberinvite import (
     ApproveInviteRequestValidator,
     OrganizationMemberInviteRequestValidator,
 )
+from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.utils.audit import get_api_key_for_audit_log
 
+ERR_INSUFFICIENT_ROLE = "You cannot remove an invite with a higher role assignment than your own."
 ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
 ERR_MEMBER_INVITE = "You cannot modify invitations sent by someone else."
 ERR_EDIT_WHEN_REINVITING = (
@@ -140,7 +145,79 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(invited_member, request.user), status=200)
 
+    def _handle_deletion_by_member(
+        self,
+        request: Request,
+        organization: Organization,
+        invited_member: OrganizationMemberInvite,
+        acting_member: OrganizationMember,
+    ) -> Response:
+        # Members can only delete invitations that they sent
+        if invited_member.inviter_id != acting_member.user_id:
+            return Response({"detail": ERR_MEMBER_INVITE}, status=400)
+
+        audit_data = invited_member.get_audit_log_data()
+        with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
+            invited_member.delete()
+            # TODO(mifu67): delete the associated org member object once model changes land
+
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=invited_member.id,
+            event=audit_log.get_event_id("INVITE_REMOVE"),
+            data=audit_data,
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def delete(
         self, request: Request, organization: Organization, invited_member: OrganizationMemberInvite
     ) -> Response:
-        raise NotImplementedError
+        # with superuser read write separation, superuser read cannot hit this endpoint
+        # so we can keep this as is_active_superuser
+        if request.user.is_authenticated and not is_active_superuser(request):
+            try:
+                acting_member = OrganizationMember.objects.get(
+                    organization=organization, user_id=request.user.id
+                )
+            except OrganizationMember.DoesNotExist:
+                return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
+            else:
+                if not request.access.has_scope("member:admin"):
+                    if not organization.flags.disable_member_invite and request.access.has_scope(
+                        "member:invite"
+                    ):
+                        return self._handle_deletion_by_member(
+                            request, organization, invited_member, acting_member
+                        )
+                    return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
+                else:
+                    can_manage = roles.can_manage(acting_member.role, invited_member.role)
+
+                    if not can_manage:
+                        return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
+
+        if invited_member.idp_provisioned:
+            return Response(
+                {"detail": "This invite is managed through your organization's identity provider."},
+            )
+        if invited_member.partnership_restricted:
+            return Response(
+                {
+                    "detail": "This invite is managed by an active partnership and cannot be modified until the end of the partnership."
+                },
+            )
+        audit_data = invited_member.get_audit_log_data()
+        event_name = "INVITE_REMOVE" if invited_member.invite_approved else "INVITE_REQUEST_REMOVE"
+        with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
+            invited_member.delete()
+            # TODO(mifu67): delete the associated org member object once model changes land
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=invited_member.id,
+            event=audit_log.get_event_id(event_name),
+            data=audit_data,
+        )
+        # TODO(mifu67): replace all the magic numbers with status codes in a separate PR
+        return Response(status=status.HTTP_204_NO_CONTENT)

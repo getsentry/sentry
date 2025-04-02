@@ -229,3 +229,26 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
             self.organization.slug, self.invite_request.id, approve=1
         )
         assert response.data["approve"][0] == "Your organization is not allowed to invite members."
+
+
+@apply_feature_flag_on_cls("organizations:new-organization-member-invite")
+class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
+    method = "delete"
+
+    def setUp(self):
+        super().setUp()
+        self.regular_user = self.create_user("member@email.com")
+        self.curr_member = self.create_member(
+            organization=self.organization, role="member", user=self.regular_user
+        )
+
+        self.approved_invite = self.create_member_invite(
+            organization=self.organization,
+            email="matcha@tea.com",
+            role="member",
+            inviter_id=self.regular_user.id,
+        )
+
+    def test_simple(self):
+        self.get_success_response(self.organization.slug, self.approved_invite.id)
+        assert not OrganizationMemberInvite.objects.filter(id=self.approved_invite.id).exists()
