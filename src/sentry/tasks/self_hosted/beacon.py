@@ -24,6 +24,8 @@ from sentry.snuba.outcomes import (
     run_outcomes_query_totals,
 )
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.self_hosted import selfhosted_tasks
+from sentry.taskworker.config import TaskworkerConfig
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
 
@@ -102,7 +104,10 @@ def get_category_event_count_24h() -> dict[str, int]:
     return event_categories_count
 
 
-@instrumented_task(name="sentry.tasks.send_beacon", queue="update")
+@instrumented_task(
+    name="sentry.tasks.send_beacon",
+    taskworker_config=TaskworkerConfig(namespace=selfhosted_tasks),
+)
 def send_beacon() -> None:
     """
     Send a Beacon to a remote server operated by the Sentry team.
@@ -203,7 +208,10 @@ def send_beacon() -> None:
         ).update(is_active=False)
 
 
-@instrumented_task(name="sentry.tasks.send_beacon_metric", queue="update")
+@instrumented_task(
+    name="sentry.tasks.send_beacon_metric",
+    taskworker_config=TaskworkerConfig(namespace=selfhosted_tasks),
+)
 def send_beacon_metric(metrics: list[dict[str, Any]], **kwargs: object) -> None:
     install_id = get_install_id()
 

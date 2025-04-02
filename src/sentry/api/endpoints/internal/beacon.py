@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.tasks.beacon import send_beacon_metric
+from sentry.tasks.self_hosted.beacon import send_beacon_metric
 
 logger = logging.getLogger(__name__)
 

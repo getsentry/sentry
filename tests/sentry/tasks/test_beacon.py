@@ -11,7 +11,7 @@ import sentry
 from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.broadcast import Broadcast
-from sentry.tasks.beacon import BEACON_URL, send_beacon, send_beacon_metric
+from sentry.tasks.self_hosted.beacon import BEACON_URL, send_beacon, send_beacon_metric
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
