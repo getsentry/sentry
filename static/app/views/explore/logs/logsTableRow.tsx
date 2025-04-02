@@ -27,6 +27,7 @@ import {
   LogAttributesRendererMap,
   LogBodyRenderer,
   LogFieldRenderer,
+  SeverityCircleRenderer,
 } from 'sentry/views/explore/logs/fieldRenderers';
 import {LogFieldsTree} from 'sentry/views/explore/logs/logFieldsTree';
 import {
@@ -46,6 +47,7 @@ import {
   LogDetailsTitle,
   LogDetailTableBodyCell,
   LogFirstCellContent,
+  LogsTableBodyFirstCell,
   LogTableBodyCell,
   LogTableRow,
   StyledChevronButton,
@@ -59,7 +61,7 @@ type LogsRowProps = {
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
 };
 
-export const ALLOWED_CELL_ACTIONS: Actions[] = [Actions.ADD, Actions.EXCLUDE];
+const ALLOWED_CELL_ACTIONS: Actions[] = [Actions.ADD, Actions.EXCLUDE];
 
 export function LogRowContent({
   dataRow,
@@ -73,16 +75,19 @@ export function LogRowContent({
   const search = useLogsSearch();
   const setLogsSearch = useSetLogsSearch();
 
+  function onPointerUp() {
+    if (window.getSelection()?.toString() === '') {
+      setExpanded(e => !e);
+      trackAnalytics('logs.table.row_expanded', {
+        log_id: String(dataRow[OurLogKnownFieldKey.ID]),
+        page_source: analyticsPageSource,
+        organization,
+      });
+    }
+  }
+
   const analyticsPageSource = useLogsAnalyticsPageSource();
   const [expanded, setExpanded] = useState<boolean>(false);
-  const onClickExpand = useCallback(() => {
-    setExpanded(e => !e);
-    trackAnalytics('logs.table.row_expanded', {
-      log_id: String(dataRow[OurLogKnownFieldKey.ID]),
-      page_source: analyticsPageSource,
-      organization,
-    });
-  }, [dataRow, organization, analyticsPageSource]);
   const addSearchFilter = useCallback(
     ({
       key,
@@ -116,48 +121,39 @@ export function LogRowContent({
     sharedHoverTimeoutRef,
   });
 
+  const rendererExtra = {
+    highlightTerms,
+    logColors,
+    useFullSeverityText: false,
+    renderSeverityCircle: true,
+    location,
+    organization,
+  };
+
   return (
     <Fragment>
-      <LogTableRow onClick={onClickExpand} {...hoverProps}>
-        {fields.map((field, index) => {
+      <LogTableRow onPointerUp={onPointerUp} onTouchEnd={onPointerUp} {...hoverProps}>
+        <LogsTableBodyFirstCell key={'first'}>
+          <LogFirstCellContent>
+            <StyledChevronButton
+              icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
+              aria-label={t('Toggle trace details')}
+              aria-expanded={expanded}
+              size="zero"
+              borderless
+            />
+            <SeverityCircleRenderer
+              extra={rendererExtra}
+              meta={meta}
+              tableResultLogRow={dataRow}
+            />
+          </LogFirstCellContent>
+        </LogsTableBodyFirstCell>
+        {fields.map(field => {
           const value = dataRow[field];
-          const isFirstColumn = index === 0;
-          const rendererExtra = {
-            highlightTerms,
-            logColors,
-            useFullSeverityText: false,
-            renderSeverityCircle: true,
-            wrapBody: false,
-            location,
-            organization,
-          };
 
           if (!defined(value)) {
             return null;
-          }
-
-          if (isFirstColumn) {
-            return (
-              <LogTableBodyCell key={field}>
-                <LogFirstCellContent>
-                  <StyledChevronButton
-                    icon={
-                      <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
-                    }
-                    aria-label={t('Toggle trace details')}
-                    aria-expanded={expanded}
-                    size="zero"
-                    borderless
-                  />
-
-                  <LogFieldRenderer
-                    item={getLogRowItem(field, dataRow, meta)}
-                    meta={meta}
-                    extra={rendererExtra}
-                  />
-                </LogFirstCellContent>
-              </LogTableBodyCell>
-            );
           }
 
           const discoverColumn: TableColumn<keyof TableDataRow> = {

@@ -31,7 +31,7 @@ import {
   adjustAliases,
   adjustLogTraceID,
   getLogAttributeItem,
-  removePrefixes,
+  prettifyAttributeName,
 } from 'sentry/views/explore/logs/utils';
 
 const MAX_TREE_DEPTH = 4;
@@ -517,28 +517,25 @@ function LogFieldsTreeValue({
  * Filters out hidden attributes, replaces sentry. prefixed keys, and simplifies the value
  */
 function getAttribute(
-  attribute: Record<string, any>,
+  attribute: TraceItemResponseAttribute,
   hiddenAttributes: OurLogFieldKey[]
 ): Attribute | undefined {
-  const attributeKey = attribute.name;
   // Filter out hidden attributes
-  if (hiddenAttributes.includes(attributeKey)) {
+  if (hiddenAttributes.includes(attribute.name)) {
     return undefined;
   }
 
-  // Replace the key name with the new key name
-  const newKeyName = removePrefixes(attributeKey);
-
   const attributeValue =
     attribute.type === 'bool' ? String(attribute.value) : attribute.value;
+
   if (!defined(attributeValue)) {
     return undefined;
   }
 
   return {
-    attribute_key: newKeyName,
+    attribute_key: prettifyAttributeName(attribute.name),
     attribute_value: attributeValue,
-    original_attribute_key: adjustAliases(attributeKey),
+    original_attribute_key: adjustAliases(attribute.name),
   };
 }
 

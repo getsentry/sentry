@@ -9,11 +9,14 @@ class RuleDeletionTask(ModelDeletionTask[Rule]):
         from sentry.models.grouprulestatus import GroupRuleStatus
         from sentry.models.rule import RuleActivity
         from sentry.models.rulefirehistory import RuleFireHistory
+        from sentry.workflow_engine.models import AlertRuleDetector, AlertRuleWorkflow
 
         return [
             ModelRelation(GroupRuleStatus, {"rule_id": instance.id}),
             ModelRelation(RuleFireHistory, {"rule_id": instance.id}),
             ModelRelation(RuleActivity, {"rule_id": instance.id}),
+            ModelRelation(AlertRuleDetector, {"rule_id": instance.id}),
+            ModelRelation(AlertRuleWorkflow, {"rule_id": instance.id}),
         ]
 
     def mark_deletion_in_progress(self, instance_list: Sequence[Rule]) -> None:

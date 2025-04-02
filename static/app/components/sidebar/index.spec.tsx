@@ -426,7 +426,7 @@ describe('Sidebar', function () {
         'navigation-sidebar-v2-banner',
       ]);
 
-      expect(await screen.findByText(/Try New Navigation/)).toBeInTheDocument();
+      expect(await screen.findByText(/New Navigation/)).toBeInTheDocument();
     });
 
     it('will not render sidebar banner when collapsed', async () => {

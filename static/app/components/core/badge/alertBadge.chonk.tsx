@@ -27,21 +27,21 @@ function makeChonkAlertBadgeDiamondBackgroundTheme(
   if (status === IncidentStatus.CRITICAL) {
     return {
       color: theme.colors.white,
-      background: theme.colors.chonk.red400,
-      border: `1px solid ${theme.colors.chonk.red100}`,
+      background: theme.colors.red400,
+      border: `1px solid ${theme.colors.red100}`,
     };
   }
   if (status === IncidentStatus.WARNING) {
     return {
       color: theme.colors.black,
-      background: theme.colors.chonk.yellow400,
-      border: `1px solid ${theme.colors.chonk.yellow100}`,
+      background: theme.colors.yellow400,
+      border: `1px solid ${theme.colors.yellow100}`,
     };
   }
   return {
     color: theme.colors.black,
-    background: theme.colors.chonk.green400,
-    border: `1px solid ${theme.colors.chonk.green100}`,
+    background: theme.colors.green400,
+    border: `1px solid ${theme.colors.green100}`,
   };
 }
 

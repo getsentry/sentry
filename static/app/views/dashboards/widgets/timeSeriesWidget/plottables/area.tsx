@@ -26,7 +26,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     const plottableSeries: LineSeriesOption[] = [];
 
     const commonOptions = {
-      name: this.label,
+      name: this.name,
       color,
       animation: false,
       yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
