@@ -14,11 +14,11 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import type {DatasetConfig} from '../datasetConfig/base';
 import type {DashboardFilters, Widget, WidgetQuery} from '../types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
-import {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 function getReferrer(displayType: DisplayType) {
   let referrer = '';
@@ -49,6 +49,7 @@ export type GenericWidgetQueriesChildrenProps = {
   loading: boolean;
   confidence?: Confidence;
   errorMessage?: string;
+  isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
@@ -56,7 +57,6 @@ export type GenericWidgetQueriesChildrenProps = {
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   totalCount?: string;
-  isProgressivelyLoading?: boolean;
 };
 
 export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
@@ -89,10 +89,10 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
   onDemandControlContext?: OnDemandControlContext;
+  samplingMode?: SamplingMode;
   // Skips adding parens before applying dashboard filters
   // Used for datasets that do not support parens/boolean logic
   skipDashboardFilterParens?: boolean;
-  samplingMode?: SamplingMode;
 };
 
 type State<SeriesResponse> = {
@@ -297,18 +297,15 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     });
 
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {
-      this.setState(
-        {
-          tableResults: transformedTableResults,
-          pageLinks: responsePageLinks,
-        },
-        () =>
-          onDataFetched?.({
-            tableResults: transformedTableResults,
-            pageLinks: responsePageLinks,
-            ...afterTableFetchData,
-          })
-      );
+      onDataFetched?.({
+        tableResults: transformedTableResults,
+        pageLinks: responsePageLinks,
+        ...afterTableFetchData,
+      });
+      this.setState({
+        tableResults: transformedTableResults,
+        pageLinks: responsePageLinks,
+      });
     }
   }
   async fetchSeriesData(queryFetchID: symbol) {
@@ -371,18 +368,15 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     );
 
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {
-      this.setState(
-        {
-          timeseriesResults: transformedTimeseriesResults,
-          rawResults: rawResultsClone,
-          timeseriesResultsTypes,
-        },
-        () =>
-          onDataFetched?.({
-            timeseriesResults: transformedTimeseriesResults,
-            timeseriesResultsTypes,
-          })
-      );
+      onDataFetched?.({
+        timeseriesResults: transformedTimeseriesResults,
+        timeseriesResultsTypes,
+      });
+      this.setState({
+        timeseriesResults: transformedTimeseriesResults,
+        rawResults: rawResultsClone,
+        timeseriesResultsTypes,
+      });
     }
   }
 
