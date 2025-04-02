@@ -32,7 +32,7 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 type Options = {
   organization: OrganizationSummary;
@@ -54,13 +54,13 @@ type Options = {
   queryBatching?: QueryBatching;
   queryExtras?: Record<string, string | boolean | number>;
   referrer?: string;
+  sampling?: SamplingMode;
   start?: DateString;
   team?: Readonly<string | string[]>;
   topEvents?: number;
   useRpc?: boolean;
   withoutZerofill?: boolean;
   yAxis?: string | string[];
-  sampling?: SamplingMode;
 };
 
 export type EventsStatsOptions<T extends boolean> = {includeAllArgs: T} & Options;

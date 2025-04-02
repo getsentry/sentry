@@ -7,6 +7,7 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 
 import type {StateProps} from '../widgets/common/types';
 import {Widget} from '../widgets/widget/widget';
@@ -14,7 +15,6 @@ import type {WidgetDescriptionProps} from '../widgets/widget/widgetDescription';
 
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import {WarningsList} from './warningsList';
-import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 
 export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   actions?: MenuItemProps[];
@@ -23,13 +23,13 @@ export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   badgeProps?: string | string[];
   borderless?: boolean;
   children?: React.ReactNode;
+  isProgressivelyLoading?: boolean;
   noVisualizationPadding?: boolean;
   onFullScreenViewClick?: () => void | Promise<void>;
   revealActions?: 'always' | 'hover';
   revealTooltip?: 'always' | 'hover';
   title?: string;
   warnings?: string[];
-  isProgressivelyLoading?: boolean;
 }
 
 export function WidgetFrame(props: WidgetFrameProps) {

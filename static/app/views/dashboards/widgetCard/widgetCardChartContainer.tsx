@@ -1,4 +1,4 @@
-import {Dispatch, SetStateAction, Fragment} from 'react';
+import {type Dispatch, Fragment, type SetStateAction} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -52,6 +52,7 @@ type Props = {
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
+  onProgressivelyLoading?: Dispatch<SetStateAction<boolean>>;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onZoom?: EChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
@@ -59,7 +60,6 @@ type Props = {
   showConfidenceWarning?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
-  onProgressivelyLoading?: Dispatch<SetStateAction<boolean>>;
 };
 
 export function WidgetCardChartContainer({
