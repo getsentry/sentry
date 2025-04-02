@@ -1,5 +1,6 @@
 from django.db import IntegrityError, router, transaction
 from rest_framework import serializers, status
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -59,9 +60,7 @@ class ExploreSavedQueryStarredOrderEndpoint(OrganizationEndpoint):
                     user_id=request.user.id,
                     new_query_positions=query_ids,
                 )
-        except IntegrityError as e:
-            return Response(status=status.HTTP_400_BAD_REQUEST, data={"detail": e.args[0]})
-        except ValueError as e:
-            return Response(status=status.HTTP_400_BAD_REQUEST, data={"detail": e.args[0]})
+        except (IntegrityError, ValueError) as e:
+            raise ParseError(detail=str(e))
 
         return Response(status=status.HTTP_204_NO_CONTENT)
