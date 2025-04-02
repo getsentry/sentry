@@ -259,15 +259,15 @@ export default function MetricChart({
               <SectionHeading>{t('Summary')}</SectionHeading>
               <StyledSectionValue>
                 <ValueItem>
-                  <IconCheckmark color="successText" isCircled />
+                  <IconCheckmark color="successIcon" isCircled />
                   {resolvedPercent ? resolvedPercent.toFixed(2) : 0}%
                 </ValueItem>
                 <ValueItem>
-                  <IconWarning color="warningText" />
+                  <IconWarning color="warningIcon" />
                   {warningPercent ? warningPercent.toFixed(2) : 0}%
                 </ValueItem>
                 <ValueItem>
-                  <IconFire color="errorText" />
+                  <IconFire color="errorIcon" />
                   {criticalPercent ? criticalPercent.toFixed(2) : 0}%
                 </ValueItem>
                 {waitingForDataPercent > 0 && (

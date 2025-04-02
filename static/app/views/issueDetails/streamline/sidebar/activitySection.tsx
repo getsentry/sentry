@@ -267,7 +267,7 @@ export default function StreamlinedActivitySection({
                   size="xs"
                   color={
                     group.subscriptionDetails?.reason === 'mentioned'
-                      ? 'successText'
+                      ? 'successIcon'
                       : undefined
                   }
                 />

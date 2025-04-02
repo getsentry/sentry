@@ -69,7 +69,7 @@ function CodecovLink({
     return (
       <CodecovWarning>
         {t('Code Coverage not found')}
-        <IconWarning size="xs" color="errorText" />
+        <IconWarning size="xs" color="errorIcon" />
       </CodecovWarning>
     );
   }

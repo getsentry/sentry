@@ -8,7 +8,7 @@ function UnhandledTag() {
   const hasStreamlinedUI = useHasStreamlinedUI();
   return (
     <UnhandledTagWrapper>
-      {!hasStreamlinedUI && <StyledIconFatal size="xs" color="errorText" />}
+      {!hasStreamlinedUI && <StyledIconFatal size="xs" color="errorIcon" />}
       {t('Unhandled')}
     </UnhandledTagWrapper>
   );

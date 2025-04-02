@@ -13,7 +13,6 @@ import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -101,7 +100,7 @@ function AccordionWidget({
   });
   const location = useLocation();
   const filteredData = data.filter(d => (d[clickType] ?? 0) > 0);
-  const clickColor = deadOrRage === 'dead' ? 'yellow300' : 'red300';
+  const clickColor = deadOrRage === 'dead' ? 'warningIcon' : 'errorIcon';
 
   return (
     <StyledWidgetContainer data-test-id="selector-widget">
@@ -179,7 +178,7 @@ function AccordionItemHeader({
   selectorQuery,
   id,
 }: {
-  clickColor: ColorOrAlias;
+  clickColor: 'warningIcon' | 'errorIcon';
   count: number;
   id: number;
   selector: string;

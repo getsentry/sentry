@@ -720,6 +720,7 @@ const generateAliases = (
    */
   success: tokens.content.success,
   successText: tokens.content.success,
+  successIcon: tokens.content.success,
   // @TODO(jonasbadalic): should this reference a chonk color?
   successFocus: tokens.border.success, // Not being used
 
@@ -728,6 +729,7 @@ const generateAliases = (
    */
   error: tokens.content.danger,
   errorText: tokens.content.danger,
+  errorIcon: tokens.content.danger,
   errorFocus: tokens.border.danger,
 
   /**
@@ -735,6 +737,7 @@ const generateAliases = (
    */
   danger: tokens.content.danger,
   dangerText: tokens.content.danger,
+  dangerIcon: tokens.content.danger,
   // @TODO(jonasbadalic): should this reference a chonk color?
   dangerFocus: tokens.border.danger, // Not being used
 
@@ -743,6 +746,7 @@ const generateAliases = (
    */
   warning: tokens.content.warning,
   warningText: tokens.content.warning,
+  warningIcon: tokens.content.warning,
   // @TODO(jonasbadalic): should this reference a chonk color?
   warningFocus: tokens.border.warning, // Not being used
 

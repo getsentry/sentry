@@ -70,7 +70,7 @@ export const BadgeBorder = styled('div')<{
 export function ErrorBadge() {
   return (
     <BadgeBorder color="error">
-      <IconFire color="errorText" size="xs" />
+      <IconFire color="errorIcon" size="xs" />
     </BadgeBorder>
   );
 }

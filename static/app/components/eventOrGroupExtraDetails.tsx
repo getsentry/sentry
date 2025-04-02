@@ -103,7 +103,7 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
       >
         <IconChat
           size="xs"
-          color={subscriptionDetails?.reason === 'mentioned' ? 'successText' : undefined}
+          color={subscriptionDetails?.reason === 'mentioned' ? 'successIcon' : undefined}
         />
         <span>{numComments}</span>
       </CommentsLink>

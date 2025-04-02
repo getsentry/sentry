@@ -50,14 +50,14 @@ const CRASH_FREE_WARNING_THRESHOLD = 99.5;
 
 function getCrashFreeIcon(crashFreePercent: number, iconSize: IconSize = 'sm') {
   if (crashFreePercent < CRASH_FREE_DANGER_THRESHOLD) {
-    return <IconFire color="errorText" size={iconSize} />;
+    return <IconFire color="errorIcon" size={iconSize} />;
   }
 
   if (crashFreePercent < CRASH_FREE_WARNING_THRESHOLD) {
-    return <IconWarning color="warningText" size={iconSize} />;
+    return <IconWarning color="warningIcon" size={iconSize} />;
   }
 
-  return <IconCheckmark isCircled color="successText" size={iconSize} />;
+  return <IconCheckmark isCircled color="successIcon" size={iconSize} />;
 }
 
 type Props = {

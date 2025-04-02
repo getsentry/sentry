@@ -24,11 +24,11 @@ interface Props {
 
 export const statusIconColorMap: Record<MonitorStatus, StatusNotice> = {
   ok: {
-    icon: <IconCheckmark color="successText" />,
+    icon: <IconCheckmark color="successIcon" />,
     color: 'successText',
   },
   error: {
-    icon: <IconFire color="errorText" />,
+    icon: <IconFire color="errorIcon" />,
     color: 'errorText',
   },
   active: {

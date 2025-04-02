@@ -55,10 +55,10 @@ function TriggerDescription({
 
   const statusIconColor =
     label === AlertRuleTriggerType.CRITICAL
-      ? 'errorText'
+      ? 'errorIcon'
       : label === AlertRuleTriggerType.WARNING
-        ? 'warningText'
-        : 'successText';
+        ? 'warningIcon'
+        : 'successIcon';
 
   const defaultAction = t('Change alert status to %s', status);
 

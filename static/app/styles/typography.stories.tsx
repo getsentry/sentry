@@ -14,8 +14,8 @@ import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconCheckmark, IconCircleFill, IconClose} from 'sentry/icons';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {space} from 'sentry/styles/space';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 
 const FixedWidth = styled('div')`
   max-width: 800px;
@@ -575,7 +575,7 @@ const ColorSwatch = styled(
     className,
     style,
   }: {
-    color: ColorOrAlias;
+    color: SVGIconProps['color'];
     className?: string;
     style?: CSSProperties;
   }) => (

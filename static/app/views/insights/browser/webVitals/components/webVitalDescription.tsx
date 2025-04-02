@@ -229,9 +229,9 @@ export function WebVitalDescription({score, value, webVital}: Props) {
             {vitalSupportedBrowsers[
               WebVital[webVital.toUpperCase() as Uppercase<typeof webVital>]
             ]?.includes(browser) ? (
-              <IconCheckmark color="successText" size="sm" />
+              <IconCheckmark color="successIcon" size="sm" />
             ) : (
-              <IconClose color="dangerText" size="sm" />
+              <IconClose color="dangerIcon" size="sm" />
             )}
             {browser}
           </BrowserItem>

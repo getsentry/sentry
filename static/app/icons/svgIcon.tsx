@@ -4,9 +4,17 @@ import type {Aliases, Color, IconSize} from 'sentry/utils/theme';
 
 import {useIconDefaults} from './useIconDefaults';
 
+// The following aliases are forbidden, as they are text colors and not icon colors
+type ForbiddenColorAliases = 'successText' | 'errorText' | 'warningText';
+
+type ColorOptions =
+  | Color
+  | Exclude<keyof Aliases, ForbiddenColorAliases>
+  | 'currentColor';
+
 export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
   className?: string;
-  color?: Color | keyof Aliases | 'currentColor';
+  color?: ColorOptions;
   /**
    * DO NOT USE THIS! Please use the `size` prop
    *

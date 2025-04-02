@@ -294,6 +294,7 @@ export const generateThemeAliases = (colors: Colors) => ({
    */
   success: colors.green300,
   successText: colors.green400,
+  successIcon: colors.green400,
   successFocus: colors.green200,
 
   /**
@@ -301,6 +302,7 @@ export const generateThemeAliases = (colors: Colors) => ({
    */
   error: colors.red300,
   errorText: colors.red400,
+  errorIcon: colors.red400,
   errorFocus: colors.red200,
 
   /**
@@ -308,15 +310,15 @@ export const generateThemeAliases = (colors: Colors) => ({
    */
   danger: colors.red300,
   dangerText: colors.red400,
+  dangerIcon: colors.red400,
   dangerFocus: colors.red200,
-
   /**
    * A color that denotes a warning
    */
   warning: colors.yellow300,
   warningText: colors.yellow400,
+  warningIcon: colors.yellow400,
   warningFocus: colors.yellow200,
-
   /**
    * A color that indicates something is disabled where user can not interact or use
    * it in the usual manner (implies that there is an "enabled" state)

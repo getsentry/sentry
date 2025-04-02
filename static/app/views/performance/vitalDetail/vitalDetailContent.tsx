@@ -288,7 +288,7 @@ function VitalDetailContent(props: Props) {
             {Object.values(Browser).map(browser => (
               <BrowserItem key={browser}>
                 {vitalSupportedBrowsers[vitalName]?.includes(browser) ? (
-                  <IconCheckmark color="successText" size="sm" />
+                  <IconCheckmark color="successIcon" size="sm" />
                 ) : (
                   <IconClose color="dangerText" size="sm" />
                 )}

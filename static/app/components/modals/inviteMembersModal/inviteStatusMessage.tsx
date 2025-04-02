@@ -40,7 +40,7 @@ function CountMessage({sentCount, errorCount, isRequest}: CountMessageProps) {
     <div>
       {sentCount > 0 && (
         <StatusMessage status="success" isNewInviteModal>
-          <IconCheckmark size="sm" color="successText" />
+          <IconCheckmark size="sm" color="successIcon" />
           <span role="alert" aria-label={t('Sent Invites')}>
             {tct('[invites] sent.', tctComponents)}
           </span>
@@ -48,7 +48,7 @@ function CountMessage({sentCount, errorCount, isRequest}: CountMessageProps) {
       )}
       {errorCount > 0 && (
         <StatusMessage status="error" isNewInviteModal>
-          <IconWarning size="sm" color="errorText" />
+          <IconWarning size="sm" color="errorIcon" />
           <span role="alert" aria-label={t('Failed Invites')}>
             {tct('[failedInvites] failed to send.', tctComponents)}
           </span>

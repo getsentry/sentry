@@ -62,7 +62,7 @@ export default function AlertRuleStatus({rule}: Props) {
       ? criticalTrigger
       : (warningTrigger ?? criticalTrigger);
 
-  let iconColor: ColorOrAlias = 'successText';
+  let iconColor: ColorOrAlias = 'successIcon';
   let iconDirection: 'up' | 'down' | undefined;
   let thresholdTypeText =
     activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
@@ -75,10 +75,10 @@ export default function AlertRuleStatus({rule}: Props) {
   if (activeIncident) {
     iconColor =
       trigger?.label === AlertRuleTriggerType.CRITICAL
-        ? 'errorText'
+        ? 'errorIcon'
         : trigger?.label === AlertRuleTriggerType.WARNING
-          ? 'warningText'
-          : 'successText';
+          ? 'warningIcon'
+          : 'successIcon';
     iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'up' : 'down';
   } else {
     // Use the Resolved threshold type, which is opposite of Critical

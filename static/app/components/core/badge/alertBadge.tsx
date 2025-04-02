@@ -13,9 +13,8 @@ import {
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {IncidentStatus} from 'sentry/views/alerts/types';
-
-import {withChonk} from '../../../utils/theme/withChonk';
 
 import {ChonkAlertBadgeDiamondBackground} from './alertBadge.chonk';
 
@@ -96,7 +95,7 @@ function getDiamondTheme(
       icon: IconExclamation,
     };
   }
-  return {text: t('Resolved'), backgroundColor: theme.successText, icon: IconCheckmark};
+  return {text: t('Resolved'), backgroundColor: theme.successIcon, icon: IconCheckmark};
 }
 
 const PaddedContainer = styled(Flex)`

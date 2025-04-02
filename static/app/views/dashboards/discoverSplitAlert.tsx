@@ -51,7 +51,7 @@ export function DiscoverSplitAlert({
   if (splitAlert) {
     return (
       <Tooltip containerDisplayMode="inline-flex" isHoverable title={splitAlert}>
-        <IconWarning color="warningText" aria-label={t('Dataset split warning')} />
+        <IconWarning color="warningIcon" aria-label={t('Dataset split warning')} />
       </Tooltip>
     );
   }
