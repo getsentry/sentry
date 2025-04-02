@@ -780,12 +780,12 @@ CELERY_IMPORTS = (
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.tasks.assemble",
-    "sentry.tasks.auth",
+    "sentry.tasks.auth.auth",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.beacon",
-    "sentry.tasks.check_auth",
+    "sentry.tasks.auth.check_auth",
     "sentry.tasks.check_new_issue_threshold_met",
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.clear_expired_rulesnoozes",
@@ -1584,9 +1584,6 @@ SENTRY_DEFAULT_LANGUAGE = "en"
 # Should we send the beacon to the upstream server?
 SENTRY_BEACON = True
 
-# Allow access to Sentry without authentication.
-SENTRY_PUBLIC = False
-
 # Instruct Sentry that this install intends to be run by a single organization
 # and thus various UI optimizations should be enabled.
 SENTRY_SINGLE_ORGANIZATION = False
@@ -1879,7 +1876,6 @@ SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
 SENTRY_ENDPOINT: str | None = None
-SENTRY_PUBLIC_ENDPOINT: str | None = None
 
 # Hostname prefix to add for organizations that are opted into the
 # `organizations:org-ingest-subdomains` feature.

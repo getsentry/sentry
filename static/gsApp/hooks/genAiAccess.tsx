@@ -39,12 +39,6 @@ export function useGenAiConsentButtonAccess({
       message: t('This feature is not available in your region.'),
     },
     {
-      check: isTouchCustomerAndNeedsMsaUpdate,
-      message: t(
-        'These changes require updates to your account. Please contact your customer success manager to learn more.'
-      ),
-    },
-    {
       check: !hasBillingAccess && !user?.isSuperuser,
       message: t(
         "You don't have access to manage these billing and subscription details."

@@ -211,6 +211,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         include_other = request.GET.get("excludeOther") != "1"
         referrer = request.GET.get("referrer")
+        sampling_mode = request.GET.get("sampling")
         referrer = (
             referrer
             if referrer in ALLOWED_EVENTS_STATS_REFERRERS.union(METRICS_ENHANCED_REFERRERS)
@@ -246,6 +247,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                         auto_fields=False,
                         use_aggregate_conditions=True,
                     ),
+                    sampling_mode=sampling_mode,
                 )
             return dataset.top_events_timeseries(
                 timeseries_columns=query_columns,
@@ -280,6 +282,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     auto_fields=False,
                     use_aggregate_conditions=True,
                 ),
+                sampling_mode=sampling_mode,
                 comparison_delta=comparison_delta,
             )
 

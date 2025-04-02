@@ -181,7 +181,6 @@ class NotifyEventServiceAction(EventAction):
 
         if plugin:
             extra["plugin"] = service
-
             if not plugin.is_enabled(self.project):
                 extra["project_id"] = self.project.id
                 self.logger.info("rules.fail.is_enabled", extra=extra)
