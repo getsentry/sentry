@@ -199,7 +199,7 @@ const getStylesConfig = ({
   return {
     control: (_, state: any) => ({
       display: 'flex',
-      color: theme.formText,
+      color: theme.gray400,
       background: theme.background,
       border: `1px solid ${theme.border}`,
       boxShadow: theme.dropShadowMedium,
@@ -269,12 +269,12 @@ const getStylesConfig = ({
     }),
     input: provided => ({
       ...provided,
-      color: theme.formText,
+      color: theme.gray400,
       margin: 0,
     }),
     singleValue: provided => ({
       ...provided,
-      color: theme.formText,
+      color: theme.gray400,
       display: 'flex',
       alignItems: 'center',
       marginLeft: 0,

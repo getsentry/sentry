@@ -53,7 +53,7 @@ export interface InputStylesProps {
 const legacyInputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   display: block;
   width: 100%;
-  color: ${p.theme.formText};
+  color: ${p.theme.gray400};
   background: ${p.theme.background};
   border: 1px solid ${p.theme.border};
   border-radius: ${p.theme.borderRadius};

@@ -364,11 +364,6 @@ export const generateThemeAliases = (colors: Colors) => ({
   formPlaceholder: colors.gray300,
 
   /**
-   * Default form text color
-   */
-  formText: colors.gray400,
-
-  /**
    *
    */
   rowBackground: colors.surface400,
