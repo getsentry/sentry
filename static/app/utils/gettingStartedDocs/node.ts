@@ -1,27 +1,4 @@
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-
-export type ProductSelectionMap = Record<ProductSolution, boolean>;
-
-/**
- * Transforms the product selection array into a map of booleans for each product for easier access.
- */
-const getProductSelectionMap = (params: DocsParams): ProductSelectionMap => {
-  return {
-    [ProductSolution.ERROR_MONITORING]: true,
-    [ProductSolution.PROFILING]: params.isProfilingSelected,
-    [ProductSolution.PERFORMANCE_MONITORING]: params.isPerformanceSelected,
-    [ProductSolution.SESSION_REPLAY]: params.isReplaySelected,
-  };
-};
-
-/**
- * Joins the given lines with the given indentation using \n as delimiter.
- */
-export function joinWithIndentation(lines: string[], indent = 2) {
-  const indentation = ' '.repeat(indent);
-  return lines.map(line => `${indentation}${line}`).join('\n');
-}
 
 export function getInstallSnippet({
   params,
@@ -133,23 +110,6 @@ export function getSentryImportSnippet(
   return getImport(sdkPackage, defaultMode).join('\n');
 }
 
-export function getDefaultNodeImports({
-  productSelection,
-  library,
-  defaultMode,
-}: {
-  library: 'node' | `google-cloud-serverless` | `aws-serverless` | 'nestjs';
-  productSelection: ProductSelectionMap;
-  defaultMode?: 'esm' | 'cjs';
-}) {
-  const imports: string[] = getImport(library, defaultMode);
-
-  if (productSelection.profiling) {
-    imports.push(getProfilingImport(defaultMode));
-  }
-  return imports;
-}
-
 export function getImportInstrumentSnippet(
   defaultMode?: 'esm' | 'cjs',
   fileExtension = 'js'
@@ -165,6 +125,33 @@ import "./${filename}";`
 require("./${filename}");`;
 }
 
+const libraryMap = {
+  node: 'node',
+  aws: 'aws-serverless',
+  gpc: 'google-cloud-serverless',
+  nestjs: 'nestjs',
+} as const;
+
+function getDefaultNodeImports({
+  params,
+  sdkImport,
+  defaultMode,
+}: {
+  params: DocsParams;
+  sdkImport: 'node' | 'aws' | 'gpc' | 'nestjs' | null;
+  defaultMode?: 'esm' | 'cjs';
+}) {
+  if (sdkImport === null || !libraryMap[sdkImport]) {
+    return '';
+  }
+  const imports: string[] = getImport(libraryMap[sdkImport], defaultMode);
+
+  if (params.isProfilingSelected) {
+    imports.push(getProfilingImport(defaultMode));
+  }
+  return imports.join('\n');
+}
+
 /**
  *  Returns the init() with the necessary imports. It is possible to omit the imports.
  */
@@ -172,35 +159,8 @@ export const getSdkInitSnippet = (
   params: DocsParams,
   sdkImport: 'node' | 'aws' | 'gpc' | 'nestjs' | null,
   defaultMode?: 'esm' | 'cjs'
-) => `${
-  sdkImport === null
-    ? ''
-    : sdkImport === 'node'
-      ? getDefaultNodeImports({
-          library: 'node',
-          productSelection: getProductSelectionMap(params),
-          defaultMode,
-        }).join('\n') + '\n'
-      : sdkImport === 'aws'
-        ? getDefaultNodeImports({
-            productSelection: getProductSelectionMap(params),
-            library: 'aws-serverless',
-            defaultMode,
-          }).join('\n') + '\n'
-        : sdkImport === 'gpc'
-          ? getDefaultNodeImports({
-              productSelection: getProductSelectionMap(params),
-              library: 'google-cloud-serverless',
-              defaultMode,
-            }).join('\n') + '\n'
-          : sdkImport === 'nestjs'
-            ? getDefaultNodeImports({
-                productSelection: getProductSelectionMap(params),
-                library: 'nestjs',
-                defaultMode,
-              }).join('\n') + '\n'
-            : ''
-}
+) => `${getDefaultNodeImports({params, sdkImport, defaultMode})}
+
 Sentry.init({
   dsn: "${params.dsn.public}",${
     params.isProfilingSelected
@@ -216,13 +176,14 @@ Sentry.init({
       : ''
   }${
     params.isProfilingSelected
-      ? params.profilingOptions?.defaultProfilingMode === 'continuous'
-        ? `
-    // Set sampling rate for profiling - this is evaluated only once per SDK.init
-    profileSessionSampleRate: 1.0,`
-        : `
+      ? `
     // Set sampling rate for profiling - this is evaluated only once per SDK.init call
-    profileSessionSampleRate: 1.0,
+    profileSessionSampleRate: 1.0,`
+      : ''
+  }${
+    params.isProfilingSelected &&
+    params.profilingOptions?.defaultProfilingMode === 'continuous'
+      ? `
     // Trace lifecycle automatically enables profiling during active traces
     profileLifecycle: 'trace',`
       : ''
@@ -252,40 +213,3 @@ Sentry.startSpan({
 Sentry.profiler.stopProfiler();`
       : ''
   }`;
-
-export function getProductIntegrations({
-  productSelection,
-}: {
-  productSelection: ProductSelectionMap;
-}) {
-  const integrations: string[] = [];
-  if (productSelection.profiling) {
-    integrations.push(`nodeProfilingIntegration(),`);
-  }
-  return integrations;
-}
-
-export function getDefaultInitParams({dsn}: {dsn: string}) {
-  return [`dsn: '${dsn}',`];
-}
-
-export function getProductInitParams({
-  productSelection,
-}: {
-  productSelection: ProductSelectionMap;
-}) {
-  const params: string[] = [];
-  if (productSelection['performance-monitoring']) {
-    params.push(`// Tracing`);
-    params.push(`tracesSampleRate: 1.0,`);
-  }
-
-  if (productSelection.profiling) {
-    params.push(
-      `// Set sampling rate for profiling - this is relative to tracesSampleRate`
-    );
-    params.push(`profilesSampleRate: 1.0,`);
-  }
-
-  return params;
-}
