@@ -3,13 +3,17 @@ from __future__ import annotations
 from time import time
 from unittest.mock import MagicMock, patch
 
+from sentry.eventstore.models import Event
+from sentry.grouping.api import GroupingConfig
 from sentry.grouping.ingest.hashing import (
     _calculate_event_grouping,
     _calculate_secondary_hashes,
     get_or_create_grouphashes,
 )
+from sentry.grouping.variants import BaseVariant
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
@@ -53,7 +57,7 @@ class BackgroundGroupingTest(TestCase):
 
 
 class SecondaryGroupingTest(TestCase):
-    def test_applies_secondary_grouping(self):
+    def test_applies_secondary_grouping(self) -> None:
         project = self.project
         project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
 
@@ -96,7 +100,9 @@ class SecondaryGroupingTest(TestCase):
     ) -> None:
         secondary_grouping_error = Exception("nope")
 
-        def mock_calculate_event_grouping(project, event, grouping_config):
+        def mock_calculate_event_grouping(
+            project: Project, event: Event, grouping_config: GroupingConfig
+        ) -> tuple[list[str], dict[str, BaseVariant]]:
             # We only want `_calculate_event_grouping` to error inside of `_calculate_secondary_hash`,
             # not anywhere else it's called
             if grouping_config["id"] == LEGACY_GROUPING_CONFIG:
@@ -123,7 +129,7 @@ class SecondaryGroupingTest(TestCase):
     @patch("sentry.event_manager.get_or_create_grouphashes", wraps=get_or_create_grouphashes)
     def test_secondary_grouphashes_not_saved_when_creating_new_group(
         self, get_or_create_grouphashes_spy: MagicMock
-    ):
+    ) -> None:
         project = self.project
         project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
         project.update_option("sentry:secondary_grouping_config", LEGACY_GROUPING_CONFIG)
@@ -154,7 +160,7 @@ class SecondaryGroupingTest(TestCase):
             hash=hashes_by_config[LEGACY_GROUPING_CONFIG]
         ).exists()
 
-    def test_filters_new_secondary_hashes_when_creating_grouphashes(self):
+    def test_filters_new_secondary_hashes_when_creating_grouphashes(self) -> None:
         project = self.project
         project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
 
