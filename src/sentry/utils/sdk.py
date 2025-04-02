@@ -257,7 +257,7 @@ def before_send(event: Event, _: Hint) -> Event | None:
     return event
 
 
-def before_emit_log(log: Any, _: Hint) -> Any:
+def before_send_log(log: Any, _: Hint) -> Any:
     if in_random_rollout("ourlogs.sentry-emit-rollout"):
         return log
     return None
@@ -293,8 +293,8 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     )
     sdk_options.setdefault("_experiments", {}).update(
         transport_http2=True,
-        before_emit_log=before_emit_log,
-        enable_sentry_logs=True,
+        before_send_log=before_send_log,
+        enable_logs=True,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
