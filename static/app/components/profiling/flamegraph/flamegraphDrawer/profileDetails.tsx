@@ -123,12 +123,12 @@ export function ProfileDetails(props: ProfileDetailsProps) {
           className={detailsTab === 'transaction' ? 'active' : undefined}
         >
           <Button
-            data-title={t('Transaction')}
+            data-title={t('Trace')}
             priority="link"
             size="zero"
             onClick={onTransactionTabClick}
           >
-            {t('Transaction')}
+            {t('Trace')}
           </Button>
         </ProfilingDetailsListItem>
         <ProfilingDetailsListItem
