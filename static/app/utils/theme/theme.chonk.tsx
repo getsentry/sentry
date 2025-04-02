@@ -866,16 +866,6 @@ const generateAliases = (
   },
 
   /**
-   * Count on button when active
-   */
-  buttonCountActive: colors.white,
-
-  /**
-   * Count on button
-   */
-  buttonCount: tokens.content.primary,
-
-  /**
    * Background of alert banners at the top
    */
   bannerBackground: colors.gray500,
