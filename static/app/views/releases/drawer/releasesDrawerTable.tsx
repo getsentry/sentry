@@ -77,11 +77,6 @@ export function ReleaseDrawerTable({
         query: {
           project: projects,
           environment: environments,
-          ...Object.fromEntries(
-            Object.entries(location.query).filter(([key]) =>
-              ['project', 'environment'].includes(key)
-            )
-          ),
           cursor: location.query.releaseCursor,
           ...normalizeDateTimeParams({
             start,
