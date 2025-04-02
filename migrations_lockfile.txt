@@ -17,7 +17,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0855_give_monitor_type_a_db_default
+sentry: 0856_monitors_remove_type_column_state
 
 social_auth: 0002_default_auto_field
 
