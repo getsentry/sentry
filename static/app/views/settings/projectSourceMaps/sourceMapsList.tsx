@@ -24,6 +24,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
+import {
+  DemoTourElement,
+  DemoTourStep,
+  useDemoSourcemapsTour,
+} from 'sentry/utils/demoMode/demoTours';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -165,24 +170,39 @@ export function SourceMapsList({location, router, project}: Props) {
     [router, location]
   );
 
+  const {startTour} = useDemoSourcemapsTour();
+
   return (
     <Fragment>
       <SettingsPageHeader title={t('Source Map Uploads')} />
-      <TextBlock>
-        {tct(
-          `These source map archives help Sentry identify where to look when code is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].`,
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
-            ),
-          }
-        )}
-      </TextBlock>
-      <SearchBarWithMarginBottom
-        placeholder={t('Filter by Debug ID or Upload ID')}
-        onSearch={handleSearch}
-        query={query}
-      />
+      <Button onClick={() => startTour(DemoTourStep.NAME)}>Start Tour</Button>
+      <DemoTourElement
+        id={DemoTourStep.NAME}
+        title={'Name Time!'}
+        description={'We need this to make your account :)'}
+      >
+        <TextBlock>
+          {tct(
+            `These source map archives help Sentry identify where to look when code is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].`,
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
+              ),
+            }
+          )}
+        </TextBlock>
+      </DemoTourElement>
+      <DemoTourElement
+        id={DemoTourStep.EMAIL}
+        title={'Email Time!'}
+        description={'We need this to make your email :)'}
+      >
+        <SearchBarWithMarginBottom
+          placeholder={t('Filter by Debug ID or Upload ID')}
+          onSearch={handleSearch}
+          query={query}
+        />
+      </DemoTourElement>
       <SourceMapUploadsList
         project={project}
         sourceMapUploads={sourceMapUploads}

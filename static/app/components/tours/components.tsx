@@ -62,6 +62,10 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    */
   onStepChange?: (stepId: T) => void;
   /**
+   * Called when a tour step is completed
+   */
+  onStepComplete?: (stepId: T) => void;
+  /**
    * Whether to require all steps to be registered in the DOM before the tour can start.
    */
   requireAllStepsRegistered?: boolean;
@@ -81,6 +85,7 @@ export function TourContextProvider<T extends TourEnumType>({
   onEndTour,
   onStartTour,
   onStepChange,
+  onStepComplete,
   requireAllStepsRegistered,
 }: TourContextProviderProps<T>) {
   const organization = useOrganization();
@@ -90,9 +95,10 @@ export function TourContextProvider<T extends TourEnumType>({
       onStartTour,
       onEndTour,
       onStepChange,
+      onStepComplete,
       requireAllStepsRegistered,
     }),
-    [onStartTour, onEndTour, onStepChange, requireAllStepsRegistered]
+    [onStartTour, onEndTour, onStepChange, onStepComplete, requireAllStepsRegistered]
   );
   const tourContextValue = useTourReducer<T>(
     {
@@ -104,6 +110,7 @@ export function TourContextProvider<T extends TourEnumType>({
     },
     options
   );
+
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
 

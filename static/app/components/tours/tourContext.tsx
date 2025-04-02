@@ -289,4 +289,5 @@ export interface TourContextType<T extends TourEnumType> extends TourState<T> {
   previousStep: () => void;
   setStep: (stepId: T) => void;
   startTour: (stepId?: T) => void;
+  onStepComplete?: (stepId: T) => void;
 }
