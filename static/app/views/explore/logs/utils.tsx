@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -132,7 +133,7 @@ export function logsFieldAlignment(...args: Parameters<typeof fieldAlignment>) {
   return fieldAlignment(...args);
 }
 
-export function removePrefixes(key: string) {
+function removePrefixes(key: string) {
   return key.replace('log.', '').replace('sentry.', '');
 }
 
@@ -152,8 +153,16 @@ export function adjustAliases(key: string) {
   }
 }
 
-export function getTableHeaderLabel(field: OurLogFieldKey) {
-  return LogAttributesHumanLabel[field] ?? removePrefixes(field);
+export function getTableHeaderLabel(
+  field: OurLogFieldKey,
+  stringAttributes: TagCollection,
+  numberAttributes: TagCollection
+) {
+  const attribute = stringAttributes[field] ?? numberAttributes[field] ?? null;
+
+  return (
+    LogAttributesHumanLabel[field] ?? attribute?.name ?? prettifyAttributeName(field)
+  );
 }
 
 export function isLogAttributeUnit(unit: string | null): unit is LogAttributeUnits {
