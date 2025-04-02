@@ -133,6 +133,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             {...props}
             ref={chartRendererRef}
             disableReleaseNavigation
+            onZoom={() => {}}
             plottables={props.plottables.map(plottable =>
               plottable.constrain(trimStart, trimEnd)
             )}
@@ -187,7 +188,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, registerWithWidgetSyncContext]
   );
 
-  const chartZoomProps = useChartZoom({
+  const {onDataZoom, ...chartZoomProps} = useChartZoom({
     saveOnZoom: true,
   });
 
@@ -550,7 +551,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       }}
       yAxes={yAxes}
       {...chartZoomProps}
-      {...(props.onZoom ? {onDataZoom: props.onZoom} : {})}
+      onDataZoom={props.onZoom ?? onDataZoom}
       isGroupedByDate
       useMultilineDate
       start={start ? new Date(start) : undefined}
