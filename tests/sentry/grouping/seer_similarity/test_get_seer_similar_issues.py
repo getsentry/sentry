@@ -89,7 +89,9 @@ class GetSeerSimilarIssuesTest(TestCase):
             {"hybrid_fingerprint": False},
         )
 
-    def test_parent_group_found_simple(self) -> None:
+
+class ParentGroupFoundTest(TestCase):
+    def test_simple(self) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         existing_hash = existing_event.get_primary_hash()
         existing_grouphash = GroupHash.objects.filter(
@@ -123,9 +125,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
-    def test_parent_group_found_hybrid_fingerprint_match(
-        self, mock_metrics_incr: MagicMock
-    ) -> None:
+    def test_hybrid_fingerprint_match(self, mock_metrics_incr: MagicMock) -> None:
         existing_event = save_new_event(
             {"message": "Dogs are great!", "fingerprint": ["{{ default }}", "maisey"]},
             self.project,
@@ -170,9 +170,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
-    def test_parent_group_found_hybrid_fingerprint_mismatch(
-        self, mock_metrics_incr: MagicMock
-    ) -> None:
+    def test_hybrid_fingerprint_mismatch(self, mock_metrics_incr: MagicMock) -> None:
         existing_event = save_new_event(
             {"message": "Dogs are great!", "fingerprint": ["{{ default }}", "maisey"]},
             self.project,
@@ -213,9 +211,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
-    def test_parent_group_found_hybrid_fingerprint_on_new_event_only(
-        self, mock_metrics_incr: MagicMock
-    ) -> None:
+    def test_hybrid_fingerprint_on_new_event_only(self, mock_metrics_incr: MagicMock) -> None:
         existing_event = save_new_event(
             {"message": "Dogs are great!"},
             self.project,
@@ -256,9 +252,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
-    def test_parent_group_found_hybrid_fingerprint_on_parent_group_only(
-        self, mock_metrics_incr: MagicMock
-    ) -> None:
+    def test_hybrid_fingerprint_on_parent_group_only(self, mock_metrics_incr: MagicMock) -> None:
         existing_event = save_new_event(
             {"message": "Dogs are great!", "fingerprint": ["{{ default }}", "maisey"]},
             self.project,
@@ -296,9 +290,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
-    def test_parent_group_found_hybrid_fingerprint_no_parent_metadata(
-        self, mock_metrics_incr: MagicMock
-    ) -> None:
+    def test_hybrid_fingerprint_no_parent_metadata(self, mock_metrics_incr: MagicMock) -> None:
         """
         Test that even when there's a match, no result will be returned if the matched hash has
         no metadata.
@@ -351,7 +343,9 @@ class GetSeerSimilarIssuesTest(TestCase):
                 tags={"platform": "python", "result": "no_parent_metadata"},
             )
 
-    def test_no_parent_group_found_simple(self) -> None:
+
+class NoParentGroupFoundTest(TestCase):
+    def test_simple(self) -> None:
         new_event, new_variants, new_grouphash, _ = create_new_event(self.project)
 
         with patch(
@@ -369,7 +363,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
-    def test_no_parent_group_found_hybrid_fingerprint(self, mock_metrics_incr: MagicMock) -> None:
+    def test_hybrid_fingerprint(self, mock_metrics_incr: MagicMock) -> None:
         new_event, new_variants, new_grouphash, _ = create_new_event(
             self.project,
             fingerprint=["{{ default }}", "maisey"],
