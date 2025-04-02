@@ -138,23 +138,23 @@ function makeChonkLetterAvatarColors(theme: DO_NOT_USE_ChonkTheme): Array<{
 }> {
   return [
     {
-      background: theme.colors.blue400,
+      background: theme.colors.chonk.blue400,
       content: theme.colors.white,
     },
     {
-      background: theme.colors.pink400,
+      background: theme.colors.chonk.pink400,
       content: theme.colors.black,
     },
     {
-      background: theme.colors.red400,
+      background: theme.colors.chonk.red400,
       content: theme.colors.white,
     },
     {
-      background: theme.colors.yellow400,
+      background: theme.colors.chonk.yellow400,
       content: theme.colors.black,
     },
     {
-      background: theme.colors.green400,
+      background: theme.colors.chonk.green400,
       content: theme.colors.black,
     },
   ];
