@@ -23,7 +23,6 @@ class Migration(CheckedMigration):
     # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
 
     is_post_deployment = False
-    checked = False
 
     dependencies = [
         ("sentry", "0855_give_monitor_type_a_db_default"),
