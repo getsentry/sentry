@@ -25,6 +25,7 @@ import {
   useSetLogsCursor,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
 import {
   FirstTableHeadCell,
@@ -53,6 +54,9 @@ export function LogsTable({
   const search = useLogsSearch();
   const setCursor = useSetLogsCursor();
   const isTableEditingFrozen = useLogsIsTableEditingFrozen();
+  const {attributes: stringAttributes} = useTraceItemAttributes('string');
+  const {attributes: numberAttributes} = useTraceItemAttributes('number');
+
   const {data, isError, isPending, pageLinks, meta} = tableData;
 
   const tableRef = useRef<HTMLTableElement>(null);
@@ -81,7 +85,11 @@ export function LogsTable({
 
                 const fieldType = meta?.fields?.[field];
                 const align = logsFieldAlignment(field, fieldType);
-                const headerLabel = getTableHeaderLabel(field);
+                const headerLabel = getTableHeaderLabel(
+                  field,
+                  stringAttributes,
+                  numberAttributes
+                );
 
                 if (isPending) {
                   return <TableHeadCell key={index} isFirst={index === 0} />;
