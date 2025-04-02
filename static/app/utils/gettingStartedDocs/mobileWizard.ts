@@ -15,7 +15,11 @@ export function getWizardInstallSnippet({
   // Get version from registry if available, or use fallback
   const version = getPackageVersion(params, 'sentry.wizard', '4.0.1');
 
-  return [
+  const isWindows =
+    typeof navigator !== 'undefined' && navigator.userAgent.includes('Win');
+
+  // Define all installation options
+  const installOptions = [
     {
       label: 'brew',
       value: 'brew',
@@ -73,4 +77,12 @@ Invoke-WebRequest $downloadUrl -OutFile sentry-wizard.exe
 ./sentry-wizard.exe -i ${platformWithFlags}`,
     },
   ];
+
+  // If user is on Windows, move the Windows option to the beginning
+  if (isWindows) {
+    const windowsOption = installOptions.pop()!;
+    installOptions.unshift(windowsOption);
+  }
+
+  return installOptions;
 }

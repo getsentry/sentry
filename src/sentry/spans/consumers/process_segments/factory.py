@@ -19,6 +19,14 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 
 logger = logging.getLogger(__name__)
 
+# An amortized ceiling of spans per segment used to compute the size of the
+# produce buffer. If that buffer fills up, the consumer exercises backpressure.
+# We use the 95th percentile, since the average is much lower and equalizes over
+# the batches.
+#
+# NOTE: The true maximum is 1000 at the time of writing.
+SPANS_PER_SEG_P95 = 350
+
 
 class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
@@ -36,6 +44,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.skip_produce = skip_produce
+        self.num_processes = num_processes
         self.pool = MultiprocessingPool(num_processes)
 
         topic_definition = get_topic_definition(Topic.SNUBA_SPANS)
@@ -53,10 +62,18 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         produce_step: ProcessingStrategy[FilteredPayload | KafkaPayload]
 
         if not self.skip_produce:
+            # Due to the unfold step that precedes the producer, this pipeline
+            # writes large bursts of spans at once when a batch of segments is
+            # finished by the multi processing pool. We size the produce buffer
+            # so that it can accommodate batches from all subprocesses at the
+            # sime time, assuming some upper bound of spans per segment.
+            max_buffer_size = self.max_batch_size * self.num_processes * SPANS_PER_SEG_P95
+
             produce_step = Produce(
                 producer=self.producer,
                 topic=self.output_topic,
                 next_step=commit_step,
+                max_buffer_size=max_buffer_size,
             )
         else:
             produce_step = commit_step
