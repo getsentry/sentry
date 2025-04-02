@@ -135,22 +135,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRenderer: ({start: trimStart, end: trimEnd, ref: chartRendererRef}) => {
-      return (
-        <DrawerWidgetWrapper>
-          <TimeSeriesWidgetVisualization
-            {...props}
-            ref={chartRendererRef}
-            disableReleaseNavigation
-            onZoom={() => {}}
-            plottables={props.plottables.map(plottable =>
-              plottable.constrain(trimStart, trimEnd)
-            )}
-            showReleaseAs="line"
-          />
-        </DrawerWidgetWrapper>
-      );
-    },
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
     releases: hasReleaseBubbles
@@ -672,10 +656,6 @@ const LoadingPlaceholder = styled('div')`
 
 const LoadingMask = styled(TransparentLoadingMask)`
   background: ${p => p.theme.background};
-`;
-
-const DrawerWidgetWrapper = styled('div')`
-  height: 220px;
 `;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;
