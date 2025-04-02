@@ -48,7 +48,7 @@ export function useReleasesDrawer() {
       openDrawer(
         () => <ReleasesDrawerDetails release={release} projectId={releaseProjectId} />,
         {
-          shouldCloseOnLocationChange: newPathName => {
+          shouldCloseOnLocationChange: () => {
             return false;
           },
           ariaLabel: t('Releases drawer'),
@@ -71,7 +71,7 @@ export function useReleasesDrawer() {
           />
         ),
         {
-          shouldCloseOnLocationChange: newPathName => {
+          shouldCloseOnLocationChange: () => {
             return false;
           },
           ariaLabel: t('Releases drawer'),
