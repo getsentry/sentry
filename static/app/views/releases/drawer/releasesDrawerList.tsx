@@ -5,32 +5,31 @@ import type {MarkLineOption} from 'echarts/types/dist/shared';
 import type {EChartsInstance} from 'echarts-for-react';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {t} from 'sentry/locale';
+import {
+  EventDrawerBody,
+  EventDrawerContainer,
+  EventDrawerHeader,
+  EventNavigator,
+  Header,
+  NavigationCrumbs,
+} from 'sentry/components/events/eventDrawer';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import type {
-  Bucket,
-  ChartRendererProps,
-} from 'sentry/views/releases/releaseBubbles/types';
+import type {ChartRendererProps} from 'sentry/views/releases/releaseBubbles/types';
 
 import {ReleaseDrawerTable} from './releasesDrawerTable';
 
 interface ReleasesDrawerListProps {
-  /**
-   * This is a list of the release buckets used by eCharts to draw the
-   * release bubbles. Currently unused, but we can use this to traverse
-   * through the release buckets within the drawer
-   */
-  buckets: Bucket[];
   endTs: number;
   environments: readonly string[];
-  /**
-   * Callback when a release is selected
-   */
-  onSelectRelease: (release: string, projectId: string) => void;
   projects: readonly number[];
   /**
    * A list of releases in the current release bucket
@@ -104,13 +103,33 @@ export function ReleasesDrawerList({
   startTs,
   endTs,
   chartRenderer,
-  releases,
-  onSelectRelease,
   projects,
   environments,
 }: ReleasesDrawerListProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const start = new Date(startTs);
   const end = new Date(endTs);
+  const pageFilters = usePageFilters();
+  const {releases} = useReleaseStats({
+    ...pageFilters.selection,
+    datetime: {
+      start: startTs ? new Date(startTs).toISOString() : null,
+      end: endTs ? new Date(endTs).toISOString() : null,
+    },
+  });
+  const handleSelectRelease = useCallback(
+    (nextSelectedRelease: string, projectId: string) => {
+      navigate({
+        query: {
+          ...location.query,
+          release: nextSelectedRelease,
+          projectId,
+        },
+      });
+    },
+    [navigate, location.query]
+  );
   const chartRef = useRef<ReactEchartsRef | null>(null);
 
   const handleMouseOverRelease = useCallback((release: string) => {
@@ -137,54 +156,68 @@ export function ReleasesDrawerList({
     );
   }, []);
 
-  return (
-    <Fragment>
-      {chartRenderer ? (
-        <ChartContainer>
-          <Widget
-            Title={
-              <Fragment>
-                {t('Releases from ')}
-                <DateTime date={start} /> <span>{t('to')}</span> <DateTime date={end} />
-              </Fragment>
-            }
-            Visualization={chartRenderer?.({
-              ref: (e: ReactEchartsRef | null) => {
-                chartRef.current = e;
+  const title = tn('%s Release', '%s Releases', releases?.length ?? 0);
+  const crumbs = [
+    {
+      label: t('Releases'),
+    },
+  ];
 
-                if (e) {
-                  // When chart is mounted, zoom the chart into the relevant
-                  // bucket
-                  e.getEchartsInstance().dispatchAction({
-                    type: 'dataZoom',
-                    batch: [
-                      {
-                        // data value at starting location
-                        startValue: startTs,
-                        // data value at ending location
-                        endValue: endTs,
-                      },
-                    ],
-                  });
-                }
-              },
-              releases,
-              start,
-              end,
-            })}
-          />
-        </ChartContainer>
-      ) : null}
-      <ReleaseDrawerTable
-        projects={projects}
-        environments={environments}
-        start={start.toISOString()}
-        end={end.toISOString()}
-        onSelectRelease={onSelectRelease}
-        onMouseOverRelease={handleMouseOverRelease}
-        onMouseOutRelease={handleMouseOutRelease}
-      />
-    </Fragment>
+  return (
+    <EventDrawerContainer>
+      <EventDrawerHeader>
+        <NavigationCrumbs crumbs={crumbs} />
+      </EventDrawerHeader>
+      <EventNavigator>
+        <Header>{title}</Header>
+      </EventNavigator>
+      <EventDrawerBody>
+        {chartRenderer ? (
+          <ChartContainer>
+            <Widget
+              Title={
+                <Fragment>
+                  {t('Releases from ')}
+                  <DateTime date={start} /> <span>{t('to')}</span> <DateTime date={end} />
+                </Fragment>
+              }
+              Visualization={chartRenderer?.({
+                ref: (e: ReactEchartsRef | null) => {
+                  chartRef.current = e;
+
+                  if (e) {
+                    // When chart is mounted, zoom the chart into the relevant
+                    // bucket
+                    e.getEchartsInstance().dispatchAction({
+                      type: 'dataZoom',
+                      batch: [
+                        {
+                          // data value at starting location
+                          startValue: startTs,
+                          // data value at ending location
+                          endValue: endTs,
+                        },
+                      ],
+                    });
+                  }
+                },
+                releases,
+                start,
+                end,
+              })}
+            />
+          </ChartContainer>
+        ) : null}
+        <ReleaseDrawerTable
+          projects={projects}
+          environments={environments}
+          start={start.toISOString()}
+          end={end.toISOString()}
+          onMouseOverRelease={handleMouseOverRelease}
+          onMouseOutRelease={handleMouseOutRelease}
+        />
+      </EventDrawerBody>
+    </EventDrawerContainer>
   );
 }
 
