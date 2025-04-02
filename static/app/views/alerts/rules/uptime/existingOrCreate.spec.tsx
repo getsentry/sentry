@@ -11,7 +11,7 @@ describe('ExistingOrCreate', () => {
       body: [],
     });
 
-    const {router} = render(<ExistingOrCreate />, {disableRouterMocks: true});
+    const {router} = render(<ExistingOrCreate />, {enableRouterMocks: false});
     await waitFor(() =>
       expect(router.location.pathname).toBe('/organizations/org-slug/alerts/new/uptime/')
     );
@@ -23,7 +23,7 @@ describe('ExistingOrCreate', () => {
       body: [UptimeRuleFixture()],
     });
 
-    const {router} = render(<ExistingOrCreate />, {disableRouterMocks: true});
+    const {router} = render(<ExistingOrCreate />, {enableRouterMocks: false});
     await waitFor(() =>
       expect(router.location.pathname).toBe(
         '/organizations/org-slug/alerts/uptime-rules/project-slug/1/'
@@ -37,7 +37,7 @@ describe('ExistingOrCreate', () => {
       body: [UptimeRuleFixture({id: '1'}), UptimeRuleFixture({id: '2'})],
     });
 
-    const {router} = render(<ExistingOrCreate />, {disableRouterMocks: true});
+    const {router} = render(<ExistingOrCreate />, {enableRouterMocks: false});
     await waitFor(() =>
       expect(router.location.pathname).toBe('/organizations/org-slug/alerts/rules/')
     );

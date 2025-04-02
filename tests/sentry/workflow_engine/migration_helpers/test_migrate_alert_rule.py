@@ -1179,6 +1179,46 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
         assert action.config.get("target_identifier") == str(sentry_app.id)
         assert action.config.get("target_type") == ActionTarget.SENTRY_APP
 
+    def test_dual_update_trigger_action_data_sentry_app_null_value(self):
+        sentry_app = self.create_sentry_app(
+            name="oolong",
+            organization=self.organization,
+            is_alertable=True,
+            verify_install=False,
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.rpc_user
+        )
+        sentry_app_trigger_action = self.create_alert_rule_trigger_action(
+            type=AlertRuleTriggerAction.Type.SENTRY_APP,
+            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
+            sentry_app=sentry_app,
+            alert_rule_trigger=self.alert_rule_trigger,
+        )
+        action, _, _ = migrate_metric_action(sentry_app_trigger_action)
+        update_alert_rule_trigger_action(
+            sentry_app_trigger_action,
+            sentry_app_config=[
+                {
+                    "name": "mifu",
+                    "value": None,
+                },
+            ],
+        )
+        dual_update_migrated_alert_rule_trigger_action(sentry_app_trigger_action)
+
+        action.refresh_from_db()
+        assert action.data["settings"] == [
+            {
+                "name": "mifu",
+                "value": None,
+                "label": None,
+            },
+        ]
+        assert action.config.get("target_display") == "oolong"
+        assert action.config.get("target_identifier") == str(sentry_app.id)
+        assert action.config.get("target_type") == ActionTarget.SENTRY_APP
+
 
 class CalculateResolveThresholdHelperTest(BaseMetricAlertMigrationTest):
     """

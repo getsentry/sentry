@@ -3,16 +3,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import WebVitalsLandingPage from 'sentry/views/insights/browser/webVitals/views/webVitalsLandingPage';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('WebVitalsLandingPage', function () {
   const organization = OrganizationFixture({
@@ -22,17 +19,9 @@ describe('WebVitalsLandingPage', function () {
   let eventsMock: jest.Mock;
 
   beforeEach(function () {
-    jest.mocked(useOnboardingProject).mockReturnValue(undefined);
-    jest.mocked(useProjects).mockReturnValue({
-      projects: [ProjectFixture({hasInsightsVitals: true})],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({hasInsightsVitals: true, firstTransactionEvent: true}),
+    ]);
 
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
@@ -66,9 +55,22 @@ describe('WebVitalsLandingPage', function () {
         data: [],
       },
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
+      body: [],
+    });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
-      body: {},
+      body: {
+        'performance_score(measurements.score.lcp)': {
+          data: [[1743348600, [{count: 0.6106921965623204}]]],
+        },
+        'performance_score(measurements.score.fcp)': {
+          data: [[1743435000, [{count: 0.7397871866098699}]]],
+        },
+      },
     });
   });
 

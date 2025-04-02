@@ -19,6 +19,7 @@ from .organization_group_search_view_details import OrganizationGroupSearchViewD
 from .organization_group_search_view_starred import OrganizationGroupSearchViewStarredEndpoint
 from .organization_group_search_view_visit import OrganizationGroupSearchViewVisitEndpoint
 from .organization_group_search_views import OrganizationGroupSearchViewsEndpoint
+from .organization_group_search_views_starred import OrganizationGroupSearchViewsStarredEndpoint
 from .organization_issues_count import OrganizationIssuesCountEndpoint
 from .organization_release_previous_commits import OrganizationReleasePreviousCommitsEndpoint
 from .organization_searches import OrganizationSearchesEndpoint
@@ -56,7 +57,7 @@ __all__ = (
     "OrganizationGroupSearchViewDetailsEndpoint",
     "OrganizationGroupSearchViewStarredEndpoint",
     "OrganizationGroupSearchViewVisitEndpoint",
-    "OrganizationGroupSearchViewStarredEndpoint",
+    "OrganizationGroupSearchViewsStarredEndpoint",
     "OrganizationIssuesCountEndpoint",
     "OrganizationReleasePreviousCommitsEndpoint",
     "OrganizationSearchesEndpoint",

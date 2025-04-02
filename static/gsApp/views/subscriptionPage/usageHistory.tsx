@@ -30,7 +30,7 @@ import type {
   Plan,
   Subscription,
 } from 'getsentry/types';
-import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {OnDemandBudgetMode} from 'getsentry/types';
 import {
   formatReservedWithUnits,
   formatUsageWithUnits,
@@ -190,7 +190,7 @@ function UsageHistoryRow({history, subscription}: RowProps) {
         <thead>
           <tr>
             <th>
-              {subscription.planTier === PlanTier.AM3
+              {subscription.planDetails.budgetTerm === 'pay-as-you-go'
                 ? t('Pay-as-you-go Spend')
                 : history.onDemandBudgetMode === OnDemandBudgetMode.PER_CATEGORY
                   ? t('On-Demand Spend (Per-Category)')

@@ -2310,6 +2310,46 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["dataset"] == "spansMetrics"
         assert meta["fields"]["trace_error_rate()"] == "percentage"
 
+    def test_normalized_description(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"span.category": "http", "span.description": "f"},
+        )
+        self.store_span_metric(
+            3,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"span.category": "db", "span.description": "e"},
+        )
+        self.store_span_metric(
+            5,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.six_min_ago,
+            tags={"span.category": "db", "span.description": "e"},
+        )
+        response = self.do_request(
+            {
+                "field": ["sentry.normalized_description", "avg(span.self_time)"],
+                "query": "has:sentry.normalized_description",
+                "orderby": ["-avg(span.self_time)"],
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["avg(span.self_time)"] == 4.0
+        assert data[0]["sentry.normalized_description"] == "e"
+        assert data[1]["avg(span.self_time)"] == 1.0
+        assert data[1]["sentry.normalized_description"] == "f"
+        meta = response.data["meta"]
+        assert meta["fields"]["sentry.normalized_description"] == "string"
+        assert meta["dataset"] == "spansMetrics"
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
