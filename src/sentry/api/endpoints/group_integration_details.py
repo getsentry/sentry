@@ -29,6 +29,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
@@ -234,6 +235,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                         relationship=GroupLink.Relationship.references,
                     )
             except IntegrityError as exc:
+                incr_rollback_metrics(GroupLink)
                 lifecycle.record_halt(exc)
                 return Response({"non_field_errors": ["That issue is already linked"]}, status=400)
 
@@ -316,6 +318,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                     relationship=GroupLink.Relationship.references,
                 )
         except IntegrityError:
+            incr_rollback_metrics(GroupLink)
             return Response({"detail": "That issue is already linked"}, status=400)
 
         if created:

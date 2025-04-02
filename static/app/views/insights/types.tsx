@@ -25,6 +25,7 @@ export enum ModuleName {
 
 export enum SpanMetricsField {
   SPAN_OP = 'span.op',
+  NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
   SPAN_DESCRIPTION = 'span.description',
   SPAN_MODULE = 'span.module',
   SPAN_ACTION = 'span.action',
@@ -84,6 +85,7 @@ export type SpanStringFields =
   | 'span_id'
   | 'span.op'
   | 'span.description'
+  | 'sentry.normalized_description'
   | 'span.module'
   | 'span.action'
   | 'span.group'
@@ -402,7 +404,6 @@ export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
 
 export enum SpanFunction {
   SPS = 'sps',
-  SPM = 'spm',
   EPM = 'epm',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_ERROR_COUNT = 'http_error_count',

@@ -26,7 +26,11 @@ import {
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
-import {LogTableBody, LogTableRow} from 'sentry/views/explore/logs/styles';
+import {
+  FirstTableHeadCell,
+  LogTableBody,
+  LogTableRow,
+} from 'sentry/views/explore/logs/styles';
 import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
@@ -55,6 +59,7 @@ export function LogsTable({
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
     minimumColumnWidth: 50,
+    prefixColumnWidth: 'min-content',
   });
 
   const isEmpty = !isPending && !isError && (data?.length ?? 0) === 0;
@@ -68,6 +73,9 @@ export function LogsTable({
         {showHeader ? (
           <TableHead>
             <LogTableRow>
+              <FirstTableHeadCell isFirst align="left">
+                <TableHeadCellContent isFrozen />
+              </FirstTableHeadCell>
               {fields.map((field, index) => {
                 const direction = sortBys.find(s => s.field === field)?.kind;
 
@@ -118,7 +126,7 @@ export function LogsTable({
             </LogTableRow>
           </TableHead>
         ) : null}
-        <LogTableBody>
+        <LogTableBody showHeader={showHeader}>
           {isPending && (
             <TableStatus>
               <LoadingIndicator />

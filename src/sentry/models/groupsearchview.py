@@ -14,6 +14,21 @@ from sentry.models.savedsearch import SortOptions
 
 DEFAULT_TIME_FILTER = {"period": "14d"}
 
+DEFAULT_VIEWS = [
+    {
+        "name": "Prioritized",
+        "query": "is:unresolved issue.priority:[high, medium]",
+        "querySort": SortOptions.DATE.value,
+        "position": 0,
+        "isAllProjects": False,
+        "environments": [],
+        "projects": [],
+        "timeFilters": DEFAULT_TIME_FILTER,
+        "dateCreated": None,
+        "dateUpdated": None,
+    }
+]
+
 
 @region_silo_model
 class GroupSearchViewProject(DefaultFieldsModel):

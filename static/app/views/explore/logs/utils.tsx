@@ -9,6 +9,7 @@ import {
   CurrencyUnit,
   DurationUnit,
   fieldAlignment,
+  prettifyTagKey,
 } from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -131,12 +132,28 @@ export function logsFieldAlignment(...args: Parameters<typeof fieldAlignment>) {
   return fieldAlignment(...args);
 }
 
-export function removeSentryPrefix(key: string) {
-  return key.replace('sentry.', '');
+export function removePrefixes(key: string) {
+  return key.replace('log.', '').replace('sentry.', '');
+}
+
+export function prettifyAttributeName(name: string) {
+  return removePrefixes(prettifyTagKey(name));
+}
+
+export function adjustAliases(key: string) {
+  switch (key) {
+    case 'sentry.project_id':
+      warn(
+        fmt`Field ${key} is deprecated. Please use ${OurLogKnownFieldKey.PROJECT_ID} instead.`
+      );
+      return OurLogKnownFieldKey.PROJECT_ID; // Public alias since int<->string alias reversing is broken. Should be removed in the future.
+    default:
+      return key;
+  }
 }
 
 export function getTableHeaderLabel(field: OurLogFieldKey) {
-  return LogAttributesHumanLabel[field] ?? removeSentryPrefix(field);
+  return LogAttributesHumanLabel[field] ?? removePrefixes(field);
 }
 
 export function isLogAttributeUnit(unit: string | null): unit is LogAttributeUnits {

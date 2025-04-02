@@ -1,7 +1,6 @@
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
 
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type ApiQueryKey,
   fetchDataQuery,
@@ -11,6 +10,7 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   getRetryDelay,
   shouldRetryHandler,
@@ -18,17 +18,7 @@ import {
 
 const DEFAULT_HOVER_TIMEOUT = 200;
 
-/**
- * ProjectTraceItemDetailsEndpoint currently only supports ourlogs dataset
- * TODO: Add SPANS_EAP once the backend supports it.
- */
-type EAPDataset = DiscoverDatasets.OURLOGS;
-
 export interface UseTraceItemDetailsProps {
-  /**
-   * Trace items are only supported by EAP.
-   */
-  dataset: EAPDataset;
   /**
    * Every trace item belongs to a project.
    */
@@ -47,15 +37,17 @@ export interface UseTraceItemDetailsProps {
    */
   traceItemId: string;
   /**
+   * The trace item type supported by the endpoint, currently only supports LOGS.
+   */
+  traceItemType: TraceItemDataset;
+  /**
    * Alias for `enabled` in react-query.
    */
   enabled?: boolean;
 }
 
-export type TraceItemAttributes = Record<string, TraceItemResponseAttribute>;
-
 interface TraceItemDetailsResponse {
-  attributes: TraceItemAttributes;
+  attributes: TraceItemResponseAttribute[];
   itemId: string;
   timestamp: string;
 }
@@ -67,16 +59,16 @@ type TraceItemDetailsUrlParams = {
 };
 
 type TraceItemDetailsQueryParams = {
-  dataset: EAPDataset;
   referrer: string;
   traceId: string;
+  traceItemType: TraceItemDataset;
 };
 
 export type TraceItemResponseAttribute =
-  | {type: 'str'; value: string}
-  | {type: 'int'; value: number}
-  | {type: 'float'; value: number}
-  | {type: 'bool'; value: boolean};
+  | {name: string; type: 'str'; value: string}
+  | {name: string; type: 'int'; value: number}
+  | {name: string; type: 'float'; value: number}
+  | {name: string; type: 'bool'; value: boolean};
 
 /**
  * Query hook fetching trace item details in EAP.
@@ -95,7 +87,7 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
 
   const queryParams: TraceItemDetailsQueryParams = {
     referrer: props.referrer,
-    dataset: props.dataset,
+    traceItemType: props.traceItemType,
     traceId: props.traceId,
   };
 
@@ -127,7 +119,7 @@ function traceItemDetailsQueryKey({
   urlParams: TraceItemDetailsUrlParams;
 }): ApiQueryKey {
   const query: Record<string, string | string[]> = {
-    dataset: queryParams.dataset,
+    item_type: queryParams.traceItemType,
     referrer: queryParams.referrer,
     trace_id: queryParams.traceId,
   };
@@ -142,7 +134,7 @@ export function usePrefetchTraceItemDetailsOnHover({
   traceItemId,
   projectId,
   traceId,
-  dataset,
+  traceItemType,
   referrer,
   hoverPrefetchDisabled,
   sharedHoverTimeoutRef,
@@ -175,7 +167,7 @@ export function usePrefetchTraceItemDetailsOnHover({
               traceItemId,
             },
             queryParams: {
-              dataset,
+              traceItemType,
               referrer,
               traceId,
             },

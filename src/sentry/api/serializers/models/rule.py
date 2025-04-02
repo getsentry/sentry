@@ -165,11 +165,15 @@ class RuleSerializer(Serializer):
                     rpc_component = install_context.component
                     rpc_app = rpc_install.sentry_app
 
-                    component = prepare_ui_component(
-                        rpc_install,
-                        rpc_component,
-                        self.project_slug,
-                        action.get("settings"),
+                    component = (
+                        prepare_ui_component(
+                            rpc_install,
+                            rpc_component,
+                            self.project_slug,
+                            action.get("settings"),
+                        )
+                        if rpc_component
+                        else None
                     )
                     if component is None:
                         errors.append({"detail": f"Could not fetch details from {rpc_app.name}"})

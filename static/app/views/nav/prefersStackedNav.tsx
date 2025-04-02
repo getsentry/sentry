@@ -8,5 +8,5 @@ export function prefersStackedNav() {
 export function usePrefersStackedNav() {
   const user = useUser();
 
-  return user.options?.prefersStackedNavigation ?? false;
+  return user?.options?.prefersStackedNavigation ?? false;
 }

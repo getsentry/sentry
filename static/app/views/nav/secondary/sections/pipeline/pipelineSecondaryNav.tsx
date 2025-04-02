@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import {NAV_GROUP_LABELS} from 'sentry/views/nav/constants';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {makePipelinePathname} from 'sentry/views/pipeline/pathnames';
@@ -20,7 +20,7 @@ function PipelineSecondaryNav() {
   return (
     <SecondaryNav>
       <SecondaryNav.Header>
-        {NAV_GROUP_LABELS[PrimaryNavGroup.PIPELINE]}
+        {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.PIPELINE].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
         <SecondaryNav.Section>

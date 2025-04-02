@@ -26,7 +26,7 @@ import {
   MOBILE_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
-import {NAV_GROUP_LABELS} from 'sentry/views/nav/constants';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
@@ -75,7 +75,7 @@ export function InsightsSecondaryNav() {
   return (
     <SecondaryNav>
       <SecondaryNav.Header>
-        {NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
+        {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.INSIGHTS].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
         <SecondaryNav.Section>
