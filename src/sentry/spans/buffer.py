@@ -139,6 +139,7 @@ class SpansBuffer:
         self.span_buffer_timeout_secs = span_buffer_timeout_secs
         self.span_buffer_root_timeout_secs = span_buffer_root_timeout_secs
         self.redis_ttl = redis_ttl
+        self.add_buffer_sha = None
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -173,6 +174,11 @@ class SpansBuffer:
         min_redirect_depth = float("inf")
         max_redirect_depth = float("-inf")
 
+        # Workaround to make `evalsha` work in pipelines. We load ensure the
+        # script is loaded just before calling it below. This calls `SCRIPT
+        # EXISTS` once per batch.
+        add_buffer_sha = self._ensure_script()
+
         trees = self._group_by_parent(spans)
 
         with metrics.timer("spans.buffer.process_spans.push_payloads"):
@@ -187,13 +193,9 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
                     for span in subsegment:
-                        # hack to make redis-cluster-py pipelines work well with
-                        # scripts. we cannot use EVALSHA or "the normal way to do
-                        # scripts in sentry" easily until we get rid of
-                        # redis-cluster-py sentrywide. this probably leaves a bit of
-                        # perf on the table as we send the full lua sourcecode with every span.
-                        p.eval(
-                            add_buffer_script.script,
+                        p.execute_command(
+                            "EVALSHA",
+                            add_buffer_sha,
                             1,
                             project_and_trace,
                             "true" if span.is_segment_span else "false",
@@ -245,6 +247,14 @@ class SpansBuffer:
         metrics.timing("spans.buffer.process_spans.num_has_root_spans", has_root_span_count)
         metrics.timing("span.buffer.hole_size.min", min_redirect_depth)
         metrics.timing("span.buffer.hole_size.max", max_redirect_depth)
+
+    def _ensure_script(self):
+        if self.add_buffer_sha:
+            if self.client.script_exists(self.add_buffer_sha) == [1]:
+                return self.add_buffer_sha
+
+        self.add_buffer_sha = self.client.script_load(add_buffer_script.script)
+        return self.add_buffer_sha
 
     # TODO: type aliases
     def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[str, str], list[Span]]:
