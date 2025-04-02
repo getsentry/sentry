@@ -16,6 +16,7 @@ from sentry.tempest.permissions import TempestCredentialsPermission
 from sentry.tempest.serializers import DRFTempestCredentialsSerializer, TempestCredentialsSerializer
 from sentry.tempest.tasks import fetch_latest_item_id
 from sentry.tempest.utils import has_tempest_access
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 @region_silo_endpoint
@@ -51,6 +52,7 @@ class TempestCredentialsEndpoint(ProjectEndpoint):
             # Make initial call to determine the latest item ID
             fetch_latest_item_id.delay(credentials.id)
         except IntegrityError:
+            incr_rollback_metrics(TempestCredentials)
             return Response(
                 {"detail": "A credential with this client ID already exists."}, status=400
             )
