@@ -31,6 +31,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 from sentry.taskworker.client import TaskworkerClient
 from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER, DEFAULT_WORKER_QUEUE_SIZE
 from sentry.taskworker.registry import taskregistry
+from sentry.taskworker.state import clear_current_task, current_task, set_current_task
 from sentry.taskworker.task import Task
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
@@ -82,7 +83,6 @@ def child_worker(
     for module in settings.TASKWORKER_IMPORTS:
         __import__(module)
 
-    current_activation: TaskActivation | None = None
     processed_task_count = 0
 
     def handle_alarm(signum: int, frame: Any) -> None:
@@ -92,17 +92,16 @@ def child_worker(
         If we hit an alarm in a child, we need to push a result
         and terminate the child.
         """
-        if current_activation:
+        current = current_task()
+        if current:
             processed_tasks.put(
-                ProcessingResult(
-                    task_id=current_activation.id, status=TASK_ACTIVATION_STATUS_FAILURE
-                )
+                ProcessingResult(task_id=current.id, status=TASK_ACTIVATION_STATUS_FAILURE)
             )
             metrics.incr(
                 "taskworker.worker.processing_deadline_exceeded",
                 tags={
-                    "namespace": current_activation.namespace,
-                    "taskname": current_activation.taskname,
+                    "namespace": current.namespace,
+                    "taskname": current.taskname,
                 },
             )
         sys.exit(1)
@@ -151,7 +150,7 @@ def child_worker(
                 )
                 continue
 
-        current_activation = activation
+        set_current_task(activation)
 
         # Set an alarm for the processing_deadline_duration
         signal.alarm(activation.processing_deadline_duration)
@@ -173,6 +172,7 @@ def child_worker(
                     "taskworker.task.errored", extra={"type": str(err.__class__), "error": str(err)}
                 )
 
+        clear_current_task()
         processed_task_count += 1
 
         # Get completion time before pushing to queue to avoid inflating latency metrics.

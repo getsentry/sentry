@@ -169,7 +169,9 @@ function FilterDelete({token, state, item}: SearchQueryTokenProps) {
   return (
     <DeleteButton
       aria-label={t('Remove filter: %s', getKeyName(token.key))}
-      onClick={() => dispatch({type: 'DELETE_TOKEN', token})}
+      onClick={() => {
+        dispatch({type: 'DELETE_TOKEN', token});
+      }}
       disabled={disabled}
       {...filterButtonProps}
     >
