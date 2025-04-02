@@ -72,13 +72,13 @@ import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 import trackMetric from 'getsentry/utils/trackMetric';
 
 import {CodecovSettingsLink} from './components/codecovSettingsLink';
+import PrimaryNavigationQuotaExceeded from './components/navBillingStatus';
 import OpenInDiscoverBtn from './components/openInDiscoverBtn';
 import {
   ProfilingAM1OrMMXUpgrade,
   ProfilingBetaAlertBanner,
   ProfilingUpgradePlanButton,
 } from './components/profiling/alerts';
-import PrimaryNavigationQuotaExceeded from './components/quotaExceededNavItem';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import ReplaySettingsAlert from './components/replaySettingsAlert';
 import useButtonTracking from './hooks/useButtonTracking';

@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 
-import PrimaryNavigationQuotaExceeded from 'getsentry/components/quotaExceededNavItem';
+import PrimaryNavigationQuotaExceeded from 'getsentry/components/navBillingStatus';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
 describe('PrimaryNavigationQuotaExceeded', function () {
