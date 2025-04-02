@@ -26,6 +26,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import ApiHostError, ApiUnauthorized, IntegrationError
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.web.frontend.base import region_silo_view
 
 logger = logging.getLogger("sentry.webhooks")
@@ -132,6 +133,7 @@ class PushEventWebhook(BitbucketServerWebhook):
                         )
 
                 except IntegrityError:
+                    incr_rollback_metrics(Commit)
                     pass
 
 

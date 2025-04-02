@@ -31,6 +31,7 @@ import {
 } from 'getsentry/types';
 import {
   addBillingStatTotals,
+  displayBudgetName,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
@@ -400,15 +401,24 @@ function UsageTotals({
       reservedInfo = tct('[reservedInfo] (True Forward)', {reservedInfo});
     }
     if (displayGifts) {
-      reservedInfo = tct('[reservedInfo] + [giftedAmount] Gifted', {
-        reservedInfo,
-        giftedAmount: formatReservedWithUnits(
-          free,
-          category,
-          reservedOptions,
-          hasReservedBudget
-        ),
-      });
+      reservedInfo = hasReservedQuota
+        ? tct('[reservedInfo] + [giftedAmount] Gifted', {
+            reservedInfo,
+            giftedAmount: formatReservedWithUnits(
+              free,
+              category,
+              reservedOptions,
+              hasReservedBudget
+            ),
+          })
+        : tct('[giftedAmount] Gifted', {
+            giftedAmount: formatReservedWithUnits(
+              free,
+              category,
+              reservedOptions,
+              hasReservedBudget
+            ),
+          });
     }
     return reservedInfo;
   }
@@ -751,9 +761,7 @@ function UsageTotals({
                   {isDisplayingSpend ? (
                     <div>
                       <LegendTitle>
-                        {subscription.planTier === PlanTier.AM3
-                          ? t('Pay-as-you-go')
-                          : t('On-Demand')}
+                        {displayBudgetName(subscription.planDetails, {title: true})}
                       </LegendTitle>
                       <LegendPrice>
                         {formatCurrency(onDemandCategorySpend)} of{' '}
@@ -769,9 +777,7 @@ function UsageTotals({
                   ) : (
                     <div>
                       <LegendTitle>
-                        {subscription.planTier === PlanTier.AM3
-                          ? t('Pay-as-you-go')
-                          : t('On-Demand')}
+                        {displayBudgetName(subscription.planDetails, {title: true})}
                       </LegendTitle>
                       <LegendPrice>
                         {formatUsageWithUnits(onDemandUsage, category, usageOptions)}
@@ -796,9 +802,7 @@ function UsageTotals({
                   {showOnDemand && (
                     <Fragment>
                       {formatCurrency(onDemandCategorySpend)}{' '}
-                      {subscription.planTier === PlanTier.AM3
-                        ? t('Pay-as-you-go')
-                        : t('On-Demand')}
+                      {displayBudgetName(subscription.planDetails, {title: true})}
                     </Fragment>
                   )}
                 </TotalSpendLabel>

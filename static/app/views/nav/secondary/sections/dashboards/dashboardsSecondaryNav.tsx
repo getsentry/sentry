@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
-import {NAV_GROUP_LABELS} from 'sentry/views/nav/constants';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
@@ -27,7 +27,7 @@ export function DashboardsSecondaryNav() {
   return (
     <SecondaryNav>
       <SecondaryNav.Header>
-        {NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}
+        {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.DASHBOARDS].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
         <SecondaryNav.Section>

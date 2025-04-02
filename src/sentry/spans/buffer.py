@@ -64,7 +64,7 @@ Glossary for types of keys:
 from __future__ import annotations
 
 import itertools
-from collections.abc import Sequence
+from collections.abc import MutableMapping, Sequence
 from typing import Any, NamedTuple
 
 import rapidjson
@@ -165,23 +165,14 @@ class SpansBuffer:
         """
 
         queue_keys = []
-        queue_delete_items = []
-        queue_items = []
-        queue_item_has_root_span = []
-
         is_root_span_count = 0
         has_root_span_count = 0
         min_redirect_depth = float("inf")
         max_redirect_depth = float("-inf")
 
-        # Workaround to make `evalsha` work in pipelines. We load ensure the
-        # script is loaded just before calling it below. This calls `SCRIPT
-        # EXISTS` once per batch.
-        add_buffer_sha = self._ensure_script()
-
-        trees = self._group_by_parent(spans)
-
         with metrics.timer("spans.buffer.process_spans.push_payloads"):
+            trees = self._group_by_parent(spans)
+
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
                     set_key = f"span-buf:s:{{{project_and_trace}}}:{parent_span_id}"
@@ -190,6 +181,11 @@ class SpansBuffer:
                 p.execute()
 
         with metrics.timer("spans.buffer.process_spans.insert_spans"):
+            # Workaround to make `evalsha` work in pipelines. We load ensure the
+            # script is loaded just before calling it below. This calls `SCRIPT
+            # EXISTS` once per batch.
+            add_buffer_sha = self._ensure_script()
+
             with self.client.pipeline(transaction=False) as p:
                 for (project_and_trace, parent_span_id), subsegment in trees.items():
                     for span in subsegment:
@@ -204,41 +200,55 @@ class SpansBuffer:
                             self.redis_ttl,
                         )
 
+                        is_root_span_count += int(span.is_segment_span)
                         shard = self.assigned_shards[
                             int(span.trace_id, 16) % len(self.assigned_shards)
                         ]
                         queue_keys.append(f"span-buf:q:{shard}")
 
-                    results = iter(p.execute())
-                    for redirect_depth, delete_item, item, has_root_span in results:
-                        # For each span, redirect_depth measures how long it took to
-                        # find the corresponding intermediate segment. Larger
-                        # numbers loosely correlate with fewer siblings per tree
-                        # level.
-                        min_redirect_depth = min(min_redirect_depth, redirect_depth)
-                        max_redirect_depth = max(max_redirect_depth, redirect_depth)
-                        queue_delete_items.append(delete_item)
-                        queue_items.append(item)
-                        queue_item_has_root_span.append(has_root_span)
+                    results = p.execute()
 
         with metrics.timer("spans.buffer.process_spans.update_queue"):
-            with self.client.pipeline(transaction=False) as p:
-                for key, delete_item, item, has_root_span in zip(
-                    queue_keys, queue_delete_items, queue_items, queue_item_has_root_span
-                ):
-                    # if the currently processed span is a root span, OR the buffer
-                    # already had a root span inside, use a different timeout than
-                    # usual.
-                    if has_root_span:
-                        has_root_span_count += 1
-                        timestamp = now + self.span_buffer_root_timeout_secs
-                    else:
-                        timestamp = now + self.span_buffer_timeout_secs
+            queue_deletes: dict[str, set[bytes]] = {}
+            queue_adds: dict[str, MutableMapping[str | bytes, int]] = {}
 
-                    if delete_item != item:
-                        p.zrem(key, delete_item)
-                    p.zadd(key, {item: timestamp})
-                    p.expire(key, self.redis_ttl)
+            assert len(queue_keys) == len(results)
+
+            for queue_key, (redirect_depth, delete_item, add_item, has_root_span) in zip(
+                queue_keys, results
+            ):
+                min_redirect_depth = min(min_redirect_depth, redirect_depth)
+                max_redirect_depth = max(max_redirect_depth, redirect_depth)
+
+                delete_set = queue_deletes.setdefault(queue_key, set())
+                delete_set.add(delete_item)
+                # if we are going to add this item, we should not need to
+                # delete it from redis
+                delete_set.discard(add_item)
+
+                # if the currently processed span is a root span, OR the buffer
+                # already had a root span inside, use a different timeout than
+                # usual.
+                if has_root_span:
+                    has_root_span_count += 1
+                    offset = self.span_buffer_root_timeout_secs
+                else:
+                    offset = self.span_buffer_timeout_secs
+
+                zadd_items = queue_adds.setdefault(queue_key, {})
+                zadd_items[add_item] = now + offset
+                if delete_item != add_item:
+                    zadd_items.pop(delete_item, None)
+
+            with self.client.pipeline(transaction=False) as p:
+                for queue_key, adds in queue_adds.items():
+                    if adds:
+                        p.zadd(queue_key, adds)
+                        p.expire(queue_key, self.redis_ttl)
+
+                for queue_key, deletes in queue_deletes.items():
+                    if deletes:
+                        p.zrem(queue_key, *deletes)
 
                 p.execute()
 
@@ -256,9 +266,17 @@ class SpansBuffer:
         self.add_buffer_sha = self.client.script_load(add_buffer_script.script)
         return self.add_buffer_sha
 
-    # TODO: type aliases
     def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[str, str], list[Span]]:
-        # TODO: Doc
+        """
+        Groups partial trees of spans by their top-most parent span ID in the
+        provided list. The result is a dictionary where the keys identify a
+        top-most known parent, and the value is a flat list of all its
+        transitive children.
+
+        :param spans: List of spans to be grouped.
+        :return: Dictionary of grouped spans. The key is a tuple of
+            the `project_and_trace`, and the `parent_span_id`.
+        """
         trees = {}
         redirects = {}
 
