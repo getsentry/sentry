@@ -47,13 +47,9 @@ export function DatabaseLandingPage() {
   const hasModuleData = useHasFirstSpan(moduleName);
 
   const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
-  const spanDescription = decodeScalar(
-    location.query?.['sentry.normalized_description'],
-    ''
-  )  || decodeScalar(
-    location.query?.['span.description'],
-    ''
-  )
+  const spanDescription =
+    decodeScalar(location.query?.['sentry.normalized_description'], '') ||
+    decodeScalar(location.query?.['span.description'], '');
   const spanAction = decodeScalar(location.query?.['span.action']);
   const spanDomain = decodeScalar(location.query?.['span.domain']);
 
