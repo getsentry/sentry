@@ -29,6 +29,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils.email import parse_email
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -153,6 +154,7 @@ class PushEventWebhook(BitbucketWebhook):
                         )
 
                 except IntegrityError:
+                    incr_rollback_metrics(Commit)
                     pass
 
 

@@ -1157,6 +1157,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "field": ["precise.start_ts", "precise.finish_ts"],
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "statsPeriod": "1h",
             }
         )
         start = self.ten_mins_ago.timestamp()

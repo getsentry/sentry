@@ -294,6 +294,7 @@ const TransactionProfilesContentContainer = styled('div')`
   flex: 1;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  max-height: 85vh;
 `;
 
 const ProfileVisualizationContainer = styled('div')`

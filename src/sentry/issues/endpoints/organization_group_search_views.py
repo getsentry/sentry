@@ -23,33 +23,13 @@ from sentry.api.serializers.rest_framework.groupsearchview import (
     GroupSearchViewValidator,
     GroupSearchViewValidatorResponse,
 )
-from sentry.models.groupsearchview import (
-    DEFAULT_TIME_FILTER,
-    GroupSearchView,
-    GroupSearchViewVisibility,
-)
+from sentry.models.groupsearchview import DEFAULT_VIEWS, GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.savedsearch import SortOptions
 from sentry.models.team import Team
 from sentry.users.models.user import User
-
-DEFAULT_VIEWS: list[GroupSearchViewValidatorResponse] = [
-    {
-        "name": "Prioritized",
-        "query": "is:unresolved issue.priority:[high, medium]",
-        "querySort": SortOptions.DATE.value,
-        "position": 0,
-        "isAllProjects": False,
-        "environments": [],
-        "projects": [],
-        "timeFilters": DEFAULT_TIME_FILTER,
-        "dateCreated": None,
-        "dateUpdated": None,
-    }
-]
 
 
 class MemberPermission(OrganizationPermission):
@@ -215,6 +195,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             is_all_projects=validated_data["isAllProjects"],
             environments=validated_data["environments"],
             time_filters=validated_data["timeFilters"],
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
         view.projects.set(validated_data["projects"])
 
@@ -354,7 +335,10 @@ def _update_existing_view(
             organization=org,
             user_id=user_id,
             group_search_view=gsv,
-            defaults={"position": position},
+            defaults={
+                "position": position,
+                "visibility": GroupSearchViewVisibility.ORGANIZATION,
+            },
         )
         return gsv
     except GroupSearchView.DoesNotExist:
@@ -377,6 +361,7 @@ def _create_view(
         is_all_projects=view.get("isAllProjects", False),
         environments=view.get("environments", []),
         time_filters=view.get("timeFilters", {"period": "14d"}),
+        visibility=GroupSearchViewVisibility.ORGANIZATION,
     )
     if "projects" in view:
         gsv.projects.set(view["projects"] or [])

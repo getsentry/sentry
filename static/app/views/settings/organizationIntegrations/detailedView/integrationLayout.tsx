@@ -100,13 +100,20 @@ function IntegrationTabs({
       <Tabs value={activeTab} onChange={onTabChange}>
         <TabList>
           {tabs.map(tab => (
-            <TabList.Item key={tab}>{renderTab(tab)}</TabList.Item>
+            <TabList.Item key={tab}>
+              <Capitalized>{renderTab(tab)}</Capitalized>
+            </TabList.Item>
           ))}
         </TabList>
       </Tabs>
     </TabsContainer>
   );
 }
+
+// Requires CSS transform because of how the tab rendering works
+const Capitalized = styled('div')`
+  text-transform: capitalize;
+`;
 
 const TabsContainer = styled('div')`
   margin-top: ${space(2)};

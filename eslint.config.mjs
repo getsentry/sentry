@@ -290,6 +290,12 @@ export default typescript.config([
           message:
             'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
         },
+        {
+          selector:
+            "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useProjects']",
+          message:
+            'Please do not mock useProjects. Use `ProjectsStore.loadInitialData([ProjectFixture()])` instead. It can be used before the component is mounted or in a beforeEach hook.',
+        },
       ],
       'no-return-assign': 'error',
       'no-script-url': 'error',
@@ -608,7 +614,7 @@ export default typescript.config([
       'unicorn/prefer-array-find': 'error',
       'unicorn/prefer-array-flat-map': 'error',
       'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-array-index-of': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-index-of': 'error',
       'unicorn/prefer-array-some': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-date-now': 'error',
       'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
