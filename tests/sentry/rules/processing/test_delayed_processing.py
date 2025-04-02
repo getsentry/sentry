@@ -417,7 +417,7 @@ class GetRulesToFireTest(TestCase):
     # def tearDown(self):
     #     self.patcher.stop()
 
-    def test_event_sent_late(self):
+    def test_different_durations(self):
         from datetime import UTC, datetime, timedelta
 
         from sentry.testutils.factories import EventType
@@ -430,27 +430,35 @@ class GetRulesToFireTest(TestCase):
                 "targetIdentifier": "",
             }
         ]
-        conditions = [
-            {
-                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-                "interval": "1w",
-                "value": 2,
-            }
-        ]
-        rule = self.create_project_rule(
+        rule_1w = self.create_project_rule(
             project=self.project,
             name="late events rule",
             action_data=actions,
-            condition_data=conditions,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                    "interval": "1w",
+                    "value": 1,
+                }
+            ],
+        )
+        rule_1h = self.create_project_rule(
+            project=self.project,
+            name="late events rule",
+            action_data=actions,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                    "interval": "1h",
+                    "value": 1,
+                }
+            ],
         )
 
         now = datetime.now(UTC)
         thirty_mins_ago = now - timedelta(minutes=30)
-        twenty_nine_mins_ago = thirty_mins_ago + timedelta(minutes=1)
-
         data = {
             "timestamp": thirty_mins_ago.isoformat(),
-            "received": twenty_nine_mins_ago.isoformat(),
             "fingerprint": ["group-1"],
             "level": "error",
             "exception": {
@@ -471,7 +479,6 @@ class GetRulesToFireTest(TestCase):
         )
         # send one 1 min later
         data["timestamp"] = (thirty_mins_ago + timedelta(minutes=1)).isoformat()
-        data["received"] = (twenty_nine_mins_ago + timedelta(minutes=1)).isoformat()
         self.store_event(
             data=data,
             project_id=self.project.id,
@@ -480,7 +487,6 @@ class GetRulesToFireTest(TestCase):
         )
         # send another 1 minute later than the last
         data["timestamp"] = (thirty_mins_ago + timedelta(minutes=2)).isoformat()
-        data["received"] = (twenty_nine_mins_ago + timedelta(minutes=2)).isoformat()
         event = self.store_event(
             data=data,
             project_id=self.project.id,
@@ -490,16 +496,19 @@ class GetRulesToFireTest(TestCase):
         group1 = event.group
 
         rules_to_slow_conditions = defaultdict(list)
-        rules_to_slow_conditions[rule].extend(get_slow_conditions(rule))
+
+        for rule in [rule_1w, rule_1h]:
+            rules_to_slow_conditions[rule].extend(get_slow_conditions(rule))
 
         rules_to_groups: DefaultDict[int, set[int]] = defaultdict(set)
         rules_to_groups[rule.id].add(group1.id)
 
         rules_to_groups = {
-            rule.id: {group1.id},
+            rule_1w.id: {group1.id},
+            rule_1h.id: {group1.id},
         }
 
-        condition_groups = get_condition_query_groups([rule], rules_to_groups)  # type: ignore[arg-type]
+        condition_groups = get_condition_query_groups([rule_1w, rule_1h], rules_to_groups)  # type: ignore[arg-type]
         condition_group_results = get_condition_group_results(condition_groups, self.project)
 
         result = get_rules_to_fire(
@@ -509,7 +518,8 @@ class GetRulesToFireTest(TestCase):
             self.project.id,
         )
 
-        assert result[rule] == {group1.id}
+        assert result[rule_1w] == {group1.id}
+        assert result[rule_1h] == {group1.id}
 
     def test_comparison(self):
         self.mock_passes_comparison.return_value = True
