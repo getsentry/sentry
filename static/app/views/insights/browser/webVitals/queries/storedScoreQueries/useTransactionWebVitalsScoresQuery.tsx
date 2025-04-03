@@ -18,7 +18,6 @@ import {
 type Props = {
   browserTypes?: BrowserType[];
   defaultSort?: Sort;
-  enabled?: boolean;
   limit?: number;
   query?: string;
   shouldEscapeFilters?: boolean;
@@ -33,7 +32,6 @@ export const useTransactionWebVitalsScoresQuery = ({
   transaction,
   defaultSort,
   sortName = 'sort',
-  enabled = true,
   webVital = 'total',
   query,
   shouldEscapeFilters = true,
@@ -68,7 +66,6 @@ export const useTransactionWebVitalsScoresQuery = ({
     {
       limit: limit ?? 50,
       search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
-      enabled,
       sorts: [sort],
       fields: [
         'project.id',
@@ -79,6 +76,9 @@ export const useTransactionWebVitalsScoresQuery = ({
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.inp)',
+        ...(webVital === 'total'
+          ? []
+          : [`performance_score(measurements.score.${webVital})` as MetricsProperty]),
         `opportunity_score(measurements.score.${webVital})`,
         'performance_score(measurements.score.total)',
         'count()',
@@ -88,9 +88,6 @@ export const useTransactionWebVitalsScoresQuery = ({
         `count_scores(measurements.score.inp)`,
         `count_scores(measurements.score.ttfb)`,
         'total_opportunity_score()',
-        ...(webVital === 'total'
-          ? []
-          : [`performance_score(measurements.score.${webVital})` as MetricsProperty]),
       ],
     },
     'api.performance.browser.web-vitals.transactions-scores'

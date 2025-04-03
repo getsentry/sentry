@@ -41,7 +41,6 @@ export type WebVitalsRow = {
 type Props = {
   browserTypes?: BrowserType[];
   dataset?: DiscoverDatasets;
-  enabled?: boolean;
   subregions?: SubregionCode[];
   tag?: Tag;
   transaction?: string;
@@ -51,7 +50,6 @@ type Props = {
 export const useProjectWebVitalsScoresQuery = ({
   transaction,
   tag,
-  enabled = true,
   weightWebVital = 'total',
   browserTypes,
   subregions,
@@ -70,19 +68,10 @@ export const useProjectWebVitalsScoresQuery = ({
     search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
   }
 
-  const weightToFieldMap: Record<WebVitals, MetricsProperty> = {
-    cls: 'sum(measurements.score.weight.cls)',
-    fcp: 'sum(measurements.score.weight.fcp)',
-    inp: 'sum(measurements.score.weight.inp)',
-    lcp: 'sum(measurements.score.weight.lcp)',
-    ttfb: 'sum(measurements.score.weight.ttfb)',
-  };
-
   const result = useMetrics(
     {
       cursor: '',
       limit: 50,
-      enabled,
       search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       fields: [
         'performance_score(measurements.score.lcp)',
@@ -103,7 +92,9 @@ export const useProjectWebVitalsScoresQuery = ({
         'count_scores(measurements.score.cls)',
         'count_scores(measurements.score.ttfb)',
         `count_scores(measurements.score.inp)`,
-        ...(weightWebVital === 'total' ? [] : [weightToFieldMap[weightWebVital]]), // TODO: fix typing
+        ...(weightWebVital === 'total'
+          ? []
+          : [`sum(measurements.score.weight.${weightWebVital})` as MetricsProperty]),
       ],
     },
     'api.performance.browser.web-vitals.project-scores'

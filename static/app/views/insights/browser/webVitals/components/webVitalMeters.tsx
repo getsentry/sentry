@@ -21,7 +21,7 @@ import {
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 
-type ProjectData = {
+export type ProjectData = {
   'p75(measurements.cls)': number;
   'p75(measurements.fcp)': number;
   'p75(measurements.inp)': number;
