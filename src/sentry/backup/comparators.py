@@ -915,6 +915,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "workflow_engine.alertruleworkflow": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
+            "workflow_engine.dataconditionalertruletrigger": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
             "tempest.tempestcredentials": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
