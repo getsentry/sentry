@@ -123,7 +123,12 @@ class HandleStatusChangeTest(TestCase):
 
     @patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolve_resolved_issue(self, issue_unresolved: Any) -> None:
+        from sentry.models.groupopenperiod import GroupOpenPeriod
+
         self.create_issue(GroupStatus.RESOLVED)
+        open_period = GroupOpenPeriod.objects.filter(group=self.group).first()
+        assert open_period.date_ended is not None
+
         handle_status_update(
             self.group_list,
             self.projects,
@@ -143,6 +148,10 @@ class HandleStatusChangeTest(TestCase):
         assert GroupHistory.objects.filter(
             group=self.group, status=GroupHistoryStatus.UNRESOLVED
         ).exists()
+
+        open_period.refresh_from_db()
+        assert open_period.date_ended is None
+        assert open_period.resolution_activity is None
 
     @patch("sentry.signals.issue_ignored.send_robust")
     def test_ignore_new_issue(self, issue_ignored: Any) -> None:

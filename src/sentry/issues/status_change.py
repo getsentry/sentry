@@ -15,6 +15,7 @@ from sentry.issues.ongoing import TRANSITION_AFTER_DAYS
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import record_group_history_from_activity_type
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.project import Project
 from sentry.notifications.types import GroupSubscriptionReason
@@ -85,6 +86,7 @@ def handle_status_update(
         if new_status == GroupStatus.IGNORED
         else ActivityType.SET_UNRESOLVED.value
     )
+    update_open_period = False
     if new_status == GroupStatus.UNRESOLVED:
         for group in group_list:
             if group.status == GroupStatus.IGNORED:
@@ -96,6 +98,9 @@ def handle_status_update(
                     sender=sender,
                 )
             else:
+                # The unresolution here is a manual unresolve for a resolved issue by a user.
+                # This change should reopen the existing open period instead of creating a new one.
+                update_open_period = True
                 issue_unresolved.send_robust(
                     project=project_lookup[group.project_id],
                     user=acting_user,
@@ -147,6 +152,23 @@ def handle_status_update(
             data=activity_data,
         )
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
+
+        if update_open_period:
+            open_period = (
+                GroupOpenPeriod.objects.filter(
+                    group=group,
+                    date_ended__isnull=False,
+                )
+                .order_by("-date_started")
+                .first()
+            )
+            if open_period:
+                open_period.update(
+                    date_ended=None,
+                    resolution_activity=None,
+                )
+            else:
+                logger.error("No resolved open period for group %s", group.id)
 
         # TODO(dcramer): we need a solution for activity rollups
         # before sending notifications on bulk changes
