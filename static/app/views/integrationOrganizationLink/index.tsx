@@ -25,7 +25,6 @@ import {
 import {singleLineRenderer} from 'sentry/utils/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import RouteError from 'sentry/views/routeError';
@@ -73,18 +72,13 @@ function trackExternalAnalytics({
 }
 
 export default function IntegrationOrganizationLink() {
-  const api = useApi({persistInFlight: true});
   const location = useLocation();
-  const [reloading, setReloading] = useState(false);
   const {integrationSlug, installationId} = useParams<{
     integrationSlug: string;
     // installationId present for Github flow
     installationId?: string;
   }>();
-  const [organization, setOrganization] = useState<Organization | null>(null);
   const [selectedOrgSlug, setSelectedOrgSlug] = useState<string | null>(null);
-  const [installationData, setInstallationData] =
-    useState<GitHubIntegrationInstallation | null>(null);
 
   const {
     data: organizations = [],
@@ -95,19 +89,56 @@ export default function IntegrationOrganizationLink() {
     {staleTime: Infinity}
   );
 
+  const isOrganizationQueryEnabled = !!selectedOrgSlug;
+  const organizationQuery = useApiQuery<Organization>(
+    [`/organizations/${selectedOrgSlug}/`, {query: {include_feature_flags: 1}}],
+    {staleTime: Infinity, enabled: isOrganizationQueryEnabled}
+  );
+  const organization = organizationQuery.data ?? null;
+  const isPendingOrganization = isOrganizationQueryEnabled && organizationQuery.isPending;
+
+  useEffect(() => {
+    if (organizationQuery.error) {
+      addErrorMessage(t('Failed to retrieve organization details'));
+    }
+  }, [organizationQuery.error]);
+
   const isProviderQueryEnabled = !!selectedOrgSlug;
   const providerQuery = useApiQuery<IntegrationProvider[]>(
     [
       `/organizations/${selectedOrgSlug}/config/integrations/`,
       {query: {provider_key: integrationSlug}},
     ],
-    {staleTime: Infinity, enabled: !!isProviderQueryEnabled}
+    {staleTime: Infinity, enabled: isProviderQueryEnabled}
   );
   const provider = providerQuery.data?.[0] ?? null;
   const isPendingProviders = isProviderQueryEnabled && providerQuery.isPending;
-  const providerError = providerQuery.error;
+
+  useEffect(() => {
+    const hasEmptyProvider = !provider && !isPendingProviders;
+    if (providerQuery.error || hasEmptyProvider) {
+      addErrorMessage(t('Failed to retrieve integration details'));
+    }
+  }, [providerQuery.error, isPendingProviders, provider]);
+
+  const isInstallationQueryEnabled = !!installationId && integrationSlug === 'github';
+  const installationQuery = useApiQuery<GitHubIntegrationInstallation>(
+    [`/../../extensions/github/installation/${installationId}/`],
+    {staleTime: Infinity, enabled: isInstallationQueryEnabled}
+  );
+  const installationData = installationQuery.data ?? null;
+
+  useEffect(() => {
+    if (installationQuery.error) {
+      addErrorMessage(t('Failed to retrieve GitHub installation details'));
+    }
+  }, [installationQuery.error]);
+
+  // These two queries are recomputed when an organization is selected
+  const isPendingSelection = isPendingOrganization || isPendingProviders;
+
   const selectOrganization = useCallback(
-    async (orgSlug: string) => {
+    (orgSlug: string) => {
       const customerDomain = ConfigStore.get('customerDomain');
       // redirect to the org if it's different than the org being selected
       if (customerDomain?.subdomain && orgSlug !== customerDomain?.subdomain) {
@@ -116,60 +147,9 @@ export default function IntegrationOrganizationLink() {
         return;
       }
       // otherwise proceed as normal
-      setSelectedOrgSlug(orgSlug); // TODO(Leander): reloading: true, and orgniazation: undefined?
-      setReloading(true);
-
-      try {
-        // TODO(Leander): Figure out a way to get this into useApiQuery calls instead
-        const [incomingOrganization, incomingConfig]: [
-          Organization,
-          {providers: IntegrationProvider[]},
-        ] = await Promise.all([
-          api.requestPromise(`/organizations/${orgSlug}/`, {
-            query: {
-              include_feature_flags: 1,
-            },
-          }),
-          api.requestPromise(
-            `/organizations/${orgSlug}/config/integrations/?provider_key=${integrationSlug}`
-          ),
-        ]);
-        const incomingProvider = incomingConfig.providers[0] ?? null;
-
-        // should never happen with a valid provider
-        if (!incomingProvider) {
-          throw new Error('Invalid provider');
-        }
-
-        let installData = undefined;
-        if (integrationSlug === 'github') {
-          try {
-            // The API endpoint /extensions/github/installation is not prefixed with /api/0
-            // so we have to use this workaround.
-            installData = await api.requestPromise(
-              `/../../extensions/github/installation/${installationId}/`
-            );
-          } catch (_err) {
-            addErrorMessage(t('Failed to retrieve GitHub installation details'));
-          }
-        }
-
-        setOrganization(incomingOrganization);
-        setProvider(incomingProvider);
-        setReloading(false);
-        setInstallationData(installData);
-        trackExternalAnalytics({
-          eventName: 'integrations.integration_viewed',
-          startSession: true,
-          organization: incomingOrganization,
-          provider: incomingProvider,
-        });
-      } catch (_err) {
-        addErrorMessage(t('Failed to retrieve organization or integration details'));
-        setReloading(false);
-      }
+      setSelectedOrgSlug(orgSlug);
     },
-    [location.search, api, integrationSlug, installationId]
+    [location.search]
   );
 
   useEffect(() => {
@@ -283,7 +263,7 @@ export default function IntegrationOrganizationLink() {
 
   const renderBottom = useCallback(() => {
     const {FeatureList} = getIntegrationFeatureGate();
-    if (reloading) {
+    if (isPendingSelection) {
       return <LoadingIndicator />;
     }
 
@@ -323,7 +303,14 @@ export default function IntegrationOrganizationLink() {
         <div className="form-actions">{renderAddButton()}</div>
       </Fragment>
     );
-  }, [reloading, hasAccess, provider, organization, renderAddButton, selectedOrgSlug]);
+  }, [
+    isPendingSelection,
+    hasAccess,
+    provider,
+    organization,
+    renderAddButton,
+    selectedOrgSlug,
+  ]);
 
   const renderCallout = useCallback(() => {
     if (integrationSlug !== 'github') {
@@ -376,16 +363,12 @@ export default function IntegrationOrganizationLink() {
     );
   }, [integrationSlug, installationData]);
 
-  if (isPendingOrganizations || isPendingProviders) {
+  if (isPendingOrganizations) {
     return <LoadingIndicator />;
   }
 
   if (organizationsError) {
     return <RouteError error={organizationsError} />;
-  }
-
-  if (providerError) {
-    return <RouteError error={providerError} />;
   }
 
   const options = organizations.map((org: Organization) => ({
