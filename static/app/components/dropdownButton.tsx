@@ -52,7 +52,7 @@ function DropdownButton({
           <IconChevron
             color="subText"
             direction={isOpen ? 'up' : 'down'}
-            size={size === 'xs' ? 'sm' : 'md'}
+            size={size === 'xs' ? 'xs' : 'sm'}
           />
         </ChevronWrap>
       )}

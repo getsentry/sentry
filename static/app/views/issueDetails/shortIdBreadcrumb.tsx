@@ -92,7 +92,7 @@ export function ShortIdBreadcrumb({
         <DropdownMenu
           triggerProps={{
             'aria-label': t('Issue copy actions'),
-            icon: <IconChevron direction="down" />,
+            icon: <IconChevron direction="down" size="sm" />,
             size: 'zero',
             borderless: true,
             showChevron: false,

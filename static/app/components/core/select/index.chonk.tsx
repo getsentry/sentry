@@ -256,7 +256,7 @@ export function ChonkDropdownIndicator(
 ) {
   return (
     <selectComponents.DropdownIndicator {...props}>
-      <IconChevron direction="down" size="md" />
+      <IconChevron direction="down" size="sm" />
     </selectComponents.DropdownIndicator>
   );
 }

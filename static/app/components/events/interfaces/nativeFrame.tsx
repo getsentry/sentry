@@ -419,7 +419,7 @@ function NativeFrame({
                 size="zero"
                 borderless
                 aria-label={expanded ? t('Collapse Context') : t('Expand Context')}
-                icon={<IconChevron size="md" direction={expanded ? 'up' : 'down'} />}
+                icon={<IconChevron size="sm" direction={expanded ? 'up' : 'down'} />}
               />
             )}
           </ExpandCell>

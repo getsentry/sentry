@@ -205,7 +205,7 @@ export function GroupPriorityDropdown({
           size="zero"
         >
           <GroupPriorityBadge showLabel={false} priority={value}>
-            <IconChevron direction={isOpen ? 'up' : 'down'} size="sm" />
+            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" color="subText" />
           </GroupPriorityBadge>
         </DropdownButton>
       )}

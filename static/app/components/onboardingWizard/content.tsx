@@ -561,7 +561,7 @@ function TaskGroup({
         }
         actions={
           <Button
-            icon={<IconChevron direction={isExpanded ? 'up' : 'down'} />}
+            icon={<IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />}
             aria-label={isExpanded ? t('Collapse') : t('Expand')}
             aria-expanded={isExpanded}
             size="zero"

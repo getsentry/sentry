@@ -321,7 +321,7 @@ function DeprecatedLine({
                 onClick={toggleContext}
                 borderless
               >
-                <IconChevron direction={isExpanded ? 'up' : 'down'} size="md" />
+                <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
               </ToggleContextButton>
             ) : (
               <div style={{width: 20, height: 20}} />

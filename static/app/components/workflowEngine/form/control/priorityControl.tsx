@@ -165,7 +165,7 @@ function PrioritySelect({
           <EmptyButton {...props}>
             <GroupPriorityBadge showLabel priority={value}>
               <InteractionStateLayer isPressed={isOpen} />
-              <IconChevron direction={isOpen ? 'up' : 'down'} size="sm" />
+              <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
             </GroupPriorityBadge>
           </EmptyButton>
         );

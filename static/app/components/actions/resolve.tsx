@@ -271,7 +271,7 @@ function ResolveActions({
             size={size}
             priority={priority}
             aria-label={t('More resolve options')}
-            icon={<IconChevron color="subText" direction={isOpen ? 'up' : 'down'} />}
+            icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
             disabled={isDisabled}
           />
         )}

@@ -143,7 +143,11 @@ function SidebarAccordion({
                 aria-label={expanded ? t('Collapse') : t('Expand')}
                 sidebarCollapsed={sidebarCollapsed}
               >
-                <IconChevron direction={expanded ? 'up' : 'down'} role="presentation" />
+                <IconChevron
+                  direction={expanded ? 'up' : 'down'}
+                  role="presentation"
+                  size="sm"
+                />
               </SidebarAccordionExpandButton>
             }
           />

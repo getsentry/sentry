@@ -69,7 +69,7 @@ function DropdownIndicator(
 ) {
   return (
     <selectComponents.DropdownIndicator {...props}>
-      <IconChevron color="subText" direction="down" size="md" />
+      <IconChevron color="subText" direction="down" size="sm" />
     </selectComponents.DropdownIndicator>
   );
 }

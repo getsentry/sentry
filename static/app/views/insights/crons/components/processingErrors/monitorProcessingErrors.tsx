@@ -89,7 +89,7 @@ export function MonitorProcessingErrors({
               <ProcessingErrorTitle type={errortype} />
               <ErrorHeaderActions>
                 <Button
-                  icon={<IconChevron size="sm" direction={isExpanded ? 'up' : 'down'} />}
+                  icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
                   aria-label={isExpanded ? t('Collapse') : t('Expand')}
                   aria-expanded={isExpanded}
                   size="zero"

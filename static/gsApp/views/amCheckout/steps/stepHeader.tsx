@@ -75,7 +75,11 @@ function StepHeader({
           <EditStep>
             {isCompleted && <a onClick={() => onEdit(stepNumber)}>{t('Edit')}</a>}
             {canEdit && (
-              <StyledIconChevron direction="down" aria-label={t('Expand section')} />
+              <StyledIconChevron
+                direction="down"
+                aria-label={t('Expand section')}
+                size="sm"
+              />
             )}
           </EditStep>
         )}

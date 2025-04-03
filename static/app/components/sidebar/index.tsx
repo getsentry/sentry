@@ -582,7 +582,9 @@ function Sidebar() {
                   id="collapse"
                   data-test-id="sidebar-collapse"
                   {...sidebarItemProps}
-                  icon={<IconChevron direction={collapsed ? 'right' : 'left'} />}
+                  icon={
+                    <IconChevron direction={collapsed ? 'right' : 'left'} size="sm" />
+                  }
                   label={collapsed ? t('Expand') : t('Collapse')}
                   onClick={toggleCollapse}
                 />
