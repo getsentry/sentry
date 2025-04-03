@@ -78,9 +78,9 @@ export const DEFAULT_LAYOUTS: Record<
     // The order represents the default chart layout for Frontend > Session Health
     'ErrorFreeSessionsChart',
     'UserHealthRateChart',
-    'UserHealthCountChart',
-    'NewAndResolvedIssueChart',
     'SessionHealthRateChart',
+    'SessionHealthCountChart',
+    'UserHealthCountChart',
   ],
   mobile: [
     // ORDER MATTERS HERE
@@ -89,7 +89,7 @@ export const DEFAULT_LAYOUTS: Record<
     'ReleaseSessionPercentageChart',
     'ReleaseNewIssuesChart',
     'ReleaseSessionCountChart',
-    'SessionHealthCountChart',
+    'UserHealthRateChart',
   ],
   backend: [],
   ai: [],
