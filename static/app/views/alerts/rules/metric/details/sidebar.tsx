@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
@@ -53,13 +54,6 @@ function TriggerDescription({
         ? t('Warning')
         : t('Resolved');
 
-  const statusIconColor =
-    label === AlertRuleTriggerType.CRITICAL
-      ? 'errorText'
-      : label === AlertRuleTriggerType.WARNING
-        ? 'warningText'
-        : 'successText';
-
   const defaultAction = t('Change alert status to %s', status);
 
   const aboveThreshold =
@@ -104,7 +98,16 @@ function TriggerDescription({
   return (
     <TriggerContainer>
       <TriggerTitle>
-        <IconDiamond color={statusIconColor} size="xs" />
+        <StyledIconDiamond
+          type={
+            label === AlertRuleTriggerType.CRITICAL
+              ? 'critical'
+              : label === AlertRuleTriggerType.WARNING
+                ? 'warning'
+                : 'success'
+          }
+          size="xs"
+        />
         <TriggerTitleText>{t('%s Conditions', status)}</TriggerTitleText>
       </TriggerTitle>
       <TriggerStep>
@@ -138,6 +141,24 @@ function TriggerDescription({
     </TriggerContainer>
   );
 }
+
+function getColor(theme: Theme, type: 'critical' | 'warning' | 'success') {
+  if (theme.isChonk) {
+    return type === 'critical'
+      ? (theme as DO_NOT_USE_ChonkTheme).colors.chonk.red400
+      : type === 'warning'
+        ? (theme as DO_NOT_USE_ChonkTheme).colors.chonk.yellow400
+        : (theme as DO_NOT_USE_ChonkTheme).colors.chonk.green400;
+  }
+  return type === 'critical'
+    ? theme.errorText
+    : type === 'warning'
+      ? theme.warningText
+      : theme.successText;
+}
+const StyledIconDiamond = styled(IconDiamond)<{type: 'critical' | 'warning' | 'success'}>`
+  fill: ${p => getColor(p.theme, p.type)};
+`;
 
 export function MetricDetailsSidebar({
   rule,
