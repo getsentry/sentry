@@ -284,7 +284,7 @@ def get_seer_similar_issues(
 
     # Similar issues are returned with the closest match first
     seer_results = get_similarity_data_from_seer(request_data, seer_request_metric_tags)
-    seer_results_json = [asdict(result) for result in seer_results]
+    matching_seer_result = asdict(seer_results[0]) if seer_results else None
     stacktrace_distance = seer_results[0].stacktrace_distance if seer_results else None
     parent_grouphash = (
         GroupHash.objects.filter(
@@ -317,7 +317,7 @@ def get_seer_similar_issues(
             if not fingerprints_match:
                 parent_grouphash = None
                 stacktrace_distance = None
-                seer_results_json = []
+                matching_seer_result = None
 
             if not parent_has_metadata:
                 result = "no_parent_metadata"
@@ -351,7 +351,7 @@ def get_seer_similar_issues(
             "event_id": event.event_id,
             "project_id": event.project.id,
             "hash": event_hash,
-            "results": seer_results_json,
+            "matching_result": matching_seer_result,
             "grouphash_returned": bool(parent_grouphash),
         },
     )
