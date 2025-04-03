@@ -636,12 +636,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             original_title = build_attachment_title(event_or_group)
             original_message = text.lstrip(" ")
 
-            blocks.append(self.get_divider())
             blocks.append(
                 self.get_text_block(f"*{original_title}*: `{original_message}`", small=True)
             )
             blocks.append(self.get_text_block(summary_text, small=True))
-            blocks.append(self.get_divider())
         else:
             text = text.lstrip(" ")
             # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
