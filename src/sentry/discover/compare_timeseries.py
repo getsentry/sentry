@@ -162,7 +162,7 @@ def align_timeseries(snql_result: TSResultForComparison, rpc_result: TSResultFor
         for element in data:
             element_value = element.get(alias) or 0
             element_time = element["time"]
-            aligned_results[element_time][key] = float(element_value)
+            aligned_results[element_time][key] = element_value
 
     fill_aligned_series(snql_result["result"].data["data"], snql_result["agg_alias"], "snql_value")
     fill_aligned_series(rpc_result["result"].data["data"], rpc_result["agg_alias"], "rpc_value")
