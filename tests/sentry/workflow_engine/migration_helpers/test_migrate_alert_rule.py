@@ -415,11 +415,13 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
             action, action_filter.condition_group
         )
         action_alert_rule_trigger_action = self.create_action_alert_rule_trigger_action(
-            action_id=action.id,
+            action=action,
             alert_rule_trigger_action_id=alert_rule_trigger_action.id,
         )
         return action, data_condition_group_action, action_alert_rule_trigger_action
 
+
+class DualWriteAlertRuleTest(APITestCase):
     def setUp(self):
         self.rpc_user = user_service.get_user(user_id=self.user.id)
         self.metric_alert = self.create_alert_rule(resolve_threshold=2)
