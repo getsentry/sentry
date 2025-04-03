@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -10,7 +12,14 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {SpanIndexedField} from 'sentry/views/insights/types';
+import {
+  filterToColor,
+  type SpanOperationBreakdownFilter,
+} from 'sentry/views/performance/transactionSummary/filter';
+import {transformData} from 'sentry/views/performance/transactionSummary/transactionOverview/durationPercentileChart/utils';
 import {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
+
+import DurationPercentileChart from './durationPercentileChart/chart';
 
 type Options = {
   selectedWidget: EAPWidgetType;
@@ -32,6 +41,7 @@ export function useWidgetChartVisualization({
     location.query?.[SpanIndexedField.SPAN_CATEGORY]
   );
   const {selection} = usePageFilters();
+  const theme = useTheme();
   const query = new MutableSearch('');
   query.addFilterValue('transaction', transactionName);
   if (spanCategoryUrlParam) {
@@ -62,23 +72,26 @@ export function useWidgetChartVisualization({
     DiscoverDatasets.SPANS_EAP
   );
 
-  const {data: durationPercentilesSeriesData, isError: isDurationPercentilesError} =
-    useEAPSpans(
-      {
-        fields: [
-          'p50(span.duration)',
-          'p75(span.duration)',
-          'p90(span.duration)',
-          'p95(span.duration)',
-          'p99(span.duration)',
-          'p100(span.duration)',
-        ],
-        search: query,
-        pageFilters: selection,
-        enabled: selectedWidget === EAPWidgetType.DURATION_PERCENTILES,
-      },
-      'api.transaction-summary.span-category-filter'
-    );
+  const {
+    data: durationPercentilesData,
+    isPending: isDurationPercentilesPending,
+    isError: isDurationPercentilesError,
+  } = useEAPSpans(
+    {
+      fields: [
+        'p50(span.duration)',
+        'p75(span.duration)',
+        'p90(span.duration)',
+        'p95(span.duration)',
+        'p99(span.duration)',
+        'p100(span.duration)',
+      ],
+      search: query,
+      pageFilters: selection,
+      enabled: selectedWidget === EAPWidgetType.DURATION_PERCENTILES,
+    },
+    'api.transaction-summary.span-category-filter'
+  );
 
   if (selectedWidget === EAPWidgetType.DURATION_BREAKDOWN) {
     if (isSpanSeriesPending || isSpanSeriesError) {
@@ -107,11 +120,21 @@ export function useWidgetChartVisualization({
   }
 
   if (selectedWidget === EAPWidgetType.DURATION_PERCENTILES) {
-    if (isDurationPercentilesError) {
+    if (isDurationPercentilesPending || isDurationPercentilesError) {
       return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
     }
 
-    return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
+    const colors = () =>
+      spanCategoryUrlParam === undefined
+        ? theme.chart.getColorPalette(1)
+        : [filterToColor(spanCategoryUrlParam as SpanOperationBreakdownFilter, theme)];
+
+    return (
+      <DurationPercentileChart
+        series={transformData(durationPercentilesData, false, /p(\d+)\(/)}
+        colors={colors}
+      />
+    );
   }
 
   return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
