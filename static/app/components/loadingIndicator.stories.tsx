@@ -9,8 +9,8 @@ export default storyBook('LoadingIndicator', story => {
   story('Mini', () => <LoadingIndicator mini />);
   story('Sizes', () => (
     <div>
-      <LoadingIndicator size={24} overlay />
-      <StyledLoadingIndicator size={24} overlay />
+      <LoadingIndicator size={24} />
+      <StyledLoadingIndicator size={24} />
     </div>
   ));
 

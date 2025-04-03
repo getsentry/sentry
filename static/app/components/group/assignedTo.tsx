@@ -343,7 +343,5 @@ const StyledSidebarTitle = styled(SidebarSection.Title)`
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  width: 24px;
-  height: 24px;
   margin: 0 !important;
 `;
