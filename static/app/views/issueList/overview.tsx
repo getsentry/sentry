@@ -1095,8 +1095,6 @@ function IssueListOverview({router}: Props) {
               groupIds={groupIds}
               allResultsVisible={allResultsVisible()}
               displayReprocessingActions={displayReprocessingActions}
-              sort={sort}
-              onSortChange={onSortChange}
               memberList={memberList}
               selectedProjectIds={selection.projects}
               issuesLoading={issuesLoading}
