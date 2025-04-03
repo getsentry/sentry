@@ -5,7 +5,7 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
-explore: 0001_add_explore_saved_query_model
+explore: 0002_add_starred_explore_query_model
 
 feedback: 0004_index_together
 
@@ -17,7 +17,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0857_update_group_open_periods_constraint
+sentry: 0860_add_new_groupopenperiod_constraint
 
 social_auth: 0002_default_auto_field
 

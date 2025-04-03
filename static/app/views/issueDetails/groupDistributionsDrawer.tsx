@@ -47,13 +47,12 @@ function useDrawerTab({enabled}: {enabled: boolean}) {
     DrawerTab.TAGS
   );
 
-  if (!enabled) {
-    return {tab: DrawerTab.TAGS, setTab: (_tab: string) => {}};
-  }
-  return {
-    tab: enabled ? (getTabParam() as DrawerTab) : DrawerTab.TAGS,
-    setTab: setTabParam,
-  };
+  return enabled
+    ? {
+        tab: getTabParam() as DrawerTab,
+        setTab: setTabParam,
+      }
+    : {tab: DrawerTab.TAGS, setTab: (_tab: string) => {}};
 }
 
 function getHeaderTitle(
