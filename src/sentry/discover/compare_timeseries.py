@@ -214,7 +214,10 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
             scope.set_extra("mismatches", mismatches)
             scope.set_extra("alert_id", alert_rule.id)
 
-            scope.set_tag("buckets_mismatch.percentage", mismatches / len(aligned_timeseries) * 100)
+            scope.set_tag(
+                "buckets_mismatch.percentage", len(mismatches) / len(aligned_timeseries) * 100
+            )
+            scope.set_tag("buckets_mismatch.count", len(mismatches))
 
             mismatch_type, many_low_conf_buckets, many_low_sample_rate_buckets = get_mismatch_type(
                 mismatches
