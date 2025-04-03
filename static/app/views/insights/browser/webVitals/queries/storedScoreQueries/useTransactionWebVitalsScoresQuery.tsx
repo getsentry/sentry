@@ -65,11 +65,11 @@ export const useTransactionWebVitalsScoresQuery = ({
   }
 
   const vitalToFieldMap: Record<WebVitals, MetricsProperty> = {
-    cls: 'performance_score(measurements.score.weight.cls)',
-    fcp: 'performance_score(measurements.score.weight.fcp)',
-    inp: 'performance_score(measurements.score.weight.inp)',
-    lcp: 'performance_score(measurements.score.weight.lcp)',
-    ttfb: 'performance_score(measurements.score.weight.ttfb)',
+    cls: 'performance_score(measurements.score.cls)',
+    fcp: 'performance_score(measurements.score.fcp)',
+    inp: 'performance_score(measurements.score.inp)',
+    lcp: 'performance_score(measurements.score.lcp)',
+    ttfb: 'performance_score(measurements.score.ttfb)',
   };
 
   const {data, isPending, ...rest} = useMetrics(
