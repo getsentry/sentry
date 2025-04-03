@@ -46,7 +46,7 @@ const openMenu = async (
   input: HTMLElement,
   {user = userEvent}: UserEventOptions = {}
 ) => {
-  await user.click(input, {skipHover: true});
+  await user.click(input, {skipHover: true, delay: null});
   // Arrow down may be required?
   // await user.type(input, '{ArrowDown}');
 };
@@ -66,7 +66,7 @@ const type = async (
  * Press the "clear" button, and reset various states
  */
 const clear = async (clearButton: Element, {user}: Required<UserEventOptions>) => {
-  await user.click(clearButton, {skipHover: true});
+  await user.click(clearButton, {skipHover: true, delay: null});
 };
 
 interface Config extends UserEventOptions {
@@ -115,7 +115,7 @@ const select = async (
     // will also match the selector. In this case, the actual dropdown element is
     // positioned last in the DOM tree.
     const optionElement = matchingElements[matchingElements.length - 1]!;
-    await user.click(optionElement, {skipHover: true});
+    await user.click(optionElement, {skipHover: true, delay: null});
   }
 };
 

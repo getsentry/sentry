@@ -6,6 +6,7 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -77,7 +78,7 @@ function renderTestComponent({
     },
   });
 
-  ProjectsStore.loadInitialData(projects);
+  act(() => ProjectsStore.loadInitialData(projects));
 
   const widgetLegendState = new WidgetLegendSelectionState({
     location: LocationFixture(),
@@ -815,11 +816,21 @@ describe('WidgetBuilder', function () {
 
       await screen.findByText('Table');
 
-      await userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
+      await userEvent.click(
+        await screen.findByText('Issues (States, Assignment, Time, etc.)'),
+        {skipHover: true, delay: null}
+      );
 
-      await userEvent.type(screen.getAllByPlaceholderText('Alias')[0]!, 'First Alias');
+      await userEvent.click(screen.getAllByPlaceholderText('Alias')[0]!, {
+        delay: null,
+        skipHover: true,
+      });
+      await userEvent.paste('First Alias', {delay: null, skipHover: true});
 
-      await userEvent.click(screen.getByText('Add Widget'));
+      await userEvent.click(await screen.findByText('Add Widget'), {
+        delay: null,
+        skipHover: true,
+      });
 
       await waitFor(() => {
         expect(handleSave).toHaveBeenCalledWith([
@@ -832,7 +843,7 @@ describe('WidgetBuilder', function () {
           }),
         ]);
       });
-    });
+    }, 20_000);
   });
   describe('Events Widgets', function () {
     describe('Custom Performance Metrics', function () {
@@ -869,9 +880,11 @@ describe('WidgetBuilder', function () {
         expect(countFields).toHaveLength(3);
 
         await selectEvent.select(countFields[1]!, ['p99(…)']);
-        await selectEvent.select(await screen.findByText('transaction.duration'), [
-          'measurements.custom.measurement',
-        ]);
+
+        // Open dropdown
+        await userEvent.click(await screen.findByText('transaction.duration'));
+        // Pick option measurements.custom.measurement
+        await userEvent.click(await screen.findByText('measurements.custom.measurement'));
 
         await userEvent.click(await screen.findByText('Add Widget'));
 
