@@ -35,6 +35,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                 },
             )
 
+    @pytest.mark.skip("disabled while snuba adds a precise timestamp")
     def test_simple(self):
         logs = [
             self.create_ourlog(
