@@ -253,12 +253,10 @@ def get_seer_similar_issues(
     event: Event,
     event_grouphash: GroupHash,
     variants: dict[str, BaseVariant],
-    num_neighbors: int = 1,
-) -> tuple[dict[str, Any], GroupHash | None]:
+) -> tuple[float | None, GroupHash | None]:
     """
-    Ask Seer for the given event's nearest neighbor(s) and return the seer response data, sorted
-    with the best matches first, along with a grouphash linked to the group Seer decided the event
-    should go in (if any), or None if no neighbor was near enough.
+    Ask Seer for the given event's nearest neighbor(s) and return the stacktrace distance and
+    matching GroupHash of the closest match (if any), or `(None, None)` if no match found.
     """
     event_hash = event.get_primary_hash()
     exception_type = get_path(event.data, "exception", "values", -1, "type")
@@ -276,7 +274,7 @@ def get_seer_similar_issues(
         "project_id": event.project.id,
         "stacktrace": stacktrace_string,
         "exception_type": filter_null_from_string(exception_type) if exception_type else None,
-        "k": num_neighbors,
+        "k": options.get("seer.similarity.ingest.num_matches_to_request"),
         "referrer": "ingest",
         "use_reranking": options.get("seer.similarity.ingest.use_reranking"),
     }
@@ -286,7 +284,8 @@ def get_seer_similar_issues(
 
     # Similar issues are returned with the closest match first
     seer_results = get_similarity_data_from_seer(request_data, seer_request_metric_tags)
-    seer_results_json = [asdict(result) for result in seer_results]
+    matching_seer_result = asdict(seer_results[0]) if seer_results else None
+    stacktrace_distance = seer_results[0].stacktrace_distance if seer_results else None
     parent_grouphash = (
         GroupHash.objects.filter(
             hash=seer_results[0].parent_hash, project_id=event.project.id
@@ -317,7 +316,8 @@ def get_seer_similar_issues(
 
             if not fingerprints_match:
                 parent_grouphash = None
-                seer_results_json = []
+                stacktrace_distance = None
+                matching_seer_result = None
 
             if not parent_has_metadata:
                 result = "no_parent_metadata"
@@ -345,23 +345,18 @@ def get_seer_similar_issues(
                 tags={"platform": event.platform, "result": "no_seer_match"},
             )
 
-    similar_issues_metadata = {
-        "results": seer_results_json,
-        "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-    }
-
     logger.info(
         "get_seer_similar_issues.results",
         extra={
             "event_id": event.event_id,
             "project_id": event.project.id,
             "hash": event_hash,
-            "results": seer_results_json,
+            "matching_result": matching_seer_result,
             "grouphash_returned": bool(parent_grouphash),
         },
     )
 
-    return (similar_issues_metadata, parent_grouphash)
+    return (stacktrace_distance, parent_grouphash)
 
 
 def maybe_check_seer_for_matching_grouphash(
@@ -376,9 +371,8 @@ def maybe_check_seer_for_matching_grouphash(
         record_did_call_seer_metric(event, call_made=True, blocker="none")
 
         try:
-            # If no matching group is found in Seer, we'll still get back result
-            # metadata, but `seer_matched_grouphash` will be None
-            seer_response_data, seer_matched_grouphash = get_seer_similar_issues(
+            # If no matching group is found in Seer, these will both be None
+            seer_match_distance, seer_matched_grouphash = get_seer_similar_issues(
                 event, event_grouphash, variants
             )
         except Exception as e:  # Insurance - in theory we shouldn't ever land here
@@ -427,13 +421,9 @@ def maybe_check_seer_for_matching_grouphash(
                 date_added=gh_metadata.date_added or timestamp,
                 seer_date_sent=gh_metadata.date_added or timestamp,
                 seer_event_sent=event.event_id,
-                seer_model=seer_response_data["similarity_model_version"],
+                seer_model=SEER_SIMILARITY_MODEL_VERSION,
                 seer_matched_grouphash=seer_matched_grouphash,
-                seer_match_distance=(
-                    seer_response_data["results"][0]["stacktrace_distance"]
-                    if seer_matched_grouphash
-                    else None
-                ),
+                seer_match_distance=seer_match_distance,
             )
 
     return seer_matched_grouphash

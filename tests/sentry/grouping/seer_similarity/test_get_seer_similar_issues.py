@@ -1,9 +1,7 @@
-from dataclasses import asdict
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry import options
-from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
@@ -105,7 +103,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "project_id": self.project.id,
                 "stacktrace": new_stacktrace_string,
                 "exception_type": "FailedToFetchError",
-                "k": 1,
+                "k": options.get("seer.similarity.ingest.num_matches_to_request"),
                 "referrer": "ingest",
                 "use_reranking": True,
             },
@@ -137,13 +135,8 @@ class ParentGroupFoundTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
-            expected_metadata = {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "results": [asdict(seer_result_data[0])],
-            }
-
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
-                expected_metadata,
+                0.01,
                 existing_grouphash,
             )
 
@@ -177,13 +170,8 @@ class ParentGroupFoundTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
-            expected_metadata = {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "results": [asdict(seer_result_data[0])],
-            }
-
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
-                expected_metadata,
+                0.01,
                 existing_grouphash,
             )
             assert_metrics_call(
@@ -216,15 +204,7 @@ class ParentGroupFoundTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
-            expected_metadata = {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "results": [],
-            }
-
-            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
-                expected_metadata,
-                None,
-            )
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
             assert_metrics_call(
                 mock_incr, "hybrid_fingerprint_seer_result", {"result": "no_fingerprint_match"}
             )
@@ -255,15 +235,7 @@ class ParentGroupFoundTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
-            expected_metadata = {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "results": [],
-            }
-
-            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
-                expected_metadata,
-                None,
-            )
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
             assert_metrics_call(
                 mock_incr, "hybrid_fingerprint_seer_result", {"result": "only_event_hybrid"}
             )
@@ -291,15 +263,7 @@ class ParentGroupFoundTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
-            expected_metadata = {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "results": [],
-            }
-
-            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
-                expected_metadata,
-                None,
-            )
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
             assert_metrics_call(
                 mock_incr, "hybrid_fingerprint_seer_result", {"result": "only_parent_hybrid"}
             )
@@ -343,15 +307,7 @@ class ParentGroupFoundTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
-            expected_metadata = {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "results": [],
-            }
-
-            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
-                expected_metadata,
-                None,
-            )
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
             assert_metrics_call(
                 mock_incr, "hybrid_fingerprint_seer_result", {"result": "no_parent_metadata"}
             )
@@ -365,15 +321,7 @@ class NoParentGroupFoundTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[],
         ):
-            expected_metadata = {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "results": [],
-            }
-
-            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
-                expected_metadata,
-                None,
-            )
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint(self, mock_incr: MagicMock) -> None:
@@ -386,15 +334,7 @@ class NoParentGroupFoundTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[],
         ):
-            expected_metadata = {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "results": [],
-            }
-
-            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
-                expected_metadata,
-                None,
-            )
+            assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
             assert_metrics_call(
                 mock_incr, "hybrid_fingerprint_seer_result", {"result": "no_seer_match"}
             )
