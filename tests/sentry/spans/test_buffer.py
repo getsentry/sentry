@@ -114,7 +114,11 @@ def process_spans_concurrrently(spans: list[Span | _SplitBatch], buffer: SpansBu
     thread_ids = []
 
     for chunk in span_chunks:
+        if not chunk:
+            continue
+
         t = Thread(target=run, args=[chunk])
+        t.daemon = True
         threads.append(t)
         thread_ids.append(t.ident)
 
@@ -124,7 +128,10 @@ def process_spans_concurrrently(spans: list[Span | _SplitBatch], buffer: SpansBu
         ident = get_ident()
 
         while True:
-            if thread_ids[i2] == ident or not threads[i2].is_alive:
+            if not threads[i2].is_alive:
+                i2 = threads.index(ident)
+
+            if thread_ids[i2] == ident:
                 i2 += (i2 + 1) % len(thread_ids)
                 return
 
