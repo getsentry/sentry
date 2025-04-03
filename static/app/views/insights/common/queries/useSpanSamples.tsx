@@ -107,6 +107,7 @@ export const useSpanSamples = (options: Options) => {
     project: pageFilter.selection.projects,
     environment: pageFilter.selection.environments,
     query: query.formatString(),
+    useEap: location.query?.useEap,
     ...(additionalFields?.length ? {additionalFields} : {}),
   };
   const {data, ...result} = useApiQuery<{data: SpanSample[]}>(
