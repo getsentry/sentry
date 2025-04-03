@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Literal, cast
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
@@ -82,8 +82,8 @@ def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceIt
 
 
 def resolve_http_response_count(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
-    status_code = cast(str, args[0])
-    codes = constants.RESPONSE_CODE_MAP[status_code]
+    code = cast(Literal[1, 2, 3, 4, 5], args[0])
+    codes = constants.RESPONSE_CODE_MAP[code]
 
     status_code_attribute = AttributeKey(
         name="sentry.status_code",
