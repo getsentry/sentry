@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import sentry_sdk
-from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
+from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
 from sentry.seer.workflows.compare import KeyedValueCount, Score, keyed_kl_score
 from sentry.utils.snuba import raw_snql_query
@@ -90,6 +90,7 @@ def query_flag_rows(
             *where,
         ],
         groupby=[Column("variants")],
+        limit=Limit(1000),
     )
 
     snuba_request = Request(
@@ -151,6 +152,7 @@ def query_error_counts(
             Condition(Column("timestamp"), Op.GTE, start),
             *where,
         ],
+        limit=Limit(1),
     )
 
     snuba_request = Request(
