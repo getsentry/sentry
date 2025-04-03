@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 from django.db import models, router, transaction
+from django.db.models import UniqueConstraint
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -11,7 +12,9 @@ from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields import JSONField
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.dashboard_widget import TypesClass
+from sentry.models.organization import Organization
 
 
 class ExploreSavedQueryDataset(TypesClass):
@@ -82,3 +85,141 @@ class ExploreSavedQuery(DefaultFieldsModel):
                     for project_id in new_project_ids
                 ]
             )
+
+
+class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
+
+    def num_starred_queries(self, organization: Organization, user_id: int) -> int:
+        """
+        Returns the number of starred queries for a user in an organization.
+        """
+        return self.filter(organization=organization, user_id=user_id).count()
+
+    def get_starred_query(
+        self, organization: Organization, user_id: int, query: ExploreSavedQuery
+    ) -> ExploreSavedQueryStarred | None:
+        """
+        Returns the starred query if it exists, otherwise None.
+        """
+        return self.filter(
+            organization=organization, user_id=user_id, explore_saved_query=query
+        ).first()
+
+    def reorder_starred_queries(
+        self, organization: Organization, user_id: int, new_query_positions: list[int]
+    ):
+        """
+        Reorders the positions of starred queries for a user in an organization.
+        Does NOT add or remove starred queries.
+
+        Args:
+            organization: The organization the queries belong to
+            user_id: The ID of the user whose starred queries are being reordered
+            new_query_positions: List of query IDs in their new order
+
+        Raises:
+            ValueError: If there's a mismatch between existing starred queries and the provided list
+        """
+        existing_starred_queries = self.filter(
+            organization=organization,
+            user_id=user_id,
+        )
+
+        existing_query_ids = {query.explore_saved_query.id for query in existing_starred_queries}
+        new_query_ids = set(new_query_positions)
+
+        if existing_query_ids != new_query_ids:
+            raise ValueError("Mismatch between existing and provided starred queries.")
+
+        position_map = {query_id: idx for idx, query_id in enumerate(new_query_positions)}
+
+        queries_to_update = list(existing_starred_queries)
+
+        for query in queries_to_update:
+            query.position = position_map[query.explore_saved_query.id]
+
+        if queries_to_update:
+            self.bulk_update(queries_to_update, ["position"])
+
+    def insert_starred_query(
+        self,
+        organization: Organization,
+        user_id: int,
+        query: ExploreSavedQuery,
+    ) -> bool:
+        """
+        Inserts a new starred query at the end of the list.
+
+        Args:
+            organization: The organization the queries belong to
+            user_id: The ID of the user whose starred queries are being updated
+            explore_saved_query: The query to insert
+
+        Returns:
+            True if the query was starred, False if the query was already starred
+        """
+        with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
+            if self.get_starred_query(organization, user_id, query):
+                return False
+
+            position = self.num_starred_queries(organization, user_id)
+
+            self.create(
+                organization=organization,
+                user_id=user_id,
+                explore_saved_query=query,
+                position=position,
+            )
+            return True
+
+    def delete_starred_query(
+        self, organization: Organization, user_id: int, query: ExploreSavedQuery
+    ) -> bool:
+        """
+        Deletes a starred query from the list.
+        Decrements the position of all queries after the deletion point.
+
+        Args:
+            organization: The organization the queries belong to
+            user_id: The ID of the user whose starred queries are being updated
+            explore_saved_query: The query to delete
+
+        Returns:
+            True if the query was unstarred, False if the query was already unstarred
+        """
+        with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
+            if not (starred_query := self.get_starred_query(organization, user_id, query)):
+                return False
+
+            deleted_position = starred_query.position
+            starred_query.delete()
+
+            self.filter(
+                organization=organization, user_id=user_id, position__gt=deleted_position
+            ).update(position=models.F("position") - 1)
+            return True
+
+
+@region_silo_model
+class ExploreSavedQueryStarred(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    organization = FlexibleForeignKey("sentry.Organization")
+    explore_saved_query = FlexibleForeignKey("explore.ExploreSavedQuery")
+
+    position = models.PositiveSmallIntegerField()
+
+    objects: ClassVar[ExploreSavedQueryStarredManager] = ExploreSavedQueryStarredManager()
+
+    class Meta:
+        app_label = "explore"
+        db_table = "explore_exploresavedquerystarred"
+        # Two queries cannot occupy the same position in an organization user's list of queries
+        constraints = [
+            UniqueConstraint(
+                fields=["user_id", "organization_id", "position"],
+                name="explore_exploresavedquerystarred_unique_query_position_per_org_user",
+                deferrable=models.Deferrable.DEFERRED,
+            )
+        ]
