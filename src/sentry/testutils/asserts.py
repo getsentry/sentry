@@ -1,7 +1,6 @@
 import time
 from functools import reduce
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.http import StreamingHttpResponse
 
 from sentry.constants import ObjectStatus
@@ -51,19 +50,14 @@ def assert_status_code(response, minimum: int, maximum: int | None = None):
 
 
 def verify_project_deletion(org: Organization, platform: str):
-    # Poll the database to check if the project was deleted
-    # the timeout is set to 10 seconds
     start_time = time.time()
     while time.time() - start_time < 10:
-        try:
-            # we need to check for the status here because we do soft deletions
-            Project.objects.get(organization=org, slug=platform, status=ObjectStatus.ACTIVE)
-        except ObjectDoesNotExist:
-            # If the project doesn't exist anymore, it's deleted
-            return  # The project was successfully deleted
-
-    # If timeout reached and the project still exists, fail the test
-    assert False, f"Project with slug '{platform}' was not deleted within 10 seconds"
+        project_exists = Project.objects.filter(
+            organization=org, slug=platform, status=ObjectStatus.ACTIVE
+        ).exists()
+        if not project_exists:
+            return
+    assert False
 
 
 @assume_test_silo_mode(SiloMode.CONTROL)
