@@ -1,11 +1,5 @@
-import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView, {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
@@ -14,7 +8,12 @@ import type {
 } from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
+import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {
+  type MetricsProperty,
+  SpanIndexedField,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -34,17 +33,13 @@ export const useTransactionWebVitalsScoresQuery = ({
   transaction,
   defaultSort,
   sortName = 'sort',
-  enabled = true,
   webVital = 'total',
+  enabled,
   query,
   shouldEscapeFilters = true,
   browserTypes,
   subregions,
 }: Props) => {
-  const organization = useOrganization();
-  const pageFilters = usePageFilters();
-  const location = useLocation();
-
   const sort = useWebVitalsSort({sortName, defaultSort});
   if (sort !== undefined) {
     if (sort.field === 'avg(measurements.score.total)') {
@@ -69,8 +64,12 @@ export const useTransactionWebVitalsScoresQuery = ({
     search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
   }
 
-  const eventView = EventView.fromNewQueryWithPageFilters(
+  const {data, isPending, ...rest} = useMetrics(
     {
+      limit: limit ?? 50,
+      search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
+      sorts: [sort],
+      enabled,
       fields: [
         'project.id',
         'project',
@@ -82,7 +81,7 @@ export const useTransactionWebVitalsScoresQuery = ({
         'p75(measurements.inp)',
         ...(webVital === 'total'
           ? []
-          : [`performance_score(measurements.score.${webVital})`]),
+          : [`performance_score(measurements.score.${webVital})` as MetricsProperty]),
         `opportunity_score(measurements.score.${webVital})`,
         'performance_score(measurements.score.total)',
         'count()',
@@ -93,31 +92,13 @@ export const useTransactionWebVitalsScoresQuery = ({
         `count_scores(measurements.score.ttfb)`,
         'total_opportunity_score()',
       ],
-      name: 'Web Vitals',
-      query: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
-      version: 2,
-      dataset: DiscoverDatasets.METRICS,
     },
-    pageFilters.selection
+    'api.performance.browser.web-vitals.transactions-scores'
   );
 
-  eventView.sorts = [sort];
-
-  const {data, isPending, ...rest} = useDiscoverQuery({
-    eventView,
-    limit: limit ?? 50,
-    location,
-    orgSlug: organization.slug,
-    options: {
-      enabled,
-      refetchOnWindowFocus: false,
-    },
-    referrer: 'api.performance.browser.web-vitals.transactions-scores',
-  });
-
   const tableData: RowWithScoreAndOpportunity[] =
-    !isPending && data?.data.length
-      ? data.data.map<RowWithScoreAndOpportunity>(row => {
+    !isPending && data?.length
+      ? data.map<RowWithScoreAndOpportunity>(row => {
           // Map back performance score key so we don't have to handle both keys in the UI
           if (row['performance_score(measurements.score.total)'] !== undefined) {
             row['avg(measurements.score.total)'] =
@@ -160,7 +141,7 @@ export const useTransactionWebVitalsScoresQuery = ({
             opportunity: row[
               webVital === 'total'
                 ? 'total_opportunity_score()'
-                : `opportunity_score(measurements.score.${webVital})`
+                : (`opportunity_score(measurements.score.${webVital})` as MetricsProperty)
             ] as number,
           };
         })
@@ -168,7 +149,6 @@ export const useTransactionWebVitalsScoresQuery = ({
 
   return {
     data: tableData,
-    meta: data?.meta as EventsMetaType,
     isPending,
     ...rest,
   };
