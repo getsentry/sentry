@@ -1407,6 +1407,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.release_registry",
     "sentry.tempest.tasks",
     "sentry.tasks.beacon",
+    "sentry.tasks.options",
     "sentry.tasks.ping",
     # Used for tests
     "sentry.taskworker.tasks.examples",
