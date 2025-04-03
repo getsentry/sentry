@@ -27,7 +27,6 @@ local main_redirect_key = string.format("span-buf:sr:{%s}", project_and_trace)
 local set_span_id = parent_span_id
 local redirect_depth = 0
 
-local original_parent_id = parent_span_id
 for i = 0, 10000 do  -- theoretically this limit means that segment trees of depth 10k may not be joined together correctly.
     local new_set_span = redis.call("hget", main_redirect_key, set_span_id)
     redirect_depth = i
@@ -46,9 +45,11 @@ if not is_root_span and redis.call("scard", span_key) > 0 then
     redis.call("sunionstore", set_key, set_key, span_key)
     redis.call("unlink", span_key)
 end
-if original_parent_id ~= parent_span_id and redis.call("scard", original_parent_id) > 0 then
-    redis.call("sunionstore", set_key, set_key, original_parent_id)
-    redis.call("unlink", original_parent_id)
+
+local parent_key = string.format("span-buf:s:{%s}:%s", project_and_trace, parent_span_id)
+if set_span_id ~= parent_span_id and redis.call("scard", parent_key) > 0 then
+    redis.call("sunionstore", set_key, set_key, parent_key)
+    redis.call("unlink", parent_key)
 end
 redis.call("expire", set_key, set_timeout)
 
