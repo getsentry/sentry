@@ -430,16 +430,6 @@ export const generateThemeAliases = (colors: Colors) => ({
   },
 
   /**
-   * Count on button when active
-   */
-  buttonCountActive: colors.white,
-
-  /**
-   * Count on button
-   */
-  buttonCount: colors.gray500,
-
-  /**
    * Background of alert banners at the top
    */
   bannerBackground: colors.gray500,
