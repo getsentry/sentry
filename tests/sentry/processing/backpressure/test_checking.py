@@ -60,7 +60,7 @@ def test_bad_config():
         process_one_message(consumer_type="profiles", topic="profiles", payload=PROFILES_MSG)
 
 
-@patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
+@patch("sentry.profiles.consumers.process.factory.process_profile_task.delay")
 @override_options(
     {
         "backpressure.checking.enabled": True,
@@ -133,7 +133,7 @@ def test_backpressure_healthy_events(preprocess_event):
     preprocess_event.assert_called_once()
 
 
-@patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
+@patch("sentry.profiles.consumers.process.factory.process_profile_task.delay")
 @override_options(
     {
         "backpressure.checking.enabled": False,
