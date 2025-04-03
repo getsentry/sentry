@@ -296,6 +296,12 @@ export default typescript.config([
           message:
             'Please do not mock useProjects. Use `ProjectsStore.loadInitialData([ProjectFixture()])` instead. It can be used before the component is mounted or in a beforeEach hook.',
         },
+        {
+          selector:
+            "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useOrganization']",
+          message:
+            'Please do not mock useOrganization. Pass organization to the render options. `render(<Component />, {organization: OrganizationFixture({isSuperuser: true})})`',
+        },
       ],
       'no-return-assign': 'error',
       'no-script-url': 'error',
