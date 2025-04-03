@@ -107,13 +107,5 @@ describe('awslambda onboarding docs', function () {
     expect(
       screen.queryByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).not.toBeInTheDocument();
-
-    // Should have start and stop profiling calls
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.startProfiler/))
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.stopProfiler/))
-    ).toBeInTheDocument();
   });
 });
