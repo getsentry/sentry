@@ -63,8 +63,8 @@ type WebVitalLabelProps = {
   location: Location;
   onHover: (webVital: WebVitals) => void;
   onUnHover: () => void;
-  projectData: ProjectData[];
   webVital: WebVitals;
+  projectData?: ProjectData[];
   webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
 };
 

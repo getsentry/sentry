@@ -64,14 +64,6 @@ export const useTransactionWebVitalsScoresQuery = ({
     search.addDisjunctionFilterValues(SpanIndexedField.USER_GEO_SUBREGION, subregions);
   }
 
-  const vitalToFieldMap: Record<WebVitals, MetricsProperty> = {
-    cls: 'performance_score(measurements.score.cls)',
-    fcp: 'performance_score(measurements.score.fcp)',
-    inp: 'performance_score(measurements.score.inp)',
-    lcp: 'performance_score(measurements.score.lcp)',
-    ttfb: 'performance_score(measurements.score.ttfb)',
-  };
-
   const {data, isPending, ...rest} = useMetrics(
     {
       limit: limit ?? 50,
@@ -96,7 +88,9 @@ export const useTransactionWebVitalsScoresQuery = ({
         `count_scores(measurements.score.inp)`,
         `count_scores(measurements.score.ttfb)`,
         'total_opportunity_score()',
-        ...(webVital === 'total' ? [] : [vitalToFieldMap[webVital]]),
+        ...(webVital === 'total'
+          ? []
+          : [`performance_score(measurements.score.${webVital})` as MetricsProperty]),
       ],
     },
     'api.performance.browser.web-vitals.transactions-scores'
@@ -147,7 +141,7 @@ export const useTransactionWebVitalsScoresQuery = ({
             opportunity: row[
               webVital === 'total'
                 ? 'total_opportunity_score()'
-                : vitalToFieldMap[webVital]
+                : (`opportunity_score(measurements.score.${webVital})` as MetricsProperty)
             ] as number,
           };
         })
