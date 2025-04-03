@@ -42,7 +42,7 @@ import {getDocsLinkForEventType} from 'sentry/views/settings/account/notificatio
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
-import UsageStatsProjects from './usageStatsProjects';
+import {UsageStatsProjects} from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
 
@@ -255,7 +255,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       if (isSelfHostedErrorsOnly) {
         return opt.value === DATA_CATEGORY_INFO.error.plural;
       }
-      if (opt.value === DATA_CATEGORY_INFO.replay.plural) {
+      if (DATA_CATEGORY_INFO.replay.plural === opt.value) {
         return organization.features.includes('session-replay');
       }
       if (DATA_CATEGORY_INFO.span.plural === opt.value) {
@@ -263,6 +263,12 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       }
       if (DATA_CATEGORY_INFO.transaction.plural === opt.value) {
         return !organization.features.includes('spans-usage-tracking');
+      }
+      if (
+        DATA_CATEGORY_INFO.logItem.plural === opt.value ||
+        DATA_CATEGORY_INFO.logByte.plural === opt.value
+      ) {
+        return organization.features.includes('ourlogs-stats');
       }
       if (
         DATA_CATEGORY_INFO.profileDuration.plural === opt.value ||
@@ -382,7 +388,6 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
                 </div>
                 <ErrorBoundary mini>
                   <UsageStatsProjects
-                    organization={organization}
                     dataCategory={this.dataCategoryInfo}
                     dataCategoryName={this.dataCategoryInfo.titleName}
                     isSingleProject={this.isSingleProject}

@@ -1,58 +1,25 @@
-import {Component, Fragment} from 'react';
-
-import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
-import type {Client} from 'sentry/api';
-import type {Organization} from 'sentry/types/organization';
-import withApi from 'sentry/utils/withApi';
-import withLatestContext from 'sentry/utils/withLatestContext';
+import useOrganization from 'sentry/utils/useOrganization';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import AccountSettingsNavigation from 'sentry/views/settings/account/accountSettingsNavigation';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
-type Props = React.ComponentProps<typeof SettingsLayout> & {
-  api: Client;
-  organization?: Organization;
-};
+interface Props extends React.ComponentProps<typeof SettingsLayout> {}
 
-class AccountSettingsLayout extends Component<Props> {
-  componentDidUpdate(prevProps: Props) {
-    const {api, organization} = this.props;
-    if (prevProps.organization === organization) {
-      return;
-    }
+function AccountSettingsLayout({children, ...props}: Props) {
+  const organization = useOrganization({allowNull: true}) ?? undefined;
 
-    // if there is no org in context, SidebarDropdown uses an org from `withLatestContext`
-    // (which queries the org index endpoint instead of org details)
-    // and does not have `access` info
-    if (organization && typeof organization.access === 'undefined') {
-      fetchOrganizationDetails(api, organization.slug, {
-        setActive: true,
-        loadProjects: true,
-      });
-    }
-  }
-
-  render() {
-    const {organization} = this.props;
-
-    if (prefersStackedNav()) {
-      return (
-        <Fragment>
-          <AccountSettingsNavigation organization={organization} />
-          <SettingsLayout {...this.props}>{this.props.children}</SettingsLayout>
-        </Fragment>
-      );
-    }
-
-    return (
-      <SettingsLayout
-        {...this.props}
-        renderNavigation={() => <AccountSettingsNavigation organization={organization} />}
-      >
-        {this.props.children}
-      </SettingsLayout>
-    );
-  }
+  return (
+    <SettingsLayout
+      {...props}
+      renderNavigation={
+        prefersStackedNav()
+          ? undefined
+          : () => <AccountSettingsNavigation organization={organization} />
+      }
+    >
+      {children}
+    </SettingsLayout>
+  );
 }
 
-export default withLatestContext(withApi(AccountSettingsLayout));
+export default AccountSettingsLayout;

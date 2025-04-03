@@ -2,6 +2,7 @@ import type {Query} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -14,7 +15,6 @@ import {
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import {lightTheme} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
@@ -23,6 +23,7 @@ import {
   makeZoomKeys,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
+const theme = ThemeFixture();
 jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
@@ -139,7 +140,7 @@ describe('Performance > Web Vitals', function () {
     });
 
     const histogramData: Record<string, HistogramData[]> = {};
-    const webVitals = makeVitalGroups(lightTheme).reduce<string[]>(
+    const webVitals = makeVitalGroups(theme).reduce<string[]>(
       (vs, group) => vs.concat(group.vitals),
       []
     );

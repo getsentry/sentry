@@ -22,7 +22,7 @@ describe('useDisableRouteAnalytics', function () {
       return <div>hi</div>;
     }
     const getComponent = ({previousUrl = ''}: {previousUrl?: string} = {}) => (
-      <RouteAnalyticsContext.Provider
+      <RouteAnalyticsContext
         value={{
           ...otherFns,
           setDisableRouteAnalytics,
@@ -30,7 +30,7 @@ describe('useDisableRouteAnalytics', function () {
         }}
       >
         <TestComponent />
-      </RouteAnalyticsContext.Provider>
+      </RouteAnalyticsContext>
     );
     const {rerender} = render(getComponent({}));
     expect(setDisableRouteAnalytics).toHaveBeenCalledWith(true);
@@ -48,7 +48,7 @@ describe('useDisableRouteAnalytics', function () {
       return <div>hi</div>;
     }
     const getComponent = ({disabled}: {disabled: boolean}) => (
-      <RouteAnalyticsContext.Provider
+      <RouteAnalyticsContext
         value={{
           ...otherFns,
           setDisableRouteAnalytics,
@@ -56,7 +56,7 @@ describe('useDisableRouteAnalytics', function () {
         }}
       >
         <TestComponent disabled={disabled} />
-      </RouteAnalyticsContext.Provider>
+      </RouteAnalyticsContext>
     );
     const {rerender} = render(getComponent({disabled: true}));
     expect(setDisableRouteAnalytics).toHaveBeenCalledWith(true);

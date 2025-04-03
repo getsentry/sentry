@@ -20,7 +20,7 @@ describe('AddIntegrationRow', function () {
   });
 
   const getComponent = () => (
-    <IntegrationContext.Provider
+    <IntegrationContext
       value={{
         provider,
         type: 'first_party',
@@ -33,7 +33,7 @@ describe('AddIntegrationRow', function () {
       }}
     >
       <AddIntegrationRow onClick={jest.fn()} />
-    </IntegrationContext.Provider>
+    </IntegrationContext>
   );
 
   it('renders', async () => {

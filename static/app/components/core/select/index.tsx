@@ -199,7 +199,7 @@ const getStylesConfig = ({
   return {
     control: (_, state: any) => ({
       display: 'flex',
-      color: theme.formText,
+      color: theme.gray400,
       background: theme.background,
       border: `1px solid ${theme.border}`,
       boxShadow: theme.dropShadowMedium,
@@ -269,12 +269,12 @@ const getStylesConfig = ({
     }),
     input: provided => ({
       ...provided,
-      color: theme.formText,
+      color: theme.gray400,
       margin: 0,
     }),
     singleValue: provided => ({
       ...provided,
-      color: theme.formText,
+      color: theme.gray400,
       display: 'flex',
       alignItems: 'center',
       marginLeft: 0,
@@ -364,7 +364,10 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: ControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {size, maxMenuWidth, isInsideModal, isSearchable, isDisabled} = props;
+  const {size, maxMenuWidth, isInsideModal} = props;
+
+  const isSearchable = props.isSearchable || props.searchable;
+  const isDisabled = props.isDisabled || props.disabled;
 
   const defaultStyles = useMemo(() => {
     return theme.isChonk

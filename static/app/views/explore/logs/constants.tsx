@@ -21,6 +21,7 @@ export const AlwaysPresentLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.PROJECT_ID,
   OurLogKnownFieldKey.TRACE_ID,
   OurLogKnownFieldKey.SEVERITY_NUMBER,
+  OurLogKnownFieldKey.SEVERITY_TEXT,
 ];
 
 /**
@@ -31,6 +32,7 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.BODY,
   OurLogKnownFieldKey.ORGANIZATION_ID,
   OurLogKnownFieldKey.ITEM_TYPE,
+  OurLogKnownFieldKey.PROJECT,
 ];
 
 const LOGS_FILTERS: FilterKeySection = {

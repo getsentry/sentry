@@ -4,6 +4,7 @@ from django.urls import reverse
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY
 from sentry.cache import default_cache
 from sentry.testutils.cases import PermissionTestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -318,3 +319,16 @@ class SetupWizard(PermissionTestCase):
         assert resp.headers["Content-Length"] == "0"
         assert "Access-Control-Allow-Origin" in resp.headers
         assert "Access-Control-Allow-Methods" in resp.headers
+
+    @override_options(
+        {"demo-mode.enabled": True, "demo-mode.users": [100], "demo-mode.orgs": [100]}
+    )
+    def test_demo_user(self):
+        demo_user = self.create_user("demo@example.com", id=100)
+        self.create_organization(owner=self.user, id=100)
+
+        self.login_as(demo_user)
+
+        url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
+        resp = self.client.get(url)
+        assert resp.status_code == 403

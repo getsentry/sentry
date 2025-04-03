@@ -18,6 +18,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group, IssueOwnership} from 'sentry/types/group';
 import type {MissingMember, Organization, OrgRole, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {Theme} from 'sentry/utils/theme';
 
 export type ModalOptions = ModalTypes['options'];
 export type ModalRenderProps = ModalTypes['renderProps'];
@@ -109,6 +110,10 @@ type CreateOwnershipRuleModalOptions = {
    */
   project: Project;
   /**
+   * Theme object
+   */
+  theme: Theme;
+  /**
    * Suggestions will be created from the current event
    */
   eventData?: Event;
@@ -123,7 +128,9 @@ export async function openIssueOwnershipRuleModal(
   const mod = await import('sentry/components/modals/issueOwnershipRuleModal');
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {
+    modalCss: modalCss(options.theme),
+  });
 }
 
 export type EditOwnershipRulesModalOptions = {
@@ -131,6 +138,7 @@ export type EditOwnershipRulesModalOptions = {
   organization: Organization;
   ownership: IssueOwnership;
   project: Project;
+  theme: Theme;
 };
 
 export async function openEditOwnershipRules(options: EditOwnershipRulesModalOptions) {
@@ -139,7 +147,7 @@ export async function openEditOwnershipRules(options: EditOwnershipRulesModalOpt
 
   openModal(deps => <Modal {...deps} {...options} />, {
     closeEvents: 'escape-key',
-    modalCss,
+    modalCss: modalCss(options.theme),
   });
 }
 

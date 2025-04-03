@@ -94,8 +94,8 @@ export function CustomMeasurementsProvider({
   }, [selection, api, organization]);
 
   return (
-    <CustomMeasurementsContext.Provider value={state}>
+    <CustomMeasurementsContext value={state}>
       {typeof children === 'function' ? children(state) : children}
-    </CustomMeasurementsContext.Provider>
+    </CustomMeasurementsContext>
   );
 }

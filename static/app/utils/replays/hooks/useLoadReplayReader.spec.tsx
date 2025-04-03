@@ -12,9 +12,7 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => ({
 const {organization, project} = initializeOrg();
 
 const wrapper = ({children}: {children?: React.ReactNode}) => (
-  <OrganizationContext.Provider value={organization}>
-    {children}
-  </OrganizationContext.Provider>
+  <OrganizationContext value={organization}>{children}</OrganizationContext>
 );
 
 describe('useLoadReplayReader', () => {

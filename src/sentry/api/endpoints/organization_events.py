@@ -421,6 +421,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         dataset = self.get_dataset(request)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
+        sampling_mode = request.GET.get("sampling")
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
@@ -464,7 +465,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     config=SearchResolverConfig(
                         auto_fields=True,
                         use_aggregate_conditions=use_aggregate_conditions,
+                        functions_acl={"time_spent_percentage"},
                     ),
+                    sampling_mode=sampling_mode,
                 )
             query_source = self.get_request_source(request)
             return dataset_query(

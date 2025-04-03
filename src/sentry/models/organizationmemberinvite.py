@@ -8,7 +8,6 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-# from sentry.api.serializers.models.organization_member.response import _OrganizationMemberFlags
 from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -163,3 +162,13 @@ class OrganizationMemberInvite(DefaultFieldsModel):
             return (self.pk, ImportKind.Existing)
 
         return super().write_relocation_import(scope, flags)
+
+    def get_audit_log_data(self):
+        teams = self.organization_member_team_data
+        return {
+            "email": self.email,
+            "teams": [t["id"] for t in teams],
+            "teams_slugs": [t["slug"] for t in teams],
+            "role": self.role,
+            "invite_status": (invite_status_names[self.invite_status]),
+        }

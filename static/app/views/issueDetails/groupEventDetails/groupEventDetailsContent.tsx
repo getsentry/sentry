@@ -215,7 +215,6 @@ export function EventDetailsContent({
           organization={organization}
         />
       ) : null}
-
       {!hasStreamlinedUI && group.issueCategory === IssueCategory.UPTIME && (
         <UptimeDataSection event={event} project={project} group={group} />
       )}
@@ -233,7 +232,6 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-
       <EventEvidence event={event} group={group} project={project} />
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
@@ -250,7 +248,8 @@ export function EventDetailsContent({
               !(
                 defined(eventEntries[EntryType.EXCEPTION]) ||
                 defined(eventEntries[EntryType.STACKTRACE]) ||
-                defined(eventEntries[EntryType.THREADS])
+                defined(eventEntries[EntryType.THREADS]) ||
+                hasStreamlinedUI
               )
             }
             // Prevent the container span from shrinking the content
@@ -317,9 +316,9 @@ export function EventDetailsContent({
         >
           {results => {
             return (
-              <QuickTraceContext.Provider value={results}>
+              <QuickTraceContext value={results}>
                 <AnrRootCause event={event} organization={organization} />
-              </QuickTraceContext.Provider>
+              </QuickTraceContext>
             );
           }}
         </QuickTraceQuery>

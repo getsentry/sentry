@@ -48,6 +48,9 @@ export function formatTooltipValue(
       // This way, named rate functions like `epm()` will be shows in per minute
       // units
       return formatRate(value, unit as RateUnit);
+    case 'score':
+      // Scores are always integers, no half-marks.
+      return value.toFixed(0);
     default:
       return value.toString();
   }

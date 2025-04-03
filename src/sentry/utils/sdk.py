@@ -18,7 +18,7 @@ from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
-from sentry_sdk.types import Event, Hint
+from sentry_sdk.types import Event, Hint, Log
 from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
@@ -257,6 +257,12 @@ def before_send(event: Event, _: Hint) -> Event | None:
     return event
 
 
+def before_send_log(log: Log, _: Hint) -> Log | None:
+    if in_random_rollout("ourlogs.sentry-emit-rollout"):
+        return log
+    return None
+
+
 # Patches transport functions to add metrics to improve resolution around events sent to our ingest.
 # Leaving this in to keep a permanent measurement of sdk requests vs ingest.
 def patch_transport_for_instrumentation(transport, transport_name):
@@ -287,6 +293,8 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     )
     sdk_options.setdefault("_experiments", {}).update(
         transport_http2=True,
+        before_send_log=before_send_log,
+        enable_logs=True,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
@@ -475,7 +483,7 @@ def configure_sdk():
             # but none are captured as events (that's handled by the `internal`
             # logger defined in `server.py`, which ignores the levels set
             # in the integration and goes straight to the underlying handler class).
-            LoggingIntegration(event_level=None),
+            LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
             RustInfoIntegration(),
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),

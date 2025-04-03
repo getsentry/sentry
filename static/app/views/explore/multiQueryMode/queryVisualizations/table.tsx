@@ -22,6 +22,7 @@ import {
   prettifyTagKey,
 } from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {
   TableBody,
   TableHead,
@@ -51,6 +52,7 @@ const TABLE_HEIGHT = 258;
 interface MultiQueryTableBaseProps {
   confidences: Confidence[];
   index: number;
+  isProgressivelyLoading: boolean;
   mode: Mode;
   query: ReadableExploreQueryParts;
 }
@@ -83,6 +85,7 @@ function AggregatesTable({
   aggregatesTableResult,
   query: queryParts,
   index,
+  isProgressivelyLoading,
 }: AggregateTableProps) {
   const theme = useTheme();
   const location = useLocation();
@@ -114,7 +117,9 @@ function AggregatesTable({
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
-              <TableHeadCellContent />
+              <TableHeadCellContent>
+                {getProgressiveLoadingIndicator(isProgressivelyLoading)}
+              </TableHeadCellContent>
             </TableHeadCell>
             {fields.map((field, i) => {
               // Hide column names before alignment is determined
@@ -216,10 +221,16 @@ function AggregatesTable({
 }
 
 interface SampleTableProps extends MultiQueryTableBaseProps {
+  isProgressivelyLoading: boolean;
   spansTableResult: SpansTableResult;
 }
 
-function SpansTable({spansTableResult, query: queryParts, index}: SampleTableProps) {
+function SpansTable({
+  spansTableResult,
+  query: queryParts,
+  index,
+  isProgressivelyLoading,
+}: SampleTableProps) {
   const {result, eventView} = spansTableResult;
   const {fields, sortBys} = queryParts;
   const meta = result.meta ?? {};
@@ -263,6 +274,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
                     <Tooltip showOnlyOnOverflow title={label}>
                       {label}
                     </Tooltip>
+                    {i === 0 && getProgressiveLoadingIndicator(isProgressivelyLoading)}
                     {defined(direction) && (
                       <IconArrow
                         size="xs"

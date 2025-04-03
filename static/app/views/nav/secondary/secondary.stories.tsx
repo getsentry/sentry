@@ -7,7 +7,6 @@ import {space} from 'sentry/styles/space';
 import {NavContextProvider} from 'sentry/views/nav/context';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {SecondarySidebar} from 'sentry/views/nav/secondary/secondarySidebar';
-import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
 export default storyBook('SecondaryNav', story => {
   story('Basics (WIP)', () => {
@@ -17,7 +16,7 @@ export default storyBook('SecondaryNav', story => {
       <Container>
         <NavContextProvider>
           <SecondarySidebar />
-          <SecondaryNav group={PrimaryNavGroup.ISSUES}>
+          <SecondaryNav>
             <SecondaryNav.Body>
               <SecondaryNav.Section>
                 <SecondaryNav.Item

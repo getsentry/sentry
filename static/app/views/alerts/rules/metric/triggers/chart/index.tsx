@@ -539,6 +539,7 @@ class TriggersChart extends PureComponent<Props, State> {
       projects,
       timeWindow,
       query,
+      theme,
       location,
       aggregate,
       dataset,
@@ -623,7 +624,8 @@ class TriggersChart extends PureComponent<Props, State> {
                   comparisonTimeseriesData,
                   timeWindow,
                   triggers,
-                  thresholdType
+                  thresholdType,
+                  theme
                 );
               }
 
@@ -761,7 +763,8 @@ class TriggersChart extends PureComponent<Props, State> {
                 comparisonTimeseriesData,
                 timeWindow,
                 triggers,
-                thresholdType
+                thresholdType,
+                theme
               );
             }
 

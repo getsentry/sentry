@@ -1,4 +1,4 @@
-import {cloneElement, Fragment, isValidElement} from 'react';
+import {cloneElement, isValidElement} from 'react';
 
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
@@ -31,25 +31,16 @@ function InnerProjectSettingsLayout({
   const organization = useOrganization();
   const prefersStackedNav = usePrefersStackedNav();
 
-  if (prefersStackedNav) {
-    return (
-      <Fragment>
-        <ProjectSettingsNavigation organization={organization} />
-        <SettingsLayout params={params} routes={routes} {...props}>
-          {children && isValidElement(children)
-            ? cloneElement<any>(children, {organization, project})
-            : children}
-        </SettingsLayout>
-      </Fragment>
-    );
-  }
-
   return (
     <SettingsLayout
       params={params}
       routes={routes}
       {...props}
-      renderNavigation={() => <ProjectSettingsNavigation organization={organization} />}
+      renderNavigation={
+        prefersStackedNav
+          ? undefined
+          : () => <ProjectSettingsNavigation organization={organization} />
+      }
     >
       {children && isValidElement(children)
         ? cloneElement<any>(children, {organization, project})

@@ -111,7 +111,7 @@ describe('withDomainRedirect', function () {
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     const {container} = render(
-      <OrganizationContext.Provider value={organization}>
+      <OrganizationContext value={organization}>
         <WrappedComponent
           router={router}
           location={router.location}
@@ -120,7 +120,7 @@ describe('withDomainRedirect', function () {
           routeParams={router.params}
           route={{}}
         />
-      </OrganizationContext.Provider>,
+      </OrganizationContext>,
       {router}
     );
 
@@ -146,7 +146,7 @@ describe('withDomainRedirect', function () {
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     const {container} = render(
-      <OrganizationContext.Provider value={organization}>
+      <OrganizationContext value={organization}>
         <WrappedComponent
           router={router}
           location={router.location}
@@ -155,7 +155,7 @@ describe('withDomainRedirect', function () {
           routeParams={router.params}
           route={{}}
         />
-      </OrganizationContext.Provider>,
+      </OrganizationContext>,
       {router}
     );
 
@@ -186,7 +186,7 @@ describe('withDomainRedirect', function () {
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     const {container} = render(
-      <OrganizationContext.Provider value={organization}>
+      <OrganizationContext value={organization}>
         <WrappedComponent
           router={router}
           location={router.location}
@@ -195,7 +195,7 @@ describe('withDomainRedirect', function () {
           routeParams={router.params}
           route={{}}
         />
-      </OrganizationContext.Provider>,
+      </OrganizationContext>,
       {router}
     );
 
@@ -230,7 +230,7 @@ describe('withDomainRedirect', function () {
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     render(
-      <OrganizationContext.Provider value={organization}>
+      <OrganizationContext value={organization}>
         <WrappedComponent
           router={router}
           location={router.location}
@@ -239,7 +239,7 @@ describe('withDomainRedirect', function () {
           routeParams={router.params}
           route={{}}
         />
-      </OrganizationContext.Provider>,
+      </OrganizationContext>,
       {router}
     );
 
@@ -271,7 +271,7 @@ describe('withDomainRedirect', function () {
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     render(
-      <OrganizationContext.Provider value={organization}>
+      <OrganizationContext value={organization}>
         <WrappedComponent
           router={router}
           location={router.location}
@@ -280,7 +280,7 @@ describe('withDomainRedirect', function () {
           routeParams={router.params}
           route={{}}
         />
-      </OrganizationContext.Provider>,
+      </OrganizationContext>,
       {router}
     );
 

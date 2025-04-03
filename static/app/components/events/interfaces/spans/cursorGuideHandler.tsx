@@ -110,9 +110,9 @@ export class Provider extends Component<PropType, StateType> {
     };
 
     return (
-      <CursorGuideManagerContext.Provider value={childrenProps}>
+      <CursorGuideManagerContext value={childrenProps}>
         {this.props.children}
-      </CursorGuideManagerContext.Provider>
+      </CursorGuideManagerContext>
     );
   }
 }

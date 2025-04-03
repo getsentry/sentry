@@ -3,18 +3,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {HTTPLandingPage} from 'sentry/views/insights/http/views/httpLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-
 jest.mock('sentry/utils/useReleaseStats');
 
 describe('HTTPLandingPage', function () {
@@ -28,8 +24,6 @@ describe('HTTPLandingPage', function () {
 
   let spanListRequestMock!: jest.Mock;
   let regionFilterRequestMock!: jest.Mock;
-
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -58,26 +52,6 @@ describe('HTTPLandingPage', function () {
     key: '',
   });
 
-  jest.mocked(useProjects).mockReturnValue({
-    projects: [
-      ProjectFixture({
-        id: '1',
-        name: 'Backend',
-        slug: 'backend',
-        firstTransactionEvent: true,
-        platform: 'javascript',
-        hasInsightsHttp: true,
-      }),
-    ],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-    fetching: false,
-    hasMore: null,
-    fetchError: null,
-    initiallyLoaded: false,
-  });
-
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
     isPending: false,
@@ -88,6 +62,17 @@ describe('HTTPLandingPage', function () {
 
   beforeEach(function () {
     jest.clearAllMocks();
+
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        id: '1',
+        name: 'Backend',
+        slug: 'backend',
+        firstTransactionEvent: true,
+        platform: 'javascript',
+        hasInsightsHttp: true,
+      }),
+    ]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,

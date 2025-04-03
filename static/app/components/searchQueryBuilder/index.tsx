@@ -304,7 +304,7 @@ export function SearchQueryBuilder({
   ]);
 
   return (
-    <SearchQueryBuilderContext.Provider value={contextValue}>
+    <SearchQueryBuilderContext value={contextValue}>
       <Wrapper
         className={className}
         onBlur={() =>
@@ -329,7 +329,7 @@ export function SearchQueryBuilder({
           )}
         </PanelProvider>
       </Wrapper>
-    </SearchQueryBuilderContext.Provider>
+    </SearchQueryBuilderContext>
   );
 }
 
@@ -359,7 +359,7 @@ const ActionButton = styled(Button)`
 const PositionedSearchIconContainer = styled('div')`
   position: absolute;
   left: ${space(1.5)};
-  top: ${space(0.75)};
+  top: ${space(1)};
 `;
 
 const SearchIcon = styled(IconSearch)`

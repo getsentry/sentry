@@ -449,9 +449,9 @@ export function TraceEventDataSection({
         )
       }
     >
-      <TraceEventDataSectionContext.Provider value={childProps}>
+      <TraceEventDataSectionContext value={childProps}>
         {children(childProps)}
-      </TraceEventDataSectionContext.Provider>
+      </TraceEventDataSectionContext>
     </SectionComponent>
   );
 }

@@ -6,6 +6,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
@@ -212,7 +213,7 @@ describe('Dashboards > Detail', function () {
       });
 
       render(
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
             params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
@@ -221,7 +222,7 @@ describe('Dashboards > Detail', function () {
           >
             {null}
           </ViewEditDashboard>
-        </OrganizationContext.Provider>,
+        </OrganizationContext>,
         {router}
       );
 
@@ -458,7 +459,7 @@ describe('Dashboards > Detail', function () {
         body: DashboardFixture([widgets[0]!], {id: '1', title: 'Custom Errors'}),
       });
       render(
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
             params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -467,7 +468,7 @@ describe('Dashboards > Detail', function () {
           >
             {null}
           </ViewEditDashboard>
-        </OrganizationContext.Provider>,
+        </OrganizationContext>,
         {router}
       );
 
@@ -521,7 +522,7 @@ describe('Dashboards > Detail', function () {
       });
 
       render(
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
             params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -530,7 +531,7 @@ describe('Dashboards > Detail', function () {
           >
             {null}
           </ViewEditDashboard>
-        </OrganizationContext.Provider>,
+        </OrganizationContext>,
         {router}
       );
 
@@ -553,7 +554,7 @@ describe('Dashboards > Detail', function () {
         params: {orgId: 'org-slug', dashboardId: '1'},
       });
       render(
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
             params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -562,7 +563,7 @@ describe('Dashboards > Detail', function () {
           >
             {null}
           </ViewEditDashboard>
-        </OrganizationContext.Provider>,
+        </OrganizationContext>,
         {router}
       );
 
@@ -593,7 +594,7 @@ describe('Dashboards > Detail', function () {
       });
 
       render(
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
             params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -602,7 +603,7 @@ describe('Dashboards > Detail', function () {
           >
             {null}
           </ViewEditDashboard>
-        </OrganizationContext.Provider>,
+        </OrganizationContext>,
         {router}
       );
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
@@ -618,7 +619,7 @@ describe('Dashboards > Detail', function () {
       types.MAX_WIDGETS = 1;
 
       render(
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
             params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -627,7 +628,7 @@ describe('Dashboards > Detail', function () {
           >
             {null}
           </ViewEditDashboard>
-        </OrganizationContext.Provider>,
+        </OrganizationContext>,
         {router}
       );
 
@@ -2248,6 +2249,7 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
+            theme={ThemeFixture()}
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
             dashboards={[]}
@@ -2268,6 +2270,7 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
+            theme={ThemeFixture()}
             initialState={DashboardState.VIEW}
             dashboard={DashboardFixture([])}
             dashboards={[]}
@@ -2288,6 +2291,7 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
+            theme={ThemeFixture()}
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
             dashboards={[]}
@@ -2308,6 +2312,7 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
+            theme={ThemeFixture()}
             initialState={DashboardState.EDIT}
             dashboard={DashboardFixture([])}
             dashboards={[]}
@@ -2339,6 +2344,7 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
+            theme={ThemeFixture()}
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
             dashboards={[]}
@@ -2383,6 +2389,7 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
+            theme={ThemeFixture()}
             initialState={DashboardState.EDIT}
             dashboard={mockDashboard}
             dashboards={[]}
@@ -2428,6 +2435,7 @@ describe('Dashboards > Detail', function () {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
+            theme={ThemeFixture()}
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}
             dashboards={[]}
@@ -2480,6 +2488,7 @@ describe('Dashboards > Detail', function () {
         });
         render(
           <DashboardDetail
+            theme={ThemeFixture()}
             {...RouteComponentPropsFixture()}
             initialState={DashboardState.VIEW}
             dashboard={mockDashboard}

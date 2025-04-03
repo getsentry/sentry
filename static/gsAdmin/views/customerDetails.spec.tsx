@@ -1,6 +1,7 @@
 import {ThemeProvider} from '@emotion/react';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
@@ -32,7 +33,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import theme from 'sentry/utils/theme';
 import * as useOrganization from 'sentry/utils/useOrganization';
 
 import {FREE_EVENTS_KEYS} from 'admin/components/addGiftEventsAction';
@@ -42,6 +42,7 @@ import CustomerDetails from 'admin/views/customerDetails';
 import type {Subscription} from 'getsentry/types';
 import {BillingType, PlanTier} from 'getsentry/types';
 
+const theme = ThemeFixture();
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type MockSubscription = Overwrite<
@@ -4491,6 +4492,74 @@ describe('Customer Details', function () {
           })
         );
       });
+    });
+  });
+
+  describe('delete billing metric history', function () {
+    // Add afterEach to clean up after tests
+    afterEach(function () {
+      MockApiClient.clearMockResponses();
+      jest.restoreAllMocks();
+      ModalStore.reset();
+    });
+
+    it('shows option when feature flag is enabled', async function () {
+      // Set up organization with the required feature flag
+      const orgWithDeleteFeature = OrganizationFixture({
+        features: ['delete-billing-metric-history-admin'],
+      });
+      setUpMocks(orgWithDeleteFeature);
+
+      render(
+        <CustomerDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+          params={{orgId: orgWithDeleteFeature.slug}}
+        />
+      );
+
+      await screen.findByRole('heading', {name: 'Customers'});
+      renderGlobalModal();
+
+      // Open the actions dropdown
+      await userEvent.click(
+        screen.getAllByRole('button', {name: /customers actions/i})[1]!
+      );
+
+      // The delete option should be present
+      expect(screen.getByText('Delete Billing Metric History')).toBeInTheDocument();
+    });
+
+    it('does not show option when feature flag is missing', async function () {
+      // Set up organization without the feature flag
+      const orgWithoutDeleteFeature = OrganizationFixture({
+        features: [],
+      });
+      setUpMocks(orgWithoutDeleteFeature);
+
+      render(
+        <CustomerDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+          params={{orgId: orgWithoutDeleteFeature.slug}}
+        />
+      );
+
+      await screen.findByRole('heading', {name: 'Customers'});
+
+      // Open the actions dropdown
+      await userEvent.click(
+        screen.getAllByRole('button', {name: /customers actions/i})[1]!
+      );
+
+      // The delete option should not be present
+      expect(screen.queryByText('Delete Billing Metric History')).not.toBeInTheDocument();
     });
   });
 });

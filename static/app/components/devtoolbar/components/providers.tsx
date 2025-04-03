@@ -3,6 +3,7 @@ import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
+// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
 import {lightTheme} from 'sentry/utils/theme';
 
 import {ConfigurationContextProvider} from '../hooks/useConfiguration';

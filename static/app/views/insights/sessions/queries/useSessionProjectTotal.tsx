@@ -11,6 +11,7 @@ export default function useSessionProjectTotal() {
     ...location,
     query: {
       ...location.query,
+      query: undefined,
       width: undefined,
       cursor: undefined,
     },

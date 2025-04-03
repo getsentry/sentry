@@ -728,8 +728,6 @@ def get_backends(force_load=False):
     A force_load boolean arg is also provided so that get_backend
     below can retry a requested backend that may not yet be discovered.
     """
-    global BACKENDSCACHE
-
     if not BACKENDSCACHE or force_load:
         with _import_lock:
             for auth_backend in setting("AUTHENTICATION_BACKENDS"):

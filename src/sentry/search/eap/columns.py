@@ -235,6 +235,8 @@ class FunctionDefinition:
     extrapolation: bool = True
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
+    # if a function is private, assume it can't be used unless it's provided in `SearchResolverConfig.functions_acl`
+    private: bool = False
 
     @property
     def required_arguments(self) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:

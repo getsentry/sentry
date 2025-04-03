@@ -14,6 +14,7 @@ export default function useCrashFreeSessions() {
     ...location,
     query: {
       ...location.query,
+      query: undefined,
       width: undefined,
       cursor: undefined,
     },
