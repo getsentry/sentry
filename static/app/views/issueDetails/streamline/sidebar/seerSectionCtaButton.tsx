@@ -205,7 +205,7 @@ export function SeerSectionCtaButton({
         {isAutofixInProgress ? (
           <StyledLoadingIndicator mini size={14} hideMessage />
         ) : (
-          <IconChevron direction="right" size="sm" />
+          <IconChevron direction="right" size="xs" />
         )}
       </ChevronContainer>
     </StyledButton>
