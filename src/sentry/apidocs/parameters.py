@@ -17,7 +17,10 @@ def build_typed_list(type: Any):
     a typed list using this workaround. build_basic_type will dynamically check the type
     and pass a warning if it can't recognize it, failing any build command in the process as well.
     """
-    return build_array_type(build_basic_type(type))
+    basic_type = build_basic_type(type)
+    if basic_type is None:
+        raise ValueError("'None' type lists are not supported.")
+    return build_array_type(schema=basic_type)
 
 
 class GlobalParams:

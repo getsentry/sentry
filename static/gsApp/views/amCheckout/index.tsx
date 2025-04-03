@@ -528,10 +528,7 @@ class AMCheckout extends Component<Props, State> {
         ...analyticsParams,
         cents: validData.onDemandMaxSpend || 0,
       });
-    } else if (
-      (checkoutTier === PlanTier.AM3 && this.state.currentStep === 3) ||
-      (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 4)
-    ) {
+    } else if (this.state.currentStep === 4) {
       trackGetsentryAnalytics('checkout.change_contract', analyticsParams);
     }
 

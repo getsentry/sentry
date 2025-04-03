@@ -239,8 +239,8 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         ) : (
           <Fragment>
             <SeerNotices
+              groupId={group.id}
               hasGithubIntegration={aiConfig.hasGithubIntegration}
-              autofixRepositories={autofixData?.repositories ?? []}
             />
             {aiConfig.hasSummary && (
               <StyledCard>
@@ -282,6 +282,7 @@ export const useOpenSeerDrawer = (
 
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
+      drawerKey: 'seer-autofix-drawer',
       shouldCloseOnInteractOutside: element => {
         const viewAllButton = buttonRef?.current;
 

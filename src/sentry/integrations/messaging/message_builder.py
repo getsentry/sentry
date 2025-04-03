@@ -10,6 +10,7 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.team import Team
@@ -93,19 +94,26 @@ def build_attachment_title(obj: Group | Event | GroupEvent) -> str:
     return title
 
 
-def get_title_link(
-    group: Group,
-    event: Event | GroupEvent | None,
-    link_to_event: bool,
-    issue_details: bool,
-    notification: BaseNotification | None,
-    provider: ExternalProviders = ExternalProviders.SLACK,
-    rule_id: int | None = None,
-    notification_uuid: str | None = None,
-) -> str:
-    other_params = {}
-    # add in rule id if we have it
-    if rule_id:
+def fetch_environment_name(rule_env: int) -> str | None:
+    try:
+        env = Environment.objects.get(id=rule_env)
+    except Environment.DoesNotExist:
+        return None
+    else:
+        return env.name
+
+
+def get_rule_environment_param(
+    rule_id: int, rule_environment_id: int | None, organization: Organization
+) -> dict[str, str]:
+    params = {}
+    if features.has("organizations:workflow-engine-trigger-actions", organization):
+        if (
+            rule_environment_id is not None
+            and (environment_name := fetch_environment_name(rule_environment_id)) is not None
+        ):
+            params["environment"] = environment_name
+    else:
         try:
             rule = Rule.objects.get(id=rule_id)
         except Rule.DoesNotExist:
@@ -113,16 +121,33 @@ def get_title_link(
         else:
             rule_env = rule.environment_id
 
-        if rule_env is not None:
-            try:
-                env = Environment.objects.get(id=rule_env)
-            except Environment.DoesNotExist:
-                pass
-            else:
-                other_params["environment"] = env.name
+        if (
+            rule_env is not None
+            and (environment_name := fetch_environment_name(rule_env)) is not None
+        ):
+            params["environment"] = environment_name
+    return params
 
-        other_params["alert_rule_id"] = str(rule_id)
+
+def get_title_link(
+    group: Group,
+    event: Event | GroupEvent | None,
+    link_to_event: bool,
+    issue_details: bool,
+    notification: BaseNotification | None,
+    provider: ExternalProviders,
+    rule_id: int | None = None,
+    rule_environment_id: int | None = None,
+    notification_uuid: str | None = None,
+) -> str:
+    other_params = {}
+    # add in rule id if we have it
+    if rule_id:
+        other_params.update(
+            get_rule_environment_param(rule_id, rule_environment_id, group.organization)
+        )
         # hard code for issue alerts
+        other_params["alert_rule_id"] = str(rule_id)
         other_params["alert_type"] = "issue"
 
     if event and link_to_event:
@@ -151,6 +176,19 @@ def get_title_link(
         )
 
     return url
+
+
+def get_title_link_workflow_engine_ui(
+    group: Group,
+    event: Event | GroupEvent | None,
+    link_to_event: bool,
+    issue_details: bool,
+    notification: BaseNotification | None,
+    provider: ExternalProviders,
+    rule_id: int | None = None,
+    notification_uuid: str | None = None,
+) -> str:
+    raise NotImplementedError("Link building for workflow engine UI is not implemented")
 
 
 def build_attachment_text(group: Group, event: Event | GroupEvent | None = None) -> Any | None:

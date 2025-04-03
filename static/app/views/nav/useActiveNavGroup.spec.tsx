@@ -27,31 +27,50 @@ describe('useActiveNavGroup', function () {
     return <div>{activeNavGroup}</div>;
   }
 
-  it('correctly matches when using customer domain', async function () {
-    render(<TestComponent />, {
-      disableRouterMocks: true,
-      initialRouterConfig: {
-        location: {
-          pathname: '/explore/traces/trace/123/',
+  describe('customer domain', function () {
+    it.each([
+      [PrimaryNavGroup.ISSUES, '/issues/foo/'],
+      [PrimaryNavGroup.EXPLORE, '/explore/foo/'],
+      [PrimaryNavGroup.DASHBOARDS, '/dashboards/'],
+      [PrimaryNavGroup.DASHBOARDS, '/dashboard/foo/'],
+      [PrimaryNavGroup.INSIGHTS, '/insights/foo/'],
+      [PrimaryNavGroup.SETTINGS, '/settings/foo/'],
+      [PrimaryNavGroup.PIPELINE, '/pipeline/foo/'],
+    ])('correctly matches %s nav group', async function (navGroup, path) {
+      render(<TestComponent />, {
+        enableRouterMocks: false,
+        initialRouterConfig: {
+          location: {
+            pathname: path,
+          },
         },
-      },
-    });
+      });
 
-    expect(await screen.findByText(PrimaryNavGroup.EXPLORE)).toBeInTheDocument();
+      expect(await screen.findByText(navGroup)).toBeInTheDocument();
+    });
   });
 
-  it('correctly matches when not using customer domain', async function () {
-    mockUsingCustomerDomain.mockReturnValue(false);
-
-    render(<TestComponent />, {
-      disableRouterMocks: true,
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/explore/traces/trace/123/',
+  describe('non-customer domain', function () {
+    it.each([
+      [PrimaryNavGroup.ISSUES, '/organizations/org-slug/issues/foo/'],
+      [PrimaryNavGroup.EXPLORE, '/organizations/org-slug/explore/foo/'],
+      [PrimaryNavGroup.DASHBOARDS, '/organizations/org-slug/dashboards/'],
+      [PrimaryNavGroup.DASHBOARDS, '/organizations/org-slug/dashboard/foo/'],
+      [PrimaryNavGroup.INSIGHTS, '/organizations/org-slug/insights/foo/'],
+      [PrimaryNavGroup.SETTINGS, '/organizations/org-slug/settings/foo/'],
+      [PrimaryNavGroup.PIPELINE, '/organizations/org-slug/pipeline/foo/'],
+    ])('correctly matches %s nav group', async function (navGroup, path) {
+      mockUsingCustomerDomain.mockReturnValue(false);
+      render(<TestComponent />, {
+        enableRouterMocks: false,
+        initialRouterConfig: {
+          location: {
+            pathname: path,
+          },
         },
-      },
-    });
+      });
 
-    expect(await screen.findByText(PrimaryNavGroup.EXPLORE)).toBeInTheDocument();
+      expect(await screen.findByText(navGroup)).toBeInTheDocument();
+    });
   });
 });

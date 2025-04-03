@@ -7,7 +7,6 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -68,11 +67,6 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has(
-            "organizations:feature-flag-audit-log", organization, actor=request.user
-        ):
-            return Response("Not enabled.", status=404)
-
         return self.paginate(
             request=request,
             queryset=FlagWebHookSigningSecretModel.objects.filter(organization_id=organization.id),
@@ -84,11 +78,6 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
         )
 
     def post(self, request: Request, organization: Organization) -> Response:
-        if not features.has(
-            "organizations:feature-flag-audit-log", organization, actor=request.user
-        ):
-            return Response("Not enabled.", status=404)
-
         validator = FlagWebhookSigningSecretValidator(data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
@@ -136,11 +125,6 @@ class OrganizationFlagsWebHookSigningSecretEndpoint(OrganizationEndpoint):
     def delete(
         self, request: Request, organization: Organization, signing_secret_id: str
     ) -> Response:
-        if not features.has(
-            "organizations:feature-flag-audit-log", organization, actor=request.user
-        ):
-            return Response("Not enabled.", status=404)
-
         try:
             model = FlagWebHookSigningSecretModel.objects.filter(
                 organization_id=organization.id

@@ -3903,6 +3903,74 @@ describe('Customer Details', function () {
       });
     });
   });
+
+  describe('delete billing metric history', function () {
+    // Add afterEach to clean up after tests
+    afterEach(function () {
+      MockApiClient.clearMockResponses();
+      jest.restoreAllMocks();
+      ModalStore.reset();
+    });
+
+    it('shows option when feature flag is enabled', async function () {
+      // Set up organization with the required feature flag
+      const orgWithDeleteFeature = OrganizationFixture({
+        features: ['delete-billing-metric-history-admin'],
+      });
+      setUpMocks(orgWithDeleteFeature);
+
+      render(
+        <CustomerDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+          params={{orgId: orgWithDeleteFeature.slug}}
+        />
+      );
+
+      await screen.findByRole('heading', {name: 'Customers'});
+      renderGlobalModal();
+
+      // Open the actions dropdown
+      await userEvent.click(
+        screen.getAllByRole('button', {name: /customers actions/i})[1]!
+      );
+
+      // The delete option should be present
+      expect(screen.getByText('Delete Billing Metric History')).toBeInTheDocument();
+    });
+
+    it('does not show option when feature flag is missing', async function () {
+      // Set up organization without the feature flag
+      const orgWithoutDeleteFeature = OrganizationFixture({
+        features: [],
+      });
+      setUpMocks(orgWithoutDeleteFeature);
+
+      render(
+        <CustomerDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+          params={{orgId: orgWithoutDeleteFeature.slug}}
+        />
+      );
+
+      await screen.findByRole('heading', {name: 'Customers'});
+
+      // Open the actions dropdown
+      await userEvent.click(
+        screen.getAllByRole('button', {name: /customers actions/i})[1]!
+      );
+
+      // The delete option should not be present
+      expect(screen.queryByText('Delete Billing Metric History')).not.toBeInTheDocument();
+    });
+  });
 });
 
 describe('Gift Categories Availability', function () {

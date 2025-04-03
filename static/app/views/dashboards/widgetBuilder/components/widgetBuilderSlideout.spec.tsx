@@ -43,6 +43,11 @@ describe('WidgetBuilderSlideout', () => {
       method: 'POST',
       statusCode: 200,
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
   });
 
   afterEach(() => {

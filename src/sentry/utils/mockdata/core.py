@@ -59,7 +59,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorStatus,
-    MonitorType,
 )
 from sentry.services.organization import organization_provisioning_service
 from sentry.signals import mocks_loaded
@@ -432,7 +431,6 @@ def create_monitor(project: Project, environment: Environment) -> None:
         name=next(MONITOR_NAMES),
         project_id=project.id,
         organization_id=project.organization_id,
-        type=MonitorType.CRON_JOB,
         defaults={
             "status": ObjectStatus.DISABLED,
             "config": {"schedule": next(MONITOR_SCHEDULES)},

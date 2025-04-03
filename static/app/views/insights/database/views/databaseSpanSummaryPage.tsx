@@ -100,7 +100,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         SpanMetricsField.SPAN_ACTION,
         SpanMetricsField.SPAN_DOMAIN,
         'count()',
-        `${SpanFunction.SPM}()`,
+        `${SpanFunction.EPM}()`,
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
         `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
@@ -125,7 +125,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
       fields: [
         'transaction',
         'transaction.method',
-        'spm()',
+        'epm()',
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
         'time_spent_percentage()',
@@ -168,7 +168,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   } = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(filters),
-      yAxis: ['spm()'],
+      yAxis: ['epm()'],
       enabled: Boolean(groupId),
       transformAliasToInputFormat: true,
     },
@@ -218,7 +218,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                     <MetricReadout
                       title={getThroughputTitle('db')}
                       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                      value={spanMetrics?.[`${SpanFunction.SPM}()`]}
+                      value={spanMetrics?.[`${SpanFunction.EPM}()`]}
                       unit={RateUnit.PER_MINUTE}
                       isLoading={areSpanMetricsLoading}
                     />
@@ -275,7 +275,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                 <ChartContainer>
                   <InsightsLineChartWidget
                     title={getThroughputChartTitle('db')}
-                    series={[throughputData['spm()']]}
+                    series={[throughputData['epm()']]}
                     isLoading={isThroughputDataLoading}
                     error={throughputError}
                   />

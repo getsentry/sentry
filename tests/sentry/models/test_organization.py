@@ -323,7 +323,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
                 actor=self.owner,
             ).exists()
 
-    @mock.patch("sentry.tasks.auth.logger")
+    @mock.patch("sentry.tasks.auth.auth.logger")
     def test_handle_2fa_required__no_email__warning(self, auth_log):
         user, member = self._create_user_and_member(has_user_email=False)
 
@@ -343,7 +343,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
             extra={"organization_id": self.org.id, "user_id": user.id, "member_id": member.id},
         )
 
-    @mock.patch("sentry.tasks.auth.logger")
+    @mock.patch("sentry.tasks.auth.auth.logger")
     def test_handle_2fa_required__no_actor_and_api_key__ok(self, auth_log):
         user, member = self._create_user_and_member()
 
@@ -379,7 +379,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
                 == 1
             )
 
-    @mock.patch("sentry.tasks.auth.logger")
+    @mock.patch("sentry.tasks.auth.auth.logger")
     def test_handle_2fa_required__no_ip_address__ok(self, auth_log):
         user, member = self._create_user_and_member()
         self.assert_org_member_mapping(org_member=member)

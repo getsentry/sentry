@@ -248,7 +248,8 @@ export function EventDetailsContent({
               !(
                 defined(eventEntries[EntryType.EXCEPTION]) ||
                 defined(eventEntries[EntryType.STACKTRACE]) ||
-                defined(eventEntries[EntryType.THREADS])
+                defined(eventEntries[EntryType.THREADS]) ||
+                hasStreamlinedUI
               )
             }
             // Prevent the container span from shrinking the content
