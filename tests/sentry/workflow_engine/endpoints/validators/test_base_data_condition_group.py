@@ -35,9 +35,12 @@ class TestBaseDataConditionGroupValidator(TestCase):
         ]
         validator = BaseDataConditionGroupValidator(data=self.valid_data)
 
+        import pdb
+
+        pdb.set_trace()
         assert validator.is_valid() is True
 
-    @pytest.mark.skip(reason="Disabling this test to address in a future PR")
+    # TODO - i think i need to mock the handler here so it will have the json schema
     def test_conditions__invalid_condition(self):
         self.valid_data["conditions"] = [
             {
@@ -45,4 +48,7 @@ class TestBaseDataConditionGroupValidator(TestCase):
             }
         ]
         validator = BaseDataConditionGroupValidator(data=self.valid_data)
+        import pdb
+
+        pdb.set_trace()
         assert validator.is_valid() is False
