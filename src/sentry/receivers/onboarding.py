@@ -160,9 +160,7 @@ def record_first_event(project, event, **kwargs):
         # and completed the quick start task.
         return
 
-    # We're using create or update here, but this will almost always result in a new entry
-    # since this the function 'record_first_event' has an early return at the top.
-    _, created = OrganizationOnboardingTask.objects.update_or_create(
+    _, created = OrganizationOnboardingTask.objects.get_or_create(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_EVENT,
         defaults={
