@@ -171,7 +171,41 @@ describe('ProjectSourceMaps', function () {
         organization,
       });
 
-      expect(await screen.findByText('No source map uploads found')).toBeInTheDocument();
+      expect(await screen.findByText('No Source Maps Uploaded')).toBeInTheDocument();
+    });
+
+    it('renders empty search results message', async function () {
+      const {organization, project, routerProps, router} = initializeOrg({
+        router: {
+          location: {
+            query: {query: 'nonexistent-source-map'},
+            pathname: `/settings/${initializeOrg().organization.slug}/projects/${
+              initializeOrg().project.slug
+            }/source-maps/`,
+          },
+        },
+      });
+
+      renderReleaseBundlesMockRequests({
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        empty: true,
+      });
+
+      renderDebugIdBundlesMockRequests({
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        empty: true,
+      });
+
+      render(<SourceMapsList project={project} {...routerProps} />, {
+        router,
+        organization,
+      });
+
+      expect(
+        await screen.findByText('No source map uploads found matching your search')
+      ).toBeInTheDocument();
     });
   });
 });

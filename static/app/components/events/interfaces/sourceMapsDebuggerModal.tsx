@@ -255,7 +255,7 @@ function SentryWizardCallout({
     <Fragment>
       <WizardInstructionParagraph>
         {tct(
-          'Firstly, have you already run the Sentry Wizard with [code:sourcemaps] in your project’s terminal? It’s the easiest way to get source maps set up:',
+          "Firstly, have you already run the Sentry Wizard with [code:sourcemaps] in your project's terminal? It's the easiest way to get source maps set up:",
           {
             code: <code />,
           }
@@ -482,10 +482,23 @@ export function SourceMapsDebuggerModal({
       <Body>
         <p>
           {t(
-            "It looks like the original source code for this stack frame couldn't be determined when this error was captured. To get the original code for this stack frame, Sentry needs source maps to be configured."
+            "It looks like the original source code for this stack frame couldn't be determined when this error was captured. To get the original code for this stack frame, Sentry needs source maps to be uploaded."
           )}
         </p>
-        {metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
+        {isReactNativeSDK({
+          sdkName: sourceResolutionResults.sdkName,
+        }) ? (
+          <WizardInstructionParagraph>
+            {tct(
+              "For React Native projects, source maps should be generated and uploaded automatically during the build process. If your source maps aren't showing up, consult our [link:React Native source maps documentation].",
+              {
+                link: (
+                  <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/react-native/sourcemaps/" />
+                ),
+              }
+            )}
+          </WizardInstructionParagraph>
+        ) : metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
           <MetaFrameworkConfigInfo
             framework={platform}
             orgSlug={orgSlug}
@@ -499,9 +512,13 @@ export function SourceMapsDebuggerModal({
           />
         )}
         <p>
-          {t(
-            "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
-          )}
+          {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
+            ? t(
+                "Let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
+              )
+            : t(
+                "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
+              )}
         </p>
         <Tabs<'debug-ids' | 'release' | 'fetching'>
           value={activeTab}
@@ -595,12 +612,14 @@ export function SourceMapsDebuggerModal({
                 <UploadedSourceFileWithCorrectDebugIdChecklistItem
                   shouldValidate={sourceResolutionResults.stackFrameDebugId !== null}
                   sourceResolutionResults={sourceResolutionResults}
+                  projectSlug={project?.slug}
                 />
                 <UploadedSourceMapWithCorrectDebugIdChecklistItem
                   shouldValidate={
                     sourceResolutionResults.uploadedSourceFileWithCorrectDebugId
                   }
                   sourceResolutionResults={sourceResolutionResults}
+                  projectSlug={project?.slug}
                 />
               </CheckList>
               {sourceResolutionResults.debugIdProgressPercent === 1 ? (
@@ -625,17 +644,19 @@ export function SourceMapsDebuggerModal({
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <ReleaseHasUploadedArtifactsChecklistItem
-                  shouldValidate={sourceResolutionResults.release !== null}
+                  shouldValidate={sourceResolutionResults.releaseHasSomeArtifact}
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <ReleaseSourceFileMatchingChecklistItem
-                  shouldValidate={sourceResolutionResults.releaseHasSomeArtifact}
+                  shouldValidate={
+                    sourceResolutionResults.sourceFileReleaseNameFetchingResult ===
+                    'found'
+                  }
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <ReleaseSourceMapMatchingChecklistItem
                   shouldValidate={
-                    sourceResolutionResults.sourceFileReleaseNameFetchingResult ===
-                    'found'
+                    sourceResolutionResults.sourceMapReleaseNameFetchingResult === 'found'
                   }
                   sourceResolutionResults={sourceResolutionResults}
                 />
@@ -1025,13 +1046,8 @@ function HasDebugIdChecklistItem({
                 )}
               </p>
               <p>
-                {t(
-                  'For Sentry to be able to show your original source code, it is required that you build the application with the exact same files that you uploaded to Sentry.'
-                )}
-              </p>
-              <p>
                 {tct(
-                  'The [bundlerPluginRepoLink:Sentry Metro Plugin] needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin. The plugin needs to be active for every build.',
+                  'The [bundlerPluginRepoLink:Sentry Metro Plugin] needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin.',
                   {
                     bundlerPluginRepoLink: (
                       <ExternalLinkWithIcon
@@ -1065,14 +1081,6 @@ function HasDebugIdChecklistItem({
               toolUsedToUploadSourceMaps={toolUsedToUploadSourceMaps}
             />
           )}
-          <p>
-            {tct(
-              'Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.',
-              {
-                link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
-              }
-            )}
-          </p>
         </CheckListInstruction>
       </CheckListItem>
     );
@@ -1098,14 +1106,16 @@ function HasDebugIdChecklistItem({
 function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   sourceResolutionResults,
   shouldValidate,
+  projectSlug,
 }: {
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
+  projectSlug?: string;
 }) {
   const platform = getPlatform(sourceResolutionResults);
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Source file with a matching Debug ID was uploaded');
-  const errorMessage = t('Missing source file with a matching Debug ID');
+  const errorMessage = t('Missing a source file with a matching Debug ID');
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={successMessage} />;
@@ -1116,26 +1126,32 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   }
 
   if (sourceResolutionResults.uploadedSomeArtifactWithDebugId) {
+    const debugId = sourceResolutionResults.stackFrameDebugId;
+
     return (
       <CheckListItem status="alert" title={errorMessage}>
         <CheckListInstruction type="muted">
-          <h6>{t('No Source File With Matching Debug ID')}</h6>
+          <p>
+            {tct('We cannot find a source file with this Debug ID: [debugId].', {
+              debugId: <MonoBlock>{debugId}</MonoBlock>,
+            })}
+          </p>
           <p>
             {tct(
-              "You already uploaded artifacts with Debug IDs but none of the uploaded source files had a Debug ID matching this stack frame's Debug ID: [debugId]",
+              'Check your [link:source maps uploads] to verify if the bundle with this Debug ID was uploaded properly.',
               {
-                debugId: (
-                  <MonoBlock>{sourceResolutionResults.stackFrameDebugId}</MonoBlock>
+                link: (
+                  <LinkWithIcon
+                    to={
+                      projectSlug
+                        ? `/settings/projects/${projectSlug}/source-maps/?query=${debugId}`
+                        : `/settings/projects/:projectId/source-maps/?query=${debugId}`
+                    }
+                  />
                 ),
               }
             )}
           </p>
-          <p>
-            {t(
-              'Make sure to inject Debug IDs into all of your source files and to upload all of them to Sentry.'
-            )}
-          </p>
-          {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
       </CheckListItem>
     );
@@ -1144,15 +1160,32 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   return (
     <CheckListItem status="alert" title={errorMessage}>
       <CheckListInstruction type="muted">
-        <h6>{t('No Artifacts With Debug IDs Uploaded')}</h6>
         <p>
-          {tct(
-            "You didn't upload any artifacts with debug IDs yet. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
-            {
-              link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
-            }
-          )}
+          {tct('You did not upload any artifacts with [link:Debug IDs] yet.', {
+            link: <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />,
+          })}
         </p>
+        {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName}) && (
+          <p>
+            {tct(
+              'Check the [link:source maps uploads] for the missing source maps for debug ID: [debugId]. You should have source maps for both Android and iOS builds.',
+              {
+                link: (
+                  <LinkWithIcon
+                    to={
+                      projectSlug
+                        ? `/settings/projects/${projectSlug}/source-maps/?query=${sourceResolutionResults.stackFrameDebugId}`
+                        : `/settings/projects/:projectId/source-maps/?query=${sourceResolutionResults.stackFrameDebugId}`
+                    }
+                  />
+                ),
+                debugId: (
+                  <MonoBlock>{sourceResolutionResults.stackFrameDebugId}</MonoBlock>
+                ),
+              }
+            )}
+          </p>
+        )}
         {/* TODO: Link to Uploaded Artifacts */}
       </CheckListInstruction>
     </CheckListItem>
@@ -1162,14 +1195,16 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
 function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   sourceResolutionResults,
   shouldValidate,
+  projectSlug,
 }: {
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
+  projectSlug?: string;
 }) {
   const platform = getPlatform(sourceResolutionResults);
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Uploaded source map with a matching Debug ID');
-  const errorMessage = t('Missing source map with a matching Debug ID');
+  const errorMessage = t('Missing a source map with a matching Debug ID');
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={successMessage} />;
@@ -1180,6 +1215,8 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   }
 
   if (sourceResolutionResults.uploadedSomeArtifactWithDebugId) {
+    const debugId = sourceResolutionResults.stackFrameDebugId;
+
     return (
       <CheckListItem status="alert" title={errorMessage}>
         <CheckListInstruction type="muted">
@@ -1188,15 +1225,24 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
             {tct(
               "You already uploaded artifacts with Debug IDs but none of the uploaded source maps had a Debug ID matching this stack frame's Debug ID: [debugId]",
               {
-                debugId: (
-                  <MonoBlock>{sourceResolutionResults.stackFrameDebugId}</MonoBlock>
-                ),
+                debugId: <MonoBlock>{debugId}</MonoBlock>,
               }
             )}
           </p>
           <p>
-            {t(
-              'Make sure to inject Debug IDs into all of your source files and to upload all of them to Sentry.'
+            {tct(
+              'Check your [link:source maps uploads] to verify if the bundle with this Debug ID was uploaded properly.',
+              {
+                link: (
+                  <LinkWithIcon
+                    to={
+                      projectSlug
+                        ? `/settings/projects/${projectSlug}/source-maps/?query=${debugId}`
+                        : `/settings/projects/:projectId/source-maps/?query=${debugId}`
+                    }
+                  />
+                ),
+              }
             )}
           </p>
           {/* TODO: Link to Uploaded Artifacts */}
@@ -1211,13 +1257,31 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
       <CheckListInstruction type="muted">
         <h6>{t('No Artifacts Uploaded')}</h6>
         <p>
-          {tct(
-            "You didn't upload any artifacts with debug IDs yet. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
-            {
-              link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
-            }
-          )}
+          {tct('You did not upload any artifacts with debug IDs yet.', {
+            link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
+          })}
         </p>
+        {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName}) && (
+          <p>
+            {tct(
+              'Check your [link:source maps uploads] for the missing source maps for debug ID: [debugId]. You should have source maps for both Android and iOS builds.',
+              {
+                link: (
+                  <LinkWithIcon
+                    to={
+                      projectSlug
+                        ? `/settings/projects/${projectSlug}/source-maps/?query=${sourceResolutionResults.stackFrameDebugId}`
+                        : `/settings/projects/:projectId/source-maps/?query=${sourceResolutionResults.stackFrameDebugId}`
+                    }
+                  />
+                ),
+                debugId: (
+                  <MonoBlock>{sourceResolutionResults.stackFrameDebugId}</MonoBlock>
+                ),
+              }
+            )}
+          </p>
+        )}
         {/* TODO: Link to Uploaded Artifacts */}
       </CheckListInstruction>
       <SourceMapStepNotRequiredNote />
@@ -1463,7 +1527,6 @@ function ReleaseSourceMapMatchingChecklistItem({
     return (
       <CheckListItem status="alert" title={errorMessage}>
         <CheckListInstruction type="muted">
-          <h6>{t('Missing Source Map Reference')}</h6>
           <p>
             {tct(
               'The source file for this stack frame is missing a source map reference. A source map reference is usually represented by a [sourceMappingUrl] comment at the bottom of your source file.',
@@ -1699,6 +1762,14 @@ function ExternalLinkWithIcon({href, children}: PropsWithChildren<{href: string}
     <ExternalLink href={href}>
       {children} <IconOpen size="xs" />
     </ExternalLink>
+  );
+}
+
+function LinkWithIcon({to, children}: PropsWithChildren<{to: string}>) {
+  return (
+    <Link to={to}>
+      {children} <IconOpen size="xs" />
+    </Link>
   );
 }
 
