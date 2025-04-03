@@ -785,6 +785,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.beacon",
+    "sentry.tasks.ping",
     "sentry.tasks.auth.check_auth",
     "sentry.tasks.check_new_issue_threshold_met",
     "sentry.tasks.clear_expired_snoozes",
@@ -800,7 +801,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.groupowner",
     "sentry.tasks.merge",
     "sentry.tasks.options",
-    "sentry.tasks.ping",
     "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
     "sentry.tasks.relay",
@@ -1406,6 +1406,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.auth.check_auth",
     "sentry.tasks.release_registry",
     "sentry.tempest.tasks",
+    "sentry.tasks.beacon",
+    "sentry.tasks.ping",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
