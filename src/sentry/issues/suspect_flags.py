@@ -9,17 +9,22 @@ from sentry.utils.snuba import raw_snql_query
 
 @sentry_sdk.trace
 def get_suspect_flag_scores(
-    org_id: int, project_id: int, start: datetime, end: datetime, group_id: int
+    org_id: int,
+    project_id: int,
+    start: datetime,
+    end: datetime,
+    envs: list[str],
+    group_id: int,
 ) -> list[Score]:
     """
     Queries the baseline and outliers sets. Computes the KL scores of each and returns a sorted
     list of key, score values.
     """
-    baseline = query_flag_rows(org_id, project_id, start, end, group_id=None)
-    outliers = query_flag_rows(org_id, project_id, start, end, group_id=group_id)
+    baseline = query_flag_rows(org_id, project_id, start, end, envs, group_id=None)
+    outliers = query_flag_rows(org_id, project_id, start, end, envs, group_id=group_id)
 
-    baseline_count = query_error_counts(org_id, project_id, start, end, group_id=None)
-    outliers_count = query_error_counts(org_id, project_id, start, end, group_id=group_id)
+    baseline_count = query_error_counts(org_id, project_id, start, end, envs, group_id=None)
+    outliers_count = query_error_counts(org_id, project_id, start, end, envs, group_id=group_id)
 
     return keyed_kl_score(
         a=baseline,
@@ -35,6 +40,7 @@ def query_flag_rows(
     project_id: int,
     start: datetime,
     end: datetime,
+    environments: list[str],
     group_id: int | None,
 ) -> list[KeyedValueCount]:
     """
@@ -48,6 +54,7 @@ def query_flag_rows(
             project_id = {project_id} AND
             timestamp >= {start} AND
             timestamp < {end} AND
+            environment IN environments AND
             group_id = {group_id}
         )
         GROUP BY variants
@@ -55,6 +62,8 @@ def query_flag_rows(
     where = []
     if group_id is not None:
         where.append(Condition(Column("group_id"), Op.EQ, group_id))
+    if environments:
+        where.append(Condition(Column("environment"), Op.IN, environments))
 
     query = Query(
         match=Entity("events"),
@@ -108,6 +117,7 @@ def query_error_counts(
     project_id: int,
     start: datetime,
     end: datetime,
+    environments: list[str],
     group_id: int | None,
 ) -> int:
     """
@@ -120,12 +130,15 @@ def query_error_counts(
             project_id = {project_id} AND
             timestamp >= {start} AND
             timestamp < {end} AND
+            environment IN environments AND
             group_id = {group_id}
         )
     """
     where = []
     if group_id is not None:
         where.append(Condition(Column("group_id"), Op.EQ, group_id))
+    if environments:
+        where.append(Condition(Column("environment"), Op.IN, environments))
 
     query = Query(
         match=Entity("events"),

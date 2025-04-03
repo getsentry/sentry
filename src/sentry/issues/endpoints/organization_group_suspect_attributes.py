@@ -4,8 +4,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
-
-# from sentry.api.helpers.environments import get_environments
+from sentry.api.helpers.environments import get_environments
 from sentry.issues.suspect_flags import get_suspect_flag_scores
 from sentry.models.group import Group
 
@@ -16,7 +15,7 @@ class OrganizationGroupSuspectAttributesEndpoint(GroupEndpoint, EnvironmentMixin
 
     def get(self, request: Request, group: Group) -> Response:
         """Stats bucketed by time."""
-        # environments = [e.id for e in get_environments(request, group.organization)]
+        environments = [e.name for e in get_environments(request, group.organization)]
         group_id = group.id
         organization_id = group.organization_id
         project_id = group.project_id
@@ -31,6 +30,7 @@ class OrganizationGroupSuspectAttributesEndpoint(GroupEndpoint, EnvironmentMixin
                         project_id,
                         start,
                         end,
+                        environments,
                         group_id,
                     )
                 ]
