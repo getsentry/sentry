@@ -112,8 +112,9 @@ class GetSeerSimilarIssuesTest(TestCase):
 
 
 class ParentGroupFoundTest(TestCase):
+    @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
-    def test_simple(self, mock_incr: MagicMock) -> None:
+    def test_simple(self, mock_incr: MagicMock, mock_distribution: MagicMock) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         existing_hash = existing_event.get_primary_hash()
         existing_grouphash = GroupHash.objects.filter(
@@ -140,14 +141,28 @@ class ParentGroupFoundTest(TestCase):
                 0.01,
                 existing_grouphash,
             )
+            assert_metrics_call(mock_distribution, "seer_results_returned", value=1)
+            assert_metrics_call(
+                mock_incr,
+                "get_seer_similar_issues",
+                {"is_hybrid": False, "result": "match_found"},
+            )
 
             # Ensure we're not recording things we don't want to be. (The metrics we're checking
             # should only be recorded for events or parent grouphashes with hybrid fingerprints.)
             incr_metrics_recorded = {call.args[0] for call in mock_incr.mock_calls}
+            distribution_metrics_recorded = {call.args[0] for call in mock_distribution.mock_calls}
             assert "grouping.similarity.hybrid_fingerprint_match_check" not in incr_metrics_recorded
+            assert (
+                "grouping.similarity.hybrid_fingerprint_results_checked"
+                not in distribution_metrics_recorded
+            )
 
+    @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
-    def test_hybrid_fingerprint_match(self, mock_incr: MagicMock) -> None:
+    def test_hybrid_fingerprint_match(
+        self, mock_incr: MagicMock, mock_distribution: MagicMock
+    ) -> None:
         existing_event = save_new_event(
             {"message": "Dogs are great!", "fingerprint": ["{{ default }}", "maisey"]},
             self.project,
@@ -183,9 +198,19 @@ class ParentGroupFoundTest(TestCase):
             assert_metrics_call(
                 mock_incr, "hybrid_fingerprint_match_check", {"result": "fingerprint_match"}
             )
+            assert_metrics_call(
+                mock_incr,
+                "get_seer_similar_issues",
+                {"is_hybrid": True, "result": "match_found"},
+            )
+            assert_metrics_call(mock_distribution, "seer_results_returned", value=1)
+            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=1)
 
+    @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
-    def test_hybrid_fingerprint_mismatch(self, mock_incr: MagicMock) -> None:
+    def test_hybrid_fingerprint_mismatch(
+        self, mock_incr: MagicMock, mock_distribution: MagicMock
+    ) -> None:
         existing_event = save_new_event(
             {"message": "Dogs are great!", "fingerprint": ["{{ default }}", "maisey"]},
             self.project,
@@ -214,9 +239,19 @@ class ParentGroupFoundTest(TestCase):
             assert_metrics_call(
                 mock_incr, "hybrid_fingerprint_match_check", {"result": "no_fingerprint_match"}
             )
+            assert_metrics_call(
+                mock_incr,
+                "get_seer_similar_issues",
+                {"is_hybrid": True, "result": "no_matches_usable"},
+            )
+            assert_metrics_call(mock_distribution, "seer_results_returned", value=1)
+            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=1)
 
+    @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
-    def test_hybrid_fingerprint_on_new_event_only(self, mock_incr: MagicMock) -> None:
+    def test_hybrid_fingerprint_on_new_event_only(
+        self, mock_incr: MagicMock, mock_distribution: MagicMock
+    ) -> None:
         existing_event = save_new_event(
             {"message": "Dogs are great!"},
             self.project,
@@ -245,9 +280,19 @@ class ParentGroupFoundTest(TestCase):
             assert_metrics_call(
                 mock_incr, "hybrid_fingerprint_match_check", {"result": "only_event_hybrid"}
             )
+            assert_metrics_call(
+                mock_incr,
+                "get_seer_similar_issues",
+                {"is_hybrid": True, "result": "no_matches_usable"},
+            )
+            assert_metrics_call(mock_distribution, "seer_results_returned", value=1)
+            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=1)
 
+    @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
-    def test_hybrid_fingerprint_on_parent_group_only(self, mock_incr: MagicMock) -> None:
+    def test_hybrid_fingerprint_on_parent_group_only(
+        self, mock_incr: MagicMock, mock_distribution: MagicMock
+    ) -> None:
         existing_event = save_new_event(
             {"message": "Dogs are great!", "fingerprint": ["{{ default }}", "maisey"]},
             self.project,
@@ -273,9 +318,19 @@ class ParentGroupFoundTest(TestCase):
             assert_metrics_call(
                 mock_incr, "hybrid_fingerprint_match_check", {"result": "only_parent_hybrid"}
             )
+            assert_metrics_call(
+                mock_incr,
+                "get_seer_similar_issues",
+                {"is_hybrid": True, "result": "no_matches_usable"},
+            )
+            assert_metrics_call(mock_distribution, "seer_results_returned", value=1)
+            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=1)
 
+    @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
-    def test_hybrid_fingerprint_no_parent_metadata(self, mock_incr: MagicMock) -> None:
+    def test_hybrid_fingerprint_no_parent_metadata(
+        self, mock_incr: MagicMock, mock_distribution: MagicMock
+    ) -> None:
         """
         Test that even when there's a match, no result will be returned if the matched hash has
         no metadata.
@@ -317,11 +372,19 @@ class ParentGroupFoundTest(TestCase):
             assert_metrics_call(
                 mock_incr, "hybrid_fingerprint_match_check", {"result": "no_parent_metadata"}
             )
+            assert_metrics_call(
+                mock_incr,
+                "get_seer_similar_issues",
+                {"is_hybrid": True, "result": "no_matches_usable"},
+            )
+            assert_metrics_call(mock_distribution, "seer_results_returned", value=1)
+            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=1)
 
 
 class NoParentGroupFoundTest(TestCase):
+    @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
-    def test_simple(self, mock_incr: MagicMock) -> None:
+    def test_simple(self, mock_incr: MagicMock, mock_distribution: MagicMock) -> None:
         new_event, new_variants, new_grouphash, _ = create_new_event(self.project)
 
         with patch(
@@ -329,14 +392,26 @@ class NoParentGroupFoundTest(TestCase):
             return_value=[],
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
+            assert_metrics_call(mock_distribution, "seer_results_returned", value=0)
+            assert_metrics_call(
+                mock_incr,
+                "get_seer_similar_issues",
+                {"is_hybrid": False, "result": "no_seer_matches"},
+            )
 
             # Ensure we're not recording things we don't want to be. (The metrics we're checking
             # should only be recorded for events or parent grouphashes with hybrid fingerprints.)
             incr_metrics_recorded = {call.args[0] for call in mock_incr.mock_calls}
+            distribution_metrics_recorded = {call.args[0] for call in mock_distribution.mock_calls}
             assert "grouping.similarity.hybrid_fingerprint_match_check" not in incr_metrics_recorded
+            assert (
+                "grouping.similarity.hybrid_fingerprint_results_checked"
+                not in distribution_metrics_recorded
+            )
 
+    @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
-    def test_hybrid_fingerprint(self, mock_incr: MagicMock) -> None:
+    def test_hybrid_fingerprint(self, mock_incr: MagicMock, mock_distribution: MagicMock) -> None:
         new_event, new_variants, new_grouphash, _ = create_new_event(
             self.project,
             fingerprint=["{{ default }}", "maisey"],
@@ -348,7 +423,19 @@ class NoParentGroupFoundTest(TestCase):
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
 
+            assert_metrics_call(
+                mock_incr,
+                "get_seer_similar_issues",
+                {"is_hybrid": True, "result": "no_seer_matches"},
+            )
+            assert_metrics_call(mock_distribution, "seer_results_returned", value=0)
+
             # Ensure we're not recording things we don't want to be. (This metric should only be
             # recorded when there are results to check.)
             incr_metrics_recorded = {call.args[0] for call in mock_incr.mock_calls}
+            distribution_metrics_recorded = {call.args[0] for call in mock_distribution.mock_calls}
             assert "grouping.similarity.hybrid_fingerprint_match_check" not in incr_metrics_recorded
+            assert (
+                "grouping.similarity.hybrid_fingerprint_results_checked"
+                not in distribution_metrics_recorded
+            )
