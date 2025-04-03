@@ -1,32 +1,31 @@
+import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TESTS_PAGE_TITLE} from 'sentry/views/pipeline/settings';
+import {COVERAGE_PAGE_TITLE} from 'sentry/views/codecov/settings';
 
-interface Props {
-  children: React.ReactNode;
-}
-
-export default function TestAnalyticsPageWrapper({children}: Props) {
+export default function CoveragePageWrapper() {
   const organization = useOrganization();
 
   return (
-    <SentryDocumentTitle title={TESTS_PAGE_TITLE} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={COVERAGE_PAGE_TITLE} orgSlug={organization.slug}>
       <Layout.Header unified>
         <Layout.HeaderContent>
           <HeaderContentBar>
             <Layout.Title>
-              {TESTS_PAGE_TITLE}
+              {COVERAGE_PAGE_TITLE}
               <FeatureBadge type="new" variant="badge" />
             </Layout.Title>
           </HeaderContentBar>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>{children}</Layout.Main>
+        <Layout.Main fullWidth>
+          <Outlet />
+        </Layout.Main>
       </Layout.Body>
     </SentryDocumentTitle>
   );

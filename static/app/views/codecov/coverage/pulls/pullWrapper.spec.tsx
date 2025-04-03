@@ -2,19 +2,19 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import TestsPage from 'sentry/views/pipeline/tests/tests';
+import PullDetailWrapper from 'sentry/views/pipeline/coverage/pulls/pullWrapper';
 
 const COVERAGE_FEATURE = 'codecov-ui';
 
-describe('CoveragePageWrapper', () => {
+describe('PullDetailWrapper', () => {
   describe('when the wrapper is used', () => {
-    it('renders the passed children', () => {
-      render(<TestsPage />, {
+    it('renders the document title', () => {
+      render(<PullDetailWrapper />, {
         organization: OrganizationFixture({features: [COVERAGE_FEATURE]}),
       });
 
-      const testsAnalytics = screen.getByText('Test Analytics');
-      expect(testsAnalytics).toBeInTheDocument();
+      const testTitle = screen.getByText('Pull Page Wrapper');
+      expect(testTitle).toBeInTheDocument();
     });
   });
 });

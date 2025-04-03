@@ -2,19 +2,19 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PullsListPage from 'sentry/views/pipeline/coverage/pulls';
+import CommitDetailWrapper from 'sentry/views/pipeline/coverage/commits/commitWrapper';
 
 const COVERAGE_FEATURE = 'codecov-ui';
 
-describe('PullsListPage', () => {
+describe('CommitDetailWrapper', () => {
   describe('when the wrapper is used', () => {
-    it('renders the passed children', () => {
-      render(<PullsListPage />, {
+    it('renders the document title', () => {
+      render(<CommitDetailWrapper />, {
         organization: OrganizationFixture({features: [COVERAGE_FEATURE]}),
       });
 
-      const pullsList = screen.getByText('Pulls List');
-      expect(pullsList).toBeInTheDocument();
+      const testTitle = screen.getByText('Commit Page Wrapper');
+      expect(testTitle).toBeInTheDocument();
     });
   });
 });

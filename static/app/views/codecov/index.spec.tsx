@@ -2,17 +2,17 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PipelinePage from 'sentry/views/pipeline';
+import CodecovPage from 'sentry/views/codecov';
 
 const COVERAGE_FEATURE = 'codecov-ui';
 
-describe('PipelinePage', () => {
+describe('CodecovPage', () => {
   describe('when the user has access to the feature', () => {
     it('renders the passed children', () => {
       render(
-        <PipelinePage>
+        <CodecovPage>
           <p>Test content</p>
-        </PipelinePage>,
+        </CodecovPage>,
         {organization: OrganizationFixture({features: [COVERAGE_FEATURE]})}
       );
 
@@ -24,9 +24,9 @@ describe('PipelinePage', () => {
   describe('when the user does not have access to the feature', () => {
     it('renders the NoAccess component', () => {
       render(
-        <PipelinePage>
+        <CodecovPage>
           <p>Test content</p>
-        </PipelinePage>,
+        </CodecovPage>,
         {organization: OrganizationFixture({features: []})}
       );
 

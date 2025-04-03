@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 
-export const PIPELINE_PAGE_TITLE = t('Pipeline');
-export const PIPELINE_BASE_URL = 'pipeline';
+export const CODECOV_PAGE_TITLE = t('Codecov');
+export const CODECOV_BASE_URL = 'codecov';
 
 export const COVERAGE_PAGE_TITLE = t('Coverage Analytics');
 export const COVERAGE_BASE_URL = 'coverage';

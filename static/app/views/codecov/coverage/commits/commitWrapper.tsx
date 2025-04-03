@@ -1,3 +1,4 @@
+import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -5,11 +6,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface Props {
-  children: React.ReactNode;
-}
-
-export default function CommitDetailWrapper({children}: Props) {
+export default function CommitDetailWrapper() {
   const organization = useOrganization();
 
   return (
@@ -26,7 +23,9 @@ export default function CommitDetailWrapper({children}: Props) {
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>{children}</Layout.Main>
+        <Layout.Main fullWidth>
+          <Outlet />
+        </Layout.Main>
       </Layout.Body>
     </SentryDocumentTitle>
   );
