@@ -808,7 +808,7 @@ const generateAliases = (
   /**
    * Color for the 'others' series in topEvent charts
    */
-  chartOther: colors.gray200,
+  chartOther: tokens.content.muted,
 
   /**
    * Color of the divider used in the content slider diff
