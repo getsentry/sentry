@@ -28,7 +28,7 @@ class Migration(CheckedMigration):
     operations = [
         SafeRunSQL(
             """ALTER TABLE "sentry_groupopenperiod"
-                ADD CONSTRAINT "exclude_open_period_overlap" EXCLUDE USING GIST (
+                ADD CONSTRAINT "exclude_overlapping_start_end" EXCLUDE USING GIST (
                     "group_id" gist_int8_ops WITH =,
                     (TSTZRANGE("date_started", "date_ended", '[)')) WITH &&
                 );""",
