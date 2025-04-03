@@ -29,14 +29,12 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
     ) -> tuple[DetectorOccurrence, EventData]:
         # Returning a placeholder for now, this may require us passing more info
 
-        # don't want to expose fingerprint, event_id, project_id, id, detection_time, or initial_issue_priority.
-        # -- platform should handle all of this.
         occurrence = DetectorOccurrence(
-            issue_title="Some Issue",
-            subtitle="Some subtitle",
+            issue_title="Some Issue Title",
+            subtitle="An Issue Subtitle",
             type=MetricAlertFire,
             level="error",
-            culprit="Some culprit",  # TODO -- should this be done in the detector as the data condition?
+            culprit="Some culprit",
         )
 
         event_data = {

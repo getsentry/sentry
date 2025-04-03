@@ -3,8 +3,9 @@ __all__ = [
     "DetectorHandler",
     "DetectorOccurrence",
     "DetectorStateData",
+    "EventData",
     "StatefulDetectorHandler",
 ]
 
 from .base import DetectorEvaluationResult, DetectorHandler, DetectorOccurrence, DetectorStateData
-from .stateful import StatefulDetectorHandler
+from .stateful import EventData, StatefulDetectorHandler

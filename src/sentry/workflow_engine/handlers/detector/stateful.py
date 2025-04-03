@@ -218,20 +218,28 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
                     group_key, PriorityLevel(new_status)
                 )
 
+                evidence_data = {
+                    **detector_occurrence.evidence_data,
+                    "detector_id": self.detector.id,
+                    "value": value,
+                }
+
                 result = IssueOccurrence(
-                    id=detector_occurrence.id or str(uuid4()),
-                    project_id=detector_occurrence.project_id or self.detector.project_id,
-                    event_id=detector_occurrence.event_id or str(uuid4()),
-                    detection_time=detector_occurrence.detection_time or datetime.now(),
-                    resource_id=detector_occurrence.resource_id,
-                    fingerprint=self.build_fingerprint(group_key),
-                    evidence_data={
-                        **detector_occurrence.evidence_data,
-                        "detector_id": self.detector.id,
-                        "value": value,
-                    },
-                    evidence_display=detector_occurrence.evidence_display or [],
-                    initial_issue_priority=new_status,
+                    str(uuid4()),
+                    self.detector.project_id,
+                    str(uuid4()),
+                    self.build_fingerprint(group_key),
+                    detector_occurrence.issue_title,
+                    detector_occurrence.subtitle,
+                    detector_occurrence.resource_id,
+                    evidence_data,
+                    detector_occurrence.evidence_display or [],
+                    detector_occurrence.type,
+                    datetime.now(),
+                    detector_occurrence.level,
+                    detector_occurrence.culprit or "error",
+                    detector_occurrence.initial_issue_priority or new_status,
+                    detector_occurrence.assignee,
                 )
 
             return DetectorEvaluationResult(
