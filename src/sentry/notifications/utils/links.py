@@ -9,4 +9,4 @@ def create_link_to_workflow(organization_id: int, workflow_id: int) -> str:
     """
     Create a link to a workflow
     """
-    return f"/organizations/{organization_id}/workflows/{workflow_id}/"
+    return f"/organizations/{organization_id}/issues/automations/{workflow_id}/"
