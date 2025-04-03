@@ -21,6 +21,7 @@ export enum OurLogKnownFieldKey {
   SEVERITY_TEXT = 'log.severity_text',
   ORGANIZATION_ID = 'organization.id',
   PROJECT_ID = 'project.id',
+  PROJECT = 'project',
   SPAN_ID = 'span_id',
   PARENT_SPAN_ID = 'sentry.trace.parent_span_id',
   TIMESTAMP = 'timestamp',
