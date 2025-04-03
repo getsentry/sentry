@@ -24,16 +24,22 @@ export const AlwaysPresentLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.SEVERITY_TEXT,
 ];
 
-/**
- * These are fields that should be hidden in log details view when receiving all data from the API.
- */
-export const HiddenLogDetailFields: OurLogFieldKey[] = [
+const AlwaysHiddenLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.ID,
-  OurLogKnownFieldKey.BODY,
   OurLogKnownFieldKey.ORGANIZATION_ID,
   OurLogKnownFieldKey.ITEM_TYPE,
   OurLogKnownFieldKey.PROJECT,
 ];
+
+/**
+ * These are fields that should be hidden in log details view when receiving all data from the API.
+ */
+export const HiddenLogDetailFields: OurLogFieldKey[] = [
+  ...AlwaysHiddenLogFields,
+  OurLogKnownFieldKey.BODY,
+];
+
+export const HiddenColumnEditorLogFields: OurLogFieldKey[] = [...AlwaysHiddenLogFields];
 
 const LOGS_FILTERS: FilterKeySection = {
   value: 'logs_filters',
