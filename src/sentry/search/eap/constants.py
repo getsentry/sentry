@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Union, get_args
 
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import AggregationComparisonFilter
@@ -7,7 +7,14 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 
 from sentry.search.eap.types import SupportedTraceItemType
-from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, DurationUnit, SizeUnit
+from sentry.search.events.constants import (
+    DURATION_UNITS,
+    SIZE_UNITS,
+    DurationUnit,
+    NumberUnit,
+    RateUnit,
+    SizeUnit,
+)
 
 # Mapping from our supported string enum types to the protobuf enum types
 SUPPORTED_TRACE_ITEM_TYPE_MAP = {
@@ -36,22 +43,23 @@ AGGREGATION_OPERATOR_MAP = {
     "<=": AggregationComparisonFilter.OP_LESS_THAN_OR_EQUALS,
 }
 
-SearchType = (
-    SizeUnit
-    | DurationUnit
-    | Literal[
-        "duration",
-        "integer",
-        "number",
-        "percentage",
-        "string",
-        "boolean",
-    ]
-)
+UnitlessSearchTypes = Literal["string", "boolean", "number", "integer", "percentage"]
+UnitfulSearchTypes = Literal["duration", "rate", "size"]
 
-SIZE_TYPE: set[SearchType] = set(SIZE_UNITS.keys())
+SearchType = Union[UnitlessSearchTypes, UnitfulSearchTypes]
 
-DURATION_TYPE: set[SearchType] = set(DURATION_UNITS.keys())
+Units = DurationUnit | RateUnit | SizeUnit
+
+VALID_UNITS_MAP: dict[UnitfulSearchTypes, tuple[Units]] = {
+    "duration": get_args(DurationUnit),
+    "rate": get_args(RateUnit),
+    "size": get_args(SizeUnit),
+}
+
+
+SIZE_TYPE: set[Units] = set(SIZE_UNITS.keys())
+
+DURATION_TYPE: set[Units] = set(DURATION_UNITS.keys())
 
 STRING = AttributeKey.TYPE_STRING
 BOOLEAN = AttributeKey.TYPE_BOOLEAN
@@ -64,9 +72,7 @@ TYPE_TO_STRING_MAP = {
     INT: "integer",
 }
 
-# TODO: we need a datetime type
-# Maps search types back to types for the proto
-TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
+TYPE_MAP: dict[Units | SearchType, AttributeKey.Type.ValueType] = {
     "bit": DOUBLE,
     "byte": DOUBLE,
     "kibibyte": DOUBLE,
@@ -89,12 +95,14 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
     "hour": DOUBLE,
     "day": DOUBLE,
     "week": DOUBLE,
-    "duration": DOUBLE,
+    "percentage": DOUBLE,
+    "1/hour": DOUBLE,
+    "1/minute": DOUBLE,
+    "1/second": DOUBLE,
+    "boolean": BOOLEAN,
+    "string": STRING,
     "integer": INT,
     "number": DOUBLE,
-    "percentage": DOUBLE,
-    "string": STRING,
-    "boolean": BOOLEAN,
 }
 
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py

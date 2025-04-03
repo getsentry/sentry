@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from re import Match
-from typing import Any, Literal, cast
+from typing import Any, Literal, cast, get_args
 
 import sentry_sdk
 from parsimonious.exceptions import ParseError
@@ -89,15 +89,9 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown function {function_name}")
 
-    def check_if_function_is_enabled(self, function_name: str) -> bool:
+    def check_if_function_is_disabled(self, function_name: str) -> bool:
         function_definition = self.get_function_definition(function_name)
-        if not function_definition.private:
-            return True
-
-        if function_name in self.config.functions_acl:
-            return True
-
-        return False
+        return function_definition.private and function_name not in self.config.functions_acl
 
     @sentry_sdk.trace
     def resolve_meta(self, referrer: str, sampling_mode: str | None = None) -> RequestMeta:
@@ -702,7 +696,7 @@ class SearchResolver:
 
     def get_field_type(self, column: str) -> str:
         resolved_column, _ = self.resolve_column(column)
-        return resolved_column.search_type
+        return resolved_column.unit or resolved_column.search_type
 
     @sentry_sdk.trace
     def resolve_attributes(
@@ -758,9 +752,22 @@ class SearchResolver:
             if column.startswith("sentry_tags"):
                 field = f"sentry.{field}"
 
-            search_type = cast(constants.SearchType, field_type)
+            search_type: constants.SearchType | None = None
+            unit: constants.Units | None = None
+            if field_type in get_args(constants.SearchType):
+                search_type = cast(constants.SearchType, field_type)
+            else:
+                unit = cast(constants.Units, field_type)
+                for search_type in constants.VALID_UNITS_MAP.keys():
+                    if field_type in search_type:
+                        search_type = search_type
+                        break
+
+            if search_type is None or unit is None:
+                raise ValueError(f"Invalid search type or unit: {search_type}, {unit}")
+
             column_definition = ResolvedAttribute(
-                public_alias=column, internal_name=field, search_type=search_type
+                public_alias=column, internal_name=field, search_type=search_type, unit=unit
             )
             column_context = None
 
@@ -800,7 +807,7 @@ class SearchResolver:
         # Alias defaults to the name of the function
         alias = match.group("alias") or column
 
-        if not self.check_if_function_is_enabled(function_name):
+        if self.check_if_function_is_disabled(function_name):
             raise InvalidSearchQuery(f"The function {function_name} is not allowed for this query")
 
         function_definition = self.get_function_definition(function_name)
@@ -857,6 +864,7 @@ class SearchResolver:
             parsed_args.append(parsed_argument)
 
         resolved_arguments = []
+
         for parsed_arg in parsed_args:
             if not isinstance(parsed_arg, ResolvedAttribute):
                 resolved_argument = parsed_arg
@@ -865,19 +873,22 @@ class SearchResolver:
                 resolved_argument = parsed_arg.proto_definition
             resolved_arguments.append(resolved_argument)
 
+        search_type = function_definition.default_search_type
+        unit = function_definition.default_unit
+
         # We assume the first argument contains the resolved search_type as this is always the case for now
-        if len(parsed_args) == 0 or not isinstance(parsed_args[0], ResolvedAttribute):
-            search_type = function_definition.default_search_type
-        else:
-            search_type = (
-                parsed_args[0].search_type
-                if function_definition.infer_search_type_from_arguments
-                else function_definition.default_search_type
-            )
+        if (
+            len(parsed_args) > 0
+            and function_definition.infer_search_type_from_arguments
+            and isinstance(parsed_args[0], ResolvedAttribute)
+        ):
+            search_type = parsed_args[0].search_type
+            unit = parsed_args[0].unit
 
         resolved_function = function_definition.resolve(
             alias=alias,
             search_type=search_type,
+            unit=unit,
             resolved_arguments=resolved_arguments,
             snuba_params=self.params,
         )

@@ -18,7 +18,6 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     FormulaDefinition,
@@ -553,8 +552,7 @@ SPAN_FORMULA_DEFINITIONS = {
                     "duration",
                     "number",
                     "percentage",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
+                    "size",
                 },
             ),
             AttributeArgumentDefinition(attribute_types={"string"}),
@@ -572,8 +570,7 @@ SPAN_FORMULA_DEFINITIONS = {
                     "duration",
                     "number",
                     "percentage",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
+                    "size",
                 },
             ),
             AttributeArgumentDefinition(
@@ -581,8 +578,7 @@ SPAN_FORMULA_DEFINITIONS = {
                     "duration",
                     "number",
                     "percentage",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
+                    "size",
                 },
             ),
         ],
@@ -593,13 +589,7 @@ SPAN_FORMULA_DEFINITIONS = {
         default_search_type="percentage",
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "percentage",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types={"duration"},
                 default_arg="span.self_time",
                 validator=literal_validator(["span.self_time", "span.duration"]),
             )
@@ -609,6 +599,10 @@ SPAN_FORMULA_DEFINITIONS = {
         private=True,
     ),
     "epm": FormulaDefinition(
-        default_search_type="number", arguments=[], formula_resolver=epm, is_aggregate=True
+        default_search_type="rate",
+        default_unit="1/minute",
+        arguments=[],
+        formula_resolver=epm,
+        is_aggregate=True,
     ),
 }

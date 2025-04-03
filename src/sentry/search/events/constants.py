@@ -166,6 +166,10 @@ SizeUnit = Literal[
     "exabyte",
 ]
 
+RateUnit = Literal["1/minute", "1/hour", "1/second"]
+
+NumberUnit = Literal["integer", "double"]
+
 # event_search normalizes to bytes
 # based on https://getsentry.github.io/relay/relay_metrics/enum.InformationUnit.html
 SIZE_UNITS: dict[SizeUnit, float] = {
@@ -184,6 +188,7 @@ SIZE_UNITS: dict[SizeUnit, float] = {
     "petabyte": 1 / 1000**5,
     "exabyte": 1 / 1000**6,
 }
+
 
 DurationUnit = Literal[
     "nanosecond", "microsecond", "millisecond", "second", "minute", "hour", "day", "week"

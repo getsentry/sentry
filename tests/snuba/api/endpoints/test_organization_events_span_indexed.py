@@ -644,7 +644,14 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                         "sentry_tags": {"status": "success"},
                         "tags": {"bar": "bar2"},
                     },
-                    measurements={k: {"value": (i + 1) / 10} for i, (k, _, _) in enumerate(keys)},
+                    measurements={
+                        k: (
+                            {"value": round((i + 1) / 10)}
+                            if type == "integer"
+                            else {"value": (i + 1) / 10}
+                        )
+                        for i, (k, type, _) in enumerate(keys)
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -686,7 +693,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             assert response.data["meta"] == expected
             assert response.data["data"] == [
                 {
-                    key: pytest.approx((i + 1) / 10),
+                    key: round((i + 1) / 10) if type == "integer" else pytest.approx((i + 1) / 10),
                     "id": mock.ANY,
                     "project.name": self.project.slug,
                 }
@@ -2197,7 +2204,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             assert response.status_code == 200, response.content
             assert response.data["data"] == [{"foo": "bar", "count()": 1}]
 
-    @pytest.mark.xfail(reason="spm is not implemented, as spm will be replaced with spm")
+    @pytest.mark.xfail(reason="spm is not implemented, as spm will be replaced with epm")
     def test_spm(self):
         super().test_spm()
 
@@ -2213,9 +2220,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         )
         response = self.do_request(
             {
-                "field": ["description", "epm()"],
+                "field": ["span.description", "epm()"],
                 "query": "",
-                "orderby": "description",
+                "orderby": "span.description",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
@@ -2227,11 +2234,13 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(data) == 1
         assert data == [
             {
-                "description": "foo",
+                "span.description": "foo",
                 "epm()": 1 / (90 * 24 * 60),
             },
         ]
         assert meta["dataset"] == self.dataset
+        assert meta["units"] == {"span.description": None, "epm()": "1/minute"}
+        assert meta["fields"] == {"string": "string", "epm()": "rate"}
 
     def test_is_transaction(self):
         self.store_spans(
@@ -2388,18 +2397,18 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         keys = [
             ("app_start_cold", "duration", "millisecond"),
             ("app_start_warm", "duration", "millisecond"),
-            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
+            ("frames_frozen", "integer", None),  # should be integer but keeping it consistent
             ("frames_frozen_rate", "percentage", None),
-            ("frames_slow", "number", None),  # should be integer but keeping it consistent
+            ("frames_slow", "integer", None),  # should be integer but keeping it consistent
             ("frames_slow_rate", "percentage", None),
-            ("frames_total", "number", None),  # should be integer but keeping it consistent
+            ("frames_total", "integer", None),  # should be integer but keeping it consistent
             ("time_to_initial_display", "duration", "millisecond"),
             ("time_to_full_display", "duration", "millisecond"),
-            ("stall_count", "number", None),  # should be integer but keeping it consistent
+            ("stall_count", "integer", None),  # should be integer but keeping it consistent
             ("stall_percentage", "percentage", None),
-            ("stall_stall_longest_time", "number", None),
-            ("stall_stall_total_time", "number", None),
-            ("cls", "number", None),
+            ("stall_stall_longest_time", "duration", "millisecond"),
+            ("stall_stall_total_time", "duration", "millisecond"),
+            ("cls", "duration", "millisecond"),
             ("fcp", "duration", "millisecond"),
             ("fid", "duration", "millisecond"),
             ("fp", "duration", "millisecond"),
@@ -2423,7 +2432,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             ("cache.item_size", "size", "byte"),
             ("messaging.message.body.size", "size", "byte"),
             ("messaging.message.receive.latency", "duration", "millisecond"),
-            ("messaging.message.retry.count", "number", None),
+            ("messaging.message.retry.count", "integer", None),
         ]
 
         self._test_simple_measurements(keys)
