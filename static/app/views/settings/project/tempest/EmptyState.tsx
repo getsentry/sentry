@@ -93,7 +93,7 @@ export default function EmptyState() {
                   'Once you provided credentials, Sentry will make an initial request to verify the credentials are correct and the IPs are allowlisted, if either of these are not the case an error will be displayed in the UI. After that new crashes are pulled once every minute. Events generated from crashes can be filtered using:'
                 )}{' '}
                 <OnboardingCodeSnippet language="javascript">
-                  sdk.name: minidump.tempest
+                  os.name:PlayStation
                 </OnboardingCodeSnippet>
               </DescriptionWrapper>
               <GuidedSteps.StepButtons>
