@@ -162,6 +162,17 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         ],
         aggregate_resolver=resolve_count_starts,
     ),
+    "http_response_count": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_COUNT,
+        default_search_type="integer",
+        arguments=[
+            ValueArgumentDefinition(
+                argument_types={"integer"},
+                validator=literal_validator(["1", "2", "3", "4", "5"]),
+            )
+        ],
+        aggregate_resolver=resolve_http_response_count,
+    ),
 }
 
 SPAN_AGGREGATE_DEFINITIONS = {
@@ -413,16 +424,5 @@ SPAN_AGGREGATE_DEFINITIONS = {
             ),
         ],
         attribute_resolver=transform_vital_score_to_ratio,
-    ),
-    "http_response_count": ConditionalAggregateDefinition(
-        internal_function=Function.FUNCTION_COUNT,
-        default_search_type="integer",
-        arguments=[
-            ValueArgumentDefinition(
-                argument_types={"integer"},
-                validator=literal_validator(["1", "2", "3", "4", "5"]),
-            )
-        ],
-        aggregate_resolver=resolve_http_response_count,
     ),
 }
