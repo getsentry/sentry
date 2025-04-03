@@ -206,8 +206,12 @@ def record_first_event(project, event, **kwargs):
             # this should never happen since the SECOND_PLATFORM task should be created
             # when the project is created
             logger.warning(
-                "Creating second platform task in record_first_event for project %s",
-                project.id,
+                "Creating second platform task in record_first_event for project",
+                extra={
+                    "project_id": project.id,
+                    "project_updated": rows_affected,
+                    "project_created": created,
+                },
             )
             analytics.record(
                 "second_platform.added",
