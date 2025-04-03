@@ -94,7 +94,7 @@ def fire_actions(actions: list[Action], detector: Detector, event_data: Workflow
         for action in actions:
             workflow = actions_to_workflows[action.id]
             workflow_event_data = replace(
-                event_data, workflow_env=workflow.environment_id, workflow_id=workflow.id
+                event_data, workflow_env=workflow.environment, workflow_id=workflow.id
             )
 
             notification_uuid = workflow_id_to_fire_history[workflow.id].notification_uuid

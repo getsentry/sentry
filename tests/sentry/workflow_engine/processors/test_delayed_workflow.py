@@ -770,14 +770,18 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         )
 
         assert mock_trigger.call_count == 2
-        assert mock_trigger.call_args_list[0][0] == (
-            WorkflowEventData(event=self.event1.for_group(self.group1)),
-            self.detector,
+        assert mock_trigger.call_args_list[0][0][0] == WorkflowEventData(
+            event=self.event1.for_group(self.group1),
+            workflow_env=self.workflow1.environment,
+            workflow_id=self.workflow1.id,
         )
-        assert mock_trigger.call_args_list[1][0] == (
-            WorkflowEventData(event=self.event2.for_group(self.group2)),
-            self.detector,
+        assert mock_trigger.call_args_list[0][0][1] == self.detector
+        assert mock_trigger.call_args_list[1][0][0] == WorkflowEventData(
+            event=self.event2.for_group(self.group2),
+            workflow_env=self.workflow2.environment,
+            workflow_id=self.workflow2.id,
         )
+        assert mock_trigger.call_args_list[1][0][1] == self.detector
 
     @patch("sentry.workflow_engine.processors.workflow.enqueue_workflow")
     def test_fire_actions_for_groups__enqueue(self, mock_enqueue):
