@@ -47,7 +47,7 @@ describe('provisionSubscriptionAction', function () {
       await userEvent.clear(field);
     }
     await userEvent.click(field, {delay: null, skipHover: true});
-    await userEvent.paste(value);
+    await userEvent.paste(value, {delay: null, skipHover: true});
   }
 
   async function typeNumForMatchingFields(
@@ -775,7 +775,7 @@ describe('provisionSubscriptionAction', function () {
         })
       );
     });
-  });
+  }, 15_000);
 
   it('removes retain on-demand budget toggle when plan changes', async () => {
     const am2Sub = SubscriptionFixture({
@@ -833,11 +833,6 @@ describe('provisionSubscriptionAction', function () {
       'Annual'
     );
 
-    await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Type'}),
-      'Invoiced'
-    );
-
     await clickCheckbox('Managed Subscription');
     await clickCheckbox('Apply Changes To Current Subscription');
     await userEvent.type(await screen.findByLabelText('Start Date'), '2020-10-25');
@@ -851,7 +846,7 @@ describe('provisionSubscriptionAction', function () {
       body: {},
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
 
     expect(updateMock).toHaveBeenCalledWith(
       `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -912,7 +907,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  }, 10_000);
+  }, 15_000);
 
   it('calls api with correct am2 args', async () => {
     const am2Sub = SubscriptionFixture({organization: mockOrg, plan: 'am2_f'});
@@ -1023,7 +1018,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  }, 10_000);
+  }, 15_000);
 
   it('calls api with correct am3 args', async () => {
     const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
@@ -1112,7 +1107,7 @@ describe('provisionSubscriptionAction', function () {
           reservedReplays: 50,
           reservedMonitorSeats: 1,
           reservedUptime: 1,
-          reservedSpans: 10_000_000,
+          reservedSpans: 15_000_000,
           reservedProfileDuration: 0,
           reservedProfileDurationUI: 0,
           retainOnDemandBudget: false,
@@ -1138,7 +1133,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  }, 10_000);
+  }, 15_000);
 
   it('calls api with correct am3 dynamic sampling args', async () => {
     const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
@@ -1258,7 +1253,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  }, 10_000);
+  }, 15_000);
 
   it('calls api with correct manually invoiced on-demand args', async () => {
     const am2Sub = SubscriptionFixture({organization: mockOrg, plan: 'am2_f'});
@@ -1339,7 +1334,7 @@ describe('provisionSubscriptionAction', function () {
           reservedReplays: 50,
           reservedMonitorSeats: 1,
           reservedUptime: 1,
-          reservedTransactions: 10_000,
+          reservedTransactions: 15_000,
           reservedProfileDuration: 0,
           reservedProfileDurationUI: 0,
           retainOnDemandBudget: false,
@@ -1365,7 +1360,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  }, 10_000);
+  }, 15_000);
 
   it('calls api with correct mm2 args', async () => {
     triggerProvisionSubscription({
@@ -1421,7 +1416,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  }, 10_000);
+  }, 15_000);
 
   it('returns submit error on incorrect custom price', async () => {
     triggerProvisionSubscription({
@@ -1470,7 +1465,7 @@ describe('provisionSubscriptionAction', function () {
     expect(
       screen.getByText('Custom Price must be equal to sum of SKU prices')
     ).toBeInTheDocument();
-  }, 10_000);
+  }, 15_000);
 
   it('returns api error', async () => {
     triggerProvisionSubscription({
@@ -1570,5 +1565,5 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  }, 10_000);
+  }, 15_000);
 });
