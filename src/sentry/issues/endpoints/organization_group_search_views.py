@@ -1,6 +1,3 @@
-from functools import reduce
-from operator import or_
-
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from rest_framework import serializers, status
@@ -37,8 +34,8 @@ class MemberPermission(OrganizationPermission):
 
 
 class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
-    visibility = serializers.MultipleChoiceField(
-        choices=GroupSearchViewVisibility.as_choices(),
+    createdBy = serializers.MultipleChoiceField(
+        choices=("me", "others"),
         required=False,
     )
 
@@ -108,31 +105,33 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     data={"detail": "You do not have access to any projects."},
                 )
 
-        visibility = serializer.validated_data.get("visibility")
-        if visibility:
-            org_query = GroupSearchView.objects.filter(
-                organization=organization,
-                visibility=GroupSearchViewVisibility.ORGANIZATION,
-            ).prefetch_related("projects")
-
-            owner_query = GroupSearchView.objects.filter(
-                organization=organization,
-                user_id=request.user.id,
-                visibility=GroupSearchViewVisibility.OWNER,
-            ).prefetch_related("projects")
-
-            param_query_map = {
-                GroupSearchViewVisibility.ORGANIZATION: org_query,
-                GroupSearchViewVisibility.OWNER: owner_query,
-            }
-
-            query_list = [param_query_map[v] for v in visibility]
-            query = reduce(or_, query_list)
+        createdBy = serializer.validated_data.get("createdBy")
+        if createdBy:
+            # TODO(msun): add support for different sorting
+            if "me" in createdBy:
+                query = (
+                    GroupSearchView.objects.filter(
+                        organization=organization,
+                        user_id=request.user.id,
+                    )
+                    .prefetch_related("projects")
+                    .order_by("name")
+                )
+            elif "others" in createdBy:
+                query = (
+                    GroupSearchView.objects.filter(
+                        organization=organization,
+                        visibility=GroupSearchViewVisibility.ORGANIZATION,
+                    )
+                    .exclude(user_id=request.user.id)
+                    .prefetch_related("projects")
+                    .order_by("name")
+                )
 
             return self.paginate(
                 request=request,
                 queryset=query,
-                order_by="id",
+                paginator_cls=OffsetPaginator,
                 on_results=lambda x: serialize(
                     x,
                     request.user,
