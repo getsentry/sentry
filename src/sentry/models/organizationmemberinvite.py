@@ -79,7 +79,7 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     organization = FlexibleForeignKey("sentry.Organization", related_name="invite_set")
     # SCIM provisioning requires that the OrganizationMember object exist. Until the user
     # accepts their invite, the OrganizationMember is a placeholder and will not be surfaced via API.
-    organization_member_id = FlexibleForeignKey("sentry.OrganizationMember")
+    organization_member = FlexibleForeignKey("sentry.OrganizationMember")
     inviter_id = HybridCloudForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
