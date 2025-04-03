@@ -8,12 +8,10 @@ from sentry.options.manager import UnknownOption
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.registry import TaskNamespace, taskregistry
+from sentry.taskworker.namespaces import options_control_tasks, options_tasks
 
 ONE_HOUR = 60 * 60
 logger = logging.getLogger("sentry")
-options_tasks: TaskNamespace = taskregistry.create_namespace("options")
-options_control_tasks: TaskNamespace = taskregistry.create_namespace("options.control")
 
 
 @instrumented_task(

@@ -4,6 +4,7 @@ import orjson
 import pytest
 import responses
 
+from sentry.integrations.opsgenie.client import OpsgenieClient
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
 from sentry.testutils.asserts import assert_slo_metric
@@ -72,9 +73,16 @@ class OpsgenieClientTest(APITestCase):
         assert group is not None
 
         rule = Rule.objects.create(project=self.project, label="my rule")
-        client = self.installation.get_keyring_client("team-123")
+        client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         with self.options({"system.url-prefix": "http://example.com"}):
-            client.send_notification(event, "P2", [rule])
+            payload = client.build_issue_alert_payload(
+                data=event,
+                rules=[rule],
+                event=event,
+                group=group,
+                priority="P2",
+            )
+            client.send_notification(payload)
 
         request = responses.calls[0].request
         payload = orjson.loads(request.body)
