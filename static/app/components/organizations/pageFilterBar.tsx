@@ -138,11 +138,12 @@ except in mobile */
 
   /* Code related to Chonk styles */
 
-display: flex;
+  display: flex;
   position: relative;
 
   & > div > button {
     width: 100%;
+    height: 100%;
   }
 
   /* Disabled InteractionStateLayer */
