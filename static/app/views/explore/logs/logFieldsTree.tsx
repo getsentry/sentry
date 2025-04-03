@@ -26,7 +26,11 @@ import type {
   LogAttributesRendererMap,
   RendererExtra,
 } from 'sentry/views/explore/logs/fieldRenderers';
-import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {
+  type OurLogFieldKey,
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 import {
   adjustAliases,
   adjustLogTraceID,
@@ -63,6 +67,7 @@ interface AttributeTreeColumnData {
 
 interface LogAttributeFieldRender {
   renderExtra: RendererExtra;
+  tableResultLogRow: OurLogsResponseItem;
   renderers?: typeof LogAttributesRendererMap;
 }
 
@@ -87,6 +92,7 @@ interface LogFieldsTreeRowConfig {
 interface LogFieldsTreeRowProps extends LogAttributeFieldRender {
   attributeKey: string;
   content: AttributeTreeContent;
+  tableResultLogRow: OurLogsResponseItem;
   config?: LogFieldsTreeRowConfig;
   isLast?: boolean;
   spacerCount?: number;
@@ -154,6 +160,7 @@ function getAttributeTreeRows({
   uniqueKey,
   renderers = {},
   renderExtra,
+  tableResultLogRow,
   isLast = false,
 }: LogFieldsTreeRowProps &
   LogAttributeFieldRender & {
@@ -170,6 +177,7 @@ function getAttributeTreeRows({
         uniqueKey: `${uniqueKey}-${i}`,
         renderers,
         renderExtra,
+        tableResultLogRow,
       });
       return rows.concat(branchRows);
     },
@@ -185,6 +193,7 @@ function getAttributeTreeRows({
       renderers={renderers}
       renderExtra={renderExtra}
       isLast={isLast}
+      tableResultLogRow={tableResultLogRow}
     />,
     ...subtreeRows,
   ];
@@ -200,6 +209,7 @@ function LogFieldsTreeColumns({
   hiddenAttributes = [],
   renderers = {},
   renderExtra,
+  tableResultLogRow,
 }: LogFieldsTreeColumnsProps) {
   const assembledColumns = useMemo(() => {
     if (!attributes) {
@@ -227,6 +237,7 @@ function LogFieldsTreeColumns({
           uniqueKey: `${i}`,
           renderers,
           renderExtra,
+          tableResultLogRow,
         })
     );
 
@@ -265,7 +276,14 @@ function LogFieldsTreeColumns({
       {startIndex: 0, runningTotal: 0, columns: []}
     );
     return data.columns;
-  }, [attributes, columnCount, hiddenAttributes, renderers, renderExtra]);
+  }, [
+    attributes,
+    columnCount,
+    hiddenAttributes,
+    renderers,
+    renderExtra,
+    tableResultLogRow,
+  ]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }
@@ -290,6 +308,7 @@ function LogFieldsTreeRow({
   spacerCount = 0,
   isLast = false,
   config = {},
+  tableResultLogRow,
   ...props
 }: LogFieldsTreeRowProps) {
   const theme = useTheme();
@@ -344,6 +363,7 @@ function LogFieldsTreeRow({
             renderers={props.renderers}
             renderExtra={props.renderExtra}
             theme={theme}
+            tableResultLogRow={tableResultLogRow}
           />
         </TreeValue>
         {attributeActions}
@@ -461,8 +481,10 @@ function LogFieldsTreeValue({
   renderers = {},
   renderExtra,
   theme,
+  tableResultLogRow,
 }: {
   content: AttributeTreeContent;
+  tableResultLogRow: OurLogsResponseItem;
   config?: LogFieldsTreeRowConfig;
 } & LogAttributeFieldRender & {theme: Theme}) {
   const {originalAttribute} = content;
@@ -494,6 +516,7 @@ function LogFieldsTreeValue({
       item: getLogAttributeItem(attributeKey, adjustedValue),
       extra: renderExtra,
       basicRendered,
+      tableResultLogRow,
     });
   }
 
