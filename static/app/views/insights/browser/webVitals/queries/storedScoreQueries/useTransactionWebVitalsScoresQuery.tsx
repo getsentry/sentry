@@ -18,6 +18,7 @@ import {
 type Props = {
   browserTypes?: BrowserType[];
   defaultSort?: Sort;
+  enabled?: boolean;
   limit?: number;
   query?: string;
   shouldEscapeFilters?: boolean;
@@ -33,6 +34,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   defaultSort,
   sortName = 'sort',
   webVital = 'total',
+  enabled,
   query,
   shouldEscapeFilters = true,
   browserTypes,
@@ -67,6 +69,7 @@ export const useTransactionWebVitalsScoresQuery = ({
       limit: limit ?? 50,
       search: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       sorts: [sort],
+      enabled,
       fields: [
         'project.id',
         'project',
