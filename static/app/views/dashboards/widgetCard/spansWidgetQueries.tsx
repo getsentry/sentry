@@ -16,7 +16,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
+  SAMPLING_MODE,
+  type SamplingMode,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {
   convertEventsStatsToTimeSeriesData,
@@ -135,6 +138,7 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
 }: SpansWidgetQueriesImplProps) {
   const config = SpansConfig;
   const organization = useOrganization();
+  const [queryPhase, setQueryPhase] = useState<SamplingMode>(SAMPLING_MODE.PREFLIGHT);
 
   const afterFetchSeriesData = (result: SeriesResult) => {
     const {seriesConfidence, seriesSampleCount, seriesIsSampled} =
@@ -160,17 +164,16 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
         dashboardFilters={dashboardFilters}
         afterFetchSeriesData={afterFetchSeriesData}
         samplingMode={SAMPLING_MODE.PREFLIGHT}
+        onDataFetched={() => {
+          setQueryPhase(SAMPLING_MODE.BEST_EFFORT);
+        }}
       >
-        {lowFidelityProps => (
+        {preflightProps => (
           <Fragment>
-            {/** TODO(nar): There is currently a bug where subsequent rerenders (i.e. changes in the widget
-             * params or dashboard filters) will cause this to refetch both the preflight and best effort data
-             * at the same time
-            ) */}
-            {lowFidelityProps.loading ? (
+            {preflightProps.loading || queryPhase === SAMPLING_MODE.PREFLIGHT ? (
               children({
-                ...lowFidelityProps,
-                isProgressivelyLoading: lowFidelityProps.loading,
+                ...preflightProps,
+                isProgressivelyLoading: preflightProps.loading,
               })
             ) : (
               <GenericWidgetQueries<SeriesResult, TableResult>
@@ -184,24 +187,27 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
                 dashboardFilters={dashboardFilters}
                 afterFetchSeriesData={afterFetchSeriesData}
                 samplingMode={SAMPLING_MODE.BEST_EFFORT}
+                onDataFetched={() => {
+                  // Reset the query phase to preflight so that the next time this component
+                  // renders, it will start with only the preflight query
+                  setQueryPhase(SAMPLING_MODE.PREFLIGHT);
+                }}
               >
-                {highFidelityProps =>
-                  children({
-                    ...highFidelityProps,
-                    ...(highFidelityProps.loading
-                      ? {
-                          ...lowFidelityProps,
-                          loading: true,
-                        }
-                      : {
-                          ...highFidelityProps,
-                        }),
-                    isProgressivelyLoading:
-                      highFidelityProps.loading &&
-                      !lowFidelityProps.errorMessage &&
-                      !highFidelityProps.errorMessage,
-                  })
-                }
+                {bestEffortProps => {
+                  if (bestEffortProps.loading) {
+                    // Show the low fidelity data while the high fidelity data is loading
+                    return children({
+                      ...preflightProps,
+                      loading: true,
+                      isProgressivelyLoading:
+                        !preflightProps.errorMessage && !bestEffortProps.errorMessage,
+                    });
+                  }
+                  return children({
+                    ...bestEffortProps,
+                    isProgressivelyLoading: false,
+                  });
+                }}
               </GenericWidgetQueries>
             )}
           </Fragment>

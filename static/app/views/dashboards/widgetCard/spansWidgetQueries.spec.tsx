@@ -120,7 +120,7 @@ describe('spansWidgetQueries', () => {
       },
     });
 
-    render(
+    const {rerender} = render(
       <OrganizationContext.Provider
         value={OrganizationFixture({
           features: ['visibility-explore-progressive-loading'],
@@ -129,7 +129,55 @@ describe('spansWidgetQueries', () => {
         <SpansWidgetQueries
           api={api}
           widget={widget}
-          selection={selection}
+          selection={{
+            ...selection,
+            datetime: {period: '24hr', end: null, start: null, utc: null},
+          }}
+          dashboardFilters={{}}
+        >
+          {({timeseriesResults}) => <div>{timeseriesResults?.[0]?.data?.[0]?.value}</div>}
+        </SpansWidgetQueries>
+      </OrganizationContext.Provider>
+    );
+
+    expect(await screen.findByText('1')).toBeInTheDocument();
+    expect(eventsStatsMock).toHaveBeenCalledTimes(2);
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          sampling: 'PREFLIGHT',
+        }),
+      })
+    );
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          sampling: 'BEST_EFFORT',
+        }),
+      })
+    );
+
+    // Reset the mock so we can test that the rerender only triggers two requests
+    eventsStatsMock.mockReset();
+
+    // Rerender the component and check that the preflight is called before the best effort
+    rerender(
+      <OrganizationContext.Provider
+        value={OrganizationFixture({
+          features: ['visibility-explore-progressive-loading'],
+        })}
+      >
+        <SpansWidgetQueries
+          api={api}
+          widget={widget}
+          selection={{
+            ...selection,
+            datetime: {period: '1hr', end: null, start: null, utc: null},
+          }}
           dashboardFilters={{}}
         >
           {({timeseriesResults}) => <div>{timeseriesResults?.[0]?.data?.[0]?.value}</div>}
