@@ -96,6 +96,7 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   crashReportOnboarding,
+  profilingOnboarding: onboarding,
 };
 
 export default docs;

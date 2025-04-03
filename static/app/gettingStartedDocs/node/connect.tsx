@@ -137,7 +137,7 @@ const crashReportOnboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-
+  profilingOnboarding: onboarding,
   crashReportOnboarding,
 };
 

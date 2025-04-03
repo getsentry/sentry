@@ -284,7 +284,6 @@ const profilingOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingNode,
-
   crashReportOnboarding,
   profilingOnboarding,
 };

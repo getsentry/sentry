@@ -184,6 +184,7 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingNode,
   crashReportOnboarding,
+  profilingOnboarding: onboarding,
 };
 
 export default docs;

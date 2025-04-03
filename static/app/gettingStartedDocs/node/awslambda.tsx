@@ -117,6 +117,7 @@ const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
 const docs: Docs<PlatformOptions> = {
   onboarding,
   crashReportOnboarding,
+  profilingOnboarding: onboarding,
   platformOptions,
 };
 

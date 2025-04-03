@@ -144,6 +144,7 @@ const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
+  profilingOnboarding: onboarding,
 };
 
 export default docs;
