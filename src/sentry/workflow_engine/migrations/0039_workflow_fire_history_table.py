@@ -58,7 +58,9 @@ class Migration(CheckedMigration):
                 (
                     "workflow",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="workflow_engine.workflow"
+                        db_constraint=False,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.group",
                     ),
                 ),
             ],
