@@ -84,6 +84,7 @@ function useIntegrationList() {
   const organization = useOrganization();
   const [searchParams] = useSearchParams();
   const extraAppSlug = searchParams.get('extra_app');
+  const isExtraAppEnabled = !!extraAppSlug;
 
   const {
     data: config = {providers: []},
@@ -137,14 +138,15 @@ function useIntegrationList() {
     isPending: isDocIntegrationsPending,
     isError: isDocIntegrationsError,
   } = useApiQuery<DocIntegration[]>(['/doc-integrations/'], queryOptions);
-  const {
-    data: extraApp,
-    isPending: isExtraAppPending,
-    isError: isExtraAppError,
-  } = useApiQuery<SentryApp>([`/sentry-apps/${extraAppSlug ?? ''}/`], {
+
+  // This is the only conditional query, so we need to handle the pending and error states uniquely
+  const extraAppQuery = useApiQuery<SentryApp>([`/sentry-apps/${extraAppSlug ?? ''}/`], {
     ...queryOptions,
-    enabled: !!extraAppSlug,
+    enabled: isExtraAppEnabled,
   });
+  const {data: extraApp} = extraAppQuery;
+  const isExtraAppPending = isExtraAppEnabled && extraAppQuery.isPending;
+  const isExtraAppError = isExtraAppEnabled && extraAppQuery.isError;
 
   const anyPending =
     isConfigPending ||
@@ -178,14 +180,14 @@ function useIntegrationList() {
   }, [orgOwnedApps, extraApp, publishedApps]);
 
   const list = useMemo(() => {
-    const combinedList: AppOrProviderOrPlugin[] = [];
-    combinedList.concat(publishedApps);
-    combinedList.concat(sentryAppList);
-    combinedList.concat(config.providers);
-    combinedList.concat(plugins);
-    combinedList.concat(docIntegrations);
-    return combinedList;
-  }, [config, publishedApps, sentryAppList, plugins, docIntegrations]);
+    return [
+      ...publishedApps,
+      ...sentryAppList,
+      ...config.providers,
+      ...plugins,
+      ...docIntegrations,
+    ];
+  }, [config.providers, publishedApps, sentryAppList, plugins, docIntegrations]);
 
   return {
     anyPending,
@@ -201,7 +203,7 @@ function useIntegrationList() {
   };
 }
 
-export function IntegrationListDirectory() {
+export default function IntegrationListDirectory() {
   const title = t('Integrations');
   const organization = useOrganization();
   const location = useLocation();
