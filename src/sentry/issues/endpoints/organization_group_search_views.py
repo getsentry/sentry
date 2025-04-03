@@ -34,7 +34,7 @@ class MemberPermission(OrganizationPermission):
 
 
 class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
-    createdBy = serializers.MultipleChoiceField(
+    createdBy = serializers.ChoiceField(
         choices=("me", "others"),
         required=False,
     )
@@ -108,7 +108,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         createdBy = serializer.validated_data.get("createdBy")
         if createdBy:
             # TODO(msun): add support for different sorting
-            if "me" in createdBy:
+            if createdBy == "me":
                 query = (
                     GroupSearchView.objects.filter(
                         organization=organization,
@@ -117,7 +117,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     .prefetch_related("projects")
                     .order_by("name")
                 )
-            elif "others" in createdBy:
+            elif createdBy == "others":
                 query = (
                     GroupSearchView.objects.filter(
                         organization=organization,
