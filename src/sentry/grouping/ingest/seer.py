@@ -283,11 +283,18 @@ def get_seer_similar_issues(
     seer_request_metric_tags = {"hybrid_fingerprint": event_has_hybrid_fingerprint}
 
     seer_results = get_similarity_data_from_seer(request_data, seer_request_metric_tags)
+    metrics.distribution(
+        "grouping.similarity.seer_results_returned",
+        len(seer_results),
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"platform": event.platform},
+    )
 
     # All of these will get overridden if we find a usable match
     matching_seer_result = None  # JSON of result data
     winning_parent_grouphash = None  # A GroupHash object
     stacktrace_distance = None
+    seer_match_status = "no_matches_usable" if seer_results else "no_seer_matches"
 
     parent_grouphashes = GroupHash.objects.filter(
         hash__in=[result.parent_hash for result in seer_results],
@@ -319,7 +326,38 @@ def get_seer_similar_issues(
                 winning_parent_grouphash = parent_grouphash
                 matching_seer_result = asdict(seer_result)
                 stacktrace_distance = seer_result.stacktrace_distance
+                seer_match_status = "match_found"
                 break
+
+    is_hybrid_fingerprint_case = (
+        event_has_hybrid_fingerprint
+        # This means we had to reject at least one match because it was a hybrid even though the
+        # event isn't
+        or parent_grouphashes_checked > 1
+        # This catches cases where we only checked one parent (presumably because there was only one
+        # to check) but we couldn't use it because it was hybrid
+        or seer_match_status == "no_matches_usable"
+    )
+
+    # We don't want to collect this metric in non-hybrid cases (for which the answer will always be
+    # 1) or in cases where Seer doesn't return any results (for which the answer will always be 0).
+    if is_hybrid_fingerprint_case and parent_grouphashes_checked > 0:
+        metrics.distribution(
+            "grouping.similarity.hybrid_fingerprint_results_checked",
+            parent_grouphashes_checked,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"platform": event.platform},
+        )
+
+    metrics.incr(
+        "grouping.similarity.get_seer_similar_issues",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={
+            "platform": event.platform,
+            "is_hybrid": is_hybrid_fingerprint_case,
+            "result": seer_match_status,
+        },
+    )
 
     logger.info(
         "get_seer_similar_issues.results",
