@@ -20,7 +20,6 @@ import {
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
-import {useDrawerWidth} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -355,7 +354,6 @@ function getOptimalPosition(
 function AutofixHighlightPopup(props: Props) {
   const {referenceElement} = props;
   const popupRef = useRef<HTMLDivElement>(null);
-  const drawerWidth = useDrawerWidth();
   const [position, setPosition] = useState<{
     left: number;
     top: number;
@@ -375,6 +373,11 @@ function AutofixHighlightPopup(props: Props) {
       const referenceRect = referenceElement.getBoundingClientRect();
       const popupRect = popupRef.current!.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
+
+      const drawerElement = document.querySelector('.drawer-panel');
+      const drawerWidth = drawerElement
+        ? drawerElement.getBoundingClientRect().width
+        : undefined;
 
       // Calculate available width for the popup
       const availableWidth = viewportWidth - (drawerWidth ?? viewportWidth * 0.5) - 16;
@@ -414,7 +417,7 @@ function AutofixHighlightPopup(props: Props) {
       });
       window.removeEventListener('resize', updatePosition);
     };
-  }, [referenceElement, drawerWidth]);
+  }, [referenceElement]);
 
   const handleFocus = () => {
     setIsFocused(true);
