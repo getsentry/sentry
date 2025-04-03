@@ -7,10 +7,13 @@ import {usePrompts} from 'sentry/actionCreators/prompts';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import type {Color} from 'sentry/utils/theme';
 import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {SidebarButton} from 'sentry/views/nav/primary/components';
 import {
@@ -45,21 +48,23 @@ function QuotaExceededContent({
   organization,
   onCheck,
   isDismissed,
+  statusTextColor,
 }: {
   exceededCategories: string[];
   isDismissed: boolean;
   onCheck: (checked: boolean) => void;
   organization: Organization;
+  statusTextColor: string;
   subscription: Subscription;
 }) {
   const eventTypes: EventType[] = exceededCategories.map(category => {
     const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
-    return (categoryInfo?.plural ?? category) as EventType;
+    return (categoryInfo?.name ?? category) as EventType;
   });
   return (
     <Container>
       <Header>
-        <HeaderTitle>{t('Status')}</HeaderTitle>
+        <HeaderTitle textColor={statusTextColor}>{t('Status')}</HeaderTitle>
       </Header>
       <Body>
         <Title>{t('Quota Exceeded')}</Title>
@@ -84,9 +89,8 @@ function QuotaExceededContent({
             }}
             eventTypes={eventTypes}
             notificationType="overage_critical"
-            referrer={`overage-alert-sidebar-${eventTypes.join('-')}`}
-            source="quota-overage"
-            handleRequestSent={() => {}}
+            referrer={`overage-alert-${eventTypes.join('-')}`}
+            source="nav-quota-overage"
           />
           <DismissContainer>
             <Checkbox
@@ -140,8 +144,10 @@ function PrimaryNavigationQuotaExceeded({
     triggerProps: overlayTriggerProps,
     overlayProps,
   } = usePrimaryButtonOverlay({});
-  const theme = useTheme();
   const prefersStackedNav = usePrefersStackedNav();
+  const theme = useTheme();
+  const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
+  const statusTextColor = prefersDarkMode ? theme.black : theme.textColor;
 
   const shouldShow =
     prefersStackedNav &&
@@ -173,7 +179,7 @@ function PrimaryNavigationQuotaExceeded({
         buttonProps={{...overlayTriggerProps, style: {backgroundColor: theme.warning}}}
       >
         <motion.div {...(isOpen || hasDismissedAllPrompts() ? {} : ANIMATE_PROPS)}>
-          <IconWarning />
+          <IconWarning color={statusTextColor as Color} />
         </motion.div>
       </SidebarButton>
       {isOpen && (
@@ -184,6 +190,7 @@ function PrimaryNavigationQuotaExceeded({
             organization={organization}
             isDismissed={hasDismissedAllPrompts()}
             onCheck={onCheckboxChange}
+            statusTextColor={statusTextColor}
           />
         </PrimaryButtonOverlay>
       )}
@@ -202,9 +209,10 @@ const Header = styled('div')`
   padding: ${space(2)};
 `;
 
-const HeaderTitle = styled('h1')`
+const HeaderTitle = styled('h1')<{textColor: string}>`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: 0;
+  color: ${p => p.textColor};
 `;
 
 const Title = styled('h2')`
