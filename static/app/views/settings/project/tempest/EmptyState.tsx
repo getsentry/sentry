@@ -2,12 +2,16 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {Button} from 'sentry/components/core/button';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 export default function EmptyState() {
+  const navigate = useNavigate();
+
   return (
     <div>
       <HeaderWrapper>
@@ -92,7 +96,22 @@ export default function EmptyState() {
                   sdk.name: minidump.tempest
                 </OnboardingCodeSnippet>
               </DescriptionWrapper>
-              <GuidedSteps.StepButtons />
+              <GuidedSteps.StepButtons>
+                <Button
+                  size="sm"
+                  priority="primary"
+                  onClick={() => {
+                    navigate({
+                      pathname: '/issues/',
+                      query: {
+                        query: 'sdk.name:minidump.tempest',
+                      },
+                    });
+                  }}
+                >
+                  {t('Take me to Issues')}
+                </Button>
+              </GuidedSteps.StepButtons>
             </GuidedSteps.Step>
           </GuidedSteps>
         </Setup>
