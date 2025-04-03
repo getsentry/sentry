@@ -84,13 +84,7 @@ export default function PriorityControl({
               data-test-id="priority-control-medium"
             />
           }
-          right={
-            <GroupPriorityBadge
-              showLabel
-              variant="signal"
-              priority={PriorityLevel.MEDIUM}
-            />
-          }
+          right={<GroupPriorityBadge showLabel priority={PriorityLevel.MEDIUM} />}
         />
       )}
       {priorityIsConfigurable(priority, PriorityLevel.HIGH) && (
@@ -110,13 +104,7 @@ export default function PriorityControl({
               data-test-id="priority-control-high"
             />
           }
-          right={
-            <GroupPriorityBadge
-              showLabel
-              variant="signal"
-              priority={PriorityLevel.HIGH}
-            />
-          }
+          right={<GroupPriorityBadge showLabel priority={PriorityLevel.HIGH} />}
         />
       )}
     </Grid>
@@ -176,7 +164,7 @@ function PrioritySelect({
       trigger={(props, isOpen) => {
         return (
           <EmptyButton {...props}>
-            <GroupPriorityBadge showLabel variant="signal" priority={value}>
+            <GroupPriorityBadge showLabel priority={value}>
               <InteractionStateLayer isPressed={isOpen} />
               <Chevron light direction={isOpen ? 'up' : 'down'} size="small" />
             </GroupPriorityBadge>
@@ -184,7 +172,7 @@ function PrioritySelect({
         );
       }}
       options={priorities.map(priority => ({
-        label: <GroupPriorityBadge showLabel variant="signal" priority={priority} />,
+        label: <GroupPriorityBadge showLabel priority={priority} />,
         value: priority,
         textValue: priority,
       }))}

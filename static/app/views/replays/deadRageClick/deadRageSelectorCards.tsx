@@ -225,9 +225,9 @@ function SearchButton({
   });
 
   return (
-    <StyledButton
+    <StyledLinkButton
       {...props}
-      size="xs"
+      size="zero"
       to={{
         pathname,
         query: {
@@ -239,7 +239,7 @@ function SearchButton({
       }}
     >
       {label}
-    </StyledButton>
+    </StyledLinkButton>
   );
 }
 
@@ -275,15 +275,13 @@ const CenteredContentContainer = styled(ContentContainer)`
   justify-content: center;
 `;
 
-const StyledButton = styled(LinkButton)`
+const StyledLinkButton = styled(LinkButton)`
   width: 100%;
+  padding: ${space(1.5)};
+  border: none;
+  border-top: 1px solid ${p => p.theme.border};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  padding: ${space(3)};
-  border-bottom: none;
-  border-left: none;
-  border-right: none;
   font-size: ${p => p.theme.fontSizeMedium};
-  background-color: transparent;
 `;
 
 const StyledAccordionHeader = styled('div')`

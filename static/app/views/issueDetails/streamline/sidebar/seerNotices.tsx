@@ -5,14 +5,14 @@ import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button';
-import type {AutofixRepository} from 'sentry/components/events/autofix/types';
+import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface SeerNoticesProps {
-  autofixRepositories: AutofixRepository[];
+  groupId: string;
   hasGithubIntegration?: boolean;
 }
 
@@ -55,17 +55,11 @@ function GithubIntegrationSetupCard() {
   );
 }
 
-export function SeerNotices({
-  autofixRepositories,
-  hasGithubIntegration,
-}: SeerNoticesProps) {
+export function SeerNotices({groupId, hasGithubIntegration}: SeerNoticesProps) {
   const organization = useOrganization();
-  const unreadableRepos = autofixRepositories.filter(repo => repo.is_readable === false);
+  const {repos} = useAutofixRepos(groupId);
+  const unreadableRepos = repos.filter(repo => repo.is_readable === false);
   const notices: React.JSX.Element[] = [];
-
-  const integrationId = autofixRepositories.find(repo =>
-    repo.provider.includes('github')
-  )?.integration_id;
 
   if (!hasGithubIntegration) {
     notices.push(<GithubIntegrationSetupCard key="github-setup" />);
@@ -86,22 +80,13 @@ export function SeerNotices({
           <Fragment>
             {' '}
             {tct(
-              'For best performance, enable the [integrationLink:GitHub integration] and its [codeMappingsLink:code mappings].',
+              'For best performance, enable the [integrationLink:GitHub integration].',
               {
                 integrationLink: (
                   <ExternalLink
-                    href={
-                      integrationId
-                        ? `/settings/${organization.slug}/integrations/github/${integrationId}/`
-                        : `/settings/${organization.slug}/integrations/github/`
-                    }
+                    href={`/settings/${organization.slug}/integrations/github/`}
                   />
                 ),
-                codeMappingsLink: integrationId ? (
-                  <ExternalLink
-                    href={`/settings/${organization.slug}/integrations/github/${integrationId}/?tab=codeMappings`}
-                  />
-                ) : null,
               }
             )}
           </Fragment>
@@ -120,17 +105,12 @@ export function SeerNotices({
       <Alert type="warning" showIcon key="single-repo">
         {unreadableRepo.provider.includes('github')
           ? tct(
-              "Autofix can't access the [repo] repository, make sure the [integrationLink:GitHub integration] and its [codeMappingsLink:code mappings] are correctly set up.",
+              "Autofix can't access the [repo] repository, make sure the [integrationLink:GitHub integration] is correctly set up.",
               {
                 repo: <b>{unreadableRepo.name}</b>,
                 integrationLink: (
                   <ExternalLink
-                    href={`/settings/${organization.slug}/integrations/github/${unreadableRepo.integration_id}`}
-                  />
-                ),
-                codeMappingsLink: (
-                  <ExternalLink
-                    href={`/settings/${organization.slug}/integrations/github/${unreadableRepo.integration_id}/?tab=codeMappings`}
+                    href={`/settings/${organization.slug}/integrations/github/`}
                   />
                 ),
               }

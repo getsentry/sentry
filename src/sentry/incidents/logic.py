@@ -1148,8 +1148,6 @@ def get_triggers_for_alert_rule(alert_rule: AlertRule) -> QuerySet[AlertRuleTrig
 
 
 def _trigger_incident_triggers(incident: Incident) -> None:
-    from sentry.incidents.tasks import handle_trigger_action
-
     incident_triggers = IncidentTrigger.objects.filter(incident=incident)
     triggers = get_triggers_for_alert_rule(incident.alert_rule)
     actions = deduplicate_trigger_actions(triggers=list(triggers))
@@ -1160,16 +1158,30 @@ def _trigger_incident_triggers(incident: Incident) -> None:
 
         for action in actions:
             for project in incident.projects.all():
-                transaction.on_commit(
-                    handle_trigger_action.s(
-                        action_id=action.id,
-                        incident_id=incident.id,
-                        project_id=project.id,
-                        method="resolve",
-                        new_status=IncidentStatus.CLOSED.value,
-                    ).delay,
-                    router.db_for_write(AlertRuleTrigger),
+                _schedule_trigger_action(
+                    action_id=action.id,
+                    incident_id=incident.id,
+                    project_id=project.id,
+                    method="resolve",
+                    new_status=IncidentStatus.CLOSED.value,
                 )
+
+
+def _schedule_trigger_action(
+    action_id: int, incident_id: int, project_id: int, method: str, new_status: int
+) -> None:
+    from sentry.incidents.tasks import handle_trigger_action
+
+    transaction.on_commit(
+        lambda: handle_trigger_action.delay(
+            action_id=action_id,
+            incident_id=incident_id,
+            project_id=project_id,
+            method=method,
+            new_status=new_status,
+        ),
+        using=router.db_for_write(AlertRuleTrigger),
+    )
 
 
 def _sort_by_priority_list(triggers: Collection[AlertRuleTrigger]) -> list[AlertRuleTrigger]:
@@ -1839,7 +1851,6 @@ def translate_aggregate_field(
 # TODO(Ecosystem): Convert to using get_filtered_actions
 def get_slack_actions_with_async_lookups(
     organization: Organization,
-    user: User | RpcUser | None,
     data: Mapping[str, Any],
 ) -> list[Mapping[str, Any]]:
     """Return Slack trigger actions that require async lookup"""
@@ -1854,7 +1865,6 @@ def get_slack_actions_with_async_lookups(
                     context={
                         "organization": organization,
                         "access": SystemAccess(),
-                        "user": user,
                         "input_channel_id": action.get("inputChannelId"),
                         "installations": app_service.installations_for_organization(
                             organization_id=organization.id
@@ -1883,7 +1893,7 @@ def get_slack_channel_ids(
     user: User | RpcUser | None,
     data: Mapping[str, Any],
 ) -> Mapping[str, Any]:
-    slack_actions = get_slack_actions_with_async_lookups(organization, user, data)
+    slack_actions = get_slack_actions_with_async_lookups(organization, data)
     mapped_slack_channels = {}
     for action in slack_actions:
         if not action["target_identifier"] in mapped_slack_channels:

@@ -8,6 +8,9 @@ import {
 
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
 import type {AutofixSolutionTimelineEvent} from 'sentry/components/events/autofix/types';
+import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
+
+jest.mock('sentry/components/events/autofix/useAutofix');
 
 describe('AutofixSolution', () => {
   const defaultSolution = [
@@ -26,7 +29,6 @@ describe('AutofixSolution', () => {
     solution: defaultSolution,
     groupId: '123',
     runId: 'run-123',
-    repos: [],
     solutionSelected: false,
   };
 
@@ -36,165 +38,175 @@ describe('AutofixSolution', () => {
       url: '/issues/123/autofix/update/',
       method: 'POST',
     });
+    jest.mocked(useAutofixRepos).mockReset();
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [],
+      codebases: {},
+    });
   });
 
   it('enables Code It Up button when all repos are readable', () => {
-    render(
-      <AutofixSolution
-        {...defaultProps}
-        repos={[
-          {
-            name: 'owner/repo1',
-            default_branch: 'main',
-            external_id: 'repo1',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo1',
-            is_readable: true,
-          },
-          {
-            name: 'owner/repo2',
-            default_branch: 'main',
-            external_id: 'repo2',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo2',
-            is_readable: true,
-          },
-        ]}
-      />
-    );
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'owner/repo1',
+          owner: 'owner',
+          external_id: 'repo1',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: true,
+          is_writeable: true,
+        },
+        {
+          name: 'owner/repo2',
+          owner: 'owner',
+          external_id: 'repo2',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: true,
+          is_writeable: true,
+        },
+      ],
+      codebases: {},
+    });
+
+    render(<AutofixSolution {...defaultProps} />);
 
     const codeItUpButton = screen.getByText('Code It Up');
     expect(codeItUpButton).toBeEnabled();
   });
 
   it('disables Code It Up button when all repos are not readable', () => {
-    render(
-      <AutofixSolution
-        {...defaultProps}
-        repos={[
-          {
-            name: 'owner/repo1',
-            default_branch: 'main',
-            external_id: 'repo1',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo1',
-            is_readable: false,
-          },
-          {
-            name: 'owner/repo2',
-            default_branch: 'main',
-            external_id: 'repo2',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo2',
-            is_readable: false,
-          },
-        ]}
-      />
-    );
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'owner/repo1',
+          owner: 'owner',
+          external_id: 'repo1',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: false,
+          is_writeable: false,
+        },
+        {
+          name: 'owner/repo2',
+          owner: 'owner',
+          external_id: 'repo2',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: false,
+          is_writeable: false,
+        },
+      ],
+      codebases: {},
+    });
+
+    render(<AutofixSolution {...defaultProps} />);
 
     const codeItUpButton = screen.getByRole('button', {name: 'Code It Up'});
     expect(codeItUpButton).toBeDisabled();
   });
 
   it('enables Code It Up button when at least one repo is readable', () => {
-    render(
-      <AutofixSolution
-        {...defaultProps}
-        repos={[
-          {
-            name: 'owner/repo1',
-            default_branch: 'main',
-            external_id: 'repo1',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo1',
-            is_readable: true,
-          },
-          {
-            name: 'owner/repo2',
-            default_branch: 'main',
-            external_id: 'repo2',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo2',
-            is_readable: false,
-          },
-        ]}
-      />
-    );
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'owner/repo1',
+          owner: 'owner',
+          external_id: 'repo1',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: true,
+          is_writeable: true,
+        },
+        {
+          name: 'owner/repo2',
+          owner: 'owner',
+          external_id: 'repo2',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: false,
+          is_writeable: false,
+        },
+      ],
+      codebases: {},
+    });
+
+    render(<AutofixSolution {...defaultProps} />);
 
     const codeItUpButton = screen.getByText('Code It Up');
     expect(codeItUpButton).toBeEnabled();
   });
 
   it('treats repos with is_readable=null as readable', () => {
-    render(
-      <AutofixSolution
-        {...defaultProps}
-        repos={[
-          {
-            name: 'owner/repo1',
-            default_branch: 'main',
-            external_id: 'repo1',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo1',
-            is_readable: undefined,
-          },
-          {
-            name: 'owner/repo2',
-            default_branch: 'main',
-            external_id: 'repo2',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo2',
-            is_readable: false,
-          },
-        ]}
-      />
-    );
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'owner/repo1',
+          owner: 'owner',
+          external_id: 'repo1',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: undefined,
+          is_writeable: undefined,
+        },
+        {
+          name: 'owner/repo2',
+          owner: 'owner',
+          external_id: 'repo2',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: false,
+          is_writeable: false,
+        },
+      ],
+      codebases: {},
+    });
+
+    render(<AutofixSolution {...defaultProps} />);
 
     const codeItUpButton = screen.getByText('Code It Up');
     expect(codeItUpButton).toBeEnabled();
   });
 
   it('treats repos with is_readable=undefined as readable', () => {
-    render(
-      <AutofixSolution
-        {...defaultProps}
-        repos={[
-          {
-            name: 'owner/repo1',
-            default_branch: 'main',
-            external_id: 'repo1',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo1',
-            // is_readable is intentionally undefined
-          },
-          {
-            name: 'owner/repo2',
-            default_branch: 'main',
-            external_id: 'repo2',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo2',
-            is_readable: false,
-          },
-        ]}
-      />
-    );
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'owner/repo1',
+          owner: 'owner',
+          external_id: 'repo1',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: undefined,
+          is_writeable: undefined,
+        },
+        {
+          name: 'owner/repo2',
+          owner: 'owner',
+          external_id: 'repo2',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: false,
+          is_writeable: false,
+        },
+      ],
+      codebases: {},
+    });
+
+    render(<AutofixSolution {...defaultProps} />);
 
     const codeItUpButton = screen.getByText('Code It Up');
     expect(codeItUpButton).toBeEnabled();
   });
 
   it('treats empty repos array as having no repository constraints', () => {
-    render(<AutofixSolution {...defaultProps} repos={[]} />);
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [],
+      codebases: {},
+    });
+
+    render(<AutofixSolution {...defaultProps} />);
 
     const codeItUpButton = screen.getByText('Code It Up');
     expect(codeItUpButton).toBeEnabled();
@@ -204,7 +216,6 @@ describe('AutofixSolution', () => {
     render(<AutofixSolution {...defaultProps} />);
 
     expect(screen.getByText('Fix the bug')).toBeInTheDocument();
-    expect(screen.getByText('Some code and analysis')).toBeInTheDocument();
   });
 
   it('passes the solution array when Code It Up button is clicked', async () => {
@@ -215,22 +226,22 @@ describe('AutofixSolution', () => {
     });
 
     // Use readable repos to enable the button
-    render(
-      <AutofixSolution
-        {...defaultProps}
-        repos={[
-          {
-            name: 'owner/repo1',
-            default_branch: 'main',
-            external_id: 'repo1',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo1',
-            is_readable: true,
-          },
-        ]}
-      />
-    );
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'owner/repo1',
+          owner: 'owner',
+          external_id: 'repo1',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: true,
+          is_writeable: true,
+        },
+      ],
+      codebases: {},
+    });
+
+    render(<AutofixSolution {...defaultProps} />);
 
     // Click the Code It Up button
     await userEvent.click(screen.getByRole('button', {name: 'Code It Up'}));
@@ -269,22 +280,22 @@ describe('AutofixSolution', () => {
     });
 
     // Use readable repos to enable the button
-    render(
-      <AutofixSolution
-        {...defaultProps}
-        repos={[
-          {
-            name: 'owner/repo1',
-            default_branch: 'main',
-            external_id: 'repo1',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo1',
-            is_readable: true,
-          },
-        ]}
-      />
-    );
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'owner/repo1',
+          owner: 'owner',
+          external_id: 'repo1',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: true,
+          is_writeable: true,
+        },
+      ],
+      codebases: {},
+    });
+
+    render(<AutofixSolution {...defaultProps} />);
 
     // Find the timeline item
     const timelineItem = screen.getByTestId('autofix-solution-timeline-item-0');
@@ -337,22 +348,22 @@ describe('AutofixSolution', () => {
     });
 
     // Use readable repos to enable the button
-    render(
-      <AutofixSolution
-        {...defaultProps}
-        repos={[
-          {
-            name: 'owner/repo1',
-            default_branch: 'main',
-            external_id: 'repo1',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo1',
-            is_readable: true,
-          },
-        ]}
-      />
-    );
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'owner/repo1',
+          owner: 'owner',
+          external_id: 'repo1',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: true,
+          is_writeable: true,
+        },
+      ],
+      codebases: {},
+    });
+
+    render(<AutofixSolution {...defaultProps} />);
 
     // Find and fill the input
     const input = screen.getByPlaceholderText('Add more instructions...');
@@ -402,22 +413,22 @@ describe('AutofixSolution', () => {
   });
 
   it('allows adding custom instructions with Enter key', async () => {
-    render(
-      <AutofixSolution
-        {...defaultProps}
-        repos={[
-          {
-            name: 'owner/repo',
-            default_branch: 'main',
-            external_id: 'repo1',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo',
-            is_readable: true,
-          },
-        ]}
-      />
-    );
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'owner/repo',
+          owner: 'owner',
+          external_id: 'repo1',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: true,
+          is_writeable: true,
+        },
+      ],
+      codebases: {},
+    });
+
+    render(<AutofixSolution {...defaultProps} />);
 
     // Find and fill the input, then press Enter
     const input = screen.getByPlaceholderText('Add more instructions...');
@@ -440,23 +451,22 @@ describe('AutofixSolution', () => {
       },
     ];
 
-    render(
-      <AutofixSolution
-        {...defaultProps}
-        solution={solutionWithHumanInstruction}
-        repos={[
-          {
-            name: 'owner/repo',
-            default_branch: 'main',
-            external_id: 'repo1',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo',
-            is_readable: true,
-          },
-        ]}
-      />
-    );
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'owner/repo',
+          owner: 'owner',
+          external_id: 'repo1',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: true,
+          is_writeable: true,
+        },
+      ],
+      codebases: {},
+    });
+
+    render(<AutofixSolution {...defaultProps} solution={solutionWithHumanInstruction} />);
 
     // Find the human instruction item
     const humanInstructionElement = screen.getByText('Human instruction');
@@ -508,23 +518,22 @@ describe('AutofixSolution', () => {
       method: 'POST',
     });
 
-    render(
-      <AutofixSolution
-        {...defaultProps}
-        solution={solutionWithActiveStates}
-        repos={[
-          {
-            name: 'owner/repo',
-            default_branch: 'main',
-            external_id: 'repo1',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo',
-            is_readable: true,
-          },
-        ]}
-      />
-    );
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'owner/repo',
+          owner: 'owner',
+          external_id: 'repo1',
+          provider: 'github',
+          provider_raw: 'github',
+          is_readable: true,
+          is_writeable: true,
+        },
+      ],
+      codebases: {},
+    });
+
+    render(<AutofixSolution {...defaultProps} solution={solutionWithActiveStates} />);
 
     // Click Code It Up
     await userEvent.click(screen.getByRole('button', {name: 'Code It Up'}));
