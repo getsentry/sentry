@@ -63,6 +63,7 @@ def record_response_for_disabling_integration(response: SlackResponse, integrati
         if is_response_error(response):
             buffer.record_error()
     if buffer.is_integration_broken():
+        # TODO(ecosystem): We should delete this feature of fix it
         # disable_integration(buffer, redis_key, integration_id)
         logger.info(
             "integration.should_disable",
