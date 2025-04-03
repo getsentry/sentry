@@ -91,7 +91,7 @@ export class Samples implements Plottable {
 
   highlight(sample: TabularRow | undefined) {
     if (!this.chartRef) {
-      // Telemetry?
+      warn('`Samples.highlight` invoked before chart ref is ready');
       return;
     }
 
