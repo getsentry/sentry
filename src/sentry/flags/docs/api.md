@@ -214,12 +214,12 @@ Retrieve a collection of confidence scores for all feature flags associated with
 
 **Parameters**
 
-| Field       | Type   | Description                                                         |
-| ----------- | ------ | ------------------------------------------------------------------- |
-| environment | string | The environment to filter by. Multiple parameters may be specified. |
-| statsPeriod | string | A positive integer suffixed with a unit type (s, m, h, d, w).       |
-| start       | string | ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`).                       |
-| end         | string | ISO 8601 format. Required if `start` is set.                        |
+| Field       | Type             | Description                                                         |
+| ----------- | ---------------- | ------------------------------------------------------------------- |
+| environment | optional, string | The environment to filter by. Multiple parameters may be specified. |
+| statsPeriod | optional, string | A positive integer suffixed with a unit type (s, m, h, d, w).       |
+| start       | optional, string | ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`).                       |
+| end         | optional, string | ISO 8601 format. Required if `start` is set.                        |
 
 **Attributes**
 
