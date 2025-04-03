@@ -92,7 +92,7 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-from sentry.monitors.models import Monitor, MonitorType, ScheduleType
+from sentry.monitors.models import Monitor, ScheduleType
 from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
@@ -502,7 +502,6 @@ class ExhaustiveFixtures(Fixtures):
         Monitor.objects.create(
             organization_id=project.organization.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
             owner_user_id=owner_id,
         )
@@ -692,8 +691,8 @@ class ExhaustiveFixtures(Fixtures):
         )
         detector.workflow_condition_group = detector_conditions
 
-        AlertRuleDetector.objects.create(detector=detector, alert_rule=alert)
-        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule=alert)
+        AlertRuleDetector.objects.create(detector=detector, alert_rule_id=alert.id)
+        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule_id=alert.id)
         ActionGroupStatus.objects.create(action=send_notification_action, group=group)
 
         TempestCredentials.objects.create(

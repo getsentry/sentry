@@ -19,7 +19,7 @@ from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.rule import Rule
-from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
+from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
@@ -80,7 +80,6 @@ class ProjectTest(APITestCase, TestCase):
             slug="test-monitor",
             organization_id=from_org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
 
@@ -89,7 +88,6 @@ class ProjectTest(APITestCase, TestCase):
             slug="test-monitor-also",
             organization_id=from_org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
         monitor_env_new = MonitorEnvironment.objects.create(
@@ -104,7 +102,6 @@ class ProjectTest(APITestCase, TestCase):
             slug="test-monitor-other",
             organization_id=from_org.id,
             project_id=project_other.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
 
@@ -113,7 +110,6 @@ class ProjectTest(APITestCase, TestCase):
             slug="test-monitor",
             organization_id=to_org.id,
             project_id=self.create_project(name="other-project").id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
 

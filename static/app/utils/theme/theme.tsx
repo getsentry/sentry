@@ -346,11 +346,6 @@ export const generateThemeAliases = (colors: Colors) => ({
   focusBorder: colors.purple300,
 
   /**
-   * Inactive
-   */
-  inactive: colors.gray300,
-
-  /**
    * Link color indicates that something is clickable
    */
   linkColor: colors.blue400,
@@ -362,11 +357,6 @@ export const generateThemeAliases = (colors: Colors) => ({
    * Form placeholder text color
    */
   formPlaceholder: colors.gray300,
-
-  /**
-   * Default form text color
-   */
-  formText: colors.gray400,
 
   /**
    *
