@@ -2,19 +2,19 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import CoverageTrendPage from 'sentry/views/pipeline/coverage/coverageTrend';
+import CommitsListPage from 'sentry/views/pipeline/coverage/commits';
 
 const COVERAGE_FEATURE = 'codecov-ui';
 
-describe('CoverageTrendPage', () => {
+describe('CommitsListPage', () => {
   describe('when the wrapper is used', () => {
     it('renders the passed children', () => {
-      render(<CoverageTrendPage />, {
+      render(<CommitsListPage />, {
         organization: OrganizationFixture({features: [COVERAGE_FEATURE]}),
       });
 
-      const coverageTrend = screen.getByText('Coverage Trend');
-      expect(coverageTrend).toBeInTheDocument();
+      const commitsList = screen.getByText('Commits List');
+      expect(commitsList).toBeInTheDocument();
     });
   });
 });
