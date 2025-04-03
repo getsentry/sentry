@@ -6,7 +6,7 @@ import CoverageTrendPage from 'sentry/views/pipeline/coverage/coverageTrend';
 
 const COVERAGE_FEATURE = 'codecov-ui';
 
-describe('CoveragePageWrapper', () => {
+describe('CoverageTrendPage', () => {
   describe('when the wrapper is used', () => {
     it('renders the passed children', () => {
       render(<CoverageTrendPage />, {
