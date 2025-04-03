@@ -138,10 +138,11 @@ except in mobile */
 
   /* Code related to Chonk styles */
 
-display: flex;
+  display: flex;
   position: relative;
 
-  & > div > button {
+  & button[aria-haspopup] {
+    height: 100%;
     width: 100%;
   }
 
