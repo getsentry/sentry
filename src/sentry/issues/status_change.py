@@ -13,9 +13,8 @@ from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_sync
 from sentry.issues.ignored import IGNORED_CONDITION_FIELDS
 from sentry.issues.ongoing import TRANSITION_AFTER_DAYS
 from sentry.models.activity import Activity
-from sentry.models.group import Group, GroupStatus
+from sentry.models.group import Group, GroupStatus, update_group_open_period
 from sentry.models.grouphistory import record_group_history_from_activity_type
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.project import Project
 from sentry.notifications.types import GroupSubscriptionReason
@@ -154,21 +153,12 @@ def handle_status_update(
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
 
         if update_open_period:
-            open_period = (
-                GroupOpenPeriod.objects.filter(
-                    group=group,
-                    date_ended__isnull=False,
-                )
-                .order_by("-date_started")
-                .first()
+            update_group_open_period(
+                group=group,
+                new_status=new_status,
+                activity=activity,
+                should_reopen_open_period=True,
             )
-            if open_period:
-                open_period.update(
-                    date_ended=None,
-                    resolution_activity=None,
-                )
-            else:
-                logger.error("No resolved open period for group %s", group.id)
 
         # TODO(dcramer): we need a solution for activity rollups
         # before sending notifications on bulk changes

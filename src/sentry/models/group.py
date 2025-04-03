@@ -498,7 +498,7 @@ class GroupManager(BaseManager["Group"]):
                 )
                 record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
 
-            update_group_open_period(group, activity, should_reopen_open_period[group.id])
+            update_group_open_period(group, status, activity, should_reopen_open_period[group.id])
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
@@ -1191,6 +1191,7 @@ def get_open_periods_for_group(
 
 def update_group_open_period(
     group: Group,
+    new_status: int,
     activity: Activity | None,
     should_reopen_open_period: bool,
 ) -> None:
@@ -1202,10 +1203,10 @@ def update_group_open_period(
     is unresolved manually without a regression. If the group is unresolved due to a regression, the
     open periods will be updated during ingestion.
     """
-    if group.status not in (GroupStatus.RESOLVED, GroupStatus.UNRESOLVED):
+    if new_status not in (GroupStatus.RESOLVED, GroupStatus.UNRESOLVED):
         return
 
-    find_open = group.status != GroupStatus.UNRESOLVED
+    find_open = new_status != GroupStatus.UNRESOLVED
     open_period = (
         GroupOpenPeriod.objects.filter(group=group, date_ended__isnull=find_open)
         .order_by("-date_started")
@@ -1218,13 +1219,14 @@ def update_group_open_period(
         )
         return
 
-    if group.status == GroupStatus.RESOLVED:
+    if new_status == GroupStatus.RESOLVED:
         open_period.update(
             date_ended=group.resolved_at if group.resolved_at else timezone.now(),
             resolution_activity=activity,
+            user_id=activity.user_id,
         )
     elif (
-        group.status == GroupStatus.UNRESOLVED
+        new_status == GroupStatus.UNRESOLVED
         and group.substatus != GroupSubStatus.REGRESSED
         and should_reopen_open_period
     ):
