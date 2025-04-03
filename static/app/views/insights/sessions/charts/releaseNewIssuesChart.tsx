@@ -1,8 +1,8 @@
 import {t} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
-import {CHART_TITLES} from 'sentry/views/insights/sessions/components/settings';
 import useReleaseNewIssues from 'sentry/views/insights/sessions/queries/useReleaseNewIssues';
+import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 
 export default function ReleaseNewIssuesChart() {
   const {series, isPending, error} = useReleaseNewIssues();

@@ -2,8 +2,8 @@ import {t} from 'sentry/locale';
 import {formatSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatSeriesName';
 import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
-import {CHART_TITLES} from 'sentry/views/insights/sessions/components/settings';
 import useReleaseSessionPercentage from 'sentry/views/insights/sessions/queries/useReleaseSessionPercentage';
+import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 
 export default function ReleaseSessionPercentageChart() {
   const {series, releases, isPending, error} = useReleaseSessionPercentage();

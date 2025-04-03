@@ -2,8 +2,8 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
-import {CHART_TITLES} from 'sentry/views/insights/sessions/components/settings';
 import useSessionHealthBreakdown from 'sentry/views/insights/sessions/queries/useSessionHealthBreakdown';
+import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 
 export default function SessionHealthCountChart() {
   const {series, isPending, error} = useSessionHealthBreakdown({type: 'count'});

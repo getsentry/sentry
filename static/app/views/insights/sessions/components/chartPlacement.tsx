@@ -11,7 +11,7 @@ import {
   CHART_TITLES,
   DEFAULT_LAYOUTS,
   PAGE_CHART_OPTIONS,
-} from 'sentry/views/insights/sessions/components/settings';
+} from 'sentry/views/insights/sessions/settings';
 
 type TChart = keyof typeof CHART_MAP;
 type Option = {label: string; value: TChart};

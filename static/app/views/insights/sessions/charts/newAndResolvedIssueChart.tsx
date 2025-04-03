@@ -1,32 +1,22 @@
 import {t} from 'sentry/locale';
 import {InsightsBarChartWidget} from 'sentry/views/insights/common/components/insightsBarChartWidget';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
-import {CHART_TITLES} from 'sentry/views/insights/sessions/components/settings';
 import useNewAndResolvedIssues from 'sentry/views/insights/sessions/queries/useNewAndResolvedIssues';
+import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 
-export default function NewAndResolvedIssueChart({type}: {type: 'issue' | 'feedback'}) {
-  const {series, isPending, error} = useNewAndResolvedIssues({type});
+export default function NewAndResolvedIssueChart() {
+  const {series, isPending, error} = useNewAndResolvedIssues({type: 'issue'});
 
   const aliases = {
-    new_issues_count: `new_${type}s`,
-    resolved_issues_count: `resolved_${type}s`,
+    new_issues_count: 'new_issues',
+    resolved_issues_count: 'resolved_issues',
   };
 
   return (
     <InsightsBarChartWidget
-      title={
-        type === 'issue'
-          ? CHART_TITLES.NewAndResolvedIssueChart
-          : CHART_TITLES.NewAndResolvedFeedbackChart
-      }
+      title={CHART_TITLES.NewAndResolvedIssueChart}
       interactiveTitle={() => (
-        <ChartSelectionTitle
-          title={
-            type === 'issue'
-              ? CHART_TITLES.NewAndResolvedIssueChart
-              : CHART_TITLES.NewAndResolvedFeedbackChart
-          }
-        />
+        <ChartSelectionTitle title={CHART_TITLES.NewAndResolvedIssueChart} />
       )}
       description={t('New and resolved %s counts over time.', type)}
       aliases={aliases}

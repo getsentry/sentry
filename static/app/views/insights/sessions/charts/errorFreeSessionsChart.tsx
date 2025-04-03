@@ -2,8 +2,8 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
-import {CHART_TITLES} from 'sentry/views/insights/sessions/components/settings';
 import useErrorFreeSessions from 'sentry/views/insights/sessions/queries/useErrorFreeSessions';
+import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 
 export default function ErrorFreeSessionsChart() {
   const {series, isPending, error} = useErrorFreeSessions();
