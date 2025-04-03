@@ -646,8 +646,7 @@ function GroupDetailsContent({
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
   const includeFlagDistributions =
-    !!project.platform &&
-    featureFlagSupportedPlatforms.includes(project.platform) &&
+    featureFlagSupportedPlatforms.includes(project.platform ?? 'other') &&
     organization.features.includes('feature-flag-distribution-flyout');
   const {openDistributionsDrawer} = useGroupDistributionsDrawer({
     group,
