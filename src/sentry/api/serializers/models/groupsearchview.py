@@ -1,10 +1,9 @@
 from collections.abc import MutableMapping
 from typing import Any, TypedDict
 
-from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers import Serializer, register
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
-from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.savedsearch import SORT_LITERALS
 
 
@@ -73,29 +72,4 @@ class GroupSearchViewSerializer(Serializer):
             "lastVisited": attrs["last_visited"] if attrs else None,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
-        }
-
-
-@register(GroupSearchViewStarred)
-class GroupSearchViewStarredSerializer(Serializer):
-    def __init__(self, *args, **kwargs):
-        self.has_global_views = kwargs.pop("has_global_views", None)
-        self.default_project = kwargs.pop("default_project", None)
-        self.organization = kwargs.pop("organization", None)
-        super().__init__(*args, **kwargs)
-
-    def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewStarredSerializerResponse:
-        serialized_view: GroupSearchViewSerializerResponse = serialize(
-            obj.group_search_view,
-            user,
-            serializer=GroupSearchViewSerializer(
-                has_global_views=self.has_global_views,
-                default_project=self.default_project,
-                organization=self.organization,
-            ),
-        )
-
-        return {
-            **serialized_view,
-            "position": obj.position,
         }
