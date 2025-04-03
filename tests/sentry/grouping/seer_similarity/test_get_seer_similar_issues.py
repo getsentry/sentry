@@ -112,7 +112,8 @@ class GetSeerSimilarIssuesTest(TestCase):
 
 
 class ParentGroupFoundTest(TestCase):
-    def test_simple(self) -> None:
+    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    def test_simple(self, mock_incr: MagicMock) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         existing_hash = existing_event.get_primary_hash()
         existing_grouphash = GroupHash.objects.filter(
@@ -139,6 +140,11 @@ class ParentGroupFoundTest(TestCase):
                 0.01,
                 existing_grouphash,
             )
+
+            # Ensure we're not recording things we don't want to be. (The metrics we're checking
+            # should only be recorded for events or parent grouphashes with hybrid fingerprints.)
+            incr_metrics_recorded = {call.args[0] for call in mock_incr.mock_calls}
+            assert "grouping.similarity.hybrid_fingerprint_match_check" not in incr_metrics_recorded
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint_match(self, mock_incr: MagicMock) -> None:
@@ -175,7 +181,7 @@ class ParentGroupFoundTest(TestCase):
                 existing_grouphash,
             )
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_seer_result", {"result": "fingerprint_match"}
+                mock_incr, "hybrid_fingerprint_match_check", {"result": "fingerprint_match"}
             )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -206,7 +212,7 @@ class ParentGroupFoundTest(TestCase):
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_seer_result", {"result": "no_fingerprint_match"}
+                mock_incr, "hybrid_fingerprint_match_check", {"result": "no_fingerprint_match"}
             )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -237,7 +243,7 @@ class ParentGroupFoundTest(TestCase):
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_seer_result", {"result": "only_event_hybrid"}
+                mock_incr, "hybrid_fingerprint_match_check", {"result": "only_event_hybrid"}
             )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -265,7 +271,7 @@ class ParentGroupFoundTest(TestCase):
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_seer_result", {"result": "only_parent_hybrid"}
+                mock_incr, "hybrid_fingerprint_match_check", {"result": "only_parent_hybrid"}
             )
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -309,12 +315,13 @@ class ParentGroupFoundTest(TestCase):
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_seer_result", {"result": "no_parent_metadata"}
+                mock_incr, "hybrid_fingerprint_match_check", {"result": "no_parent_metadata"}
             )
 
 
 class NoParentGroupFoundTest(TestCase):
-    def test_simple(self) -> None:
+    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    def test_simple(self, mock_incr: MagicMock) -> None:
         new_event, new_variants, new_grouphash, _ = create_new_event(self.project)
 
         with patch(
@@ -322,6 +329,11 @@ class NoParentGroupFoundTest(TestCase):
             return_value=[],
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
+
+            # Ensure we're not recording things we don't want to be. (The metrics we're checking
+            # should only be recorded for events or parent grouphashes with hybrid fingerprints.)
+            incr_metrics_recorded = {call.args[0] for call in mock_incr.mock_calls}
+            assert "grouping.similarity.hybrid_fingerprint_match_check" not in incr_metrics_recorded
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint(self, mock_incr: MagicMock) -> None:
@@ -335,6 +347,8 @@ class NoParentGroupFoundTest(TestCase):
             return_value=[],
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
-            assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_seer_result", {"result": "no_seer_match"}
-            )
+
+            # Ensure we're not recording things we don't want to be. (This metric should only be
+            # recorded when there are results to check.)
+            incr_metrics_recorded = {call.args[0] for call in mock_incr.mock_calls}
+            assert "grouping.similarity.hybrid_fingerprint_match_check" not in incr_metrics_recorded
