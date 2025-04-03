@@ -32,6 +32,10 @@ export interface Plottable {
    */
   isEmpty: boolean;
   /**
+   * Name of the series. This is used under-the-hood in ECharts.
+   */
+  name: string;
+  /**
    * Whether this plottable needs a color from a shared palette. For example, data series plottables share a palette which is created based on how many series will be plotted.
    */
   needsColor: boolean;
@@ -48,4 +52,8 @@ export interface Plottable {
    * Optional label for this plottable, if it appears in the legend and in tooltips.
    */
   label?: string;
+  /**
+   * `TimeSeriesWidgetVisualization` will call this function if the user highlights (via mouse, or imperatively) a point on a series that originated from this plottable.
+   */
+  onHighlight?: (dataIndex: number) => void;
 }

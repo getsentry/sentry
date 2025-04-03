@@ -4,6 +4,7 @@ import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/i
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import useUserHealthBreakdown from 'sentry/views/insights/sessions/queries/useUserHealthBreakdown';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
+import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function UserHealthRateChart() {
   const {series, isPending, error} = useUserHealthBreakdown({type: 'rate'});
@@ -21,6 +22,7 @@ export default function UserHealthRateChart() {
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.UserHealthRateChart} />
       )}
+      height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
         'The percent of [linkUsers:users] with each [linkStatus:health status].',
         {

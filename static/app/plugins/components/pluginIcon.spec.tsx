@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 
 // For some reason jest only respects the last mocked, so we can't test
 // two different images here

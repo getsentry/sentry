@@ -117,15 +117,17 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     );
   }
 
+  const enableReleaseBubblesProps = organization.features.includes('release-bubbles-ui')
+    ? ({releases, showReleaseAs: 'bubble'} as const)
+    : {};
+
   return (
     <ChartContainer height={props.height}>
       <Widget
         Title={Title}
         Visualization={
           <TimeSeriesWidgetVisualization
-            {...(organization.features.includes('release-bubbles-ui')
-              ? {releases, showReleaseAs: 'bubble'}
-              : {})}
+            {...enableReleaseBubblesProps}
             legendSelection={props.legendSelection}
             onLegendSelectionChange={props.onLegendSelectionChange}
             {...visualizationProps}
@@ -148,6 +150,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                     <ModalChartContainer>
                       <TimeSeriesWidgetVisualization
                         {...visualizationProps}
+                        {...enableReleaseBubblesProps}
+                        onZoom={() => {}}
                         legendSelection={props.legendSelection}
                         onLegendSelectionChange={props.onLegendSelectionChange}
                         releases={releases ?? []}
@@ -165,7 +169,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 }
 
 const COMMON_COLORS = (theme: Theme): Record<string, string> => ({
-  'spm()': THROUGHPUT_COLOR(theme),
+  'epm()': THROUGHPUT_COLOR(theme),
   'count()': COUNT_COLOR(theme),
   'avg(span.self_time)': AVG_COLOR(theme),
   'http_response_rate(3)': HTTP_RESPONSE_3XX_COLOR,
@@ -181,6 +185,6 @@ const ChartContainer = styled('div')<{height?: string | number}>`
     p.height ? (typeof p.height === 'string' ? p.height : `${p.height}px`) : '220px'};
 `;
 
-const ModalChartContainer = styled('div')`
+export const ModalChartContainer = styled('div')`
   height: 360px;
 `;

@@ -66,6 +66,7 @@ import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvi
 import {
   isAutogroupedNode,
   isCollapsedNode,
+  isEAPErrorNode,
   isEAPSpanNode,
   isEAPTraceNode,
   isMissingInstrumentationNode,
@@ -680,7 +681,7 @@ function RenderTraceRow(props: {
     return <TraceAutogroupedRow {...rowProps} node={node} />;
   }
 
-  if (isTraceErrorNode(node)) {
+  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
     return <TraceErrorRow {...rowProps} node={node} />;
   }
 
@@ -1174,9 +1175,9 @@ const TraceStylingWrapper = styled('div')`
     font-size: ${p => p.theme.fontSizeSmall};
     transform: translateZ(0);
 
-    --row-background-odd: ${p => p.theme.translucentSurface100};
-    --row-background-hover: ${p => p.theme.translucentSurface100};
-    --row-background-focused: ${p => p.theme.translucentSurface200};
+    --row-background-odd: ${p => p.theme.backgroundSecondary};
+    --row-background-hover: ${p => p.theme.backgroundTertiary};
+    --row-background-focused: ${p => p.theme.backgroundTertiary};
     --row-outline: ${p => p.theme.blue300};
     --row-children-button-border-color: ${p => p.theme.border};
 
@@ -1334,10 +1335,10 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Highlight {
-      box-shadow: inset 0 0 0 1px ${p => p.theme.blue200} !important;
+      box-shadow: inset 0 0 0 1px ${p => p.theme.blue300} !important;
 
       .TraceLeftColumn {
-        box-shadow: inset 0px 0 0px 1px ${p => p.theme.blue200} !important;
+        box-shadow: inset 0px 0 0px 1px ${p => p.theme.blue300} !important;
       }
     }
 

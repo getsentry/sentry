@@ -1,15 +1,4 @@
 import {t} from 'sentry/locale';
-import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import CrashFreeSessionsChart from 'sentry/views/insights/sessions/charts/crashFreeSessionsChart';
-import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
-import NewAndResolvedIssueChart from 'sentry/views/insights/sessions/charts/newAndResolvedIssueChart';
-import ReleaseNewIssuesChart from 'sentry/views/insights/sessions/charts/releaseNewIssuesChart';
-import ReleaseSessionCountChart from 'sentry/views/insights/sessions/charts/releaseSessionCountChart';
-import ReleaseSessionPercentageChart from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChart';
-import SessionHealthCountChart from 'sentry/views/insights/sessions/charts/sessionHealthCountChart';
-import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessionHealthRateChart';
-import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
-import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
 
 export const MODULE_TITLE = t('Session Health');
 
@@ -21,20 +10,7 @@ export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/releases/setup/';
 
 export const MODULE_VISIBLE_FEATURES = ['insights-session-health-tab-ui'];
 
-export const CHART_MAP = {
-  CrashFreeSessionsChart,
-  ErrorFreeSessionsChart,
-  NewAndResolvedIssueChart,
-  ReleaseNewIssuesChart,
-  ReleaseSessionCountChart,
-  ReleaseSessionPercentageChart,
-  SessionHealthCountChart,
-  SessionHealthRateChart,
-  UserHealthCountChart,
-  UserHealthRateChart,
-};
-
-export const CHART_TITLES: Record<keyof typeof CHART_MAP, string> = {
+export const CHART_TITLES = {
   CrashFreeSessionsChart: t('Crash Free Sessions'),
   ErrorFreeSessionsChart: t('Error Free Sessions'),
   NewAndResolvedIssueChart: t('Issues'),
@@ -45,60 +21,4 @@ export const CHART_TITLES: Record<keyof typeof CHART_MAP, string> = {
   SessionHealthRateChart: t('Session Health'),
   UserHealthCountChart: t('User Counts'),
   UserHealthRateChart: t('User Health'),
-};
-
-export const PAGE_CHART_OPTIONS: Record<
-  DomainView,
-  ReadonlyArray<keyof typeof CHART_MAP>
-> = {
-  frontend: [
-    // ORDER MATTERS HERE
-    // The order things are listed is the order rendered
-    'ErrorFreeSessionsChart',
-    'NewAndResolvedIssueChart',
-    'SessionHealthCountChart',
-    'SessionHealthRateChart',
-    'UserHealthCountChart',
-    'UserHealthRateChart',
-  ],
-  mobile: [
-    // ORDER MATTERS HERE
-    // The order things are listed is the order rendered
-    'CrashFreeSessionsChart',
-    'ReleaseNewIssuesChart',
-    'ReleaseSessionCountChart',
-    'ReleaseSessionPercentageChart',
-    'SessionHealthCountChart',
-    'SessionHealthRateChart',
-    'UserHealthCountChart',
-    'UserHealthRateChart',
-  ],
-  backend: [],
-  ai: [],
-};
-
-export const DEFAULT_LAYOUTS: Record<
-  DomainView,
-  ReadonlyArray<keyof typeof CHART_MAP>
-> = {
-  frontend: [
-    // ORDER MATTERS HERE
-    // The order represents the default chart layout for Frontend > Session Health
-    'ErrorFreeSessionsChart',
-    'UserHealthRateChart',
-    'SessionHealthRateChart',
-    'SessionHealthCountChart',
-    'UserHealthCountChart',
-  ],
-  mobile: [
-    // ORDER MATTERS HERE
-    // The order represents the default chart layout for Mobile > Session Health
-    'CrashFreeSessionsChart',
-    'ReleaseSessionPercentageChart',
-    'ReleaseNewIssuesChart',
-    'ReleaseSessionCountChart',
-    'UserHealthRateChart',
-  ],
-  backend: [],
-  ai: [],
 };

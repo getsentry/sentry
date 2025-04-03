@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types/project';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -29,7 +30,7 @@ export function SessionsOverview() {
   const [filters, setFilters] = useState<string[]>(['']);
 
   // only show onboarding if the project does not have session data
-  const hasSessionData = useProjectHasSessions();
+  const {hasSessionData, projects} = useProjectHasSessions();
   const showOnboarding = !hasSessionData;
 
   return (
@@ -54,7 +55,12 @@ export function SessionsOverview() {
                 <ModulesOnboardingPanel moduleName={ModuleName.SESSIONS} />
               </ModuleLayout.Full>
             ) : (
-              <ViewSpecificCharts view={view} filters={filters} setFilters={setFilters} />
+              <ViewSpecificCharts
+                view={view}
+                filters={filters}
+                setFilters={setFilters}
+                projects={projects}
+              />
             )}
           </ModuleLayout.Layout>
         </Layout.Main>
@@ -78,30 +84,36 @@ function ViewSpecificCharts({
   view,
   filters,
   setFilters,
+  projects,
 }: {
   filters: string[];
+  projects: Project[];
   setFilters: (filter: string[]) => void;
   view: DomainView | '';
 }) {
+  const chartProps = {
+    project: projects[0]!,
+  };
+
   switch (view) {
     case FRONTEND_LANDING_SUB_PATH: {
       return (
         <Fragment>
           <ModuleLayout.Half>
-            <ChartPlacementSlot view={view} index={0} />
+            <ChartPlacementSlot view={view} index={0} chartProps={chartProps} />
           </ModuleLayout.Half>
           <ModuleLayout.Half>
-            <ChartPlacementSlot view={view} index={1} />
+            <ChartPlacementSlot view={view} index={1} chartProps={chartProps} />
           </ModuleLayout.Half>
 
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={2} />
+            <ChartPlacementSlot view={view} index={2} chartProps={chartProps} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={3} />
+            <ChartPlacementSlot view={view} index={3} chartProps={chartProps} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={4} />
+            <ChartPlacementSlot view={view} index={4} chartProps={chartProps} />
           </ModuleLayout.Third>
         </Fragment>
       );
@@ -110,20 +122,20 @@ function ViewSpecificCharts({
       return (
         <Fragment>
           <ModuleLayout.Half>
-            <ChartPlacementSlot view={view} index={0} />
+            <ChartPlacementSlot view={view} index={0} chartProps={chartProps} />
           </ModuleLayout.Half>
           <ModuleLayout.Half>
-            <ChartPlacementSlot view={view} index={1} />
+            <ChartPlacementSlot view={view} index={1} chartProps={chartProps} />
           </ModuleLayout.Half>
 
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={2} />
+            <ChartPlacementSlot view={view} index={2} chartProps={chartProps} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={3} />
+            <ChartPlacementSlot view={view} index={3} chartProps={chartProps} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={4} />
+            <ChartPlacementSlot view={view} index={4} chartProps={chartProps} />
           </ModuleLayout.Third>
 
           <ModuleLayout.Full>

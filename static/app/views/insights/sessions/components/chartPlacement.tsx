@@ -1,17 +1,18 @@
 import {createContext, useCallback, useContext} from 'react';
 
 import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import {
   CHART_MAP,
-  CHART_TITLES,
   DEFAULT_LAYOUTS,
   PAGE_CHART_OPTIONS,
-} from 'sentry/views/insights/sessions/settings';
+} from 'sentry/views/insights/sessions/components/chartMap';
+import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
+import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 
 type TChart = keyof typeof CHART_MAP;
 type Option = {label: string; value: TChart};
@@ -26,12 +27,16 @@ const Context = createContext<{
   onChange: () => {},
 });
 
+// TODO: this could be based on the values in CHART_MAP somehow... idk how to express that.
+type ChartProps = {project: Project};
+
 interface Props {
+  chartProps: ChartProps;
   index: number;
   view: DomainView;
 }
 
-export function ChartPlacementSlot({view, index}: Props) {
+export function ChartPlacementSlot({view, index, chartProps}: Props) {
   const organization = useOrganization();
 
   const [chartsByIndex, setChartsByIndex] = useSyncedLocalStorageState<
@@ -57,7 +62,7 @@ export function ChartPlacementSlot({view, index}: Props) {
   if (Chart) {
     return (
       <Context value={{chartName, chartOptions, onChange}}>
-        <Chart />
+        <Chart {...chartProps} />
       </Context>
     );
   }
