@@ -33,7 +33,10 @@ export function formatUsageWithUnits(
   dataCategory: DataCategoryInfo['plural'],
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ): string {
-  if (dataCategory === DATA_CATEGORY_INFO.attachment.plural) {
+  if (
+    dataCategory === DATA_CATEGORY_INFO.attachment.plural ||
+    dataCategory === DATA_CATEGORY_INFO.logByte.plural
+  ) {
     if (options.useUnitScaling) {
       return formatBytesBase10(usageQuantity);
     }
@@ -67,8 +70,12 @@ export function getFormatUsageOptions(
   dataCategory: DataCategoryInfo['plural']
 ): FormatOptions {
   return {
-    isAbbreviated: dataCategory !== DATA_CATEGORY_INFO.attachment.plural,
-    useUnitScaling: dataCategory === DATA_CATEGORY_INFO.attachment.plural,
+    isAbbreviated:
+      dataCategory !== DATA_CATEGORY_INFO.attachment.plural &&
+      dataCategory !== DATA_CATEGORY_INFO.logByte.plural,
+    useUnitScaling:
+      dataCategory === DATA_CATEGORY_INFO.attachment.plural ||
+      dataCategory === DATA_CATEGORY_INFO.logByte.plural,
   };
 }
 
