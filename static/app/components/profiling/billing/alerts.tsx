@@ -1,8 +1,11 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 
 export const ProfilingBetaAlertBanner = HookOrDefault({
   hookName: 'component:profiling-billing-banner',
@@ -26,3 +29,28 @@ export const ProfilingAM1OrMMXUpgrade = HookOrDefault({
     </Fragment>
   ),
 });
+
+interface ContinuousProfilingBetaAlertBannerProps {
+  organization: Organization;
+}
+
+export function ContinuousProfilingBetaAlertBanner({
+  organization,
+}: ContinuousProfilingBetaAlertBannerProps) {
+  if (!organization.features.includes('continuous-profiling-beta-ui')) {
+    return null;
+  }
+
+  return (
+    <Alert.Container>
+      <StyledAlert type="warning" showIcon>
+        {t('Something something beta ending')}
+      </StyledAlert>
+    </Alert.Container>
+  );
+}
+
+const StyledAlert = styled(Alert)`
+  margin: 0;
+  border-radius: 0;
+`;
