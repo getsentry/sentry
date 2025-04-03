@@ -150,7 +150,7 @@ export function getChonkButtonStyles(
             },
           },
 
-          '&:active': {
+          '&:active, &[aria-expanded="true"]': {
             '&::after': {
               transform: 'translateY(0px)',
             },
