@@ -47,29 +47,11 @@ export function useWidgetChartVisualization({
   if (spanCategoryUrlParam) {
     query.addFilterValue('span.category', spanCategoryUrlParam);
   }
-  const {
-    data: spanSeriesData,
-    isPending: isSpanSeriesPending,
-    isError: isSpanSeriesError,
-  } = useSpanIndexedSeries(
-    {
-      yAxis: [
-        'avg(span.duration)',
-        'p100(span.duration)',
-        'p99(span.duration)',
-        'p95(span.duration)',
-        'p90(span.duration)',
-        'p75(span.duration)',
-        'p50(span.duration)',
-      ],
-      search: query,
-      transformAliasToInputFormat: true,
-      enabled: selectedWidget === EAPWidgetType.DURATION_BREAKDOWN,
-    },
 
-    'transaction-summary-charts-widget',
-    DiscoverDatasets.SPANS_EAP
-  );
+  const durationBreakdownVisualization = useDurationBreakdownVisualization({
+    enabled: selectedWidget === EAPWidgetType.DURATION_BREAKDOWN,
+    transactionName,
+  });
 
   const {
     data: durationPercentilesData,
@@ -93,29 +75,7 @@ export function useWidgetChartVisualization({
   );
 
   if (selectedWidget === EAPWidgetType.DURATION_BREAKDOWN) {
-    if (isSpanSeriesPending || isSpanSeriesError) {
-      return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
-    }
-
-    const timeSeries: TimeSeries[] = [];
-    Object.entries(spanSeriesData).forEach(([key, value]) => {
-      timeSeries.push({
-        field: key,
-        meta: {
-          type: value.meta?.fields?.[key] ?? null,
-          unit: value.meta?.units?.[key] as DataUnit,
-        },
-        data:
-          value.data.map(item => ({
-            timestamp: item.name.toString(),
-            value: item.value,
-          })) ?? [],
-      });
-    });
-
-    const plottables = timeSeries.map(series => new Area(series));
-
-    return <TimeSeriesWidgetVisualization plottables={plottables} />;
+    return durationBreakdownVisualization;
   }
 
   if (selectedWidget === EAPWidgetType.DURATION_PERCENTILES) {
@@ -137,4 +97,81 @@ export function useWidgetChartVisualization({
   }
 
   return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
+}
+
+type DurationBreakdownVisualizationOptions = {
+  enabled: boolean;
+  transactionName: string;
+};
+
+function useDurationBreakdownVisualization({
+  enabled,
+  transactionName,
+}: DurationBreakdownVisualizationOptions) {
+  const location = useLocation();
+  const spanCategoryUrlParam = decodeScalar(
+    location.query?.[SpanIndexedField.SPAN_CATEGORY]
+  );
+
+  const query = new MutableSearch('');
+  query.addFilterValue('transaction', transactionName);
+  query.addFilterValue('is_transaction', '1');
+
+  // If a span category is selected, the chart will focus on that span category rather than just the service entry span
+  if (spanCategoryUrlParam) {
+    query.addFilterValue('span.category', spanCategoryUrlParam);
+    query.removeFilterValue('is_transaction', '1');
+  }
+
+  const {
+    data: spanSeriesData,
+    isPending: isSpanSeriesPending,
+    isError: isSpanSeriesError,
+  } = useSpanIndexedSeries(
+    {
+      yAxis: [
+        'avg(span.duration)',
+        'p100(span.duration)',
+        'p99(span.duration)',
+        'p95(span.duration)',
+        'p90(span.duration)',
+        'p75(span.duration)',
+        'p50(span.duration)',
+      ],
+      search: query,
+      transformAliasToInputFormat: true,
+      enabled,
+    },
+
+    'transaction-summary-charts-widget',
+    DiscoverDatasets.SPANS_EAP
+  );
+
+  if (!enabled) {
+    return null;
+  }
+
+  if (isSpanSeriesPending || isSpanSeriesError) {
+    return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
+  }
+
+  const timeSeries: TimeSeries[] = [];
+  Object.entries(spanSeriesData).forEach(([key, value]) => {
+    timeSeries.push({
+      field: key,
+      meta: {
+        type: value.meta?.fields?.[key] ?? null,
+        unit: value.meta?.units?.[key] as DataUnit,
+      },
+      data:
+        value.data.map(item => ({
+          timestamp: item.name.toString(),
+          value: item.value,
+        })) ?? [],
+    });
+  });
+
+  const plottables = timeSeries.map(series => new Area(series));
+
+  return <TimeSeriesWidgetVisualization plottables={plottables} />;
 }
