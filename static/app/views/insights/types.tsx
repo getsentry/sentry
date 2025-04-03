@@ -82,6 +82,7 @@ export type SpanNumberFields =
   | SpanMetricsField.PRECISE_FINISH_TS;
 
 export type SpanStringFields =
+  | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
   | 'span_id'
   | 'span.op'
   | 'span.description'
@@ -149,7 +150,7 @@ export const SPAN_FUNCTIONS = [
   'count',
   'time_spent_percentage',
   'http_response_rate',
-  'http_error_count',
+  'http_response_count',
   'cache_hit_rate',
   'cache_miss_rate',
   'sum',
@@ -177,6 +178,10 @@ export type SpanMetricsResponse = {
   [Property in SpanStringArrayFields as `${Property}`]: string[];
 } & {
   // TODO: This should include all valid HTTP codes or just all integers
+  'http_response_count(2)': number;
+  'http_response_count(3)': number;
+  'http_response_count(4)': number;
+  'http_response_count(5)': number;
   'http_response_rate(2)': number;
   'http_response_rate(3)': number;
   'http_response_rate(4)': number;
@@ -406,7 +411,7 @@ export enum SpanFunction {
   SPS = 'sps',
   EPM = 'epm',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
-  HTTP_ERROR_COUNT = 'http_error_count',
+  HTTP_RESPONSE_COUNT = 'http_response_count',
   HTTP_RESPONSE_RATE = 'http_response_rate',
   CACHE_HIT_RATE = 'cache_hit_rate',
   CACHE_MISS_RATE = 'cache_miss_rate',
