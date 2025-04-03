@@ -110,6 +110,7 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
   if (spanCategoryUrlParam) {
     query.addFilterValue('span.category', spanCategoryUrlParam);
   }
+  query.addFilterValue('is_transaction', '1');
 
   const {
     data: spanSeriesData,
