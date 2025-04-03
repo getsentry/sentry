@@ -11,7 +11,7 @@ jest.mock('sentry/utils/analytics', () => ({
 
 const ALL_AVAILABLE_FEATURES = ['codecov-ui'];
 
-describe('PipelineSecondaryNav', () => {
+describe('CodecovSecondaryNav', () => {
   beforeEach(() => {
     localStorage.clear();
     MockApiClient.clearMockResponses();
@@ -27,25 +27,6 @@ describe('PipelineSecondaryNav', () => {
     });
   });
 
-  it('renders the passed children', () => {
-    render(
-      <NavContextProvider>
-        <Nav />
-        <div id="main" />
-      </NavContextProvider>,
-      {
-        enableRouterMocks: false,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/test-org-slug/pipeline/',
-          },
-        },
-      }
-    );
-
-    expect(screen.getByText('Pipeline')).toBeInTheDocument();
-  });
-
   it('renders the correct coverage link', () => {
     render(
       <NavContextProvider>
@@ -57,16 +38,18 @@ describe('PipelineSecondaryNav', () => {
         enableRouterMocks: false,
         initialRouterConfig: {
           location: {
-            pathname: '/organizations/test-org-slug/pipeline/coverage/',
+            pathname: '/organizations/org-slug/codecov/coverage/',
           },
         },
       }
     );
 
-    const coverageLink = screen.getByText('Coverage');
+    const coverageLink = screen.getByRole('link', {name: 'Coverage'});
     expect(coverageLink).toBeInTheDocument();
-    // TODO: @nicholas-codecov this link should appear once routes have been added
-    expect(coverageLink).not.toHaveAttribute('href');
+    expect(coverageLink).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/codecov/coverage/'
+    );
   });
 
   it('renders the correct tests link', () => {
@@ -80,15 +63,14 @@ describe('PipelineSecondaryNav', () => {
         enableRouterMocks: false,
         initialRouterConfig: {
           location: {
-            pathname: '/organizations/test-org-slug/pipeline/tests/',
+            pathname: '/organizations/org-slug/codecov/tests/',
           },
         },
       }
     );
 
-    const testsLink = screen.getByText('Tests');
+    const testsLink = screen.getByRole('link', {name: 'Tests'});
     expect(testsLink).toBeInTheDocument();
-    // TODO: @nicholas-codecov this link should appear once routes have been added
-    expect(testsLink).not.toHaveAttribute('href');
+    expect(testsLink).toHaveAttribute('href', '/organizations/org-slug/codecov/tests/');
   });
 });
