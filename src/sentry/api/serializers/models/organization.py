@@ -731,9 +731,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
 
-        org_volume = get_organization_volume(obj.id, timedelta(hours=24))
-        if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
-            context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
+        if features.has("organizations:dynamic-sampling", obj):
+            org_volume = get_organization_volume(obj.id, timedelta(hours=24))
+            if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
+                context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
 
         if sample_rate is not None:
             context["planSampleRate"] = sample_rate
