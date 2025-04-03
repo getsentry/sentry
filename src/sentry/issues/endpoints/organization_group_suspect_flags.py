@@ -6,6 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
+from sentry.api.utils import get_date_range_from_params
 from sentry.issues.suspect_flags import get_suspect_flag_scores
 from sentry.models.group import Group
 
@@ -27,7 +28,10 @@ class OrganizationGroupSuspectFlagsEndpoint(GroupEndpoint, EnvironmentMixin):
         group_id = group.id
         organization_id = group.organization.id
         project_id = group.project.id
-        start, end = group.first_seen, group.last_seen
+        start, end = get_date_range_from_params(request.GET)
+
+        # Clamp the range to be within the issue's first and last seen timestamps.
+        start, end = max(start, group.first_seen), min(end, group.last_seen)
 
         # To increase our cache hit-rate we round the dates down to the nearest 5 minute interval.
         start = start.replace(minute=(start.minute // 5) * 5, second=0, microsecond=0)

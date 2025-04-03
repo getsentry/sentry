@@ -51,7 +51,7 @@ class SnubaTest(TestCase, SnubaTestCase):
             ],
         )
 
-        results = query_flag_rows(1, 1, before, later, group_id=None)
+        results = query_flag_rows(1, 1, before, later, environments=[], group_id=None)
         assert results == [("key", "false", 1), ("key", "true", 1), ("other", "false", 2)]
 
     def test_get_suspect_flag_scores(self):
@@ -76,5 +76,5 @@ class SnubaTest(TestCase, SnubaTestCase):
             ],
         )
 
-        results = get_suspect_flag_scores(1, 1, before, later, group_id=1)
+        results = get_suspect_flag_scores(1, 1, before, later, envs=[], group_id=1)
         assert results == [("key", 2.7622287114272543), ("other", 0.0)]

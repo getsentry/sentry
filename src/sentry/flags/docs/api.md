@@ -212,6 +212,15 @@ Any request content-type is acceptable (JSON, XML, binary-formats) so long as th
 
 Retrieve a collection of confidence scores for all feature flags associated with an issue. Each flag appears exactly once in the result.
 
+**Parameters**
+
+| Field       | Type             | Description                                                         |
+| ----------- | ---------------- | ------------------------------------------------------------------- |
+| environment | string           | The environment to filter by. Multiple parameters may be specified. |
+| statsPeriod | string           | A positive integer suffixed with a unit type (s, m, h, d, w).       |
+| start       | optional[string] | ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`).                       |
+| end         | optional[string] | ISO 8601 format. Required if `start` is set.                        |
+
 **Attributes**
 
 | Column | Type   | Description                           |
