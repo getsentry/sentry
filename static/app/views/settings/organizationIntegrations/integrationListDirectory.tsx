@@ -3,10 +3,10 @@ import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import startCase from 'lodash/startCase';
-import * as qs from 'query-string';
 
 import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {Select} from 'sentry/components/core/select';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -215,11 +215,14 @@ export default function IntegrationListDirectory() {
   const fuzzy = useFuzzySearch<AppOrProviderOrPlugin>(list, fuseOptions);
 
   const displayList = useMemo(() => {
-    const listToDisplay =
-      search && fuzzy ? fuzzy.search(search).map(result => result.item) : [...list];
+    let listToDisplay = [...list];
+
+    if (search && fuzzy) {
+      listToDisplay = fuzzy.search(search).map(result => result.item);
+    }
 
     if (category) {
-      listToDisplay.filter(integration =>
+      listToDisplay = listToDisplay.filter(integration =>
         getCategoriesForIntegration(integration).includes(category)
       );
     }
@@ -237,12 +240,15 @@ export default function IntegrationListDirectory() {
   );
 
   const onCategoryChange = useCallback(
-    (newCategory: string) => {
+    ({value: newCategory}: SelectOption<string>) => {
       setCategory(newCategory);
-      navigate({
-        ...location,
-        search: qs.stringify({...location.query, category: newCategory}),
-      });
+      navigate(
+        {
+          ...location,
+          query: {...location.query, category: newCategory ? newCategory : undefined},
+        },
+        {replace: true}
+      );
       if (newCategory) {
         trackIntegrationAnalytics('integrations.directory_category_selected', {
           view: 'integrations_directory',
@@ -257,10 +263,13 @@ export default function IntegrationListDirectory() {
   const onSearchChange = useCallback(
     (newSearch: string) => {
       setSearch(newSearch);
-      navigate({
-        ...location,
-        search: qs.stringify({...location.query, search: newSearch}),
-      });
+      navigate(
+        {
+          ...location,
+          query: {...location.query, search: newSearch ? newSearch : undefined},
+        },
+        {replace: true}
+      );
       if (newSearch) {
         debouncedTrackIntegrationSearch({
           search_term: newSearch,
@@ -470,7 +479,7 @@ function IntegrationSettingsHeader({
 }: {
   category: string;
   list: AppOrProviderOrPlugin[];
-  onChangeCategory: (category: string) => void;
+  onChangeCategory: (categoryOption: SelectOption<string>) => void;
   onChangeSearch: (search: string) => void;
   search: string;
   title: string;
@@ -479,7 +488,7 @@ function IntegrationSettingsHeader({
     return c === 'api' ? 'API' : startCase(c);
   }, []);
 
-  const categoryOptions = useMemo(() => {
+  const categoryOptions: Array<SelectOption<string>> = useMemo(() => {
     const categoryList = uniq(list.flatMap(getCategoriesForIntegration))
       .sort()
       .map(c => ({value: c, label: getCategoryLabel(c)}));
