@@ -155,10 +155,10 @@ export function adjustAliases(key: string) {
 
 export function getTableHeaderLabel(
   field: OurLogFieldKey,
-  stringAttributes: TagCollection,
-  numberAttributes: TagCollection
+  stringAttributes?: TagCollection,
+  numberAttributes?: TagCollection
 ) {
-  const attribute = stringAttributes[field] ?? numberAttributes[field] ?? null;
+  const attribute = stringAttributes?.[field] ?? numberAttributes?.[field] ?? null;
 
   return (
     LogAttributesHumanLabel[field] ?? attribute?.name ?? prettifyAttributeName(field)

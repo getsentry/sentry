@@ -52,9 +52,9 @@ export function LogsTabContent({
   const tableData = useExploreLogsTable({});
   const isSchemaHintsDrawerOpenOnLargeScreen = useSchemaHintsOnLargeScreen();
 
-  const {attributes: stringTags, isLoading: stringTagsLoading} =
+  const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');
-  const {attributes: numberTags, isLoading: numberTagsLoading} =
+  const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributes('number');
 
   useLogAnalytics({
@@ -69,14 +69,14 @@ export function LogsTabContent({
           {...modalProps}
           columns={fields}
           onColumnsChange={setFields}
-          stringTags={stringTags}
-          numberTags={numberTags}
+          stringTags={stringAttributes}
+          numberTags={numberAttributes}
           hiddenKeys={HiddenLogDetailFields}
         />
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [fields, setFields, stringTags, numberTags]);
+  }, [fields, setFields, stringAttributes, numberAttributes]);
   return (
     <Layout.Body noRowGap>
       <Layout.Main fullWidth>
@@ -97,8 +97,8 @@ export function LogsTabContent({
             initialQuery={logsSearch.formatString()}
             searchSource="ourlogs"
             onSearch={setLogsQuery}
-            numberAttributes={numberTags}
-            stringAttributes={stringTags}
+            numberAttributes={numberAttributes}
+            stringAttributes={stringAttributes}
             itemType={TraceItemDataset.LOGS}
           />
 
@@ -112,9 +112,9 @@ export function LogsTabContent({
           >
             <SchemaHintsList
               supportedAggregates={[]}
-              numberTags={numberTags}
-              stringTags={stringTags}
-              isLoading={numberTagsLoading || stringTagsLoading}
+              numberTags={numberAttributes}
+              stringTags={stringAttributes}
+              isLoading={numberAttributesLoading || stringAttributesLoading}
               exploreQuery={logsSearch.formatString()}
               setExploreQuery={setLogsQuery}
               source={SchemaHintsSources.LOGS}
@@ -124,7 +124,11 @@ export function LogsTabContent({
       </Layout.Main>
 
       <LogsTableContainer fullWidth>
-        <LogsTable tableData={tableData} />
+        <LogsTable
+          tableData={tableData}
+          stringAttributes={stringAttributes}
+          numberAttributes={numberAttributes}
+        />
       </LogsTableContainer>
     </Layout.Body>
   );
