@@ -822,12 +822,12 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
 
 // TODO: Extend the two lists below with more options upon backend support
 export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
-  SpanIndexedField.SPAN_DURATION,
+  SpanIndexedField.SPAN_DURATION, // DO NOT RE-ORDER: the first element is used as the default
   SpanIndexedField.SPAN_SELF_TIME,
 ];
 
 export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
-  AggregationKey.COUNT,
+  AggregationKey.COUNT, // DO NOT RE-ORDER: the first element is used as the default
   AggregationKey.AVG,
   AggregationKey.P50,
   AggregationKey.P75,
