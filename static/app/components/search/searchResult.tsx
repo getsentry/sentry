@@ -18,6 +18,8 @@ type Props = {
   matches: Result['matches'];
 };
 
+const DEFAULT_AVATAR_SIZE = 24;
+
 function renderResultType({resultType, model}: Result['item']) {
   switch (resultType) {
     case 'settings':
@@ -27,11 +29,11 @@ function renderResultType({resultType, model}: Result['item']) {
     case 'route':
       return <IconLink />;
     case 'integration':
-      return <StyledPluginIcon pluginId={model.slug} />;
+      return <StyledPluginIcon size={DEFAULT_AVATAR_SIZE} pluginId={model.slug} />;
     case 'sentryApp':
-      return <SentryAppAvatar sentryApp={model} />;
+      return <SentryAppAvatar size={DEFAULT_AVATAR_SIZE} sentryApp={model} />;
     case 'docIntegration':
-      return <DocIntegrationAvatar docIntegration={model} />;
+      return <DocIntegrationAvatar size={DEFAULT_AVATAR_SIZE} docIntegration={model} />;
     default:
       return null;
   }
