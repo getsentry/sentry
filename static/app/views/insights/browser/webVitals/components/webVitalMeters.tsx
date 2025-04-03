@@ -8,7 +8,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
@@ -22,9 +21,17 @@ import {
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 
+type ProjectData = {
+  'p75(measurements.cls)': number;
+  'p75(measurements.fcp)': number;
+  'p75(measurements.inp)': number;
+  'p75(measurements.lcp)': number;
+  'p75(measurements.ttfb)': number;
+};
+
 type Props = {
   onClick?: (webVital: WebVitals) => void;
-  projectData?: TableData;
+  projectData?: ProjectData[];
   projectScore?: ProjectScore;
   showTooltip?: boolean;
   transaction?: string;
@@ -71,9 +78,9 @@ export default function WebVitalMeters({
 
   const renderVitals = () => {
     return webVitals.map((webVital, index) => {
-      const webVitalKey = `p75(measurements.${webVital})`;
+      const webVitalKey: keyof ProjectData = `p75(measurements.${webVital})`;
       const score = projectScore[`${webVital}Score`];
-      const meterValue = projectData?.data?.[0]?.[webVitalKey] as number;
+      const meterValue = projectData?.[0]?.[webVitalKey];
 
       if (!score) {
         return null;

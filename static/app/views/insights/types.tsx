@@ -416,7 +416,14 @@ export enum SpanFunction {
 
 // TODO - add more functions and fields, combine shared ones, etc
 
-export const METRICS_FUNCTIONS = ['count', 'performance_score'] as const;
+export const METRICS_FUNCTIONS = [
+  'count',
+  'performance_score',
+  'count_scores',
+  'opportunity_score',
+  'total_opportunity_score',
+  'p75',
+] as const;
 
 export enum MetricsFields {
   TRANSACTION_DURATION = 'transaction.duration',
@@ -427,6 +434,25 @@ export enum MetricsFields {
   INP_SCORE = 'measurements.score.inp',
   CLS_SCORE = 'measurements.score.cls',
   TTFB_SCORE = 'measurements.score.ttfb',
+  TOTAL_SCORE = 'measurements.score.total',
+  LCP_WEIGHT = 'measurements.score.weight.lcp',
+  FCP_WEIGHT = 'measurements.score.weight.fcp',
+  INP_WEIGHT = 'measurements.score.weight.inp',
+  CLS_WEIGHT = 'measurements.score.weight.cls',
+  TTFB_WEIGHT = 'measurements.score.weight.ttfb',
+  TOTAL_WEIGHT = 'measurements.score.weight.total',
+  PROJECT_ID = 'project.id',
+  LCP = 'measurements.lcp',
+  FCP = 'measurements.fcp',
+  INP = 'measurements.inp',
+  CLS = 'measurements.cls',
+  TTFB = 'measurements.ttfb',
+  ID = 'id',
+  TRACE = 'trace',
+  USER_DISPLAY = 'user.display',
+  REPLAY_ID = 'replayId',
+  TIMESTAMP = 'timestamp',
+  PROFILE_ID = 'profile.id',
 }
 
 export type MetricsNumberFields =
@@ -435,9 +461,30 @@ export type MetricsNumberFields =
   | MetricsFields.FCP_SCORE
   | MetricsFields.INP_SCORE
   | MetricsFields.CLS_SCORE
-  | MetricsFields.TTFB_SCORE;
+  | MetricsFields.TTFB_SCORE
+  | MetricsFields.TOTAL_SCORE
+  | MetricsFields.LCP_WEIGHT
+  | MetricsFields.FCP_WEIGHT
+  | MetricsFields.INP_WEIGHT
+  | MetricsFields.CLS_WEIGHT
+  | MetricsFields.TTFB_WEIGHT
+  | MetricsFields.TOTAL_WEIGHT
+  | MetricsFields.LCP
+  | MetricsFields.FCP
+  | MetricsFields.INP
+  | MetricsFields.CLS
+  | MetricsFields.TTFB;
 
-export type MetricsStringFields = MetricsFields.TRANSACTION;
+export type MetricsStringFields =
+  | MetricsFields.TRANSACTION
+  | MetricsFields.PROJECT
+  | MetricsFields.PROJECT_ID
+  | MetricsFields.ID
+  | MetricsFields.TRACE
+  | MetricsFields.USER_DISPLAY
+  | MetricsFields.REPLAY_ID
+  | MetricsFields.TIMESTAMP
+  | MetricsFields.PROFILE_ID;
 
 export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
 
@@ -449,6 +496,8 @@ export type MetricsResponse = {
   [Function in MetricsFunctions as `${Function}()`]: number;
 } & {
   [Property in MetricsStringFields as `${Property}`]: string;
+} & {
+  [Property in MetricsNumberFields as `count_web_vitals(${Property}, any)`]: string[];
 };
 
 export type MetricsProperty = keyof MetricsResponse;
