@@ -1,5 +1,4 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import type {RenderResult} from 'sentry-test/reactTestingLibrary';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TransactionsList from 'sentry/components/discover/transactionsList';
@@ -25,7 +24,7 @@ describe('TransactionsList', function () {
   let project: any;
   let eventView: any;
   let options: any;
-  let handleDropdownChange: any;
+  const handleDropdownChange = jest.fn();
 
   const initialize = (config = {}) => {
     context = initializeOrg(config);
@@ -37,9 +36,6 @@ describe('TransactionsList', function () {
     location = {
       pathname: '/',
       query: {},
-    };
-    handleDropdownChange = () => {
-      //
     };
   });
 
@@ -283,25 +279,7 @@ describe('TransactionsList', function () {
     });
 
     it('allows users to change the sort in the dropdown', async function () {
-      let component: RenderResult | null = null;
-
-      const handleDropdown = (value: any) => {
-        const selected = options.find((option: any) => option.value === value);
-        if (selected && component) {
-          component.rerender(
-            <WrapperComponent
-              selected={selected}
-              api={api}
-              location={location}
-              organization={organization}
-              eventView={eventView}
-              options={options}
-            />
-          );
-        }
-      };
-
-      component = render(
+      const {rerender} = render(
         <WrapperComponent
           api={api}
           location={location}
@@ -309,7 +287,7 @@ describe('TransactionsList', function () {
           eventView={eventView}
           selected={options[0]}
           options={options}
-          handleDropdownChange={handleDropdown}
+          handleDropdownChange={handleDropdownChange}
         />
       );
 
@@ -332,6 +310,20 @@ describe('TransactionsList', function () {
 
       // Failing transactions is 'count' as per the test options
       await userEvent.click(screen.getByRole('option', {name: 'Failing Transactions'}));
+
+      // Simulate the dropdown change
+      const newSelected = options.find((option: any) => option.value === 'count');
+      rerender(
+        <WrapperComponent
+          selected={newSelected}
+          api={api}
+          location={location}
+          organization={organization}
+          eventView={eventView}
+          options={options}
+          handleDropdownChange={handleDropdownChange}
+        />
+      );
 
       await waitFor(() => {
         // now the sort is descending by count
