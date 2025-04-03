@@ -68,6 +68,7 @@ function getSentryIntegrations() {
       _experiments: {
         enableStandaloneClsSpans: true,
       },
+      linkPreviousTrace: 'session-storage',
     }),
     Sentry.browserProfilingIntegration(),
     Sentry.thirdPartyErrorFilterIntegration({
