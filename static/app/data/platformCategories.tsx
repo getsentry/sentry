@@ -576,8 +576,8 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
   ...feedbackCrashApiPlatforms,
 ];
 
-// Feature flag onboarding platforms
-export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
+// Feature flag supported platforms
+export const featureFlagSupportedPlatforms: readonly PlatformKey[] = [
   'javascript',
   'python',
   'javascript-angular',

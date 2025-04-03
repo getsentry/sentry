@@ -19,7 +19,7 @@ import {
 } from 'sentry/components/events/featureFlags/utils';
 import useDrawer from 'sentry/components/globalDrawer';
 import {KeyValueData} from 'sentry/components/keyValueData';
-import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
+import {featureFlagSupportedPlatforms} from 'sentry/data/platformCategories';
 import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
@@ -220,7 +220,7 @@ export function EventFeatureFlagList({
   // If the project has never ingested flags, either show a CTA or hide the section entirely.
   if (!hasFlags && !project.hasFlags) {
     const showCTA =
-      featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
+      featureFlagSupportedPlatforms.includes(project.platform ?? 'other') &&
       organization.features.includes('feature-flag-cta');
     return showCTA ? <FeatureFlagInlineCTA projectId={event.projectID} /> : null;
   }

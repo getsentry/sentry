@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
+import {featureFlagSupportedPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import useProjects from 'sentry/utils/useProjects';
@@ -71,7 +71,7 @@ export default function FlagDrawerContent({
     data.length === 0 &&
     project &&
     !project.hasFlags &&
-    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other');
+    featureFlagSupportedPlatforms.includes(project.platform ?? 'other');
 
   return isPending ? (
     <LoadingIndicator />

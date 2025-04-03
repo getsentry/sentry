@@ -20,7 +20,7 @@ import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import TextOverflow from 'sentry/components/textOverflow';
-import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
+import {featureFlagSupportedPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
@@ -93,8 +93,8 @@ function SidebarContent() {
   } = useCurrentProjectState({
     currentPanel: SidebarPanelKey.FEATURE_FLAG_ONBOARDING,
     targetPanel: SidebarPanelKey.FEATURE_FLAG_ONBOARDING,
-    onboardingPlatforms: featureFlagOnboardingPlatforms,
-    allPlatforms: featureFlagOnboardingPlatforms,
+    onboardingPlatforms: featureFlagSupportedPlatforms,
+    allPlatforms: featureFlagSupportedPlatforms,
   });
 
   const projectSelectOptions = useMemo(() => {
@@ -281,7 +281,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   const doesNotSupportFeatureFlags =
     !currentProject.platform ||
-    !featureFlagOnboardingPlatforms.concat('other').includes(currentProject.platform);
+    !featureFlagSupportedPlatforms.concat('other').includes(currentProject.platform);
 
   const defaultMessage = (
     <Fragment>

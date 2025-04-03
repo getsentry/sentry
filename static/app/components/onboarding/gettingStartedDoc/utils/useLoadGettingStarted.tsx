@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
-  featureFlagOnboardingPlatforms,
+  featureFlagSupportedPlatforms,
   feedbackOnboardingPlatforms,
   replayPlatforms,
   withPerformanceOnboarding,
@@ -49,7 +49,7 @@ export function useLoadGettingStarted({
         (productType === 'feedback' &&
           !feedbackOnboardingPlatforms.includes(platform.id)) ||
         (productType === 'featureFlags' &&
-          !featureFlagOnboardingPlatforms.includes(platform.id))
+          !featureFlagSupportedPlatforms.includes(platform.id))
       ) {
         setModule('none');
         return;
