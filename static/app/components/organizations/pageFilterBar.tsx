@@ -141,9 +141,9 @@ except in mobile */
   display: flex;
   position: relative;
 
-  & > div > button {
-    width: 100%;
+  & button[aria-haspopup] {
     height: 100%;
+    width: 100%;
   }
 
   /* Disabled InteractionStateLayer */
