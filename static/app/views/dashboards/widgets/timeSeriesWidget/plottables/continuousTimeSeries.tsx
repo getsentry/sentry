@@ -22,6 +22,10 @@ export type ContinuousTimeSeriesConfig = {
    * Data delay, in seconds. Data older than N seconds will be visually deemphasized.
    */
   delay?: number;
+  /**
+   * Callback for ECharts' `onHighlight`. Called with the data point that corresponds to the highlighted point in the chart
+   */
+  onHighlight?: (datum: Readonly<TimeSeries['data'][number]>) => void;
 };
 
 export type ContinuousTimeSeriesPlottingOptions = {
