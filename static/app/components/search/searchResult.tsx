@@ -122,6 +122,7 @@ const Wrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: ${space(1)};
 `;
 
 const Content = styled('div')`
