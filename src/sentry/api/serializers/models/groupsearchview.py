@@ -18,10 +18,7 @@ class GroupSearchViewSerializerResponse(TypedDict):
     lastVisited: str | None
     dateCreated: str
     dateUpdated: str
-
-
-class GroupSearchViewStarredSerializerResponse(GroupSearchViewSerializerResponse):
-    position: int
+    starred: bool
 
 
 @register(GroupSearchView)
@@ -30,6 +27,7 @@ class GroupSearchViewSerializer(Serializer):
         self.has_global_views = kwargs.pop("has_global_views", None)
         self.default_project = kwargs.pop("default_project", None)
         self.organization = kwargs.pop("organization", None)
+        self.starred_view_ids = kwargs.pop("starred_view_ids", None)
         super().__init__(*args, **kwargs)
 
     def get_attrs(self, item_list, user, **kwargs) -> MutableMapping[Any, Any]:
@@ -72,4 +70,5 @@ class GroupSearchViewSerializer(Serializer):
             "lastVisited": attrs["last_visited"] if attrs else None,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
+            "starred": obj.id in self.starred_view_ids,
         }
