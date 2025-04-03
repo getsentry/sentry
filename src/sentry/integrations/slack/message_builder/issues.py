@@ -458,6 +458,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         event_or_group: Event | GroupEvent | Group,
         has_action: bool,
         rule_id: int | None = None,
+        rule_environment_id: int | None = None,
         notification_uuid: str | None = None,
     ) -> SlackBlock:
         title_link = get_title_link(
@@ -468,6 +469,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             self.notification,
             ExternalProviders.SLACK,
             rule_id,
+            rule_environment_id,
             notification_uuid=notification_uuid,
         )
         # Use summary headline if available, otherwise use default title
@@ -504,24 +506,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         parts = []
 
-        if whats_wrong := self.issue_summary.get("whatsWrong"):
-            parts.append(
-                ISSUE_SUMMARY_TO_EMOJI.get("whatsWrong", "*What's Wrong:*")
-                + " "
-                + escape_slack_markdown_asterisks(whats_wrong)
-            )
-        if trace := self.issue_summary.get("trace"):
-            parts.append(
-                ISSUE_SUMMARY_TO_EMOJI.get("trace", "*In the Trace:*")
-                + " "
-                + escape_slack_markdown_asterisks(trace)
-            )
         if possible_cause := self.issue_summary.get("possibleCause"):
-            parts.append(
-                ISSUE_SUMMARY_TO_EMOJI.get("possibleCause", "*Possible Cause:*")
-                + " "
-                + escape_slack_markdown_asterisks(possible_cause)
-            )
+            parts.append(escape_slack_markdown_asterisks(possible_cause))
 
         if not parts:
             return None
@@ -590,7 +576,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 footer_text = footer_text[:-4]  # chop off the empty space
 
             if self.issue_summary:
-                footer_text += f"    {ISSUE_SUMMARY_TO_EMOJI.get('seer')} Revealed by Seer"
+                footer_text += f"    {ISSUE_SUMMARY_TO_EMOJI.get('seer')} Powered by Seer"
 
             return self.get_context_block(text=footer_text)
         else:
@@ -625,8 +611,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             has_action = False
 
         rule_id = None
+        rule_environment_id = None
         if self.rules:
             rule_id = self.rules[0].id
+            rule_environment_id = self.rules[0].environment_id
 
         # build up actions text
         if self.actions and self.identity and not action_text:
@@ -634,13 +622,23 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             action_text = get_action_text(self.actions, self.identity)
             has_action = True
 
-        blocks = [self.get_title_block(event_or_group, has_action, rule_id, notification_uuid)]
+        blocks = [
+            self.get_title_block(
+                event_or_group, has_action, rule_id, rule_environment_id, notification_uuid
+            )
+        ]
 
         if culprit_block := self.get_culprit_block(event_or_group):
             blocks.append(culprit_block)
 
         # Use issue summary if available, otherwise use the default text
         if summary_text := self.get_issue_summary_text():
+            original_title = build_attachment_title(event_or_group)
+            original_message = text.lstrip(" ")
+
+            blocks.append(
+                self.get_text_block(f"*{original_title}*: `{original_message}`", small=True)
+            )
             blocks.append(self.get_text_block(summary_text, small=True))
         else:
             text = text.lstrip(" ")
