@@ -60,6 +60,7 @@ export function useEventQuery({groupId}: {groupId: string}): string {
     environment: environments,
   });
   const filterKeys = useEventSearchFilterKeys(data);
+
   const parsedQuery = useMemo(
     () =>
       parseQueryBuilderValue(eventQuery, getFieldDefinition, {
@@ -76,8 +77,14 @@ export function useEventQuery({groupId}: {groupId: string}): string {
     if (token.type === Token.FREE_TEXT) {
       return false;
     }
-    if (token.type === Token.FILTER && !filterKeys.hasOwnProperty(token.key.text)) {
-      return false;
+    if (token.type === Token.FILTER) {
+      let tagKey = token.key.text;
+      if (tagKey.startsWith('tags[')) {
+        tagKey = tagKey.slice(5, -1);
+      }
+      if (!filterKeys.hasOwnProperty(tagKey)) {
+        return false;
+      }
     }
     return true;
   });
