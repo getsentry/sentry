@@ -44,7 +44,7 @@ class OpsgenieClient(ApiClient):
         workflow_urls = []
         for rule in rules:
             # fetch the workflow_id from the rule.data
-            workflow_id = rule.data.get("workflow_id")
+            workflow_id = rule.data.get("actions", [{}])[0].get("workflow_id")
             assert workflow_id is not None
             workflow_urls.append(
                 organization.absolute_url(create_link_to_workflow(organization.id, workflow_id))
@@ -57,7 +57,7 @@ class OpsgenieClient(ApiClient):
         for rule in rules:
             rule_id = rule.id
             if features.has("organizations:workflow-engine-trigger-actions", organization):
-                rule_id = rule.data.get("legacy_rule_id")
+                rule_id = rule.data.get("actions", [{}])[0].get("legacy_rule_id")
 
             assert rule_id is not None
             path = f"/organizations/{organization.slug}/alerts/rules/{group.project.slug}/{rule_id}/details/"

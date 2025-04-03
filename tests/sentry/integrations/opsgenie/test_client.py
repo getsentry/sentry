@@ -133,8 +133,12 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = Rule.objects.create(
-            project=self.project, label="my rule", data={"legacy_rule_id": 123}
+        rule = self.create_project_rule(
+            action_data=[
+                {
+                    "legacy_rule_id": "123",
+                }
+            ]
         )
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         with self.options({"system.url-prefix": "http://example.com"}):
@@ -157,7 +161,7 @@ class OpsgenieClientTest(APITestCase):
             "priority": "P2",
             "details": {
                 "Project Name": self.project.name,
-                "Triggering Rules": "my rule",
+                "Triggering Rules": rule.label,
                 "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{123}/details/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
@@ -195,7 +199,13 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = Rule.objects.create(project=self.project, label="my rule", data={"workflow_id": 123})
+        rule = self.create_project_rule(
+            action_data=[
+                {
+                    "workflow_id": "123",
+                }
+            ]
+        )
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
@@ -217,7 +227,7 @@ class OpsgenieClientTest(APITestCase):
             "priority": "P2",
             "details": {
                 "Project Name": self.project.name,
-                "Triggering Workflows": "my rule",
+                "Triggering Workflows": rule.label,
                 "Triggering Workflow URLs": f"http://example.com/organizations/{self.organization.id}/workflows/{123}/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
