@@ -166,7 +166,14 @@ class NotifyEventServiceAction(EventAction):
         app = app_service.get_sentry_app_by_slug(slug=service)
 
         if app:
-            metrics.incr("notifications.sent", instance=app.slug, skip_internal=False)
+            metrics.incr(
+                "notifications.sent",
+                instance=app.slug,
+                tags={
+                    "issue_type": event.group.issue_type.slug,
+                },
+                skip_internal=False,
+            )
             yield self.future(notify_sentry_app, sentry_app=app)
 
         try:
@@ -197,7 +204,14 @@ class NotifyEventServiceAction(EventAction):
             extra["project_id"] = self.project.id
             self.logger.info("rules.plugin_notification_sent", extra=extra)
 
-            metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)
+            metrics.incr(
+                "notifications.sent",
+                instance=plugin.slug,
+                tags={
+                    "issue_type": event.group.issue_type.slug,
+                },
+                skip_internal=False,
+            )
             yield self.future(plugin.rule_notify)
 
     def get_sentry_app_services(self) -> Sequence[RpcSentryAppService]:

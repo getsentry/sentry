@@ -69,7 +69,14 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
 
         key = f"msteams:{integration.id}:{channel}"
 
-        metrics.incr("notifications.sent", instance="msteams.notification", skip_internal=False)
+        metrics.incr(
+            "notifications.sent",
+            instance="msteams.notification",
+            tags={
+                "issue_type": event.group.issue_type.slug,
+            },
+            skip_internal=False,
+        )
         yield self.future(send_notification, key=key)
 
     def render_label(self):
