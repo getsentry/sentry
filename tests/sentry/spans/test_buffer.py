@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import itertools
+import time
+from threading import Thread, get_ident
 
 import pytest
 import rapidjson
@@ -74,6 +76,83 @@ def assert_clean(client: StrictRedis[bytes]):
     assert not [x for x in client.keys("*") if b":hrs:" not in x]
 
 
+class _SplitBatch:
+    pass
+
+
+def process_spans_concurrrently(spans: list[Span | _SplitBatch], buffer: SpansBuffer, now):
+    """
+    Call buffer.process_spans on the list of spans, but concurrently.
+    We get a sequence of spans like this:
+
+        A
+        B
+        C
+        SPLIT
+        D
+
+    A, B, C will get their commands executed *interleaved, in round-robin
+    order*, starting with A. (a1, b1, c1, a2, b2, c2, ...)
+
+    then, we start a new round-robin rotation
+    """
+
+    span_chunks: list[list[Span]] = [[]]
+
+    for span in spans:
+        if isinstance(span, _SplitBatch):
+            if span_chunks[-1]:
+                span_chunks.append([])
+        else:
+            span_chunks[-1].append(span)
+
+    def run(spans: list[Span]):
+        buffer.process_spans(spans, now)
+
+    i2 = 0
+    threads = []
+    thread_ids = []
+
+    for chunk in span_chunks:
+        t = Thread(target=run, args=[chunk])
+        threads.append(t)
+        thread_ids.append(t.ident)
+
+    def check_synchronize():
+        nonlocal i2
+
+        ident = get_ident()
+        self_i = thread_ids.index(ident)
+
+        while True:
+            if thread_ids[i2] == ident or not threads[i2].is_alive:
+                i2 = self_i
+                return
+
+            time.sleep(0.1)
+
+    from rediscluster.client import RedisCluster
+
+    old_execute_command = RedisCluster.execute_command
+
+    try:
+
+        def new_execute_command(*args, **kwargs):
+            check_synchronize()
+            return old_execute_command(*args, **kwargs)
+
+        RedisCluster.execute_command = new_execute_command
+
+        for t in threads:
+            t.start()
+
+    finally:
+        RedisCluster.execute_command = old_execute_command
+
+        for t in threads:
+            t.join()
+
+
 @pytest.mark.parametrize(
     "spans",
     list(
@@ -113,7 +192,7 @@ def assert_clean(client: StrictRedis[bytes]):
     ),
 )
 def test_basic(buffer: SpansBuffer, spans):
-    buffer.process_spans(spans, now=0)
+    process_spans_concurrrently(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
 
@@ -146,6 +225,7 @@ def test_basic(buffer: SpansBuffer, spans):
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
+                _SplitBatch(),
                 Span(
                     payload=_payload(b"b" * 16),
                     trace_id="a" * 32,
@@ -173,7 +253,7 @@ def test_basic(buffer: SpansBuffer, spans):
     ),
 )
 def test_deep(buffer: SpansBuffer, spans):
-    buffer.process_spans(spans, now=0)
+    process_spans_concurrrently(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
 
@@ -208,6 +288,7 @@ def test_deep(buffer: SpansBuffer, spans):
                     parent_span_id="d" * 16,
                     project_id=1,
                 ),
+                _SplitBatch(),
                 Span(
                     payload=_payload(b"d" * 16),
                     trace_id="a" * 32,
@@ -242,7 +323,7 @@ def test_deep(buffer: SpansBuffer, spans):
     ),
 )
 def test_deep2(buffer: SpansBuffer, spans):
-    buffer.process_spans(spans, now=0)
+    process_spans_concurrrently(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
 
@@ -278,6 +359,7 @@ def test_deep2(buffer: SpansBuffer, spans):
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
+                _SplitBatch(),
                 Span(
                     payload=_payload(b"d" * 16),
                     trace_id="a" * 32,
@@ -305,7 +387,7 @@ def test_deep2(buffer: SpansBuffer, spans):
     ),
 )
 def test_parent_in_other_project(buffer: SpansBuffer, spans):
-    buffer.process_spans(spans, now=0)
+    process_spans_concurrrently(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
 
@@ -370,7 +452,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
     ),
 )
 def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer, spans):
-    buffer.process_spans(spans, now=0)
+    process_spans_concurrrently(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
 
