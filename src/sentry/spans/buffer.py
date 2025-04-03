@@ -372,8 +372,7 @@ class SpansBuffer:
                 return_segment.append(OutputSpan(payload=val))
 
             return_segments[segment_key] = return_segment
-            if has_root_span:
-                num_has_root_spans += 1
+            num_has_root_spans += int(has_root_span)
         metrics.timing("spans.buffer.flush_segments.num_segments", len(return_segments))
         metrics.timing("spans.buffer.flush_segments.has_root_span", num_has_root_spans)
 
