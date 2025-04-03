@@ -584,18 +584,10 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                   onChange={v => {
                     // Reset price fields if next plan is not AM Enterprise
                     const isManagedPlan = isAmEnterprisePlan(v as string);
-                    const chosenPlanIsAm3Ds = isAm3DsPlan(v as string);
                     const nextPrices = isManagedPlan
                       ? {}
                       : Object.keys(this.state.data)
                           .filter(key => key.startsWith('customPrice'))
-                          .reduce((acc, key) => {
-                            return {...acc, [key]: ''};
-                          }, {});
-                    const nextReservedCpes = chosenPlanIsAm3Ds
-                      ? {}
-                      : Object.keys(this.state.data)
-                          .filter(key => key.startsWith('reservedCpe'))
                           .reduce((acc, key) => {
                             return {...acc, [key]: ''};
                           }, {});
@@ -606,7 +598,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                         ...state.data,
                         plan: v,
                         ...nextPrices,
-                        ...nextReservedCpes,
                       },
                     }));
                   }}
