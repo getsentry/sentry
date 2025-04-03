@@ -1,7 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import ModalStore from 'sentry/stores/modalStore';
-import {Organization} from 'sentry/types/organization';
 import {
   render,
   renderGlobalModal,
@@ -10,6 +8,9 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
+
+import ModalStore from 'sentry/stores/modalStore';
+import type {Organization} from 'sentry/types/organization';
 
 import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
 
@@ -302,7 +303,7 @@ describe('DeleteBillingMetricHistory', function () {
     );
 
     // Now the Delete button should be enabled
-    expect(screen.getByRole('button', {name: 'Delete'})).not.toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Delete'})).toBeEnabled();
   });
 
   it('closes modal when Cancel button is clicked', async function () {
