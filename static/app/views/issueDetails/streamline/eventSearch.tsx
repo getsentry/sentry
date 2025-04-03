@@ -60,7 +60,6 @@ export function useEventQuery({groupId}: {groupId: string}): string {
     environment: environments,
   });
   const filterKeys = useEventSearchFilterKeys(data);
-
   const parsedQuery = useMemo(
     () =>
       parseQueryBuilderValue(eventQuery, getFieldDefinition, {
