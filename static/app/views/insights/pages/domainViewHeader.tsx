@@ -1,16 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import type {Key} from '@react-types/shared';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {Badge} from 'sentry/components/core/badge';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Switch} from 'sentry/components/core/switch';
+import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {TabList} from 'sentry/components/tabs';
 import type {TabListItemProps} from 'sentry/components/tabs/item';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusiness, IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -114,6 +116,12 @@ export function DomainViewHeader({
       })),
   ];
 
+  const handleExperimentDropdownAction = (key: Key) => {
+    if (key === 'eap') {
+      toggleUseEap();
+    }
+  };
+
   return (
     <Fragment>
       <Layout.Header>
@@ -142,8 +150,24 @@ export function DomainViewHeader({
             {additonalHeaderActions}
             {hasEapFlag && (
               <Fragment>
-                Use Eap
-                <Switch checked={useEap} onChange={() => toggleUseEap()} />
+                <DropdownMenu
+                  trigger={triggerProps => (
+                    <StyledDropdownButton {...triggerProps} size={'sm'}>
+                      {/* Passing icon as child to avoid extra icon margin */}
+                      <IconLab isSolid />
+                    </StyledDropdownButton>
+                  )}
+                  onAction={handleExperimentDropdownAction}
+                  items={[
+                    {
+                      key: 'eap',
+                      label: useEap
+                        ? 'Switch to Metrics Dataset'
+                        : 'Switch to EAP Dataset',
+                    },
+                  ]}
+                  position="bottom-end"
+                />
               </Fragment>
             )}
           </ButtonBar>
@@ -190,4 +214,11 @@ const TabContainer = styled('div')`
   align-items: center;
   text-align: left;
   gap: ${space(0.5)};
+`;
+
+const StyledDropdownButton = styled(DropdownButton)`
+  color: ${p => p.theme.button.primary.background};
+  :hover {
+    color: ${p => p.theme.button.primary.background};
+  }
 `;
