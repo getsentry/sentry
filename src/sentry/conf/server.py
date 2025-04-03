@@ -1400,6 +1400,8 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.scheduled",
+    "sentry.monitors.tasks.clock_pulse",
+    "sentry.monitors.tasks.detect_broken_monitor_envs",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
     "sentry.tasks.release_registry",
