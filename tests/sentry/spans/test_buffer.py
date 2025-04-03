@@ -13,6 +13,7 @@ def shallow_permutations(spans: list[Span]) -> list[list[Span]]:
     return [
         spans,
         list(reversed(spans)),
+        [span_or_split for span in spans for span_or_split in [span, _SplitBatch()]],  # type: ignore[misc]
     ]
 
 
@@ -74,6 +75,38 @@ def assert_clean(client: StrictRedis[bytes]):
     assert not [x for x in client.keys("*") if b":hrs:" not in x]
 
 
+class _SplitBatch:
+    pass
+
+
+def process_spans(spans: list[Span | _SplitBatch], buffer: SpansBuffer, now):
+    """
+    Call buffer.process_spans on the list of spans.
+
+    We get a sequence of spans like this:
+
+        A
+        B
+        C
+        SPLIT
+        D
+
+    A, B, C will land in a batch, D will land in its own batch.
+    """
+
+    span_chunks: list[list[Span]] = [[]]
+
+    for span in spans:
+        if isinstance(span, _SplitBatch):
+            if span_chunks[-1]:
+                span_chunks.append([])
+        else:
+            span_chunks[-1].append(span)
+
+    for chunk in span_chunks:
+        buffer.process_spans(chunk, now)
+
+
 @pytest.mark.parametrize(
     "spans",
     list(
@@ -113,7 +146,7 @@ def assert_clean(client: StrictRedis[bytes]):
     ),
 )
 def test_basic(buffer: SpansBuffer, spans):
-    buffer.process_spans(spans, now=0)
+    process_spans(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
 
@@ -146,6 +179,7 @@ def test_basic(buffer: SpansBuffer, spans):
                     parent_span_id="b" * 16,
                     project_id=1,
                 ),
+                _SplitBatch(),
                 Span(
                     payload=_payload(b"b" * 16),
                     trace_id="a" * 32,
@@ -173,7 +207,7 @@ def test_basic(buffer: SpansBuffer, spans):
     ),
 )
 def test_deep(buffer: SpansBuffer, spans):
-    buffer.process_spans(spans, now=0)
+    process_spans(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
 
@@ -242,7 +276,7 @@ def test_deep(buffer: SpansBuffer, spans):
     ),
 )
 def test_deep2(buffer: SpansBuffer, spans):
-    buffer.process_spans(spans, now=0)
+    process_spans(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
 
@@ -305,7 +339,7 @@ def test_deep2(buffer: SpansBuffer, spans):
     ),
 )
 def test_parent_in_other_project(buffer: SpansBuffer, spans):
-    buffer.process_spans(spans, now=0)
+    process_spans(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
 
@@ -370,7 +404,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
     ),
 )
 def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer, spans):
-    buffer.process_spans(spans, now=0)
+    process_spans(spans, buffer, now=0)
 
     assert_ttls(buffer.client)
 
