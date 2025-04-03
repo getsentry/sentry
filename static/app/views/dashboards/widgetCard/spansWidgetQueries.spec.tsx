@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -139,15 +139,17 @@ describe('spansWidgetQueries', () => {
 
     expect(await screen.findByText('1')).toBeInTheDocument();
     expect(eventsStatsMock).toHaveBeenCalledTimes(2);
-    expect(eventsStatsMock).toHaveBeenNthCalledWith(
-      1,
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          sampling: 'PREFLIGHT',
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(eventsStatsMock).toHaveBeenNthCalledWith(
+        1,
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sampling: 'PREFLIGHT',
+          }),
+        })
+      );
+    });
     expect(eventsStatsMock).toHaveBeenNthCalledWith(
       2,
       '/organizations/org-slug/events-stats/',

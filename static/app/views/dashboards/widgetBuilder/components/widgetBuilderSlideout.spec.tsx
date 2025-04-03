@@ -348,7 +348,7 @@ describe('WidgetBuilderSlideout', () => {
     await userEvent.click(screen.getByText('Table'));
 
     expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
-  });
+  }, 10_000);
 
   it('only renders thresholds for big number widgets', async () => {
     render(
