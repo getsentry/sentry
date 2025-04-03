@@ -226,12 +226,9 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
     @sentry_sdk.tracing.trace
     def delete(self, *args, **kwargs):
         if self.path:
-            # Defer this by 1 minute just to make sure
-            # we avoid any transaction isolation where the
-            # FileBlob row might still be visible by the
-            # task before transaction is committed.
-            self._delete_file_task().apply_async(
-                kwargs={"path": self.path, "checksum": self.checksum}, countdown=60
+            transaction.on_commit(
+                lambda: self._delete_file_task().delay(path=self.path, checksum=self.checksum),
+                using=router.db_for_write(self.__class__),
             )
         return super().delete(*args, **kwargs)
 
