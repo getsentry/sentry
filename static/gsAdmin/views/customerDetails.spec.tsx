@@ -4529,8 +4529,8 @@ describe('Customer Details', function () {
         screen.getAllByRole('button', {name: /customers actions/i})[1]!
       );
 
-      // The delete option should not be present
-      expect(screen.queryByText('Delete Billing Metric History')).toBeInTheDocument();
+      // The delete option should be present
+      expect(screen.getByText('Delete Billing Metric History')).toBeInTheDocument();
     });
 
     it('does not show option when feature flag is missing', async function () {
