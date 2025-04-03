@@ -10,15 +10,15 @@ from sentry.models.group import Group
 
 
 @region_silo_endpoint
-class OrganizationGroupSuspectAttributesEndpoint(GroupEndpoint, EnvironmentMixin):
+class OrganizationGroupSuspectFlagsEndpoint(GroupEndpoint, EnvironmentMixin):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 
     def get(self, request: Request, group: Group) -> Response:
         """Stats bucketed by time."""
         environments = [e.name for e in get_environments(request, group.organization)]
         group_id = group.id
-        organization_id = group.organization_id
-        project_id = group.project_id
+        organization_id = group.organization.id
+        project_id = group.project.id
         start, end = group.first_seen, group.last_seen
 
         return Response(
