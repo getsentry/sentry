@@ -68,7 +68,7 @@ export const getChonkStylesConfig = ({
       background: theme.background,
       border: `1px solid ${theme.border}`,
       boxShadow: theme.dropShadowMedium,
-      borderRadius: theme.borderRadius,
+      borderRadius: theme.formRadius[size].borderRadius,
       transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
       ...(state.isFocused && theme.focusRing),
