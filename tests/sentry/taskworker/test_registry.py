@@ -81,12 +81,12 @@ def test_register_inherits_default_expires_processing_deadline() -> None:
         raise NotImplementedError
 
     no_expires_task = namespace.get("test.no_expires")
-    activation = no_expires_task.create_activation()
+    activation = no_expires_task.create_activation([], {})
     assert activation.expires == 10 * 60
     assert activation.processing_deadline_duration == 5
 
     with_expires_task = namespace.get("test.with_expires")
-    activation = with_expires_task.create_activation()
+    activation = with_expires_task.create_activation([], {})
     assert activation.expires == 30 * 60
     assert activation.processing_deadline_duration == 10
 
@@ -115,7 +115,7 @@ def test_namespace_send_task_no_retry() -> None:
     def simple_task() -> None:
         raise NotImplementedError
 
-    activation = simple_task.create_activation()
+    activation = simple_task.create_activation([], {})
     assert activation.retry_state.attempts == 0
     assert activation.retry_state.max_attempts == 1
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DISCARD
@@ -147,7 +147,7 @@ def test_namespace_send_task_with_retry() -> None:
     def simple_task() -> None:
         raise NotImplementedError
 
-    activation = simple_task.create_activation()
+    activation = simple_task.create_activation([], {})
     assert activation.retry_state.attempts == 0
     assert activation.retry_state.max_attempts == 3
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
@@ -175,7 +175,7 @@ def test_namespace_with_retry_send_task() -> None:
     def simple_task() -> None:
         raise NotImplementedError
 
-    activation = simple_task.create_activation()
+    activation = simple_task.create_activation([], {})
     assert activation.retry_state.attempts == 0
     assert activation.retry_state.max_attempts == 3
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
@@ -205,7 +205,7 @@ def test_namespace_with_wait_for_delivery_send_task() -> None:
     def simple_task() -> None:
         raise NotImplementedError
 
-    activation = simple_task.create_activation()
+    activation = simple_task.create_activation([], {})
 
     mock_producer = Mock()
     namespace._producers[Topic.TASKWORKER] = mock_producer

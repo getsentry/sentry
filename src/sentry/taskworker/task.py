@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime
-from collections.abc import Callable
+from collections.abc import Callable, Collection, Mapping
 from functools import update_wrapper
 from typing import TYPE_CHECKING, Any, Generic, ParamSpec, TypeVar
 from uuid import uuid4
@@ -81,30 +81,32 @@ class Task(Generic[P, R]):
         The provided parameters will be JSON encoded and stored within
         a `TaskActivation` protobuf that is appended to kafka
         """
-        if settings.TASK_WORKER_ALWAYS_EAGER:
-            self._func(*args, **kwargs)
-        else:
-            # TODO(taskworker) promote parameters to headers
-            self._namespace.send_task(
-                self.create_activation(*args, **kwargs), wait_for_delivery=self.wait_for_delivery
-            )
+        self.apply_async(args=args, kwargs=kwargs)
 
-    def apply_async(self, args: Any = None, kwargs: Any = None) -> None:
+    def apply_async(
+        self, args: Any = None, kwargs: Any = None, headers: Mapping[str, Any] | None = None
+    ) -> None:
         """
         Schedule a task to run later with a set of arguments.
 
         The provided parameters will be JSON encoded and stored within
         a `TaskActivation` protobuf that is appended to kafka
-
-        Prefer using `delay()` instead of `apply_async()`.
         """
-        if args is None:
-            args = []
-        if kwargs is None:
-            kwargs = {}
-        self.delay(*args, **kwargs)
+        if settings.TASK_WORKER_ALWAYS_EAGER:
+            self._func(*args, **kwargs)
+        else:
+            # TODO(taskworker) promote parameters to headers
+            self._namespace.send_task(
+                self.create_activation(args=args, kwargs=kwargs, headers=headers),
+                wait_for_delivery=self.wait_for_delivery,
+            )
 
-    def create_activation(self, *args: P.args, **kwargs: P.kwargs) -> TaskActivation:
+    def create_activation(
+        self,
+        args: Collection[Any],
+        kwargs: Mapping[Any, Any],
+        headers: Mapping[str, Any] | None = None,
+    ) -> TaskActivation:
         received_at = Timestamp()
         received_at.FromDatetime(timezone.now())
 
@@ -116,9 +118,13 @@ class Task(Generic[P, R]):
         if isinstance(expires, datetime.timedelta):
             expires = int(expires.total_seconds())
 
+        if not headers:
+            headers = {}
+
         headers = {
             "sentry-trace": sentry_sdk.get_traceparent() or "",
             "baggage": sentry_sdk.get_baggage() or "",
+            **headers,
         }
 
         return TaskActivation(
