@@ -1067,7 +1067,8 @@ class Factories:
         group = Group.objects.create(project=project, **kwargs)
         GroupOpenPeriod.objects.create(
             date_started=group.first_seen or timezone.now(),
-            defaults={"group": group, "project": project},
+            group=group,
+            project=project,
         )
         return group
 
