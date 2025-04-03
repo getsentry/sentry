@@ -17,7 +17,7 @@ class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
         return {"organizations:feature-flag-suspect-flags": True}
 
     def test_get(self):
-        today = datetime.datetime.now(tz=datetime.UTC)
+        today = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(minutes=5)
         group = self.create_group(
             first_seen=today - datetime.timedelta(hours=1),
             last_seen=today + datetime.timedelta(hours=1),

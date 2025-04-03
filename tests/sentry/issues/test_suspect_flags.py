@@ -2,7 +2,7 @@ import datetime
 import time
 import uuid
 
-from sentry.issues.suspect_flags import get_suspect_flag_scores, query_flag_rows
+from sentry.issues.suspect_flags import get_suspect_flag_scores, query_selection_set
 from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
@@ -51,7 +51,7 @@ class SnubaTest(TestCase, SnubaTestCase):
             ],
         )
 
-        results = query_flag_rows(1, 1, before, later, environments=[], group_id=None)
+        results = query_selection_set(1, 1, before, later, environments=[], group_id=None)
         assert results == [("key", "false", 1), ("key", "true", 1), ("other", "false", 2)]
 
     def test_get_suspect_flag_scores(self):
