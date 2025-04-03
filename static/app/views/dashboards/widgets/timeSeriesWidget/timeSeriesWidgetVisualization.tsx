@@ -569,6 +569,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         axisPointer: {
           type: 'cross',
         },
+        appendToBody: true,
         formatter: formatTooltip,
       }}
       xAxis={{
