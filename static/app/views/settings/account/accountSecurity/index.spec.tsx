@@ -215,7 +215,7 @@ describe('AccountSecurity', function () {
 
     expect(
       await screen.findByText(
-        'Two-factor authentication is required for organization(s): test 1 and test 2.'
+        'Two-factor authentication is required for organization(s): test-1 and test-2.'
       )
     ).toBeInTheDocument();
   });
