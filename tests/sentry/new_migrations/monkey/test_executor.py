@@ -29,9 +29,7 @@ def mock_getsentry_if_not_registered():
         return
 
     with (
-        patch.dict(
-            apps.app_configs, {"getsentry": DummyGetsentryAppConfig("getsentry", "getsentry")}
-        ),
+        patch.dict(apps.app_configs, {"getsentry": DummyGetsentryAppConfig("getsentry", None)}),
         patch.object(settings, "INSTALLED_APPS", new=settings.INSTALLED_APPS + ("getsentry",)),
     ):
         yield
