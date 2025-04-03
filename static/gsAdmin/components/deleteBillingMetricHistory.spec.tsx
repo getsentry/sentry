@@ -1,7 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
-  render,
   renderGlobalModal,
   screen,
   userEvent,
