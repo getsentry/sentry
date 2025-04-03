@@ -41,7 +41,12 @@ export function OnboardingCodeSnippet({
 
   return (
     <Fragment>
-      <CodeSnippet language={language} {...props} onAfterHighlight={handleAfterHighlight}>
+      <CodeSnippet
+        dark
+        language={language}
+        {...props}
+        onAfterHighlight={handleAfterHighlight}
+      >
         {/* Trim whitespace from code snippets and beautify javascript code */}
         {language === 'javascript'
           ? beautify.js(children, {

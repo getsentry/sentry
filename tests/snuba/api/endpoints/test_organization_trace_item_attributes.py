@@ -113,6 +113,25 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         assert "test.attribute2" in keys
         assert "log.severity_text" in keys
 
+    def test_body_attribute(self):
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "sentry.body": {"string_value": "value1"},
+                },
+            ),
+        ]
+        self.store_ourlogs(logs)
+
+        response = self.do_request()
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert len(keys) == 3
+        assert "log.body" in keys
+
 
 class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpointTestBase):
     viewname = "sentry-api-0-organization-trace-item-attribute-values"

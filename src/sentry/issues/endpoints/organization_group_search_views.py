@@ -12,19 +12,15 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.paginator import SequencePaginator
+from sentry.api.paginator import OffsetPaginator, SequencePaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.groupsearchview import (
-    GroupSearchViewSerializer,
-    GroupSearchViewStarredSerializer,
-)
+from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer
 from sentry.api.serializers.rest_framework.groupsearchview import (
     GroupSearchViewPostValidator,
     GroupSearchViewValidator,
     GroupSearchViewValidatorResponse,
 )
 from sentry.models.groupsearchview import DEFAULT_VIEWS, GroupSearchView, GroupSearchViewVisibility
-from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -148,18 +144,24 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 ),
             )
 
-        starred_views = GroupSearchViewStarred.objects.filter(
+        starred_view_ids = GroupSearchViewStarred.objects.filter(
             organization=organization, user_id=request.user.id
+        ).values_list("group_search_view_id", flat=True)
+
+        user_starred_views = (
+            GroupSearchView.objects.filter(id__in=starred_view_ids)
+            .prefetch_related("projects")
+            .order_by("groupsearchviewstarred__position")
         )
 
         return self.paginate(
             request=request,
-            queryset=starred_views,
-            order_by="position",
+            queryset=user_starred_views,
+            paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(
                 x,
                 request.user,
-                serializer=GroupSearchViewStarredSerializer(
+                serializer=GroupSearchViewSerializer(
                     has_global_views=has_global_views,
                     default_project=default_project,
                     organization=organization,
@@ -195,6 +197,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             is_all_projects=validated_data["isAllProjects"],
             environments=validated_data["environments"],
             time_filters=validated_data["timeFilters"],
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
         view.projects.set(validated_data["projects"])
 
@@ -244,64 +247,51 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         try:
             with transaction.atomic(using=router.db_for_write(GroupSearchView)):
-                new_view_state = bulk_update_views(
+                new_view_ids_state = bulk_update_views(
                     organization, request.user.id, validated_data["views"]
                 )
         except IntegrityError:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        last_visited_views = GroupSearchViewLastVisited.objects.filter(
-            organization=organization,
-            user_id=request.user.id,
-            group_search_view_id__in=[view.id for view in new_view_state],
+        new_user_starred_views = (
+            GroupSearchView.objects.filter(id__in=new_view_ids_state)
+            .prefetch_related("projects")
+            .order_by("groupsearchviewstarred__position")
         )
-        last_visited_map = {lv.group_search_view_id: lv.last_visited for lv in last_visited_views}
+
+        has_global_views = features.has("organizations:global-views", organization)
+        default_project = pick_default_project(organization, request.user)
 
         return self.paginate(
             request=request,
-            paginator=SequencePaginator(
-                [
-                    (
-                        idx,
-                        {
-                            "id": str(view.id),
-                            "name": view.name,
-                            "query": view.query,
-                            "querySort": view.query_sort,
-                            "projects": (
-                                [-1]
-                                if view.is_all_projects
-                                else list(view.projects.values_list("id", flat=True))
-                            ),
-                            "environments": view.environments,
-                            "timeFilters": view.time_filters,
-                            "dateCreated": view.date_added,
-                            "dateUpdated": view.date_updated,
-                            "lastVisited": last_visited_map.get(view.id, None),
-                            "position": idx,
-                        },
-                    )
-                    for idx, view in enumerate(new_view_state)
-                ]
+            queryset=new_user_starred_views,
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(
+                x,
+                request.user,
+                serializer=GroupSearchViewSerializer(
+                    has_global_views=has_global_views,
+                    default_project=default_project,
+                    organization=organization,
+                ),
             ),
-            on_results=lambda results: serialize(results, request.user),
         )
 
 
 def bulk_update_views(
     org: Organization, user_id: int, views: list[GroupSearchViewValidatorResponse]
-) -> list[GroupSearchView]:
+) -> list[int]:
     existing_view_ids = [view["id"] for view in views if "id" in view]
 
     _delete_missing_views(org, user_id, view_ids_to_keep=existing_view_ids)
-    created_views = []
+    created_view_ids = []
     for idx, view in enumerate(views):
         if "id" not in view:
-            created_views.append(_create_view(org, user_id, view, position=idx))
+            created_view_ids.append(_create_view(org, user_id, view, position=idx).id)
         else:
-            created_views.append(_update_existing_view(org, user_id, view, position=idx))
+            created_view_ids.append(_update_existing_view(org, user_id, view, position=idx).id)
 
-    return created_views
+    return created_view_ids
 
 
 def _delete_missing_views(org: Organization, user_id: int, view_ids_to_keep: list[str]) -> None:
@@ -334,7 +324,10 @@ def _update_existing_view(
             organization=org,
             user_id=user_id,
             group_search_view=gsv,
-            defaults={"position": position},
+            defaults={
+                "position": position,
+                "visibility": GroupSearchViewVisibility.ORGANIZATION,
+            },
         )
         return gsv
     except GroupSearchView.DoesNotExist:
@@ -357,6 +350,7 @@ def _create_view(
         is_all_projects=view.get("isAllProjects", False),
         environments=view.get("environments", []),
         time_filters=view.get("timeFilters", {"period": "14d"}),
+        visibility=GroupSearchViewVisibility.ORGANIZATION,
     )
     if "projects" in view:
         gsv.projects.set(view["projects"] or [])
