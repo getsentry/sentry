@@ -65,6 +65,7 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.verify_project_creation("javascript", "Browser JavaScript")
 
     def test_create_delete_create_same_platform(self):
+        "This test ensures that the regression fixed in PR https://github.com/getsentry/sentry/pull/87869 no longer occurs."
         platform = "javascript-nextjs"
         self.start_onboarding()
         self.click_on_platform(platform)
