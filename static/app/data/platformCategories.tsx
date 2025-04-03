@@ -593,6 +593,7 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
 export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
   'javascript',
   'python',
+  'other',
   'javascript-angular',
   'javascript-astro',
   'javascript-ember',
