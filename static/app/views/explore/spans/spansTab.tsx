@@ -38,9 +38,11 @@ import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUti
 import {
   PageParamsProvider,
   useExploreDataset,
+  useExploreFields,
   useExploreMode,
   useExploreQuery,
   useExploreVisualizes,
+  useSetExplorePageParams,
   useSetExploreQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -92,6 +94,8 @@ export function SpansTabContentImpl({
 
   const query = useExploreQuery();
   const setQuery = useSetExploreQuery();
+  const fields = useExploreFields();
+  const setExplorePageParams = useSetExplorePageParams();
 
   const isSchemaHintsDrawerOpenOnLargeScreen = useSchemaHintsOnLargeScreen();
 
@@ -259,8 +263,9 @@ export function SpansTabContentImpl({
             stringTags={stringTags}
             isLoading={numberTagsLoading || stringTagsLoading}
             exploreQuery={query}
-            setExploreQuery={setQuery}
             source={SchemaHintsSources.EXPLORE}
+            tableColumns={fields}
+            setPageParams={setExplorePageParams}
           />
         </SchemaHintsSection>
       </Feature>
@@ -387,8 +392,8 @@ const Body = styled(Layout.Body)<{
     display: grid;
     ${p =>
       p.withToolbar
-        ? `grid-template-columns: 300px minmax(100px, auto) ${p.withHints ? p.thirdColumnWidth : ''};`
-        : `grid-template-columns: 0px minmax(100px, auto) ${p.withHints ? p.thirdColumnWidth : ''};`}
+        ? `grid-template-columns: 300px minmax(100px, auto);`
+        : `grid-template-columns: 0px minmax(100px, auto)`}
     grid-template-rows: auto ${p => (p.withHints ? 'auto 1fr' : '1fr')};
     align-content: start;
     gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};

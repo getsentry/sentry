@@ -20,9 +20,11 @@ import SchemaHintsList, {
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
+  type LogPageParamsUpdate,
   useLogsFields,
   useLogsSearch,
   useSetLogsFields,
+  useSetLogsPageParams,
   useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -49,6 +51,7 @@ export function LogsTabContent({
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const setFields = useSetLogsFields();
+  const setLogsPageParams = useSetLogsPageParams();
   const tableData = useExploreLogsTable({});
   const isSchemaHintsDrawerOpenOnLargeScreen = useSchemaHintsOnLargeScreen();
 
@@ -100,6 +103,7 @@ export function LogsTabContent({
             numberAttributes={numberTags}
             stringAttributes={stringTags}
             itemType={TraceItemDataset.LOGS}
+            submitOnFilterChange
           />
 
           <Button onClick={openColumnEditor} icon={<IconTable />}>
@@ -116,8 +120,11 @@ export function LogsTabContent({
               stringTags={stringTags}
               isLoading={numberTagsLoading || stringTagsLoading}
               exploreQuery={logsSearch.formatString()}
-              setExploreQuery={setLogsQuery}
               source={SchemaHintsSources.LOGS}
+              setPageParams={pageParams =>
+                setLogsPageParams(pageParams as LogPageParamsUpdate)
+              }
+              tableColumns={fields}
             />
           </SchemaHintsSection>
         </Feature>
