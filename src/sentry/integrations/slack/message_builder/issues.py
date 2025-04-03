@@ -638,9 +638,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             if "\n" in original_message:
                 original_message = original_message.strip().split("\n")[0] + "..."
 
-            blocks.append(
-                self.get_text_block(f"*{original_title}*: `{original_message}`", small=True)
-            )
+            original_text = f"*{original_title}*"
+            if original_message:
+                original_text += f": `{original_message}`"
+
+            blocks.append(self.get_text_block(original_text, small=True))
             blocks.append(self.get_text_block(summary_text, small=True))
         else:
             text = text.lstrip(" ")
