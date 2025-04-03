@@ -59,6 +59,7 @@ class TitleLinkParams(TypedDict, total=False):
     referrer: str
     detection_type: str
     notification_uuid: str
+    project_id: int | None
 
 
 def logo_url() -> str:
@@ -151,9 +152,27 @@ def get_title(status: str, name: str) -> str:
 
 
 def build_title_link(
-    identifier_id: int, organization: Organization, params: TitleLinkParams
+    identifier_id: int, organization: Organization, project_id: int | None, params: TitleLinkParams
 ) -> str:
     """Builds the URL for an alert rule with the given parameters."""
+    if features.has("organizations:workflow-engine-trigger-actions", organization) and features.has(
+        "organizations:workflow-engine-ui-links", organization
+    ):
+        # We don't need to save the alert in the query params
+        params.pop("alert", None)
+        if project_id is None:
+            raise ValueError("Project ID is required for workflow engine UI links")
+        return organization.absolute_url(
+            reverse(
+                "sentry-group",
+                kwargs={
+                    "organization_slug": organization.slug,
+                    "project_id": project_id,
+                    "group_id": identifier_id,
+                },
+            ),
+            query=parse.urlencode(params),
+        )
     return organization.absolute_url(
         reverse(
             "sentry-metric-alert-details",
@@ -191,6 +210,10 @@ def incident_attachment_info(
 
     title = get_title(status, alert_context.name)
 
+    project_id = None
+    if metric_issue_context.group:
+        project_id = metric_issue_context.group.project_id
+
     title_link_params: TitleLinkParams = {
         "alert": str(metric_issue_context.open_period_identifier),
         "referrer": referrer,
@@ -200,7 +223,7 @@ def incident_attachment_info(
         title_link_params["notification_uuid"] = notification_uuid
 
     title_link = build_title_link(
-        alert_context.action_identifier_id, organization, title_link_params
+        alert_context.action_identifier_id, organization, project_id, title_link_params
     )
 
     return AttachmentInfo(
@@ -245,7 +268,7 @@ def metric_alert_unfurl_attachment_info(
         title_link_params["alert"] = str(selected_incident.identifier)
 
     title = get_title(status, alert_rule.name)
-    title_link = build_title_link(alert_rule.id, alert_rule.organization, title_link_params)
+    title_link = build_title_link(alert_rule.id, alert_rule.organization, None, title_link_params)
 
     if metric_value is None:
         if (
