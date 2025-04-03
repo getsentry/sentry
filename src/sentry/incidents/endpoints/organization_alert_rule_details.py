@@ -107,7 +107,7 @@ def update_alert_rule(
         except SentryAppBaseError as e:
             return e.response_from_exception()
 
-        if get_slack_actions_with_async_lookups(organization, _anon_to_None(request.user), data):
+        if get_slack_actions_with_async_lookups(organization, data):
             # need to kick off an async job for Slack
             client = RedisRuleStatus()
             task_args = {
