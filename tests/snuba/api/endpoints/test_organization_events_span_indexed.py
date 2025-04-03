@@ -2232,6 +2232,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             },
         ]
         assert meta["dataset"] == self.dataset
+        assert meta["units"] == {"description": None, "epm()": "1/minute"}
+        assert meta["fields"] == {"description": "string", "epm()": "rate"}
 
     def test_is_transaction(self):
         self.store_spans(
@@ -2614,6 +2616,16 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["http_response_rate(4)"] == 0.25
         assert data[0]["http_response_rate(2)"] == 0.25
         assert meta["dataset"] == self.dataset
+        assert meta["fields"] == {
+            "http_response_rate(5)": "percentage",
+            "http_response_rate(4)": "percentage",
+            "http_response_rate(2)": "percentage",
+        }
+        assert meta["units"] == {
+            "http_response_rate(5)": None,
+            "http_response_rate(4)": None,
+            "http_response_rate(2)": None,
+        }
 
     def test_http_response_rate_invalid_param(self):
         self.store_spans(
