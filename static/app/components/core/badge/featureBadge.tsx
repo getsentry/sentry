@@ -7,6 +7,8 @@ import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 
 const defaultTitles: Record<FeatureBadgeProps['type'], string> = {
   alpha: t('This feature is internal and available for QA purposes'),
@@ -73,15 +75,22 @@ function InnerFeatureBadge({
   );
 }
 
-const StyledBadge = styled(Badge)`
-  margin: 0;
-  padding: 0 ${space(0.75)};
-  line-height: ${space(2)};
-  height: ${space(2)};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  vertical-align: middle;
+const ChonkStyledBadge = chonkStyled(Badge)`
+  text-transform: capitalize;
 `;
+
+const StyledBadge = withChonk(
+  styled(Badge)`
+    margin: 0;
+    padding: 0 ${space(0.75)};
+    line-height: ${space(2)};
+    height: ${space(2)};
+    font-weight: ${p => p.theme.fontWeightNormal};
+    font-size: ${p => p.theme.fontSizeExtraSmall};
+    vertical-align: middle;
+  `,
+  ChonkStyledBadge
+);
 
 /**
  * Requires the result of styled(Badge) to be exported as it
