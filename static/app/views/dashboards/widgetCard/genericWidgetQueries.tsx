@@ -14,6 +14,7 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import type {DatasetConfig} from '../datasetConfig/base';
 import type {DashboardFilters, Widget, WidgetQuery} from '../types';
@@ -48,6 +49,7 @@ export type GenericWidgetQueriesChildrenProps = {
   loading: boolean;
   confidence?: Confidence;
   errorMessage?: string;
+  isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
@@ -87,6 +89,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
   onDemandControlContext?: OnDemandControlContext;
+  samplingMode?: SamplingMode;
   // Skips adding parens before applying dashboard filters
   // Used for datasets that do not support parens/boolean logic
   skipDashboardFilterParens?: boolean;
@@ -305,7 +308,6 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       });
     }
   }
-
   async fetchSeriesData(queryFetchID: symbol) {
     const {
       widget: originalWidget,
@@ -317,6 +319,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       onDataFetched,
       mepSetting,
       onDemandControlContext,
+      samplingMode,
     } = this.props;
     const widget = this.widgetForRequest(cloneDeep(originalWidget));
 
@@ -330,7 +333,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           selection,
           onDemandControlContext,
           getReferrer(widget.displayType),
-          mepSetting
+          mepSetting,
+          samplingMode
         );
       })
     );
