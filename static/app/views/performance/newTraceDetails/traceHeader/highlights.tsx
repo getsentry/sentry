@@ -9,7 +9,6 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -17,6 +16,7 @@ import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import {
   TraceShape,
@@ -38,7 +38,7 @@ function LogsHighlights({
     traceItemId: String(log![OurLogKnownFieldKey.ID]),
     projectId: String(log![OurLogKnownFieldKey.PROJECT_ID]),
     traceId: String(log![OurLogKnownFieldKey.TRACE_ID]),
-    dataset: DiscoverDatasets.OURLOGS,
+    traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details', // TODO Abdullah Khan: Add new referrer for trace view header
     enabled: !!logs,
   });

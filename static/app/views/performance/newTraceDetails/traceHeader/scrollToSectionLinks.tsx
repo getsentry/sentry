@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
 import {LinkButton} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -65,7 +66,9 @@ function ScrollToSectionLinks({tree}: {tree: TraceTree}) {
         />
       )}
       <SectionLink sectionKey={TraceContextSectionKeys.TAGS} location={location} />
-      <SectionLink sectionKey={TraceContextSectionKeys.LOGS} location={location} />
+      <Feature features={['ourlogs-enabled']}>
+        <SectionLink sectionKey={TraceContextSectionKeys.LOGS} location={location} />
+      </Feature>
     </Wrapper>
   );
 }
