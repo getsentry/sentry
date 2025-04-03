@@ -38,6 +38,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -642,6 +643,38 @@ def process_group_resolution(
         # before sending notifications on bulk changes
         if not len(group_list) > 1:
             transaction.on_commit(lambda: activity.send_notification(), router.db_for_write(Group))
+
+        try:
+            open_period = GroupOpenPeriod.objects.get(
+                group=group,
+                date_ended__isnull=True,
+            )
+        except GroupOpenPeriod.DoesNotExist:
+            # If we don't have an open period, we need to create one
+            # for the resolution activity
+            logger.exception(
+                "Unable to find open period for group %s", group.id, extra={"group_id": group.id}
+            )
+            unresolve_activity = (
+                Activity.objects.filter(
+                    group=group,
+                    type=ActivityType.SET_UNRESOLVED.value,
+                )
+                .order_by("-datetime")
+                .first()
+            )
+            open_period = GroupOpenPeriod.objects.create(
+                group=group,
+                project=group.project,
+                date_started=unresolve_activity.date,
+                date_ended=None,
+            )
+
+        open_period.update(
+            date_ended=group.resolved_at,
+            resolution_activity=activity,
+            user_id=acting_user.id if acting_user else None,
+        )
 
 
 def merge_groups(
