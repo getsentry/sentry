@@ -93,9 +93,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         metric_issue_context = MetricIssueContext.from_legacy_models(
             incident, IncidentStatus.CLOSED, metric_value
         )
-        metric_issue_context.group = self.create_group(
-            self.project,
-        )
+        metric_issue_context.group = self.group
 
         data = incident_attachment_info(
             organization=incident.organization,

@@ -151,28 +151,27 @@ def get_title(status: str, name: str) -> str:
     return f"{status}: {name}"
 
 
+def build_title_link_workflow_engine_ui(
+    identifier_id: int, organization: Organization, project_id: int, params: TitleLinkParams
+) -> str:
+    """Builds the URL for the metric issue with the given parameters."""
+    return organization.absolute_url(
+        reverse(
+            "sentry-group",
+            kwargs={
+                "organization_slug": organization.slug,
+                "project_id": project_id,
+                "group_id": identifier_id,
+            },
+        ),
+        query=parse.urlencode(params),
+    )
+
+
 def build_title_link(
-    identifier_id: int, organization: Organization, project_id: int | None, params: TitleLinkParams
+    identifier_id: int, organization: Organization, params: TitleLinkParams
 ) -> str:
     """Builds the URL for an alert rule with the given parameters."""
-    if features.has("organizations:workflow-engine-trigger-actions", organization) and features.has(
-        "organizations:workflow-engine-ui-links", organization
-    ):
-        # We don't need to save the alert in the query params
-        params.pop("alert", None)
-        if project_id is None:
-            raise ValueError("Project ID is required for workflow engine UI links")
-        return organization.absolute_url(
-            reverse(
-                "sentry-group",
-                kwargs={
-                    "organization_slug": organization.slug,
-                    "project_id": project_id,
-                    "group_id": identifier_id,
-                },
-            ),
-            query=parse.urlencode(params),
-        )
     return organization.absolute_url(
         reverse(
             "sentry-metric-alert-details",
@@ -210,10 +209,6 @@ def incident_attachment_info(
 
     title = get_title(status, alert_context.name)
 
-    project_id = None
-    if metric_issue_context.group:
-        project_id = metric_issue_context.group.project_id
-
     title_link_params: TitleLinkParams = {
         "alert": str(metric_issue_context.open_period_identifier),
         "referrer": referrer,
@@ -222,9 +217,25 @@ def incident_attachment_info(
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid
 
-    title_link = build_title_link(
-        alert_context.action_identifier_id, organization, project_id, title_link_params
-    )
+    if features.has("organizations:workflow-engine-trigger-actions", organization) and features.has(
+        "organizations:workflow-engine-ui-links", organization
+    ):
+        if metric_issue_context.group is None:
+            raise ValueError("Group is required for workflow engine UI links")
+
+        # We don't need to save the query param the alert rule id here because the link is to the group and not the alert rule
+        title_link_params.pop("alert", None)
+
+        title_link = build_title_link_workflow_engine_ui(
+            metric_issue_context.group.id,
+            organization,
+            metric_issue_context.group.project.id,
+            title_link_params,
+        )
+    else:
+        title_link = build_title_link(
+            alert_context.action_identifier_id, organization, title_link_params
+        )
 
     return AttachmentInfo(
         title=title,
