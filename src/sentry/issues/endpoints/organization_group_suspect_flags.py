@@ -21,6 +21,10 @@ class OrganizationGroupSuspectFlagsEndpoint(GroupEndpoint, EnvironmentMixin):
         project_id = group.project.id
         start, end = group.first_seen, group.last_seen
 
+        # To increase our cache hit-rate we round the dates down to the nearest 5 minute interval.
+        start = start.replace(minute=(start.minute // 5) * 5, second=0, microsecond=0)
+        end = end.replace(minute=(end.minute // 5) * 5, second=0, microsecond=0)
+
         return Response(
             {
                 "data": [
