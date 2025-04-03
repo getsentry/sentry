@@ -2,29 +2,17 @@ from dataclasses import dataclass
 from unittest.mock import ANY, patch
 
 from sentry.constants import SentryAppStatus
+from sentry.plugins.base.manager import PluginManager
+from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.handlers.action.notification.base import IntegrationActionHandler
-from sentry.workflow_engine.handlers.action.notification.common import (
-    GENERIC_ACTION_CONFIG_SCHEMA,
-    MESSAGING_ACTION_CONFIG_SCHEMA,
-    NOTES_SCHEMA,
-    TAGS_SCHEMA,
-)
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.types import ActionHandler
-
-MOCK_DATA_SCHEMA = {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "object",
-    "description": "Mock schema for action data blob",
-    "properties": {
-        "tags": TAGS_SCHEMA,
-        "notes": NOTES_SCHEMA,
-    },
-    "additionalProperties": False,
-}
+from sentry_plugins.pagerduty.plugin import PagerDutyPlugin
+from sentry_plugins.slack.plugin import SlackPlugin
+from sentry_plugins.trello.plugin import TrelloPlugin
 
 
 @region_silo_test
@@ -34,6 +22,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
+
         self.registry = Registry[ActionHandler](enable_reverse_lookup=False)
         self.registry_patcher = patch(
             "sentry.workflow_engine.endpoints.organization_available_action_index.action_handler_registry",
@@ -41,16 +30,24 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         )
         self.registry_patcher.start()
 
+        self.plugin_registry = PluginManager()
+        self.plugins_registry_patcher = patch(
+            "sentry.workflow_engine.processors.action.plugins",
+            new=self.plugin_registry,
+        )
+        self.plugins_registry_patcher.start()
+
     def tearDown(self) -> None:
         super().tearDown()
         self.registry_patcher.stop()
+        self.plugins_registry_patcher.stop()
 
     def test_simple(self):
         @self.registry.register(Action.Type.EMAIL)
         @dataclass(frozen=True)
         class EmailActionHandler(ActionHandler):
             group = ActionHandler.Group.NOTIFICATION
-            config_schema = GENERIC_ACTION_CONFIG_SCHEMA
+            config_schema = {}
             data_schema = {}
 
         response = self.get_success_response(
@@ -62,7 +59,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             {
                 "type": Action.Type.EMAIL,
                 "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
-                "configSchema": GENERIC_ACTION_CONFIG_SCHEMA,
+                "configSchema": {},
                 "dataSchema": {},
             }
         ]
@@ -73,16 +70,16 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         class MSTeamsActionHandler(IntegrationActionHandler):
             group = ActionHandler.Group.NOTIFICATION
             provider_slug = "msteams"
-            config_schema = MESSAGING_ACTION_CONFIG_SCHEMA
-            data_schema = MOCK_DATA_SCHEMA
+            config_schema = {}
+            data_schema = {}
 
         @self.registry.register(Action.Type.SLACK)
         @dataclass(frozen=True)
         class SlackActionHandler(IntegrationActionHandler):
             group = ActionHandler.Group.NOTIFICATION
             provider_slug = "slack"
-            config_schema = MESSAGING_ACTION_CONFIG_SCHEMA
-            data_schema = MOCK_DATA_SCHEMA
+            config_schema = {}
+            data_schema = {}
 
         token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         self.integration = self.create_integration(
@@ -97,20 +94,13 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             self.organization.slug,
             status_code=200,
         )
-        assert len(response.data) == 2
+        assert len(response.data) == 1
         assert response.data == [
-            {
-                "type": Action.Type.MSTEAMS,
-                "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
-                "configSchema": MESSAGING_ACTION_CONFIG_SCHEMA,
-                "dataSchema": MOCK_DATA_SCHEMA,
-                "integrations": [],
-            },
             {
                 "type": Action.Type.SLACK,
                 "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
-                "configSchema": MESSAGING_ACTION_CONFIG_SCHEMA,
-                "dataSchema": MOCK_DATA_SCHEMA,
+                "configSchema": {},
+                "dataSchema": {},
                 "integrations": [{"id": str(self.integration.id), "name": self.integration.name}],
             },
         ]
@@ -120,7 +110,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class SentryAppActionHandler(ActionHandler):
             group = ActionHandler.Group.OTHER
-            config_schema = GENERIC_ACTION_CONFIG_SCHEMA
+            config_schema = {}
             data_schema = {}
 
         self.sentry_app = self.create_sentry_app(
@@ -162,7 +152,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             {
                 "type": Action.Type.SENTRY_APP,
                 "handlerGroup": ActionHandler.Group.OTHER.value,
-                "configSchema": GENERIC_ACTION_CONFIG_SCHEMA,
+                "configSchema": {},
                 "dataSchema": {},
                 "sentryApp": {
                     "id": str(self.sentry_app.id),
@@ -175,7 +165,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             {
                 "type": Action.Type.SENTRY_APP,
                 "handlerGroup": ActionHandler.Group.OTHER.value,
-                "configSchema": GENERIC_ACTION_CONFIG_SCHEMA,
+                "configSchema": {},
                 "dataSchema": {},
                 "sentryApp": {
                     "id": str(self.no_component_sentry_app.id),
@@ -186,27 +176,75 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             },
         ]
 
+    def test_webhooks(self):
+        @self.registry.register(Action.Type.WEBHOOK)
+        @dataclass(frozen=True)
+        class WebhookActionHandler(ActionHandler):
+            group = ActionHandler.Group.OTHER
+            config_schema = {}
+            data_schema = {}
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=200,
+        )
+        assert len(response.data) == 0
+
+        self.plugin_registry.register(WebHooksPlugin)
+        self.webhooks_plugin = self.plugin_registry.get(WebHooksPlugin.slug)
+        self.webhooks_plugin.enable(self.project)
+
+        self.plugin_registry.register(SlackPlugin)
+        self.slack_plugin = self.plugin_registry.get(SlackPlugin.slug)
+        self.slack_plugin.enable(self.project)
+
+        # non notification plugins should not be returned
+        self.plugin_registry.register(TrelloPlugin)
+        self.trello_plugin = self.plugin_registry.get(TrelloPlugin.slug)
+        self.trello_plugin.enable(self.project)
+
+        # plugins that are not enabled should not be returned
+        self.plugin_registry.register(PagerDutyPlugin)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=200,
+        )
+        assert len(response.data) == 1
+        assert response.data == [
+            {
+                "type": Action.Type.WEBHOOK,
+                "handlerGroup": ActionHandler.Group.OTHER.value,
+                "configSchema": {},
+                "dataSchema": {},
+                "services": [
+                    {"slug": "slack", "name": "(Legacy) Slack"},
+                    {"slug": "webhooks", "name": "WebHooks"},
+                ],
+            }
+        ]
+
     def test_actions_sorting(self):
         @self.registry.register(Action.Type.MSTEAMS)
         @dataclass(frozen=True)
         class MSTeamsActionHandler(IntegrationActionHandler):
             group = ActionHandler.Group.NOTIFICATION
             provider_slug = "msteams"
-            config_schema = MESSAGING_ACTION_CONFIG_SCHEMA
-            data_schema = MOCK_DATA_SCHEMA
+            config_schema = {}
+            data_schema = {}
 
         @self.registry.register(Action.Type.EMAIL)
         @dataclass(frozen=True)
         class EmailActionHandler(ActionHandler):
             group = ActionHandler.Group.NOTIFICATION
-            config_schema = GENERIC_ACTION_CONFIG_SCHEMA
+            config_schema = {}
             data_schema = {}
 
         @self.registry.register(Action.Type.SENTRY_APP)
         @dataclass(frozen=True)
         class SentryAppActionHandler(ActionHandler):
             group = ActionHandler.Group.OTHER
-            config_schema = GENERIC_ACTION_CONFIG_SCHEMA
+            config_schema = {}
             data_schema = {}
 
         self.no_component_sentry_app = self.create_sentry_app(
@@ -237,11 +275,11 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         class SlackActionHandler(IntegrationActionHandler):
             group = ActionHandler.Group.NOTIFICATION
             provider_slug = "slack"
-            config_schema = MESSAGING_ACTION_CONFIG_SCHEMA
-            data_schema = MOCK_DATA_SCHEMA
+            config_schema = {}
+            data_schema = {}
 
         token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        self.integration = self.create_integration(
+        self.slack_integration = self.create_integration(
             organization=self.organization,
             external_id="1",
             name="My Slack Integration",
@@ -265,52 +303,76 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             config_schema = {}
             data_schema = {}
 
+        token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        self.github_integration = self.create_integration(
+            organization=self.organization,
+            external_id="1",
+            name="My GitHub Integration",
+            provider="github",
+            metadata={"access_token": token, "installation_type": "born_as_bot"},
+        )
+
         @self.registry.register(Action.Type.PLUGIN)
         @dataclass(frozen=True)
         class PluginActionHandler(ActionHandler):
             group = ActionHandler.Group.OTHER
 
-            config_schema = GENERIC_ACTION_CONFIG_SCHEMA
+            config_schema = {}
             data_schema = {}
+
+        @self.registry.register(Action.Type.WEBHOOK)
+        @dataclass(frozen=True)
+        class WebhookActionHandler(ActionHandler):
+            group = ActionHandler.Group.OTHER
+            config_schema = {}
+            data_schema = {}
+
+        self.plugin_registry.register(WebHooksPlugin)
+        self.webhooks_plugin = self.plugin_registry.get(WebHooksPlugin.slug)
+        self.webhooks_plugin.enable(self.project)
 
         response = self.get_success_response(
             self.organization.slug,
             status_code=200,
         )
-        assert len(response.data) == 8
+        assert len(response.data) == 7
         assert response.data == [
             # notification actions, sorted alphabetically with email first
             {
                 "type": Action.Type.EMAIL,
                 "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
-                "configSchema": GENERIC_ACTION_CONFIG_SCHEMA,
+                "configSchema": {},
                 "dataSchema": {},
-            },
-            {
-                "type": Action.Type.MSTEAMS,
-                "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
-                "configSchema": MESSAGING_ACTION_CONFIG_SCHEMA,
-                "dataSchema": MOCK_DATA_SCHEMA,
-                "integrations": [],
             },
             {
                 "type": Action.Type.SLACK,
                 "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
-                "configSchema": MESSAGING_ACTION_CONFIG_SCHEMA,
-                "dataSchema": MOCK_DATA_SCHEMA,
-                "integrations": [{"id": str(self.integration.id), "name": self.integration.name}],
+                "configSchema": {},
+                "dataSchema": {},
+                "integrations": [
+                    {"id": str(self.slack_integration.id), "name": self.slack_integration.name}
+                ],
             },
             # other actions, non sentry app actions first then sentry apps sorted alphabetically by name
             {
                 "type": Action.Type.PLUGIN,
                 "handlerGroup": ActionHandler.Group.OTHER.value,
-                "configSchema": GENERIC_ACTION_CONFIG_SCHEMA,
+                "configSchema": {},
                 "dataSchema": {},
+            },
+            {
+                "type": Action.Type.WEBHOOK,
+                "handlerGroup": ActionHandler.Group.OTHER.value,
+                "configSchema": {},
+                "dataSchema": {},
+                "services": [
+                    {"slug": "webhooks", "name": "WebHooks"},
+                ],
             },
             {
                 "type": Action.Type.SENTRY_APP,
                 "handlerGroup": ActionHandler.Group.OTHER.value,
-                "configSchema": GENERIC_ACTION_CONFIG_SCHEMA,
+                "configSchema": {},
                 "dataSchema": {},
                 "sentryApp": {
                     "id": str(self.sentry_app.id),
@@ -323,7 +385,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             {
                 "type": Action.Type.SENTRY_APP,
                 "handlerGroup": ActionHandler.Group.OTHER.value,
-                "configSchema": GENERIC_ACTION_CONFIG_SCHEMA,
+                "configSchema": {},
                 "dataSchema": {},
                 "sentryApp": {
                     "id": str(self.no_component_sentry_app.id),
@@ -338,13 +400,8 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "handlerGroup": ActionHandler.Group.TICKET_CREATION.value,
                 "configSchema": {},
                 "dataSchema": {},
-                "integrations": [],
-            },
-            {
-                "type": Action.Type.JIRA,
-                "handlerGroup": ActionHandler.Group.TICKET_CREATION.value,
-                "configSchema": {},
-                "dataSchema": {},
-                "integrations": [],
+                "integrations": [
+                    {"id": str(self.github_integration.id), "name": self.github_integration.name}
+                ],
             },
         ]

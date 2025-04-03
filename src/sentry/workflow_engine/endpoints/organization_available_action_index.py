@@ -23,7 +23,10 @@ from sentry.workflow_engine.endpoints.serializers import (
     ActionHandlerSerializerResponse,
 )
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.processors.action import get_available_action_integrations_for_org
+from sentry.workflow_engine.processors.action import (
+    get_available_action_integrations_for_org,
+    get_notification_plugins_for_org,
+)
 from sentry.workflow_engine.registry import action_handler_registry
 
 
@@ -68,15 +71,16 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
             # add integration actions
             if hasattr(handler, "provider_slug"):
                 integrations = provider_integrations.get(handler.provider_slug, [])
-                actions.append(
-                    serialize(
-                        handler,
-                        request.user,
-                        ActionHandlerSerializer(),
-                        action_type=action_type,
-                        integrations=integrations,
+                if integrations:
+                    actions.append(
+                        serialize(
+                            handler,
+                            request.user,
+                            ActionHandlerSerializer(),
+                            action_type=action_type,
+                            integrations=integrations,
+                        )
                     )
-                )
 
             # add alertable sentry app actions
             elif action_type == Action.Type.SENTRY_APP:
@@ -92,9 +96,19 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                             )
                         )
 
-            # TODO(mia): handle adding webhoook actions
+            # add plugin service actions
             elif action_type == Action.Type.WEBHOOK:
-                continue
+                plugins = get_notification_plugins_for_org(organization)
+                if plugins:
+                    actions.append(
+                        serialize(
+                            handler,
+                            request.user,
+                            ActionHandlerSerializer(),
+                            action_type=action_type,
+                            services=plugins,
+                        )
+                    )
 
             # add all other actions
             else:
@@ -107,7 +121,11 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
         actions.sort(
             key=lambda x: (
                 x["handlerGroup"],
-                (0 if x["type"] == Action.Type.EMAIL else 1),
+                (
+                    0
+                    if x["type"] in [Action.Type.EMAIL, Action.Type.PLUGIN, Action.Type.WEBHOOK]
+                    else 1
+                ),
                 x["type"],
                 (x["sentryApp"].get("name", "") if x.get("sentryApp") else ""),
             )

@@ -228,6 +228,28 @@ class NotifyEventServiceAction(EventAction):
 
         return results
 
+    def get_plugins_for_organization(self) -> Sequence[PluginService]:
+        """
+        Gets all plugins for an organization, not just for a specific project.
+        This method returns a deduplicated list of plugins that are enabled for any project in the organization.
+        """
+        from sentry.models.project import Project
+        from sentry.plugins.bases.notify import NotificationPlugin
+
+        organization_projects = Project.objects.filter(organization_id=self.project.organization_id)
+
+        plugin_map = {}
+
+        for project in organization_projects:
+            for plugin in plugins.for_project(project, version=1):
+                if not isinstance(plugin, NotificationPlugin):
+                    continue
+
+                if plugin.slug not in plugin_map:
+                    plugin_map[plugin.slug] = PluginService(plugin)
+
+        return list(plugin_map.values())
+
     def get_services(self) -> Sequence[Any]:
         return [*self.get_plugins(), *self.get_sentry_app_services()]
 

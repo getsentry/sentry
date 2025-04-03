@@ -5,6 +5,7 @@ from typing import Any, NotRequired, TypedDict
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.options.project_option import ProjectOption
+from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
 from sentry.utils import json
 from sentry.workflow_engine.models import (
     Action,
@@ -56,10 +57,16 @@ class ActionHandlerSerializerResponse(TypedDict):
     dataSchema: dict
     sentryApp: NotRequired[SentryAppContext]
     integrations: NotRequired[list]
+    services: NotRequired[list]
 
 
 @register(ActionHandler)
 class ActionHandlerSerializer(Serializer):
+    def transform_title(self, title: str) -> str:
+        if title in PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS:
+            return f"(Legacy) {title}"
+        return title
+
     def serialize(
         self,
         obj: ActionHandler,
@@ -97,6 +104,15 @@ class ActionHandlerSerializer(Serializer):
             if sentry_app_context.component:
                 sentry_app["settings"] = sentry_app_context.component.app_schema.get("settings", {})
             result["sentryApp"] = sentry_app
+
+        services = kwargs.get("services")
+        if services:
+            services_list = [
+                {"slug": service.slug, "name": self.transform_title(service.title)}
+                for service in services
+            ]
+            services_list.sort(key=lambda x: x["name"])
+            result["services"] = services_list
 
         return result
 
