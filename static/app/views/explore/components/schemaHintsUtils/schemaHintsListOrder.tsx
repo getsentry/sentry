@@ -47,7 +47,6 @@ const SCHEMA_HINTS_LIST_ORDER_KEYS_EXPLORE = [
 
 const SCHEMA_HINTS_HIDDEN_KEYS_LOGS = [
   OurLogKnownFieldKey.SEVERITY_NUMBER, // Severity number is a detail saved by the OTel protocol, and may not be required. 'level' is a mandatory field on the new 'log' ItemType schema.
-  OurLogKnownFieldKey.SENTRY_PROJECT_ID, // Public alias since int<->string alias reversing is broken. Should be removed in the future.
   OurLogKnownFieldKey.ITEM_TYPE, // This is a detail internal to the trace items table.
   OurLogKnownFieldKey.ID, // This is a detail internal to the trace items table.
 ];

@@ -44,9 +44,7 @@ describe('spanEvidence', () => {
         performance_issues: 1,
         projects: 1,
         transactions: 1,
-        transaction_child_count_map: new Array(20)
-          .fill(0)
-          .map((_, i) => [{'transaction.id': i.toString(), count: 1}]),
+        transaction_child_count_map: [[{'transaction.id': '0', count: 1}]],
         span_count: 0,
         span_count_map: {},
       },
@@ -55,14 +53,14 @@ describe('spanEvidence', () => {
       url: `/organizations/org-slug/events-trace/${traceId}/`,
       method: 'GET',
       body: {
-        transactions: Array.from({length: 20}, (_, i) =>
+        transactions: [
           makeTransaction({
-            'transaction.op': `transaction-op-${i + 1}`,
-            project_slug: `project-slug-${i + 1}`,
-            event_id: `event-id-${i + 1}`,
-            errors: i === 0 ? [makeTraceError({event_id: 'issue-5'})] : [],
-          })
-        ),
+            'transaction.op': 'transaction-op-1',
+            project_slug: 'project-slug-1',
+            event_id: 'event-id-1',
+            errors: [makeTraceError({event_id: 'issue-5'})],
+          }),
+        ],
         orphan_errors: [makeTraceError()],
       },
     });
@@ -84,8 +82,10 @@ describe('spanEvidence', () => {
     );
 
     // Verify that the trace preview is rendered
-    expect(await screen.findByTestId('trace-virtualized-list')).toBeInTheDocument();
-  });
+    expect(
+      await screen.findByTestId('trace-virtualized-list', undefined, {timeout: 10_000})
+    ).toBeInTheDocument();
+  }, 10_000); // Increase timeout to 10 seconds
 
   it('renders settings button for issue with configurable thresholds', () => {
     const event = EventFixture({

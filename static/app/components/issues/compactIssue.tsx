@@ -40,7 +40,7 @@ function CompactIssueHeader({data, organization, eventId}: HeaderProps) {
   return (
     <Fragment>
       <IssueHeaderMetaWrapper>
-        <StyledErrorLevel size={12} level={data.level} />
+        <StyledErrorLevel level={data.level} />
         <h3 className="truncate">
           <IconLink to={issueLink || ''}>
             {data.status === 'ignored' && <IconMute size="xs" />}
