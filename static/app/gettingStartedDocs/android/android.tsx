@@ -134,7 +134,7 @@ ${
   params.isProfilingSelected &&
   params.profilingOptions?.defaultProfilingMode === 'continuous'
     ? `
-// Stop profiling, if lifecycle is set to \`manual\`. This call is optional. If you don't stop the profiler, it will keep profiling your application until the process exits or \`Sentry.stopProfiler()\` is called.
+// Stop profiling, if lifecycle is set to \`manual\`. This call is optional. If you don't stop the profiler, it will keep profiling your application until the process exits.
 Sentry.stopProfiler()`
     : ''
 }`;
