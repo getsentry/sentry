@@ -14,7 +14,9 @@ class WorkflowFireHistory(DefaultFieldsModel):
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     event_id = CharField(max_length=32)
     notification_uuid = UUIDField(auto_add=True, unique=True)
-    has_fired_actions = models.BooleanField(default=False)  # whether or not actions were triggered
+    has_fired_actions = models.BooleanField(
+        default=False, db_default=False
+    )  # used for rollout -- whether at least one group of actions was triggered (Rules have 1 group of actions)
 
     class Meta:
         db_table = "workflow_engine_workflowfirehistory"
