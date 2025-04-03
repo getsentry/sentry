@@ -19,6 +19,7 @@ import {
   type TimeSeriesWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import type {WidgetTitleProps} from 'sentry/views/dashboards/widgets/widget/widgetTitle';
 
 import {
   AVG_COLOR,
@@ -32,15 +33,15 @@ import {INGESTION_DELAY} from '../../settings';
 import type {DiscoverSeries} from '../queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from '../utils/convertSeriesToTimeseries';
 
-export interface InsightsTimeSeriesWidgetProps {
+export interface InsightsTimeSeriesWidgetProps extends WidgetTitleProps {
   error: Error | null;
   isLoading: boolean;
   series: DiscoverSeries[];
-  title: string;
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
   description?: React.ReactNode;
   height?: string | number;
+  interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
   stacked?: boolean;
@@ -76,7 +77,11 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     }),
   };
 
-  const Title = <Widget.WidgetTitle title={props.title} />;
+  const Title = props.interactiveTitle ? (
+    props.interactiveTitle()
+  ) : (
+    <Widget.WidgetTitle title={props.title} />
+  );
 
   // TODO: Instead of using `ChartContainer`, enforce the height from the parent layout
   if (props.isLoading) {
