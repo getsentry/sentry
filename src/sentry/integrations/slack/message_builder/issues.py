@@ -401,7 +401,6 @@ def build_actions(
             label="Select Assignee...",
             type="select",
             selected_options=format_actor_options_slack([assignee]) if assignee else [],
-            option_groups=get_option_groups(group),
         )
         return assign_button
 
