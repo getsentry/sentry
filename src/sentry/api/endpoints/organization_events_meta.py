@@ -8,7 +8,11 @@ from rest_framework.response import Response
 from sentry import features, options, search
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase, OrganizationEventsV2EndpointBase
+from sentry.api.bases import (
+    NoProjects,
+    OrganizationEventsEndpointBase,
+    OrganizationEventsV2EndpointBase,
+)
 from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
@@ -180,7 +184,9 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
             return Response({})
 
         use_rpc = request.GET.get("useRpc", "0") == "1"
-        transform_alias_to_input_format = request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
+        transform_alias_to_input_format = (
+            request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
+        )
 
         if use_rpc:
             result = get_eap_span_samples(request, snuba_params)
@@ -199,7 +205,9 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
         )
 
 
-def get_span_samples(request: Request, snuba_params: SnubaParams, transform_alias_to_input_format: bool):
+def get_span_samples(
+    request: Request, snuba_params: SnubaParams, transform_alias_to_input_format: bool
+):
     is_frontend = is_frontend_request(request)
     buckets = request.GET.get("intervals", 3)
     lower_bound = request.GET.get("lowerBound", 0)
@@ -275,7 +283,7 @@ def get_span_samples(request: Request, snuba_params: SnubaParams, transform_alia
         limit=9,
         referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
         query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
-        transform_alias_to_input_format=transform_alias_to_input_format
+        transform_alias_to_input_format=transform_alias_to_input_format,
     )
 
 
