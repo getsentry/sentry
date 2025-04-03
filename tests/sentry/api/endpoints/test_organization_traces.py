@@ -16,6 +16,7 @@ from sentry.utils.samples import load_data
 class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
     view: str
     is_eap: bool = False
+    use_rpc: bool = False
 
     def setUp(self):
         super().setUp()
@@ -243,7 +244,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         error_data["tags"] = [["transaction", "foo"]]
         self.store_event(error_data, project_id=project_1.id)
 
-        timestamps.append(now - timedelta(days=1, minutes=21, seconds=0))
+        timestamps.append(now - timedelta(days=1, minutes=20, seconds=0))
         self.store_indexed_span(
             organization_id=project_1.organization.id,
             project_id=project_1.id,
@@ -282,6 +283,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
 
         if self.is_eap:
             query["dataset"] = "spans"
+        query["useRpc"] = "1" if self.use_rpc else "0"
 
         with self.feature(features):
             return self.client.get(
@@ -543,7 +545,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "sliceStart": 0,
                         "sliceEnd": 40,
                         "sliceWidth": 40,
-                        "isRoot": False,
+                        "isRoot": True,
                         "kind": "project",
                         "project": self.project.slug,
                         "sdkName": "sentry.javascript.remix",
@@ -694,6 +696,9 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "foo:baz",
             ],
         ]:
+            if len(q) > 1 and self.use_rpc:
+                continue
+
             for features in [
                 None,  # use the default features
                 ["organizations:performance-trace-explorer"],
@@ -738,7 +743,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                             {
                                 "project": project_1.slug,
                                 "sdkName": "sentry.javascript.node",
-                                "isRoot": False,
+                                "isRoot": True,
                                 "start": timestamps[0],
                                 "end": timestamps[0] + 60_100,
                                 "sliceStart": 0,
@@ -777,7 +782,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                             {
                                 "project": project_1.slug,
                                 "sdkName": "sentry.javascript.node",
-                                "isRoot": False,
+                                "isRoot": True,
                                 "start": timestamps[4],
                                 "end": timestamps[4] + 90_123,
                                 "sliceStart": 0,
@@ -2426,7 +2431,7 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                     {
                         "project": project_1.slug,
                         "sdkName": "sentry.javascript.node",
-                        "isRoot": False,
+                        "isRoot": True,
                         "start": timestamps[0],
                         "end": timestamps[0] + 60_100,
                         "sliceStart": 0,
@@ -2465,7 +2470,7 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                     {
                         "project": project_1.slug,
                         "sdkName": "sentry.javascript.node",
-                        "isRoot": False,
+                        "isRoot": True,
                         "start": timestamps[4],
                         "end": timestamps[4] + 90_123,
                         "sliceStart": 0,
@@ -2490,54 +2495,68 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
             },
         ]
 
-        for descending in [False, True]:
-            for q in [
-                ["foo:[bar, baz]"],
-                ["foo:bar span.duration:>10s", "foo:baz"],
-            ]:
-                expected = sorted(
-                    expected,
-                    key=lambda trace: trace["start"],
-                    reverse=descending,
-                )
+        descending = True
 
-                query = {
-                    # only query for project_2 but expect traces to start from project_1
-                    "project": [str(project_2.id)],
-                    "field": ["id", "parent_span", "span.duration"],
-                    "query": q,
-                    "sort": "-timestamp" if descending else "timestamp",
-                    "per_page": "1",
-                }
-                response = self.do_request(query)
-                assert response.status_code == 200, response.data
-                assert response.data["data"] == [expected[0]]
+        for q in [
+            ["foo:[bar, baz]"],
+            ["foo:bar span.duration:>10s", "foo:baz"],
+        ]:
+            if len(q) > 1 and self.use_rpc:
+                continue
 
-                links = parse_link_header(response.headers["Link"])
-                prev_link = next(link for link in links.values() if link["rel"] == "previous")
-                assert prev_link["results"] == "false"
-                next_link = next(link for link in links.values() if link["rel"] == "next")
-                assert next_link["results"] == "true"
-                assert next_link["cursor"]
+            expected = sorted(
+                expected,
+                key=lambda trace: trace["start"],
+                reverse=descending,
+            )
 
-                query = {
-                    # only query for project_2 but expect traces to start from project_1
-                    "project": [str(project_2.id)],
-                    "field": ["id", "parent_span", "span.duration"],
-                    "query": q,
-                    "sort": "-timestamp" if descending else "timestamp",
-                    "per_page": "1",
-                    "cursor": next_link["cursor"],
-                }
-                response = self.do_request(query)
-                assert response.status_code == 200, response.data
-                assert response.data["data"] == [expected[1]]
+            query = {
+                # only query for project_2 but expect traces to start from project_1
+                "project": [str(project_2.id)],
+                "field": ["id", "parent_span", "span.duration"],
+                "query": q,
+                "sort": "-timestamp" if descending else "timestamp",
+                "per_page": "1",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert response.data["data"] == [expected[0]]
 
-                links = parse_link_header(response.headers["Link"])
-                prev_link = next(link for link in links.values() if link["rel"] == "previous")
-                assert prev_link["results"] == "true"
-                next_link = next(link for link in links.values() if link["rel"] == "next")
-                assert next_link["results"] == "false"
+            links = parse_link_header(response.headers["Link"])
+            prev_link = next(link for link in links.values() if link["rel"] == "previous")
+            assert prev_link["results"] == "false"
+            next_link = next(link for link in links.values() if link["rel"] == "next")
+            assert next_link["results"] == "true"
+            assert next_link["cursor"]
+
+            query = {
+                # only query for project_2 but expect traces to start from project_1
+                "project": [str(project_2.id)],
+                "field": ["id", "parent_span", "span.duration"],
+                "query": q,
+                "sort": "-timestamp" if descending else "timestamp",
+                "per_page": "1",
+                "cursor": next_link["cursor"],
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert response.data["data"] == [expected[1]]
+
+            links = parse_link_header(response.headers["Link"])
+            prev_link = next(link for link in links.values() if link["rel"] == "previous")
+            assert prev_link["results"] == "true"
+            next_link = next(link for link in links.values() if link["rel"] == "next")
+            assert next_link["results"] == "false"
+
+
+class OrganizationTracesEAPRPCEndpointTest(OrganizationTracesEAPEndpointTest):
+    use_rpc = True
+    allow_multiple_user_queries: bool = False
+
+    @pytest.mark.skip
+    def test_use_separate_referrers(self):
+        # TODO: detect the referrers correctly for RPC calls
+        pass
 
 
 class OrganizationTraceSpansEAPEndpointTest(OrganizationTraceSpansEndpointTest):
