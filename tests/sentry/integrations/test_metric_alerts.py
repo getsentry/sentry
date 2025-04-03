@@ -94,6 +94,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             incident, IncidentStatus.CLOSED, metric_value
         )
         metric_issue_context.group = self.group
+        assert metric_issue_context.group is not None
 
         data = incident_attachment_info(
             organization=incident.organization,
