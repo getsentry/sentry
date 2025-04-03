@@ -365,6 +365,8 @@ def get_seer_similar_issues(
             "event_id": event.event_id,
             "project_id": event.project.id,
             "hash": event_hash,
+            "num_seer_matches": len(seer_results),
+            "num_seer_matches_checked": parent_grouphashes_checked,
             "matching_result": matching_seer_result,
             "grouphash_returned": bool(winning_parent_grouphash),
         },
