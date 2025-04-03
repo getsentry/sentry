@@ -4,6 +4,7 @@ import {t} from 'sentry/locale';
 
 import {
   isAutogroupedNode,
+  isEAPErrorNode,
   isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
@@ -37,6 +38,10 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
 
   if (isTraceErrorNode(node)) {
     return node.value.message ?? node.value.title ?? 'Error';
+  }
+
+  if (isEAPErrorNode(node)) {
+    return node.value.description ?? 'Error';
   }
 
   if (isTraceNode(node)) {

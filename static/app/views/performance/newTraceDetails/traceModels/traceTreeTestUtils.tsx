@@ -9,6 +9,7 @@ import type {
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import {
   isAutogroupedNode,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -136,6 +137,7 @@ export function makeTraceError(
     title: 'MaybeEncodingError: Error sending result',
     level: 'error',
     event_type: 'error',
+    message: 'error message',
     data: {},
     ...overrides,
   } as TraceTree.TraceError;
@@ -227,6 +229,13 @@ export function assertTransactionNode(
   }
 }
 
+export function assertEAPSpanNode(
+  node: TraceTreeNode<TraceTree.NodeValue> | null
+): asserts node is TraceTreeNode<TraceTree.EAPSpan> {
+  if (!node || !isEAPSpanNode(node)) {
+    throw new Error('node is not a eap span');
+  }
+}
 export function assertMissingInstrumentationNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): asserts node is TraceTreeNode<TraceTree.MissingInstrumentationSpan> {

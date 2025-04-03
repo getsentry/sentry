@@ -12,6 +12,7 @@ import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {EventError} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {isTraceErrorNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 
 import type {TraceTreeNodeDetailsProps} from '../../traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceIcons} from '../../traceIcons';
@@ -25,7 +26,9 @@ import {IssueList} from './issues/issues';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';
 
 export function ErrorNodeDetails(
-  props: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.TraceError>>
+  props: TraceTreeNodeDetailsProps<
+    TraceTreeNode<TraceTree.TraceError> | TraceTreeNode<TraceTree.EAPError>
+  >
 ) {
   const hasTraceNewUi = useHasTraceNewUi();
   const {node, organization, onTabScrollToNode} = props;
@@ -72,7 +75,9 @@ function LegacyErrorNodeDetails({
   organization,
   onTabScrollToNode,
   onParentClick,
-}: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.TraceError>>) {
+}: TraceTreeNodeDetailsProps<
+  TraceTreeNode<TraceTree.TraceError> | TraceTreeNode<TraceTree.EAPError>
+>) {
   const issues = useMemo(() => {
     return [...node.errors];
   }, [node.errors]);
@@ -97,13 +102,15 @@ function LegacyErrorNodeDetails({
   const theme = useTheme();
   const parentTransaction = TraceTree.ParentTransaction(node);
 
-  const items: SectionCardKeyValueList = [
-    {
+  const items: SectionCardKeyValueList = [];
+
+  if (isTraceErrorNode(node)) {
+    items.push({
       key: 'title',
       subject: t('Title'),
       value: <TraceDrawerComponents.CopyableCardValueWithLink value={node.value.title} />,
-    },
-  ];
+    });
+  }
 
   if (parentTransaction) {
     items.push({
@@ -117,6 +124,9 @@ function LegacyErrorNodeDetails({
     });
   }
 
+  const description = isTraceErrorNode(node)
+    ? (node.value.message ?? node.value.title)
+    : node.value.description;
   return isPending ? (
     <LoadingIndicator />
   ) : data ? (
@@ -130,9 +140,7 @@ function LegacyErrorNodeDetails({
           </TraceDrawerComponents.IconBorder>
           <TraceDrawerComponents.LegacyTitleText>
             <div>{node.value.level ?? t('error')}</div>
-            <TraceDrawerComponents.TitleOp
-              text={node.value.message ?? node.value.title ?? 'Error'}
-            />
+            <TraceDrawerComponents.TitleOp text={description ?? 'Error'} />
           </TraceDrawerComponents.LegacyTitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>

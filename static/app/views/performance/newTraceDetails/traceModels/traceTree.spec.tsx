@@ -16,6 +16,7 @@ import {
 import type {ParentAutogroupNode} from './parentAutogroupNode';
 import {TraceTree} from './traceTree';
 import {
+  assertEAPSpanNode,
   assertTransactionNode,
   makeEAPError,
   makeEAPSpan,
@@ -176,13 +177,27 @@ const eapTraceWithErrors = makeEAPTrace([
     event_id: 'eap-span-1',
     is_transaction: true,
     errors: [],
+    description: 'EAP span with error',
     children: [
       makeEAPSpan({
         event_id: 'eap-span-2',
         is_transaction: false,
-        errors: [makeEAPError()],
+        errors: [makeEAPError({event_id: 'eap-error-1'})],
       }),
     ],
+  }),
+]);
+
+const eapTraceWithOrphanErrors = makeEAPTrace([
+  makeEAPError({
+    event_id: 'eap-error-1',
+    description: 'Error description 1',
+    level: 'error',
+  }),
+  makeEAPError({
+    event_id: 'eap-error-2',
+    description: 'Error description 2',
+    level: 'info',
   }),
 ]);
 
@@ -549,6 +564,11 @@ describe('TraceTree', () => {
   describe('eap trace', () => {
     it('assembles tree from eap trace', () => {
       const tree = TraceTree.FromTrace(eapTrace, traceMetadata);
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
+    it('assembles tree from eap trace with only errors', () => {
+      const tree = TraceTree.FromTrace(eapTraceWithOrphanErrors, traceMetadata);
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
@@ -1202,6 +1222,14 @@ describe('TraceTree', () => {
 
       assertTransactionNode(node);
       expect(node.value.transaction).toBe('first');
+    });
+
+    it('finds eap error by event_id', () => {
+      const tree = TraceTree.FromTrace(eapTraceWithErrors, traceMetadata);
+      const node = TraceTree.FindByID(tree.root, 'eap-error-1');
+
+      assertEAPSpanNode(node);
+      expect(node.value.description).toBe('EAP span with error');
     });
   });
 

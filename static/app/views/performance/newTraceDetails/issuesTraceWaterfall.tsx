@@ -19,6 +19,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {IssueTraceWaterfallOverlay} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfallOverlay';
 import {
+  isEAPErrorNode,
   isEAPSpanNode,
   isEAPTransactionNode,
   isNonTransactionEAPSpanNode,
@@ -183,7 +184,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     // Find all the nodes that match the event id from the error so that we can try and
     // link the user to the most specific one.
     const nodes = IssuesTraceTree.FindAll(props.tree.root, n => {
-      if (isTraceErrorNode(n)) {
+      if (isTraceErrorNode(n) || isEAPErrorNode(n)) {
         return n.value.event_id === props.event.eventID;
       }
       if (isTransactionNode(n)) {

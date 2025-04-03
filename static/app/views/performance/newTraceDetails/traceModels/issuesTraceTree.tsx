@@ -1,6 +1,7 @@
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
 import {
+  isEAPErrorNode,
   isEAPSpanNode,
   isTraceErrorNode,
   isTransactionNode,
@@ -63,7 +64,7 @@ export class IssuesTraceTree extends TraceTree {
     }
   ): Promise<void> {
     const node = TraceTree.Find(tree.root, n => {
-      if (isTraceErrorNode(n)) {
+      if (isTraceErrorNode(n) || isEAPErrorNode(n)) {
         return n.value.event_id === eventId;
       }
       if (isTransactionNode(n) || isEAPSpanNode(n)) {

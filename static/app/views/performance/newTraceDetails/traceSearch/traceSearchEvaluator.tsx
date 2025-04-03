@@ -13,6 +13,7 @@ import {
 
 import {
   isAutogroupedNode,
+  isEAPErrorNode,
   isEAPSpanNode,
   isSpanNode,
   isTraceErrorNode,
@@ -611,11 +612,18 @@ function evaluateNodeFreeText(
     }
   }
 
-  if (isTraceErrorNode(node)) {
+  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
     if (node.value.level === query) {
       return true;
     }
-    if (node.value.title?.includes(query)) {
+    if (
+      isTraceErrorNode(node) &&
+      (node.value.title?.includes(query) || node.value.message?.includes(query))
+    ) {
+      return true;
+    }
+
+    if (isEAPErrorNode(node) && node.value.description?.includes(query)) {
       return true;
     }
   }

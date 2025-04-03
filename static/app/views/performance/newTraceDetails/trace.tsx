@@ -66,6 +66,7 @@ import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvi
 import {
   isAutogroupedNode,
   isCollapsedNode,
+  isEAPErrorNode,
   isEAPSpanNode,
   isEAPTraceNode,
   isMissingInstrumentationNode,
@@ -680,7 +681,7 @@ function RenderTraceRow(props: {
     return <TraceAutogroupedRow {...rowProps} node={node} />;
   }
 
-  if (isTraceErrorNode(node)) {
+  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
     return <TraceErrorRow {...rowProps} node={node} />;
   }
 
