@@ -16,6 +16,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import Pagination from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {
+  ContinuousProfilingBetaAlertBanner,
   ProfilingAM1OrMMXUpgrade,
   ProfilingBetaAlertBanner,
   ProfilingUpgradeButton,
@@ -101,6 +102,7 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
       >
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
+          <ContinuousProfilingBetaAlertBanner organization={organization} />
           <ProfilingContentPageHeader />
           <LayoutBody>
             <LayoutMain fullWidth>
