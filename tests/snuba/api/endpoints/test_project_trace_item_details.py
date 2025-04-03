@@ -1,5 +1,6 @@
 import uuid
 
+import pytest
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, OurLogTestCase, SnubaTestCase
@@ -14,6 +15,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase):
             "organizations:discover-basic": True,
         }
 
+    @pytest.mark.skip("disabled while snuba adds a precise timestamp")
     def test_simple(self):
         one_min_ago = before_now(minutes=1)
         trace_uuid = str(uuid.uuid4())
