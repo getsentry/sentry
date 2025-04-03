@@ -359,7 +359,7 @@ const ActionButton = styled(Button)`
 const PositionedSearchIconContainer = styled('div')`
   position: absolute;
   left: ${space(1.5)};
-  top: ${space(0.75)};
+  top: ${space(1)};
 `;
 
 const SearchIcon = styled(IconSearch)`
