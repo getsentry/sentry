@@ -36,7 +36,6 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.event import has_event_minified_stack_trace
-from sentry.utils.safe import get_path
 from sentry.utils.samples import load_data
 from sentry.workflow_engine.models import Workflow
 
@@ -217,7 +216,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             project_platform=project.platform,
             url=dict(event.tags).get("url", None),
             has_minified_stack_trace=has_event_minified_stack_trace(event),
-            sdk_name=get_path(event, "sdk", "name"),
+            sdk_name=None,
         )
 
         record_analytics.call_args_list[-1].assert_called_with(
@@ -264,7 +263,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             project_platform=second_project.platform,
             url=dict(event.tags).get("url", None),
             has_minified_stack_trace=has_event_minified_stack_trace(event),
-            sdk_name=get_path(event, "sdk", "name"),
+            sdk_name=None,
         )
 
         # Ensure "first_event.sent" was called exactly once
