@@ -50,10 +50,8 @@ def test_define_task_at_most_once_with_retry(task_namespace: TaskNamespace):
 
 
 def test_apply_async_expires(task_namespace: TaskNamespace) -> None:
-    calls = []
-
     def test_func(*args, **kwargs) -> None:
-        calls.append({"args": args, "kwargs": kwargs})
+        pass
 
     task = Task(
         name="test.test_func",
