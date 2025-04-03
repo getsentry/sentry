@@ -155,9 +155,6 @@ class UsageStatsOrganization<
       category.push(
         dataCategoryApiName === 'profile_duration' ? 'profile_chunk' : 'profile_chunk_ui'
       );
-      if (dataCategoryApiName === 'profile_duration') {
-        category.push('profile');
-      }
     }
 
     return {
