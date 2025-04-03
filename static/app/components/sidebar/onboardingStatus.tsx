@@ -21,6 +21,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import type {CommonSidebarProps} from './types';
@@ -40,6 +41,7 @@ export function OnboardingStatus({
   const {mutate: mutateUserOptions} = useMutateUserOptions();
   const {activateSidebar} = useOnboardingSidebar();
   const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const [quickStartCompleted, setQuickStartCompleted] = useLocalStorageState(
     `quick-start:${organization.slug}:completed`,
@@ -138,7 +140,7 @@ export function OnboardingStatus({
   }
 
   return (
-    <GuideAnchor target="onboarding_sidebar" position="right">
+    <GuideAnchor target="onboarding_sidebar" position="right" disabled={hasStreamlinedUI}>
       <Container
         role="button"
         aria-label={label}

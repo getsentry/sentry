@@ -1,7 +1,6 @@
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
 
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type ApiQueryKey,
   fetchDataQuery,
@@ -10,6 +9,7 @@ import {
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   getRetryDelay,
   shouldRetryHandler,
@@ -17,17 +17,7 @@ import {
 
 const DEFAULT_HOVER_TIMEOUT = 200;
 
-/**
- * ProjectTraceItemDetailsEndpoint currently only supports ourlogs dataset
- * TODO: Add SPANS_EAP once the backend supports it.
- */
-type EAPDataset = DiscoverDatasets.OURLOGS;
-
 export interface UseTraceItemDetailsProps {
-  /**
-   * Trace items are only supported by EAP.
-   */
-  dataset: EAPDataset;
   /**
    * Every trace item belongs to a project.
    */
@@ -45,6 +35,10 @@ export interface UseTraceItemDetailsProps {
    * The trace item ID representing an EAP trace item.
    */
   traceItemId: string;
+  /**
+   * The trace item type supported by the endpoint, currently only supports LOGS.
+   */
+  traceItemType: TraceItemDataset;
   /**
    * Alias for `enabled` in react-query.
    */
@@ -64,9 +58,9 @@ type TraceItemDetailsUrlParams = {
 };
 
 type TraceItemDetailsQueryParams = {
-  dataset: EAPDataset;
   referrer: string;
   traceId: string;
+  traceItemType: TraceItemDataset;
 };
 
 export type TraceItemResponseAttribute =
@@ -91,7 +85,7 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
 
   const queryParams: TraceItemDetailsQueryParams = {
     referrer: props.referrer,
-    dataset: props.dataset,
+    traceItemType: props.traceItemType,
     traceId: props.traceId,
   };
 
@@ -123,7 +117,7 @@ function traceItemDetailsQueryKey({
   urlParams: TraceItemDetailsUrlParams;
 }): ApiQueryKey {
   const query: Record<string, string | string[]> = {
-    dataset: queryParams.dataset,
+    item_type: queryParams.traceItemType,
     referrer: queryParams.referrer,
     trace_id: queryParams.traceId,
   };
@@ -138,7 +132,7 @@ export function usePrefetchTraceItemDetailsOnHover({
   traceItemId,
   projectId,
   traceId,
-  dataset,
+  traceItemType,
   referrer,
   hoverPrefetchDisabled,
   sharedHoverTimeoutRef,
@@ -171,7 +165,7 @@ export function usePrefetchTraceItemDetailsOnHover({
               traceItemId,
             },
             queryParams: {
-              dataset,
+              traceItemType,
               referrer,
               traceId,
             },

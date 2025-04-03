@@ -45,9 +45,7 @@ export default function DemoHeader() {
       </DocsButton>
       <NewRequestDemoBtn
         onClick={() =>
-          trackAnalytics('growth.demo_click_request_demo', {
-            organization: null,
-          })
+          trackAnalytics('growth.demo_click_request_demo', {organization: null})
         }
         href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
         external
@@ -62,7 +60,7 @@ export default function DemoHeader() {
             extraQueryParameterWithEmail()
           );
 
-          trackAnalytics('growth.demo_click_get_started', {
+          trackAnalytics('growth.demo_click_sign_up', {
             organization: null,
           });
 

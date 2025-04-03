@@ -11,7 +11,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
+from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.asserts import assert_org_audit_log_exists
@@ -388,7 +388,6 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert monitor.status == ObjectStatus.ACTIVE
         assert monitor.owner_user_id == self.user.id
         assert monitor.owner_team_id is None
-        assert monitor.type == MonitorType.CRON_JOB
         assert monitor.config == {
             "schedule_type": ScheduleType.CRONTAB,
             "schedule": "0 0 * * *",

@@ -50,7 +50,7 @@ export interface IdentityIconProps extends React.RefAttributes<HTMLDivElement> {
   size?: number;
 }
 
-export default function IdentityIcon({providerId, size = 36, ref}: IdentityIconProps) {
+export function IdentityIcon({providerId, size = 36, ref}: IdentityIconProps) {
   return (
     <StyledIdentityIcon
       ref={ref}

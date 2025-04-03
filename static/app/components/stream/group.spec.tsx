@@ -1,5 +1,4 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
@@ -185,12 +184,7 @@ describe('StreamGroup', function () {
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
         withColumns={['firstSeen', 'lastSeen']}
-      />,
-      {
-        organization: OrganizationFixture({
-          features: ['issue-stream-table-layout'],
-        }),
-      }
+      />
     );
 
     expect(screen.getByRole('time', {name: 'First Seen'})).toHaveTextContent('1w');
@@ -206,9 +200,6 @@ describe('StreamGroup', function () {
       />,
       {
         router,
-        organization: OrganizationFixture({
-          features: ['issue-stream-table-layout'],
-        }),
       }
     );
 
@@ -231,11 +222,7 @@ describe('StreamGroup', function () {
   it('displays unread indicator when issue is unread', async function () {
     GroupStore.loadInitialData([GroupFixture({id: '1337', hasSeen: false})]);
 
-    render(<StreamGroup id="1337" query="is:unresolved" />, {
-      organization: OrganizationFixture({
-        features: ['issue-stream-table-layout'],
-      }),
-    });
+    render(<StreamGroup id="1337" query="is:unresolved" />);
 
     expect(await screen.findByTestId('unread-issue-indicator')).toBeInTheDocument();
   });

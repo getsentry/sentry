@@ -31,6 +31,7 @@ import {
 } from 'getsentry/types';
 import {
   addBillingStatTotals,
+  displayBudgetName,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
@@ -760,9 +761,7 @@ function UsageTotals({
                   {isDisplayingSpend ? (
                     <div>
                       <LegendTitle>
-                        {subscription.planTier === PlanTier.AM3
-                          ? t('Pay-as-you-go')
-                          : t('On-Demand')}
+                        {displayBudgetName(subscription.planDetails, {title: true})}
                       </LegendTitle>
                       <LegendPrice>
                         {formatCurrency(onDemandCategorySpend)} of{' '}
@@ -778,9 +777,7 @@ function UsageTotals({
                   ) : (
                     <div>
                       <LegendTitle>
-                        {subscription.planTier === PlanTier.AM3
-                          ? t('Pay-as-you-go')
-                          : t('On-Demand')}
+                        {displayBudgetName(subscription.planDetails, {title: true})}
                       </LegendTitle>
                       <LegendPrice>
                         {formatUsageWithUnits(onDemandUsage, category, usageOptions)}
@@ -805,9 +802,7 @@ function UsageTotals({
                   {showOnDemand && (
                     <Fragment>
                       {formatCurrency(onDemandCategorySpend)}{' '}
-                      {subscription.planTier === PlanTier.AM3
-                        ? t('Pay-as-you-go')
-                        : t('On-Demand')}
+                      {displayBudgetName(subscription.planDetails, {title: true})}
                     </Fragment>
                   )}
                 </TotalSpendLabel>

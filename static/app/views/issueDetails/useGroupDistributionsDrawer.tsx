@@ -34,6 +34,7 @@ export function useGroupDistributionsDrawer({
       ),
       {
         ariaLabel: t('Distributions Drawer'),
+        drawerKey: 'distributions-drawer',
         onClose: () => {
           navigate(
             {

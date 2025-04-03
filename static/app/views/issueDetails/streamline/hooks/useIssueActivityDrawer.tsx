@@ -23,6 +23,7 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
   const openIssueActivityDrawer = useCallback(() => {
     openDrawer(() => <ActivityDrawer group={group} project={project} />, {
       ariaLabel: t('Issue Activity'),
+      drawerKey: 'issue-activity-drawer',
       shouldCloseOnInteractOutside: () => false,
       onClose: () => {
         navigate(

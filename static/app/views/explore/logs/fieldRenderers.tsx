@@ -16,7 +16,6 @@ import {
   type getLogColors,
   LogDate,
   LogsHighlight,
-  NonClickableCell,
   WrappingText,
 } from 'sentry/views/explore/logs/styles';
 import {
@@ -53,7 +52,7 @@ export interface RendererExtra {
   align?: 'left' | 'center' | 'right';
   renderSeverityCircle?: boolean;
   useFullSeverityText?: boolean;
-  wrapBody?: boolean;
+  wrapBody?: true;
 }
 
 function SeverityCircle(props: {
@@ -84,29 +83,49 @@ export function SeverityTextRenderer(props: LogFieldRendererProps) {
   const levelLabel = useFullSeverityText ? attribute_value : severityLevelToText(level);
   const renderSeverityCircle = props.extra.renderSeverityCircle ?? false;
   return (
-    <NonExpandingCell>
-      <AlignedCellContent align={props.align}>
-        {renderSeverityCircle && (
-          <SeverityCircle
-            level={level}
-            levelLabel={levelLabel}
-            severityText={attribute_value}
-            logColors={props.extra.logColors}
-          />
-        )}
-        <ColoredLogText logColors={props.extra.logColors}>[{levelLabel}]</ColoredLogText>
-      </AlignedCellContent>
-    </NonExpandingCell>
+    <AlignedCellContent align={props.align}>
+      {renderSeverityCircle && (
+        <SeverityCircle
+          level={level}
+          levelLabel={levelLabel}
+          severityText={attribute_value}
+          logColors={props.extra.logColors}
+        />
+      )}
+      <ColoredLogText logColors={props.extra.logColors}>{levelLabel}</ColoredLogText>
+    </AlignedCellContent>
+  );
+}
+
+// This is not in the field lookup and only exists for the prefix column in the logs table.
+export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'>) {
+  if (!props.tableResultLogRow) {
+    return null;
+  }
+  const attribute_value = props.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_TEXT];
+  const _severityNumber = props.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_NUMBER];
+
+  const severityNumber = _severityNumber ? Number(_severityNumber) : null;
+  const useFullSeverityText = props.extra.useFullSeverityText ?? false;
+  const level = getLogSeverityLevel(severityNumber, attribute_value);
+  const levelLabel = useFullSeverityText ? attribute_value : severityLevelToText(level);
+  return (
+    <AlignedCellContent align={props.align}>
+      <SeverityCircle
+        level={level}
+        levelLabel={levelLabel}
+        severityText={attribute_value}
+        logColors={props.extra.logColors}
+      />
+    </AlignedCellContent>
   );
 }
 
 export function TimestampRenderer(props: LogFieldRendererProps) {
   return (
-    <NonExpandingCell>
-      <LogDate align={props.extra.align}>
-        <DateTime seconds date={props.item.value} />
-      </LogDate>
-    </NonExpandingCell>
+    <LogDate align={props.extra.align}>
+      <DateTime seconds date={props.item.value} />
+    </LogDate>
   );
 }
 
@@ -129,9 +148,7 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
   // TODO: Allow more than one highlight term to be highlighted at once.
   return (
     <WrappingText wrap={props.extra.wrapBody}>
-      <NonExpandingCell>
-        <LogsHighlight text={highlightTerm}>{attribute_value}</LogsHighlight>
-      </NonExpandingCell>
+      <LogsHighlight text={highlightTerm}>{attribute_value}</LogsHighlight>
     </WrappingText>
   );
 }
@@ -166,7 +183,7 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
   const align = logsFieldAlignment(adjustedFieldKey, type);
 
   if (!customRenderer) {
-    return <NonExpandingCell>{basicRendered}</NonExpandingCell>;
+    return <Fragment>{basicRendered}</Fragment>;
   }
 
   return (
@@ -195,11 +212,3 @@ export function getLogFieldRenderer(field: OurLogFieldKey) {
 const fullFieldToExistingField: Record<OurLogFieldKey, string> = {
   [OurLogKnownFieldKey.TRACE_ID]: 'trace',
 };
-
-function NonExpandingCell(props: {children: React.ReactNode}) {
-  return (
-    <NonClickableCell onClick={e => e.stopPropagation()}>
-      {props.children}
-    </NonClickableCell>
-  );
-}

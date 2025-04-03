@@ -33,9 +33,9 @@ def escape_slack_markdown_text(txt: str | None) -> str:
 
 def escape_slack_markdown_asterisks(txt: str | None) -> str:
     """
-    Removes pairs of double asterisks with pairs of single asterisks.
+    Removes pairs of double asterisks.
     """
     if not txt:
         return ""
 
-    return re.sub(r"\*\*(.*?)\*\*", r"*\1*", txt)
+    return re.sub(r"\*\*(.*?)\*\*", r"\1", txt)

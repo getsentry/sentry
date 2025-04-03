@@ -1933,71 +1933,73 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     let traceStats: {
-      javascriptRootTransactions: Array<TraceTree.Transaction | TraceTree.EAPSpan>;
-      orphan_errors: TraceTree.TraceErrorIssue[];
-      orphan_spans: number;
-      roots: number;
+      javascript_root_transactions_count: number;
+      orphan_errors_count: number;
+      orphan_spans_count: number;
+      roots_count: number;
     };
 
     if (isEAPTraceNode(trace)) {
       traceStats = {
-        javascriptRootTransactions: trace.value.filter(
+        javascript_root_transactions_count: trace.value.filter(
           (v): v is TraceTree.EAPSpan => isEAPSpan(v) && isJavascriptSDKEvent(v)
-        ),
-        orphan_spans: trace.value.filter(v => isEAPSpan(v) && v.parent_span_id !== null)
+        ).length,
+        orphan_spans_count: trace.value.filter(
+          v => isEAPSpan(v) && v.parent_span_id !== null
+        ).length,
+        roots_count: trace.value.filter(v => isEAPSpan(v) && v.parent_span_id === null)
           .length,
-        roots: trace.value.filter(v => isEAPSpan(v) && v.parent_span_id === null).length,
-        orphan_errors: trace.value.filter(v => isEAPError(v)),
+        orphan_errors_count: trace.value.filter(v => isEAPError(v)).length,
       };
     } else if (isTraceNode(trace)) {
       traceStats = {
         ...trace.value.transactions.reduce<{
-          javascriptRootTransactions: TraceTree.Transaction[];
-          orphan_spans: number;
-          roots: number;
+          javascript_root_transactions_count: number;
+          orphan_spans_count: number;
+          roots_count: number;
         }>(
           (stats, transaction) => {
             if (isRootEvent(transaction)) {
-              stats.roots++;
+              stats.roots_count++;
 
               if (isJavascriptSDKEvent(transaction)) {
-                stats.javascriptRootTransactions.push(transaction);
+                stats.javascript_root_transactions_count++;
               }
             } else {
-              stats.orphan_spans++;
+              stats.orphan_spans_count++;
             }
             return stats;
           },
-          {roots: 0, orphan_spans: 0, javascriptRootTransactions: []}
+          {roots_count: 0, orphan_spans_count: 0, javascript_root_transactions_count: 0}
         ),
-        orphan_errors: trace.value.orphan_errors,
+        orphan_errors_count: trace.value.orphan_errors.length,
       };
     } else {
       throw new Error('Unknown trace type');
     }
 
-    if (traceStats.roots === 0) {
-      if (traceStats.orphan_spans > 0) {
+    if (traceStats.roots_count === 0) {
+      if (traceStats.orphan_spans_count > 0) {
         return TraceShape.NO_ROOT;
       }
 
-      if (traceStats.orphan_errors.length > 0) {
+      if (traceStats.orphan_errors_count > 0) {
         return TraceShape.ONLY_ERRORS;
       }
 
       return TraceShape.EMPTY_TRACE;
     }
 
-    if (traceStats.roots === 1) {
-      if (traceStats.orphan_spans > 0) {
+    if (traceStats.roots_count === 1) {
+      if (traceStats.orphan_spans_count > 0) {
         return TraceShape.BROKEN_SUBTRACES;
       }
 
       return TraceShape.ONE_ROOT;
     }
 
-    if (traceStats.roots > 1) {
-      if (traceStats.javascriptRootTransactions.length > 0) {
+    if (traceStats.roots_count > 1) {
+      if (traceStats.javascript_root_transactions_count > 0) {
         return TraceShape.BROWSER_MULTIPLE_ROOTS;
       }
 

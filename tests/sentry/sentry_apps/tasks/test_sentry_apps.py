@@ -4,7 +4,6 @@ from unittest.mock import ANY, patch
 
 import pytest
 import responses
-from celery import Task
 from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
@@ -556,16 +555,6 @@ class TestProcessResourceChange(TestCase):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
         )
-
-    @patch("sentry.sentry_apps.tasks.sentry_apps._process_resource_change")
-    def test_process_resource_change_bound_passes_retry_object(self, process, safe_urlopen):
-        group = self.create_group(project=self.project)
-
-        process_resource_change_bound("created", "Group", group.id)
-
-        ((_, kwargs),) = process.call_args_list
-        task = kwargs["retryer"]
-        assert isinstance(task, Task)
 
     @with_feature("organizations:integrations-event-hooks")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -1368,6 +1357,7 @@ class TestWebhookRequests(TestCase):
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
     @override_settings(BROKEN_TIMEOUT_THRESHOLD=3)
+    @pytest.mark.skip(reason="Feature is temporarily disabled")
     def test_timeout_disable(self, safe_urlopen):
         """
         Test that the integration is disabled after BROKEN_TIMEOUT_THRESHOLD number of timeouts
@@ -1412,6 +1402,7 @@ class TestWebhookRequests(TestCase):
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
     )
+    @pytest.mark.skip(reason="Feature is temporarily disabled")
     def test_slow_should_disable(self, safe_urlopen):
         """
         Tests that the integration is broken after 7 days of errors and disabled

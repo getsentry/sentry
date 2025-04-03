@@ -51,9 +51,9 @@ describe('AddToDashboardButton', () => {
           widgetType: WidgetType.SPANS,
           queries: [
             {
-              aggregates: ['avg(span.duration)'],
+              aggregates: ['count(span.duration)'],
               columns: [],
-              fields: ['avg(span.duration)'],
+              fields: ['count(span.duration)'],
               conditions: '',
               orderby: '-timestamp',
               name: '',
@@ -74,7 +74,7 @@ describe('AddToDashboardButton', () => {
           ],
           defaultTitle: 'Custom Widget',
           defaultWidgetQuery:
-            'name=&aggregates=avg(span.duration)&columns=&fields=avg(span.duration)&conditions=&orderby=-timestamp',
+            'name=&aggregates=count(span.duration)&columns=&fields=count(span.duration)&conditions=&orderby=-timestamp',
           displayType: DisplayType.LINE,
           field: [
             'id',
@@ -109,7 +109,7 @@ describe('AddToDashboardButton', () => {
         <PageParamsProvider>
           <TestPage visualizeIndex={1} />
         </PageParamsProvider>,
-        {disableRouterMocks: true}
+        {enableRouterMocks: false}
       );
 
       act(() =>
@@ -183,7 +183,7 @@ describe('AddToDashboardButton', () => {
       <PageParamsProvider>
         <TestPage visualizeIndex={1} />
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     act(() =>
@@ -256,7 +256,7 @@ describe('AddToDashboardButton', () => {
       <PageParamsProvider>
         <TestPage visualizeIndex={0} />
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     act(() => setMode(Mode.AGGREGATE));
@@ -274,11 +274,11 @@ describe('AddToDashboardButton', () => {
           widgetType: WidgetType.SPANS,
           queries: [
             {
-              aggregates: ['avg(span.duration)'],
+              aggregates: ['count(span.duration)'],
               columns: [],
-              fields: ['avg(span.duration)'],
+              fields: ['count(span.duration)'],
               conditions: '',
-              orderby: '-avg(span.duration)',
+              orderby: '-count(span.duration)',
               name: '',
             },
           ],
@@ -287,12 +287,12 @@ describe('AddToDashboardButton', () => {
         // For Open in Widget Builder
         widgetAsQueryParams: expect.objectContaining({
           dataset: WidgetType.SPANS,
-          defaultTableColumns: ['span.op', 'avg(span.duration)'],
+          defaultTableColumns: ['span.op', 'count(span.duration)'],
           defaultTitle: 'Custom Widget',
           defaultWidgetQuery:
-            'name=&aggregates=avg(span.duration)&columns=&fields=avg(span.duration)&conditions=&orderby=-avg(span.duration)',
+            'name=&aggregates=count(span.duration)&columns=&fields=count(span.duration)&conditions=&orderby=-count(span.duration)',
           displayType: DisplayType.LINE,
-          field: ['span.op', 'avg(span.duration)'],
+          field: ['span.op', 'count(span.duration)'],
         }),
       })
     );
@@ -303,7 +303,7 @@ describe('AddToDashboardButton', () => {
       <PageParamsProvider>
         <TestPage visualizeIndex={0} />
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     act(() => setMode(Mode.AGGREGATE));
