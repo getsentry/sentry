@@ -1,4 +1,4 @@
-import {createContext, useContext, useState} from 'react';
+import {createContext, useContext, useMemo, useState} from 'react';
 
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -13,6 +13,10 @@ type DisplayOptions =
 
 interface StackTraceContextOptions {
   children: React.ReactNode;
+  /**
+   * Whether the stack trace has system frames.
+   * Removes the minified option if false.
+   */
   hasSystemFrames: boolean;
   projectSlug: string;
   /**
@@ -32,6 +36,11 @@ interface StacktraceContextType {
    * Display options for the stack trace
    */
   displayOptions: DisplayOptions[];
+  /**
+   * Prefer using the stackView prop instead.
+   * This should only be used to control the full/relevant toggle.
+   */
+  forceFullStackTrace: boolean;
   /**
    * Display full stack trace or filter to relevant frames.
    * This should only be used to control the full/relevant toggle.
@@ -71,6 +80,7 @@ export const IssueStacktraceContext = createContext<StacktraceContextType>({
   displayOptions: [],
   setDisplayOptions: () => {},
   isFullStackTrace: true,
+  forceFullStackTrace: false,
   setIsFullStackTrace: () => {},
   isNewestFramesFirst: true,
   setIsNewestFramesFirst: () => {},
@@ -105,19 +115,31 @@ export function StacktraceContext({
       ? StackType.MINIFIED
       : StackType.ORIGINAL;
 
+  const value = useMemo(
+    (): StacktraceContextType => ({
+      isFullStackTrace: isFullStackTrace || forceFullStackTrace,
+      setIsFullStackTrace,
+      isNewestFramesFirst,
+      setIsNewestFramesFirst,
+      displayOptions,
+      setDisplayOptions,
+      stackView,
+      stackType,
+      forceFullStackTrace,
+    }),
+    [
+      isFullStackTrace,
+      forceFullStackTrace,
+      isNewestFramesFirst,
+      displayOptions,
+      setDisplayOptions,
+      stackView,
+      stackType,
+    ]
+  );
+
   return (
-    <IssueStacktraceContext.Provider
-      value={{
-        isFullStackTrace: isFullStackTrace || forceFullStackTrace,
-        setIsFullStackTrace,
-        isNewestFramesFirst,
-        setIsNewestFramesFirst,
-        displayOptions,
-        setDisplayOptions,
-        stackView,
-        stackType,
-      }}
-    >
+    <IssueStacktraceContext.Provider value={value}>
       {children}
     </IssueStacktraceContext.Provider>
   );

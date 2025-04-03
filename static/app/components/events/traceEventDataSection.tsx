@@ -39,7 +39,6 @@ type Props = {
   hasAbsoluteFilePaths: boolean;
   hasMinified: boolean;
   hasNewestFirst: boolean;
-  hasOnlyInAppFrames: boolean;
   hasVerboseFunctionNames: boolean;
   platform: PlatformKey;
   projectSlug: Project['slug'];
@@ -62,7 +61,6 @@ export function TraceEventDataSection({
   hasVerboseFunctionNames,
   hasAbsoluteFilePaths,
   hasAbsoluteAddresses,
-  hasOnlyInAppFrames,
   isNestedSection = false,
 }: Props) {
   const api = useApi();
@@ -73,6 +71,7 @@ export function TraceEventDataSection({
     displayOptions,
     isNewestFramesFirst,
     isFullStackTrace,
+    forceFullStackTrace,
     setDisplayOptions,
     setIsNewestFramesFirst,
     setIsFullStackTrace,
@@ -356,7 +355,7 @@ export function TraceEventDataSection({
             {!displayOptions.includes('raw-stack-trace') && (
               <Tooltip
                 title={t('Only full version available')}
-                disabled={hasOnlyInAppFrames}
+                disabled={!forceFullStackTrace}
               >
                 <SegmentedControl
                   size="xs"
@@ -364,7 +363,7 @@ export function TraceEventDataSection({
                   value={isFullStackTrace ? 'full' : 'relevant'}
                   onChange={handleFilterFramesChange}
                 >
-                  <SegmentedControl.Item key="relevant" disabled={!hasOnlyInAppFrames}>
+                  <SegmentedControl.Item key="relevant" disabled={forceFullStackTrace}>
                     {t('Most Relevant')}
                   </SegmentedControl.Item>
                   <SegmentedControl.Item key="full">

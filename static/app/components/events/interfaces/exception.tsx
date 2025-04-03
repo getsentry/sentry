@@ -51,14 +51,14 @@ export function Exception({
 
   const stackTraceNotFound = !(data.values ?? []).length;
 
-  const hasOnlyInAppFrames = !!data.values?.some(value =>
+  const hasNonAppFrames = !!data.values?.some(value =>
     value.stacktrace?.frames?.some(frame => !frame.inApp)
   );
 
   return (
     <StacktraceContext
       projectSlug={projectSlug}
-      forceFullStackTrace={hasOnlyInAppFrames ? !data.hasSystemFrames : true}
+      forceFullStackTrace={hasNonAppFrames ? !data.hasSystemFrames : true}
       defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
       hasSystemFrames={data.hasSystemFrames}
     >
@@ -90,7 +90,6 @@ export function Exception({
             value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
           )
         }
-        hasOnlyInAppFrames={hasOnlyInAppFrames}
         hasNewestFirst={
           !!data.values?.some(value => (value.stacktrace?.frames ?? []).length > 1)
         }

@@ -245,7 +245,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     setActiveThread(threads[nextIndex]);
   }
 
-  const hasOnlyInAppFrames = Boolean(
+  const hasNonAppFrames = Boolean(
     exception?.values?.some(value =>
       value.stacktrace?.frames?.some(frame => !frame.inApp)
     ) || activeThread?.stacktrace?.frames?.some(frame => !frame.inApp)
@@ -324,7 +324,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
       )}
       <StacktraceContext
         projectSlug={projectSlug}
-        forceFullStackTrace={hasOnlyInAppFrames ? stackView === StackView.FULL : true}
+        forceFullStackTrace={hasNonAppFrames ? stackView === StackView.FULL : true}
         defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
         hasSystemFrames={
           exception?.values?.some(value => value.stacktrace?.hasSystemFrames) ?? false
@@ -369,7 +369,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
             ) ||
             !!activeThread?.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
           }
-          hasOnlyInAppFrames={hasOnlyInAppFrames}
           hasNewestFirst={
             !!exception?.values?.some(
               value => (value.stacktrace?.frames ?? []).length > 1

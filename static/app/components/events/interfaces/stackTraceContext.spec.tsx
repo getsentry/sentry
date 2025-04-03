@@ -1,12 +1,12 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {StackType, StackView} from 'sentry/types/stacktrace';
-import * as useLocalStorageStateModule from 'sentry/utils/useLocalStorageState';
+import localStorageWrapper from 'sentry/utils/localStorage';
 
 import {StacktraceContext, useStacktraceContext} from './stackTraceContext';
 
 describe('StacktraceContext', () => {
-  function TestComponent() {
+  function ContextDisplay() {
     const context = useStacktraceContext();
     return (
       <div>
@@ -16,26 +16,34 @@ describe('StacktraceContext', () => {
         </div>
         <div data-test-id="stack-view">{context.stackView}</div>
         <div data-test-id="stack-type">{context.stackType}</div>
-        <div data-test-id="display-options">{JSON.stringify(context.displayOptions)}</div>
+        {context.displayOptions.length > 0 && (
+          <div data-test-id="display-options">
+            {JSON.stringify(context.displayOptions)}
+          </div>
+        )}
       </div>
     );
   }
 
+  function TestButton({
+    action,
+    children,
+  }: {
+    action: (context: ReturnType<typeof useStacktraceContext>) => void;
+    children: React.ReactNode;
+  }) {
+    const context = useStacktraceContext();
+    return <button onClick={() => action(context)}>{children}</button>;
+  }
+
   beforeEach(() => {
-    // Default mock that returns empty display options
-    jest
-      .spyOn(useLocalStorageStateModule, 'useLocalStorageState')
-      .mockImplementation(() => [[], jest.fn()]);
+    localStorageWrapper.clear();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('renders with default values', () => {
+  it('provides default values', () => {
     render(
       <StacktraceContext hasSystemFrames={false} projectSlug="test-project">
-        <TestComponent />
+        <ContextDisplay />
       </StacktraceContext>
     );
 
@@ -43,10 +51,9 @@ describe('StacktraceContext', () => {
     expect(screen.getByTestId('is-newest-frames-first')).toHaveTextContent('true');
     expect(screen.getByTestId('stack-view')).toHaveTextContent(StackView.APP);
     expect(screen.getByTestId('stack-type')).toHaveTextContent(StackType.ORIGINAL);
-    expect(screen.getByTestId('display-options')).toHaveTextContent('[]');
   });
 
-  it('uses provided default values', () => {
+  it('applies custom props', () => {
     render(
       <StacktraceContext
         hasSystemFrames={false}
@@ -54,7 +61,7 @@ describe('StacktraceContext', () => {
         forceFullStackTrace
         defaultIsNewestFramesFirst={false}
       >
-        <TestComponent />
+        <ContextDisplay />
       </StacktraceContext>
     );
 
@@ -63,32 +70,50 @@ describe('StacktraceContext', () => {
     expect(screen.getByTestId('stack-view')).toHaveTextContent(StackView.FULL);
   });
 
-  it('sets stack type to minified when hasSystemFrames is true and display option includes minified', () => {
-    // Mock with minified display option
-    jest
-      .spyOn(useLocalStorageStateModule, 'useLocalStorageState')
-      .mockImplementation(() => [['minified'], jest.fn()]);
-
+  it('enables toggling full stack trace', async () => {
     render(
-      <StacktraceContext hasSystemFrames projectSlug="test-project">
-        <TestComponent />
+      <StacktraceContext hasSystemFrames={false} projectSlug="test-project">
+        <ContextDisplay />
+        <TestButton action={ctx => ctx.setIsFullStackTrace(true)}>Show Full</TestButton>
       </StacktraceContext>
     );
+
+    expect(screen.getByTestId('stack-view')).toHaveTextContent(StackView.APP);
+
+    await userEvent.click(screen.getByText('Show Full'));
+
+    expect(screen.getByTestId('is-full-stack-trace')).toHaveTextContent('true');
+    expect(screen.getByTestId('stack-view')).toHaveTextContent(StackView.FULL);
+  });
+
+  it('sets stack type to minified when option added', async () => {
+    render(
+      <StacktraceContext hasSystemFrames projectSlug="test-project">
+        <ContextDisplay />
+        <TestButton action={ctx => ctx.setDisplayOptions(['minified'])}>
+          Add Minified
+        </TestButton>
+      </StacktraceContext>
+    );
+
+    expect(screen.getByTestId('stack-type')).toHaveTextContent(StackType.ORIGINAL);
+
+    await userEvent.click(screen.getByText('Add Minified'));
 
     expect(screen.getByTestId('stack-type')).toHaveTextContent(StackType.MINIFIED);
   });
 
-  it('sets stack view to RAW when display options includes raw-stack-trace', () => {
-    // Mock with raw-stack-trace display option
-    jest
-      .spyOn(useLocalStorageStateModule, 'useLocalStorageState')
-      .mockImplementation(() => [['raw-stack-trace'], jest.fn()]);
-
+  it('sets stack view to RAW when option added', async () => {
     render(
       <StacktraceContext hasSystemFrames={false} projectSlug="test-project">
-        <TestComponent />
+        <ContextDisplay />
+        <TestButton action={ctx => ctx.setDisplayOptions(['raw-stack-trace'])}>
+          Add Raw View
+        </TestButton>
       </StacktraceContext>
     );
+
+    await userEvent.click(screen.getByText('Add Raw View'));
 
     expect(screen.getByTestId('stack-view')).toHaveTextContent(StackView.RAW);
   });

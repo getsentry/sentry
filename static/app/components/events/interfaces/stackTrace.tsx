@@ -59,12 +59,12 @@ export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Pro
   const platform = getPlatform();
   const stackTraceNotFound = !(data.frames ?? []).length;
 
-  const hasOnlyInAppFrames = !!data.frames?.some(frame => !frame.inApp);
+  const hasNonAppFrames = !!data.frames?.some(frame => !frame.inApp);
 
   return (
     <StacktraceContext
       projectSlug={projectSlug}
-      forceFullStackTrace={hasOnlyInAppFrames ? !data.hasSystemFrames : true}
+      forceFullStackTrace={hasNonAppFrames ? !data.hasSystemFrames : true}
       defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
       hasSystemFrames={data.hasSystemFrames}
     >
@@ -86,7 +86,6 @@ export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Pro
         }
         hasAbsoluteFilePaths={!!data.frames?.some(frame => !!frame.filename)}
         hasAbsoluteAddresses={!!data.frames?.some(frame => !!frame.instructionAddr)}
-        hasOnlyInAppFrames={hasOnlyInAppFrames}
         hasNewestFirst={(data.frames ?? []).length > 1}
       >
         {stackTraceNotFound ? (
