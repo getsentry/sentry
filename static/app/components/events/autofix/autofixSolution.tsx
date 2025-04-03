@@ -13,7 +13,6 @@ import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixH
 import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
   type AutofixFeedback,
-  type AutofixRepository,
   type AutofixSolutionTimelineEvent,
   AutofixStatus,
   AutofixStepType,
@@ -22,6 +21,7 @@ import {
 import {
   type AutofixResponse,
   makeAutofixQueryKey,
+  useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
 import {Timeline} from 'sentry/components/timeline';
 import {
@@ -109,7 +109,6 @@ export function useSelectSolution({groupId, runId}: {groupId: string; runId: str
 
 type AutofixSolutionProps = {
   groupId: string;
-  repos: AutofixRepository[];
   runId: string;
   solution: AutofixSolutionTimelineEvent[];
   solutionSelected: boolean;
@@ -465,10 +464,10 @@ function AutofixSolutionDisplay({
   previousInsightCount,
   customSolution,
   solutionSelected,
-  changesDisabled,
   agentCommentThread,
   feedback,
 }: Omit<AutofixSolutionProps, 'repos'>) {
+  const {repos} = useAutofixRepos(groupId);
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
   const [isEditing, _setIsEditing] = useState(false);
   const [instructions, setInstructions] = useState('');
@@ -483,6 +482,9 @@ function AutofixSolutionDisplay({
   );
   const containerRef = useRef<HTMLDivElement>(null);
   const iconFixRef = useRef<HTMLDivElement>(null);
+
+  const hasNoRepos = repos.length === 0;
+  const cantReadRepos = repos.every(repo => repo.is_readable === false);
 
   const handleAddInstruction = () => {
     if (instructions.trim()) {
@@ -576,16 +578,20 @@ function AutofixSolutionDisplay({
             <ButtonBar merged>
               <Button
                 title={
-                  changesDisabled
+                  hasNoRepos
                     ? t(
-                        'You need to set up the GitHub integration for Autofix to write code for you.'
+                        'You need to set up the GitHub integration and configure repository access for Autofix to write code for you.'
                       )
-                    : undefined
+                    : cantReadRepos
+                      ? t(
+                          "We can't access any of your repos. Check your GitHub integration and configure repository access for Autofix to write code for you."
+                        )
+                      : undefined
                 }
                 size="sm"
                 priority={solutionSelected ? 'default' : 'primary'}
                 busy={isPending}
-                disabled={changesDisabled}
+                disabled={hasNoRepos || cantReadRepos}
                 onClick={() => {
                   handleContinue({
                     mode: 'fix',
@@ -668,12 +674,10 @@ export function AutofixSolution(props: AutofixSolutionProps) {
     );
   }
 
-  const changesDisabled = props.repos.every(repo => repo.is_readable === false);
-
   return (
     <AnimatePresence initial={props.isSolutionFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
-        <AutofixSolutionDisplay {...props} changesDisabled={changesDisabled} />
+        <AutofixSolutionDisplay {...props} />
       </AnimationWrapper>
     </AnimatePresence>
   );

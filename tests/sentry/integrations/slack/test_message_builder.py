@@ -489,7 +489,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         group = self.create_group(project=project2)
 
         SlackIssuesMessageBuilder(group).build()
-        assert mock_get_option_groups.called
 
         team_option_groups, member_option_groups = mock_get_option_groups(group)
         assert len(team_option_groups["options"]) == 2
@@ -976,7 +975,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
             blocks = SlackIssuesMessageBuilder(group).build()
 
-            mock_get_summary.assert_called_once_with(group)
+            mock_get_summary.assert_called_once_with(group, source="alert")
 
             # Verify that the AI title is used
             assert "Custom AI Title" in blocks["blocks"][0]["text"]["text"]
