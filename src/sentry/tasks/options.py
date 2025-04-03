@@ -13,6 +13,7 @@ from sentry.taskworker.namespaces import options_control_tasks, options_tasks
 ONE_HOUR = 60 * 60
 logger = logging.getLogger("sentry")
 
+
 @instrumented_task(
     name="sentry.tasks.options.sync_options_control",
     queue="options.control",
