@@ -59,7 +59,6 @@ export function TabbedCodeSnippet({
 
   return (
     <OnboardingCodeSnippet
-      dark
       language={language}
       onCopy={onCopy}
       onSelectAndCopy={onSelectAndCopy}
@@ -173,7 +172,6 @@ function getConfiguration({
         language &&
         code && (
           <OnboardingCodeSnippet
-            dark
             language={language}
             onCopy={onCopy}
             onSelectAndCopy={onSelectAndCopy}
