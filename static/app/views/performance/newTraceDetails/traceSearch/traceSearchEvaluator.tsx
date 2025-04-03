@@ -13,6 +13,7 @@ import {
 
 import {
   isAutogroupedNode,
+  isEAPErrorNode,
   isEAPSpanNode,
   isSpanNode,
   isTraceErrorNode,
@@ -26,7 +27,7 @@ export type TraceSearchResult = {
   value: TraceTreeNode<TraceTree.NodeValue>;
 };
 
-const {info, fmt} = Sentry._experiment_log;
+const {info, fmt} = Sentry.logger;
 
 /**
  * Evaluates the infix token representation against the token list. The logic is the same as
@@ -611,11 +612,18 @@ function evaluateNodeFreeText(
     }
   }
 
-  if (isTraceErrorNode(node)) {
+  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
     if (node.value.level === query) {
       return true;
     }
-    if (node.value.title?.includes(query)) {
+    if (
+      isTraceErrorNode(node) &&
+      (node.value.title?.includes(query) || node.value.message?.includes(query))
+    ) {
+      return true;
+    }
+
+    if (isEAPErrorNode(node) && node.value.description?.includes(query)) {
       return true;
     }
   }

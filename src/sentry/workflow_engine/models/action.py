@@ -66,10 +66,10 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
 
-    def trigger(self, job: WorkflowEventData, detector: Detector) -> None:
+    def trigger(self, event_data: WorkflowEventData, detector: Detector) -> None:
         # get the handler for the action type
         handler = self.get_handler()
-        handler.execute(job, self, detector)
+        handler.execute(event_data, self, detector)
 
 
 @receiver(pre_save, sender=Action)

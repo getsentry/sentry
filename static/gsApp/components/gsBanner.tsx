@@ -247,15 +247,12 @@ function NoticeModal({
           )
         : t('To ensure uninterrupted service, upgrade your subscription.');
     } else {
-      if (subscription.planTier === PlanTier.AM3) {
-        subText = t(
-          `To ensure uninterrupted service, upgrade your subscription or increase your pay-as-you-go spend limit.`
-        );
-      } else {
-        subText = t(
-          `To ensure uninterrupted service, upgrade your subscription or increase your on-demand spend limit.`
-        );
-      }
+      subText = tct(
+        `To ensure uninterrupted service, upgrade your subscription or increase your [budgetTerm] spend limit.`,
+        {
+          budgetTerm: subscription.planDetails.budgetTerm,
+        }
+      );
     }
   }
 
@@ -992,7 +989,6 @@ class GSBanner extends Component<Props, State> {
           clicked_event: eventType,
         });
       };
-      // @ts-expect-error TS(2339): Property 'profileDuration' does not exist on type ... Remove this comment to see the full error message
       return {
         error: (
           <ExternalLink
@@ -1085,20 +1081,32 @@ class GSBanner extends Component<Props, State> {
             })}
           </ExternalLink>
         ),
-        // TODO(continuous profiling): Uncomment when we have a continuous profile doc link
-        // profile: (
-        //   <ExternalLink
-        //     key="profiles"
-        //     href={getDocsLinkForEventType(DataCategoryExact.PROFILE)}
-        //     onClick={onClick}
-        //   >
-        //     {getSingularCategoryName({
-        //       plan,
-        //       category: DataCategory.PROFILES,
-        //       capitalize: false,
-        //     })}
-        //   </ExternalLink>
-        // ),
+        profileDuration: (
+          <ExternalLink
+            key="profiles"
+            href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)}
+            onClick={onClick}
+          >
+            {getSingularCategoryName({
+              plan,
+              category: DataCategory.PROFILE_DURATION,
+              capitalize: false,
+            })}
+          </ExternalLink>
+        ),
+        profileDurationUI: (
+          <ExternalLink
+            key="profiles-ui"
+            href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION_UI)}
+            onClick={onClick}
+          >
+            {getSingularCategoryName({
+              plan,
+              category: DataCategory.PROFILE_DURATION_UI,
+              capitalize: false,
+            })}
+          </ExternalLink>
+        ),
       }[eventType]!;
     };
 
@@ -1151,8 +1159,7 @@ class GSBanner extends Component<Props, State> {
           {
             monitorTitle:
               eventTypes[0] === 'monitorSeat' ? 'Cron Monitors' : 'Uptime Monitors',
-            budgetType:
-              subscription.planTier === PlanTier.AM3 ? 'pay-as-you-go' : 'on-demand',
+            budgetType: subscription.planDetails.budgetTerm,
           }
         );
       } else {

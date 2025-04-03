@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
@@ -6,14 +6,17 @@ import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizatio
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Footer from 'sentry/components/footer';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageOverlay from 'sentry/components/pageOverlay';
 import {SidebarWrapper} from 'sentry/components/sidebar';
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {t, tct} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import {useParams} from 'sentry/utils/useParams';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import DeactivatedMember from 'getsentry/components/features/illustrations/deactivatedMember';
@@ -21,179 +24,178 @@ import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
-type Props = RouteComponentProps<
-  {orgId: string},
-  Record<PropertyKey, string | undefined>
-> & {
+type Props = {
   subscription: Subscription;
 };
-type State = DeprecatedAsyncComponent['state'] & {
-  organization: Organization | null;
-  requested?: boolean;
-};
 
-const TextWrapper = styled('div')`
-  max-width: 500px;
-  margin-right: 20px;
-`;
+function DisabledMemberView(props: Props) {
+  const {orgId} = useParams<{orgId: string}>();
+  const api = useApi({persistInFlight: true});
+  const [requested, setRequested] = useState(false);
 
-class DisabledMemberView extends DeprecatedAsyncComponent<Props, State> {
-  get orgSlug() {
-    return this.props.subscription.slug;
-  }
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    return [
-      [
-        'organization',
-        `/organizations/${this.orgSlug}/?detailed=0&include_feature_flags=1`,
-      ],
-    ];
-  }
+  const {subscription} = props;
+  const orgSlug = subscription.slug;
 
-  componentDidMount() {
-    super.componentDidMount();
+  const {
+    data: organization,
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<Organization>(
+    [`/organizations/${orgSlug}/`, {query: {detailed: '0', include_feature_flags: '1'}}],
+    {
+      staleTime: 0,
+    }
+  );
+
+  useEffect(() => {
     // needed to make the left margin work as expected
     document.body.classList.add('body-sidebar');
-  }
+  }, []);
 
-  onLoadAllEndpointsSuccess() {
-    const {organization, subscription} = this.state;
+  useEffect(() => {
     if (organization) {
       trackGetsentryAnalytics('disabled_member_view.loaded', {
         organization,
         subscription,
       });
     }
-  }
+  }, [organization, subscription]);
 
-  handleUpgradeRequest = async () => {
-    const {organization, subscription} = this.state;
-    if (!organization) {
-      return;
-    }
-    await sendUpgradeRequest({
-      api: this.api,
-      organization,
-      type: 'disabledMember',
-      handleSuccess: () => this.setState({requested: true}),
-    });
+  const handleUpgradeRequestMutation = useMutation({
+    mutationFn: () =>
+      sendUpgradeRequest({
+        api,
+        organization: organization!,
+        type: 'disabledMember',
+      }),
+    onSuccess: () => {
+      setRequested(true);
+      trackGetsentryAnalytics('disabled_member_view.clicked_upgrade_request', {
+        organization: organization!,
+        subscription,
+      });
+    },
+  });
 
-    trackGetsentryAnalytics('disabled_member_view.clicked_upgrade_request', {
-      organization,
-      subscription,
-    });
-  };
-
-  handleLeave = async () => {
-    const {organization, subscription} = this.state;
-    if (!organization) {
-      return;
-    }
-    addLoadingMessage(t('Requesting\u2026'));
-    try {
-      await this.api.requestPromise(`/organizations/${organization.slug}/members/me/`, {
+  const handleLeaveMutation = useMutation({
+    mutationFn: () => {
+      return api.requestPromise(`/organizations/${organization?.slug}/members/me/`, {
         method: 'DELETE',
         data: {},
       });
-    } catch (err) {
+    },
+    onMutate: () => {
+      addLoadingMessage(t('Requesting\u2026'));
+    },
+    onSuccess: () => {
+      trackGetsentryAnalytics('disabled_member_view.clicked_leave_org', {
+        organization: organization!,
+        subscription,
+      });
+      redirectToRemainingOrganization({orgId, removeOrg: true});
+    },
+    onError: () => {
       addErrorMessage(t('Unable to leave organization'));
-      return;
-    }
-    trackGetsentryAnalytics('disabled_member_view.clicked_leave_org', {
-      organization,
-      subscription,
-    });
-    redirectToRemainingOrganization({orgId: organization.slug, removeOrg: true});
-  };
+    },
+  });
 
-  renderBody() {
-    const {organization, requested} = this.state;
-    const {subscription} = this.props;
-    const totalLicenses = subscription.totalLicenses;
-    const orgName = organization?.name;
-    const requestButton = requested ? (
-      <strong>{t('Requested!')}</strong>
-    ) : (
-      <Button onClick={this.handleUpgradeRequest} size="sm" priority="primary">
-        {t('Request Upgrade')}
-      </Button>
-    );
-    return (
-      <PageContainer>
-        <MinimalistSidebar collapsed={false}>
-          {organization && (
-            <SidebarDropdown orientation="left" collapsed={false} hideOrgLinks />
-          )}
-        </MinimalistSidebar>
-        {organization && (
-          <PageOverlay
-            background={DeactivatedMember}
-            customWrapper={TextWrapper}
-            text={({Header, Body}) => (
-              <Fragment>
-                <Header>{t('Member Deactivated')}</Header>
-                <Body>
-                  <p>
-                    {tct(
-                      '[firstSentence] Request an upgrade to our Team or Business Plan to get back to making software less bad.',
-                      {
-                        firstSentence:
-                          totalLicenses > 1
-                            ? tct(
-                                '[orgName] is on a plan that supports only [totalLicenses] members.',
-                                {
-                                  orgName: <strong>{organization.name}</strong>,
-                                  totalLicenses,
-                                }
-                              )
-                            : tct('[orgName] is on a plan that supports only 1 member.', {
-                                orgName: <strong>{organization.name}</strong>,
-                              }),
-                      }
-                    )}
-                  </p>
-                  <DisabledMemberButtonBar gap={2}>
-                    {requestButton}
-                    <Confirm
-                      onConfirm={this.handleLeave}
-                      message={tct('Are you sure you want to leave [orgName]?', {
-                        orgName,
-                      })}
-                    >
-                      <Button size="sm" priority="danger">
-                        {t('Leave')}
-                      </Button>
-                    </Confirm>
-                  </DisabledMemberButtonBar>
-                </Body>
-              </Fragment>
-            )}
-            positioningStrategy={({mainRect, anchorRect, wrapperRect}) => {
-              // Vertically center within the anchor
-              let y =
-                (anchorRect.height - wrapperRect.height + 40) / 2 +
-                anchorRect.y -
-                mainRect.y;
-
-              // move up text on mobile
-              if (mainRect.width < 480) {
-                y = y - 100;
-              }
-
-              // Align to the right of the anchor, avoid overflowing outside of the
-              // page, the best we can do is start to overlap the illustration at
-              // this point.
-              let x = anchorRect.x - mainRect.x - wrapperRect.width;
-              x = Math.max(30, x);
-
-              return {x, y};
-            }}
-          />
-        )}
-        <Footer />
-      </PageContainer>
-    );
+  if (isPending) {
+    return <LoadingIndicator />;
   }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  const totalLicenses = subscription.totalLicenses;
+  const orgName = organization?.name;
+  const requestButton = requested ? (
+    <strong>{t('Requested!')}</strong>
+  ) : (
+    <Button
+      onClick={() => handleUpgradeRequestMutation.mutate()}
+      size="sm"
+      priority="primary"
+    >
+      {t('Request Upgrade')}
+    </Button>
+  );
+  return (
+    <PageContainer>
+      <MinimalistSidebar collapsed={false}>
+        {organization && (
+          <SidebarDropdown orientation="left" collapsed={false} hideOrgLinks />
+        )}
+      </MinimalistSidebar>
+      {organization && (
+        <PageOverlay
+          background={DeactivatedMember}
+          customWrapper={TextWrapper}
+          text={({Header, Body}) => (
+            <Fragment>
+              <Header>{t('Member Deactivated')}</Header>
+              <Body>
+                <p>
+                  {tct(
+                    '[firstSentence] Request an upgrade to our Team or Business Plan to get back to making software less bad.',
+                    {
+                      firstSentence:
+                        totalLicenses > 1
+                          ? tct(
+                              '[orgName] is on a plan that supports only [totalLicenses] members.',
+                              {
+                                orgName: <strong>{organization.name}</strong>,
+                                totalLicenses,
+                              }
+                            )
+                          : tct('[orgName] is on a plan that supports only 1 member.', {
+                              orgName: <strong>{organization.name}</strong>,
+                            }),
+                    }
+                  )}
+                </p>
+                <DisabledMemberButtonBar gap={2}>
+                  {requestButton}
+                  <Confirm
+                    onConfirm={() => handleLeaveMutation.mutate()}
+                    message={tct('Are you sure you want to leave [orgName]?', {
+                      orgName,
+                    })}
+                  >
+                    <Button size="sm" priority="danger">
+                      {t('Leave')}
+                    </Button>
+                  </Confirm>
+                </DisabledMemberButtonBar>
+              </Body>
+            </Fragment>
+          )}
+          positioningStrategy={({mainRect, anchorRect, wrapperRect}) => {
+            // Vertically center within the anchor
+            let y =
+              (anchorRect.height - wrapperRect.height + 40) / 2 +
+              anchorRect.y -
+              mainRect.y;
+
+            // move up text on mobile
+            if (mainRect.width < 480) {
+              y = y - 100;
+            }
+
+            // Align to the right of the anchor, avoid overflowing outside of the
+            // page, the best we can do is start to overlap the illustration at
+            // this point.
+            let x = anchorRect.x - mainRect.x - wrapperRect.width;
+            x = Math.max(30, x);
+
+            return {x, y};
+          }}
+        />
+      )}
+      <Footer />
+    </PageContainer>
+  );
 }
 
 export default withSubscription(DisabledMemberView);
@@ -211,4 +213,9 @@ const PageContainer = styled('div')`
 
 const DisabledMemberButtonBar = styled(ButtonBar)`
   max-width: fit-content;
+`;
+
+const TextWrapper = styled('div')`
+  max-width: 500px;
+  margin-right: 20px;
 `;

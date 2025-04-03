@@ -22,7 +22,7 @@ import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
-const {error, fmt} = Sentry._experiment_log;
+const {error, fmt} = Sentry.logger;
 
 // In minutes
 export const SIXTY_DAYS = 86400;

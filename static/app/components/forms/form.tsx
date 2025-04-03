@@ -231,7 +231,7 @@ function Form({
   const shouldShowFooter = typeof hideFooter === 'undefined' ? !saveOnBlur : !hideFooter;
 
   return (
-    <FormContext.Provider value={contextData}>
+    <FormContext value={contextData}>
       <form
         onSubmit={handleSubmit}
         className={className ?? 'form-stacked'}
@@ -284,7 +284,7 @@ function Form({
           </StyledFooter>
         )}
       </form>
-    </FormContext.Provider>
+    </FormContext>
   );
 }
 

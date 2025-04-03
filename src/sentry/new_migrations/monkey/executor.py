@@ -3,6 +3,7 @@ import logging
 import os
 
 from django.contrib.contenttypes.management import RenameContentType
+from django.contrib.postgres.operations import CreateExtension
 from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.migration import Migration
 from django.db.migrations.operations import AlterField, SeparateDatabaseAndState
@@ -75,7 +76,14 @@ class SentryMigrationExecutor(MigrationExecutor):
             failed_ops = []
             for operation in operations:
                 if isinstance(
-                    operation, (FieldOperation, ModelOperation, RenameContentType, IndexOperation)
+                    operation,
+                    (
+                        FieldOperation,
+                        ModelOperation,
+                        RenameContentType,
+                        IndexOperation,
+                        CreateExtension,
+                    ),
                 ):
                     continue
                 elif isinstance(operation, SeparateDatabaseAndState):

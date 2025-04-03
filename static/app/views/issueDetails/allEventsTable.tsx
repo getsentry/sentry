@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import LoadingError from 'sentry/components/loadingError';
@@ -35,6 +36,7 @@ const makeGroupPreviewRequestUrl = ({groupId}: {groupId: string}) => {
 
 function AllEventsTable({organization, excludedTags, group}: Props) {
   const location = useLocation();
+  const theme = useTheme();
   const config = getConfigForIssueType(group, group.project);
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
@@ -110,6 +112,7 @@ function AllEventsTable({organization, excludedTags, group}: Props) {
 
   return (
     <EventsTable
+      theme={theme}
       eventView={eventView}
       location={location}
       issueId={group.id}

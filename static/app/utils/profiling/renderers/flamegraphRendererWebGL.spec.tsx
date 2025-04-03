@@ -1,4 +1,5 @@
 import {vec2} from 'gl-matrix';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {
   makeCanvasMock,
@@ -12,12 +13,11 @@ import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flameg
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import {lightTheme} from 'sentry/utils/theme';
 
 import type {Flamegraph} from '../flamegraph';
 import {getFlamegraphFrameSearchId} from '../flamegraphFrame';
 
-const theme = makeLightFlamegraphTheme(lightTheme);
+const theme = makeLightFlamegraphTheme(ThemeFixture());
 const originalDpr = window.devicePixelRatio;
 
 describe('flamegraphRendererWebGL', () => {

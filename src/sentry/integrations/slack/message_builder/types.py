@@ -37,3 +37,7 @@ ACTIONED_CATEGORY_TO_EMOJI = {
     GroupCategory.FEEDBACK: ACTION_EMOJI + " :busts_in_silhouette:",
     GroupCategory.CRON: ACTION_EMOJI + " :spiral_calendar_pad:",
 }
+
+ISSUE_SUMMARY_TO_EMOJI = {
+    "seer": ":eye:",
+}

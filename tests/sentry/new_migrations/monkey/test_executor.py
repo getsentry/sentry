@@ -1,4 +1,5 @@
 import pytest
+from django.contrib.postgres.operations import BtreeGistExtension
 from django.db import migrations, models
 
 from sentry.new_migrations.monkey.executor import (
@@ -162,6 +163,12 @@ class SentryMigrationExecutorTest(TestCase):
             operations = [
                 migrations.RunSQL("TEST SQL"),
             ]
+
+        SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="auth"))
+
+    def test_check_db_routing_extensions(self):
+        class TestMigration(migrations.Migration):
+            operations = [BtreeGistExtension()]
 
         SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="auth"))
 

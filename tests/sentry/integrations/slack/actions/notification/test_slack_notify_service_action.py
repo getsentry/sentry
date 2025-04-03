@@ -302,7 +302,7 @@ class TestInit(RuleTestCase):
             SLACK_DATADOG_METRIC, sample_rate=1.0, tags={"ok": False, "status": 200}
         )
 
-    @with_feature("organizations:workflow-engine-notification-action")
+    @with_feature("organizations:workflow-engine-trigger-actions")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
@@ -316,6 +316,7 @@ class TestInit(RuleTestCase):
         # Create a rule with a numeric ID for the test
         rule = self.get_rule(data=self.action_data)
         rule.id = self.action.id
+        rule.environment_id = None
 
         results = list(rule.after(event=self.event))
         assert len(results) == 1
@@ -340,7 +341,7 @@ class TestInit(RuleTestCase):
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @with_feature("organizations:workflow-engine-notification-action")
+    @with_feature("organizations:workflow-engine-trigger-actions")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
@@ -353,6 +354,7 @@ class TestInit(RuleTestCase):
 
         rule = self.get_rule(data=self.action_data)
         rule.id = self.action.id
+        rule.environment_id = None
         results = list(rule.after(event=self.event))
         assert len(results) == 1
 
@@ -376,7 +378,7 @@ class TestInit(RuleTestCase):
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @with_feature("organizations:workflow-engine-notification-action")
+    @with_feature("organizations:workflow-engine-trigger-actions")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
@@ -405,6 +407,7 @@ class TestInit(RuleTestCase):
 
         rule = self.get_rule(data=self.action_data)
         rule.id = self.action.id
+        rule.environment_id = None
         results = list(rule.after(event=event))
         assert len(results) == 1
 

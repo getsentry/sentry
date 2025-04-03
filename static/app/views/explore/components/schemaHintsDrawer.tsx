@@ -102,8 +102,9 @@ function SchemaHintsDrawer({
     (hint: Tag) => {
       const filterQuery = new MutableSearch(currentQuery);
       if (
-        filterQuery.getFilterKeys().includes(hint.key) ||
-        filterQuery.getFilterKeys().includes(`!${hint.key}`)
+        filterQuery
+          .getFilterKeys()
+          .some(key => key === hint.key || key === `!${hint.key}`)
       ) {
         // remove hint and/or negated hint if it exists
         filterQuery.removeFilter(hint.key);
@@ -136,11 +137,13 @@ function SchemaHintsDrawer({
     const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
 
     const hintType =
-      hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
-        ? t('boolean')
-        : hint.kind === FieldKind.MEASUREMENT
-          ? t('number')
-          : t('string');
+      hintFieldDefinition?.valueType === FieldValueType.BOOLEAN ? (
+        <Badge type="default">{t('boolean')}</Badge>
+      ) : hint.kind === FieldKind.MEASUREMENT ? (
+        <Badge type="success">{t('number')}</Badge>
+      ) : (
+        <Badge type="highlight">{t('string')}</Badge>
+      );
 
     return (
       <div ref={virtualizer.measureElement} data-index={index}>
@@ -153,7 +156,7 @@ function SchemaHintsDrawer({
             <Tooltip title={prettifyTagKey(hint.key)} showOnlyOnOverflow skipWrapper>
               <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
             </Tooltip>
-            <Badge>{hintType}</Badge>
+            {hintType}
           </CheckboxLabelContainer>
         </StyledMultipleCheckboxItem>
       </div>
@@ -220,6 +223,7 @@ export const useSchemaHintsOnLargeScreen = () => {
 
 const SchemaHintsHeader = styled('h4')`
   margin: 0;
+  flex-shrink: 0;
 `;
 
 const StyledDrawerBody = styled(DrawerBody)`
@@ -231,6 +235,7 @@ const HeaderContainer = styled('div')`
   justify-content: space-between;
   align-items: center;
   margin-bottom: ${space(2)};
+  gap: ${space(1.5)};
 `;
 
 const CheckboxLabelContainer = styled('div')`
@@ -304,7 +309,6 @@ const VirtualOffset = styled('div')<{offset: number}>`
 `;
 
 const SearchInput = styled(InputGroup.Input)`
-  border: 0;
   box-shadow: unset;
   color: inherit;
 `;

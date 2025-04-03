@@ -13,7 +13,6 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
@@ -58,6 +57,7 @@ import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NewTabContextProvider} from 'sentry/views/issueList/utils/newTabContext';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useSelectedSavedSearch} from 'sentry/views/issueList/utils/useSelectedSavedSearch';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 import IssueListFilters from './filters';
 import IssueListHeader from './header';
@@ -1095,8 +1095,6 @@ function IssueListOverview({router}: Props) {
               groupIds={groupIds}
               allResultsVisible={allResultsVisible()}
               displayReprocessingActions={displayReprocessingActions}
-              sort={sort}
-              onSortChange={onSortChange}
               memberList={memberList}
               selectedProjectIds={selection.projects}
               issuesLoading={issuesLoading}

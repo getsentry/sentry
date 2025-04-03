@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
-from collections.abc import MutableMapping
+from collections.abc import Mapping
 from typing import Any
 
 from django.http.request import HttpRequest
@@ -43,10 +43,10 @@ class JiraWebhookBase(Endpoint, abc.ABC):
         self,
         request: Request,
         exc: Exception,
-        handler_context: MutableMapping[str, Any] | None = None,
+        handler_context: Mapping[str, Any] | None = None,
         scope: Scope | None = None,
     ) -> Response:
-        handler_context = handler_context or {}
+        handler_context_mut = dict(handler_context or {})
         scope = scope or Scope()
 
         if isinstance(exc, (AtlassianConnectValidationError, JiraTokenError)):
@@ -79,15 +79,15 @@ class JiraWebhookBase(Endpoint, abc.ABC):
             scope.set_tag("jira.host", exc.host)
             scope.set_tag("jira.endpoint", jira_api_endpoint)
 
-            # If the error message is a big mess of html or xml, move it to `handler_context`
+            # If the error message is a big mess of html or xml, move it to `handler_context_mut`
             # so we can see it if we need it, but also can replace the error message
             # with a much more helpful one
             if "doctype html" in exc.text.lower() or "<html" in exc.text.lower():
-                handler_context["html_response"] = exc.text
+                handler_context_mut["html_response"] = exc.text
             elif "<?xml" in exc.text.lower():
-                handler_context["xml_response"] = exc.text
+                handler_context_mut["xml_response"] = exc.text
 
-            if handler_context.get("html_response") or handler_context.get("xml_response"):
+            if handler_context_mut.get("html_response") or handler_context_mut.get("xml_response"):
                 if exc.code == 401:
                     exc.text = f"Unauthorized request to {jira_api_endpoint}"
                 elif exc.code == 429:
@@ -110,7 +110,7 @@ class JiraWebhookBase(Endpoint, abc.ABC):
 
         # This will log the error locally, capture the exception and send it to Sentry, and create a
         # generic 500/Internal Error response
-        return super().handle_exception_with_details(request, exc, handler_context, scope)
+        return super().handle_exception_with_details(request, exc, handler_context_mut, scope)
 
     def get_token(self, request: Request) -> str:
         try:

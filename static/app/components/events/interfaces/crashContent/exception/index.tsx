@@ -13,11 +13,12 @@ type Props = {
   newestFirst: boolean;
   projectSlug: Project['slug'];
   stackType: StackType;
+  values: ExceptionType['values'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: Record<any, any>;
   stackView?: StackView;
   threadId?: number;
-} & Pick<ExceptionType, 'values'>;
+};
 
 export function ExceptionContent({
   stackView,

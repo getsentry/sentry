@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 from collections.abc import Callable
 from functools import update_wrapper
-from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, ParamSpec, TypeVar
 from uuid import uuid4
 
 import orjson
@@ -81,15 +81,6 @@ class Task(Generic[P, R]):
         The provided parameters will be JSON encoded and stored within
         a `TaskActivation` protobuf that is appended to kafka
         """
-        self.apply_async(*args, **kwargs)
-
-    def apply_async(self, *args: P.args, **kwargs: P.kwargs) -> None:
-        """
-        Schedule a task to run later with a set of arguments.
-
-        The provided parameters will be JSON encoded and stored within
-        a `TaskActivation` protobuf that is appended to kafka
-        """
         if settings.TASK_WORKER_ALWAYS_EAGER:
             self._func(*args, **kwargs)
         else:
@@ -97,6 +88,21 @@ class Task(Generic[P, R]):
             self._namespace.send_task(
                 self.create_activation(*args, **kwargs), wait_for_delivery=self.wait_for_delivery
             )
+
+    def apply_async(self, args: Any = None, kwargs: Any = None) -> None:
+        """
+        Schedule a task to run later with a set of arguments.
+
+        The provided parameters will be JSON encoded and stored within
+        a `TaskActivation` protobuf that is appended to kafka
+
+        Prefer using `delay()` instead of `apply_async()`.
+        """
+        if args is None:
+            args = []
+        if kwargs is None:
+            kwargs = {}
+        self.delay(*args, **kwargs)
 
     def create_activation(self, *args: P.args, **kwargs: P.kwargs) -> TaskActivation:
         received_at = Timestamp()

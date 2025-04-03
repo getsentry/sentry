@@ -1,4 +1,5 @@
 import {PureComponent} from 'react';
+import type {Theme} from '@emotion/react';
 import color from 'color';
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import debounce from 'lodash/debounce';
@@ -10,11 +11,9 @@ import {defaultFormatAxisLabel} from 'sentry/components/charts/components/toolti
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
-import theme from 'sentry/utils/theme';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {
@@ -39,6 +38,7 @@ type Props = DefaultProps & {
   aggregate: string;
   hideThresholdLines: boolean;
   resolveThreshold: MetricRule['resolveThreshold'];
+  theme: Theme;
   thresholdType: MetricRule['thresholdType'];
   triggers: Trigger[];
   anomalies?: Anomaly[];
@@ -65,11 +65,11 @@ const CHART_GRID = {
 };
 
 // Colors to use for trigger thresholds
-const COLOR = {
+const makeTriggerThresholdColors = (theme: Theme) => ({
   RESOLUTION_FILL: color(theme.green200).alpha(0.1).rgb().string(),
   CRITICAL_FILL: color(theme.red300).alpha(0.25).rgb().string(),
   WARNING_FILL: color(theme.yellow200).alpha(0.1).rgb().string(),
-};
+});
 
 /**
  * This chart displays shaded regions that represent different Trigger thresholds in a
@@ -232,10 +232,15 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
     const isCritical = trigger.label === AlertRuleTriggerType.CRITICAL;
     const LINE_STYLE = {
-      stroke: isResolution ? theme.green300 : isCritical ? theme.red300 : theme.yellow300,
+      stroke: isResolution
+        ? this.props.theme.green300
+        : isCritical
+          ? this.props.theme.red300
+          : this.props.theme.yellow300,
       lineDash: [2],
     };
 
+    const COLOR = makeTriggerThresholdColors(this.props.theme);
     return [
       // This line is used as a "border" for the shaded region
       // and represents the threshold value.
@@ -321,6 +326,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       minutesThresholdToDisplaySeconds,
       thresholdType,
       anomalies = [],
+      theme,
     } = this.props;
 
     const dataWithoutRecentBucket = data?.map(({data: eventData, ...restOfData}) => {
@@ -402,10 +408,10 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
           const changeStatusColor =
             changeStatus === AlertRuleTriggerType.CRITICAL
-              ? theme.red300
+              ? this.props.theme.red300
               : changeStatus === AlertRuleTriggerType.WARNING
-                ? theme.yellow300
-                : theme.green300;
+                ? this.props.theme.yellow300
+                : this.props.theme.green300;
 
           return `<span>${date}<span style="color:${changeStatusColor};margin-left:10px;">
             ${Math.sign(changePercentage) === 1 ? '+' : '-'}${Math.abs(
@@ -438,19 +444,19 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             ...this.getThresholdLine(trigger, 'resolveThreshold', true),
           ]),
         })}
-        colors={CHART_PALETTE[0]}
+        colors={this.props.theme.chart.colors[0]}
         series={[
           ...dataWithoutRecentBucket,
           ...comparisonMarkLines,
-          ...getAnomalyMarkerSeries(anomalies),
+          ...getAnomalyMarkerSeries(anomalies, {theme}),
         ]}
         additionalSeries={comparisonDataWithoutRecentBucket.map(
           ({data: _data, ...otherSeriesProps}) =>
             LineSeries({
               name: comparisonSeriesName,
               data: _data.map(({name, value}) => [name, value]),
-              lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
-              itemStyle: {color: theme.gray200},
+              lineStyle: {color: this.props.theme.gray200, type: 'dashed', width: 1},
+              itemStyle: {color: this.props.theme.gray200},
               animation: false,
               animationThreshold: 1,
               animationDuration: 0,

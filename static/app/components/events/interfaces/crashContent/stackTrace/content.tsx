@@ -9,16 +9,13 @@ import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import type {DeprecatedLineProps} from '../../frame/deprecatedLine';
 import DeprecatedLine from '../../frame/deprecatedLine';
 import {
-  findImageForAddress,
   getHiddenFrameIndices,
   getLastFrameIndex,
   isRepeatedFrame,
-  parseAddress,
   stackTracePlatformIcon,
 } from '../../utils';
 
@@ -32,18 +29,17 @@ type DefaultProps = {
 type Props = {
   data: StacktraceType;
   event: Event;
+  newestFirst: boolean;
   platform: PlatformKey;
   className?: string;
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   hideIcon?: boolean;
   hideSourceMapDebugger?: boolean;
   isHoverPreviewed?: boolean;
-  isStackTracePreview?: boolean;
   lockAddress?: string;
   maxDepth?: number;
   mechanism?: StackTraceMechanism | null;
   meta?: Record<any, any>;
-  newestFirst?: boolean;
   threadId?: number;
 } & Partial<DefaultProps>;
 
@@ -55,18 +51,15 @@ function Content({
   expandFirstFrame = true,
   platform,
   includeSystemFrames = true,
-  isHoverPreviewed,
+  isHoverPreviewed = false,
   maxDepth,
   meta,
   hideIcon,
   threadId,
   lockAddress,
   frameSourceMapDebuggerData,
-  hideSourceMapDebugger,
+  hideSourceMapDebugger = false,
 }: Props) {
-  const organization = useOrganization();
-  const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
-  const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
   const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
 
   const {frames = [], framesOmitted, registers} = data;
@@ -111,27 +104,6 @@ function Content({
     return countMap;
   }
 
-  function isFrameAfterLastNonApp(): boolean {
-    if (!frames.length || frames.length < 2) {
-      return false;
-    }
-
-    const lastFrame = frames[frames.length - 1]!;
-    const penultimateFrame = frames[frames.length - 2]!;
-
-    return penultimateFrame.inApp && !lastFrame.inApp;
-  }
-
-  function handleToggleAddresses(mouseEvent: React.MouseEvent<SVGElement>) {
-    mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
-    setShowingAbsoluteAddresses(oldShowAbsAddresses => !oldShowAbsAddresses);
-  }
-
-  function handleToggleFunctionName(mouseEvent: React.MouseEvent<SVGElement>) {
-    mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
-    setShowCompleteFunctionName(oldShowCompleteName => !oldShowCompleteName);
-  }
-
   const handleToggleFrames = (
     mouseEvent: React.MouseEvent<HTMLElement>,
     frameIndex: number
@@ -172,33 +144,8 @@ function Content({
 
   let nRepeats = 0;
 
-  const maxLengthOfAllRelativeAddresses = frames.reduce(
-    (maxLengthUntilThisPoint, frame) => {
-      const correspondingImage = findImageForAddress({
-        event,
-        addrMode: frame.addrMode,
-        address: frame.instructionAddr,
-      });
-
-      try {
-        const relativeAddress = (
-          parseAddress(frame.instructionAddr) -
-          parseAddress(correspondingImage.image_addr)
-        ).toString(16);
-
-        return maxLengthUntilThisPoint > relativeAddress.length
-          ? maxLengthUntilThisPoint
-          : relativeAddress.length;
-      } catch {
-        return maxLengthUntilThisPoint;
-      }
-    },
-    0
-  );
-
   let convertedFrames = frames
     .map((frame, frameIndex) => {
-      const prevFrame = frames[frameIndex - 1];
       const nextFrame = frames[frameIndex + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       const isLastFrame = frameIndex === frames.length - 1;
@@ -211,34 +158,20 @@ function Content({
         (frameIsVisible(frame, nextFrame) && !repeatedFrame) ||
         hiddenFrameIndices.includes(frameIndex)
       ) {
-        const frameProps: Omit<DeprecatedLineProps, 'config'> = {
+        const frameProps: DeprecatedLineProps = {
           event,
           data: frame,
           isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
           emptySourceNotation: lastFrameIndex === frameIndex && frameIndex === 0,
-          isOnlyFrame: (data.frames ?? []).length === 1,
           nextFrame,
-          prevFrame,
           platform,
           timesRepeated: nRepeats,
-          showingAbsoluteAddress: showingAbsoluteAddresses,
-          onAddressToggle: handleToggleAddresses,
-          image: findImageForAddress({
-            event,
-            addrMode: frame.addrMode,
-            address: frame.instructionAddr,
-          }),
-          maxLengthOfRelativeAddress: maxLengthOfAllRelativeAddresses,
           registers: isLastFrame ? registers : {},
-          isFrameAfterLastNonApp: isFrameAfterLastNonApp(),
-          includeSystemFrames,
-          onFunctionNameToggle: handleToggleFunctionName,
           onShowFramesToggle: (e: React.MouseEvent<HTMLElement>) => {
             handleToggleFrames(e, frameIndex);
           },
           isSubFrame: hiddenFrameIndices.includes(frameIndex),
           isShowFramesToggleExpanded: toggleFrameMap[frameIndex],
-          showCompleteFunctionName,
           isHoverPreviewed,
           frameMeta: meta?.frames?.[frameIndex],
           registersMeta: meta?.registers,
@@ -246,7 +179,6 @@ function Content({
           threadId,
           lockAddress,
           hiddenFrameCount: frameCountMap[frameIndex],
-          organization,
           frameSourceResolutionResults: frameSourceMapDebuggerData?.[frameIndex],
           hideSourceMapDebugger,
         };

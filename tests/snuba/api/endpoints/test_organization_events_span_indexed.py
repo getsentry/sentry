@@ -8,6 +8,11 @@ import urllib3
 from sentry.testutils.helpers import parse_link_header
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
+# Downsampling is deterministic, so unless the algorithm changes we can find a known id that will appear in the
+# preflight and it will always show up
+# If we need to get a new ID just query for event ids after loading 100s of events and use any of the ids that come back
+KNOWN_PREFLIGHT_ID = "ca056dd858a24299"
+
 
 class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBase):
     is_eap = False
@@ -1152,6 +1157,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "field": ["precise.start_ts", "precise.finish_ts"],
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "statsPeriod": "1h",
             }
         )
         start = self.ten_mins_ago.timestamp()
@@ -2226,6 +2232,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             },
         ]
         assert meta["dataset"] == self.dataset
+        assert meta["units"] == {"description": None, "epm()": "1/minute"}
+        assert meta["fields"] == {"description": "string", "epm()": "rate"}
 
     def test_is_transaction(self):
         self.store_spans(
@@ -2608,6 +2616,16 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["http_response_rate(4)"] == 0.25
         assert data[0]["http_response_rate(2)"] == 0.25
         assert meta["dataset"] == self.dataset
+        assert meta["fields"] == {
+            "http_response_rate(5)": "percentage",
+            "http_response_rate(4)": "percentage",
+            "http_response_rate(2)": "percentage",
+        }
+        assert meta["units"] == {
+            "http_response_rate(5)": None,
+            "http_response_rate(4)": None,
+            "http_response_rate(2)": None,
+        }
 
     def test_http_response_rate_invalid_param(self):
         self.store_spans(
@@ -3071,9 +3089,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["count_scores(measurements.score.total)"] == 3
         assert meta["dataset"] == self.dataset
 
-    @pytest.mark.xfail(
-        reason="RPC does not support static number operations (https://github.com/getsentry/eap-planning/issues/202) which is required by this function"
-    )
     def test_time_spent_percentage(self):
         spans = []
         for _ in range(4):
@@ -3188,57 +3203,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["division(mobile.frames_frozen,mobile.frames_total)"] == 20 / 100
         assert meta["dataset"] == self.dataset
 
-    def test_opportunity_score(self):
-        self.store_spans(
-            [
-                self.create_span(
-                    {
-                        "measurements": {
-                            "score.ratio.lcp": {"value": 0.1},
-                            "score.ratio.fcp": {"value": 0.57142857142},
-                            "score.total": {"value": 0.43},
-                        }
-                    }
-                ),
-                self.create_span(
-                    {
-                        "measurements": {
-                            "score.ratio.lcp": {"value": 1.0},
-                            "score.total": {"value": 1.0},
-                        }
-                    }
-                ),
-                self.create_span(
-                    {
-                        "measurements": {
-                            "score.total": {"value": 0.0},
-                        }
-                    }
-                ),
-            ],
-            is_eap=self.is_eap,
-        )
-
-        response = self.do_request(
-            {
-                "field": [
-                    "opportunity_score(measurements.score.lcp)",
-                    "opportunity_score(measurements.score.total)",
-                ],
-                "project": self.project.id,
-                "dataset": self.dataset,
-            }
-        )
-
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        meta = response.data["meta"]
-        assert len(data) == 1
-        self.assertAlmostEqual(data[0]["opportunity_score(measurements.score.lcp)"], 0.27)
-        assert data[0]["opportunity_score(measurements.score.total)"] == 1.57
-        assert meta["dataset"] == self.dataset
-
-    def test_total_opportunity_score_simple(self):
+    def test_opportunity_score_zero_scores(self):
         self.store_spans(
             [
                 self.create_span(
@@ -3273,7 +3238,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             {
                 "field": [
                     "transaction",
-                    "total_opportunity_score()",
+                    "opportunity_score(measurements.score.total)",
+                    "opportunity_score(measurements.score.lcp)",
+                    "opportunity_score(measurements.score.inp)",
+                    "opportunity_score(measurements.score.cls)",
+                    "opportunity_score(measurements.score.ttfb)",
+                    "opportunity_score(measurements.score.fcp)",
                 ],
                 "orderby": "transaction",
                 "dataset": self.dataset,
@@ -3284,8 +3254,223 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2
-        assert data[0]["total_opportunity_score()"] == 1.0
-        assert data[1]["total_opportunity_score()"] == 1.0
+        assert data[0]["opportunity_score(measurements.score.lcp)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.inp)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.cls)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.ttfb)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.fcp)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.total)"] == 0.5
+
+        assert data[1]["opportunity_score(measurements.score.lcp)"] == 0.5
+        assert data[1]["opportunity_score(measurements.score.inp)"] == 0.5
+        assert data[1]["opportunity_score(measurements.score.cls)"] == 0.5
+        assert data[1]["opportunity_score(measurements.score.ttfb)"] == 0.5
+        assert data[1]["opportunity_score(measurements.score.fcp)"] == 0.5
+        assert data[1]["opportunity_score(measurements.score.total)"] == 0.5
+
+    def test_opportunity_score_simple(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.fcp": {"value": 0.0},
+                            "score.ratio.cls": {"value": 0.0},
+                            "score.ratio.ttfb": {"value": 0.0},
+                            "score.ratio.lcp": {"value": 1.0},
+                            "score.ratio.inp": {"value": 0.0},
+                        },
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.fcp": {"value": 0.0},
+                            "score.ratio.cls": {"value": 0.0},
+                            "score.ratio.ttfb": {"value": 0.0},
+                            "score.ratio.lcp": {"value": 0.0},
+                            "score.ratio.inp": {"value": 0.0},
+                        },
+                    }
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "opportunity_score(measurements.score.lcp)",
+                    "opportunity_score(measurements.score.inp)",
+                    "opportunity_score(measurements.score.cls)",
+                    "opportunity_score(measurements.score.ttfb)",
+                    "opportunity_score(measurements.score.fcp)",
+                    "opportunity_score(measurements.score.total)",
+                ],
+                "orderby": "transaction",
+                "dataset": self.dataset,
+                "project": self.project.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["opportunity_score(measurements.score.lcp)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.inp)"] == 1.0
+        assert data[0]["opportunity_score(measurements.score.cls)"] == 1.0
+        assert data[0]["opportunity_score(measurements.score.ttfb)"] == 1.0
+        assert data[0]["opportunity_score(measurements.score.fcp)"] == 1.0
+        self.assertAlmostEqual(data[0]["opportunity_score(measurements.score.total)"], 0.85)
+
+    def test_opportunity_score_with_transaction(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.fcp": {"value": 0.0},
+                            "score.ratio.cls": {"value": 0.0},
+                            "score.ratio.ttfb": {"value": 0.0},
+                            "score.ratio.lcp": {"value": 1.0},
+                            "score.ratio.inp": {"value": 0.0},
+                        },
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.fcp": {"value": 0.0},
+                            "score.ratio.cls": {"value": 0.0},
+                            "score.ratio.ttfb": {"value": 0.0},
+                            "score.ratio.lcp": {"value": 0.0},
+                            "score.ratio.inp": {"value": 0.0},
+                        },
+                        "sentry_tags": {"transaction": "bar_transaction"},
+                    }
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "opportunity_score(measurements.score.lcp)",
+                    "opportunity_score(measurements.score.inp)",
+                    "opportunity_score(measurements.score.cls)",
+                    "opportunity_score(measurements.score.ttfb)",
+                    "opportunity_score(measurements.score.fcp)",
+                    "opportunity_score(measurements.score.total)",
+                ],
+                "orderby": "transaction",
+                "dataset": self.dataset,
+                "project": self.project.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+
+        assert data[0]["opportunity_score(measurements.score.lcp)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.inp)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.cls)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.ttfb)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.fcp)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.total)"] == 0.5
+
+        assert data[1]["opportunity_score(measurements.score.lcp)"] == 0
+        assert data[1]["opportunity_score(measurements.score.inp)"] == 0.5
+        assert data[1]["opportunity_score(measurements.score.cls)"] == 0.5
+        assert data[1]["opportunity_score(measurements.score.ttfb)"] == 0.5
+        assert data[1]["opportunity_score(measurements.score.fcp)"] == 0.5
+        self.assertAlmostEqual(data[1]["opportunity_score(measurements.score.total)"], 0.35)
+
+    def test_opportunity_score_with_filter(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.fcp": {"value": 0.0},
+                            "score.ratio.cls": {"value": 0.0},
+                            "score.ratio.ttfb": {"value": 0.0},
+                            "score.ratio.lcp": {"value": 1.0},
+                            "score.ratio.inp": {"value": 0.0},
+                        },
+                        "sentry_tags": {"transaction": "foo_transaction", "browser.name": "Chrome"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.fcp": {"value": 0.0},
+                            "score.ratio.cls": {"value": 0.0},
+                            "score.ratio.ttfb": {"value": 0.0},
+                            "score.ratio.lcp": {"value": 0.0},
+                            "score.ratio.inp": {"value": 0.0},
+                        },
+                        "sentry_tags": {"transaction": "bar_transaction", "browser.name": "Chrome"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.fcp": {"value": 0.0},
+                            "score.ratio.cls": {"value": 0.0},
+                            "score.ratio.ttfb": {"value": 0.0},
+                            "score.ratio.lcp": {"value": 0.0},
+                            "score.ratio.inp": {"value": 0.0},
+                        },
+                        "sentry_tags": {
+                            "transaction": "bar_transaction",
+                            "browser.name": "Firefox",
+                        },
+                    }
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "opportunity_score(measurements.score.lcp)",
+                    "opportunity_score(measurements.score.inp)",
+                    "opportunity_score(measurements.score.cls)",
+                    "opportunity_score(measurements.score.ttfb)",
+                    "opportunity_score(measurements.score.fcp)",
+                    "opportunity_score(measurements.score.total)",
+                ],
+                "query": "browser.name:Chrome",
+                "orderby": "transaction",
+                "dataset": self.dataset,
+                "project": self.project.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+
+        assert data[0]["opportunity_score(measurements.score.lcp)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.inp)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.cls)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.ttfb)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.fcp)"] == 0.5
+        assert data[0]["opportunity_score(measurements.score.total)"] == 0.5
+
+        assert data[1]["opportunity_score(measurements.score.lcp)"] == 0
+        assert data[1]["opportunity_score(measurements.score.inp)"] == 0.5
+        assert data[1]["opportunity_score(measurements.score.cls)"] == 0.5
+        assert data[1]["opportunity_score(measurements.score.ttfb)"] == 0.5
+        assert data[1]["opportunity_score(measurements.score.fcp)"] == 0.5
+        self.assertAlmostEqual(data[1]["opportunity_score(measurements.score.total)"], 0.35)
 
     @pytest.mark.xfail(reason="RPC returns None if a value is missing instead of 0")
     def test_total_opportunity_score_missing_data(self):
@@ -3341,7 +3526,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             {
                 "field": [
                     "transaction",
-                    "total_opportunity_score()",
+                    "opportunity_score(measurements.score.total)",
                 ],
                 "orderby": "transaction",
                 "dataset": self.dataset,
@@ -3352,8 +3537,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2
-        assert data[0]["total_opportunity_score()"] == 0.09999999999999999
-        assert data[1]["total_opportunity_score()"] == 0.6
+        assert data[0]["opportunity_score(measurements.score.total)"] == 0.09999999999999999
+        assert data[1]["opportunity_score(measurements.score.total)"] == 0.6
 
     def test_count_starts(self):
         self.store_spans(
@@ -3525,3 +3710,66 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             },
         ]
         assert meta["dataset"] == self.dataset
+
+    def test_preflight_request(self):
+        span = self.create_span(
+            {"description": "foo", "sentry_tags": {"status": "success"}},
+            start_ts=self.ten_mins_ago,
+        )
+        span["span_id"] = KNOWN_PREFLIGHT_ID
+        span2 = self.create_span(
+            {"description": "zoo", "sentry_tags": {"status": "success"}},
+            start_ts=self.ten_mins_ago,
+        )
+        span2["span_id"] = "b" * 16
+        self.store_spans(
+            [span, span2],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["id", "description", "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "1h",
+                "sampling": "PREFLIGHT",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
+
+    def test_best_effort_request(self):
+        span = self.create_span(
+            {"description": "foo", "sentry_tags": {"status": "success"}},
+            start_ts=self.ten_mins_ago,
+        )
+        span["span_id"] = KNOWN_PREFLIGHT_ID
+        span2 = self.create_span(
+            {"description": "zoo", "sentry_tags": {"status": "success"}},
+            start_ts=self.ten_mins_ago,
+        )
+        span2["span_id"] = "b" * 16
+        self.store_spans(
+            [span, span2],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["id", "description", "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "1h",
+                "sampling": "BEST_EFFORT",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
+        assert response.data["data"][1]["id"] == "b" * 16

@@ -1,4 +1,6 @@
 import {Fragment, useMemo} from 'react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
 import {
   rawSpanKeys,
@@ -93,7 +95,7 @@ function getSpanAggregateMeasurements(node: TraceTreeNode<TraceTree.Span>) {
   ];
 }
 
-export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>) {
+export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>, theme: Theme) {
   const span = node.value;
   const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
   const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
@@ -102,7 +104,7 @@ export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>) {
   const unknownKeys = Object.keys(span).filter(key => {
     return !isHiddenDataKey(key) && !rawSpanKeys.has(key as any);
   });
-  const timingKeys = getSpanSubTimings(span) ?? [];
+  const timingKeys = getSpanSubTimings(span, theme) ?? [];
   const aggregateMeasurements: SectionCardKeyValueList =
     getSpanAggregateMeasurements(node);
 
@@ -117,6 +119,7 @@ export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>) {
 }
 
 export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
+  const theme = useTheme();
   const span = node.value;
   const projectIds = node.event?.projectID;
   const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
@@ -127,7 +130,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
     return !isHiddenDataKey(key) && !rawSpanKeys.has(key as any);
   });
 
-  const timingKeys = getSpanSubTimings(span) ?? [];
+  const timingKeys = getSpanSubTimings(span, theme) ?? [];
   const items: SectionCardKeyValueList = [];
 
   const aggregateMeasurements: SectionCardKeyValueList = useMemo(() => {

@@ -1,12 +1,14 @@
 import {ThemeProvider} from '@emotion/react';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {BillingHistoryFixture} from 'getsentry-test/fixtures/billingHistory';
 import {ChargeFixture} from 'getsentry-test/fixtures/charge';
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
+import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {OnboardingTasksFixture} from 'getsentry-test/fixtures/onboardingTasks';
 import {OwnerFixture} from 'getsentry-test/fixtures/owner';
 import {PoliciesFixture} from 'getsentry-test/fixtures/policies';
@@ -31,7 +33,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import theme from 'sentry/utils/theme';
 import * as useOrganization from 'sentry/utils/useOrganization';
 
 import {FREE_EVENTS_KEYS} from 'admin/components/addGiftEventsAction';
@@ -41,6 +42,7 @@ import CustomerDetails from 'admin/views/customerDetails';
 import type {Subscription} from 'getsentry/types';
 import {BillingType, PlanTier} from 'getsentry/types';
 
+const theme = ThemeFixture();
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type MockSubscription = Overwrite<
@@ -592,7 +594,7 @@ function StatsBillingPeriodFixture(): Response {
   };
 }
 
-function renderMocks(
+function setUpMocks(
   organization: Organization,
   subscription?: Partial<MockSubscription>
 ) {
@@ -691,7 +693,7 @@ describe('Customer Details', function () {
   });
 
   it('populates chart data', function () {
-    renderMocks(organization);
+    setUpMocks(organization);
 
     const data = StatsBillingPeriodFixture();
 
@@ -1103,7 +1105,7 @@ describe('Customer Details', function () {
   });
 
   it('renders correct sections', async function () {
-    renderMocks(organization);
+    setUpMocks(organization);
 
     render(
       <CustomerDetails
@@ -1123,7 +1125,7 @@ describe('Customer Details', function () {
   });
 
   it('renders correct dropdown options', async function () {
-    renderMocks(organization);
+    setUpMocks(organization);
 
     render(
       <CustomerDetails
@@ -1160,7 +1162,7 @@ describe('Customer Details', function () {
   });
 
   it('renders and hides generic confirmation modals', async function () {
-    renderMocks(organization);
+    setUpMocks(organization);
     render(
       <CustomerDetails
         router={router}
@@ -1207,7 +1209,7 @@ describe('Customer Details', function () {
     it('renders disabled without billing.admin permissions', async function () {
       ConfigStore.set('user', mockUser);
 
-      renderMocks(organization, {isBillingAdmin: false});
+      setUpMocks(organization, {isBillingAdmin: false});
 
       render(
         <CustomerDetails
@@ -1242,7 +1244,7 @@ describe('Customer Details', function () {
 
     it('renders enabled with billing.admin permissions', async function () {
       ConfigStore.set('user', mockBillingAdminUser);
-      renderMocks(softCapOrg, {isPartner: false});
+      setUpMocks(softCapOrg, {isPartner: false});
 
       render(
         <CustomerDetails
@@ -1268,7 +1270,7 @@ describe('Customer Details', function () {
 
     it('renders disabled if legacy soft cap already enabled', async function () {
       ConfigStore.set('user', mockBillingAdminUser);
-      renderMocks(softCapOrg, {isPartner: false, hasSoftCap: true});
+      setUpMocks(softCapOrg, {isPartner: false, hasSoftCap: true});
 
       render(
         <CustomerDetails
@@ -1294,7 +1296,7 @@ describe('Customer Details', function () {
 
     it('enables legacy soft cap', async function () {
       ConfigStore.set('user', mockBillingAdminUser);
-      renderMocks(softCapOrg, {isPartner: false, hasSoftCap: false});
+      setUpMocks(softCapOrg, {isPartner: false, hasSoftCap: false});
 
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${softCapOrg.slug}/`,
@@ -1342,7 +1344,7 @@ describe('Customer Details', function () {
 
     it('disables legacy soft cap', async function () {
       ConfigStore.set('user', mockBillingAdminUser);
-      renderMocks(softCapOrg, {isPartner: false, hasSoftCap: true});
+      setUpMocks(softCapOrg, {isPartner: false, hasSoftCap: true});
 
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${softCapOrg.slug}/`,
@@ -1399,8 +1401,8 @@ describe('Customer Details', function () {
 
     it('renders disable option with billing.admin permissions', async function () {
       ConfigStore.set('user', mockBillingAdminUser);
-      renderMocks(softCapOrg, {hasOverageNotificationsDisabled: false, hasSoftCap: true});
-      renderMocks(noNotificationsOrg, {
+      setUpMocks(softCapOrg, {hasOverageNotificationsDisabled: false, hasSoftCap: true});
+      setUpMocks(noNotificationsOrg, {
         hasOverageNotificationsDisabled: false,
         hasSoftCap: true,
       });
@@ -1429,8 +1431,8 @@ describe('Customer Details', function () {
 
     it('renders enabled option with billing.admin permissions', async function () {
       ConfigStore.set('user', mockBillingAdminUser);
-      renderMocks(softCapOrg, {hasOverageNotificationsDisabled: true, hasSoftCap: true});
-      renderMocks(noNotificationsOrg, {
+      setUpMocks(softCapOrg, {hasOverageNotificationsDisabled: true, hasSoftCap: true});
+      setUpMocks(noNotificationsOrg, {
         hasOverageNotificationsDisabled: true,
         hasSoftCap: true,
       });
@@ -1459,8 +1461,8 @@ describe('Customer Details', function () {
 
     it('disables overage notifications', async function () {
       ConfigStore.set('user', mockBillingAdminUser);
-      renderMocks(softCapOrg, {hasOverageNotificationsDisabled: false, hasSoftCap: true});
-      renderMocks(noNotificationsOrg, {
+      setUpMocks(softCapOrg, {hasOverageNotificationsDisabled: false, hasSoftCap: true});
+      setUpMocks(noNotificationsOrg, {
         hasOverageNotificationsDisabled: false,
         hasSoftCap: true,
       });
@@ -1517,7 +1519,7 @@ describe('Customer Details', function () {
         body: OrganizationFixture(),
       });
 
-      renderMocks(noNotificationsOrg, {
+      setUpMocks(noNotificationsOrg, {
         hasOverageNotificationsDisabled: true,
         hasSoftCap: true,
       });
@@ -1565,7 +1567,7 @@ describe('Customer Details', function () {
     const pendingChangesOrg = OrganizationFixture();
 
     it('renders in the dropdown when there are pending changes', async function () {
-      renderMocks(pendingChangesOrg, {pendingChanges: true});
+      setUpMocks(pendingChangesOrg, {pendingChanges: true});
 
       render(
         <CustomerDetails
@@ -1590,7 +1592,7 @@ describe('Customer Details', function () {
     });
 
     it('is hidden when there are no changes', async function () {
-      renderMocks(organization);
+      setUpMocks(organization);
 
       render(
         <CustomerDetails
@@ -1619,7 +1621,7 @@ describe('Customer Details', function () {
     const cannotTrialOrg = OrganizationFixture({slug: 'cannot-trial-org'});
 
     it('renders Allow Trial in the dropdown', async function () {
-      renderMocks(cannotTrialOrg, {canTrial: false, isTrial: false});
+      setUpMocks(cannotTrialOrg, {canTrial: false, isTrial: false});
 
       render(
         <CustomerDetails
@@ -1644,7 +1646,7 @@ describe('Customer Details', function () {
     });
 
     it('hides Allow Trial in the dropdown when not eligible', async function () {
-      renderMocks(organization, {canTrial: true, isTrial: false});
+      setUpMocks(organization, {canTrial: true, isTrial: false});
 
       render(
         <CustomerDetails
@@ -1669,7 +1671,7 @@ describe('Customer Details', function () {
     });
 
     it('hides Allow Trial in the dropdown when on active trial', async function () {
-      renderMocks(organization, {canTrial: false, isTrial: true});
+      setUpMocks(organization, {canTrial: false, isTrial: true});
 
       render(
         <CustomerDetails
@@ -1700,7 +1702,7 @@ describe('Customer Details', function () {
         body: OrganizationFixture(),
       });
 
-      renderMocks(cannotTrialOrg, {canTrial: false, isTrial: false});
+      setUpMocks(cannotTrialOrg, {canTrial: false, isTrial: false});
 
       render(
         <CustomerDetails
@@ -1745,7 +1747,7 @@ describe('Customer Details', function () {
     const gracePeriodOrg = OrganizationFixture({slug: 'grace-period'});
 
     it('renders in the dropdown', async function () {
-      renderMocks(gracePeriodOrg);
+      setUpMocks(gracePeriodOrg);
 
       render(
         <CustomerDetails
@@ -1770,7 +1772,7 @@ describe('Customer Details', function () {
     });
 
     it('disabled in the dropdown', async function () {
-      renderMocks(organization);
+      setUpMocks(organization);
 
       render(
         <CustomerDetails
@@ -1812,7 +1814,7 @@ describe('Customer Details', function () {
         body: OrganizationFixture(),
       });
 
-      renderMocks(gracePeriodOrg, {canGracePeriod: false});
+      setUpMocks(gracePeriodOrg, {canGracePeriod: false});
 
       render(
         <CustomerDetails
@@ -1859,7 +1861,7 @@ describe('Customer Details', function () {
     it('renders dropdown disabled without billing.admin permissions', async function () {
       ConfigStore.set('user', mockUser);
 
-      renderMocks(terminateOrg, {
+      setUpMocks(terminateOrg, {
         contractInterval: 'annual',
         canCancel: true,
         isBillingAdmin: false,
@@ -1905,7 +1907,7 @@ describe('Customer Details', function () {
 
       ConfigStore.set('user', mockBillingAdminUser);
 
-      renderMocks(terminateOrg, {
+      setUpMocks(terminateOrg, {
         contractInterval: 'annual',
         canCancel: true,
         isBillingAdmin: false,
@@ -1943,7 +1945,7 @@ describe('Customer Details', function () {
 
       ConfigStore.set('user', mockBillingAdminUser);
 
-      renderMocks(terminateOrg, {
+      setUpMocks(terminateOrg, {
         contractInterval: 'annual',
         canCancel: true,
         isBillingAdmin: false,
@@ -1995,7 +1997,7 @@ describe('Customer Details', function () {
 
   describe('close account', function () {
     it('closes an account', async function () {
-      renderMocks(organization);
+      setUpMocks(organization);
 
       const apiMock = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
@@ -2065,7 +2067,7 @@ describe('Customer Details', function () {
           isActive: true,
         },
       });
-      renderMocks(organization, subscription);
+      setUpMocks(organization, subscription);
 
       render(
         <CustomerDetails
@@ -2145,7 +2147,7 @@ describe('Customer Details', function () {
           isActive: true,
         },
       });
-      renderMocks(organization, subscription);
+      setUpMocks(organization, subscription);
 
       render(
         <CustomerDetails
@@ -2224,7 +2226,7 @@ describe('Customer Details', function () {
           isActive: true,
         },
       });
-      renderMocks(organization, subscription);
+      setUpMocks(organization, subscription);
 
       render(
         <CustomerDetails
@@ -2300,7 +2302,7 @@ describe('Customer Details', function () {
           isActive: true,
         },
       });
-      renderMocks(organization, subscription);
+      setUpMocks(organization, subscription);
 
       render(
         <CustomerDetails
@@ -2342,7 +2344,7 @@ describe('Customer Details', function () {
           isActive: true,
         },
       });
-      renderMocks(organization, subscription);
+      setUpMocks(organization, subscription);
 
       render(
         <CustomerDetails
@@ -2384,7 +2386,7 @@ describe('Customer Details', function () {
     });
 
     it('forks a customer', async function () {
-      renderMocks(organization);
+      setUpMocks(organization);
 
       MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
@@ -2470,7 +2472,7 @@ describe('Customer Details', function () {
     const cancelSubOrg = OrganizationFixture();
 
     it('renders in the dropdown', async function () {
-      renderMocks(cancelSubOrg);
+      setUpMocks(cancelSubOrg);
 
       render(
         <CustomerDetails
@@ -2495,7 +2497,7 @@ describe('Customer Details', function () {
     });
 
     it('cancels a subscription', async function () {
-      renderMocks(cancelSubOrg);
+      setUpMocks(cancelSubOrg);
       const apiMock = MockApiClient.addMockResponse({
         url: `/customers/${cancelSubOrg.slug}/`,
         method: 'PUT',
@@ -2550,68 +2552,7 @@ describe('Customer Details', function () {
       plan: 'mm2_b_500k',
     });
 
-    it('can change to an mm2 plan', async function () {
-      renderMocks(organization, sub);
-
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${sub.slug}/`,
-        method: 'PUT',
-        body: sub,
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/subscriptions/${sub.slug}/`,
-        body: sub,
-      });
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
-      renderGlobalModal();
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[1]!
-      );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      // When clicking on a different tier, it takes time for the plan list to update
-      await waitFor(() => {
-        const radios = document.querySelectorAll('input[type="radio"]');
-        expect(radios.length).toBeGreaterThan(0);
-      });
-
-      await userEvent.click(screen.getByRole('tab', {name: 'MM2'}));
-
-      await userEvent.click(screen.getByTestId('change-plan-radio-btn-mm2_b_500k'));
-
-      await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
-
-      await waitFor(() => {
-        expect(updateMock).toHaveBeenCalledWith(
-          `/customers/${sub.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              plan: 'mm2_b_500k',
-            },
-          })
-        );
-      });
-    });
-
-    it('can change NT plan', async function () {
+    it('is enabled for NT customers', async function () {
       const Subscription = SubscriptionFixture({
         organization,
         plan: 'am2_business',
@@ -2628,7 +2569,7 @@ describe('Customer Details', function () {
         sponsoredType: 'NT',
       });
 
-      renderMocks(organization, Subscription);
+      setUpMocks(organization, Subscription);
       MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
         method: 'PUT',
@@ -2658,22 +2599,13 @@ describe('Customer Details', function () {
           name: 'Customers Actions',
         })[1]!
       );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      // When clicking on a different tier, it takes time for the plan list to update
-      await waitFor(() => {
-        const radios = document.querySelectorAll('input[type="radio"]');
-        expect(radios.length).toBeGreaterThan(0);
-      });
-
-      expect(screen.queryByTestId('am2-tier')).not.toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am2_business')
-      ).toBeInTheDocument();
+      expect(screen.getByTestId('action-changePlan')).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      );
     });
 
-    it('can change plan of deactivated partner account', async function () {
+    it('is enabled for deactivated partner account', async function () {
       const partnerSubscription = SubscriptionFixture({
         organization,
         plan: 'am2_business',
@@ -2690,7 +2622,7 @@ describe('Customer Details', function () {
         sponsoredType: 'XX',
       });
 
-      renderMocks(organization, partnerSubscription);
+      setUpMocks(organization, partnerSubscription);
       MockApiClient.addMockResponse({
         url: `/customers/${partnerSubscription.slug}/`,
         method: 'PUT',
@@ -2721,22 +2653,13 @@ describe('Customer Details', function () {
           name: 'Customers Actions',
         })[1]!
       );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      // When clicking on a different tier, it takes time for the plan list to update
-      await waitFor(() => {
-        const radios = document.querySelectorAll('input[type="radio"]');
-        expect(radios.length).toBeGreaterThan(0);
-      });
-
-      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am3_business')
-      ).toBeInTheDocument();
+      expect(screen.getByTestId('action-changePlan')).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      );
     });
 
-    it('cannot change plan of active, non-XX partner account', async function () {
+    it('is disabled for active, non-XX partner account', async function () {
       const partnerSubscription = SubscriptionFixture({
         organization,
         plan: 'am2_business',
@@ -2753,7 +2676,7 @@ describe('Customer Details', function () {
         sponsoredType: 'XX',
       });
 
-      renderMocks(organization, partnerSubscription);
+      setUpMocks(organization, partnerSubscription);
 
       render(
         <CustomerDetails
@@ -2778,525 +2701,13 @@ describe('Customer Details', function () {
         'true'
       );
     });
-
-    it('can change to an am1 plan', async function () {
-      const am1Sub = SubscriptionFixture({organization, plan: 'am1_f'});
-      renderMocks(organization, am1Sub);
-
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/`,
-        method: 'PUT',
-      });
-
-      const subscriptionMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/subscription/`,
-        method: 'PUT',
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
-        body: am1Sub,
-      });
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
-
-      renderGlobalModal();
-
-      await screen.findByRole('heading', {name: 'Customers'});
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[1]!
-      );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      // When clicking on a different tier, it takes time for the plan list to update
-      await waitFor(() => {
-        const radios = document.querySelectorAll('input[type="radio"]');
-        expect(radios.length).toBeGreaterThan(0);
-      });
-
-      await userEvent.click(screen.getByRole('tab', {name: 'AM1'}));
-
-      await userEvent.click(screen.getByTestId('change-plan-radio-btn-am1_team'));
-
-      // reservedErrors
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Errors'}));
-      await userEvent.click(
-        screen.getByText('100,000', {selector: '[data-test-id="menu-list-item-label"]'})
-      );
-
-      // reservedTransactions
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Transactions'})
-      );
-      await userEvent.click(screen.getByText('250,000'));
-
-      // reservedReplays
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Replays'}));
-      await userEvent.click(screen.getByText('25,000'));
-
-      // reservedAttachments
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Attachments (GB)'})
-      );
-      await userEvent.click(screen.getByText('25'));
-
-      // reservedMonitorSeats
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Cron monitors'})
-      );
-      await userEvent.click(
-        screen
-          .getAllByText('1')
-          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
-      );
-
-      // reservedUptime
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Uptime monitors'})
-      );
-      await userEvent.click(
-        screen
-          .getAllByText('1')
-          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
-      );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
-
-      await waitFor(() => {
-        expect(subscriptionMock).toHaveBeenCalledWith(
-          `/customers/${organization.slug}/subscription/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              plan: 'am1_team',
-              reservedErrors: 100000,
-              reservedTransactions: 250000,
-              reservedReplays: 25_000,
-              reservedAttachments: 25,
-              reservedMonitorSeats: 1,
-              reservedUptime: 1,
-              reservedProfileDuration: 0,
-              reservedProfileDurationUI: 0,
-            },
-          })
-        );
-      });
-
-      expect(updateMock).not.toHaveBeenCalled();
-    });
-
-    it('requires am1 reserved volumes to be set', async function () {
-      renderMocks(organization, sub);
-
-      MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
-        body: sub,
-      });
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
-      renderGlobalModal();
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[1]!
-      );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      // When clicking on a different tier, it takes time for the plan list to update
-      await waitFor(() => {
-        const radios = document.querySelectorAll('input[type="radio"]');
-        expect(radios.length).toBeGreaterThan(0);
-      });
-
-      await userEvent.click(screen.getByRole('tab', {name: 'AM1'}));
-      await userEvent.click(screen.getByTestId('change-plan-radio-btn-am1_team'));
-
-      // Cannot submit yet.
-      expect(screen.getByRole('button', {name: 'Change Plan'})).toBeDisabled();
-    });
-
-    it('can change to an am2 plan', async function () {
-      renderMocks(organization, sub);
-
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/`,
-        method: 'PUT',
-      });
-      const subscriptionMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/subscription/`,
-        method: 'PUT',
-      });
-      MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
-        body: sub,
-      });
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[1]!
-      );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      renderGlobalModal();
-
-      await userEvent.click(screen.getByRole('tab', {name: 'AM2'}));
-      await userEvent.click(screen.getByTestId('change-plan-radio-btn-am2_team'));
-
-      // all plan options show up
-      expect(screen.getByTestId('change-plan-radio-btn-am2_team')).toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am2_business')
-      ).toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am2_team_bundle')
-      ).toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am2_business_249_bundle')
-      ).toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am2_business_bundle')
-      ).toBeInTheDocument();
-
-      // reservedErrors
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Errors'}));
-      await userEvent.click(screen.getByText('100,000'));
-
-      // reservedTransactions
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Performance units'})
-      );
-      await userEvent.click(screen.getByText('250,000'));
-
-      // reservedReplays
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Replays'}));
-      await userEvent.click(screen.getByText('75,000'));
-
-      // reservedAttachments
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Attachments (GB)'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '25'}));
-
-      // reservedMonitorSeats
-      await userEvent.click(
-        screen
-          .getAllByText('1')
-          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
-      );
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Cron monitors'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '1'}));
-
-      // reservedUptime
-      await userEvent.click(
-        screen
-          .getAllByText('1')
-          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
-      );
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Uptime monitors'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '1'}));
-
-      await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
-
-      await waitFor(() =>
-        expect(subscriptionMock).toHaveBeenCalledWith(
-          `/customers/${organization.slug}/subscription/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              plan: 'am2_team',
-              reservedErrors: 100000,
-              reservedTransactions: 250000,
-              reservedReplays: 75000,
-              reservedAttachments: 25,
-              reservedMonitorSeats: 1,
-              reservedUptime: 1,
-              reservedProfileDuration: 0,
-              reservedProfileDurationUI: 0,
-            },
-          })
-        )
-      );
-
-      expect(updateMock).not.toHaveBeenCalled();
-    });
-
-    it('can change to an am3 plan', async function () {
-      renderMocks(organization, sub);
-
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/`,
-        method: 'PUT',
-      });
-      const subscriptionMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/subscription/`,
-        method: 'PUT',
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
-        body: sub,
-      });
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
-      renderGlobalModal();
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[1]!
-      );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      await userEvent.click(screen.getByRole('tab', {name: 'AM3'}));
-      await userEvent.click(screen.getByTestId('change-plan-radio-btn-am3_team'));
-
-      // all plan options show up
-      expect(screen.getByTestId('change-plan-radio-btn-am3_team')).toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am3_business')
-      ).toBeInTheDocument();
-
-      // reservedErrors
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Errors'}));
-      await userEvent.click(screen.getByText('100,000'));
-
-      // reservedReplays
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Replays'}));
-      await userEvent.click(screen.getByText('75,000'));
-
-      // reservedSpans
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Spans'}));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '20,000,000'}));
-
-      // reservedMonitorSeats
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Cron monitors'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '1'}));
-
-      // reservedUptime
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Uptime monitors'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '1'}));
-
-      // reservedAttachments
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Attachments (GB)'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '25'}));
-
-      await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
-
-      await waitFor(() =>
-        expect(subscriptionMock).toHaveBeenCalledWith(
-          `/customers/${organization.slug}/subscription/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              plan: 'am3_team',
-              reservedErrors: 100_000,
-              reservedReplays: 75_000,
-              reservedSpans: 20_000_000,
-              reservedMonitorSeats: 1,
-              reservedAttachments: 25,
-              reservedProfileDuration: 0,
-              reservedProfileDurationUI: 0,
-              reservedUptime: 1,
-            },
-          })
-        )
-      );
-
-      expect(updateMock).not.toHaveBeenCalled();
-    });
-
-    it('can change to an am3 plan with zero reserved', async function () {
-      renderMocks(organization, sub);
-      MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/billing-config/?tier=am3`,
-        body: {
-          ...BillingConfigFixture(PlanTier.AM3),
-          defaultReserved: {
-            errors: 50_000,
-            attachments: 1,
-            replays: 50,
-            monitorSeats: 1,
-            spans: 10_000_000,
-            profileDuration: 0,
-            uptime: 1,
-          },
-        },
-      });
-
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/`,
-        method: 'PUT',
-      });
-      const subscriptionMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/subscription/`,
-        method: 'PUT',
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
-        body: sub,
-      });
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
-      renderGlobalModal();
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[1]!
-      );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      // When clicking on a different tier, it takes time for the plan list to update
-      await waitFor(() => {
-        const radios = document.querySelectorAll('input[type="radio"]');
-        expect(radios.length).toBeGreaterThan(0);
-      });
-
-      await userEvent.click(screen.getByRole('tab', {name: 'AM3'}));
-      await userEvent.click(screen.getByTestId('change-plan-radio-btn-am3_team'));
-
-      // all plan options show up
-      expect(screen.getByTestId('change-plan-radio-btn-am3_team')).toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am3_business')
-      ).toBeInTheDocument();
-
-      // reservedErrors
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Errors'}));
-      await userEvent.click(screen.getByText('100,000'));
-
-      // reservedReplays
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Replays'}));
-      await userEvent.click(screen.getByText('75,000'));
-
-      // reservedSpans
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Spans'}));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '20,000,000'}));
-
-      // reservedMonitorSeats
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Cron monitors'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '1'}));
-
-      // reservedUptime
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Uptime monitors'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '1'}));
-
-      // reservedAttachments
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Attachments (GB)'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '25'}));
-
-      await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
-
-      await waitFor(() =>
-        expect(subscriptionMock).toHaveBeenCalledWith(
-          `/customers/${organization.slug}/subscription/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              plan: 'am3_team',
-              reservedErrors: 100_000,
-              reservedReplays: 75_000,
-              reservedSpans: 20_000_000,
-              reservedMonitorSeats: 1,
-              reservedAttachments: 25,
-              reservedProfileDuration: 0,
-              reservedProfileDurationUI: 0,
-              reservedUptime: 1,
-            },
-          })
-        )
-      );
-
-      expect(updateMock).not.toHaveBeenCalled();
-    });
   });
 
   describe('early end', function () {
     it('can end trial early', async function () {
       const trialOrg = OrganizationFixture();
 
-      renderMocks(trialOrg, {isTrial: true});
+      setUpMocks(trialOrg, {isTrial: true});
 
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${trialOrg.slug}/`,
@@ -3343,7 +2754,7 @@ describe('Customer Details', function () {
     });
 
     it('is disabled for non-trial org', async function () {
-      renderMocks(organization);
+      setUpMocks(organization);
 
       render(
         <CustomerDetails
@@ -3384,8 +2795,8 @@ describe('Customer Details', function () {
     it('renders disable on demand invoices when enabled', async function () {
       ConfigStore.set('user', mockBillingAdminUser);
 
-      renderMocks(invoicedOrg, {onDemandInvoiced: true});
-      renderMocks(onDemandInvoicedOrg, {
+      setUpMocks(invoicedOrg, {onDemandInvoiced: true});
+      setUpMocks(onDemandInvoicedOrg, {
         onDemandInvoiced: true,
         type: BillingType.INVOICED,
         paymentSource: {
@@ -3422,8 +2833,8 @@ describe('Customer Details', function () {
     it('renders enable on demand invoices when disabled', async function () {
       ConfigStore.set('user', mockBillingAdminUser);
 
-      renderMocks(invoicedOrg, {onDemandInvoiced: false});
-      renderMocks(onDemandInvoicedOrg, {
+      setUpMocks(invoicedOrg, {onDemandInvoiced: false});
+      setUpMocks(onDemandInvoicedOrg, {
         onDemandInvoiced: false,
         type: BillingType.INVOICED,
         paymentSource: {
@@ -3460,7 +2871,7 @@ describe('Customer Details', function () {
     it('does not render on-demand invoices actions when manually invoiced on-demand flag is True', async function () {
       ConfigStore.set('user', mockBillingAdminUser);
 
-      renderMocks(onDemandInvoicedOrg, {
+      setUpMocks(onDemandInvoicedOrg, {
         onDemandInvoiced: false,
         onDemandInvoicedManual: true,
         type: BillingType.INVOICED,
@@ -3498,7 +2909,7 @@ describe('Customer Details', function () {
     it('enables on demand invoices when disabled', async function () {
       ConfigStore.set('user', mockBillingAdminUser);
 
-      renderMocks(invoicedOrg, {
+      setUpMocks(invoicedOrg, {
         onDemandInvoiced: false,
         type: BillingType.INVOICED,
         paymentSource: {
@@ -3557,7 +2968,7 @@ describe('Customer Details', function () {
     it('disables on demand invoices when enabled', async function () {
       ConfigStore.set('user', mockBillingAdminUser);
 
-      renderMocks(onDemandInvoicedOrg, {
+      setUpMocks(onDemandInvoicedOrg, {
         onDemandInvoiced: true,
         type: BillingType.INVOICED,
         paymentSource: {
@@ -3616,7 +3027,7 @@ describe('Customer Details', function () {
 
   describe('converting to sponsored', function () {
     it('converts a plan to sponsored', async function () {
-      renderMocks(organization);
+      setUpMocks(organization);
 
       const apiMock = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
@@ -3685,7 +3096,7 @@ describe('Customer Details', function () {
         },
         sponsoredType: 'XX',
       });
-      renderMocks(organization, partnerSubscription);
+      setUpMocks(organization, partnerSubscription);
 
       const apiMock = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
@@ -3743,7 +3154,7 @@ describe('Customer Details', function () {
         organization,
         isPartner: true,
       });
-      renderMocks(organization, partnerSubscription);
+      setUpMocks(organization, partnerSubscription);
 
       render(
         <CustomerDetails
@@ -3773,7 +3184,7 @@ describe('Customer Details', function () {
 
   describe('AddGiftEventsAction', function () {
     it('renders and hides modal', async function () {
-      renderMocks(organization);
+      setUpMocks(organization);
 
       render(
         <CustomerDetails
@@ -3811,7 +3222,7 @@ describe('Customer Details', function () {
     });
 
     it('can gift events - ERRORS', async function () {
-      renderMocks(organization);
+      setUpMocks(organization);
 
       render(
         <CustomerDetails
@@ -3870,7 +3281,7 @@ describe('Customer Details', function () {
     });
 
     it('can gift events - TRANSACTIONS', async function () {
-      renderMocks(organization);
+      setUpMocks(organization);
 
       render(
         <CustomerDetails
@@ -3933,7 +3344,7 @@ describe('Customer Details', function () {
 
   it('can gift events - REPLAYS', async function () {
     const am2Sub = SubscriptionFixture({organization, plan: 'am2_f'});
-    renderMocks(organization, am2Sub);
+    setUpMocks(organization, am2Sub);
 
     render(
       <CustomerDetails
@@ -3993,7 +3404,7 @@ describe('Customer Details', function () {
 
   it('can gift events - SPANS', async function () {
     const am3Sub = SubscriptionFixture({organization, plan: 'am3_f'});
-    renderMocks(organization, am3Sub);
+    setUpMocks(organization, am3Sub);
 
     render(
       <CustomerDetails
@@ -4052,7 +3463,7 @@ describe('Customer Details', function () {
   });
   it('cannot gift events in different units - SPANS_INDEXED', async function () {
     const am3Sub = Am3DsEnterpriseSubscriptionFixture({organization});
-    renderMocks(organization, am3Sub);
+    setUpMocks(organization, am3Sub);
 
     render(
       <CustomerDetails
@@ -4080,7 +3491,7 @@ describe('Customer Details', function () {
   });
   it('cannot gift events without checkout category - SPANS_INDEXED', async function () {
     const am3Sub = SubscriptionFixture({organization, plan: 'am3_team'});
-    renderMocks(organization, am3Sub);
+    setUpMocks(organization, am3Sub);
 
     render(
       <CustomerDetails
@@ -4110,7 +3521,7 @@ describe('Customer Details', function () {
 
   it('can gift events - MONITOR SEATS', async function () {
     const am2Sub = SubscriptionFixture({organization, plan: 'am2_f'});
-    renderMocks(organization, am2Sub);
+    setUpMocks(organization, am2Sub);
 
     render(
       <CustomerDetails
@@ -4180,7 +3591,7 @@ describe('Customer Details', function () {
     it('ChangeContractEndDateAction not rendered for monthly contract interval', async function () {
       const invoicedOrg = OrganizationFixture();
 
-      renderMocks(invoicedOrg, {contractInterval: 'monthly', type: BillingType.INVOICED});
+      setUpMocks(invoicedOrg, {contractInterval: 'monthly', type: BillingType.INVOICED});
 
       render(
         <CustomerDetails
@@ -4209,7 +3620,7 @@ describe('Customer Details', function () {
     it('ChangeContractEndDateAction rendered for annual contract interval', async function () {
       const invoicedOrg = OrganizationFixture();
 
-      renderMocks(invoicedOrg, {contractInterval: 'annual', type: BillingType.INVOICED});
+      setUpMocks(invoicedOrg, {contractInterval: 'annual', type: BillingType.INVOICED});
 
       render(
         <CustomerDetails
@@ -4244,7 +3655,7 @@ describe('Customer Details', function () {
     ConfigStore.set('user', mockBillingAdminUser);
 
     it("doesn't render in the dropdown if already suspended", async function () {
-      renderMocks(suspendedOrg, {isSuspended: true});
+      setUpMocks(suspendedOrg, {isSuspended: true});
 
       render(
         <CustomerDetails
@@ -4269,7 +3680,7 @@ describe('Customer Details', function () {
     });
 
     it('unsuspends an organization', async function () {
-      renderMocks(suspendedOrg, {isSuspended: true});
+      setUpMocks(suspendedOrg, {isSuspended: true});
 
       const apiMock = MockApiClient.addMockResponse({
         url: `/customers/${suspendedOrg.slug}/`,
@@ -4316,7 +3727,7 @@ describe('Customer Details', function () {
     });
 
     it('suspends an organization', async function () {
-      renderMocks(organization, {isSuspended: false});
+      setUpMocks(organization, {isSuspended: false});
 
       const apiMock = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
@@ -4382,7 +3793,7 @@ describe('Customer Details', function () {
         organization,
         hasReservedBudgets: true,
       });
-      renderMocks(organization, am3Sub);
+      setUpMocks(organization, am3Sub);
 
       render(
         <CustomerDetails
@@ -4409,7 +3820,7 @@ describe('Customer Details', function () {
         organization,
         hasReservedBudgets: false,
       });
-      renderMocks(organization, nonDsSub);
+      setUpMocks(organization, nonDsSub);
 
       render(
         <CustomerDetails
@@ -4436,7 +3847,7 @@ describe('Customer Details', function () {
         organization,
         hasReservedBudgets: true,
       });
-      renderMocks(organization, am3Sub);
+      setUpMocks(organization, am3Sub);
 
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
@@ -4491,5 +3902,174 @@ describe('Customer Details', function () {
         );
       });
     });
+  });
+
+  describe('delete billing metric history', function () {
+    // Add afterEach to clean up after tests
+    afterEach(function () {
+      MockApiClient.clearMockResponses();
+      jest.restoreAllMocks();
+      ModalStore.reset();
+    });
+
+    it('shows option when feature flag is enabled', async function () {
+      // Set up organization with the required feature flag
+      const orgWithDeleteFeature = OrganizationFixture({
+        features: ['delete-billing-metric-history-admin'],
+      });
+      setUpMocks(orgWithDeleteFeature);
+
+      render(
+        <CustomerDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+          params={{orgId: orgWithDeleteFeature.slug}}
+        />
+      );
+
+      await screen.findByRole('heading', {name: 'Customers'});
+      renderGlobalModal();
+
+      // Open the actions dropdown
+      await userEvent.click(
+        screen.getAllByRole('button', {name: /customers actions/i})[1]!
+      );
+
+      // The delete option should be present
+      expect(screen.getByText('Delete Billing Metric History')).toBeInTheDocument();
+    });
+
+    it('does not show option when feature flag is missing', async function () {
+      // Set up organization without the feature flag
+      const orgWithoutDeleteFeature = OrganizationFixture({
+        features: [],
+      });
+      setUpMocks(orgWithoutDeleteFeature);
+
+      render(
+        <CustomerDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+          params={{orgId: orgWithoutDeleteFeature.slug}}
+        />
+      );
+
+      await screen.findByRole('heading', {name: 'Customers'});
+
+      // Open the actions dropdown
+      await userEvent.click(
+        screen.getAllByRole('button', {name: /customers actions/i})[1]!
+      );
+
+      // The delete option should not be present
+      expect(screen.queryByText('Delete Billing Metric History')).not.toBeInTheDocument();
+    });
+  });
+});
+
+describe('Gift Categories Availability', function () {
+  const {organization, router} = initializeOrg();
+  let customerDetails: CustomerDetails;
+
+  beforeEach(() => {
+    // Mock specific subscription with controlled checkoutCategories and onDemandCategories
+    const customSubscription = SubscriptionFixture({
+      organization,
+      planDetails: {
+        ...SubscriptionFixture({organization}).planDetails,
+        checkoutCategories: [DataCategory.ERRORS, DataCategory.REPLAYS],
+        onDemandCategories: [DataCategory.ERRORS, DataCategory.PROFILE_DURATION],
+        categories: [
+          DataCategory.ERRORS,
+          DataCategory.REPLAYS,
+          DataCategory.PROFILE_DURATION,
+          DataCategory.SPANS,
+        ],
+      },
+    });
+
+    // Replace categories with specific values for testing
+    customSubscription.categories = {
+      errors: MetricHistoryFixture({
+        category: DataCategory.ERRORS,
+        reserved: 50000,
+        order: 1,
+      }),
+      replays: MetricHistoryFixture({
+        category: DataCategory.REPLAYS,
+        reserved: 50,
+        order: 2,
+      }),
+      profileDuration: MetricHistoryFixture({
+        category: DataCategory.PROFILE_DURATION,
+        reserved: 0,
+        order: 3,
+      }),
+      spans: MetricHistoryFixture({
+        category: DataCategory.SPANS,
+        reserved: -1, // Unlimited
+        order: 4,
+      }),
+    };
+
+    setUpMocks(organization, customSubscription);
+
+    // Instantiate the component to test the giftCategories getter
+    customerDetails = new CustomerDetails({
+      router,
+      location: router.location,
+      routes: router.routes,
+      routeParams: router.params,
+      route: {},
+      params: {orgId: organization.slug},
+    });
+
+    // Set state directly to simulate component with the data loaded
+    customerDetails.state = {
+      data: customSubscription,
+      organization,
+      billingConfig: null,
+      // Add required properties from DeprecatedAsyncComponent state
+      error: false,
+      errors: {},
+      loading: false,
+      reloading: false,
+    };
+  });
+
+  it('enables categories in checkoutCategories but not in onDemandCategories', function () {
+    const giftCategories = customerDetails.giftCategories;
+    // REPLAYS is in checkoutCategories only
+    expect(giftCategories[DataCategory.REPLAYS]?.disabled).toBe(false);
+  });
+
+  it('enables categories in onDemandCategories but not in checkoutCategories', function () {
+    const giftCategories = customerDetails.giftCategories;
+    // PROFILE_DURATION is in onDemandCategories only
+    expect(giftCategories[DataCategory.PROFILE_DURATION]?.disabled).toBe(false);
+  });
+
+  it('enables categories in both checkoutCategories and onDemandCategories', function () {
+    const giftCategories = customerDetails.giftCategories;
+    // ERRORS is in both checkoutCategories and onDemandCategories
+    expect(giftCategories[DataCategory.ERRORS]?.disabled).toBe(false);
+  });
+
+  it('disables categories with unlimited quota', function () {
+    const giftCategories = customerDetails.giftCategories;
+    // SPANS has unlimited quota (reserved = -1)
+    expect(giftCategories[DataCategory.SPANS]?.disabled).toBe(true);
+  });
+
+  it('disables categories in neither checkoutCategories nor onDemandCategories', function () {
+    const giftCategories = customerDetails.giftCategories;
+    // PROFILE_DURATION_UI is not in either checkoutCategories or onDemandCategories
+    expect(giftCategories[DataCategory.PROFILE_DURATION_UI]?.disabled).toBe(true);
   });
 });

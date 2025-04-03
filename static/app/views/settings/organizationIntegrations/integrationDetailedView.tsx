@@ -13,7 +13,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
@@ -281,7 +281,7 @@ export default function IntegrationDetailedView() {
       }
 
       return (
-        <IntegrationContext.Provider
+        <IntegrationContext
           value={{
             provider,
             type: integrationType,
@@ -307,7 +307,7 @@ export default function IntegrationDetailedView() {
             }}
             buttonProps={buttonProps}
           />
-        </IntegrationContext.Provider>
+        </IntegrationContext>
       );
     },
     [

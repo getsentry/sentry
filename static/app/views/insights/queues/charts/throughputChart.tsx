@@ -1,4 +1,5 @@
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {useTheme} from '@emotion/react';
+
 import {t} from 'sentry/locale';
 import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
 import {usePublishQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/usePublishQueuesTimeSeriesQuery';
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function ThroughputChart({error, destination, referrer}: Props) {
+  const theme = useTheme();
   const {
     data: publishData,
     error: publishError,
@@ -39,17 +41,17 @@ export function ThroughputChart({error, destination, referrer}: Props) {
       series={[
         renameDiscoverSeries(
           {
-            ...publishData['spm()'],
-            color: CHART_PALETTE[2][1],
+            ...publishData['epm()'],
+            color: theme.chart.colors[2][1],
           },
-          'spm() span.op:queue.publish'
+          'epm() span.op:queue.publish'
         ),
         renameDiscoverSeries(
           {
-            ...processData['spm()'],
-            color: CHART_PALETTE[2][2],
+            ...processData['epm()'],
+            color: theme.chart.colors[2][2],
           },
-          'spm() span.op:queue.process'
+          'epm() span.op:queue.process'
         ),
       ]}
       aliases={FIELD_ALIASES}

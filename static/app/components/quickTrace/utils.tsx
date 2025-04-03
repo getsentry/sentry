@@ -21,6 +21,7 @@ import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/ut
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 export function isQuickTraceEvent(
@@ -34,7 +35,7 @@ export type ErrorDestination = 'discover' | 'issue';
 export type TransactionDestination = 'discover' | 'performance';
 
 export function generateIssueEventTarget(
-  event: TraceError | TracePerformanceIssue,
+  event: TraceError | TracePerformanceIssue | TraceTree.EAPError,
   organization: Organization,
   referrer?: string
 ): LocationDescriptor {

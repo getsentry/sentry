@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import {BarChart} from 'sentry/components/charts/barChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import TransitionChart from 'sentry/components/charts/transitionChart';
@@ -48,6 +50,7 @@ function DeviceClassBreakdownBarChart({
   chartHeight,
   additionalFilters,
 }: DeviceClassBreakdownBarChartProps) {
+  const theme = useTheme();
   const pageFilter = usePageFilters();
   const location = useLocation();
   const {query: locationQuery} = location;
@@ -111,6 +114,7 @@ function DeviceClassBreakdownBarChart({
     yAxes: YAXES,
     primaryRelease,
     secondaryRelease,
+    theme,
   });
 
   const data = Object.values(
