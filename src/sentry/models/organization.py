@@ -315,6 +315,7 @@ class Organization(ReplicatedRegionModel):
 
     def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):
+            # TODO: Investigate how an org can have no owners
             self._default_owner = self.get_owners()[0]
         return self._default_owner
 
