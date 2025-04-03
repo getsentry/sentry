@@ -413,8 +413,11 @@ class ExhaustiveFixtures(Fixtures):
                     inviter_id=inviter.id,
                     invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
                 )
+                # OrganizationMemberInvite + placeholder OrganizationMember
+                om = (OrganizationMember.objects.create(organization_id=org.id),)
                 OrganizationMemberInvite.objects.create(
                     organization_id=org.id,
+                    organization_member_id=om.id,
                     role="member",
                     email=email,
                     inviter_id=inviter.id,
