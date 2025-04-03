@@ -403,11 +403,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         from sentry.utils import snuba
 
-        issue_platform_deletion_allowed = features.has(
-            "organizations:issue-platform-deletion", group.project.organization, actor=request.user
-        )
-
-        if group.issue_category != GroupCategory.ERROR and not issue_platform_deletion_allowed:
+        if group.issue_category != GroupCategory.ERROR:
             raise ValidationError(detail="Only error issues can be deleted.")
 
         try:
