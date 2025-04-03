@@ -104,14 +104,16 @@ export default function IntegrationOrganizationLink() {
   }, [organizationQuery.error]);
 
   const isProviderQueryEnabled = !!selectedOrgSlug;
-  const providerQuery = useApiQuery<IntegrationProvider[]>(
+  const providerQuery = useApiQuery<{
+    providers: IntegrationProvider[];
+  }>(
     [
       `/organizations/${selectedOrgSlug}/config/integrations/`,
       {query: {provider_key: integrationSlug}},
     ],
     {staleTime: Infinity, enabled: isProviderQueryEnabled}
   );
-  const provider = providerQuery.data?.[0] ?? null;
+  const provider = providerQuery.data?.providers[0] ?? null;
   const isPendingProviders = isProviderQueryEnabled && providerQuery.isPending;
 
   useEffect(() => {
@@ -263,6 +265,7 @@ export default function IntegrationOrganizationLink() {
 
   const renderBottom = useCallback(() => {
     const {FeatureList} = getIntegrationFeatureGate();
+
     if (isPendingSelection) {
       return <LoadingIndicator />;
     }
