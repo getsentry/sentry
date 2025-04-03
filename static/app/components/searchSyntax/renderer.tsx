@@ -326,6 +326,7 @@ const Key = styled('span')<{negated: boolean}>`
   ${filterCss};
   border-right: none;
   font-weight: ${p => p.theme.fontWeightBold};
+  color: ${p => p.theme.subText};
   ${p =>
     p.negated
       ? css`
