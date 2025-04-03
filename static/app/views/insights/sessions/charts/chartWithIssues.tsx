@@ -82,7 +82,7 @@ export default function ChartWithIssues({
   const footer = hasData && recentIssues && (
     <FooterIssues>
       {recentIssues.map((group, index) => (
-        <GroupWrapper canSelect hasNewLayout key={group.id}>
+        <GroupWrapper canSelect key={group.id}>
           <EventOrGroupHeader index={index} data={group} source={'session-health'} />
           <EventOrGroupExtraDetails data={group} showLifetime={false} />
         </GroupWrapper>
