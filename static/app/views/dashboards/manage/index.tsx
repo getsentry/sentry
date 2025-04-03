@@ -6,7 +6,7 @@ import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
@@ -395,6 +395,8 @@ function ManageDashboards() {
       dashboard_title: dashboard.title,
       was_previewed: false,
     });
+
+    addLoadingMessage(t('Adding dashboard from template...'));
 
     const newDashboard = await createDashboard(
       api,
