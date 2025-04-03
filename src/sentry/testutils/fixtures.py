@@ -30,7 +30,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
-    MonitorType,
     ScheduleType,
 )
 from sentry.organizations.services.organization import RpcOrganization
@@ -459,7 +458,6 @@ class Fixtures:
         return Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=project_id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule": "* * * * *",
                 "schedule_type": ScheduleType.CRONTAB,

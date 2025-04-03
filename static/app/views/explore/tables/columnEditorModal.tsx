@@ -29,6 +29,7 @@ interface ColumnEditorModalProps extends ModalRenderProps {
   onColumnsChange: (fields: string[]) => void;
   stringTags: TagCollection;
   hiddenKeys?: string[];
+  isDocsButtonHidden?: boolean;
 }
 
 export function ColumnEditorModal({
@@ -41,6 +42,7 @@ export function ColumnEditorModal({
   numberTags,
   stringTags,
   hiddenKeys,
+  isDocsButtonHidden = false,
 }: ColumnEditorModalProps) {
   const tags: Array<SelectOption<string>> = useMemo(() => {
     let allTags = [
@@ -137,9 +139,11 @@ export function ColumnEditorModal({
           </Body>
           <Footer data-test-id="editor-footer">
             <ButtonBar gap={1}>
-              <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
-                {t('Read the Docs')}
-              </LinkButton>
+              {!isDocsButtonHidden && (
+                <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
+                  {t('Read the Docs')}
+                </LinkButton>
+              )}
               <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
                 {t('Apply')}
               </Button>
