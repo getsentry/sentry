@@ -73,5 +73,5 @@ class BaseDataConditionValidator(
             return validate_json_schema(value, handler.condition_result_schema)
         except JsonValidationError:
             raise serializers.ValidationError(
-                f"Vaule, {value}, does not match JSON Schema for condition result"
+                f"Value, {value}, does not match JSON Schema for condition result"
             )
