@@ -137,7 +137,7 @@ export function PageOverview() {
   const projectScore =
     isProjectScoresLoading || isPending
       ? undefined
-      : getWebVitalScoresFromTableDataRow(projectScores?.data?.[0]);
+      : getWebVitalScoresFromTableDataRow(projectScores?.[0]);
 
   const handleTabChange = (value: string) => {
     trackAnalytics('insight.vital.overview.toggle_tab', {

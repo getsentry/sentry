@@ -55,7 +55,7 @@ export function WebVitalsLandingPage() {
   const projectScore =
     isProjectScoresLoading || isPending
       ? undefined
-      : getWebVitalScoresFromTableDataRow(projectScores?.data?.[0]);
+      : getWebVitalScoresFromTableDataRow(projectScores?.[0]);
 
   const {openVitalsDrawer} = useWebVitalsDrawer({
     Component: <WebVitalsDetailPanel webVital={state.webVital} />,

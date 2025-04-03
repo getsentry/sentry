@@ -88,9 +88,11 @@ export const useMetrics = <Fields extends MetricsProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
+  const location = useLocation();
+  const useEap = location.query?.useEap === '1';
   return useDiscover<Fields, MetricsResponse>(
     options,
-    DiscoverDatasets.METRICS,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
     referrer
   );
 };

@@ -1072,6 +1072,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Best Page Opportunities'
     );
+
     expect(eventsMock).toHaveBeenCalledTimes(2);
     expect(eventsMock).toHaveBeenNthCalledWith(
       2,

@@ -2,10 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
+import WebVitalMeters, {
+  type ProjectData,
+} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 
 jest.mock('sentry/utils/useLocation');
@@ -20,9 +21,7 @@ describe('WebVitalMeters', function () {
     ttfbScore: 100,
     inpScore: 100,
   };
-  const projectData: TableData = {
-    data: [],
-  };
+  const projectData: ProjectData[] = [];
 
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue({
