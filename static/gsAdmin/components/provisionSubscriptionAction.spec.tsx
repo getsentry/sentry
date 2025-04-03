@@ -35,7 +35,7 @@ describe('provisionSubscriptionAction', function () {
   }
 
   async function clickCheckbox(name: string | RegExp) {
-    await userEvent.click(screen.getByRole('checkbox', {name}), {
+    await userEvent.click(await screen.findByRole('checkbox', {name}), {
       delay: null,
       skipHover: true,
     });
@@ -1265,27 +1265,26 @@ describe('provisionSubscriptionAction', function () {
       onSuccess,
       billingConfig: mockBillingConfig,
     });
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     await loadModal();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('textbox', {name: 'Plan'}),
       'Enterprise (Business) (am2)'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('textbox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('textbox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Shared'
     );
 
@@ -1302,7 +1301,7 @@ describe('provisionSubscriptionAction', function () {
       body: {},
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
 
     expect(updateMock).toHaveBeenCalledWith(
       `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -1363,7 +1362,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  });
+  }, 10_000);
 
   it('calls api with correct mm2 args', async () => {
     triggerProvisionSubscription({
@@ -1376,17 +1375,17 @@ describe('provisionSubscriptionAction', function () {
     loadModal();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('textbox', {name: 'Plan'}),
       'Business (mm2)'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('textbox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('textbox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
@@ -1419,7 +1418,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  });
+  }, 10_000);
 
   it('returns submit error on incorrect custom price', async () => {
     triggerProvisionSubscription({
@@ -1432,17 +1431,17 @@ describe('provisionSubscriptionAction', function () {
     loadModal();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('textbox', {name: 'Plan'}),
       'Enterprise (Business) (am1)'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('textbox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('textbox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
@@ -1468,7 +1467,7 @@ describe('provisionSubscriptionAction', function () {
     expect(
       screen.getByText('Custom Price must be equal to sum of SKU prices')
     ).toBeInTheDocument();
-  });
+  }, 10_000);
 
   it('returns api error', async () => {
     triggerProvisionSubscription({

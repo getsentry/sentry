@@ -140,7 +140,9 @@ describe('spansWidgetQueries', () => {
       </OrganizationContext.Provider>
     );
 
-    expect(await screen.findByText('1')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('1')).toBeInTheDocument();
+    });
     expect(eventsStatsMock).toHaveBeenCalledTimes(2);
     expect(eventsStatsMock).toHaveBeenNthCalledWith(
       1,
@@ -185,7 +187,9 @@ describe('spansWidgetQueries', () => {
       </OrganizationContext.Provider>
     );
 
-    expect(await screen.findByText('1')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('1')).toBeInTheDocument();
+    });
     expect(eventsStatsMock).toHaveBeenCalledTimes(2);
     await waitFor(() => {
       expect(eventsStatsMock).toHaveBeenNthCalledWith(
