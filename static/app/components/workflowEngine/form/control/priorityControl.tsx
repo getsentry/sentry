@@ -2,13 +2,12 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
-import {Chevron} from 'sentry/components/chevron';
 import {Flex} from 'sentry/components/container/flex';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {IconArrow} from 'sentry/icons';
+import {IconArrow, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PriorityLevel} from 'sentry/types/group';
@@ -166,7 +165,7 @@ function PrioritySelect({
           <EmptyButton {...props}>
             <GroupPriorityBadge showLabel priority={value}>
               <InteractionStateLayer isPressed={isOpen} />
-              <Chevron light direction={isOpen ? 'up' : 'down'} size="small" />
+              <IconChevron direction={isOpen ? 'up' : 'down'} size="sm" />
             </GroupPriorityBadge>
           </EmptyButton>
         );

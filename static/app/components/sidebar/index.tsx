@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Chevron} from 'sentry/components/chevron';
 import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
@@ -23,6 +22,7 @@ import {
 } from 'sentry/components/sidebar/expandedContextProvider';
 import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {
+  IconChevron,
   IconDashboard,
   IconGraph,
   IconIssues,
@@ -582,7 +582,7 @@ function Sidebar() {
                   id="collapse"
                   data-test-id="sidebar-collapse"
                   {...sidebarItemProps}
-                  icon={<Chevron direction={collapsed ? 'right' : 'left'} />}
+                  icon={<IconChevron direction={collapsed ? 'right' : 'left'} />}
                   label={collapsed ? t('Expand') : t('Collapse')}
                   onClick={toggleCollapse}
                 />

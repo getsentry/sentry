@@ -9,7 +9,6 @@ import {
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Chevron} from 'sentry/components/chevron';
 import {Button} from 'sentry/components/core/button';
 import {Overlay} from 'sentry/components/overlay';
 import {
@@ -17,6 +16,7 @@ import {
   SIDEBAR_MOBILE_HEIGHT,
 } from 'sentry/components/sidebar/constants';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -143,7 +143,7 @@ function SidebarAccordion({
                 aria-label={expanded ? t('Collapse') : t('Expand')}
                 sidebarCollapsed={sidebarCollapsed}
               >
-                <Chevron direction={expanded ? 'up' : 'down'} role="presentation" />
+                <IconChevron direction={expanded ? 'up' : 'down'} role="presentation" />
               </SidebarAccordionExpandButton>
             }
           />

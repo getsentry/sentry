@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
 import {getIgnoreActions} from 'sentry/components/actions/ignore';
-import {Chevron} from 'sentry/components/chevron';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {GroupStatusResolution} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
@@ -161,14 +161,7 @@ function ArchiveActions({
             {...triggerProps}
             aria-label={t('Archive options')}
             size={size}
-            icon={
-              <Chevron
-                light
-                color="subText"
-                weight="medium"
-                direction={isOpen ? 'up' : 'down'}
-              />
-            }
+            icon={<IconCheckmark color="subText" direction={isOpen ? 'up' : 'down'} />}
             disabled={disabled}
           />
         )}
