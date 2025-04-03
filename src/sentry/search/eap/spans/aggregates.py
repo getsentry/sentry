@@ -169,7 +169,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         # You should also `group_by` the `span.id` so that this function is applied to each span.
         # TODO: We need to do some more work so that bounded sample is more random
         internal_function=Function.FUNCTION_COUNT,
-        default_search_type="integer",
+        default_search_type="boolean",
         arguments=[
             AttributeArgumentDefinition(attribute_types={"millisecond"}),
             ValueArgumentDefinition(argument_types={"integer"}),

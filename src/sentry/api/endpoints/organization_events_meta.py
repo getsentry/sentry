@@ -215,6 +215,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 config=SearchResolverConfig(),
                 offset=0,
                 limit=100,
+                sampling_mode=None,
                 orderby=["-profile.id"],
                 referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
                 selected_columns=[
@@ -248,6 +249,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 config=SearchResolverConfig(use_aggregate_conditions=False),
                 offset=0,
                 limit=sample_count,
+                sampling_mode=None,
                 query_string=samples_query_string,
                 orderby=["timestamp"],
                 referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
