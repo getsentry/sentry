@@ -455,7 +455,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         assert int(response.data[0]["id"]) == event.group_id
 
 
-class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
+class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, SnubaTestCase):
     url_name = "sentry-api-0-organization-spans-samples"
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
@@ -530,6 +530,49 @@ class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
                 "MATCH (spans SAMPLE 100000000.0)"
                 in mock_raw_snql_query.call_args_list[0][0][0].serialize()
             )
+
+    def test_basic_query(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
+
+        span = self.create_span(
+            {
+                "span_id": "ab4d0a103a55489c",
+                "op": "db",
+                "description": "SELECT *",
+                "sentry_tags": {
+                    "op": "db",
+                    "category": "db",
+                },
+            },
+            duration=200,
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_span(span)
+
+        response = self.client.get(
+            url,
+            {
+                "query": "",
+                "lowerBound": "0",
+                "firstBound": "100",
+                "secondBound": "200",
+                "upperBound": "300",
+                "column": "span.duration",
+                "project": self.project.id,
+                "transformAliasToInputFormat": "1",
+            },
+            format="json",
+        )
+
+        data = response.data["data"]
+
+        assert data[0]["span.duration"] == 200
+        assert data[0]["span_id"] == "ab4d0a103a55489c"
+        assert data[0]["project"] == self.project.slug
+
+        assert response.status_code == 200, response.content
 
 
 class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestBase):
