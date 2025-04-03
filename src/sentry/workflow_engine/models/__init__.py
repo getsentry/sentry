@@ -5,6 +5,7 @@ __all__ = [
     "AlertRuleDetector",
     "AlertRuleWorkflow",
     "DataCondition",
+    "DataConditionAlertRuleTrigger",
     "DataConditionGroup",
     "DataConditionGroupAction",
     "DataPacket",
@@ -28,6 +29,7 @@ from .data_condition_group import DataConditionGroup
 from .data_condition_group_action import DataConditionGroupAction
 from .data_source import DataPacket, DataSource
 from .data_source_detector import DataSourceDetector
+from .datacondition_alertruletrigger import DataConditionAlertRuleTrigger
 from .detector import Detector
 from .detector_state import DetectorState
 from .detector_workflow import DetectorWorkflow
