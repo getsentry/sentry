@@ -139,7 +139,8 @@ export function getChonkButtonStyles(
           },
 
           '&:hover': {
-            color: getChonkButtonTheme(type, p.theme).color,
+            color:
+              p.disabled || p.busy ? 'inherit' : getChonkButtonTheme(type, p.theme).color,
 
             '&::after': {
               transform: `translateY(-3px)`,
@@ -210,8 +211,7 @@ export function getChonkButtonStyles(
         '> span:last-child': {
           transform: 'translateY(0px)',
         },
-
-        backgroundColor: p.theme.colors.gray100,
+        backgroundColor: p.busy || p.disabled ? 'inherit' : p.theme.colors.gray100,
       },
 
       '&:active': {
@@ -219,7 +219,7 @@ export function getChonkButtonStyles(
           transform: 'translateY(0px)',
         },
 
-        backgroundColor: p.theme.colors.gray200,
+        backgroundColor: p.busy || p.disabled ? 'inherit' : p.theme.colors.gray200,
       },
     }),
 
