@@ -8,6 +8,7 @@ import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {
   Table,
@@ -41,18 +42,23 @@ const LOGS_INSTRUCTIONS_URL = 'https://github.com/getsentry/sentry/discussions/8
 export type LogsTableProps = {
   tableData: UseExploreLogsTableResult;
   allowPagination?: boolean;
+  numberAttributes?: TagCollection;
   showHeader?: boolean;
+  stringAttributes?: TagCollection;
 };
 
 export function LogsTable({
   tableData,
   showHeader = true,
   allowPagination = true,
+  stringAttributes,
+  numberAttributes,
 }: LogsTableProps) {
   const fields = useLogsFields();
   const search = useLogsSearch();
   const setCursor = useSetLogsCursor();
   const isTableEditingFrozen = useLogsIsTableEditingFrozen();
+
   const {data, isError, isPending, pageLinks, meta} = tableData;
 
   const tableRef = useRef<HTMLTableElement>(null);
@@ -81,7 +87,11 @@ export function LogsTable({
 
                 const fieldType = meta?.fields?.[field];
                 const align = logsFieldAlignment(field, fieldType);
-                const headerLabel = getTableHeaderLabel(field);
+                const headerLabel = getTableHeaderLabel(
+                  field,
+                  stringAttributes,
+                  numberAttributes
+                );
 
                 if (isPending) {
                   return <TableHeadCell key={index} isFirst={index === 0} />;

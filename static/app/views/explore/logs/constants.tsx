@@ -32,6 +32,7 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.BODY,
   OurLogKnownFieldKey.ORGANIZATION_ID,
   OurLogKnownFieldKey.ITEM_TYPE,
+  OurLogKnownFieldKey.PROJECT,
 ];
 
 const LOGS_FILTERS: FilterKeySection = {

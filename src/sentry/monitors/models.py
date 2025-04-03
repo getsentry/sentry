@@ -190,26 +190,6 @@ MONITOR_ENVIRONMENT_ORDERING = Case(
 )
 
 
-class MonitorType:
-    # In the future we may have other types of monitors such as health check
-    # monitors. But for now we just have CRON_JOB style monitors.
-    UNKNOWN = 0
-    CRON_JOB = 3
-    UPTIME = 4
-
-    @classmethod
-    def as_choices(cls):
-        return (
-            (cls.UNKNOWN, "unknown"),
-            (cls.CRON_JOB, "cron_job"),
-            (cls.UPTIME, "uptime"),
-        )
-
-    @classmethod
-    def get_name(cls, value):
-        return dict(cls.as_choices())[value]
-
-
 class ScheduleType:
     UNKNOWN = 0
     CRONTAB = 1
@@ -261,14 +241,6 @@ class Monitor(Model):
     name = models.CharField(max_length=128)
     """
     Human readable name of the monitor. Used for display purposes.
-    """
-
-    type = BoundedPositiveIntegerField(
-        db_default=MonitorType.UNKNOWN,
-        choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
-    )
-    """
-    Type of monitor. Currently there are only CRON_JOB monitors.
     """
 
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
@@ -346,7 +318,6 @@ class Monitor(Model):
     def get_audit_log_data(self):
         return {
             "name": self.name,
-            "type": self.type,
             "status": self.status,
             "config": self.config,
             "is_muted": self.is_muted,
