@@ -29,7 +29,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.AddField(
             model_name="organizationmemberinvite",
-            name="organization_member_id",
+            name="organization_member",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
                 to="sentry.organizationmember",
