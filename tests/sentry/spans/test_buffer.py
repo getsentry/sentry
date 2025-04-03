@@ -122,11 +122,10 @@ def process_spans_concurrrently(spans: list[Span | _SplitBatch], buffer: SpansBu
         nonlocal i2
 
         ident = get_ident()
-        self_i = thread_ids.index(ident)
 
         while True:
             if thread_ids[i2] == ident or not threads[i2].is_alive:
-                i2 = self_i
+                i2 += (i2 + 1) % len(thread_ids)
                 return
 
             time.sleep(0.1)
