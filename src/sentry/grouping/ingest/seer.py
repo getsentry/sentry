@@ -253,7 +253,6 @@ def get_seer_similar_issues(
     event: Event,
     event_grouphash: GroupHash,
     variants: dict[str, BaseVariant],
-    num_neighbors: int = 1,
 ) -> tuple[float | None, GroupHash | None]:
     """
     Ask Seer for the given event's nearest neighbor(s) and return the stacktrace distance and
@@ -275,7 +274,7 @@ def get_seer_similar_issues(
         "project_id": event.project.id,
         "stacktrace": stacktrace_string,
         "exception_type": filter_null_from_string(exception_type) if exception_type else None,
-        "k": num_neighbors,
+        "k": options.get("seer.similarity.ingest.num_matches_to_request"),
         "referrer": "ingest",
         "use_reranking": options.get("seer.similarity.ingest.use_reranking"),
     }
