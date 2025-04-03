@@ -16,9 +16,9 @@ from sentry.workflow_engine.models import (
     AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
-    DataConditionGroupAction,
     Detector,
     Workflow,
+    WorkflowDataConditionGroup,
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
@@ -36,29 +36,69 @@ class WorkflowDataConditionGroupType(StrEnum):
     WORKFLOW_TRIGGER = "workflow_trigger"
 
 
-def create_workflow_fire_histories(
-    actions_to_fire: list[Action], event_data: WorkflowEventData
-) -> None:
-    condition_actions = DataConditionGroupAction.objects.filter(
-        action_id__in=[action.id for action in actions_to_fire]
-    ).values_list("condition_group_id", flat=True)
-    fired_action_conditions = DataConditionGroup.objects.filter(
-        id__in=condition_actions
-    ).prefetch_related("workflowdataconditiongroup_set")
+def get_actions_to_workflows(actions_to_fire: list[Action]) -> dict[int, Workflow]:
+    action_ids = {action.id for action in actions_to_fire}
+    workflow_actions = (
+        WorkflowDataConditionGroup.objects.select_related("workflow", "condition_group")
+        .filter(condition_group__dataconditiongroupaction__action_id__in=action_ids)
+        .values_list("condition_group__dataconditiongroupaction__action_id", "workflow_id")
+    )
 
-    workflow_fire_histories = []
-    for action_condition in fired_action_conditions:
-        workflow_data_condition_group = action_condition.workflowdataconditiongroup_set.first()
-        if not workflow_data_condition_group:
-            continue
-        workflow_fire_histories.append(
-            WorkflowFireHistory(
-                workflow=workflow_data_condition_group.workflow,
-                group=event_data.event.group,
-                event_id=event_data.event.event_id,
-            )
+    action_to_workflows: dict[int, int] = {
+        action_id: workflow_id for action_id, workflow_id in workflow_actions
+    }
+    workflow_ids = set(action_to_workflows.values())
+
+    workflows = Workflow.objects.filter(id__in=workflow_ids)
+    workflow_ids_to_workflows = {workflow.id: workflow for workflow in workflows}
+
+    # TODO: account for actions being attached to multiple workflows?
+    # should you even send multiple notifications then? :think:
+    actions_to_workflows: dict[int, Workflow] = {
+        action_id: workflow_ids_to_workflows[workflow_id]
+        for action_id, workflow_id in action_to_workflows.items()
+    }
+    return actions_to_workflows
+
+
+def create_workflow_fire_histories(
+    actions_to_workflows: dict[int, Workflow], event_data: WorkflowEventData
+) -> dict[int, WorkflowFireHistory]:
+    workflows = set(actions_to_workflows.values())
+
+    workflow_fire_histories = [
+        WorkflowFireHistory(
+            workflow=workflow,
+            group=event_data.event.group,
+            event_id=event_data.event.event_id,
         )
-    WorkflowFireHistory.objects.bulk_create(workflow_fire_histories)
+        for workflow in workflows
+    ]
+    fire_histories = WorkflowFireHistory.objects.bulk_create(workflow_fire_histories)
+
+    workflow_id_to_fire_history: dict[int, WorkflowFireHistory] = {
+        workflow_fire_history.workflow_id: workflow_fire_history
+        for workflow_fire_history in fire_histories
+    }
+    return workflow_id_to_fire_history
+
+
+def fire_actions(actions: list[Action], detector: Detector, event_data: WorkflowEventData) -> None:
+    actions_to_workflows = get_actions_to_workflows(actions)
+    workflow_id_to_fire_history = create_workflow_fire_histories(actions_to_workflows, event_data)
+
+    if features.has(
+        "organizations:workflow-engine-trigger-actions",
+        detector.project.organization,
+    ):
+        for action in actions:
+            workflow = actions_to_workflows[action.id]
+            workflow_event_data = replace(
+                event_data, workflow_env=workflow.environment_id, workflow_id=workflow.id
+            )
+
+            notification_uuid = workflow_id_to_fire_history[workflow.id].notification_uuid
+            action.trigger(workflow_event_data, detector, notification_uuid)
 
 
 def enqueue_workflow(
@@ -282,18 +322,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
                 event_data=event_data,
             )
 
-    with sentry_sdk.start_span(
-        op="workflow_engine.process_workflows.create_workflow_fire_histories"
-    ):
-        create_workflow_fire_histories(list(actions), event_data)
-
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
-        if features.has(
-            "organizations:workflow-engine-trigger-actions",
-            organization,
-        ):
-            for action in actions:
-                action.trigger(event_data, detector)
+        fire_actions(list(actions), detector, event_data)
 
     return triggered_workflows
 

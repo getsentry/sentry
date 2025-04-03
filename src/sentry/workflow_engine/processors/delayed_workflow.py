@@ -45,8 +45,8 @@ from sentry.workflow_engine.processors.data_condition_group import evaluate_data
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
-    create_workflow_fire_histories,
     evaluate_workflows_action_filters,
+    fire_actions,
     log_fired_workflows,
 )
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
@@ -419,9 +419,6 @@ def fire_actions_for_groups(
         workflows = set(Workflow.objects.filter(when_condition_group_id__in=workflow_triggers))
         filtered_actions.extend(list(evaluate_workflows_action_filters(workflows, event_data)))
 
-        # update WorkflowFireHistory for actions we will fire
-        create_workflow_fire_histories(filtered_actions, event_data)
-
         # temporary fetching of organization, so not passing in as parameter
         organization = group.project.organization
 
@@ -445,12 +442,7 @@ def fire_actions_for_groups(
                 event_data=event_data,
             )
 
-        if features.has(
-            "organizations:workflow-engine-trigger-actions",
-            organization,
-        ):
-            for action in filtered_actions:
-                action.trigger(event_data, detector)
+        fire_actions(filtered_actions, detector, event_data)
 
 
 def cleanup_redis_buffer(

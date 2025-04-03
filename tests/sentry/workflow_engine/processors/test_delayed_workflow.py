@@ -801,7 +801,9 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             WorkflowDataConditionGroupType.ACTION_FILTER,
         )
 
-    def test_fire_actions_for_groups__workflow_fire_history(self):
+    @with_feature("organizations:workflow-engine-trigger-actions")
+    @patch("sentry.workflow_engine.processors.delayed_workflow.Action.trigger")
+    def test_fire_actions_for_groups__workflow_fire_history(self, mock_trigger):
         fire_actions_for_groups(
             self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
         )
@@ -818,6 +820,17 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             ).count()
             == 1
         )
+        for call in mock_trigger.call_args_list:
+            args = call[0]
+            event_data = args[0]
+            assert event_data.workflow_id
+            notification_uuid = args[2]
+            assert (
+                notification_uuid
+                == WorkflowFireHistory.objects.get(
+                    workflow_id=event_data.workflow_id
+                ).notification_uuid
+            )
 
 
 class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
