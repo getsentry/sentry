@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry import features, options, search
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase, OrganizationEventsV2EndpointBase
 from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
@@ -167,7 +167,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
 
 
 @region_silo_endpoint
-class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
+class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -182,11 +182,20 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
         use_rpc = request.GET.get("useRpc", "0") == "1"
 
         if use_rpc:
-            samples_res = get_eap_span_samples(request, snuba_params)
+            result = get_eap_span_samples(request, snuba_params)
         else:
-            samples_res = get_span_samples(request, snuba_params)
+            result = get_span_samples(request, snuba_params)
 
-        return Response({"data": samples_res["data"], "meta": samples_res["meta"]})
+        return Response(
+            self.handle_results_with_meta(
+                request,
+                organization,
+                snuba_params.project_ids,
+                {"data": result["data"], "meta": result["meta"]},
+                True,
+                spans_indexed,
+            )
+        )
 
 
 def get_span_samples(request: Request, snuba_params: SnubaParams):

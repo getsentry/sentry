@@ -566,13 +566,18 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
             format="json",
         )
 
+        assert response.status_code == 200, response.content
+
         data = response.data["data"]
 
         assert data[0]["span.duration"] == 200
         assert data[0]["span_id"] == "ab4d0a103a55489c"
         assert data[0]["project"] == self.project.slug
 
-        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+
+        assert meta["fields"]["span.duration"] == "duration"
+        assert meta["units"]["span.duration"] == "millisecond"
 
 
 class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestBase):
@@ -631,6 +636,7 @@ class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestB
                 "firstBound": "10",
                 "secondBound": "20",
                 "upperBound": "200",
+                "column": "span.duration",
                 "project": self.project.id,
             },
         )
@@ -641,3 +647,7 @@ class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestB
         assert data[1]["span_id"] == spans[2]["span_id"]
         assert data[2]["span_id"] == spans[3]["span_id"]
         assert data[3]["span_id"] == spans[4]["span_id"]
+
+        meta = response.data["meta"]
+        assert meta["fields"]["span.duration"] == "duration"
+        assert meta["units"]["span.duration"] == "millisecond"
