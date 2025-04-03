@@ -1721,6 +1721,14 @@ export function prettifyTagKey(key: string): string {
 }
 
 export function prettifyParsedFunction(func: ParsedFunction) {
+  // special case for `count(span.duration)` as we want to say `count(spans)`
+  if (
+    func.name === 'count' &&
+    func.arguments.length === 1 &&
+    func.arguments[0] === 'span.duration'
+  ) {
+    return 'count(spans)';
+  }
   const args = func.arguments.map(prettifyTagKey);
   return `${func.name}(${args.join(',')})`;
 }
