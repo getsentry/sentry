@@ -144,6 +144,9 @@ class TaskNamespace:
             ArroyoTopic(name=topic.value),
             KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
         )
+        # ensure we are not dealing with arroyo's SimpleProduceFuture, which
+        # has no add_done_callback
+        assert isinstance(produce_future, futures.Future)
         produce_future.add_done_callback(
             lambda future: self._handle_produce_future(
                 future=future,

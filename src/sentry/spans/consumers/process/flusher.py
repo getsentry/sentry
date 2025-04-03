@@ -2,8 +2,6 @@ import multiprocessing
 import threading
 import time
 from collections.abc import Callable
-from concurrent import futures
-from typing import Any
 
 import rapidjson
 from arroyo import Topic as ArroyoTopic
@@ -85,12 +83,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
             producer_futures = []
 
-            wait: Callable[[list[futures.Future]], Any]
-
             if produce_to_pipe is not None:
                 produce = produce_to_pipe
                 producer = None
-                wait = lambda _: None
             else:
                 cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
 
@@ -102,8 +97,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
                 def produce(payload: KafkaPayload) -> None:
                     producer_futures.append(producer.produce(topic, payload))
-
-                wait = futures.wait
 
             while not stopped.value:
                 now = int(time.time()) + current_drift.value
@@ -134,7 +127,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
                     produce(kafka_payload)
 
-                wait(producer_futures)
+                for future in producer_futures:
+                    future.result()
+
                 producer_futures.clear()
 
                 buffer.done_flush_segments(flushed_segments)
