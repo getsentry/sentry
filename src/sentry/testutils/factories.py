@@ -1049,6 +1049,7 @@ class Factories:
     def create_group(project, **kwargs):
         from sentry.models.group import GroupStatus
         from sentry.models.groupopenperiod import GroupOpenPeriod
+        from sentry.testutils.helpers.datetime import before_now
         from sentry.types.group import GroupSubStatus
 
         kwargs.setdefault("message", "Hello world")
@@ -1065,11 +1066,16 @@ class Factories:
             kwargs["substatus"] = GroupSubStatus.NEW
 
         group = Group.objects.create(project=project, **kwargs)
-        GroupOpenPeriod.objects.create(
-            date_started=group.first_seen or timezone.now(),
+        open_period = GroupOpenPeriod.objects.create(
             group=group,
             project=project,
+            date_started=group.first_seen or before_now(minutes=5),
         )
+        if group.status == GroupStatus.RESOLVED:
+            open_period.update(
+                date_ended=group.resolved_at if group.resolved_at else timezone.now()
+            )
+
         return group
 
     @staticmethod
