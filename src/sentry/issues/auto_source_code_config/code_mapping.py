@@ -140,8 +140,8 @@ class FrameInfo:
         return frame_file_path
 
     def frame_info_from_module(self, frame: Mapping[str, Any]) -> None:
-        if frame.get("module") and frame.get("abs_path"):
-            stack_root, filepath = get_path_from_module(frame["module"], frame["abs_path"])
+        if frame.get("module") and frame.get("absPath"):
+            stack_root, filepath = get_path_from_module(frame["module"], frame["absPath"])
             self.stack_root = stack_root
             self.raw_path = filepath
             self.normalized_path = filepath
