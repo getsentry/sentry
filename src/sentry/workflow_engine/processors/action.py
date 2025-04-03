@@ -10,6 +10,10 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.plugins.base import plugins
+from sentry.plugins.bases.notify import NotificationPlugin
+from sentry.rules.actions.services import PluginService
 from sentry.workflow_engine.models import (
     Action,
     ActionGroupStatus,
@@ -103,3 +107,23 @@ def get_available_action_integrations_for_org(organization: Organization) -> lis
         organization_id=organization.id,
         providers=providers,
     )
+
+
+def get_notification_plugins_for_org(organization: Organization) -> list[RpcIntegration]:
+    """
+    Get all plugins for an organization.
+    This method returns a deduplicated list of plugins that are enabled for any project in the organization.
+    """
+
+    projects = Project.objects.filter(organization_id=organization.id)
+    plugin_map = {}
+
+    for project in projects:
+        for plugin in plugins.for_project(project, version=1):
+            if not isinstance(plugin, NotificationPlugin):
+                continue
+
+            if plugin.slug not in plugin_map:
+                plugin_map[plugin.slug] = PluginService(plugin)
+
+    return list(plugin_map.values())
