@@ -15,6 +15,7 @@ def shallow_permutations(spans: list[Span]) -> list[list[Span]]:
     return [
         spans,
         list(reversed(spans)),
+        [span_or_split for span in spans for span_or_split in [span, _SplitBatch()]],
     ]
 
 
