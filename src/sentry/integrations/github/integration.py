@@ -39,6 +39,8 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.models.groupowner import GroupOwner
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -289,6 +291,11 @@ class GitHubIntegration(
         resp = self.get_client().search_issues(query)
         assert isinstance(resp, dict)
         return resp
+
+    def queue_comment_workflow(self, pr: PullRequest, group_owner: GroupOwner):
+        from sentry.integrations.github.tasks.pr_comment import github_comment_workflow
+
+        github_comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
 
 
 class GitHubIntegrationProvider(IntegrationProvider):
