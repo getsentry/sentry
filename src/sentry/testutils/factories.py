@@ -2309,7 +2309,6 @@ class Factories:
 
         return ActionAlertRuleTriggerAction.objects.create(
             action=action, alert_rule_trigger_action_id=alert_rule_trigger_action_id
->>>>>>> b083e1555e3 (clean up tests)
         )
 
     @staticmethod
