@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
@@ -15,6 +16,13 @@ class OrganizationGroupSuspectFlagsEndpoint(GroupEndpoint, EnvironmentMixin):
 
     def get(self, request: Request, group: Group) -> Response:
         """Stats bucketed by time."""
+        if not features.has(
+            "organizations:feature-flag-suspect-flags",
+            group.organization,
+            actor=request.user,
+        ):
+            return Response(status=404)
+
         environments = [e.name for e in get_environments(request, group.organization)]
         group_id = group.id
         organization_id = group.organization.id

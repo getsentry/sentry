@@ -12,6 +12,10 @@ class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
         super().setUp()
         self.login_as(user=self.user)
 
+    @property
+    def features(self):
+        return {"organizations:feature-flag-suspect-flags": True}
+
     def test_get(self):
         today = datetime.datetime.now(tz=datetime.UTC)
         group = self.create_group(
@@ -40,9 +44,9 @@ class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        url = f"/api/0/issues/{group.id}/suspect/flags/"
+        with self.feature(self.features):
+            response = self.client.get(f"/api/0/issues/{group.id}/suspect/flags/")
 
-        response = self.client.get(url)
         assert response.status_code == 200
         assert response.json() == {
             "data": [
@@ -50,6 +54,18 @@ class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
                 {"flag": "other", "score": 0.0},
             ]
         }
+
+    def test_get_no_flag_access(self):
+        """Does not have feature-flag access."""
+        group = self.create_group()
+        response = self.client.get(f"/api/0/issues/{group.id}/suspect/flags/")
+        assert response.status_code == 404
+
+    def test_get_no_group(self):
+        """Group not found."""
+        with self.feature(self.features):
+            response = self.client.get("/api/0/issues/22/suspect/flags/")
+            assert response.status_code == 404
 
     def _mock_event(self, ts, hash="a" * 32, group_id=None, project_id=1, flags=None):
         self.snuba_insert(
