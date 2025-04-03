@@ -3,7 +3,6 @@
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -30,13 +29,16 @@ class Migration(CheckedMigration):
             model_name="groupopenperiod",
             name="exclude_open_period_overlap",
         ),
-        SafeRunSQL(
-            """ALTER TABLE "sentry_groupopenperiod"
-                ADD CONSTRAINT "exclude_open_period_overlap" EXCLUDE USING GIST (
-                    "group_id" gist_int8_ops WITH =,
-                    (TSTZRANGE("date_started", "date_ended", '[)')) WITH &&
-                );""",
-            use_statement_timeout=False,
-            hints={"tables": ["sentry_groupopenperiod"]},
-        ),
+        # These two operations weren't able to run together in the right sequence -
+        # commenting this out to include in a later migration. This migration now
+        # only drops the exclusion constraint.
+        # SafeRunSQL(
+        #     """ALTER TABLE "sentry_groupopenperiod"
+        #         ADD CONSTRAINT "exclude_open_period_overlap" EXCLUDE USING GIST (
+        #             "group_id" gist_int8_ops WITH =,
+        #             (TSTZRANGE("date_started", "date_ended", '[)')) WITH &&
+        #         );""",
+        #     use_statement_timeout=False,
+        #     hints={"tables": ["sentry_groupopenperiod"]},
+        # ),
     ]
