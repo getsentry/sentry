@@ -17,6 +17,7 @@ from sentry.api.utils import handle_query_errors
 from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import spans_indexed, spans_metrics, spans_rpc
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
@@ -172,8 +173,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
     }
 
     def get(self, request: Request, organization) -> Response:
-        is_frontend = is_frontend_request(request)
-        sample_count = 9
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -182,148 +181,157 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
 
         use_rpc = request.GET.get("useRpc", "0") == "1"
 
-        buckets = request.GET.get("intervals", 3)
-        lower_bound = request.GET.get("lowerBound", 0)
-        first_bound = request.GET.get("firstBound")
-        second_bound = request.GET.get("secondBound")
-        upper_bound = request.GET.get("upperBound")
-        column = request.GET.get("column", "span.self_time")
-
         if use_rpc:
-            if first_bound is None or second_bound is None:
-                raise ParseError("Must provide first and second bounds")
+            samples_res = get_eap_span_samples(request, snuba_params)
+        else:
+            samples_res = get_span_samples(request, snuba_params)
 
-            selected_columns = request.GET.getlist("additionalFields", []) + [
-                "project",
-                "transaction.id",
-                column,
-                "timestamp",
-                "span_id",
-                "profile.id",
-                "trace",
-            ]
+        return Response({"data": samples_res["data"], "meta": samples_res["meta"]})
 
-            query_string = request.query_params.get("query")
-            bounds_query_string = (
-                f"{column}:>{lower_bound}ms {column}:<{upper_bound}ms {query_string}"
-            )
 
-            # TODO: handle bounds
-            rpc_res = spans_rpc.run_table_query(
-                params=snuba_params,
-                query_string=bounds_query_string,
-                config=SearchResolverConfig(),
-                offset=0,
-                limit=100,
-                sampling_mode=None,
-                orderby=["-profile.id"],
-                referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
-                selected_columns=[
-                    f"bounded_sample({column}, {lower_bound}, {first_bound}) as lower",
-                    f"bounded_sample({column}, {first_bound}, {second_bound}) as middle",
-                    f"bounded_sample({column}, {second_bound}{', ' if upper_bound else ''}{upper_bound}) as top",
-                    "profile.id",
-                    "id",
-                ],
-            )
+def get_span_samples(request: Request, snuba_params: SnubaParams):
+    is_frontend = is_frontend_request(request)
+    buckets = request.GET.get("intervals", 3)
+    lower_bound = request.GET.get("lowerBound", 0)
+    first_bound = request.GET.get("firstBound")
+    second_bound = request.GET.get("secondBound")
+    upper_bound = request.GET.get("upperBound")
+    column = request.GET.get("column", "span.self_time")
 
-            span_ids = []
+    selected_columns = request.GET.getlist("additionalFields", []) + [
+        "project",
+        "transaction.id",
+        column,
+        "timestamp",
+        "span_id",
+        "profile_id",
+        "trace",
+    ]
 
-            for row in rpc_res["data"]:
-                lower, middle, top = row["lower"], row["middle"], row["top"]
-                if lower:
-                    span_ids.append(row["id"])
-                if middle:
-                    span_ids.append(row["id"])
-                if top:
-                    span_ids.append(row["id"])
-
-            samples_query_string = (
-                f"span_id:[{','.join(span_ids)}] {query_string}"
-                if len(span_ids) > 0
-                else query_string
-            )
-
-            samples_res = spans_rpc.run_table_query(
-                params=snuba_params,
-                config=SearchResolverConfig(use_aggregate_conditions=False),
-                offset=0,
-                limit=sample_count,
-                sampling_mode=None,
-                query_string=samples_query_string,
-                orderby=["timestamp"],
-                referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
-                selected_columns=selected_columns,
-            )
-
-            return Response({"data": samples_res["data"]})
-
-        selected_columns = request.GET.getlist("additionalFields", []) + [
-            "project",
-            "transaction.id",
-            column,
-            "timestamp",
-            "span_id",
-            "profile_id",
-            "trace",
-        ]
-
-        if lower_bound is None or upper_bound is None:
-            bound_results = spans_metrics.query(
-                selected_columns=[
-                    f"p50({column}) as first_bound",
-                    f"p95({column}) as second_bound",
-                ],
-                snuba_params=snuba_params,
-                query=request.query_params.get("query"),
-                referrer=Referrer.API_SPAN_SAMPLE_GET_BOUNDS.value,
-                query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
-            )
-            if len(bound_results["data"]) != 1:
-                raise ParseError("Could not find bounds")
-
-            bound_data = bound_results["data"][0]
-            first_bound, second_bound = bound_data["first_bound"], bound_data["second_bound"]
-            if lower_bound == 0 or upper_bound == 0:
-                raise ParseError("Could not find bounds")
-
-        result = spans_indexed.query(
+    if lower_bound is None or upper_bound is None:
+        bound_results = spans_metrics.query(
             selected_columns=[
-                f"bounded_sample({column}, {lower_bound}, {first_bound}) as lower",
-                f"bounded_sample({column}, {first_bound}, {second_bound}) as middle",
-                f"bounded_sample({column}, {second_bound}{', ' if upper_bound else ''}{upper_bound}) as top",
-                f"rounded_time({buckets})",
-                "profile_id",
+                f"p50({column}) as first_bound",
+                f"p95({column}) as second_bound",
             ],
-            orderby=["-profile_id"],
             snuba_params=snuba_params,
             query=request.query_params.get("query"),
-            sample=options.get("insights.span-samples-query.sample-rate") or None,
-            referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
+            referrer=Referrer.API_SPAN_SAMPLE_GET_BOUNDS.value,
             query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
         )
-        span_ids = []
-        for row in result["data"]:
-            lower, middle, top = row["lower"], row["middle"], row["top"]
-            if lower:
-                span_ids.append(lower)
-            if middle:
-                span_ids.append(middle)
-            if top:
-                span_ids.append(top)
+        if len(bound_results["data"]) != 1:
+            raise ParseError("Could not find bounds")
 
-        if len(span_ids) > 0:
-            query = f"span_id:[{','.join(span_ids)}] {request.query_params.get('query')}"
-        else:
-            query = request.query_params.get("query")
+        bound_data = bound_results["data"][0]
+        first_bound, second_bound = bound_data["first_bound"], bound_data["second_bound"]
+        if lower_bound == 0 or upper_bound == 0:
+            raise ParseError("Could not find bounds")
 
-        result = spans_indexed.query(
-            selected_columns=selected_columns,
-            orderby=["timestamp"],
-            snuba_params=snuba_params,
-            query=query,
-            limit=9,
-            referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
-            query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
-        )
-        return Response({"data": result["data"]})
+    result = spans_indexed.query(
+        selected_columns=[
+            f"bounded_sample({column}, {lower_bound}, {first_bound}) as lower",
+            f"bounded_sample({column}, {first_bound}, {second_bound}) as middle",
+            f"bounded_sample({column}, {second_bound}{', ' if upper_bound else ''}{upper_bound}) as top",
+            f"rounded_time({buckets})",
+            "profile_id",
+        ],
+        orderby=["-profile_id"],
+        snuba_params=snuba_params,
+        query=request.query_params.get("query"),
+        sample=options.get("insights.span-samples-query.sample-rate") or None,
+        referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
+        query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
+    )
+    span_ids = []
+    for row in result["data"]:
+        lower, middle, top = row["lower"], row["middle"], row["top"]
+        if lower:
+            span_ids.append(lower)
+        if middle:
+            span_ids.append(middle)
+        if top:
+            span_ids.append(top)
+
+    if len(span_ids) > 0:
+        query = f"span_id:[{','.join(span_ids)}] {request.query_params.get('query')}"
+    else:
+        query = request.query_params.get("query")
+
+    return spans_indexed.query(
+        selected_columns=selected_columns,
+        orderby=["timestamp"],
+        snuba_params=snuba_params,
+        query=query,
+        limit=9,
+        referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
+        query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
+    )
+
+
+def get_eap_span_samples(request: Request, snuba_params: SnubaParams):
+    lower_bound = request.GET.get("lowerBound", 0)
+    first_bound = request.GET.get("firstBound")
+    second_bound = request.GET.get("secondBound")
+    upper_bound = request.GET.get("upperBound")
+    column = request.GET.get("column", "span.self_time")
+
+    if first_bound is None or second_bound is None:
+        raise ParseError("Must provide first and second bounds")
+
+    selected_columns = request.GET.getlist("additionalFields", []) + [
+        "project",
+        "transaction.id",
+        column,
+        "timestamp",
+        "span_id",
+        "profile.id",
+        "trace",
+    ]
+
+    query_string = request.query_params.get("query")
+    bounds_query_string = f"{column}:>{lower_bound}ms {column}:<{upper_bound}ms {query_string}"
+
+    rpc_res = spans_rpc.run_table_query(
+        params=snuba_params,
+        query_string=bounds_query_string,
+        config=SearchResolverConfig(),
+        offset=0,
+        limit=100,
+        sampling_mode=None,
+        orderby=["-profile.id"],
+        referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
+        selected_columns=[
+            f"bounded_sample({column}, {lower_bound}, {first_bound}) as lower",
+            f"bounded_sample({column}, {first_bound}, {second_bound}) as middle",
+            f"bounded_sample({column}, {second_bound}{', ' if upper_bound else ''}{upper_bound}) as top",
+            "profile.id",
+            "id",
+        ],
+    )
+
+    span_ids = []
+
+    for row in rpc_res["data"]:
+        lower, middle, top = row["lower"], row["middle"], row["top"]
+        if lower:
+            span_ids.append(row["id"])
+        if middle:
+            span_ids.append(row["id"])
+        if top:
+            span_ids.append(row["id"])
+
+    samples_query_string = (
+        f"span_id:[{','.join(span_ids)}] {query_string}" if len(span_ids) > 0 else query_string
+    )
+
+    return spans_rpc.run_table_query(
+        params=snuba_params,
+        config=SearchResolverConfig(use_aggregate_conditions=False),
+        offset=0,
+        limit=9,
+        sampling_mode=None,
+        query_string=samples_query_string,
+        orderby=["timestamp"],
+        referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
+        selected_columns=selected_columns,
+    )
