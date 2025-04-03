@@ -104,7 +104,7 @@ export default function EmptyState() {
                     navigate({
                       pathname: '/issues/',
                       query: {
-                        query: 'sdk.name:minidump.tempest',
+                        query: 'os.name:PlayStation',
                       },
                     });
                   }}
