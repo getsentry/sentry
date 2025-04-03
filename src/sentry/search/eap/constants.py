@@ -39,14 +39,7 @@ AGGREGATION_OPERATOR_MAP = {
 SearchType = (
     SizeUnit
     | DurationUnit
-    | Literal[
-        "duration",
-        "integer",
-        "number",
-        "percentage",
-        "string",
-        "boolean",
-    ]
+    | Literal["duration", "integer", "number", "percentage", "string", "boolean", "rate"]
 )
 
 SIZE_TYPE: set[SearchType] = set(SIZE_UNITS.keys())
