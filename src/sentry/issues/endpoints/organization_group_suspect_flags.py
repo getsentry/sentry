@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -34,14 +36,15 @@ class OrganizationGroupSuspectFlagsEndpoint(GroupEndpoint, EnvironmentMixin):
         start, end = max(start, group.first_seen), min(end, group.last_seen)
 
         # To increase our cache hit-rate we round the dates down to the nearest 5 minute interval.
-        start = start.replace(minute=(start.minute // 5) * 5, second=0, microsecond=0)
-        end = end.replace(minute=(end.minute // 5) * 5, second=0, microsecond=0)
+        if end - start > timedelta(minutes=5):
+            start = start.replace(minute=(start.minute // 5) * 5, second=0, microsecond=0)
+            end = end.replace(minute=(end.minute // 5) * 5, second=0, microsecond=0)
 
         return Response(
             {
                 "data": [
-                    {"flag": score[0], "score": score[1]}
-                    for score in get_suspect_flag_scores(
+                    {"flag": flag, "score": score}
+                    for flag, score in get_suspect_flag_scores(
                         organization_id,
                         project_id,
                         start,
