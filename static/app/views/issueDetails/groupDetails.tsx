@@ -14,7 +14,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
-import {featureFlagSupportedPlatforms} from 'sentry/data/platformCategories';
+import {featureFlagDrawerPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
@@ -646,7 +646,7 @@ function GroupDetailsContent({
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
   const includeFlagDistributions =
-    featureFlagSupportedPlatforms.includes(project.platform ?? 'other') &&
+    featureFlagDrawerPlatforms.includes(project.platform ?? 'other') &&
     organization.features.includes('feature-flag-distribution-flyout');
   const {openDistributionsDrawer} = useGroupDistributionsDrawer({
     group,
