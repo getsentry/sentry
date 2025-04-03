@@ -2,12 +2,16 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {Button} from 'sentry/components/core/button';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 export default function EmptyState() {
+  const navigate = useNavigate();
+
   return (
     <div>
       <HeaderWrapper>
@@ -89,10 +93,25 @@ export default function EmptyState() {
                   'Once you provided credentials, Sentry will make an initial request to verify the credentials are correct and the IPs are allowlisted, if either of these are not the case an error will be displayed in the UI. After that new crashes are pulled once every minute. Events generated from crashes can be filtered using:'
                 )}{' '}
                 <OnboardingCodeSnippet language="javascript">
-                  sdk.name: minidump.tempest
+                  os.name:PlayStation
                 </OnboardingCodeSnippet>
               </DescriptionWrapper>
-              <GuidedSteps.StepButtons />
+              <GuidedSteps.StepButtons>
+                <Button
+                  size="sm"
+                  priority="primary"
+                  onClick={() => {
+                    navigate({
+                      pathname: '/issues/',
+                      query: {
+                        query: 'os.name:PlayStation',
+                      },
+                    });
+                  }}
+                >
+                  {t('Take me to Issues')}
+                </Button>
+              </GuidedSteps.StepButtons>
             </GuidedSteps.Step>
           </GuidedSteps>
         </Setup>
