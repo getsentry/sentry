@@ -47,7 +47,6 @@ export function useWidgetChartVisualization({
   if (spanCategoryUrlParam) {
     query.addFilterValue('span.category', spanCategoryUrlParam);
   }
-
   const {
     data: spanSeriesData,
     isPending: isSpanSeriesPending,
@@ -90,7 +89,7 @@ export function useWidgetChartVisualization({
       pageFilters: selection,
       enabled: selectedWidget === EAPWidgetType.DURATION_PERCENTILES,
     },
-    'api.transaction-summary.span-category-filter'
+    'transaction-summary-charts-widget'
   );
 
   if (selectedWidget === EAPWidgetType.DURATION_BREAKDOWN) {
