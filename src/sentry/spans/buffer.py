@@ -255,8 +255,8 @@ class SpansBuffer:
         metrics.timing("spans.buffer.process_spans.num_spans", len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_has_root_spans", has_root_span_count)
-        metrics.timing("spans.buffer.redirect_depth.min", min_redirect_depth)
-        metrics.timing("spans.buffer.redirect_depth.max", max_redirect_depth)
+        metrics.gauge("spans.buffer.min_redirect_depth", min_redirect_depth)
+        metrics.gauge("spans.buffer.max_redirect_depth", max_redirect_depth)
 
     def _ensure_script(self):
         if self.add_buffer_sha is not None:
