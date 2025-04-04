@@ -91,6 +91,7 @@ function QuotaExceededContent({
             notificationType="overage_critical"
             referrer={`overage-alert-${eventTypes.join('-')}`}
             source="nav-quota-overage"
+            handleRequestSent={() => onCheck(true)}
           />
           <DismissContainer>
             <Checkbox
@@ -133,7 +134,7 @@ function PrimaryNavigationQuotaExceeded({
     })
     .filter(Boolean) as string[];
 
-  const {isLoading, isError, isPromptDismissed, dismissPrompt, showPrompt} = usePrompts({
+  const {isLoading, isError, isPromptDismissed, snoozePrompt, showPrompt} = usePrompts({
     features: promptsToCheck,
     organization,
     daysToSnooze: -1 * getDaysSinceDate(subscription.onDemandPeriodEnd),
@@ -160,14 +161,14 @@ function PrimaryNavigationQuotaExceeded({
   const onCheckboxChange = (checked: boolean) => {
     promptsToCheck.forEach(prompt => {
       if (checked) {
-        dismissPrompt(prompt);
+        snoozePrompt(prompt);
       } else {
         showPrompt(prompt);
       }
     });
   };
 
-  const hasDismissedAllPrompts = () => {
+  const hasSnoozedAllPrompts = () => {
     return Object.values(isPromptDismissed).every(Boolean);
   };
 
@@ -178,7 +179,7 @@ function PrimaryNavigationQuotaExceeded({
         label={t('Billing Status')}
         buttonProps={{...overlayTriggerProps, style: {backgroundColor: theme.warning}}}
       >
-        <motion.div {...(isOpen || hasDismissedAllPrompts() ? {} : ANIMATE_PROPS)}>
+        <motion.div {...(isOpen || hasSnoozedAllPrompts() ? {} : ANIMATE_PROPS)}>
           <IconWarning color={statusTextColor as Color} />
         </motion.div>
       </SidebarButton>
@@ -188,7 +189,7 @@ function PrimaryNavigationQuotaExceeded({
             exceededCategories={exceededCategories}
             subscription={subscription}
             organization={organization}
-            isDismissed={hasDismissedAllPrompts()}
+            isDismissed={hasSnoozedAllPrompts()}
             onCheck={onCheckboxChange}
             statusTextColor={statusTextColor}
           />

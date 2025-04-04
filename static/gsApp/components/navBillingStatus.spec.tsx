@@ -1,4 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
@@ -11,9 +13,12 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
 describe('PrimaryNavigationQuotaExceeded', function () {
   const organization = OrganizationFixture();
-  let mock: jest.Mock;
+  let promptMock: jest.Mock;
+  let requestUpgradeMock: jest.Mock;
+  let customerPutMock: jest.Mock;
 
   beforeEach(() => {
+    organization.access = [];
     MockApiClient.clearMockResponses();
     const subscription = SubscriptionFixture({
       organization,
@@ -35,8 +40,23 @@ describe('PrimaryNavigationQuotaExceeded', function () {
 
     MockApiClient.addMockResponse({
       method: 'GET',
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [TeamFixture()],
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [ProjectFixture()],
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
       url: `/subscriptions/${organization.slug}/`,
-      body: {},
+      body: subscription,
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -46,7 +66,22 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/organizations/${organization.slug}/prompts-activity/`,
+    });
+
+    promptMock = MockApiClient.addMockResponse({
+      method: 'PUT',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
+    });
+    requestUpgradeMock = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: `/organizations/${organization.slug}/event-limit-increase-request/`,
+      body: {},
+    });
+    customerPutMock = MockApiClient.addMockResponse({
+      method: 'PUT',
+      url: `/customers/${organization.slug}/`,
+      body: SubscriptionFixture({organization}),
     });
   });
 
@@ -65,11 +100,6 @@ describe('PrimaryNavigationQuotaExceeded', function () {
   });
 
   it('should update prompts when checkbox is toggled', async function () {
-    mock = MockApiClient.addMockResponse({
-      method: 'PUT',
-      url: `/organizations/${organization.slug}/prompts-activity/`,
-      body: {},
-    });
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
     // open the alert
@@ -78,7 +108,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
 
     // stop the alert from animating
     await userEvent.click(screen.getByRole('checkbox'));
-    expect(mock).toHaveBeenCalled();
+    expect(promptMock).toHaveBeenCalled();
 
     // overlay is still visible, need to click out to close
     expect(screen.getByText('Quota Exceeded')).toBeInTheDocument();
@@ -92,7 +122,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
 
     // uncheck the checkbox
     await userEvent.click(screen.getByRole('checkbox'));
-    expect(mock).toHaveBeenCalled();
+    expect(promptMock).toHaveBeenCalled();
 
     // close and open again
     expect(screen.getByText('Quota Exceeded')).toBeInTheDocument();
@@ -101,5 +131,41 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
     expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
     expect(screen.getByRole('checkbox')).not.toBeChecked();
+  });
+
+  it('should update prompts when non-billing user takes action', async function () {
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+    // open the alert
+    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+    expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
+    expect(screen.getByText('Request Additional Quota')).toBeInTheDocument();
+
+    // click the button
+    await userEvent.click(screen.getByText('Request Additional Quota'));
+    expect(promptMock).toHaveBeenCalled();
+    expect(requestUpgradeMock).toHaveBeenCalled();
+    expect(screen.getByRole('checkbox')).toBeChecked();
+  });
+
+  it('should update prompts when billing user on free plan takes action', async function () {
+    organization.access = ['org:billing'];
+    const freeSub = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+    });
+    freeSub.categories.replays!.usageExceeded = true;
+    SubscriptionStore.set(organization.slug, freeSub);
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+    // open the alert
+    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+    expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
+    expect(screen.getByText('Start Trial')).toBeInTheDocument();
+
+    // click the button
+    await userEvent.click(screen.getByText('Start Trial'));
+    expect(promptMock).toHaveBeenCalled();
+    expect(customerPutMock).toHaveBeenCalled();
   });
 });
