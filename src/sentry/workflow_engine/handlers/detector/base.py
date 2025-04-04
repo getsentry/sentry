@@ -59,6 +59,14 @@ class DetectorHandler(abc.ABC, Generic[T]):
         else:
             self.condition_group = None
 
+    @property
+    @abc.abstractmethod
+    def config_schema(self) -> dict[str, Any]:
+        """
+        This schema is required to validate the Detector.config field.
+        """
+        pass
+
     @abc.abstractmethod
     def evaluate(
         self, data_packet: DataPacket[T]
