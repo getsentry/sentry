@@ -1,5 +1,5 @@
 ---
-created: '2025-04-04T15:55:52.910249+00:00'
+created: '2025-02-26T00:33:56.483613+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -24,14 +24,14 @@ app:
               "zygoteinit.java"
             function*
               "run"
-          frame (marked out of app by stack trace rule (category:not_in_app -app))
+          frame (marked out of app by stack trace rule (module:java.* -app))
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)
               "method.java"
             function*
               "invoke"
-          frame (marked out of app by stack trace rule (category:not_in_app -app))
+          frame (marked out of app by stack trace rule (module:java.* -app))
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)
@@ -772,7 +772,7 @@ app:
           "Application Not Responding for at least <int> ms."
       threads (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
-          frame (marked out of app by stack trace rule (category:not_in_app -app))
+          frame (marked out of app by stack trace rule (module:java.* -app))
             module*
               "java.lang.Thread"
             filename (module takes precedence)

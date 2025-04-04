@@ -430,20 +430,28 @@ path:**/go/pkg/mod/** -app
 
 ## java
 # Having a category prevents deriving in_app stack trace rules
-module:jdk.* category=not_in_app
-module:sun.* category=not_in_app
-module:com.sun.* category=not_in_app
-module:java.* category=not_in_app
-module:scala.* category=not_in_app
 module:akka.* category=not_in_app
-module:javax.* category=not_in_app
-module:org.apache.* category=not_in_app
-module:org.springframework.* category=not_in_app
-module:org.glassfish.* category=not_in_app
-module:org.jboss.* category=not_in_app
+module:com.android.* category=not_in_app
+module:com.fasterxml.* category=not_in_app
+module:com.google.* category=not_in_app
+module:com.microsoft.* category=not_in_app
+module:com.sun.* category=not_in_app
 module:feign.* category=not_in_app
 module:io.opentelemetry.* category=not_in_app
 module:io.sentry.* category=not_in_app -group
+module:javax.* category=not_in_app
+module:jdk.* category=not_in_app
+module:oauth.* category=not_in_app
+module:org.apache.* category=not_in_app
+module:org.glassfish.* category=not_in_app
+module:org.jboss.* category=not_in_app
+module:org.jdesktop.* category=not_in_app
+module:org.postgresql.* category=not_in_app
+module:org.springframework.* category=not_in_app
+module:org.web3j.* category=not_in_app
+module:reactor.core.* category=not_in_app
+module:scala.* category=not_in_app
+module:sun.* category=not_in_app
 
 category:not_in_app -app
 

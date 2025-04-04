@@ -1,5 +1,5 @@
 ---
-created: '2025-04-04T15:56:50.964454+00:00'
+created: '2021-08-06T16:25:45.077115Z'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -8,7 +8,7 @@ source: tests/sentry/grouping/test_categorization.py
 NullPointerException:Attempt to invoke virtual method 'android.content.SharedPreferences android.content.Context.getSharedPreferences(java.lang.String, int)' on a null object reference (thread_id:_, crashed:_)
           com.android.internal.os.ZygoteInit  main category=system
   com.android.internal.os.RuntimeInit$Method  run category=internals
-                    java.lang.reflect.Method  invoke category=not_in_app
+                    java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
                            android.os.Looper  loop category=threadbase
                           android.os.Handler  dispatchMessage category=threadbase
@@ -38,7 +38,7 @@ NullPointerException:Attempt to invoke virtual method 'android.content.SharedPre
 ExceptionInInitializerError:_ (thread_id:_, crashed:_)
           com.android.internal.os.ZygoteInit  main category=system
   com.android.internal.os.RuntimeInit$Method  run category=internals
-                    java.lang.reflect.Method  invoke category=not_in_app
+                    java.lang.reflect.Method  invoke category=indirection
                   android.app.ActivityThread  main category=threadbase
                            android.os.Looper  loop category=threadbase
                           android.os.Handler  dispatchMessage category=threadbase
