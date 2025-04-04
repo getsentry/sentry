@@ -67,7 +67,7 @@ export function PageOverviewSidebar({
   });
 
   const {countDiff, currentSeries, currentCount, initialCount} = processSeriesData(
-    data?.count,
+    data['count()'].data,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
@@ -86,7 +86,7 @@ export function PageOverviewSidebar({
     currentCount: currentInpCount,
     initialCount: initialInpCount,
   } = processSeriesData(
-    data.countInp,
+    data['count_scores(measurements.score.inp)'].data,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
