@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import router, transaction
-from django.db.models import F, Q
+from django.db.models import Exists, F, OuterRef, Q
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -28,6 +28,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.team import Team, TeamStatus
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
@@ -183,11 +184,19 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         Response includes pending invites that are approved by organization owners or managers but waiting to be accepted by the invitee.
         """
-        queryset = OrganizationMember.objects.filter(
-            Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
-            organization=organization,
-            invite_status=InviteStatus.APPROVED.value,
-        ).order_by("id")
+        queryset = (
+            OrganizationMember.objects.filter(
+                Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
+                organization=organization,
+                invite_status=InviteStatus.APPROVED.value,
+            )
+            .filter(
+                ~Exists(
+                    OrganizationMemberInvite.objects.filter(organization_member_id=OuterRef("id"))
+                )
+            )
+            .order_by("id")
+        )
 
         query = request.GET.get("query")
         if query:
