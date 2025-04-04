@@ -164,8 +164,7 @@ export function Meta(props: MetaProps) {
           rightAlignBody
           bodyText={getRootDuration(props.representativeEvent as TraceTree.TraceEvent)}
         />
-      ) : null}
-      {!hasSpans && hasLogs ? (
+      ) : hasLogs ? (
         <MetaSection
           rightAlignBody
           headingText={t('Logs')}
