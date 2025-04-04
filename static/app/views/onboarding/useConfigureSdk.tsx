@@ -34,9 +34,14 @@ export function useConfigureSdk({
   const {projects} = useProjects();
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
+  const firstTeamSlug = teams[0]?.slug;
 
   const createPlatformProject = useCallback(
     async (selectedPlatform?: OnboardingSelectedSDK) => {
+      if (!firstTeamSlug) {
+        Sentry.captureException('A team should exist in the new org during onboarding');
+        return;
+      }
       if (!selectedPlatform) {
         return;
       }
@@ -65,7 +70,7 @@ export function useConfigureSdk({
         const response = (await createProject({
           api,
           orgSlug: organization.slug,
-          team: teams[0]!.slug,
+          team: firstTeamSlug,
           platform: createProjectForPlatform.key,
           name: createProjectForPlatform.key,
           options: {
@@ -89,7 +94,7 @@ export function useConfigureSdk({
         Sentry.captureException(err);
       }
     },
-    [onboardingContext, api, organization, teams, projects, onComplete]
+    [onboardingContext, api, organization, firstTeamSlug, projects, onComplete]
   );
 
   const configureSdk = useCallback(
