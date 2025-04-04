@@ -430,7 +430,7 @@ export function PageOverviewWebVitalsDetailPanel({
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const webVitalScore = projectScore[`${webVital}Score`];
   const webVitalValue = webVital
-    ? (projectData?.[0]?.[`p75(measurements.${webVital})`] as number | undefined)
+    ? projectData?.[0]?.[`p75(measurements.${webVital})`]
     : undefined;
 
   return (

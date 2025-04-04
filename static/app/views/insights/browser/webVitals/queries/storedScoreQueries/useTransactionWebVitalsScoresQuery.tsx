@@ -107,30 +107,25 @@ export const useTransactionWebVitalsScoresQuery = ({
           const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, inpScore} =
             getWebVitalScoresFromTableDataRow(row);
           return {
-            transaction: row.transaction?.toString()!,
-            project: row.project?.toString()!,
-            'project.id': parseInt(row['project.id']!.toString(), 10),
-            'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
-            'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,
-            'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
-            'p75(measurements.ttfb)': row['p75(measurements.ttfb)'] as number,
-            'p75(measurements.inp)': row['p75(measurements.inp)'] as number,
-            'count()': row['count()'] as number,
-            'count_scores(measurements.score.lcp)': row[
-              'count_scores(measurements.score.lcp)'
-            ] as number,
-            'count_scores(measurements.score.fcp)': row[
-              'count_scores(measurements.score.fcp)'
-            ] as number,
-            'count_scores(measurements.score.cls)': row[
-              'count_scores(measurements.score.cls)'
-            ] as number,
-            'count_scores(measurements.score.inp)': row[
-              'count_scores(measurements.score.inp)'
-            ] as number,
-            'count_scores(measurements.score.ttfb)': row[
-              'count_scores(measurements.score.ttfb)'
-            ] as number,
+            transaction: row.transaction?.toString(),
+            project: row.project?.toString(),
+            'project.id': parseInt(row['project.id'].toString(), 10),
+            'p75(measurements.lcp)': row['p75(measurements.lcp)'],
+            'p75(measurements.fcp)': row['p75(measurements.fcp)'],
+            'p75(measurements.cls)': row['p75(measurements.cls)'],
+            'p75(measurements.ttfb)': row['p75(measurements.ttfb)'],
+            'p75(measurements.inp)': row['p75(measurements.inp)'],
+            'count()': row['count()'],
+            'count_scores(measurements.score.lcp)':
+              row['count_scores(measurements.score.lcp)'],
+            'count_scores(measurements.score.fcp)':
+              row['count_scores(measurements.score.fcp)'],
+            'count_scores(measurements.score.cls)':
+              row['count_scores(measurements.score.cls)'],
+            'count_scores(measurements.score.inp)':
+              row['count_scores(measurements.score.inp)'],
+            'count_scores(measurements.score.ttfb)':
+              row['count_scores(measurements.score.ttfb)'],
             totalScore: totalScore ?? 0,
             clsScore: clsScore ?? 0,
             fcpScore: fcpScore ?? 0,
