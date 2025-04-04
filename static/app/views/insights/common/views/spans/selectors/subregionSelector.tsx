@@ -50,12 +50,6 @@ export default function SubregionSelector({size}: Props) {
       };
     }) ?? [];
 
-  options.push({
-    value: 'none',
-    label: t('No region detected'),
-    textValue: t('No region detected'),
-  });
-
   const tooltip = t('These correspond to the subregions of the UN M49 standard.');
 
   return (
