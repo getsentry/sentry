@@ -1406,6 +1406,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.snuba.tasks",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
+    "sentry.tasks.digests",
     "sentry.tasks.release_registry",
     "sentry.tempest.tasks",
     "sentry.tasks.beacon",
