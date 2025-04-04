@@ -54,6 +54,8 @@ const sampleDurationTimeSeries3 = {
   }),
 };
 
+const shiftedSpanSamples = shiftTabularDataToNow(spanSamplesWithDurations);
+
 export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) => {
   APIReference(types.TimeSeriesWidgetVisualization);
 
@@ -564,7 +566,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
   story('Highlighting', () => {
     const [sampleId, setSampleId] = useState<string>();
-    const shiftedSpanSamples = shiftTabularDataToNow(spanSamplesWithDurations);
 
     const aggregatePlottable = useMemo(() => {
       return new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
@@ -582,7 +583,11 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           setSampleId(row.id);
         },
       });
-    }, [shiftedSpanSamples]);
+    }, []);
+
+    const plottables = useMemo(() => {
+      return [aggregatePlottable, samplesPlottable];
+    }, [aggregatePlottable, samplesPlottable]);
 
     return (
       <Fragment>
@@ -593,8 +598,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           called whenever a data point is highlighted by bringing the X axis cursor near
           its timestamp. The second way is to manually cause highlighting on your
           plottables by calling the <code>highlight</code> method of the plottable
-          instance. Note: only <code>Samples</code> supports this right now. Manually
-          triggering a highlight does not call the <code>onHighlight</code> callback.
+          instance. Note: only <code>Samples</code> supports this right now.
         </p>
 
         <p>
@@ -621,9 +625,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         </Button>
 
         <MediumWidget>
-          <TimeSeriesWidgetVisualization
-            plottables={[aggregatePlottable, samplesPlottable]}
-          />
+          <TimeSeriesWidgetVisualization plottables={plottables} />
 
           <p>Highlighted sample ID: {sampleId}</p>
         </MediumWidget>
