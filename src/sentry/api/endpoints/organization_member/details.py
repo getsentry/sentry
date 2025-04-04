@@ -33,6 +33,7 @@ from sentry.auth.services.auth import auth_service
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.roles import organization_roles, team_roles
@@ -123,6 +124,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         Response will be a pending invite if it has been approved by organization owners or managers but is waiting to be accepted by the invitee.
         """
+        invite = OrganizationMemberInvite.objects.filter(organization_member_id=member.id).first()
+        if invite is not None:
+            return Response(
+                {"detail": "Cannot serialize details for a placeholder organization member"},
+                status=400,
+            )
         allowed_roles = get_allowed_org_roles(request, organization, member)
         return Response(
             serialize(
