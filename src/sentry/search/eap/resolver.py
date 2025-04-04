@@ -89,16 +89,6 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown function {function_name}")
 
-    def check_if_function_is_enabled(self, function_name: str) -> bool:
-        function_definition = self.get_function_definition(function_name)
-        if not function_definition.private:
-            return True
-
-        if function_name in self.config.functions_acl:
-            return True
-
-        return False
-
     @sentry_sdk.trace
     def resolve_meta(self, referrer: str, sampling_mode: str | None = None) -> RequestMeta:
         if self.params.organization_id is None:
@@ -733,6 +723,8 @@ class SearchResolver:
         elif column in self.definitions.columns:
             column_context = None
             column_definition = self.definitions.columns[column]
+            if column_definition.private and column not in self.config.fields_acl.attributes:
+                raise InvalidSearchQuery(f"The field {column} is not allowed for this query")
         else:
             if len(column) > qb_constants.MAX_TAG_KEY_LENGTH:
                 raise InvalidSearchQuery(
@@ -800,10 +792,9 @@ class SearchResolver:
         # Alias defaults to the name of the function
         alias = match.group("alias") or column
 
-        if not self.check_if_function_is_enabled(function_name):
-            raise InvalidSearchQuery(f"The function {function_name} is not allowed for this query")
-
         function_definition = self.get_function_definition(function_name)
+        if function_definition.private and function_name not in self.config.fields_acl.functions:
+            raise InvalidSearchQuery(f"The function {function_name} is not allowed for this query")
 
         parsed_args: list[ResolvedAttribute | Any] = []
 

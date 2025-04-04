@@ -3725,7 +3725,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         ]
         assert meta["dataset"] == self.dataset
 
-    @pytest.mark.xfail(reason="RPC is not evaluating `Null != 200` correctly")
     def test_filtering_null_numeric_attr(self):
         spans = [
             self.create_span(
@@ -3745,7 +3744,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         self.store_spans(spans, is_eap=self.is_eap)
         response = self.do_request(
             {
-                "field": ["description", "tags[http.response.status_code,number]"],
+                "field": ["description", "tags[http.response.status_code,number]", "count()"],
                 "query": "!tags[http.response.status_code,number]:200",
                 "orderby": "description",
                 "project": self.project.id,
@@ -3761,6 +3760,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             {
                 "tags[http.response.status_code,number]": None,
                 "description": "foo",
+                "count()": 1,
             },
         ]
         assert meta["dataset"] == self.dataset
@@ -3827,3 +3827,34 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(response.data["data"]) == 2
         assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
         assert response.data["data"][1]["id"] == "b" * 16
+
+    def test_internal_fields(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "zoo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        for private_field in [
+            "sentry.organization_id",
+            "sentry.item_type",
+        ]:
+            response = self.do_request(
+                {
+                    "field": [private_field, "count()"],
+                    "query": "",
+                    "orderby": private_field,
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                    "statsPeriod": "1h",
+                }
+            )
+
+            assert response.status_code == 400, response.content
