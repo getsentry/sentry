@@ -186,14 +186,11 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
 
   const representativeEvent = getRepresentativeEvent(props.tree, props.logs);
   const project = representativeEvent
-    ? projects.find(p => {
-        if (OurLogKnownFieldKey.PROJECT_ID in representativeEvent) {
-          return (
-            Number(p.id) === Number(representativeEvent[OurLogKnownFieldKey.PROJECT_ID])
-          );
-        }
-        return p.slug === representativeEvent.project_slug;
-      })
+    ? OurLogKnownFieldKey.PROJECT_ID in representativeEvent
+      ? projects.find(p => {
+          return Number(p.id) === representativeEvent[OurLogKnownFieldKey.PROJECT_ID];
+        })
+      : projects.find(p => p.slug === representativeEvent.project_slug)
     : undefined;
 
   return (
