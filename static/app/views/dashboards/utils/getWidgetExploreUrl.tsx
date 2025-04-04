@@ -136,7 +136,7 @@ export function getWidgetExploreUrl(
     sort: locationQueryParams.sort || undefined,
     interval:
       decodeScalar(locationQueryParams.interval) ??
-      getWidgetInterval(widget.displayType, selection.datetime),
+      getWidgetInterval(widget, selection.datetime),
   };
 
   return getExploreUrl(queryParams);
