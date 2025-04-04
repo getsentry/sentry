@@ -403,8 +403,8 @@ export function useReleaseBubbles({
   const theme = useTheme();
   const {options} = useUser();
   const {selection} = usePageFilters();
-  const {cleanup, charts, registerChart} = useReleasesDrawer();
-  // const {registerChart} = useContext(ReleasesDrawerContext);
+  const {cleanup, charts, registerChart: registerChartHook} = useReleasesDrawer();
+  const {registerChart} = useContext(ReleasesDrawerContext);
   // `maxTime` refers to the max time on x-axis for charts.
   // There may be the need to include releases that are > maxTime (e.g. in the
   // case of relative date selection). This is used for the tooltip to show the

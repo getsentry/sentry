@@ -24,10 +24,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {ChartRendererProps} from 'sentry/views/releases/releaseBubbles/types';
 
 type ChartRenderer = (props: ChartRendererProps) => ReactElement;
-import {
-  ReleasesDrawerContext,
-  ReleasesDrawerProvider,
-} from 'sentry/views/releases/drawer/releasesDrawerContext';
+import {ReleasesDrawerContext} from 'sentry/views/releases/drawer/releasesDrawerContext';
 
 import {ReleaseDrawerTable} from './releasesDrawerTable';
 
@@ -118,7 +115,7 @@ export function ReleasesDrawerList({
       end: endTs ? new Date(endTs).toISOString() : null,
     },
   });
-  // const {getChart} = useContext(ReleasesDrawerContext);
+  const {getChart} = useContext(ReleasesDrawerContext);
   const chartRef = useRef<ReactEchartsRef | null>(null);
 
   const handleMouseOverRelease = useCallback((release: string) => {
@@ -151,9 +148,8 @@ export function ReleasesDrawerList({
       label: t('Releases'),
     },
   ];
-  const chartRenderer = charts.get(String(location.query.rdChartId));
-  // const chartRenderer = charts[String(location.query.rdChartId)];
-  // const chartRenderer = getChart(String(location.query.rdChartId));
+  // const chartRenderer = charts.get(String(location.query.rdChartId));
+  const chartRenderer = getChart(String(location.query.rdChartId));
 
   return (
     <EventDrawerContainer>

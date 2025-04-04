@@ -36,6 +36,7 @@ import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
 import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
+import {ReleasesDrawerProvider} from 'sentry/views/releases/drawer/releasesDrawerContext';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
 type Props = {
@@ -257,13 +258,15 @@ function App({children, params}: Props) {
           {renderOrganizationContextProvider(
             <AsyncSDKIntegrationContextProvider>
               <GlobalFeedbackForm>
-                <GlobalDrawer>
-                  <MainContainer tabIndex={-1} ref={mainContainerRef}>
-                    <GlobalModal onClose={handleModalClose} />
-                    <Indicators className="indicators-container" />
-                    <ErrorBoundary>{renderBody()}</ErrorBoundary>
-                  </MainContainer>
-                </GlobalDrawer>
+                <ReleasesDrawerProvider>
+                  <GlobalDrawer>
+                    <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                      <GlobalModal onClose={handleModalClose} />
+                      <Indicators className="indicators-container" />
+                      <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                    </MainContainer>
+                  </GlobalDrawer>
+                </ReleasesDrawerProvider>
               </GlobalFeedbackForm>
             </AsyncSDKIntegrationContextProvider>
           )}
