@@ -32,4 +32,4 @@ runs:
         gcp_project_id: ${{ inputs.gcp_project_id }}
         workload_identity_provider: ${{ inputs.workload_identity_provider }}
         service_account_email: ${{ inputs.service_account_email }}
-      continue-on-error: true
+      continue-on-error: false # This data is important.
