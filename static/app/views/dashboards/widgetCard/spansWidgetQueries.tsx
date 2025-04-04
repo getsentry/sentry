@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useRef, useState} from 'react';
 
 import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
@@ -138,7 +138,30 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
 }: SpansWidgetQueriesImplProps) {
   const config = SpansConfig;
   const organization = useOrganization();
-  const [queryPhase, setQueryPhase] = useState<SamplingMode>(SAMPLING_MODE.PREFLIGHT);
+
+  // Use a ref to store the "next" query phase because it doesn't trigger
+  // a re-render. This will be used when the props change and the query
+  // should re-fetch data.
+  const queryPhaseRef = useRef<SamplingMode>(SAMPLING_MODE.PREFLIGHT);
+
+  // The best effort response props are stored to render after the
+  const [bestEffortChildrenProps, setBestEffortChildrenProps] =
+    useState<GenericWidgetQueriesChildrenProps | null>(null);
+
+  // This callback is used to set up the state for the next query.
+  // i.e. after the best effort query has fetched, we need to set that the
+  // next query is a preflight query, but keep the high fidelity props to pass
+  // along before that next preflight is run.
+  const queueNextQueryState = useCallback(
+    (
+      samplingMode: SamplingMode,
+      queryResults: GenericWidgetQueriesChildrenProps | null
+    ) => {
+      queryPhaseRef.current = samplingMode;
+      setBestEffortChildrenProps(queryResults);
+    },
+    []
+  );
 
   const afterFetchSeriesData = (result: SeriesResult) => {
     const {seriesConfidence, seriesSampleCount, seriesIsSampled} =
@@ -165,14 +188,17 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
         afterFetchSeriesData={afterFetchSeriesData}
         samplingMode={SAMPLING_MODE.PREFLIGHT}
         onDataFetched={() => {
-          setQueryPhase(SAMPLING_MODE.BEST_EFFORT);
+          queueNextQueryState(SAMPLING_MODE.BEST_EFFORT, null);
         }}
       >
         {preflightProps => (
           <Fragment>
-            {preflightProps.loading || queryPhase === SAMPLING_MODE.PREFLIGHT ? (
+            {preflightProps.loading ||
+            queryPhaseRef.current === SAMPLING_MODE.PREFLIGHT ? (
+              // This state is returned when the preflight query is running, or when
+              // the best effort query has completed.
               children({
-                ...preflightProps,
+                ...(bestEffortChildrenProps ?? preflightProps),
                 isProgressivelyLoading: preflightProps.loading,
               })
             ) : (
@@ -188,15 +214,16 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
                 afterFetchSeriesData={afterFetchSeriesData}
                 samplingMode={SAMPLING_MODE.BEST_EFFORT}
                 onDataFetched={results => {
-                  // Reset the query phase to preflight so that the next time this component
-                  // renders, it will start with only the preflight query
-                  setQueryPhase(SAMPLING_MODE.PREFLIGHT);
+                  queueNextQueryState(SAMPLING_MODE.PREFLIGHT, {
+                    ...results,
+                    loading: false,
+                    isProgressivelyLoading: false,
+                  });
                   onDataFetched?.(results);
                 }}
               >
                 {bestEffortProps => {
                   if (bestEffortProps.loading) {
-                    // Show the low fidelity data while the high fidelity data is loading
                     return children({
                       ...preflightProps,
                       loading: true,
@@ -204,10 +231,7 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
                         !preflightProps.errorMessage && !bestEffortProps.errorMessage,
                     });
                   }
-                  return children({
-                    ...bestEffortProps,
-                    isProgressivelyLoading: false,
-                  });
+                  return children(bestEffortProps);
                 }}
               </GenericWidgetQueries>
             )}
