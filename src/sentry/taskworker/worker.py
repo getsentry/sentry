@@ -10,7 +10,7 @@ import signal
 import sys
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import ForkProcess
 from multiprocessing.synchronize import Event
@@ -53,7 +53,7 @@ class ProcessingResult:
 
 
 @contextlib.contextmanager
-def timeout_alarm(seconds: int, handler: Callable[[int, Any], None]):
+def timeout_alarm(seconds: int, handler: Callable[[int, object], None]) -> Generator[None]:
     """
     Context manager to handle SIGALRM handlers
 
@@ -104,7 +104,7 @@ def child_worker(
 
     processed_task_count = 0
 
-    def handle_alarm(signum: int, frame: Any) -> None:
+    def handle_alarm(signum: int, frame: object) -> None:
         """
         Handle SIGALRM
 
@@ -170,6 +170,7 @@ def child_worker(
         set_current_task(activation)
 
         next_state = TASK_ACTIVATION_STATUS_FAILURE
+        # Use time.time() so we can measure against activation.received_at
         execution_start_time = time.time()
         try:
             with timeout_alarm(activation.processing_deadline_duration, handle_alarm):
@@ -188,7 +189,7 @@ def child_worker(
         clear_current_task()
         processed_task_count += 1
 
-        # Get completion time before pushing to queue to avoid inflating latency metrics.
+        # Get completion time before pushing to queue, so we can measure queue append time
         execution_complete_time = time.time()
         processed_tasks.put(ProcessingResult(task_id=activation.id, status=next_state))
         metrics.distribution(
@@ -353,10 +354,10 @@ class TaskWorker:
         task = self.fetch_task()
         if task:
             try:
-                start_time = time.time()
+                start_time = time.monotonic()
                 self._child_tasks.put(task)
                 metrics.distribution(
-                    "taskworker.worker.child_task.put.duration", time.time() - start_time
+                    "taskworker.worker.child_task.put.duration", time.monotonic() - start_time
                 )
             except queue.Full:
                 logger.warning(
@@ -401,7 +402,9 @@ class TaskWorker:
         """
         task_received = self._task_receive_timing.pop(result.task_id, None)
         if task_received is not None:
-            metrics.distribution("taskworker.worker.complete_duration", time.time() - task_received)
+            metrics.distribution(
+                "taskworker.worker.complete_duration", time.monotonic() - task_received
+            )
 
         if fetch:
             fetch_next = None
@@ -410,7 +413,7 @@ class TaskWorker:
 
             next_task = self._send_update_task(result, fetch_next)
             if next_task:
-                self._task_receive_timing[next_task.id] = time.time()
+                self._task_receive_timing[next_task.id] = time.monotonic()
                 try:
                     self._child_tasks.put(next_task)
                 except queue.Full:
@@ -492,5 +495,5 @@ class TaskWorker:
             return None
 
         self._gettask_backoff_seconds = 0
-        self._task_receive_timing[activation.id] = time.time()
+        self._task_receive_timing[activation.id] = time.monotonic()
         return activation
