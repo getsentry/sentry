@@ -265,7 +265,6 @@ def update_open_periods(source: Group, destination: Group) -> None:
         logger.error("No open period found for group", extra={"group_id": destination.id})
         return
 
-    # For groups that are not resolved, the open period created on group creation should have the necessary information
     if source_open_period.date_ended is None:
         return
 
