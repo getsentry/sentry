@@ -669,12 +669,15 @@ class Fixtures:
         return Factories.create_detector_workflow(*args, **kwargs)
 
     def create_alert_rule_detector(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
         return Factories.create_alert_rule_detector(*args, **kwargs)
 
     def create_action_alert_rule_trigger_action(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
         return Factories.create_action_alert_rule_trigger_action(*args, **kwargs)
 
     def create_alert_rule_workflow(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
         return Factories.create_alert_rule_workflow(*args, **kwargs)
 
     def create_workflow_data_condition_group(self, *args, **kwargs):
