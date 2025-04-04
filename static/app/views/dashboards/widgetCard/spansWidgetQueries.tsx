@@ -16,10 +16,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
-import {
-  SAMPLING_MODE,
-  type SamplingMode,
-} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {
   convertEventsStatsToTimeSeriesData,
@@ -133,7 +130,10 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
 }: SpansWidgetQueriesImplProps) {
   const config = SpansConfig;
   const organization = useOrganization();
-  const [queryPhase, setQueryPhase] = useState<SamplingMode>(SAMPLING_MODE.PREFLIGHT);
+
+  // The best effort response props are stored to render after the preflight
+  const [bestEffortChildrenProps, setBestEffortChildrenProps] =
+    useState<GenericWidgetQueriesChildrenProps | null>(null);
 
   const afterFetchSeriesData = (result: SeriesResult) => {
     const {seriesConfidence, seriesSampleCount, seriesIsSampled} =
@@ -160,14 +160,16 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
         afterFetchSeriesData={afterFetchSeriesData}
         samplingMode={SAMPLING_MODE.PREFLIGHT}
         onDataFetched={() => {
-          setQueryPhase(SAMPLING_MODE.BEST_EFFORT);
+          setBestEffortChildrenProps(null);
         }}
       >
         {preflightProps => (
           <Fragment>
-            {preflightProps.loading || queryPhase === SAMPLING_MODE.PREFLIGHT ? (
+            {preflightProps.loading || defined(bestEffortChildrenProps) ? (
+              // This state is returned when the preflight query is running, or when
+              // the best effort query has completed.
               children({
-                ...preflightProps,
+                ...(bestEffortChildrenProps ?? preflightProps),
                 isProgressivelyLoading: preflightProps.loading,
               })
             ) : (
@@ -183,15 +185,16 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
                 afterFetchSeriesData={afterFetchSeriesData}
                 samplingMode={SAMPLING_MODE.BEST_EFFORT}
                 onDataFetched={results => {
-                  // Reset the query phase to preflight so that the next time this component
-                  // renders, it will start with only the preflight query
-                  setQueryPhase(SAMPLING_MODE.PREFLIGHT);
+                  setBestEffortChildrenProps({
+                    ...results,
+                    loading: false,
+                    isProgressivelyLoading: false,
+                  });
                   onDataFetched?.(results);
                 }}
               >
                 {bestEffortProps => {
                   if (bestEffortProps.loading) {
-                    // Show the low fidelity data while the high fidelity data is loading
                     return children({
                       ...preflightProps,
                       loading: true,
@@ -199,10 +202,7 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
                         !preflightProps.errorMessage && !bestEffortProps.errorMessage,
                     });
                   }
-                  return children({
-                    ...bestEffortProps,
-                    isProgressivelyLoading: false,
-                  });
+                  return children(bestEffortProps);
                 }}
               </GenericWidgetQueries>
             )}
