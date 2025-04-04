@@ -48,7 +48,6 @@ from sentry.workflow_engine.processors.workflow import (
     create_workflow_fire_histories,
     evaluate_workflows_action_filters,
     log_fired_workflows,
-    update_workflow_fire_histories,
 )
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
@@ -412,9 +411,7 @@ def fire_actions_for_groups(
                 action_filters.add(dcg)
 
         # process action filters
-        filtered_actions = filter_recently_fired_workflow_actions(action_filters, group)
-        # update WorkflowFireHistory for the filtered actions (created before enqueuing)
-        update_workflow_fire_histories(filtered_actions, event_data)
+        filtered_actions = filter_recently_fired_workflow_actions(action_filters, event_data)
 
         # process workflow_triggers
         workflows = set(Workflow.objects.filter(when_condition_group_id__in=workflow_triggers))

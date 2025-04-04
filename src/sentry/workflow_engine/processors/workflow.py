@@ -18,7 +18,6 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Detector,
     Workflow,
-    WorkflowDataConditionGroup,
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
@@ -36,7 +35,9 @@ class WorkflowDataConditionGroupType(StrEnum):
     WORKFLOW_TRIGGER = "workflow_trigger"
 
 
-def create_workflow_fire_histories(workflows: set[Workflow], event_data: WorkflowEventData) -> None:
+def create_workflow_fire_histories(
+    workflows: set[Workflow], event_data: WorkflowEventData
+) -> list[WorkflowFireHistory]:
     # Create WorkflowFireHistory objects for triggered workflows
     fire_histories = [
         WorkflowFireHistory(
@@ -44,24 +45,7 @@ def create_workflow_fire_histories(workflows: set[Workflow], event_data: Workflo
         )
         for workflow in workflows
     ]
-    WorkflowFireHistory.objects.bulk_create(fire_histories)
-
-
-def update_workflow_fire_histories(
-    actions_to_fire: BaseQuerySet[Action], event_data: WorkflowEventData
-) -> None:
-    # Update WorkflowFireHistory objects for workflows with actions to fire
-    fired_workflows = set(
-        WorkflowDataConditionGroup.objects.filter(
-            condition_group__dataconditiongroupaction__action__in=actions_to_fire
-        ).values_list("workflow_id", flat=True)
-    )
-
-    WorkflowFireHistory.objects.filter(
-        workflow_id__in=fired_workflows,
-        group=event_data.event.group,
-        event_id=event_data.event.event_id,
-    ).update(has_fired_actions=True)
+    return WorkflowFireHistory.objects.bulk_create(fire_histories)
 
 
 def enqueue_workflow(
@@ -106,6 +90,8 @@ def evaluate_workflow_triggers(
         else:
             if evaluation:
                 triggered_workflows.add(workflow)
+
+    create_workflow_fire_histories(triggered_workflows, event_data)
 
     return triggered_workflows
 
@@ -157,11 +143,7 @@ def evaluate_workflows_action_filters(
             if evaluation:
                 filtered_action_groups.add(action_condition)
 
-    actions_to_fire = filter_recently_fired_workflow_actions(
-        filtered_action_groups, event_data.event.group
-    )
-
-    update_workflow_fire_histories(actions_to_fire, event_data)
+    actions_to_fire = filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
 
     return actions_to_fire
 
@@ -259,7 +241,6 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.evaluate_workflow_triggers"):
         triggered_workflows = evaluate_workflow_triggers(workflows, event_data)
-        create_workflow_fire_histories(triggered_workflows, event_data)
 
         if triggered_workflows:
             metrics.incr(
