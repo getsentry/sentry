@@ -148,7 +148,7 @@ module:org.glassfish.* category=system
 module:org.jboss.* category=system
 module:org.jdesktop.* category=system
 module:org.postgresql.* category=system
-module:org.springframework.* -app
+module:org.springframework.* category=system
 module:org.web3j.* category=system
 module:reactor.core.* category=system
 module:scala.* category=system

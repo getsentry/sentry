@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:38.811522+00:00'
+created: '2025-04-04T14:27:15.556595+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -24,7 +24,7 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "ef2555bf7958ada8eefafbfdaed1c409"
+    hash: "7d2b7e7fe6c65854a6e6854c1466c9c9"
     contributing component: exception
     component:
       system*
@@ -107,9 +107,19 @@ contributing variants:
                 "doFilter"
             frame*
               module*
-                "org.springframework.web.filter.CharacterEncodingFilter"
+                "org.apache.catalina.core.ApplicationFilterChain"
               function*
-                "doFilterInternal"
+                "doFilter"
+            frame*
+              module*
+                "org.apache.catalina.core.ApplicationFilterChain"
+              function*
+                "internalDoFilter"
+            frame*
+              module*
+                "org.springframework.web.filter.OncePerRequestFilter"
+              function*
+                "doFilter"
             frame*
               module*
                 "org.apache.catalina.core.ApplicationFilterChain"
@@ -127,11 +137,6 @@ contributing variants:
                 "doFilter"
             frame*
               module*
-                "org.springframework.web.filter.HiddenHttpMethodFilter"
-              function*
-                "doFilterInternal"
-            frame*
-              module*
                 "org.apache.catalina.core.ApplicationFilterChain"
               function*
                 "doFilter"
@@ -145,31 +150,6 @@ contributing variants:
                 "org.springframework.web.filter.OncePerRequestFilter"
               function*
                 "doFilter"
-            frame*
-              module*
-                "org.springframework.web.filter.HttpPutFormContentFilter"
-              function*
-                "doFilterInternal"
-            frame*
-              module*
-                "org.apache.catalina.core.ApplicationFilterChain"
-              function*
-                "doFilter"
-            frame*
-              module*
-                "org.apache.catalina.core.ApplicationFilterChain"
-              function*
-                "internalDoFilter"
-            frame*
-              module*
-                "org.springframework.web.filter.OncePerRequestFilter"
-              function*
-                "doFilter"
-            frame*
-              module*
-                "org.springframework.web.filter.RequestContextFilter"
-              function*
-                "doFilterInternal"
             frame*
               module*
                 "org.apache.catalina.core.ApplicationFilterChain"
@@ -202,11 +182,6 @@ contributing variants:
                 "service"
             frame*
               module*
-                "org.springframework.web.servlet.FrameworkServlet"
-              function*
-                "service"
-            frame*
-              module*
                 "javax.servlet.http.HttpServlet"
               function*
                 "service"
@@ -215,51 +190,6 @@ contributing variants:
                 "org.springframework.web.servlet.FrameworkServlet"
               function*
                 "doGet"
-            frame*
-              module*
-                "org.springframework.web.servlet.FrameworkServlet"
-              function*
-                "processRequest"
-            frame*
-              module*
-                "org.springframework.web.servlet.DispatcherServlet"
-              function*
-                "doService"
-            frame*
-              module*
-                "org.springframework.web.servlet.DispatcherServlet"
-              function*
-                "doDispatch"
-            frame*
-              module*
-                "org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter"
-              function*
-                "handle"
-            frame*
-              module*
-                "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
-              function*
-                "handleInternal"
-            frame*
-              module*
-                "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
-              function*
-                "invokeHandlerMethod"
-            frame*
-              module*
-                "org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod"
-              function*
-                "invokeAndHandle"
-            frame*
-              module*
-                "org.springframework.web.method.support.InvocableHandlerMethod"
-              function*
-                "invokeForRequest"
-            frame*
-              module*
-                "org.springframework.web.method.support.InvocableHandlerMethod"
-              function*
-                "doInvoke"
             frame*
               module*
                 "jdk.internal.reflect.DelegatingMethodAccessorImpl"

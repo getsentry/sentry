@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:14.940694+00:00'
+created: '2025-04-04T14:28:37.894395+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,77 +18,77 @@ app:
                 "application.java"
               function*
                 "main"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (marked out of app by stack trace rule (category:system -app))
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "run"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "run"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "run"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "refreshContext"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "refresh"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "refresh"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.context.support.AbstractApplicationContext"
               filename (module takes precedence)
                 "abstractapplicationcontext.java"
               function*
                 "refresh"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "finishRefresh"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "startEmbeddedServletContainer"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
                 "tomcatembeddedservletcontainer.java"
               function*
                 "start"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
@@ -185,77 +185,77 @@ app:
                 "application.java"
               function*
                 "main"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (marked out of app by stack trace rule (category:system -app))
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "run"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "run"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "run"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "refreshContext"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "refresh"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "refresh"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.context.support.AbstractApplicationContext"
               filename (module takes precedence)
                 "abstractapplicationcontext.java"
               function*
                 "refresh"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "finishRefresh"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "startEmbeddedServletContainer"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
                 "tomcatembeddedservletcontainer.java"
               function*
                 "start"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
@@ -296,77 +296,77 @@ app:
                 "application.java"
               function*
                 "main"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (marked out of app by stack trace rule (category:system -app))
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "run"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "run"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "run"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "refreshContext"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "refresh"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "refresh"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.context.support.AbstractApplicationContext"
               filename (module takes precedence)
                 "abstractapplicationcontext.java"
               function*
                 "refresh"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "finishRefresh"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "startEmbeddedServletContainer"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
                 "tomcatembeddedservletcontainer.java"
               function*
                 "start"
-            frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+            frame (non app frame)
               module*
                 "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
@@ -401,7 +401,7 @@ default:
         "Failed to start connector [Connector[HTTP/<float><int>]]"
 --------------------------------------------------------------------------
 system:
-  hash: "1959b227a7cf6acf7f3fd401b5d9f09b"
+  hash: "41ab51a324a873e97f4119d3a032b7d3"
   contributing component: chained-exception
   component:
     system*
@@ -422,70 +422,70 @@ system:
                 "springapplication.java"
               function*
                 "run"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "run"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "run"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "refreshContext"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "refresh"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "refresh"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.context.support.AbstractApplicationContext"
               filename (module takes precedence)
                 "abstractapplicationcontext.java"
               function*
                 "refresh"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "finishRefresh"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "startEmbeddedServletContainer"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
                 "tomcatembeddedservletcontainer.java"
               function*
                 "start"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
@@ -589,70 +589,70 @@ system:
                 "springapplication.java"
               function*
                 "run"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "run"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "run"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "refreshContext"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "refresh"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "refresh"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.context.support.AbstractApplicationContext"
               filename (module takes precedence)
                 "abstractapplicationcontext.java"
               function*
                 "refresh"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "finishRefresh"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "startEmbeddedServletContainer"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
                 "tomcatembeddedservletcontainer.java"
               function*
                 "start"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
@@ -700,70 +700,70 @@ system:
                 "springapplication.java"
               function*
                 "run"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "run"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "run"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "refreshContext"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.SpringApplication"
               filename (module takes precedence)
                 "springapplication.java"
               function*
                 "refresh"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "refresh"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.context.support.AbstractApplicationContext"
               filename (module takes precedence)
                 "abstractapplicationcontext.java"
               function*
                 "refresh"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "finishRefresh"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"
               filename (module takes precedence)
                 "embeddedwebapplicationcontext.java"
               function*
                 "startEmbeddedServletContainer"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
                 "tomcatembeddedservletcontainer.java"
               function*
                 "start"
-            frame*
+            frame (ignored by stack trace rule (category:internals -group))
               module*
                 "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"
               filename (module takes precedence)
