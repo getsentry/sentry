@@ -1,5 +1,5 @@
 ---
-created: '2021-08-06T16:25:45.512298Z'
+created: '2025-04-04T15:56:51.332842+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -8,8 +8,8 @@ source: tests/sentry/grouping/test_categorization.py
 NoSuchMethodException:callDrawGLFunction [long] (thread_id:_, crashed:_)
           com.android.internal.os.ZygoteInit  main category=system
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
-                    java.lang.reflect.Method  invoke category=indirection
-                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=not_in_app
+                    java.lang.reflect.Method  invoke category=not_in_app
                   android.app.ActivityThread  main category=threadbase
                            android.os.Looper  loop category=threadbase
                           android.os.Handler  dispatchMessage category=threadbase
@@ -29,19 +29,19 @@ NoSuchMethodException:callDrawGLFunction [long] (thread_id:_, crashed:_)
                       android.webkit.WebView  ensureProviderCreated category=internals
                       android.webkit.WebView  getFactory category=internals
                android.webkit.WebViewFactory  getProvider category=internals
-                             java.lang.Class  newInstance category=internals
-               java.lang.reflect.Constructor  newInstance category=indirection
+                             java.lang.Class  newInstance category=not_in_app
+               java.lang.reflect.Constructor  newInstance category=not_in_app
   com.android.webview.chromium.WebViewChromi  <init> category=indirection
                                               stripped_application_code
-                             java.lang.Class  getMethod category=indirection
-                             java.lang.Class  getMethod category=indirection
+                             java.lang.Class  getMethod category=not_in_app
+                             java.lang.Class  getMethod category=not_in_app
 
 
 RuntimeException:Invalid reflection (thread_id:_, crashed:_)
           com.android.internal.os.ZygoteInit  main category=system
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
-                    java.lang.reflect.Method  invoke category=indirection
-                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=not_in_app
+                    java.lang.reflect.Method  invoke category=not_in_app
                   android.app.ActivityThread  main category=threadbase
                            android.os.Looper  loop category=threadbase
                           android.os.Handler  dispatchMessage category=threadbase
@@ -61,8 +61,8 @@ RuntimeException:Invalid reflection (thread_id:_, crashed:_)
                       android.webkit.WebView  ensureProviderCreated category=internals
                       android.webkit.WebView  getFactory category=internals
                android.webkit.WebViewFactory  getProvider category=internals
-                             java.lang.Class  newInstance category=internals
-               java.lang.reflect.Constructor  newInstance category=indirection
+                             java.lang.Class  newInstance category=not_in_app
+               java.lang.reflect.Constructor  newInstance category=not_in_app
   com.android.webview.chromium.WebViewChromi  <init> category=indirection
                                               stripped_application_code
 
@@ -70,8 +70,8 @@ RuntimeException:Invalid reflection (thread_id:_, crashed:_)
 AndroidRuntimeException:java.lang.RuntimeException: Invalid reflection (thread_id:_, crashed:_)
           com.android.internal.os.ZygoteInit  main category=system
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
-                    java.lang.reflect.Method  invoke category=indirection
-                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=not_in_app
+                    java.lang.reflect.Method  invoke category=not_in_app
                   android.app.ActivityThread  main category=threadbase
                            android.os.Looper  loop category=threadbase
                           android.os.Handler  dispatchMessage category=threadbase

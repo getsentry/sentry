@@ -1,16 +1,16 @@
 ---
-created: '2021-08-03T15:05:54.955072Z'
+created: '2025-04-04T15:56:51.261215+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
 
 
 RuntimeException:Can't create handler inside thread Thread[AsyncTask #1,5,main] that has not called Looper.prepare() (thread_id:_, crashed:_)
-                            java.lang.Thread  run category=std
-  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
-     java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
+                            java.lang.Thread  run category=not_in_app
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=not_in_app
+     java.util.concurrent.ThreadPoolExecutor  runWorker category=not_in_app
        android.os.AsyncTask$SerialExecutor$1  run category=indirection
-             java.util.concurrent.FutureTask  run category=std
+             java.util.concurrent.FutureTask  run category=not_in_app
                       android.os.AsyncTask$3  call category=threadbase
   com.lenovo.payplus.analytics.GameAnalytics  doInBackground category=telemetry
   com.lenovo.payplus.analytics.GameAnalytics  ࡳࡥ࡭ category=telemetry
@@ -27,11 +27,11 @@ RuntimeException:Can't create handler inside thread Thread[AsyncTask #1,5,main] 
 
 
 RuntimeException:An error occurred while executing doInBackground() (thread_id:_, crashed:_)
-                            java.lang.Thread  run category=std
-  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
-     java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
+                            java.lang.Thread  run category=not_in_app
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=not_in_app
+     java.util.concurrent.ThreadPoolExecutor  runWorker category=not_in_app
        android.os.AsyncTask$SerialExecutor$1  run category=indirection
-             java.util.concurrent.FutureTask  run category=std
-             java.util.concurrent.FutureTask  setException category=internals
-             java.util.concurrent.FutureTask  finishCompletion category=internals
+             java.util.concurrent.FutureTask  run category=not_in_app
+             java.util.concurrent.FutureTask  setException category=not_in_app
+             java.util.concurrent.FutureTask  finishCompletion category=not_in_app
                       android.os.AsyncTask$4  done category=internals

@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:38.811522+00:00'
+created: '2025-04-04T15:55:20.371497+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -24,12 +24,32 @@ metrics with tags: {
 ---
 contributing variants:
   system*
-    hash: "ef2555bf7958ada8eefafbfdaed1c409"
+    hash: "bdb9af2c3b531c30273b0501a4fa7041"
     contributing component: exception
     component:
       system*
         exception*
           stacktrace*
+            frame*
+              module*
+                "java.lang.Thread"
+              function*
+                "run"
+            frame*
+              module*
+                "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
+              function*
+                "run"
+            frame*
+              module*
+                "java.util.concurrent.ThreadPoolExecutor$Worker"
+              function*
+                "run"
+            frame*
+              module*
+                "java.util.concurrent.ThreadPoolExecutor"
+              function*
+                "runWorker"
             frame*
               module*
                 "org.apache.tomcat.util.net.SocketProcessorBase"
@@ -260,6 +280,11 @@ contributing variants:
                 "org.springframework.web.method.support.InvocableHandlerMethod"
               function*
                 "doInvoke"
+            frame*
+              module*
+                "java.lang.reflect.Method"
+              function*
+                "invoke"
             frame*
               module*
                 "jdk.internal.reflect.DelegatingMethodAccessorImpl"

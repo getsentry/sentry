@@ -1,5 +1,5 @@
 ---
-created: '2021-08-06T16:25:45.041586Z'
+created: '2025-04-04T15:56:50.838712+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -8,7 +8,7 @@ source: tests/sentry/grouping/test_categorization.py
 UnsatisfiedLinkError:dlopen failed: "/data/app/com.android.chrome-2/base.apk!/lib/armeabi-v7a/libmonochrome.so" is 32-bit instead of 64-bit (thread_id:_, crashed:_)
           com.android.internal.os.ZygoteInit  main category=system
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
-                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=not_in_app
                   android.app.ActivityThread  main category=threadbase
                            android.os.Looper  loop category=threadbase
                           android.os.Handler  dispatchMessage category=threadbase
@@ -27,21 +27,21 @@ UnsatisfiedLinkError:dlopen failed: "/data/app/com.android.chrome-2/base.apk!/li
                       android.webkit.WebView  ensureProviderCreated category=internals
                       android.webkit.WebView  getFactory category=internals
                android.webkit.WebViewFactory  getProvider category=internals
-               java.lang.reflect.Constructor  newInstance category=indirection
-               java.lang.reflect.Constructor  newInstance0 category=indirection
+               java.lang.reflect.Constructor  newInstance category=not_in_app
+               java.lang.reflect.Constructor  newInstance0 category=not_in_app
   com.android.webview.chromium.WebViewChromi  <init> category=system
   com.android.webview.chromium.WebViewChromi  f category=internals
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code
-                            java.lang.System  loadLibrary category=load
-                           java.lang.Runtime  loadLibrary0 category=internals
+                            java.lang.System  loadLibrary category=not_in_app
+                           java.lang.Runtime  loadLibrary0 category=not_in_app
 
 
 Dk2:errorCode=2 (thread_id:_, crashed:_)
           com.android.internal.os.ZygoteInit  main category=system
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
-                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=not_in_app
                   android.app.ActivityThread  main category=threadbase
                            android.os.Looper  loop category=threadbase
                           android.os.Handler  dispatchMessage category=threadbase
@@ -60,8 +60,8 @@ Dk2:errorCode=2 (thread_id:_, crashed:_)
                       android.webkit.WebView  ensureProviderCreated category=internals
                       android.webkit.WebView  getFactory category=internals
                android.webkit.WebViewFactory  getProvider category=internals
-               java.lang.reflect.Constructor  newInstance category=indirection
-               java.lang.reflect.Constructor  newInstance0 category=indirection
+               java.lang.reflect.Constructor  newInstance category=not_in_app
+               java.lang.reflect.Constructor  newInstance0 category=not_in_app
   com.android.webview.chromium.WebViewChromi  <init> category=system
   com.android.webview.chromium.WebViewChromi  f category=internals
                                               stripped_application_code
@@ -72,7 +72,7 @@ Dk2:errorCode=2 (thread_id:_, crashed:_)
 InvocationTargetException:_ (thread_id:_, crashed:_)
           com.android.internal.os.ZygoteInit  main category=system
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
-                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=not_in_app
                   android.app.ActivityThread  main category=threadbase
                            android.os.Looper  loop category=threadbase
                           android.os.Handler  dispatchMessage category=threadbase
@@ -91,14 +91,14 @@ InvocationTargetException:_ (thread_id:_, crashed:_)
                       android.webkit.WebView  ensureProviderCreated category=internals
                       android.webkit.WebView  getFactory category=internals
                android.webkit.WebViewFactory  getProvider category=internals
-               java.lang.reflect.Constructor  newInstance category=indirection
-               java.lang.reflect.Constructor  newInstance0 category=indirection
+               java.lang.reflect.Constructor  newInstance category=not_in_app
+               java.lang.reflect.Constructor  newInstance0 category=not_in_app
 
 
 AndroidRuntimeException:java.lang.reflect.InvocationTargetException (thread_id:_, crashed:_)
           com.android.internal.os.ZygoteInit  main category=system
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
-                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=not_in_app
                   android.app.ActivityThread  main category=threadbase
                            android.os.Looper  loop category=threadbase
                           android.os.Handler  dispatchMessage category=threadbase

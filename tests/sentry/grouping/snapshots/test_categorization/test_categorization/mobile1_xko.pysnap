@@ -1,16 +1,16 @@
 ---
-created: '2021-08-03T15:05:54.259365Z'
+created: '2025-04-04T15:56:51.145175+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
 
 
 SecurityException:_ (thread_id:_, crashed:_)
-                            java.lang.Thread  run category=std
-  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
-     java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
+                            java.lang.Thread  run category=not_in_app
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=not_in_app
+     java.util.concurrent.ThreadPoolExecutor  runWorker category=not_in_app
        android.os.AsyncTask$SerialExecutor$1  run category=indirection
-             java.util.concurrent.FutureTask  run category=std
+             java.util.concurrent.FutureTask  run category=not_in_app
                       android.os.AsyncTask$3  call category=threadbase
                                               stripped_application_code
                                               stripped_application_code
@@ -18,10 +18,10 @@ SecurityException:_ (thread_id:_, crashed:_)
                    android.app.PendingIntent  getActivity category=std
                    android.app.PendingIntent  getActivity category=internals
                                               stripped_application_code
-                     java.lang.reflect.Proxy  invoke category=indirection
+                     java.lang.reflect.Proxy  invoke category=not_in_app
                                               stripped_application_code
                                               stripped_application_code
-                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=not_in_app
      android.app.IActivityManager$Stub$Proxy  getIntentSenderWithSourceToken category=std
                            android.os.Parcel  readException category=internals
                            android.os.Parcel  readException category=internals
@@ -29,11 +29,11 @@ SecurityException:_ (thread_id:_, crashed:_)
 
 
 RuntimeException:An error occurred while executing doInBackground() (thread_id:_, crashed:_)
-                            java.lang.Thread  run category=std
-  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
-     java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
+                            java.lang.Thread  run category=not_in_app
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=not_in_app
+     java.util.concurrent.ThreadPoolExecutor  runWorker category=not_in_app
        android.os.AsyncTask$SerialExecutor$1  run category=indirection
-             java.util.concurrent.FutureTask  run category=std
-             java.util.concurrent.FutureTask  setException category=internals
-             java.util.concurrent.FutureTask  finishCompletion category=internals
+             java.util.concurrent.FutureTask  run category=not_in_app
+             java.util.concurrent.FutureTask  setException category=not_in_app
+             java.util.concurrent.FutureTask  finishCompletion category=not_in_app
                       android.os.AsyncTask$4  done category=internals

@@ -1,5 +1,5 @@
 ---
-created: '2021-08-06T16:25:45.079729Z'
+created: '2025-04-04T15:56:50.543524+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -8,7 +8,7 @@ source: tests/sentry/grouping/test_categorization.py
 StackOverflowError:stack size 8MB (thread_id:_, crashed:_)
           com.android.internal.os.ZygoteInit  main category=system
   com.android.internal.os.RuntimeInit$Method  run category=internals
-                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=not_in_app
                   android.app.ActivityThread  main category=threadbase
                            android.os.Looper  loop category=threadbase
                           android.os.Handler  dispatchMessage category=threadbase
@@ -255,4 +255,4 @@ StackOverflowError:stack size 8MB (thread_id:_, crashed:_)
                      android.widget.TextView  semSetSelection category=internals
                       android.text.Selection  setSelection category=internals
                       android.text.Selection  setSelection category=internals
-                             java.lang.Class  isInstance category=std
+                             java.lang.Class  isInstance category=not_in_app

@@ -1,15 +1,15 @@
 ---
-created: '2021-08-03T15:05:49.408161Z'
+created: '2025-04-04T15:56:49.687300+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
 
 
 NullPointerException:Attempt to invoke virtual method 'java.lang.String java.lang.Class.getName()' on a null object reference (thread_id:_, crashed:_)
-                            java.lang.Thread  run category=std
+                            java.lang.Thread  run category=not_in_app
       com.google.android.gms.common.util.a.d  run category=internals
-  java.util.concurrent.ThreadPoolExecutor$Wo  run category=internals
-     java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=not_in_app
+     java.util.concurrent.ThreadPoolExecutor  runWorker category=not_in_app
                                               stripped_application_code
                                               stripped_application_code
                                               stripped_application_code

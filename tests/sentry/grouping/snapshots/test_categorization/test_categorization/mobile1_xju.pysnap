@@ -1,5 +1,5 @@
 ---
-created: '2021-08-06T16:25:44.655930Z'
+created: '2025-04-04T15:56:50.303826+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -8,7 +8,7 @@ source: tests/sentry/grouping/test_categorization.py
 OutOfMemoryError:Failed to allocate a 17203212 byte allocation with 4193728 free bytes and 7MB until OOM (thread_id:_, crashed:_)
           com.android.internal.os.ZygoteInit  main category=system
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
-                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=not_in_app
                   android.app.ActivityThread  main category=threadbase
                            android.os.Looper  loop category=threadbase
                           android.os.Handler  dispatchMessage category=threadbase

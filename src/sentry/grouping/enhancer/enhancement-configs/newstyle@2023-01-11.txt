@@ -119,52 +119,24 @@ family:native package:libobjc* category=system
 family:native package:libsystem* category=system
 family:native package:/system/** category=system
 family:native package:/vendor/** category=system
+module:dalvik.system.* category=system
+module:com.android.* category=system
 family:native package:libdispatch.dylib category=system
 family:native package:WebKit category=system
 family:native package:**/libart.so category=system
 package:/apex/com.android.*/lib*/** category=system
 
-
-## java
-# Having a category prevents deriving in_app stack trace rules
-# XXX: Adjust all -app lines in the next PR
-module:akka.* category=system
-module:com.android.* category=system
-module:com.fasterxml.* category=system
-module:com.google.* category=system
-module:com.microsoft.* category=system
-module:com.sun.* category=system
-module:feign.* category=system
-module:dalvik.system.* category=system
-module:io.opentelemetry.* category=system
-module:io.sentry.* -app -group
-module:java.* category=std
-module:java.* -app
-module:javax.* -app
-module:jdk.* -app
-module:oauth.* category=system
-module:org.apache.* -app
-module:org.glassfish.* category=system
-module:org.jboss.* category=system
-module:org.jdesktop.* category=system
-module:org.postgresql.* category=system
-module:org.springframework.* -app
-module:org.web3j.* category=system
-module:reactor.core.* category=system
-module:scala.* category=system
-module:sun.* -app
-
 # (Presumably) preinstalled stuff on Lenovo Android devices
 module:com.lenovo.lsf.* category=system
 module:com.lenovo.payplus.* category=system
 
+family:native function:boost::* category=std
+family:native function:std::* category=std
+module:java.* category=std
 # common crypto library on android
 module:com.google.crypto.* category=std
 module:com.google.android.* category=std
 module:javax.crypto.* category=std
-
-family:native function:boost::* category=std
-family:native function:std::* category=std
 
 module:android.database.* category=std
 module:androidx.* category=std
@@ -455,6 +427,25 @@ function:nextTick -app -group
 
 ## go
 path:**/go/pkg/mod/** -app
+
+## java
+# Having a category prevents deriving in_app stack trace rules
+module:jdk.* category=not_in_app
+module:sun.* category=not_in_app
+module:com.sun.* category=not_in_app
+module:java.* category=not_in_app
+module:scala.* category=not_in_app
+module:akka.* category=not_in_app
+module:javax.* category=not_in_app
+module:org.apache.* category=not_in_app
+module:org.springframework.* category=not_in_app
+module:org.glassfish.* category=not_in_app
+module:org.jboss.* category=not_in_app
+module:feign.* category=not_in_app
+module:io.opentelemetry.* category=not_in_app
+module:io.sentry.* category=not_in_app -group
+
+category:not_in_app -app
 
 ## kotlin
 module:kotlin.* -app

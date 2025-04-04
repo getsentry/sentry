@@ -1,5 +1,5 @@
 ---
-created: '2021-08-06T16:25:44.129620Z'
+created: '2025-04-04T15:56:49.765286+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -8,8 +8,8 @@ source: tests/sentry/grouping/test_categorization.py
 SQLiteException:duplicate column name: a (code 1): , while compiling: create table DownloadEntity(a varchar,b bigint,s bigint,t interger,u bigint,v varchar,w varchar,a varchar,b varchar,c varchar,d varchar,e boolean,f boolean,g boolean,h varchar,i varchar,j varchar,k varchar,l interger,m boolean,n boolean,o varchar,y boolean); (thread_id:_, crashed:_)
           com.android.internal.os.ZygoteInit  main category=system
   com.android.internal.os.ZygoteInit$MethodA  run category=internals
-                    java.lang.reflect.Method  invoke category=indirection
-                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=not_in_app
+                    java.lang.reflect.Method  invoke category=not_in_app
                   android.app.ActivityThread  main category=threadbase
                            android.os.Looper  loop category=threadbase
                           android.os.Handler  dispatchMessage category=threadbase

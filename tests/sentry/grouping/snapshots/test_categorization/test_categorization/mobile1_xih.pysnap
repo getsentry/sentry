@@ -1,21 +1,21 @@
 ---
-created: '2021-03-29T22:02:40.752834Z'
+created: '2025-04-04T15:56:51.380525+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
 
 
 NoSuchMethodException:exec [] (thread_id:_, crashed:_)
-                   java.util.Timer$TimerImpl  run category=std
+                   java.util.Timer$TimerImpl  run category=not_in_app
                                               stripped_application_code
-                    java.lang.reflect.Method  invoke category=indirection
-                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=not_in_app
+                    java.lang.reflect.Method  invoke category=not_in_app
                                               stripped_application_code
-                    java.lang.reflect.Method  invoke category=indirection
-                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=not_in_app
+                    java.lang.reflect.Method  invoke category=not_in_app
                                               stripped_application_code
-                    java.lang.reflect.Method  invoke category=indirection
-                    java.lang.reflect.Method  invoke category=indirection
+                    java.lang.reflect.Method  invoke category=not_in_app
+                    java.lang.reflect.Method  invoke category=not_in_app
                                               stripped_application_code
-                             java.lang.Class  getDeclaredMethod category=std
-                             java.lang.Class  getMethod category=indirection
+                             java.lang.Class  getDeclaredMethod category=not_in_app
+                             java.lang.Class  getMethod category=not_in_app
