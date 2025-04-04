@@ -1,6 +1,5 @@
 from typing import Any, NotRequired, TypedDict
 
-from django.db.models import F
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,6 +14,7 @@ from sentry.api.serializers.models.groupsearchview import GroupSearchViewSeriali
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewDetailsPutValidator
 from sentry.issues.endpoints.organization_group_search_views import pick_default_project
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 from sentry.models.savedsearch import SORT_LITERALS
@@ -111,30 +111,33 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         try:
-            view = GroupSearchView.objects.get(
-                id=view_id, organization=organization, user_id=request.user.id
-            )
+            view = GroupSearchView.objects.get(id=view_id)
         except GroupSearchView.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        # Check if the view is starred by the current user
+        # Only view creators and org admins can delete views
+        has_delete_access = (
+            view.user_id == request.user.id
+            or request.access.has_scope("org:admin")
+            or request.access.has_scope("team:admin")
+        )
+        if not has_delete_access:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         try:
-            starredView = GroupSearchViewStarred.objects.get(
-                organization=organization, user_id=request.user.id, group_search_view=view
+            GroupSearchViewStarred.objects.clear_starred_view_for_all_members(
+                organization=organization, view=view
             )
-            deleted_position = starredView.position
-            # Delete the starred view
-            starredView.delete()
-
-            # Decrement the position of all other starred views with higher position
-            GroupSearchViewStarred.objects.filter(
-                organization=organization,
-                user_id=request.user.id,
-                position__gt=deleted_position,
-            ).update(position=F("position") - 1)
-
         except GroupSearchViewStarred.DoesNotExist:
             pass
 
+        try:
+            GroupSearchViewLastVisited.objects.filter(
+                organization=organization, group_search_view=view
+            ).delete()
+        except GroupSearchViewLastVisited.DoesNotExist:
+            pass
+
         view.delete()
+
         return Response(status=status.HTTP_204_NO_CONTENT)
