@@ -369,9 +369,9 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 ## End of DevToolbar
 
 ## Codecov Merge UX
-/static/app/components/pipeline/  @getsentry/codecov-merge-ux
-/static/app/utils/pipeline/       @getsentry/codecov-merge-ux
-/static/app/views/pipeline/       @getsentry/codecov-merge-ux
+/static/app/components/codecov/  @getsentry/codecov-merge-ux
+/static/app/utils/codecov/       @getsentry/codecov-merge-ux
+/static/app/views/codecov/       @getsentry/codecov-merge-ux
 ## End of Codecov Merge UX
 
 ## Frontend
