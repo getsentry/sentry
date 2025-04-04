@@ -165,7 +165,6 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                         has_global_views=has_global_views,
                         default_project=default_project,
                         organization=organization,
-                        starred_view_ids=starred_view_ids,
                     ),
                 ),
             )
@@ -187,7 +186,6 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     has_global_views=has_global_views,
                     default_project=default_project,
                     organization=organization,
-                    starred_view_ids=starred_view_ids,
                 ),
             ),
         )

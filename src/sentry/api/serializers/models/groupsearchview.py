@@ -4,6 +4,7 @@ from typing import Any, TypedDict
 from sentry.api.serializers import Serializer, register
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.savedsearch import SORT_LITERALS
 
 
@@ -27,7 +28,6 @@ class GroupSearchViewSerializer(Serializer):
         self.has_global_views = kwargs.pop("has_global_views", None)
         self.default_project = kwargs.pop("default_project", None)
         self.organization = kwargs.pop("organization", None)
-        self.starred_view_ids = kwargs.pop("starred_view_ids", None)
         super().__init__(*args, **kwargs)
 
     def get_attrs(self, item_list, user, **kwargs) -> MutableMapping[Any, Any]:
@@ -38,13 +38,20 @@ class GroupSearchViewSerializer(Serializer):
             user_id=user.id,
             group_search_view_id__in=[item.id for item in item_list],
         )
+        user_starred_view_ids = set(
+            GroupSearchViewStarred.objects.filter(
+                organization=self.organization,
+                user_id=user.id,
+            ).values_list("group_search_view_id", flat=True)
+        )
         last_visited_map = {lv.group_search_view_id: lv for lv in last_visited_views}
 
         for item in item_list:
             last_visited = last_visited_map.get(item.id, None)
+            attrs[item] = {}
             if last_visited:
-                attrs[item] = {}
                 attrs[item]["last_visited"] = last_visited.last_visited
+            attrs[item]["starred"] = item.id in user_starred_view_ids
 
         return attrs
 
@@ -67,8 +74,8 @@ class GroupSearchViewSerializer(Serializer):
             "projects": projects,
             "environments": obj.environments,
             "timeFilters": obj.time_filters,
-            "lastVisited": attrs["last_visited"] if attrs else None,
+            "lastVisited": attrs["last_visited"] if "last_visited" in attrs else None,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "starred": obj.id in self.starred_view_ids,
+            "starred": attrs["starred"] if attrs else False,
         }
