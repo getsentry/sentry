@@ -62,6 +62,7 @@ class OrganizationInsightsTreeEndpointTest(
             "Page Server Component (/app/[id]/)",
             "Page Server Component (/app/[...slug]/)",
             "Page Server Component (/app/[[...optional]]/)",
+            "unrelated description",
         ]
 
         spans = []

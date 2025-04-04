@@ -23,7 +23,7 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
         return self._separate_span_description_info(response)
 
     def _separate_span_description_info(self, response):
-        # Regex to split string into '{component_type} {space} ({path})'
+        # Regex to split string into '{component_type}{space}({path})'
         pattern = re.compile(r"^(.*?)\s+\((.*?)\)$")
 
         for line in response.data["data"]:
@@ -34,10 +34,10 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
                 path_components = path.strip("/").split("/")
                 if not path_components or (len(path_components) == 1 and path_components[0] == ""):
                     path_components = ["/"]  # Handle root path case
-            else:
-                line["function.nextjs.component_type"] = None
-                line["function.nextjs.path"] = None
 
+            else:
+                component_type = None
+                path_components = []
             line["function.nextjs.component_type"] = component_type
             line["function.nextjs.path"] = path_components
 
