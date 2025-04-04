@@ -1,5 +1,5 @@
 ---
-created: '2025-04-04T14:11:00.553204+00:00'
+created: '2025-04-04T14:28:38.234098+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -136,14 +136,14 @@ app:
               "applicationfilterchain.java"
             function*
               "internalDoFilter"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (marked out of app by stack trace rule (category:system -app))
             module*
               "org.springframework.web.filter.OncePerRequestFilter"
             filename (module takes precedence)
               "onceperrequestfilter.java"
             function*
               "doFilter"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (non app frame)
             module*
               "org.springframework.web.filter.CharacterEncodingFilter"
             filename (module takes precedence)
@@ -164,14 +164,14 @@ app:
               "applicationfilterchain.java"
             function*
               "internalDoFilter"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (marked out of app by stack trace rule (category:system -app))
             module*
               "org.springframework.web.filter.OncePerRequestFilter"
             filename (module takes precedence)
               "onceperrequestfilter.java"
             function*
               "doFilter"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (non app frame)
             module*
               "org.springframework.web.filter.HiddenHttpMethodFilter"
             filename (module takes precedence)
@@ -192,14 +192,14 @@ app:
               "applicationfilterchain.java"
             function*
               "internalDoFilter"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (marked out of app by stack trace rule (category:system -app))
             module*
               "org.springframework.web.filter.OncePerRequestFilter"
             filename (module takes precedence)
               "onceperrequestfilter.java"
             function*
               "doFilter"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (non app frame)
             module*
               "org.springframework.web.filter.HttpPutFormContentFilter"
             filename (module takes precedence)
@@ -220,14 +220,14 @@ app:
               "applicationfilterchain.java"
             function*
               "internalDoFilter"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (marked out of app by stack trace rule (category:system -app))
             module*
               "org.springframework.web.filter.OncePerRequestFilter"
             filename (module takes precedence)
               "onceperrequestfilter.java"
             function*
               "doFilter"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (non app frame)
             module*
               "org.springframework.web.filter.RequestContextFilter"
             filename (module takes precedence)
@@ -276,7 +276,7 @@ app:
               "httpservlet.java"
             function*
               "service"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (non app frame)
             module*
               "org.springframework.web.servlet.FrameworkServlet"
             filename (module takes precedence)
@@ -290,70 +290,70 @@ app:
               "httpservlet.java"
             function*
               "service"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (marked out of app by stack trace rule (category:system -app))
             module*
               "org.springframework.web.servlet.FrameworkServlet"
             filename (module takes precedence)
               "frameworkservlet.java"
             function*
               "doGet"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (non app frame)
             module*
               "org.springframework.web.servlet.FrameworkServlet"
             filename (module takes precedence)
               "frameworkservlet.java"
             function*
               "processRequest"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (non app frame)
             module*
               "org.springframework.web.servlet.DispatcherServlet"
             filename (module takes precedence)
               "dispatcherservlet.java"
             function*
               "doService"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (non app frame)
             module*
               "org.springframework.web.servlet.DispatcherServlet"
             filename (module takes precedence)
               "dispatcherservlet.java"
             function*
               "doDispatch"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (non app frame)
             module*
               "org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter"
             filename (module takes precedence)
               "abstracthandlermethodadapter.java"
             function*
               "handle"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (non app frame)
             module*
               "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
             filename (module takes precedence)
               "requestmappinghandleradapter.java"
             function*
               "handleInternal"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (non app frame)
             module*
               "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
             filename (module takes precedence)
               "requestmappinghandleradapter.java"
             function*
               "invokeHandlerMethod"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (non app frame)
             module*
               "org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod"
             filename (module takes precedence)
               "servletinvocablehandlermethod.java"
             function*
               "invokeAndHandle"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (non app frame)
             module*
               "org.springframework.web.method.support.InvocableHandlerMethod"
             filename (module takes precedence)
               "invocablehandlermethod.java"
             function*
               "invokeForRequest"
-          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
+          frame (non app frame)
             module*
               "org.springframework.web.method.support.InvocableHandlerMethod"
             filename (module takes precedence)
@@ -409,7 +409,7 @@ default:
         "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause"
 --------------------------------------------------------------------------
 system:
-  hash: "ef2555bf7958ada8eefafbfdaed1c409"
+  hash: "7d2b7e7fe6c65854a6e6854c1466c9c9"
   contributing component: exception
   component:
     system*
@@ -548,7 +548,7 @@ system:
               "onceperrequestfilter.java"
             function*
               "doFilter"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "org.springframework.web.filter.CharacterEncodingFilter"
             filename (module takes precedence)
@@ -576,7 +576,7 @@ system:
               "onceperrequestfilter.java"
             function*
               "doFilter"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "org.springframework.web.filter.HiddenHttpMethodFilter"
             filename (module takes precedence)
@@ -604,7 +604,7 @@ system:
               "onceperrequestfilter.java"
             function*
               "doFilter"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "org.springframework.web.filter.HttpPutFormContentFilter"
             filename (module takes precedence)
@@ -632,7 +632,7 @@ system:
               "onceperrequestfilter.java"
             function*
               "doFilter"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "org.springframework.web.filter.RequestContextFilter"
             filename (module takes precedence)
@@ -681,7 +681,7 @@ system:
               "httpservlet.java"
             function*
               "service"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             module*
               "org.springframework.web.servlet.FrameworkServlet"
             filename (module takes precedence)
@@ -702,63 +702,63 @@ system:
               "frameworkservlet.java"
             function*
               "doGet"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "org.springframework.web.servlet.FrameworkServlet"
             filename (module takes precedence)
               "frameworkservlet.java"
             function*
               "processRequest"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "org.springframework.web.servlet.DispatcherServlet"
             filename (module takes precedence)
               "dispatcherservlet.java"
             function*
               "doService"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "org.springframework.web.servlet.DispatcherServlet"
             filename (module takes precedence)
               "dispatcherservlet.java"
             function*
               "doDispatch"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter"
             filename (module takes precedence)
               "abstracthandlermethodadapter.java"
             function*
               "handle"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
             filename (module takes precedence)
               "requestmappinghandleradapter.java"
             function*
               "handleInternal"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
             filename (module takes precedence)
               "requestmappinghandleradapter.java"
             function*
               "invokeHandlerMethod"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod"
             filename (module takes precedence)
               "servletinvocablehandlermethod.java"
             function*
               "invokeAndHandle"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "org.springframework.web.method.support.InvocableHandlerMethod"
             filename (module takes precedence)
               "invocablehandlermethod.java"
             function*
               "invokeForRequest"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             module*
               "org.springframework.web.method.support.InvocableHandlerMethod"
             filename (module takes precedence)
