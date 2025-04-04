@@ -117,7 +117,7 @@ describe('PageParamsProvider', function () {
       sortBys: [{field: 'timestamp', kind: 'desc'}],
       visualizes: [
         {
-          chartType: ChartType.LINE,
+          chartType: ChartType.BAR,
           label: 'A',
           yAxes: ['count(span.duration)'],
         },

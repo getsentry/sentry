@@ -20,7 +20,7 @@ export const DEFAULT_VISUALIZATION = `${DEFAULT_VISUALIZATION_AGGREGATE}(${DEFAU
 export function defaultVisualizes(): Visualize[] {
   return [
     {
-      chartType: ChartType.LINE,
+      chartType: ChartType.BAR,
       yAxes: [DEFAULT_VISUALIZATION],
       label: 'A',
     },

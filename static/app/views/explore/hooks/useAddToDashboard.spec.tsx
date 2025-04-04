@@ -45,7 +45,7 @@ describe('AddToDashboardButton', () => {
         // For Add + Stay on Page
         widget: {
           title: 'Custom Widget',
-          displayType: DisplayType.LINE,
+          displayType: DisplayType.BAR,
           interval: undefined,
           limit: undefined,
           widgetType: WidgetType.SPANS,
@@ -75,7 +75,7 @@ describe('AddToDashboardButton', () => {
           defaultTitle: 'Custom Widget',
           defaultWidgetQuery:
             'name=&aggregates=count(span.duration)&columns=&fields=count(span.duration)&conditions=&orderby=-timestamp',
-          displayType: DisplayType.LINE,
+          displayType: DisplayType.BAR,
           field: [
             'id',
             'span.op',
@@ -268,7 +268,7 @@ describe('AddToDashboardButton', () => {
         // For Add + Stay on Page
         widget: {
           title: 'Custom Widget',
-          displayType: DisplayType.LINE,
+          displayType: DisplayType.BAR,
           interval: undefined,
           limit: undefined,
           widgetType: WidgetType.SPANS,
@@ -291,7 +291,7 @@ describe('AddToDashboardButton', () => {
           defaultTitle: 'Custom Widget',
           defaultWidgetQuery:
             'name=&aggregates=count(span.duration)&columns=&fields=count(span.duration)&conditions=&orderby=-count(span.duration)',
-          displayType: DisplayType.LINE,
+          displayType: DisplayType.BAR,
           field: ['span.op', 'count(span.duration)'],
         }),
       })
