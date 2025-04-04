@@ -28,6 +28,29 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 
 class WorkflowEngineActionSerializer(Serializer):
+    def get_alert_rule_trigger_id(self, action: Action) -> int:
+        """
+        Fetches the alert rule trigger id for the detector trigger related to the given action
+        """
+        action_dcga = DataConditionGroupAction.objects.get(action=action)
+        action_filter_data_condition = DataCondition.objects.get(
+            condition_group=action_dcga.condition_group,
+            type=Condition.ISSUE_PRIORITY_EQUALS,
+            condition_result=True,
+        )
+        workflow_dcg = WorkflowDataConditionGroup.objects.get(
+            condition_group=action_filter_data_condition.condition_group
+        )
+        detector_workflow = DetectorWorkflow.objects.get(workflow=workflow_dcg.workflow)
+        detector_trigger = DataCondition.objects.get(
+            condition_result=action_filter_data_condition.comparison,
+            condition_group=detector_workflow.detector.workflow_condition_group,
+        )
+        datacondition_alertruletrigger = DataConditionAlertRuleTrigger.objects.get(
+            data_condition=detector_trigger
+        )
+        return datacondition_alertruletrigger.alert_rule_trigger_id
+
     def serialize(
         self, obj: Action, attrs: Mapping[str, Any], user: User | RpcUser | AnonymousUser, **kwargs
     ) -> dict[str, Any]:
@@ -51,30 +74,9 @@ class WorkflowEngineActionSerializer(Serializer):
             sentry_app_id = int(obj.config.get("target_identifier"))
             sentry_app_config = obj.data.get("settings")
 
-        action_dcga = DataConditionGroupAction.objects.get(action=aarta.action)
-        action_filter_data_condition = DataCondition.objects.get(
-            condition_group=action_dcga.condition_group,
-            type=Condition.ISSUE_PRIORITY_EQUALS,
-            condition_result=True,
-        )
-        # should this actually have a different data condition group? how to differentiate?
-        # import pdb; pdb.set_trace()
-        workflow_dcg = WorkflowDataConditionGroup.objects.get(
-            condition_group=action_filter_data_condition.condition_group
-        )
-        detector_workflow = DetectorWorkflow.objects.get(workflow=workflow_dcg.workflow)
-        detector_trigger = DataCondition.objects.get(
-            condition_result=action_filter_data_condition.comparison,
-            condition_group=detector_workflow.detector.workflow_condition_group,
-        )
-        datacondition_alertruletrigger = DataConditionAlertRuleTrigger.objects.get(
-            data_condition=detector_trigger
-        )
-        # it might not be possible to differentiate between a warning and critical trigger / datacondition with the information we have
-
         result = {
             "id": str(aarta.alert_rule_trigger_action_id),
-            "alertRuleTriggerId": str(datacondition_alertruletrigger.alert_rule_trigger_id),
+            "alertRuleTriggerId": str(self.get_alert_rule_trigger_id(aarta.action)),
             "type": obj.type,
             "targetType": ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)],
             "targetIdentifier": get_identifier_from_action(

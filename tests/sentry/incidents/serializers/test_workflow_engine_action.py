@@ -3,22 +3,18 @@ from sentry.incidents.endpoints.serializers.workflow_engine_action import (
     WorkflowEngineActionSerializer,
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_conditions,
 )
-from sentry.workflow_engine.models import Action
 
 
 @freeze_time("2018-12-11 03:21:34")
 class TestActionSerializer(TestCase):
     def setUp(self) -> None:
-        self.rpc_user = user_service.get_user(user_id=self.user.id)
         self.alert_rule = self.create_alert_rule()
         self.critical_trigger = self.create_alert_rule_trigger(
             alert_rule=self.alert_rule, label="critical"
@@ -26,22 +22,9 @@ class TestActionSerializer(TestCase):
         self.critical_trigger_action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.critical_trigger
         )
-        (
-            self.data_source,
-            self.data_condition_group,
-            self.workflow,
-            self.detector,
-            self.detector_state,
-            self.alert_rule_detector,
-            self.alert_rule_workflow,
-            self.detector_workflow,
-        ) = migrate_alert_rule(self.alert_rule)
-        self.detector_trigger, self.action_filter = migrate_metric_data_conditions(
-            self.critical_trigger
-        )
-        self.action, self.dcga, self.action_alert_rule_trigger_action = migrate_metric_action(
-            self.critical_trigger_action
-        )
+        migrate_alert_rule(self.alert_rule)
+        migrate_metric_data_conditions(self.critical_trigger)
+        self.action, _, _ = migrate_metric_action(self.critical_trigger_action)
 
     def test_simple(self) -> None:
         serialized_action = serialize(self.action, self.user, WorkflowEngineActionSerializer())
@@ -79,16 +62,13 @@ class TestActionSerializer(TestCase):
             sentry_app=sentry_app,
             sentry_app_config=[
                 {"name": "title", "value": "An alert"},
-                # {"summary": "Something happened here..."},
-                # {"name": "points", "value": "3"},
-                # {"name": "assignee", "value": "Hellboy"},
             ],
         )
         migrate_metric_data_conditions(self.sentry_app_trigger)
         self.sentry_app_action, _, _ = migrate_metric_action(self.sentry_app_trigger_action)
 
         serialized_action = serialize(
-            self.sentry_app_action, self.rpc_user, WorkflowEngineActionSerializer()
+            self.sentry_app_action, self.user, WorkflowEngineActionSerializer()
         )
         assert serialized_action["type"] == "sentry_app"
         assert serialized_action["id"] == str(self.sentry_app_trigger.id)
@@ -114,15 +94,6 @@ class TestActionSerializer(TestCase):
             type=AlertRuleTriggerAction.Type.SLACK,
             target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
             integration_id=self.integration.id,
-        )
-        self.slack_action = self.create_action(
-            type=Action.Type.SLACK.value,
-            integration_id=self.integration.id,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": self.slack_trigger_action.target_identifier,
-                "target_display": self.slack_trigger_action.target_display,
-            },
         )
         migrate_metric_data_conditions(self.slack_trigger)
         self.slack_action, _, _ = migrate_metric_action(self.slack_trigger_action)
