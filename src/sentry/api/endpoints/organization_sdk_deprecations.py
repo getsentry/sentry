@@ -8,6 +8,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -92,9 +93,9 @@ def get_event_types(raw_event_type: str) -> list[EventType]:
     raise ValueError(f"Unknown event type: {raw_event_type}")
 
 
-MINIMUM_SDK_VERSIONS: dict[tuple[int, str], str] = {
-    (EventType.PROFILE_CHUNK.value, "sentry.cocoa"): "8.49.0",
-    (EventType.PROFILE_CHUNK.value, "sentry.python"): "2.24.1",
+MINIMUM_SDK_VERSION_OPTIONS: dict[tuple[int, str], str] = {
+    (EventType.PROFILE_CHUNK.value, "sentry.cocoa"): "sdk-deprecation.profile-chunk.cocoa",
+    (EventType.PROFILE_CHUNK.value, "sentry.python"): "sdk-deprecation.profile-chunk.python",
 }
 
 
@@ -104,7 +105,12 @@ def get_minimum_sdk_version(project_sdk: ProjectSDK) -> Version | None:
         return None
 
     sdk_name = ".".join(parts[:2])
-    sdk_version = MINIMUM_SDK_VERSIONS.get((project_sdk.event_type, sdk_name))
+
+    sdk_version_option = MINIMUM_SDK_VERSION_OPTIONS.get((project_sdk.event_type, sdk_name))
+    if sdk_version_option is None:
+        return None
+
+    sdk_version = options.get(sdk_version_option)
     if sdk_version:
         try:
             return parse_version(sdk_version)
