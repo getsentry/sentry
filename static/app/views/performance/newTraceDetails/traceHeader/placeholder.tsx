@@ -18,8 +18,8 @@ export function PlaceHolder({
   traceSlug,
 }: {
   organization: Organization;
-  project: Project | undefined;
   traceSlug: string;
+  project?: Project;
 }) {
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);

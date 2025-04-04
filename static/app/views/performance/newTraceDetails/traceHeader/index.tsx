@@ -181,13 +181,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     props.tree.type === 'error';
 
   if (isLoading || isError) {
-    return (
-      <PlaceHolder
-        organization={props.organization}
-        project={undefined}
-        traceSlug={props.traceSlug}
-      />
-    );
+    return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
   }
 
   const representativeEvent = getRepresentativeEvent(props.tree, props.logs);

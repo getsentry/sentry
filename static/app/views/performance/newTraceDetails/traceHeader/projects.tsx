@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -37,7 +38,7 @@ function Projects({projects, logs, tree}: Props) {
       // Get unique project IDs and map to slugs in one pass
       return Array.from(
         new Set(logs.map(log => projectIdToSlug.get(log[OurLogKnownFieldKey.PROJECT_ID])))
-      ).filter(Boolean) as string[];
+      ).filter(defined);
     }
 
     // If there are no logs, or the trace is not empty, use the projects from the tree

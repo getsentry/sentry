@@ -143,7 +143,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
               </IconDescription>
             </IconContainer>
           ))}
-          {releaseTag && projectSlug && projectId && (
+          {projectSlug && projectId && (
             <ReleaseHighlight
               organization={organization}
               projectSlug={projectSlug}
@@ -151,7 +151,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
               releaseTag={releaseTag}
             />
           )}
-          {environmentTag && <EnvironmentHighlight environmentTag={environmentTag} />}
+          <EnvironmentHighlight environmentTag={environmentTag} />
         </ScrollCarousel>
       </IconBar>
       <SectionDivider style={{marginTop: space(1)}} />
@@ -168,8 +168,12 @@ export function ReleaseHighlight({
   organization: Organization;
   projectId: string;
   projectSlug: string;
-  releaseTag: EventTag;
+  releaseTag: EventTag | undefined;
 }) {
+  if (!releaseTag) {
+    return null;
+  }
+
   return (
     <IconContainer key="release">
       <IconWrapper>
@@ -188,7 +192,15 @@ export function ReleaseHighlight({
   );
 }
 
-export function EnvironmentHighlight({environmentTag}: {environmentTag: EventTag}) {
+export function EnvironmentHighlight({
+  environmentTag,
+}: {
+  environmentTag: EventTag | undefined;
+}) {
+  if (!environmentTag) {
+    return null;
+  }
+
   return (
     <IconContainer key="environment">
       <IconWrapper>

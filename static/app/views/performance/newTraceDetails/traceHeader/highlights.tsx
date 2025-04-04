@@ -24,28 +24,22 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 function LogsHighlights({
-  logs,
+  log,
   organization,
   project,
 }: {
-  logs: OurLogsResponseItem[];
+  log: OurLogsResponseItem;
   organization: Organization;
   project: Project | undefined;
 }) {
-  const log = logs[0];
-
   const {data, isPending} = useTraceItemDetails({
-    traceItemId: String(log![OurLogKnownFieldKey.ID]),
-    projectId: String(log![OurLogKnownFieldKey.PROJECT_ID]),
-    traceId: String(log![OurLogKnownFieldKey.TRACE_ID]),
+    traceItemId: String(log[OurLogKnownFieldKey.ID]),
+    projectId: String(log[OurLogKnownFieldKey.PROJECT_ID]),
+    traceId: String(log[OurLogKnownFieldKey.TRACE_ID]),
     traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details', // TODO Abdullah Khan: Add new referrer for trace view header
-    enabled: !!logs,
+    enabled: true,
   });
-
-  if (!logs) {
-    return null;
-  }
 
   if (isPending) {
     return (
@@ -59,29 +53,28 @@ function LogsHighlights({
 
   const attributes = data?.attributes;
   const releaseAttr = attributes?.find(attr => attr.name === 'sentry.release');
+  const releaseTag = releaseAttr && {
+    key: 'release',
+    value: releaseAttr.value.toString(),
+  };
+
   const environmentAttr = attributes?.find(attr => attr.name === 'environment');
+  const environmentTag = environmentAttr && {
+    key: 'environment',
+    value: environmentAttr.value.toString(),
+  };
 
   return (
     <LogsHighlightsWrapper>
-      {releaseAttr && project && (
+      {project && (
         <ReleaseHighlight
           organization={organization}
           projectSlug={project.slug}
           projectId={project.id}
-          releaseTag={{
-            key: 'release',
-            value: releaseAttr.value.toString(),
-          }}
+          releaseTag={releaseTag}
         />
       )}
-      {environmentAttr && (
-        <EnvironmentHighlight
-          environmentTag={{
-            key: 'environment',
-            value: environmentAttr.value.toString(),
-          }}
-        />
-      )}
+      <EnvironmentHighlight environmentTag={environmentTag} />
     </LogsHighlightsWrapper>
   );
 }
@@ -108,7 +101,13 @@ function Highlights({
   project,
 }: HighlightsProps) {
   if (tree.shape === TraceShape.EMPTY_TRACE && logs.length > 0) {
-    return <LogsHighlights logs={logs} organization={organization} project={project} />;
+    return (
+      <LogsHighlights
+        log={logs[0] as OurLogsResponseItem}
+        organization={organization}
+        project={project}
+      />
+    );
   }
 
   if (!rootEventResults.data) {

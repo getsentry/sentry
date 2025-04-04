@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -398,13 +397,8 @@ function LeafBreadCrumbLabel({
   project: Project | undefined;
   traceSlug: string;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
-    <Wrapper
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <Wrapper>
       {project && (
         <ProjectBadge
           hideName
@@ -417,17 +411,16 @@ function LeafBreadCrumbLabel({
         />
       )}
       <span>{formatVersion(traceSlug)}</span>
-      {isHovered && (
-        <CopyToClipboardButton
-          text={traceSlug}
-          size="zero"
-          borderless
-          iconSize="xs"
-          style={{
-            transform: 'translateY(-1px) translateX(-3px)',
-          }}
-        />
-      )}
+      <CopyToClipboardButton
+        className="trace-id-copy-button"
+        text={traceSlug}
+        size="zero"
+        borderless
+        iconSize="xs"
+        style={{
+          transform: 'translateY(-1px) translateX(-3px)',
+        }}
+      />
     </Wrapper>
   );
 }
@@ -436,6 +429,16 @@ const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};
+
+  .trace-id-copy-button {
+    display: none;
+  }
+
+  &:hover {
+    .trace-id-copy-button {
+      display: block;
+    }
+  }
 `;
 
 export function getTraceViewBreadcrumbs({
