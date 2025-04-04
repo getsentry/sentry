@@ -33,6 +33,7 @@ class GroupSearchViewValidatorResponse(TypedDict):
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
+        "GET": ["member:read"],
         "PUT": ["member:read", "member:write"],
         "DELETE": ["member:read", "member:write"],
     }
@@ -41,11 +42,39 @@ class MemberPermission(OrganizationPermission):
 @region_silo_endpoint
 class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (MemberPermission,)
+
+    def get(self, request: Request, organization: Organization, view_id: str) -> Response:
+        """
+        Get an issue view for the current organization member.
+        """
+        if not features.has(
+            "organizations:issue-stream-custom-views", organization, actor=request.user
+        ):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            view = GroupSearchView.objects.get(id=view_id, organization=organization)
+        except GroupSearchView.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        return Response(
+            serialize(
+                view,
+                request.user,
+                serializer=GroupSearchViewSerializer(
+                    has_global_views=features.has("organizations:global-views", organization),
+                    default_project=pick_default_project(organization, request.user),
+                    organization=organization,
+                ),
+            ),
+            status=status.HTTP_200_OK,
+        )
 
     def put(self, request: Request, organization: Organization, view_id: str) -> Response:
         """
