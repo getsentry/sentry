@@ -22,6 +22,8 @@ deletion_control_tasks = taskregistry.create_namespace(
 
 demomode_tasks = taskregistry.create_namespace("demomode")
 
+digests_tasks = taskregistry.create_namespace("digests")
+
 options_tasks = taskregistry.create_namespace("options")
 
 options_control_tasks = taskregistry.create_namespace("options.control")
