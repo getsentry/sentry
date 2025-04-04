@@ -102,7 +102,7 @@ class TestActionSerializer(TestCase):
             self.sentry_app_action, self.user, WorkflowEngineActionSerializer()
         )
         assert serialized_action["type"] == "sentry_app"
-        assert serialized_action["id"] == str(self.sentry_app_trigger.id)
+        assert serialized_action["id"] == str(self.sentry_app_trigger_action.id)
         assert serialized_action["alertRuleTriggerId"] == str(self.sentry_app_trigger.id)
         assert serialized_action["targetType"] == "sentry_app"
         assert serialized_action["targetIdentifier"] == sentry_app.id
@@ -133,7 +133,7 @@ class TestActionSerializer(TestCase):
             self.slack_action, self.user, WorkflowEngineActionSerializer()
         )
         assert serialized_action["type"] == self.integration.provider
-        assert serialized_action["id"] == str(self.slack_trigger.id)
+        assert serialized_action["id"] == str(self.slack_trigger_action.id)
         assert serialized_action["alertRuleTriggerId"] == str(self.slack_trigger.id)
         assert serialized_action["targetType"] == "specific"
         assert serialized_action["targetIdentifier"] == self.slack_trigger_action.target_display
