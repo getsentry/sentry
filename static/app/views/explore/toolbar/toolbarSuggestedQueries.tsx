@@ -129,7 +129,7 @@ interface SuggestedQueryLinkProps {
 function SuggestedQueryLink({suggestedQuery}: SuggestedQueryLinkProps) {
   const location = useLocation();
   const target = useMemo(
-    () => newExploreTarget(location, suggestedQuery),
+    () => newExploreTarget(location, {...suggestedQuery, id: null}),
     [location, suggestedQuery]
   );
 
