@@ -27,16 +27,20 @@ import useProjects from 'sentry/utils/useProjects';
 import StacktraceLinkModal from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
 
-// Keep this list in sync with SUPPORTED_LANGUAGES in code_mapping.py
+// Keep this list in sync with PLATFORMS_CONFIG in auto_source_code_config/constants.py
 const supportedStacktracePlatforms: PlatformKey[] = [
+  'clojure',
   'csharp',
-  'elixir',
+  'elixir', // Elixir is not listed on the main list
   'go',
+  'groovy',
+  'java',
   'javascript',
   'node',
   'php',
   'python',
   'ruby',
+  'scala',
 ];
 const scmProviders = ['github', 'gitlab'];
 
@@ -363,6 +367,9 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
               <StacktraceLinkModal
                 onSubmit={handleSubmit}
                 filename={filename}
+                module={frame.module ?? undefined}
+                absPath={frame.absPath ?? undefined}
+                platform={event.platform}
                 project={project}
                 organization={organization}
                 integrations={match.integrations}

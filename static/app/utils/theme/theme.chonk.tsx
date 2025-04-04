@@ -826,11 +826,6 @@ const generateAliases = (
   progressBackground: colors.gray100,
 
   /**
-   * Overlay for partial opacity
-   */
-  overlayBackgroundAlpha: colors.gray100,
-
-  /**
    * Tag progress bars
    */
   tagBarHover: colors.chonk.blue300,
