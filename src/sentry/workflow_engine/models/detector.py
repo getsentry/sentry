@@ -10,7 +10,6 @@ from django.db import models
 from django.db.models import UniqueConstraint
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from jsonschema import ValidationError
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
@@ -127,9 +126,8 @@ def enforce_config_schema(sender, instance: Detector, **kwargs):
     if not group_type:
         raise ValueError(f"No group type found with type {instance.type}")
 
-    if not isinstance(instance.config, dict):
-        raise ValidationError("Detector config must be a dictionary")
+    handler: DetectorHandler[Any] | None = instance.detector_handler
+    if not handler:
+        raise ValueError(f"No detector handler found for detector {instance.id}")
 
-    config_schema = group_type.detector_config_schema
-    if instance.config:
-        instance.validate_config(config_schema)
+    instance.validate_config(handler.config_schema)
