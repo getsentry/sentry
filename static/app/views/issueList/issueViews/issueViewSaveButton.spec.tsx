@@ -150,7 +150,7 @@ describe('IssueViewSaveButton', function () {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'More save options'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Save As'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Save as new view'}));
 
     const modal = screen.getByRole('dialog');
 
