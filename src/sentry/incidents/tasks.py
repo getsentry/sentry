@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from django.db import router, transaction
+
 from sentry.incidents.models.alert_rule import (
     AlertRuleStatus,
     AlertRuleTriggerAction,
@@ -25,6 +27,9 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscriptions.consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import alerts_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -80,6 +85,7 @@ def handle_snuba_query_update(
     default_retry_delay=60,
     max_retries=5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(namespace=alerts_tasks, retry=Retry(times=5)),
 )
 def handle_trigger_action(
     action_id: int,
@@ -139,6 +145,7 @@ def handle_trigger_action(
     default_retry_delay=60,
     max_retries=2,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(namespace=alerts_tasks, retry=Retry(times=2)),
 )
 def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status
@@ -159,14 +166,18 @@ def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     has_more = incidents.count() > batch_size
     if incidents:
         incidents = incidents[:batch_size]
-        for incident in incidents:
-            update_incident_status(
-                incident,
-                IncidentStatus.CLOSED,
-                status_method=IncidentStatusMethod.RULE_UPDATED,
-            )
+        with transaction.atomic(router.db_for_write(Incident)):
+            for incident in incidents:
+                update_incident_status(
+                    incident,
+                    IncidentStatus.CLOSED,
+                    status_method=IncidentStatusMethod.RULE_UPDATED,
+                )
 
-    if has_more:
-        auto_resolve_snapshot_incidents.apply_async(
-            kwargs={"alert_rule_id": alert_rule_id}, countdown=1
-        )
+            if has_more:
+                transaction.on_commit(
+                    lambda: auto_resolve_snapshot_incidents.apply_async(
+                        kwargs={"alert_rule_id": alert_rule_id}
+                    ),
+                    using=router.db_for_write(Incident),
+                )

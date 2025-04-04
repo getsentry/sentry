@@ -259,7 +259,7 @@ const StreamContent = styled('div')`
   white-space: pre-wrap;
   word-break: break-word;
   color: ${p => p.theme.subText};
-  max-height: 7rem;
+  max-height: 50vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column-reverse;
