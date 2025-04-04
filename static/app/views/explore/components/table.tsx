@@ -67,6 +67,7 @@ export function useTableStyles(
   options?: {
     minimumColumnWidth?: number;
     prefixColumnWidth?: 'min-content' | number;
+    staticColumnWidths?: Record<string, number | '1fr'>;
   }
 ) {
   const minimumColumnWidth = options?.minimumColumnWidth ?? MINIMUM_COLUMN_WIDTH;
@@ -85,14 +86,20 @@ export function useTableStyles(
   }, [fields]);
 
   const initialTableStyles = useMemo(() => {
-    const gridTemplateColumns = fields.map(() => `minmax(${minimumColumnWidth}px, auto)`);
+    const gridTemplateColumns = fields.map(field => {
+      const staticWidth = options?.staticColumnWidths?.[field];
+      if (staticWidth) {
+        return typeof staticWidth === 'number' ? `${staticWidth}px` : staticWidth;
+      }
+      return `minmax(${minimumColumnWidth}px, auto)`;
+    });
     if (defined(prefixColumnWidth)) {
       gridTemplateColumns.unshift(prefixColumnWidth);
     }
     return {
       gridTemplateColumns: gridTemplateColumns.join(' '),
     };
-  }, [fields, minimumColumnWidth, prefixColumnWidth]);
+  }, [fields, minimumColumnWidth, prefixColumnWidth, options?.staticColumnWidths]);
 
   const onResizeMouseDown = useCallback(
     (event: React.MouseEvent<HTMLDivElement>, index: number) => {

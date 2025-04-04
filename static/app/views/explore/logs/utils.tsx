@@ -128,7 +128,7 @@ export function getLogBodySearchTerms(search: MutableSearch): string[] {
 export function logsFieldAlignment(...args: Parameters<typeof fieldAlignment>) {
   const field = args[0];
   if (field === OurLogKnownFieldKey.TIMESTAMP) {
-    return 'right';
+    return 'left';
   }
   return fieldAlignment(...args);
 }
