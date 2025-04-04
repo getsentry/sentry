@@ -647,10 +647,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             disable_call_vals = []
 
             def capture_disable_seat(data_category, seat_object):
-                # Capture the id at the moment of the call.
                 disable_call_vals.append((data_category, seat_object.id))
-                # Optionally, call the real function if needed.
-                return
 
             mock_disable_seat.side_effect = capture_disable_seat
 
