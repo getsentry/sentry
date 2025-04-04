@@ -429,17 +429,13 @@ function:nextTick -app -group
 path:**/go/pkg/mod/** -app
 
 ## java
-# Having a category prevents deriving in_app stack trace rules
 module:akka.* category=not_in_app
-module:com.android.* category=not_in_app
 module:com.fasterxml.* category=not_in_app
-module:com.google.* category=not_in_app
 module:com.microsoft.* category=not_in_app
 module:com.sun.* category=not_in_app
 module:feign.* category=not_in_app
 module:io.opentelemetry.* category=not_in_app
 module:io.sentry.* category=not_in_app -group
-module:javax.* category=not_in_app
 module:jdk.* category=not_in_app
 module:oauth.* category=not_in_app
 module:org.apache.* category=not_in_app
