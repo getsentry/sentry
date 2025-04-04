@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -31,6 +31,7 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {type Range, RangeMap} from 'sentry/utils/number/rangeMap';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {ChartRendererProps} from 'sentry/views/releases/releaseBubbles/types';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
@@ -49,6 +50,8 @@ import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 const {error, warn, info} = Sentry.logger;
 
 export interface TimeSeriesWidgetVisualizationProps {
+  chartId: string;
+
   /**
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
@@ -124,6 +127,24 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const earliestTimeStamp = allBoundaries.at(0);
   const latestTimeStamp = allBoundaries.at(-1);
 
+  const chartRenderer = useMemo(
+    () =>
+      function ({ref: chartRendererRef}: ChartRendererProps) {
+        return (
+          <DrawerWidgetWrapper>
+            <TimeSeriesWidgetVisualization
+              {...props}
+              ref={chartRendererRef}
+              disableReleaseNavigation
+              onZoom={() => {}}
+              showReleaseAs="line"
+            />
+          </DrawerWidgetWrapper>
+        );
+      },
+    [props]
+  );
+
   const {
     connectReleaseBubbleChartRef,
     releaseBubbleEventHandlers,
@@ -131,6 +152,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
+    chartId: props.chartId,
+    chartRenderer,
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
     releases: hasReleaseBubbles
@@ -617,6 +640,10 @@ const LoadingPlaceholder = styled('div')`
 
 const LoadingMask = styled(TransparentLoadingMask)`
   background: ${p => p.theme.background};
+`;
+
+const DrawerWidgetWrapper = styled('div')`
+  height: 220px;
 `;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;

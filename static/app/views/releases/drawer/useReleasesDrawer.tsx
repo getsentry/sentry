@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {type ReactElement, useCallback, useEffect, useState} from 'react';
 import omit from 'lodash/omit';
 
 import useDrawer from 'sentry/components/globalDrawer';
@@ -9,6 +9,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
 import {ReleasesDrawerList} from 'sentry/views/releases/drawer/releasesDrawerList';
+import type {ChartRendererProps} from 'sentry/views/releases/releaseBubbles/types';
 
 const RELEASES_DRAWER_FIELD_MAP = {
   showReleasesDrawer: decodeScalar,
@@ -25,6 +26,10 @@ function cleanLocationQuery(query: Record<string, string[] | string | null | und
   return omit(query, RELEASES_DRAWER_FIELDS);
 }
 
+type ChartRenderer = (props: ChartRendererProps) => ReactElement;
+
+const initialState = new Map();
+
 export function useReleasesDrawer() {
   const {
     releaseProjectId,
@@ -37,9 +42,20 @@ export function useReleasesDrawer() {
   } = useLocationQuery({
     fields: RELEASES_DRAWER_FIELD_MAP,
   });
+  const [charts, setCharts] = useState<Map<string, ChartRenderer>>(initialState);
   const navigate = useNavigate();
   const location = useLocation();
   const {closeDrawer, openDrawer} = useDrawer();
+  const registerChart = (id: string, chartRenderer: ChartRenderer) => {
+    setCharts(state => {
+      state.set(id, chartRenderer);
+      return state;
+    });
+  };
+
+  const cleanup = useCallback(() => {
+    charts.clear();
+  }, [charts]);
 
   useEffect(() => {
     if (showReleasesDrawer !== '1') {
@@ -64,6 +80,7 @@ export function useReleasesDrawer() {
       openDrawer(
         () => (
           <ReleasesDrawerList
+            charts={charts}
             environments={rdEnv}
             projects={rdProject.map(Number)}
             startTs={Number(rdStart)}
@@ -89,6 +106,7 @@ export function useReleasesDrawer() {
       closeDrawer();
     };
   }, [
+    charts,
     closeDrawer,
     openDrawer,
     location.query,
@@ -101,4 +119,6 @@ export function useReleasesDrawer() {
     releaseProjectId,
     showReleasesDrawer,
   ]);
+
+  return {registerChart, cleanup, charts};
 }

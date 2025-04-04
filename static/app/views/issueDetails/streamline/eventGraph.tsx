@@ -45,7 +45,6 @@ import {
 import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/hooks/useReleaseMarkLineSeries';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 
 const enum EventGraphSeries {
@@ -240,7 +239,7 @@ export function EventGraph({
     }
   );
 
-  const {releases = []} = useReleaseStats(
+  const {releases} = useReleaseStats(
     {
       projects: eventView.project,
       environments: eventView.environment,
@@ -251,7 +250,7 @@ export function EventGraph({
       },
     },
     {
-      staleTime: 0,
+      staleTime: Infinity,
     }
   );
 
@@ -271,6 +270,20 @@ export function EventGraph({
     penultEventSeriesTimestamp &&
     lastEventSeriesTimestamp - penultEventSeriesTimestamp;
 
+  const chartRenderer = useCallback(
+    () => (
+      <EventGraph
+        group={group}
+        event={event}
+        showSummary={false}
+        showReleasesAs="line"
+        disableZoomNavigation
+        {...styleProps}
+      />
+    ),
+    [group, event, styleProps]
+  );
+
   const {
     connectReleaseBubbleChartRef,
     releaseBubbleEventHandlers,
@@ -278,6 +291,8 @@ export function EventGraph({
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
+    chartId: 'issue-details-event-graph',
+    chartRenderer,
     alignInMiddle: true,
     legendSelected: legendSelected.Releases,
     desiredBuckets: eventSeries.length,
@@ -295,8 +310,6 @@ export function EventGraph({
       period: eventView.statsPeriod,
     },
   });
-
-  useReleasesDrawer();
 
   const handleConnectRef = useCallback(
     (e: ReactEchartsRef | null) => {

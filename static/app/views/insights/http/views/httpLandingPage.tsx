@@ -183,6 +183,7 @@ export function HTTPLandingPage() {
               <ModulesOnboarding moduleName={ModuleName.HTTP}>
                 <ModuleLayout.Third>
                   <InsightsLineChartWidget
+                    chartId={Referrer.LANDING_THROUGHPUT_CHART}
                     title={getThroughputChartTitle('http')}
                     series={[throughputData['epm()']]}
                     isLoading={isThroughputDataLoading}
@@ -192,6 +193,7 @@ export function HTTPLandingPage() {
 
                 <ModuleLayout.Third>
                   <InsightsLineChartWidget
+                    chartId={Referrer.LANDING_DURATION_CHART}
                     title={getDurationChartTitle('http')}
                     series={[durationData['avg(span.self_time)']]}
                     isLoading={isDurationDataLoading}
@@ -201,6 +203,7 @@ export function HTTPLandingPage() {
 
                 <ModuleLayout.Third>
                   <InsightsLineChartWidget
+                    chartId={Referrer.LANDING_RESPONSE_CODE_CHART}
                     title={DataTitles.unsuccessfulHTTPCodes}
                     series={[
                       responseCodeData[`http_response_rate(3)`],
