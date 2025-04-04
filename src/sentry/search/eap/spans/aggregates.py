@@ -22,7 +22,7 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
 )
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
-from sentry.search.eap.utils import literal_validator
+from sentry.search.eap.utils import literal_validator, number_validator
 
 
 def count_processor(count_value: int | None) -> int:
@@ -110,8 +110,8 @@ def resolve_http_response_count(args: ResolvedArguments) -> tuple[AttributeKey, 
 
 def resolve_bounded_sample(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
     attribute = cast(AttributeKey, args[0])
-    lower_bound = cast(int, args[1])
-    upper_bound = cast(int | None, args[2])
+    lower_bound = cast(float, args[1])
+    upper_bound = cast(float | None, args[2])
 
     lower_bound_filter = TraceItemFilter(
         comparison_filter=ComparisonFilter(
@@ -214,8 +214,10 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         default_search_type="boolean",
         arguments=[
             AttributeArgumentDefinition(attribute_types={"millisecond"}),
-            ValueArgumentDefinition(argument_types={"integer"}),
-            ValueArgumentDefinition(argument_types={"integer"}, default_arg=None),
+            ValueArgumentDefinition(argument_types={"number"}, validator=number_validator),
+            ValueArgumentDefinition(
+                argument_types={"number"}, validator=number_validator, default_arg=None
+            ),
         ],
         aggregate_resolver=resolve_bounded_sample,
         processor=lambda x: x > 0,

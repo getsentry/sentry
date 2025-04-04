@@ -835,6 +835,8 @@ class SearchResolver:
                     for type in argument_definition.argument_types:
                         if type == "integer":
                             parsed_args.append(int(argument))
+                        if type == "number":
+                            parsed_args.append(float(argument))
                         else:
                             parsed_args.append(argument)
                     continue

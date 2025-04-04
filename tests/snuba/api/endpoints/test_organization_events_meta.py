@@ -632,7 +632,7 @@ class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestB
             {
                 "query": "",
                 "lowerBound": "0",
-                "firstBound": "10",
+                "firstBound": "10.0",
                 "secondBound": "20",
                 "upperBound": "200",
                 "column": "span.duration",
