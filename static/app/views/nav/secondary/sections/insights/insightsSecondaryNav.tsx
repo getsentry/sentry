@@ -31,6 +31,7 @@ import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
+import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
 import {MODULE_BASE_URLS} from '../../../../insights/common/utils/useModuleURL';
 import {ModuleName} from '../../../../insights/types';
@@ -42,6 +43,7 @@ export function InsightsSecondaryNav() {
   const location = useLocation();
   const baseUrl = `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}`;
   const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
+  useReleasesDrawer();
 
   const {projects} = useProjects();
 
