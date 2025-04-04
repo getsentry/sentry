@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import Hook from 'sentry/components/hook';
 import {
+  IconCodecov,
   IconDashboard,
   IconGraph,
   IconIssues,
@@ -122,6 +123,17 @@ export function PrimaryNavigationItems() {
               <IconGraph type="area" />
             </SidebarLink>
           </NavTourElement>
+        </Feature>
+
+        <Feature features={['codecov-ui']}>
+          <SidebarLink
+            to={`/${prefix}/codecov/coverage/`}
+            activeTo={`/${prefix}/codecov/`}
+            analyticsKey="codecov"
+            label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.CODECOV].label}
+          >
+            <IconCodecov />
+          </SidebarLink>
         </Feature>
 
         <SeparatorItem />
