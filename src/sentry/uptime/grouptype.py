@@ -21,4 +21,4 @@ class UptimeDomainCheckFailure(GroupType):
 
 
 # XXX: Temporary hack to work around pickling issues
-grouptype.UptimeDomainCheckFailure = UptimeDomainCheckFailure
+grouptype.UptimeDomainCheckFailure = UptimeDomainCheckFailure  # type: ignore[attr-defined]
