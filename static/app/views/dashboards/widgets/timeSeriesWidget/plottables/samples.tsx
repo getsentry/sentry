@@ -181,26 +181,33 @@ export class Samples implements Plottable {
     return new Samples(this.constrainSamples(boundaryStart, boundaryEnd), this.config);
   }
 
-  onHighlight(dataIndex: number): void {
-    const {config} = this;
-
+  #getSampleByIndex(dataIndex: number): ValidSampleRow | undefined {
     const sample = this.sampleTableData.data.at(dataIndex);
 
     if (!sample) {
-      error('`Samples` plottable `onHighlight` out-of-range error', {
+      error('`Samples` plottable data out-of-range error', {
         dataIndex,
       });
-      return;
+      return undefined;
     }
 
     if (!isValidSampleRow(sample)) {
       warn('`Samples` plottable `onHighlight` almost received an invalid row', {
         dataIndex,
       });
-      return;
+      return undefined;
     }
 
-    config.onHighlight?.(sample);
+    return sample;
+  }
+
+  onHighlight(dataIndex: number): void {
+    const {config} = this;
+
+    const sample = this.#getSampleByIndex(dataIndex);
+    if (sample) {
+      config.onHighlight?.(sample);
+    }
   }
 
   toSeries(plottingOptions: SamplesPlottingOptions): SeriesOption[] {
