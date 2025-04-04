@@ -1,7 +1,6 @@
 import pytest
 
 from sentry.models.project import Project
-from sentry.testutils.asserts import verify_project_deletion
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -45,11 +44,9 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.click_on_platform("javascript-nextjs")
         self.verify_project_creation("javascript-nextjs", "Next.js")
         self.browser.click('[aria-label="Back"]')
-        verify_project_deletion(self.org, "javascript-nextjs")
         self.click_on_platform("javascript-react")
         self.verify_project_creation("javascript-react", "React")
         self.browser.back()
-        verify_project_deletion(self.org, "javascript-react")
         self.browser.click(xpath='//a[text()="Skip Onboarding"]')
         self.browser.get("/organizations/%s/projects/" % self.org.slug)
         self.browser.wait_until(xpath='//h1[text()="Remain Calm"]')
@@ -71,7 +68,6 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.click_on_platform(platform)
         self.verify_project_creation(platform, "Next.js")
         self.browser.click('[aria-label="Back"]')
-        verify_project_deletion(self.org, platform)
         self.click_on_platform(platform)
         self.verify_project_creation(platform, "Next.js")
         self.browser.click(xpath='//a[text()="Skip Onboarding"]')

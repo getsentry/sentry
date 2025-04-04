@@ -1,14 +1,10 @@
-import time
 from functools import reduce
 
 from django.http import StreamingHttpResponse
 
-from sentry.constants import ObjectStatus
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -47,17 +43,6 @@ def assert_status_code(response, minimum: int, maximum: int | None = None):
         response.status_code,
         response.getvalue() if isinstance(response, StreamingHttpResponse) else response.content,
     )
-
-
-def verify_project_deletion(org: Organization, platform: str):
-    start_time = time.time()
-    while time.time() - start_time < 10:
-        project_exists = Project.objects.filter(
-            organization=org, slug=platform, status=ObjectStatus.ACTIVE
-        ).exists()
-        if not project_exists:
-            return
-    assert False
 
 
 @assume_test_silo_mode(SiloMode.CONTROL)

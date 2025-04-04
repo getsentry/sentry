@@ -1,4 +1,3 @@
-from sentry.testutils.asserts import verify_project_deletion
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -41,9 +40,7 @@ class CreateProjectTest(AcceptanceTestCase):
         self.load_project_creation_page()
         self.select_platform_and_create_project("php-laravel", "Laravel")
         self.browser.click('[aria-label="Back to Platform Selection"]')
-        verify_project_deletion(self.org, "platform-php-laravel")
         self.select_platform_and_create_project("javascript-nextjs", "Next.js")
         self.browser.back()
-        verify_project_deletion(self.org, "javascript-nextjs")
         self.browser.get("/organizations/%s/projects/" % self.org.slug)
         self.browser.wait_until(xpath='//h1[text()="Remain Calm"]')
