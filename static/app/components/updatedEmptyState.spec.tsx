@@ -1,12 +1,22 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import UpdatedEmptyState from 'sentry/components/updatedEmptyState';
+import {useNavigate} from 'sentry/utils/useNavigate';
+
+jest.mock('sentry/utils/useNavigate');
+
+const mockUseNavigate = jest.mocked(useNavigate);
+const mockNavigate = jest.fn();
+mockUseNavigate.mockReturnValue(mockNavigate);
 
 describe('UpdatedEmptyState', function () {
+  const router = RouterFixture();
+
   it('Renders updated empty state', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/keys/`,
@@ -25,7 +35,9 @@ describe('UpdatedEmptyState', function () {
       method: 'GET',
     });
 
-    render(<UpdatedEmptyState project={ProjectFixture({platform: 'python-django'})} />);
+    render(<UpdatedEmptyState project={ProjectFixture({platform: 'python-django'})} />, {
+      router,
+    });
     expect(await screen.findByText('Get Started with Sentry Issues')).toBeInTheDocument();
     expect(await screen.findByText('Set up the Sentry SDK')).toBeInTheDocument();
     expect(await screen.findByText('Preview a Sentry Issue')).toBeInTheDocument();
@@ -38,24 +50,11 @@ describe('UpdatedEmptyState', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher('Initialize the Sentry SDK in your Django settings.py file')
-      )
-    ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-
-    expect(
-      await screen.findByText(
-        'You can easily verify your Sentry installation by creating a route that triggers an error:'
-      )
-    ).toBeInTheDocument();
-
-    expect(
-      await screen.findByText('Waiting to receive first event to continue')
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: 'Take me to my error'})).toBeDisabled();
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...router.location,
+        query: {guidedStep: 2},
+      })
+    );
   });
 });
