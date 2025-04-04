@@ -12,6 +12,7 @@ import type {EventGroupingConfig} from 'sentry/types/event';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -50,6 +51,7 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
   const endpoint = `/projects/${organization.slug}/${project.slug}/`;
 
   const access = new Set(organization.access.concat(project.access));
+  const activeSuperUser = isActiveSuperuser();
   const hasAccess = hasEveryAccess(['project:write'], {organization, project});
 
   const jsonFormProps = {
@@ -100,6 +102,14 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
           title={t('Stack Trace Rules')}
           fields={[fields.groupingEnhancements]}
         />
+
+        {activeSuperUser && (
+          <JsonForm
+            {...jsonFormProps}
+            title={t('Derived Grouping Enhancements')}
+            fields={[fields.derivedGroupingEnhancements!]}
+          />
+        )}
       </Form>
     </SentryDocumentTitle>
   );

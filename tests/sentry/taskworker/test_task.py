@@ -133,7 +133,7 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
         at_most_once=True,
     )
     # No retries will be made as there is no retry policy on the task or namespace.
-    activation = no_retry_task.create_activation()
+    activation = no_retry_task.create_activation([], {})
     assert activation.taskname == "test.no_retry"
     assert activation.namespace == task_namespace.name
     assert activation.retry_state
@@ -141,7 +141,7 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
     assert activation.retry_state.max_attempts == 1
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DISCARD
 
-    activation = retry_task.create_activation()
+    activation = retry_task.create_activation([], {})
     assert activation.taskname == "test.with_retry"
     assert activation.namespace == task_namespace.name
     assert activation.retry_state
@@ -149,17 +149,17 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
     assert activation.retry_state.max_attempts == 3
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
 
-    activation = timedelta_expiry_task.create_activation()
+    activation = timedelta_expiry_task.create_activation([], {})
     assert activation.taskname == "test.with_timedelta_expires"
     assert activation.expires == 300
     assert activation.processing_deadline_duration == 30
 
-    activation = int_expiry_task.create_activation()
+    activation = int_expiry_task.create_activation([], {})
     assert activation.taskname == "test.with_int_expires"
     assert activation.expires == 300
     assert activation.processing_deadline_duration == 30
 
-    activation = at_most_once_task.create_activation()
+    activation = at_most_once_task.create_activation([], {})
     assert activation.taskname == "test.at_most_once"
     assert activation.namespace == task_namespace.name
     assert activation.retry_state
@@ -174,7 +174,7 @@ def test_create_activation_parameters(task_namespace: TaskNamespace) -> None:
     def with_parameters(one: str, two: int, org_id: int) -> None:
         raise NotImplementedError
 
-    activation = with_parameters.create_activation("one", 22, org_id=99)
+    activation = with_parameters.create_activation(["one", 22], {"org_id": 99})
     params = json.loads(activation.parameters)
     assert params["args"]
     assert params["args"] == ["one", 22]
@@ -187,8 +187,24 @@ def test_create_activation_tracing(task_namespace: TaskNamespace) -> None:
         raise NotImplementedError
 
     with sentry_sdk.start_transaction(op="test.task"):
-        activation = with_parameters.create_activation("one", 22, org_id=99)
+        activation = with_parameters.create_activation(["one", 22], {"org_id": 99})
 
     headers = activation.headers
     assert headers["sentry-trace"]
     assert "baggage" in headers
+
+
+def test_create_activation_headers(task_namespace: TaskNamespace) -> None:
+    @task_namespace.register(name="test.parameters")
+    def with_parameters(one: str, two: int, org_id: int) -> None:
+        raise NotImplementedError
+
+    with sentry_sdk.start_transaction(op="test.task"):
+        activation = with_parameters.create_activation(
+            ["one", 22], {"org_id": 99}, {"key": "value"}
+        )
+
+    headers = activation.headers
+    assert headers["sentry-trace"]
+    assert "baggage" in headers
+    assert headers["key"] == "value"

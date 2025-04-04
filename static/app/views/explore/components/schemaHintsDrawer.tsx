@@ -223,6 +223,7 @@ export const useSchemaHintsOnLargeScreen = () => {
 
 const SchemaHintsHeader = styled('h4')`
   margin: 0;
+  flex-shrink: 0;
 `;
 
 const StyledDrawerBody = styled(DrawerBody)`
@@ -234,6 +235,7 @@ const HeaderContainer = styled('div')`
   justify-content: space-between;
   align-items: center;
   margin-bottom: ${space(2)};
+  gap: ${space(1.5)};
 `;
 
 const CheckboxLabelContainer = styled('div')`
@@ -307,7 +309,6 @@ const VirtualOffset = styled('div')<{offset: number}>`
 `;
 
 const SearchInput = styled(InputGroup.Input)`
-  border: 0;
   box-shadow: unset;
   color: inherit;
 `;

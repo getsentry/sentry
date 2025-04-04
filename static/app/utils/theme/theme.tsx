@@ -346,11 +346,6 @@ export const generateThemeAliases = (colors: Colors) => ({
   focusBorder: colors.purple300,
 
   /**
-   * Inactive
-   */
-  inactive: colors.gray300,
-
-  /**
    * Link color indicates that something is clickable
    */
   linkColor: colors.blue400,
@@ -362,11 +357,6 @@ export const generateThemeAliases = (colors: Colors) => ({
    * Form placeholder text color
    */
   formPlaceholder: colors.gray300,
-
-  /**
-   * Default form text color
-   */
-  formText: colors.gray400,
 
   /**
    *
@@ -388,6 +378,11 @@ export const generateThemeAliases = (colors: Colors) => ({
    * Color for the 'others' series in topEvent charts
    */
   chartOther: colors.gray200,
+
+  /**
+   * Color of the divider used in the content slider diff
+   */
+  diffSliderDivider: colors.purple400,
 
   /**
    * Default Progressbar color
@@ -433,16 +428,6 @@ export const generateThemeAliases = (colors: Colors) => ({
     warning: colors.yellow200,
     warningActive: color(colors.yellow200).opaquer(1).string(),
   },
-
-  /**
-   * Count on button when active
-   */
-  buttonCountActive: colors.white,
-
-  /**
-   * Count on button
-   */
-  buttonCount: colors.gray500,
 
   /**
    * Background of alert banners at the top

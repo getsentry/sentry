@@ -31,6 +31,7 @@ import type {
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {capitalize} from 'sentry/utils/string/capitalize';
+import {POPULARITY_WEIGHT} from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {IconSize} from './theme';
 
@@ -330,4 +331,94 @@ export function getIntegrationStatus(integration: Integration) {
   const firstNotActive = statusList.find(s => s !== 'active');
   // Active if everything is active, otherwise the first inactive status
   return firstNotActive ?? 'active';
+}
+
+/**
+ * Returns a prioritized status across all integrations for a provider
+ */
+export function getProviderIntegrationStatus(integrations: Integration[]) {
+  const statusList = integrations.map(getIntegrationStatus);
+  if (statusList.includes('active')) {
+    return 'Installed';
+  }
+  if (statusList.includes('disabled')) {
+    return 'Disabled';
+  }
+  if (statusList.includes('pending_deletion')) {
+    return 'Pending Deletion';
+  }
+  return 'Not Installed';
+}
+
+/**
+ * Returns 0 if uninstalled, 1 if pending, 2 if installed
+ */
+function getInstallValue({
+  integration,
+  integrationInstalls,
+  sentryAppInstalls,
+}: {
+  integration: AppOrProviderOrPlugin;
+  integrationInstalls: Integration[];
+  sentryAppInstalls: SentryAppInstallation[];
+}) {
+  if (isPlugin(integration)) {
+    return integration.projectList.length > 0 ? 2 : 0;
+  }
+
+  if (isSentryApp(integration)) {
+    const install = sentryAppInstalls.find(sa => sa.app.slug === integration.slug);
+    if (install) {
+      return install.status === 'pending' ? 1 : 2;
+    }
+    return 0;
+  }
+
+  if (isDocIntegration(integration)) {
+    return 0;
+  }
+
+  return integrationInstalls.find(i => i.provider.key === integration.key) ? 2 : 0;
+}
+
+function getPopularityWeight(integration: AppOrProviderOrPlugin) {
+  if (isSentryApp(integration) || isDocIntegration(integration)) {
+    return integration?.popularity ?? 1;
+  }
+  return POPULARITY_WEIGHT[integration.slug] ?? 1;
+}
+
+export function sortIntegrations({
+  list,
+  sentryAppInstalls,
+  integrationInstalls,
+}: {
+  integrationInstalls: Integration[];
+  list: AppOrProviderOrPlugin[];
+  sentryAppInstalls: SentryAppInstallation[];
+}) {
+  return list.toSorted((a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
+    // sort by whether installed first
+    const diffWeight =
+      getInstallValue({
+        integration: b,
+        integrationInstalls,
+        sentryAppInstalls,
+      }) -
+      getInstallValue({
+        integration: a,
+        integrationInstalls,
+        sentryAppInstalls,
+      });
+    if (diffWeight !== 0) {
+      return diffWeight;
+    }
+    // then sort by popularity
+    const diffPop = getPopularityWeight(b) - getPopularityWeight(a);
+    if (diffPop !== 0) {
+      return diffPop;
+    }
+    // then sort by name
+    return a.slug.localeCompare(b.slug);
+  });
 }

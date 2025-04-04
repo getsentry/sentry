@@ -597,9 +597,8 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                       : Object.keys(this.state.data)
                           .filter(key => key.startsWith('reservedCpe'))
                           .reduce((acc, key) => {
-                            return {...acc, [key]: ''};
+                            return {...acc, [key]: null};
                           }, {});
-
                     this.setState(state => ({
                       ...state,
                       data: {
