@@ -2563,6 +2563,60 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["device.class"] == "Unknown"
         assert meta["dataset"] == self.dataset
 
+    def test_http_response_count(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"status_code": "500"}}, start_ts=self.ten_mins_ago
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"status_code": "500"}}, start_ts=self.ten_mins_ago
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"status_code": "404"}}, start_ts=self.ten_mins_ago
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"status_code": "200"}}, start_ts=self.ten_mins_ago
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "http_response_count(5)",
+                    "http_response_count(4)",
+                    "http_response_count(2)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["http_response_count(5)"] == 2
+        assert data[0]["http_response_count(4)"] == 1
+        assert data[0]["http_response_count(2)"] == 1
+        assert meta["dataset"] == self.dataset
+
     def test_http_response_rate(self):
         self.store_spans(
             [
