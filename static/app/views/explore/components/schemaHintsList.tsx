@@ -213,6 +213,8 @@ function SchemaHintsList({
             {
               ariaLabel: t('Schema Hints Drawer'),
               drawerWidth: SCHEMA_HINTS_DRAWER_WIDTH,
+              useFixedWidth: true,
+              drawerHeight: `calc(100% - ${space(4)})`,
               transitionProps: {
                 key: 'schema-hints-drawer',
                 type: 'tween',

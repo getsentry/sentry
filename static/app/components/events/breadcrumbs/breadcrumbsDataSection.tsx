@@ -95,6 +95,7 @@ export default function BreadcrumbsDataSection({
         {
           ariaLabel: 'breadcrumb drawer',
           drawerKey: `breadcrumbs-drawer`,
+          drawerHeight: '100%',
           // We prevent a click on the 'View All' button from closing the drawer so that
           // we don't reopen it immediately, and instead let the button handle this itself.
           shouldCloseOnInteractOutside: element => {
