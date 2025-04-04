@@ -142,17 +142,17 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ),
         ResolvedAttribute(
             public_alias="profiler.id",
-            internal_name="profiler_id",
+            internal_name="sentry.profiler_id",
             search_type="string",
         ),
         ResolvedAttribute(
             public_alias="thread.id",
-            internal_name="thread.id",
+            internal_name="sentry.thread.id",
             search_type="string",
         ),
         ResolvedAttribute(
             public_alias="thread.name",
-            internal_name="thread.name",
+            internal_name="sentry.thread.name",
             search_type="string",
         ),
         ResolvedAttribute(

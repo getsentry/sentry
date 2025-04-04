@@ -1,11 +1,13 @@
 import uuid
 from datetime import datetime, timezone
 from unittest import mock
+from uuid import uuid4
 
 import pytest
 import urllib3
 
 from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 # Downsampling is deterministic, so unless the algorithm changes we can find a known id that will appear in the
@@ -3827,3 +3829,131 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(response.data["data"]) == 2
         assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
         assert response.data["data"][1]["id"] == "b" * 16
+
+    def test_transaction_profile_attributes(self):
+        span_with_profile = self.create_span(start_ts=before_now(minutes=10))
+        span_without_profile = self.create_span(
+            {"profile_id": None}, start_ts=before_now(minutes=20)
+        )
+        self.store_spans(
+            [span_with_profile, span_without_profile],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["id", "profile.id", "timestamp"],
+                "query": "",
+                "orderby": "-timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "1h",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span_with_profile["span_id"],
+                "profile.id": span_with_profile["profile_id"],
+                "project.name": self.project.slug,
+                "timestamp": mock.ANY,
+            },
+            {
+                "id": span_without_profile["span_id"],
+                "profile.id": None,
+                "project.name": self.project.slug,
+                "timestamp": mock.ANY,
+            },
+        ]
+
+        response = self.do_request(
+            {
+                "field": ["id", "profile.id", "timestamp"],
+                "query": "has:profile.id",
+                "orderby": "-timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "1h",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span_with_profile["span_id"],
+                "profile.id": span_with_profile["profile_id"],
+                "project.name": self.project.slug,
+                "timestamp": mock.ANY,
+            },
+        ]
+
+    def test_continuous_profile_attributes(self):
+        span_with_profile = self.create_span(
+            {
+                "profile_id": None,
+                "sentry_tags": {
+                    "profiler_id": uuid4().hex,
+                    "thread.id": "123",
+                    "thread.name": "main",
+                },
+            },
+            start_ts=before_now(minutes=10),
+        )
+        span_without_profile = self.create_span(
+            {"profile_id": None}, start_ts=before_now(minutes=20)
+        )
+        self.store_spans(
+            [span_with_profile, span_without_profile],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["id", "profiler.id", "thread.id", "thread.name", "timestamp"],
+                "query": "",
+                "orderby": "-timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "1h",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span_with_profile["span_id"],
+                "profiler.id": span_with_profile["sentry_tags"]["profiler_id"],
+                "project.name": self.project.slug,
+                "thread.id": span_with_profile["sentry_tags"]["thread.id"],
+                "thread.name": span_with_profile["sentry_tags"]["thread.name"],
+                "timestamp": mock.ANY,
+            },
+            {
+                "id": span_without_profile["span_id"],
+                "profiler.id": None,
+                "project.name": self.project.slug,
+                "thread.id": None,
+                "thread.name": None,
+                "timestamp": mock.ANY,
+            },
+        ]
+
+        response = self.do_request(
+            {
+                "field": ["id", "profiler.id", "thread.id", "thread.name", "timestamp"],
+                "query": "has:profiler.id",
+                "orderby": "-timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "1h",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span_with_profile["span_id"],
+                "profiler.id": span_with_profile["sentry_tags"]["profiler_id"],
+                "project.name": self.project.slug,
+                "thread.id": span_with_profile["sentry_tags"]["thread.id"],
+                "thread.name": span_with_profile["sentry_tags"]["thread.name"],
+                "timestamp": mock.ANY,
+            },
+        ]
