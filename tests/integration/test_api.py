@@ -22,7 +22,7 @@ class AuthenticationTest(AuthProviderTestCase):
 
         member = self.create_member(user=self.user, organization=self.organization, teams=[team])
 
-        setattr(member.flags, "sso:linked", True)
+        member.flags["sso:linked"] = True
         member.save()
         event = self.store_event(data={}, project_id=self.project.id)
         group_id = event.group_id
