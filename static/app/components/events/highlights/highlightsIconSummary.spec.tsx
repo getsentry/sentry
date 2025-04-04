@@ -92,7 +92,9 @@ describe('HighlightsIconSummary', function () {
     expect(screen.getByText('Mac OS X')).toBeInTheDocument();
     expect(screen.getByText('10.15')).toBeInTheDocument();
     await userEvent.hover(screen.getByText('10.15'));
-    expect(await screen.findByText('Operating System Version')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Client Operating System Version')
+    ).toBeInTheDocument();
     expect(screen.getByText('CPython')).toBeInTheDocument();
     expect(screen.getByText('3.8.13')).toBeInTheDocument();
     await userEvent.hover(screen.getByText('3.8.13'));

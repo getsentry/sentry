@@ -37,6 +37,15 @@ invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
 invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 
+// lint rules that need type information need to go here
+export const typeAwareLintRules = {
+  name: 'plugin/typescript-eslint/type-aware-linting',
+  rules: {
+    '@typescript-eslint/await-thenable': 'error',
+    '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+  },
+};
+
 const restrictedImportPaths = [
   {
     name: '@testing-library/react',
@@ -444,13 +453,7 @@ export default typescript.config([
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/stylistic.ts
   ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
   ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
-  {
-    name: 'plugin/typescript-eslint/type-aware-linting',
-    rules: {
-      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
-      '@typescript-eslint/await-thenable': 'error',
-    },
-  },
+  typeAwareLintRules,
   {
     name: 'plugin/typescript-eslint/overrides',
     // https://typescript-eslint.io/rules/
