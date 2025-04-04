@@ -133,7 +133,7 @@ type GridEditableState = {
 };
 
 class GridEditable<
-  DataRow extends {[key: string]: any},
+  DataRow extends Record<string, any>,
   ColumnKey extends ObjectKey,
 > extends Component<GridEditableProps<DataRow, ColumnKey>, GridEditableState> {
   // Static methods do not allow the use of generics bounded to the parent class
@@ -169,9 +169,7 @@ class GridEditable<
 
   private refGrid = createRef<HTMLTableElement>();
   private resizeMetadata?: ColResizeMetadata;
-  private resizeWindowLifecycleEvents: {
-    [eventName: string]: any[];
-  } = {
+  private resizeWindowLifecycleEvents: Record<string, any[]> = {
     mousemove: [],
     mouseup: [],
   };

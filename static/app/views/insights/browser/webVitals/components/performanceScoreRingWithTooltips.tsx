@@ -26,9 +26,7 @@ type Coordinates = {
   y: number;
 };
 
-type WebVitalsLabelCoordinates = {
-  [p in WebVitals]?: Coordinates;
-};
+type WebVitalsLabelCoordinates = Partial<Record<WebVitals, Coordinates>>;
 
 type Props = {
   height: number;
@@ -289,9 +287,7 @@ function calculateLabelCoordinates(
   x: number,
   y: number,
   barWidth: number,
-  weights: {
-    [key in WebVitals]: number;
-  },
+  weights: Record<WebVitals, number>,
   labelWidthPadding: number,
   labelHeightPadding: number,
   radiusPadding: number
@@ -316,7 +312,7 @@ function calculateLabelCoordinates(
     return {x: segmentX, y: segmentY};
   });
 
-  const results: {[key in WebVitals]?: {x: number; y: number}} = {};
+  const results: Partial<Record<WebVitals, {x: number; y: number}>> = {};
   Object.keys(weights).forEach((key, index) => {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     results[key] = {
