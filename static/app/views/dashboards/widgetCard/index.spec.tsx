@@ -15,6 +15,8 @@ import {
 import * as modal from 'sentry/actionCreators/modal';
 import * as LineChart from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import type {Organization} from 'sentry/types/organization';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -38,12 +40,12 @@ describe('Dashboards > WidgetCard', function () {
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
 
-  const renderWithProviders = (component: React.ReactNode) =>
+  const renderWithProviders = (component: React.ReactNode, org?: Organization) =>
     render(
       <DashboardsMEPProvider>
         <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
       </DashboardsMEPProvider>,
-      {organization, router}
+      {organization: org ?? organization, router}
     );
 
   const multipleQueryWidget: Widget = {
@@ -82,7 +84,6 @@ describe('Dashboards > WidgetCard', function () {
     },
   };
 
-  const api = new MockApiClient();
   let eventsMock: jest.Mock;
 
   const widgetLegendState = new WidgetLegendSelectionState({
@@ -93,6 +94,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   beforeEach(function () {
+    PageFiltersStore.reset(selection);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {meta: {isMetricsData: false}},
@@ -118,9 +120,7 @@ describe('Dashboards > WidgetCard', function () {
     const spy = jest.spyOn(modal, 'openDashboardWidgetQuerySelectorModal');
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={multipleQueryWidget}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
@@ -144,9 +144,7 @@ describe('Dashboards > WidgetCard', function () {
   it('renders with Open in Discover button', async function () {
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]!]}}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
@@ -168,9 +166,7 @@ describe('Dashboards > WidgetCard', function () {
   it('renders widget description in dashboard', async function () {
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={multipleQueryWidget}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
@@ -189,7 +185,6 @@ describe('Dashboards > WidgetCard', function () {
   it('renders Discover button with prepended fields pulled from equations', async function () {
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           queries: [
@@ -205,7 +200,6 @@ describe('Dashboards > WidgetCard', function () {
             },
           ],
         }}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
@@ -227,7 +221,6 @@ describe('Dashboards > WidgetCard', function () {
   it('renders button to open Discover with Top N', async function () {
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TOP_N,
@@ -240,7 +233,6 @@ describe('Dashboards > WidgetCard', function () {
             },
           ],
         }}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
@@ -262,7 +254,6 @@ describe('Dashboards > WidgetCard', function () {
   it('allows Open in Discover when the widget contains custom measurements', async function () {
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.LINE,
@@ -276,7 +267,6 @@ describe('Dashboards > WidgetCard', function () {
             },
           ],
         }}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
@@ -299,13 +289,11 @@ describe('Dashboards > WidgetCard', function () {
     const mock = jest.fn();
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
@@ -326,13 +314,11 @@ describe('Dashboards > WidgetCard', function () {
     const mock = jest.fn();
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
@@ -353,13 +339,11 @@ describe('Dashboards > WidgetCard', function () {
     const mock = jest.fn();
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={mock}
@@ -380,13 +364,11 @@ describe('Dashboards > WidgetCard', function () {
     const mock = jest.fn();
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={mock}
         onEdit={() => undefined}
@@ -414,13 +396,11 @@ describe('Dashboards > WidgetCard', function () {
 
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
           queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={mock}
         onEdit={() => undefined}
@@ -449,13 +429,11 @@ describe('Dashboards > WidgetCard', function () {
     const mock = jest.fn();
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
           queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={mock}
         onEdit={() => undefined}
@@ -499,9 +477,7 @@ describe('Dashboards > WidgetCard', function () {
 
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={tableWidget}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
@@ -533,9 +509,7 @@ describe('Dashboards > WidgetCard', function () {
     };
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={widget}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
@@ -561,9 +535,7 @@ describe('Dashboards > WidgetCard', function () {
     };
     renderWithProviders(
       <WidgetCard
-        api={api}
         widget={widget}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
@@ -615,8 +587,6 @@ describe('Dashboards > WidgetCard', function () {
 
     renderWithProviders(
       <WidgetCard
-        api={api}
-        organization={organization}
         widget={{
           title: '',
           interval: '5m',
@@ -633,7 +603,6 @@ describe('Dashboards > WidgetCard', function () {
             },
           ],
         }}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
@@ -715,8 +684,6 @@ describe('Dashboards > WidgetCard', function () {
 
     renderWithProviders(
       <WidgetCard
-        api={api}
-        organization={organization}
         widget={{
           title: '',
           interval: '5m',
@@ -733,7 +700,6 @@ describe('Dashboards > WidgetCard', function () {
             },
           ],
         }}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
@@ -763,13 +729,7 @@ describe('Dashboards > WidgetCard', function () {
   it('displays indexed badge in preview mode', async function () {
     renderWithProviders(
       <WidgetCard
-        api={api}
-        organization={{
-          ...organization,
-          features: [...organization.features, 'dashboards-mep'],
-        }}
         widget={multipleQueryWidget}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
@@ -779,7 +739,11 @@ describe('Dashboards > WidgetCard', function () {
         widgetLimitReached={false}
         isPreview
         widgetLegendState={widgetLegendState}
-      />
+      />,
+      {
+        ...organization,
+        features: [...organization.features, 'dashboards-mep'],
+      }
     );
 
     expect(await screen.findByText('Indexed')).toBeInTheDocument();
@@ -794,10 +758,7 @@ describe('Dashboards > WidgetCard', function () {
 
     renderWithProviders(
       <WidgetCard
-        api={api}
-        organization={organization}
         widget={testWidget}
-        selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}

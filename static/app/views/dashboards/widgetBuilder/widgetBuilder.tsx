@@ -1231,7 +1231,6 @@ function WidgetBuilder({
                                     onDataFetched={handleWidgetDataFetched}
                                     widget={currentWidget}
                                     dashboardFilters={dashboard.filters}
-                                    pageFilters={pageFilters}
                                     displayType={state.displayType}
                                     error={state.errors?.displayType}
                                     onChange={newDisplayType => {
