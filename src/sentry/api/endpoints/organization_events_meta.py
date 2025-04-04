@@ -184,14 +184,11 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
             return Response({})
 
         use_rpc = request.GET.get("useRpc", "0") == "1"
-        transform_alias_to_input_format = (
-            request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
-        )
 
         if use_rpc:
             result = get_eap_span_samples(request, snuba_params)
         else:
-            result = get_span_samples(request, snuba_params, transform_alias_to_input_format)
+            result = get_span_samples(request, snuba_params)
 
         return Response(
             self.handle_results_with_meta(
@@ -205,9 +202,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
         )
 
 
-def get_span_samples(
-    request: Request, snuba_params: SnubaParams, transform_alias_to_input_format: bool
-):
+def get_span_samples(request: Request, snuba_params: SnubaParams):
     is_frontend = is_frontend_request(request)
     buckets = request.GET.get("intervals", 3)
     lower_bound = request.GET.get("lowerBound", 0)
@@ -283,7 +278,7 @@ def get_span_samples(
         limit=9,
         referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
         query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
-        transform_alias_to_input_format=transform_alias_to_input_format,
+        transform_alias_to_input_format=True,
     )
 
 

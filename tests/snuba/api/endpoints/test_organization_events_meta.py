@@ -561,7 +561,6 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
                 "upperBound": "300",
                 "column": "span.duration",
                 "project": self.project.id,
-                "transformAliasToInputFormat": "1",
             },
             format="json",
         )
