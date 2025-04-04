@@ -33,6 +33,14 @@ def literal_validator(values: list[Any]) -> Callable[[str], bool]:
     return _validator
 
 
+def number_validator(input: str) -> bool:
+    try:
+        float(input)
+        return True
+    except ValueError:
+        return False
+
+
 def add_start_end_conditions(
     in_msg: TimeSeriesRequest, start: datetime, end: datetime
 ) -> TimeSeriesRequest:

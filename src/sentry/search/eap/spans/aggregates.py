@@ -22,7 +22,7 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
 )
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
-from sentry.search.eap.utils import literal_validator
+from sentry.search.eap.utils import literal_validator, number_validator
 
 
 def count_processor(count_value: int | None) -> int:
@@ -214,8 +214,10 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         default_search_type="boolean",
         arguments=[
             AttributeArgumentDefinition(attribute_types={"millisecond"}),
-            ValueArgumentDefinition(argument_types={"number"}),
-            ValueArgumentDefinition(argument_types={"number"}, default_arg=None),
+            ValueArgumentDefinition(argument_types={"number"}, validator=number_validator),
+            ValueArgumentDefinition(
+                argument_types={"number"}, validator=number_validator, default_arg=None
+            ),
         ],
         aggregate_resolver=resolve_bounded_sample,
         processor=lambda x: x > 0,
