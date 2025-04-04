@@ -9,15 +9,14 @@ from sentry.incidents.endpoints.serializers.alert_rule_trigger_action import (
     get_input_channel_id,
     human_desc,
 )
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.notifications.notification_action.group_type_notification_registry.handlers.metric_alert_registry_handler import (
     MetricAlertRegistryHandler,
 )
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction
-
+from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction, DataConditionAlertRuleTrigger, DataConditionGroupAction, DataCondition, DetectorWorkflow, WorkflowDataConditionGroup
+from sentry.workflow_engine.models.data_condition import Condition
 
 class WorkflowEngineActionSerializer(Serializer):
     def serialize(
@@ -43,11 +42,19 @@ class WorkflowEngineActionSerializer(Serializer):
             sentry_app_id = int(obj.config.get("target_identifier"))
             sentry_app_config = obj.data.get("settings")
 
-        trigger_action = AlertRuleTriggerAction.objects.get(id=aarta.alert_rule_trigger_action_id)
+        action_dcga = DataConditionGroupAction.objects.get(action=aarta.action)
+        action_filter_data_condition = DataCondition.objects.filter(condition_group=action_dcga.condition_group, type=Condition.ISSUE_PRIORITY_EQUALS, condition_result=True)
+        # should this actually have a different data condition group? how to differentiate?
+        # import pdb; pdb.set_trace()
+        workflow_dcg = WorkflowDataConditionGroup.objects.get(condition_group=action_filter_data_condition.condition_group)
+        detector_workflow = DetectorWorkflow.objects.get(workflow=workflow_dcg.workflow)
+        detector_trigger = DataCondition.objects.filter(condition_result=action_filter_data_condition.comparison, condition_group=detector_workflow.detector.workflow_condition_group)
+        datacondition_alertruletrigger = DataConditionAlertRuleTrigger.objects.get(data_condition=detector_trigger)
+        # it might not be possible to differentiate between a warning and critical trigger / datacondition with the information we have
 
         result = {
             "id": str(aarta.alert_rule_trigger_action_id),
-            "alertRuleTriggerId": str(trigger_action.alert_rule_trigger.id),
+            "alertRuleTriggerId": str(datacondition_alertruletrigger.alert_rule_trigger_id),
             "type": obj.type,
             "targetType": ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)],
             "targetIdentifier": get_identifier_from_action(
