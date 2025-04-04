@@ -609,6 +609,6 @@ SPAN_FORMULA_DEFINITIONS = {
         private=True,
     ),
     "epm": FormulaDefinition(
-        default_search_type="number", arguments=[], formula_resolver=epm, is_aggregate=True
+        default_search_type="rate", arguments=[], formula_resolver=epm, is_aggregate=True
     ),
 }
