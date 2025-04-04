@@ -1,6 +1,10 @@
 import styled from '@emotion/styled';
 
-import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import Avatar from 'sentry/components/core/avatar';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -83,8 +87,12 @@ export function SavedQueriesTable({mode, perPage}: Props) {
                 label: t('Delete'),
                 onAction: () => {
                   addLoadingMessage(t('Deleting query...'));
-                  deleteQuery(row.id);
-                  addSuccessMessage(t('Query deleted'));
+                  try {
+                    deleteQuery(row.id);
+                    addSuccessMessage(t('Query deleted'));
+                  } catch (error) {
+                    addErrorMessage(t('Unable to delete query'));
+                  }
                 },
                 priority: 'danger',
               },
