@@ -5,7 +5,7 @@ import pytest
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.handlers.condition.slow_condition_query_handlers import (
+from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     EventFrequencyQueryHandler,
     EventUniqueUserFrequencyQueryHandler,
     PercentSessionsQueryHandler,
