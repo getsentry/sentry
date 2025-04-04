@@ -41,6 +41,7 @@ invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 export const typeAwareLintRules = {
   name: 'plugin/typescript-eslint/type-aware-linting',
   rules: {
+    '@typescript-eslint/no-array-delete': 'error',
     '@typescript-eslint/no-unnecessary-type-assertion': 'error',
   },
 };
