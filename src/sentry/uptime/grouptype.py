@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
+from sentry.uptime import grouptype
 
 
 @dataclass(frozen=True)
@@ -17,3 +18,7 @@ class UptimeDomainCheckFailure(GroupType):
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
+
+
+# XXX: Temporary hack to work around pickling issues
+grouptype.UptimeDomainCheckFailure = UptimeDomainCheckFailure
