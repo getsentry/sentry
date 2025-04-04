@@ -34,11 +34,9 @@ def literal_validator(values: list[Any]) -> Callable[[str], bool]:
 
 
 def number_validator(input: str) -> bool:
-    try:
-        float(input)
+    if input.replace(".", "", 1).isdecimal():
         return True
-    except ValueError:
-        return False
+    raise InvalidSearchQuery(f"Invalid parameter {input}. Must be numeric type")
 
 
 def add_start_end_conditions(
