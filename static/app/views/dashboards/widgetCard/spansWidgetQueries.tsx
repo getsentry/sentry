@@ -187,10 +187,11 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
                 dashboardFilters={dashboardFilters}
                 afterFetchSeriesData={afterFetchSeriesData}
                 samplingMode={SAMPLING_MODE.BEST_EFFORT}
-                onDataFetched={() => {
+                onDataFetched={results => {
                   // Reset the query phase to preflight so that the next time this component
                   // renders, it will start with only the preflight query
                   setQueryPhase(SAMPLING_MODE.PREFLIGHT);
+                  onDataFetched?.(results);
                 }}
               >
                 {bestEffortProps => {
