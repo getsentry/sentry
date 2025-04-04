@@ -19,6 +19,9 @@ class ErrorDetectorHandler(DetectorHandler):
         # placeholder
         return {}
 
+# TODO - @saponifi3d - Think about this abstraction layer, safe to remove the unuse config since it's empty.
+# Do we need the ErrorDetectorValidator? Can we just use the WorkflowValidator?
+
 
 @dataclass(frozen=True)
 class ErrorGroupType(GroupType):
