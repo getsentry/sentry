@@ -40,6 +40,37 @@ class TestActionSerializer(TestCase):
         assert serialized_action["desc"] == f"Send a notification to {self.user.email}"
         assert serialized_action["priority"] == self.action.data.get("priority")
 
+    def test_warning_trigger(self) -> None:
+        """
+        Test that we can differentiate between critical and warning triggers
+        """
+        self.og_team = self.create_team(organization=self.organization)
+        self.warning_trigger = self.create_alert_rule_trigger(
+            alert_rule=self.alert_rule, label="warning"
+        )
+        self.warning_trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.warning_trigger,
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier=str(self.og_team.id),
+        )
+        migrate_metric_data_conditions(self.warning_trigger)
+        self.warning_action, _, _ = migrate_metric_action(self.warning_trigger_action)
+
+        serialized_action = serialize(
+            self.warning_action, self.user, WorkflowEngineActionSerializer()
+        )
+        assert serialized_action["id"] == str(self.warning_trigger_action.id)
+        assert serialized_action["alertRuleTriggerId"] == str(self.warning_trigger.id)
+        assert serialized_action["type"] == "email"
+        assert serialized_action["targetType"] == "team"
+        assert serialized_action["targetIdentifier"] == str(self.og_team.id)
+        assert serialized_action["inputChannelId"] is None
+        assert serialized_action["integrationId"] is None
+        assert serialized_action["sentryAppId"] is None
+        assert serialized_action["dateCreated"] == self.warning_action.date_added
+        assert serialized_action["desc"] == f"Send an email to members of #{self.og_team.slug}"
+        assert serialized_action["priority"] == self.warning_action.data.get("priority")
+
     def test_sentry_app_action(self) -> None:
         sentry_app = self.create_sentry_app(
             organization=self.organization,
