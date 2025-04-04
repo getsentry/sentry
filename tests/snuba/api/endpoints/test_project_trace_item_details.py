@@ -35,6 +35,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                 },
             )
 
+    @pytest.mark.skip("disabled while snuba adds a precise timestamp")
     def test_simple(self):
         logs = [
             self.create_ourlog(
@@ -101,6 +102,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
             == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
         )
 
+    @pytest.mark.skip("disabled while snuba adds a precise timestamp")
     def test_simple_using_logs_item_type(self):
         logs = [
             self.create_ourlog(

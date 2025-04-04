@@ -81,6 +81,10 @@ from sentry.explore.endpoints.explore_saved_query_detail import (
     ExploreSavedQueryDetailEndpoint,
     ExploreSavedQueryVisitEndpoint,
 )
+from sentry.explore.endpoints.explore_saved_query_starred import ExploreSavedQueryStarredEndpoint
+from sentry.explore.endpoints.explore_saved_query_starred_order import (
+    ExploreSavedQueryStarredOrderEndpoint,
+)
 from sentry.flags.endpoints.hooks import OrganizationFlagsHooksEndpoint
 from sentry.flags.endpoints.logs import (
     OrganizationFlagLogDetailsEndpoint,
@@ -207,6 +211,9 @@ from sentry.issues.endpoints import (
 )
 from sentry.issues.endpoints.organization_group_search_view_starred_order import (
     OrganizationGroupSearchViewStarredOrderEndpoint,
+)
+from sentry.issues.endpoints.organization_group_suspect_flags import (
+    OrganizationGroupSuspectFlagsEndpoint,
 )
 from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
 from sentry.monitors.endpoints.organization_monitor_checkin_index import (
@@ -775,6 +782,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             name=f"{name_prefix}-group-tag-key-values",
         ),
         re_path(
+            r"^(?P<issue_id>[^\/]+)/suspect/flags/$",
+            OrganizationGroupSuspectFlagsEndpoint.as_view(),
+            name=f"{name_prefix}-suspect-flags",
+        ),
+        re_path(
             r"^(?P<issue_id>[^\/]+)/(?:user-feedback|user-reports)/$",
             GroupUserReportsEndpoint.as_view(),
             name=f"{name_prefix}-group-user-reports",
@@ -1314,6 +1326,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/explore/saved/(?P<id>\d+)/visit/$",
         ExploreSavedQueryVisitEndpoint.as_view(),
         name="sentry-api-0-explore-saved-query-visit",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/explore/saved/(?P<id>\d+)/starred/$",
+        ExploreSavedQueryStarredEndpoint.as_view(),
+        name="sentry-api-0-explore-saved-query-starred",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/explore/saved/starred/order/$",
+        ExploreSavedQueryStarredOrderEndpoint.as_view(),
+        name="sentry-api-0-explore-saved-query-starred-order",
     ),
     # Dashboards
     re_path(
