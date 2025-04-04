@@ -270,6 +270,9 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 
+    has_in_app_frames = False
+    all_in_app_frames_symbolicated = True
+
     for sinfo, raw_stacktrace, complete_stacktrace in zip(
         stacktrace_infos, response["raw_stacktraces"], response["stacktraces"]
     ):
@@ -296,6 +299,13 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             if in_app is not None:
                 merged_frame["in_app"] = in_app
 
+            # Track symbolication status for in-app frames
+            if merged_frame.get("in_app"):
+                has_in_app_frames = True
+                frame_data = merged_frame.get("data", {})
+                if not frame_data.get("symbolicated", False):
+                    all_in_app_frames_symbolicated = False
+
             new_frames.append(merged_frame)
 
         sinfo.stacktrace["frames"] = new_frames
@@ -304,6 +314,13 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             sinfo.container["raw_stacktrace"] = {
                 "frames": new_raw_frames,
             }
+
+    # Set symbolicated_in_app field based on our findings
+    data["symbolicated_in_app"] = (
+        True
+        if has_in_app_frames and all_in_app_frames_symbolicated
+        else (False if has_in_app_frames else None)
+    )
 
     return data
 
