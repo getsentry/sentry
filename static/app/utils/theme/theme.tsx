@@ -395,11 +395,6 @@ export const generateThemeAliases = (colors: Colors) => ({
   progressBackground: colors.gray100,
 
   /**
-   * Overlay for partial opacity
-   */
-  overlayBackgroundAlpha: color(colors.surface200).alpha(0.7).string(),
-
-  /**
    * Tag progress bars
    */
   tagBarHover: colors.purple200,
