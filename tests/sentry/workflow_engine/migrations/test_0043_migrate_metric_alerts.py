@@ -26,6 +26,7 @@ from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,
     DataCondition,
+    DataConditionAlertRuleTrigger,
     DataConditionGroup,
     DataConditionGroupAction,
     DataSource,
@@ -41,8 +42,8 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class MigrateMetricAlertTest(TestMigrations):
-    migrate_from = "0038_add_detector_workflow_unique_together"
-    migrate_to = "0039_migrate_metric_alerts"
+    migrate_from = "0042_workflow_fire_history_add_fired_actions_bool"
+    migrate_to = "0043_migrate_metric_alerts"
     app = "workflow_engine"
 
     def setUp(self):
@@ -211,6 +212,10 @@ class MigrateMetricAlertTest(TestMigrations):
         )
 
         assert detector_trigger.type == Condition.GREATER
+
+        assert DataConditionAlertRuleTrigger.objects.get(
+            data_condition=detector_trigger, alert_rule_trigger_id=self.valid_trigger.id
+        ).exists()
 
         workflow_dcgs = DataConditionGroup.objects.filter(
             workflowdataconditiongroup__workflow=workflow
