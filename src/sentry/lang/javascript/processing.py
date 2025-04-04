@@ -316,11 +316,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             }
 
     # Set symbolicated_in_app field based on our findings
-    data["symbolicated_in_app"] = (
-        True
-        if has_in_app_frames and all_in_app_frames_symbolicated
-        else (False if has_in_app_frames else None)
-    )
+    data["symbolicated_in_app"] = all_in_app_frames_symbolicated if has_in_app_frames else None
 
     return data
 
