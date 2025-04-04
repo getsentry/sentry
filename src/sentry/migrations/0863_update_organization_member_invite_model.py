@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     checked = False
 
     dependencies = [
-        ("sentry", "0861_monitors_remove_location"),
+        ("sentry", "0862_monitors_remove_location_db"),
     ]
 
     operations = [
