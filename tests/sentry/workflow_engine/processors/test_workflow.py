@@ -33,7 +33,6 @@ from sentry.workflow_engine.processors.workflow import (
     evaluate_workflow_triggers,
     evaluate_workflows_action_filters,
     process_workflows,
-    update_workflow_fire_histories,
 )
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -158,7 +157,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        mock_filter.assert_called_with({workflow_filters}, self.group)
+        mock_filter.assert_called_with({workflow_filters}, self.event_data)
 
     def test_same_environment_only(self):
         env = self.create_environment(project=self.project)
@@ -607,20 +606,6 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
                 group=self.group,
                 event_id=self.group_event.event_id,
                 has_fired_actions=False,
-            ).count()
-            == 1
-        )
-
-    def test_update_workflow_fire_histories(self):
-        create_workflow_fire_histories({self.workflow}, self.event_data)
-        actions = Action.objects.all()
-        update_workflow_fire_histories(actions, self.event_data)
-        assert (
-            WorkflowFireHistory.objects.filter(
-                workflow=self.workflow,
-                group=self.group,
-                event_id=self.group_event.event_id,
-                has_fired_actions=True,
             ).count()
             == 1
         )
