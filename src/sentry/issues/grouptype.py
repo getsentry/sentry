@@ -17,6 +17,9 @@ from sentry import features
 from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
+from sentry.uptime.grouptype import (  # NOQA Temporarily importing this for backwards pickle compat
+    UptimeDomainCheckFailure,
+)
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -596,18 +599,6 @@ class FeedbackGroup(GroupType):
     notification_config = NotificationConfig(context=[])
     in_default_search = False  # hide from issues stream
     released = True
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-
-
-@dataclass(frozen=True)
-class UptimeDomainCheckFailure(GroupType):
-    type_id = 7001
-    slug = "uptime_domain_failure"
-    description = "Uptime Domain Monitor Failure"
-    category = GroupCategory.UPTIME.value
-    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
 
