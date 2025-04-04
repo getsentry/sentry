@@ -588,7 +588,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         </p>
 
         <MediumWidget>
-          <TimeSeriesWidgetVisualization plottables={[samplesPlottable]} render />
+          <TimeSeriesWidgetVisualization plottables={[samplesPlottable]} />
 
           <p>Clicked sample ID: {sampleId}</p>
         </MediumWidget>
