@@ -231,13 +231,13 @@ function IssueListOverview({router}: Props) {
   );
 
   const getSortFromSavedSearchOrLocation = useCallback(
-    (props: {location: Location; savedSearch: SavedSearch | null}): string => {
+    (props: {location: Location; savedSearch: SavedSearch | null}): IssueSortOptions => {
       if (!props.location.query.sort && props.savedSearch?.id) {
-        return props.savedSearch.sort;
+        return props.savedSearch.sort as IssueSortOptions;
       }
 
       if (props.location.query.sort) {
-        return props.location.query.sort as string;
+        return props.location.query.sort as IssueSortOptions;
       }
       return DEFAULT_ISSUE_STREAM_SORT;
     },
@@ -251,7 +251,7 @@ function IssueListOverview({router}: Props) {
     });
   }, [getQueryFromSavedSearchOrLocation, savedSearch, location]);
 
-  const sort = useMemo((): string => {
+  const sort = useMemo(() => {
     return getSortFromSavedSearchOrLocation({
       savedSearch,
       location,
