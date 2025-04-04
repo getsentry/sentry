@@ -107,18 +107,14 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
             while not stopped.value:
                 now = int(time.time()) + current_drift.value
-
-                queue_size, flushed_segments = buffer.flush_segments(
-                    max_segments=max_flush_segments, now=now
-                )
-                metrics.timing("sentry.spans.buffer.inflight_segments", queue_size)
+                flushed_segments = buffer.flush_segments(max_segments=max_flush_segments, now=now)
 
                 if not flushed_segments:
                     time.sleep(1)
                     continue
 
-                for _, spans_set in flushed_segments.items():
-                    if not spans_set:
+                for _, flushed_segment in flushed_segments.items():
+                    if not flushed_segment.spans:
                         # This is a bug, most likely the input topic is not
                         # partitioned by trace_id so multiple consumers are writing
                         # over each other. The consequence is duplicated segments,
@@ -126,7 +122,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                         metrics.incr("sentry.spans.buffer.empty_segments")
                         continue
 
-                    spans = [span.payload for span in spans_set]
+                    spans = [span.payload for span in flushed_segment.spans]
 
                     kafka_payload = KafkaPayload(
                         None, rapidjson.dumps({"spans": spans}).encode("utf8"), []
