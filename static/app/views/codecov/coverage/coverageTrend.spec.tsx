@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import CoverageTrendPage from 'sentry/views/pipeline/coverage/coverageTrend';
+import CoverageTrendPage from 'sentry/views/codecov/coverage/coverageTrend';
 
 const COVERAGE_FEATURE = 'codecov-ui';
 

@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import CoverageOnboardingPage from 'sentry/views/pipeline/coverage/onboarding';
+import CoverageOnboardingPage from 'sentry/views/codecov/coverage/onboarding';
 
 const COVERAGE_FEATURE = 'codecov-ui';
 
