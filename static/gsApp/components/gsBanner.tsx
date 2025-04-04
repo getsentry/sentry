@@ -27,11 +27,11 @@ import GuideStore from 'sentry/stores/guideStore';
 import {space} from 'sentry/styles/space';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
@@ -150,6 +150,8 @@ function NoticeModal({
   whichModal,
   billingPermissions,
 }: NoticeModalProps) {
+  const navigate = useNavigate();
+
   const closeModalAndContinue = (link: string) => {
     closeModal();
     if (whichModal === ModalType.PAST_DUE) {
@@ -163,7 +165,7 @@ function NoticeModal({
     if (link === window.location.pathname) {
       return;
     }
-    browserHistory.push(link);
+    navigate(link);
   };
 
   const closeModalDoNotContinue = () => {
@@ -276,7 +278,6 @@ function NoticeModal({
           priority="primary"
           onClick={() => closeModalAndContinue(link)}
           style={{marginLeft: space(2)}}
-          data-test-id="modal-continue-button"
         >
           {primaryButtonMessage}
         </Button>
