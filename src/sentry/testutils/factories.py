@@ -436,8 +436,9 @@ class Factories:
             organization = Factories.create_organization()
         if email is None:
             email = f"{petname.generate().title()}@email.com"
+        om = OrganizationMember.objects.create(organization=organization)
         return OrganizationMemberInvite.objects.create(
-            organization=organization, email=email, **kwargs
+            organization=organization, organization_member_id=om.id, email=email, **kwargs
         )
 
     @staticmethod
