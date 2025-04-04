@@ -109,7 +109,7 @@ def get_available_action_integrations_for_org(organization: Organization) -> lis
     )
 
 
-def get_notification_plugins_for_org(organization: Organization) -> list[RpcIntegration]:
+def get_notification_plugins_for_org(organization: Organization) -> list[PluginService]:
     """
     Get all plugins for an organization.
     This method returns a deduplicated list of plugins that are enabled for any project in the organization.
