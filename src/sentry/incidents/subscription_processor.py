@@ -523,7 +523,9 @@ class SubscriptionProcessor:
                                 trigger, aggregation_value
                             )
                             if incident_trigger is not None:
-                                fired_incident_triggers.append(incident_trigger)
+                                fired_incident_triggers.append(
+                                    (incident_trigger, aggregation_value)
+                                )
                         else:
                             self.trigger_alert_counts[trigger.id] = 0
 
@@ -541,7 +543,9 @@ class SubscriptionProcessor:
                             )
 
                             if incident_trigger is not None:
-                                fired_incident_triggers.append(incident_trigger)
+                                fired_incident_triggers.append(
+                                    (incident_trigger, aggregation_value)
+                                )
                         else:
                             self.trigger_resolve_counts[trigger.id] = 0
                 else:
@@ -550,48 +554,66 @@ class SubscriptionProcessor:
                         AlertRuleThresholdType(self.alert_rule.threshold_type)
                     ]
                     print("ALERT OPERATOR AGGREGATION VALUE", aggregation_value)
-                    if alert_operator(
-                        aggregation_value, trigger.alert_threshold
-                    ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
-                        # If the value has breached our threshold (above/below)
-                        # And the trigger is not yet active
-                        metrics.incr(
-                            "incidents.alert_rules.threshold.alert",
-                            tags={"detection_type": self.alert_rule.detection_type},
-                        )
-                        # triggering a threshold will create an incident and set the status to active
-                        incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
-                        if incident_trigger is not None:
-                            fired_incident_triggers.append(incident_trigger)
-                    else:
-                        self.trigger_alert_counts[trigger.id] = 0
 
-                    if (
-                        resolve_operator(
-                            aggregation_value, self.calculate_resolve_threshold(trigger)
-                        )
-                        and self.active_incident
-                        and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
-                    ):
-                        metrics.incr(
-                            "incidents.alert_rules.threshold.resolve",
-                            tags={"detection_type": self.alert_rule.detection_type},
-                        )
-                        incident_trigger = self.trigger_resolve_threshold(
-                            trigger, aggregation_value
-                        )
-
-                        if incident_trigger is not None:
-                            fired_incident_triggers.append(incident_trigger)
+                    if isinstance(aggregation_value, float) or isinstance(aggregation_value, int):
+                        aggregation_values = [("single", aggregation_value)]
                     else:
-                        self.trigger_resolve_counts[trigger.id] = 0
+                        aggregation_values = aggregation_value
+
+                    for aggregation_value in aggregation_values:
+                        print("AGGREGATION VALUE LOOP", aggregation_value)
+
+                        if alert_operator(
+                            aggregation_value[1], trigger.alert_threshold
+                        ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
+                            # If the value has breached our threshold (above/below)
+                            # And the trigger is not yet active
+                            metrics.incr(
+                                "incidents.alert_rules.threshold.alert",
+                                tags={"detection_type": self.alert_rule.detection_type},
+                            )
+                            # triggering a threshold will create an incident and set the status to active
+                            incident_trigger = self.trigger_alert_threshold(
+                                trigger, aggregation_value[1]
+                            )
+                            if incident_trigger is not None:
+                                fired_incident_triggers.append(
+                                    (incident_trigger, aggregation_value[0], aggregation_value[1])
+                                )
+                        else:
+                            self.trigger_alert_counts[trigger.id] = 0
+
+                        if (
+                            resolve_operator(
+                                aggregation_value[1], self.calculate_resolve_threshold(trigger)
+                            )
+                            and self.active_incident
+                            and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+                        ):
+                            metrics.incr(
+                                "incidents.alert_rules.threshold.resolve",
+                                tags={"detection_type": self.alert_rule.detection_type},
+                            )
+                            incident_trigger = self.trigger_resolve_threshold(
+                                trigger, aggregation_value[1]
+                            )
+
+                            if incident_trigger is not None:
+                                fired_incident_triggers.append(
+                                    (incident_trigger, aggregation_value[0], aggregation_value[1])
+                                )
+                        else:
+                            self.trigger_resolve_counts[trigger.id] = 0
 
             if fired_incident_triggers:
                 # For all the newly created incidents
                 # handle the associated actions (eg. send an email/notification)
-                self.handle_trigger_actions(
-                    incident_triggers=fired_incident_triggers, metric_value=aggregation_value
-                )
+                for incident_trigger, aggregation_value, group_by_value in fired_incident_triggers:
+                    self.handle_trigger_actions(
+                        incident_triggers=[incident_trigger],
+                        metric_value=aggregation_value,
+                        group_by_value=group_by_value,
+                    )
 
         # We update the rule stats here after we commit the transaction. This guarantees
         # that we'll never miss an update, since we'll never roll back if the process
@@ -644,20 +666,20 @@ class SubscriptionProcessor:
         last_incident_projects = (
             [project.id for project in last_incident.projects.all()] if last_incident else []
         )
-        if (
-            last_incident
-            and self.subscription.project.id in last_incident_projects
-            and ((timezone.now() - last_incident.date_added).seconds / 60) <= 10
-        ):
-            metrics.incr(
-                "incidents.alert_rules.hit_rate_limit",
-                tags={
-                    "last_incident_id": last_incident.id,
-                    "project_id": self.subscription.project.id,
-                    "trigger_id": trigger.id,
-                },
-            )
-            return None
+        # if (
+        #     last_incident
+        #     and self.subscription.project.id in last_incident_projects
+        #     and ((timezone.now() - last_incident.date_added).seconds / 60) <= 10
+        # ):
+        #     metrics.incr(
+        #         "incidents.alert_rules.hit_rate_limit",
+        #         tags={
+        #             "last_incident_id": last_incident.id,
+        #             "project_id": self.subscription.project.id,
+        #             "trigger_id": trigger.id,
+        #         },
+        #     )
+        #     return None
         # 'threshold_period' - how many times an alert value must exceed the threshold to fire/resolve the alert
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
             metrics.incr("incidents.alert_rules.trigger", tags={"type": "fire"})
@@ -748,7 +770,10 @@ class SubscriptionProcessor:
             return None
 
     def handle_trigger_actions(
-        self, incident_triggers: list[IncidentTrigger], metric_value: float
+        self,
+        incident_triggers: list[IncidentTrigger],
+        metric_value: float,
+        group_by_value: str,
     ) -> None:
         # Actions represent the notification type that should be triggered when an alert is fired
         actions = deduplicate_trigger_actions(triggers=deepcopy(self.triggers))
@@ -823,9 +848,11 @@ class SubscriptionProcessor:
             )
 
         if features.has("organizations:metric-issue-poc", self.alert_rule.organization):
+            print("CREATE OR UPDATE METRIC ISSUE", incident, metric_value, group_by_value)
             create_or_update_metric_issue(
                 incident=incident,
                 metric_value=metric_value,
+                group_by_value=group_by_value,
             )
 
     def _schedule_trigger_action(

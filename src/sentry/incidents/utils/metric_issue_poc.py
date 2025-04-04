@@ -103,20 +103,22 @@ def _build_occurrence_from_incident(
     incident: Incident,
     event_data: dict[str, str | int],
     metric_value: float,
+    group_by_value: str,
 ) -> IssueOccurrence:
+    print("BUILD OCCURRENCE FROM INCIDENT", incident, metric_value)
     initial_issue_priority = (
         PriorityLevel.HIGH
         if incident.status == IncidentStatus.CRITICAL.value
         else PriorityLevel.MEDIUM
     )
-    fingerprint = [str(incident.alert_rule.id)]
+    fingerprint = [str(incident.alert_rule.id), "username:jferge1"]
     title = construct_title(incident.alert_rule, incident.status)
     return IssueOccurrence(
         id=uuid4().hex,
         project_id=project.id,
         event_id=str(event_data["event_id"]),
         fingerprint=fingerprint,
-        issue_title=incident.title,
+        issue_title=incident.title + " " + "username:jferge1",
         subtitle=title,
         resource_id=None,
         type=MetricIssuePOC,
@@ -134,16 +136,18 @@ def _build_occurrence_from_incident(
 def create_or_update_metric_issue(
     incident: Incident,
     metric_value: float,
+    group_by_value: str,
 ) -> IssueOccurrence | None:
+    print(1)
     project = incident.alert_rule.projects.first()
     if not project:
         return None
-
+    print(2)
     if not features.has("projects:metric-issue-creation", project):
         # We've already checked for the feature flag at the organization level,
         # but this flag helps us test with a smaller set of projects.
         return None
-
+    print(3)
     # collect the data from the incident to treat as an event
     event_data: dict[str, Any] = {
         "event_id": uuid4().hex,
@@ -153,14 +157,19 @@ def create_or_update_metric_issue(
         "received": incident.date_started.isoformat(),
         "contexts": {"metric_alert": {"alert_rule_id": incident.alert_rule.id}},
     }
-
-    occurrence = _build_occurrence_from_incident(project, incident, event_data, metric_value)
+    print(4)
+    occurrence = _build_occurrence_from_incident(
+        project, incident, event_data, metric_value, group_by_value
+    )
+    print(5)
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE,
         occurrence=occurrence,
         event_data=event_data,
     )
+    print(6)
     update_group_status(incident, project, occurrence)
+    print(7)
 
     return occurrence
 
