@@ -628,7 +628,9 @@ class TestProcessResourceChange(TestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
         )
 
-    def test_project_filter_no_filters_sends_webhook(self, safe_urlopen):
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_project_filter_no_filters_sends_webhook(self, mock_record, safe_urlopen):
         create_or_update_service_hooks_for_installation(
             installation=self.install,
             webhook_url=self.sentry_app.webhook_url,
@@ -655,7 +657,19 @@ class TestProcessResourceChange(TestCase):
         assert data["installation"]["uuid"] == self.install.uuid
         assert data["data"]["issue"]["id"] == str(event.group.id)
 
-    def test_project_filter_matches_project_sends_webhook(self, safe_urlopen):
+        # SLO assertions
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 1
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_project_filter_matches_project_sends_webhook(self, mock_record, safe_urlopen):
         with assume_test_silo_mode_of(ServiceHookProject):
             ServiceHookProject.objects.all().delete()
             ServiceHook.objects.all().delete()
@@ -689,7 +703,19 @@ class TestProcessResourceChange(TestCase):
         assert data["installation"]["uuid"] == self.install.uuid
         assert data["data"]["issue"]["id"] == str(event.group.id)
 
-    def test_project_filter_no_match_does_not_send_webhook(self, safe_urlopen):
+        # SLO assertions
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 1
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_project_filter_no_match_does_not_send_webhook(self, mock_record, safe_urlopen):
         with assume_test_silo_mode_of(ServiceHookProject):
             ServiceHookProject.objects.all().delete()
             ServiceHook.objects.all().delete()
@@ -721,6 +747,16 @@ class TestProcessResourceChange(TestCase):
             )
 
         assert not safe_urlopen.called
+
+        # SLO assertions
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 1
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
 
     # TODO(nola): Enable this test whenever we prevent infinite loops w/ error.created integrations
     @pytest.mark.skip(reason="enable this when/if we do prevent infinite error.created loops")

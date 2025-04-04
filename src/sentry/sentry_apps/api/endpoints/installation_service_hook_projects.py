@@ -1,6 +1,8 @@
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import deletions
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -9,7 +11,8 @@ from sentry.api.serializers.base import serialize
 from sentry.projects.services.project.service import project_service
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.api.serializers.servicehookproject import ServiceHookProjectSerializer
-from sentry.sentry_apps.services.hook import hook_service
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 
 
 @region_silo_endpoint
@@ -21,8 +24,65 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
         "DELETE": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, installation) -> Response:
-        hook_projects = hook_service.list_service_hook_projects(installation.id)
+    def _list_hook_projects(self, installation_id: int) -> list[ServiceHookProject]:
+        hook = ServiceHook.objects.get(installation_id=installation_id)
+        return list(ServiceHookProject.objects.filter(service_hook_id=hook.id))
+
+    def _replace_hook_projects(
+        self, installation: SentryAppInstallation, project_ids: list[int], request: Request
+    ) -> list[ServiceHookProject]:
+        with transaction.atomic(router.db_for_write(ServiceHookProject)):
+            hook = ServiceHook.objects.get(installation_id=installation.id)
+            existing_project_ids = set(
+                ServiceHookProject.objects.filter(service_hook_id=hook.id).values_list(
+                    "project_id", flat=True
+                )
+            )
+            new_project_ids = set(project_ids)
+
+            # Determine which projects to add and which to remove
+            projects_to_add = new_project_ids - existing_project_ids
+            projects_to_remove = existing_project_ids - new_project_ids
+
+            for p in projects_to_remove:
+                p_obj = project_service.get_by_id(
+                    organization_id=installation.organization_id, id=p
+                )
+                if not request.access.has_project_access(p_obj):
+                    return Response(
+                        status=400,
+                        data={"error": "Some projects affected by this request are not accessible"},
+                    )
+
+            # Remove projects
+            ServiceHookProject.objects.filter(
+                service_hook_id=hook.id, project_id__in=projects_to_remove
+            ).delete()
+
+            # Add new projects
+            added_hook_projects = []
+            for project_id in projects_to_add:
+                added_hook_projects.append(
+                    ServiceHookProject.objects.create(
+                        project_id=project_id,
+                        service_hook_id=hook.id,
+                    )
+                )
+
+            kept_project_ids = existing_project_ids & new_project_ids
+            return sorted(
+                added_hook_projects
+                + list(ServiceHookProject.objects.filter(project_id__in=kept_project_ids)),
+                key=lambda x: x.project_id,
+            )
+
+    def _delete_hook_projects(self, installation_id: int) -> None:
+        hook = ServiceHook.objects.get(installation_id=installation_id)
+        hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
+        deletions.exec_sync_many(list(hook_projects))
+
+    def get(self, request: Request, installation: SentryAppInstallation) -> Response:
+        hook_projects = self._list_hook_projects(installation.id)
 
         return self.paginate(
             request=request,
@@ -33,37 +93,35 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
             ),
         )
 
-    def put(self, request: Request, installation) -> Response:
-
+    def put(self, request: Request, installation: SentryAppInstallation) -> Response:
         try:
             projects = request.data.get("projects")
             assert projects
-        except Exception:
+        except AssertionError:
             return Response(
                 status=400,
                 data={
-                    "error": "Need at least one project in request data. To remove all project filters, use DELETE."
+                    "error": "Need at least one project in request data (e.g. {'projects': ['slug_or_id1', ...]}). To remove all project filters, use DELETE."
                 },
             )
 
         # convert slugs to ids if needed
+        org_id = installation.organization_id
         project_ids = []
         for project in projects:
             try:
-                project_obj = project_service.get_by_id(int(project))
-            except Exception:
-                project_obj = project_service.get_by_slug(
-                    organization_id=installation.organization_id, slug=project
-                )
-            if project_obj:
+                project_obj = project_service.get_by_id(organization_id=org_id, id=int(project))
+            except ValueError:
+                project_obj = project_service.get_by_slug(organization_id=org_id, slug=project)
+            if project_obj and request.access.has_project_access(project_obj):
                 project_ids.append(project_obj.id)
             else:
                 return Response(
                     status=400,
-                    data={"error": f"Project '{project}' not found"},
+                    data={"error": f"Project '{project}' does not exist or is not accessible"},
                 )
 
-        hook_projects = hook_service.replace_service_hook_projects(installation.id, project_ids)
+        hook_projects = self._replace_hook_projects(installation, project_ids, request)
 
         return self.paginate(
             request=request,
@@ -74,6 +132,6 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
             ),
         )
 
-    def delete(self, request: Request, installation) -> Response:
-        hook_service.delete_service_hook_projects(installation.id)
+    def delete(self, request: Request, installation: SentryAppInstallation) -> Response:
+        self._delete_hook_projects(installation.id)
         return Response(status=204)
