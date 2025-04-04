@@ -2,6 +2,7 @@ from functools import reduce
 
 from django.http import StreamingHttpResponse
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commitfilechange import CommitFileChange
@@ -47,9 +48,11 @@ def assert_status_code(response, minimum: int, maximum: int | None = None):
     )
 
 
-def assert_existing_projects(org: Organization, platforms: list[str]):
-    active_existing_projects = Project.objects.filter(organization=org, slug__in=platforms)
-    assert len(active_existing_projects) == len(platforms)
+def assert_existing_projects(org: Organization, project_ids: list[str]):
+    active_project_ids = Project.objects.filter(
+        organization=org, status=ObjectStatus.ACTIVE
+    ).values_list("id", flat=True)
+    assert list(active_project_ids) == project_ids
 
 
 @assume_test_silo_mode(SiloMode.CONTROL)

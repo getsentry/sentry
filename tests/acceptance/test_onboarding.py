@@ -29,11 +29,12 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
     def click_on_platform(self, platform):
         self.browser.click(f'[data-test-id="platform-{platform}"]')
 
-    def verify_project_creation(self, platform, heading):
-        self.browser.wait_until(xpath=f'//h2[text()="Configure {heading} SDK"]')
-        project = Project.objects.get(organization=self.org, slug=platform)
-        assert project.name == platform
-        assert project.platform == platform
+    # def verify_project_creation(self, platform, heading):
+    #     self.browser.wait_until(xpath=f'//h2[text()="Configure {heading} SDK"]')
+    #     project = Project.objects.get(organization=self.org, slug=platform)
+    #     assert project.name == platform
+    #     assert project.platform == platform
+    #     return project
 
     def test_onboarding_happy_path(self):
         self.start_onboarding()
@@ -68,11 +69,17 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         platform = "javascript-nextjs"
         self.start_onboarding()
         self.click_on_platform(platform)
-        self.verify_project_creation(platform, "Next.js")
+        self.browser.wait_until(xpath='//h2[text()="Configure Next.js SDK"]')
+        project1 = Project.objects.get(organization=self.org, slug=platform)
+        assert project1.name == platform
+        assert project1.platform == platform
         self.browser.click('[aria-label="Back"]')
         self.click_on_platform(platform)
-        self.verify_project_creation(platform, "Next.js")
+        self.browser.wait_until(xpath='//h2[text()="Configure Next.js SDK"]')
+        project2 = Project.objects.get(organization=self.org, slug=platform)
+        assert project2.name == platform
+        assert project2.platform == platform
         self.browser.click(xpath='//a[text()="Skip Onboarding"]')
         self.browser.get("/organizations/%s/projects/" % self.org.slug)
         self.browser.wait_until(f'[data-test-id="{platform}"]')
-        assert_existing_projects(self.org, [platform])
+        assert_existing_projects(self.org, [project2.id])
