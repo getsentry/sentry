@@ -92,7 +92,9 @@ describe('HighlightsIconSummary', function () {
     expect(screen.getByText('Mac OS X')).toBeInTheDocument();
     expect(screen.getByText('10.15')).toBeInTheDocument();
     await userEvent.hover(screen.getByText('10.15'));
-    expect(await screen.findByText('Operating System Version')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Client Operating System Version')
+    ).toBeInTheDocument();
     expect(screen.getByText('CPython')).toBeInTheDocument();
     expect(screen.getByText('3.8.13')).toBeInTheDocument();
     await userEvent.hover(screen.getByText('3.8.13'));
@@ -100,11 +102,41 @@ describe('HighlightsIconSummary', function () {
     expect(screen.getAllByRole('img')).toHaveLength(4);
   });
 
+  it('hides client_os and browser contexts for Meta-Framework backend issues', function () {
+    const duplicateOsContextEvent = EventFixture({
+      contexts: {
+        client_os: {
+          type: 'os',
+          name: 'macOS',
+          version: '15.3',
+        },
+        os: {
+          type: 'os',
+          name: 'Linux',
+          version: '5.10.243',
+        },
+        runtime: {
+          name: 'node',
+          runtime: 'node v20.18.3',
+          type: 'runtime',
+          version: 'v20.18.3',
+        },
+      },
+    });
+    render(<HighlightsIconSummary event={duplicateOsContextEvent} group={group} />);
+    expect(screen.getByText('Linux')).toBeInTheDocument();
+    expect(screen.getByText('5.10.243')).toBeInTheDocument();
+    expect(screen.getByText('node')).toBeInTheDocument();
+    expect(screen.getByText('v20.18.3')).toBeInTheDocument();
+    expect(screen.queryByText('macOS')).not.toBeInTheDocument();
+    expect(screen.queryByText('15.3')).not.toBeInTheDocument();
+  });
+
   it('deduplicates client_os and os contexts', function () {
     const duplicateOsContextEvent = EventFixture({
       contexts: {
         client_os: {
-          type: 'client_os',
+          type: 'os',
           name: 'macOS',
         },
         os: {

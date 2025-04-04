@@ -30,7 +30,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
-    MonitorType,
     ScheduleType,
 )
 from sentry.organizations.services.organization import RpcOrganization
@@ -459,7 +458,6 @@ class Fixtures:
         return Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=project_id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule": "* * * * *",
                 "schedule_type": ScheduleType.CRONTAB,
@@ -669,6 +667,9 @@ class Fixtures:
 
     def create_detector_workflow(self, *args, **kwargs):
         return Factories.create_detector_workflow(*args, **kwargs)
+
+    def create_alert_rule_workflow(self, *args, **kwargs):
+        return Factories.create_alert_rule_workflow(*args, **kwargs)
 
     def create_workflow_data_condition_group(self, *args, **kwargs):
         return Factories.create_workflow_data_condition_group(*args, **kwargs)

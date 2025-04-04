@@ -35,10 +35,10 @@ describe('useActiveNavGroup', function () {
       [PrimaryNavGroup.DASHBOARDS, '/dashboard/foo/'],
       [PrimaryNavGroup.INSIGHTS, '/insights/foo/'],
       [PrimaryNavGroup.SETTINGS, '/settings/foo/'],
-      [PrimaryNavGroup.PIPELINE, '/pipeline/foo/'],
+      [PrimaryNavGroup.CODECOV, '/codecov/foo/'],
     ])('correctly matches %s nav group', async function (navGroup, path) {
       render(<TestComponent />, {
-        disableRouterMocks: true,
+        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: path,
@@ -58,11 +58,11 @@ describe('useActiveNavGroup', function () {
       [PrimaryNavGroup.DASHBOARDS, '/organizations/org-slug/dashboard/foo/'],
       [PrimaryNavGroup.INSIGHTS, '/organizations/org-slug/insights/foo/'],
       [PrimaryNavGroup.SETTINGS, '/organizations/org-slug/settings/foo/'],
-      [PrimaryNavGroup.PIPELINE, '/organizations/org-slug/pipeline/foo/'],
+      [PrimaryNavGroup.CODECOV, '/organizations/org-slug/codecov/foo/'],
     ])('correctly matches %s nav group', async function (navGroup, path) {
       mockUsingCustomerDomain.mockReturnValue(false);
       render(<TestComponent />, {
-        disableRouterMocks: true,
+        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: path,

@@ -239,8 +239,8 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         ) : (
           <Fragment>
             <SeerNotices
+              groupId={group.id}
               hasGithubIntegration={aiConfig.hasGithubIntegration}
-              autofixRepositories={autofixData?.repositories ?? []}
             />
             {aiConfig.hasSummary && (
               <StyledCard>

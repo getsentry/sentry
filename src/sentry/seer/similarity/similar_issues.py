@@ -2,6 +2,7 @@ import logging
 from collections.abc import Mapping
 
 from django.conf import settings
+from django.utils import timezone
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import options
@@ -10,6 +11,7 @@ from sentry.conf.server import (
     SEER_SIMILAR_ISSUES_URL,
     SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
 )
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.seer.similarity.types import (
@@ -201,6 +203,22 @@ def get_similarity_data_from_seer(
             # which doesn't exist
             delete_seer_grouping_records_by_hash.delay(project_id, [parent_hash])
 
+            # Figure out how old the parent grouphash is, to determine how often this error is
+            # caused by a race condition.
+            parent_grouphash_age = None
+            parent_grouphash_date_added = (
+                GroupHashMetadata.objects.filter(
+                    grouphash__project_id=project_id, grouphash__hash=parent_hash
+                )
+                .values_list("date_added", flat=True)
+                .first()
+            )
+
+            if parent_grouphash_date_added:
+                parent_grouphash_age = (
+                    timezone.now() - parent_grouphash_date_added
+                ).total_seconds()
+
             # The same caveats apply here as with the `SimilarHashNotFoundError` above, except that
             # landing here should be even rarer, in that it's theoretically impossible - but
             # nonetheless has happened, when events have seemingly vanished mid-ingest.
@@ -210,6 +228,7 @@ def get_similarity_data_from_seer(
                 extra={
                     "hash": request_hash,
                     "parent_hash": parent_hash,
+                    "parent_gh_age_in_sec": parent_grouphash_age,
                     "project_id": project_id,
                     "event_id": event_id,
                 },

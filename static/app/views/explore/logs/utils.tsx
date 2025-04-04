@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -9,6 +10,7 @@ import {
   CurrencyUnit,
   DurationUnit,
   fieldAlignment,
+  prettifyTagKey,
 } from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -126,26 +128,41 @@ export function getLogBodySearchTerms(search: MutableSearch): string[] {
 export function logsFieldAlignment(...args: Parameters<typeof fieldAlignment>) {
   const field = args[0];
   if (field === OurLogKnownFieldKey.TIMESTAMP) {
-    return 'right';
+    return 'left';
   }
   return fieldAlignment(...args);
 }
 
-export function removePrefixes(key: string) {
+function removePrefixes(key: string) {
   return key.replace('log.', '').replace('sentry.', '');
+}
+
+export function prettifyAttributeName(name: string) {
+  return removePrefixes(prettifyTagKey(name));
 }
 
 export function adjustAliases(key: string) {
   switch (key) {
-    case OurLogKnownFieldKey.SENTRY_PROJECT_ID:
+    case 'sentry.project_id':
+      warn(
+        fmt`Field ${key} is deprecated. Please use ${OurLogKnownFieldKey.PROJECT_ID} instead.`
+      );
       return OurLogKnownFieldKey.PROJECT_ID; // Public alias since int<->string alias reversing is broken. Should be removed in the future.
     default:
       return key;
   }
 }
 
-export function getTableHeaderLabel(field: OurLogFieldKey) {
-  return LogAttributesHumanLabel[field] ?? removePrefixes(field);
+export function getTableHeaderLabel(
+  field: OurLogFieldKey,
+  stringAttributes?: TagCollection,
+  numberAttributes?: TagCollection
+) {
+  const attribute = stringAttributes?.[field] ?? numberAttributes?.[field] ?? null;
+
+  return (
+    LogAttributesHumanLabel[field] ?? attribute?.name ?? prettifyAttributeName(field)
+  );
 }
 
 export function isLogAttributeUnit(unit: string | null): unit is LogAttributeUnits {
