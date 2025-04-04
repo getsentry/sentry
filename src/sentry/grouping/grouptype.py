@@ -5,6 +5,9 @@ from sentry.models.group import DEFAULT_TYPE_ID
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.endpoints.validators.error_detector import ErrorDetectorValidator
 
+# TODO - @saponifi3d - Think about this abstraction layer, safe to remove the unuse config since it's empty.
+# Do we need the ErrorDetectorValidator? Can we just use the WorkflowValidator?
+
 
 @dataclass(frozen=True)
 class ErrorGroupType(GroupType):
@@ -15,4 +18,3 @@ class ErrorGroupType(GroupType):
     default_priority = PriorityLevel.MEDIUM
     released = True
     detector_validator = ErrorDetectorValidator
-    detector_config_schema = {"type": "object", "additionalProperties": False}  # empty schema
