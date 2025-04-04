@@ -86,7 +86,7 @@ def test_exclude_exception_retry(capture_exception):
     assert capture_exception.call_count == 0
 
 
-@patch("sentry.tasks.base.current_task")
+@patch("sentry.taskworker.retry.current_task")
 @patch("sentry.tasks.base.capture_exception")
 def test_retry_on(capture_exception, current_task):
 

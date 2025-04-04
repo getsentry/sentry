@@ -8,19 +8,15 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {CacheLandingPage} from 'sentry/views/insights/cache/views/cacheLandingPage';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-
 jest.mock('sentry/utils/useReleaseStats');
 
 const requestMocks = {
@@ -62,25 +58,16 @@ describe('CacheLandingPage', function () {
     key: '',
   });
 
-  jest.mocked(useProjects).mockReturnValue({
-    projects: [
-      ProjectFixture({
-        id: '1',
-        name: 'Backend',
-        slug: 'backend',
-        firstTransactionEvent: true,
-        hasInsightsCaches: true,
-        platform: 'javascript',
-      }),
-    ],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-    fetching: false,
-    hasMore: null,
-    fetchError: null,
-    initiallyLoaded: false,
-  });
+  ProjectsStore.loadInitialData([
+    ProjectFixture({
+      id: '1',
+      name: 'Backend',
+      slug: 'backend',
+      firstTransactionEvent: true,
+      hasInsightsCaches: true,
+      platform: 'javascript',
+    }),
+  ]);
 
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
@@ -281,26 +268,16 @@ describe('CacheLandingPage', function () {
   });
 
   it('shows module onboarding', async function () {
-    jest.mocked(useOnboardingProject).mockReturnValue(undefined);
-    jest.mocked(useProjects).mockReturnValue({
-      projects: [
-        ProjectFixture({
-          id: '1',
-          name: 'Backend',
-          slug: 'backend',
-          firstTransactionEvent: true,
-          hasInsightsCaches: false,
-          platform: 'javascript',
-        }),
-      ],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        id: '1',
+        name: 'Backend',
+        slug: 'backend',
+        firstTransactionEvent: true,
+        hasInsightsCaches: false,
+        platform: 'javascript',
+      }),
+    ]);
 
     render(<CacheLandingPage />, {organization});
 

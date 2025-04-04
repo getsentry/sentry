@@ -38,10 +38,12 @@ import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUti
 import {
   PageParamsProvider,
   useExploreDataset,
+  useExploreFields,
   useExploreId,
   useExploreMode,
   useExploreQuery,
   useExploreVisualizes,
+  useSetExplorePageParams,
   useSetExploreQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -94,6 +96,8 @@ export function SpansTabContentImpl({
 
   const query = useExploreQuery();
   const setQuery = useSetExploreQuery();
+  const fields = useExploreFields();
+  const setExplorePageParams = useSetExplorePageParams();
 
   const id = useExploreId();
   const visitQuery = useVisitQuery();
@@ -228,6 +232,7 @@ export function SpansTabContentImpl({
             initialQuery={query}
             onSearch={setQuery}
             searchSource="explore"
+            submitOnFilterChange
           />
         ) : (
           <EAPSpanSearchQueryBuilder
@@ -254,6 +259,7 @@ export function SpansTabContentImpl({
             }
             numberTags={numberTags}
             stringTags={stringTags}
+            submitOnFilterChange
           />
         )}
       </TopSection>
@@ -267,8 +273,9 @@ export function SpansTabContentImpl({
             stringTags={stringTags}
             isLoading={numberTagsLoading || stringTagsLoading}
             exploreQuery={query}
-            setExploreQuery={setQuery}
             source={SchemaHintsSources.EXPLORE}
+            tableColumns={fields}
+            setPageParams={setExplorePageParams}
           />
         </SchemaHintsSection>
       </Feature>

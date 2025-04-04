@@ -288,6 +288,7 @@ def fetch_historical_data(
                 auto_fields=False,
                 use_aggregate_conditions=False,
             ),
+            sampling_mode=None,
         )
         return results
     else:

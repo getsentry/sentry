@@ -5,8 +5,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
-from sentry.issues.endpoints.organization_group_search_views import DEFAULT_VIEWS
-from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
+from sentry.models.groupsearchview import DEFAULT_VIEWS, GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.testutils.cases import APITestCase, TransactionTestCase
@@ -22,7 +21,6 @@ def are_views_equal(
         view_1["name"] == view_2["name"]
         and view_1["query"] == view_2["query"]
         and view_1["querySort"] == view_2["querySort"]
-        and view_1["position"] == view_2["position"]
         and view_1["environments"] == view_2["environments"]
         and view_1["timeFilters"] == view_2["timeFilters"]
         and view_1["projects"] == view_2["projects"]
@@ -132,11 +130,8 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
         response = self.get_success_response(self.organization.slug)
 
         assert response.data[0]["id"] == str(objs["user_one_views"][0].id)
-        assert response.data[0]["position"] == 0
         assert response.data[1]["id"] == str(objs["user_one_views"][1].id)
-        assert response.data[1]["position"] == 1
         assert response.data[2]["id"] == str(objs["user_one_views"][2].id)
-        assert response.data[2]["position"] == 2
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -170,9 +165,7 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
         response = self.get_success_response(self.organization.slug)
 
         assert response.data[0]["id"] == str(objs["user_two_views"][0].id)
-        assert response.data[0]["position"] == 0
         assert response.data[1]["id"] == str(objs["user_two_views"][1].id)
-        assert response.data[1]["position"] == 1
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -188,7 +181,6 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
         assert view["name"] == "Prioritized"
         assert view["query"] == "is:unresolved issue.priority:[high, medium]"
         assert view["querySort"] == "date"
-        assert view["position"] == 0
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -506,7 +498,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         assert len(starred_views) == len(response.data)
         for idx, view in enumerate(response.data):
             assert starred_views[idx].position == idx
-            assert starred_views[idx].position == view["position"]
             assert str(starred_views[idx].group_search_view.id) == view["id"]
 
         # Verify that the deleted view is no longer in the starred table
@@ -544,7 +535,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         assert len(starred_views) == len(response.data)
         for idx, view in enumerate(response.data):
             assert starred_views[idx].position == idx
-            assert starred_views[idx].position == view["position"]
             assert str(starred_views[idx].group_search_view.id) == view["id"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
@@ -568,14 +558,8 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
     @with_feature({"organizations:global-views": True})
     def test_reorder_views(self) -> None:
         views = self.client.get(self.url).data
-        view_one = views[0]
-        view_two = views[1]
-        views[0] = view_two
-        views[1] = view_one
-
-        # We should expect the position of these two views to be swapped in the response
-        view_one["position"] = 1
-        view_two["position"] = 0
+        view_one, view_two = views[0], views[1]
+        views[0], views[1] = view_two, view_one
 
         response = self.get_success_response(self.organization.slug, views=views)
 
@@ -590,7 +574,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         assert len(starred_views) == len(response.data)
         for idx, view in enumerate(response.data):
             assert starred_views[idx].position == idx
-            assert starred_views[idx].position == view["position"]
             assert str(starred_views[idx].group_search_view.id) == view["id"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
@@ -649,7 +632,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         assert len(starred_views) == len(response.data)
         for idx, view in enumerate(response.data):
             assert starred_views[idx].position == idx
-            assert starred_views[idx].position == view["position"]
             assert str(starred_views[idx].group_search_view.id) == view["id"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
@@ -717,17 +699,11 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         self.get_success_response(self.organization.slug, views=updated_views)
 
         # Then reorder the tabs as if the deleted view is still there
-        view_one = views[0]
-        view_two = views[1]
-        views[0] = view_two
-        views[1] = view_one
+        view_one, view_two = views[0], views[1]
+        views[0], views[1] = view_two, view_one
 
         # Then save the views as if the deleted view is still there
         response = self.get_success_response(self.organization.slug, views=views)
-
-        # We should expect the position of these two views to be swapped in the response
-        view_one["position"] = 1
-        view_two["position"] = 0
 
         assert len(response.data) == 3
         # Unlike in the plain reordering test, the ids are going to be different here but the views are otherwise the same,
@@ -744,7 +720,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         assert len(starred_views) == len(response.data)
         for idx, view in enumerate(response.data):
             assert starred_views[idx].position == idx
-            assert starred_views[idx].position == view["position"]
             assert str(starred_views[idx].group_search_view.id) == view["id"]
 
 
@@ -1366,7 +1341,6 @@ class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
         assert view["name"] == "Prioritized"
         assert view["query"] == "is:unresolved issue.priority:[high, medium]"
         assert view["querySort"] == "date"
-        assert view["position"] == 0
 
         # create a new custom view
         views.append(
