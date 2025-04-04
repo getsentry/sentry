@@ -74,6 +74,7 @@ class SiloRouter:
         "authprovider_duplicate": SiloMode.CONTROL,
         "authidentity_duplicate": SiloMode.CONTROL,
         "sentry_alertruleactivations": SiloMode.REGION,
+        "sentry_monitorlocation": SiloMode.REGION,
     }
     """
     When we remove models, we are no longer able to resolve silo assignments
@@ -218,9 +219,9 @@ class TestSiloMultiDatabaseRouter(SiloRouter):
     secondary_db_models = {
         "sentry_monitor",
         "sentry_monitorcheckin",
-        "sentry_monitorlocation",
         "sentry_monitorenvironment",
         "sentry_monitorincident",
+        "sentry_monitorlocation",
         "sentry_monitorenvbrokendetection",
     }
 

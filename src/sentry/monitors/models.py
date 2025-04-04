@@ -580,22 +580,6 @@ class MonitorCheckIn(Model):
         pass
 
 
-@region_silo_model
-class MonitorLocation(Model):
-    __relocation_scope__ = RelocationScope.Excluded
-
-    guid = UUIDField(unique=True, auto_add=True)
-    name = models.CharField(max_length=128)
-    date_added = models.DateTimeField(default=timezone.now)
-    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_monitorlocation"
-
-    __repr__ = sane_repr("guid", "name")
-
-
 class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
     """
     A manager that consolidates logic for monitor environment updates
