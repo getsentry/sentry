@@ -108,6 +108,9 @@ export enum DataCategoryExact {
   SPAN = 'span',
   SPAN_INDEXED = 'spanIndexed',
   UPTIME = 'uptime',
+
+  LOG_ITEM = 'logItem',
+  LOG_BYTE = 'logByte',
 }
 
 export interface DataCategoryInfo {

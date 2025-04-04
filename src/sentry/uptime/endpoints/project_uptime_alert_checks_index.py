@@ -46,6 +46,10 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         project: Project,
         uptime_subscription: ProjectUptimeSubscription,
     ) -> Response:
+
+        if uptime_subscription.uptime_subscription.subscription_id is None:
+            return Response([])
+
         start, end = get_date_range_from_params(request.GET)
 
         def data_fn(offset: int, limit: int) -> Any:

@@ -1113,7 +1113,7 @@ class GSBanner extends Component<Props, State> {
             })}
           </ExternalLink>
         ),
-      }[eventType]!;
+      }[eventType];
     };
 
     let strictlyCronsOverage = false;

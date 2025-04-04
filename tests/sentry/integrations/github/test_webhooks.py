@@ -68,6 +68,17 @@ class WebhookTest(APITestCase):
 
         assert response.status_code == 401
 
+    def test_missing_signature_event(self):
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 400
+
 
 @control_silo_test
 class InstallationEventWebhookTest(APITestCase):
@@ -96,6 +107,7 @@ class InstallationEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="installation",
             HTTP_X_HUB_SIGNATURE="sha1=348e46312df2901e8cb945616ee84ce30d9987c9",
+            HTTP_X_HUB_SIGNATURE_256="sha256=a9d5801982bcabdb4df5e1680cc37a00fe495cc0ab193668ba7bbbe345451c46",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
         assert response.status_code == 204
@@ -131,6 +143,7 @@ class InstallationEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="installation",
             HTTP_X_HUB_SIGNATURE="sha1=348e46312df2901e8cb945616ee84ce30d9987c9",
+            HTTP_X_HUB_SIGNATURE_256="sha256=a9d5801982bcabdb4df5e1680cc37a00fe495cc0ab193668ba7bbbe345451c46",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
         assert response.status_code == 500
@@ -175,6 +188,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
                 content_type="application/json",
                 HTTP_X_GITHUB_EVENT="installation",
                 HTTP_X_HUB_SIGNATURE="sha1=8f73a86cf0a0cfa6d05626ce425cef5d3c4062aa",
+                HTTP_X_HUB_SIGNATURE_256="sha256=d06accfcb90d170d866ee0d7dfad84c8d759a2485b3aa64a787d689589435706",
                 HTTP_X_GITHUB_DELIVERY=str(uuid4()),
             )
             assert response.status_code == 204
@@ -215,6 +229,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="installation",
             HTTP_X_HUB_SIGNATURE="sha1=8f73a86cf0a0cfa6d05626ce425cef5d3c4062aa",
+            HTTP_X_HUB_SIGNATURE_256="sha256=d06accfcb90d170d866ee0d7dfad84c8d759a2485b3aa64a787d689589435706",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
         assert response.status_code == 204
@@ -248,6 +263,7 @@ class PushEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
+            HTTP_X_HUB_SIGNATURE_256="sha256=923b0fbedd24b106400c1dd23251972aee23dc797e0ab7cdd6d0c089db802402",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -277,6 +293,7 @@ class PushEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
+            HTTP_X_HUB_SIGNATURE_256="sha256=923b0fbedd24b106400c1dd23251972aee23dc797e0ab7cdd6d0c089db802402",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -468,6 +485,7 @@ class PushEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
+            HTTP_X_HUB_SIGNATURE_256="sha256=923b0fbedd24b106400c1dd23251972aee23dc797e0ab7cdd6d0c089db802402",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -512,6 +530,7 @@ class PushEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
+            HTTP_X_HUB_SIGNATURE_256="sha256=923b0fbedd24b106400c1dd23251972aee23dc797e0ab7cdd6d0c089db802402",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -559,6 +578,7 @@ class PushEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
+            HTTP_X_HUB_SIGNATURE_256="sha256=923b0fbedd24b106400c1dd23251972aee23dc797e0ab7cdd6d0c089db802402",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -593,6 +613,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_HUB_SIGNATURE="sha1=bc7ce12fc1058a35bf99355e6fc0e6da72c35de3",
+            HTTP_X_HUB_SIGNATURE_256="sha256=ed9e5aed0617ad10312986257e22448b019569200c5fdbd005a2b68a80049317",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -622,6 +643,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_HUB_SIGNATURE="sha1=bc7ce12fc1058a35bf99355e6fc0e6da72c35de3",
+            HTTP_X_HUB_SIGNATURE_256="sha256=ed9e5aed0617ad10312986257e22448b019569200c5fdbd005a2b68a80049317",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -741,6 +763,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_HUB_SIGNATURE="sha1=bc7ce12fc1058a35bf99355e6fc0e6da72c35de3",
+            HTTP_X_HUB_SIGNATURE_256="sha256=ed9e5aed0617ad10312986257e22448b019569200c5fdbd005a2b68a80049317",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -788,6 +811,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_HUB_SIGNATURE="sha1=bc7ce12fc1058a35bf99355e6fc0e6da72c35de3",
+            HTTP_X_HUB_SIGNATURE_256="sha256=ed9e5aed0617ad10312986257e22448b019569200c5fdbd005a2b68a80049317",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -833,6 +857,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_HUB_SIGNATURE="sha1=83100642f0cf5d7f6145cf8d04da5d00a09f890f",
+            HTTP_X_HUB_SIGNATURE_256="sha256=3e45e315ec12367c10ae7aa9de22372868440ece2ea719251a4dc6cc6531ca20",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
@@ -875,6 +900,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_HUB_SIGNATURE="sha1=49db856f5658b365b73a2fa73a7cffa543f4d3af",
+            HTTP_X_HUB_SIGNATURE_256="sha256=c99f2b44a5915b1430d1a1b095a44e3297c70ffd24d06c156a4efc449ec53c47",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 

@@ -21,8 +21,8 @@ import {
 import {
   makeAutofixQueryKey,
   useAutofixData,
+  useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
-import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {IconCode, IconCopy, IconOpen} from 'sentry/icons';
@@ -228,9 +228,7 @@ function CreatePRsButton({
     <Button
       priority="primary"
       onClick={createPRs}
-      icon={
-        hasClickedCreatePr && <ProcessingStatusIndicator size={14} mini hideMessage />
-      }
+      icon={hasClickedCreatePr && <StyledLoadingIndicator size={14} mini />}
       size="sm"
       busy={hasClickedCreatePr}
       disabled={isBusy}
@@ -302,9 +300,7 @@ function CreateBranchButton({
   return (
     <Button
       onClick={pushToBranch}
-      icon={
-        hasClickedPushToBranch && <ProcessingStatusIndicator size={14} mini hideMessage />
-      }
+      icon={hasClickedPushToBranch && <StyledLoadingIndicator size={14} mini />}
       size="sm"
       busy={hasClickedPushToBranch}
       disabled={isBusy}
@@ -330,14 +326,12 @@ function SetupAndCreateBranchButton({
   onBusyStateChange: (busy: boolean) => void;
   runId: string;
 }) {
-  const {data: setupData} = useAutofixSetup({groupId, checkWriteAccess: true});
+  const {codebases} = useAutofixRepos(groupId);
 
   if (
     !changes.every(
       change =>
-        setupData?.githubWriteIntegration?.repos?.find(
-          repo => `${repo.owner}/${repo.name}` === change.repo_name
-        )?.ok
+        change.repo_external_id && codebases[change.repo_external_id]?.is_writeable
     )
   ) {
     return (
@@ -380,14 +374,11 @@ function SetupAndCreatePRsButton({
   onBusyStateChange: (busy: boolean) => void;
   runId: string;
 }) {
-  const {data: setupData} = useAutofixSetup({groupId, checkWriteAccess: true});
-
+  const {codebases} = useAutofixRepos(groupId);
   if (
     !changes.every(
       change =>
-        setupData?.githubWriteIntegration?.repos?.find(
-          repo => `${repo.owner}/${repo.name}` === change.repo_name
-        )?.ok
+        change.repo_external_id && codebases[change.repo_external_id]?.is_writeable
     )
   ) {
     return (
@@ -658,10 +649,8 @@ const HeaderIconWrapper = styled('div')`
   justify-content: center;
 `;
 
-const ProcessingStatusIndicator = styled(LoadingIndicator)`
+const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
     margin: 0;
-    height: 14px;
-    width: 14px;
   }
 `;
