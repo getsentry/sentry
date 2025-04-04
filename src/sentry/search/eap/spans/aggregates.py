@@ -107,6 +107,7 @@ def resolve_http_response_count(args: ResolvedArguments) -> tuple[AttributeKey, 
     )
     return (status_code_attribute, filter)
 
+
 def resolve_bounded_sample(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
     attribute = cast(AttributeKey, args[0])
     lower_bound = cast(int, args[1])
@@ -137,6 +138,7 @@ def resolve_bounded_sample(args: ResolvedArguments) -> tuple[AttributeKey, Trace
         filter = lower_bound_filter
 
     return (attribute, filter)
+
 
 SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
     "count_op": ConditionalAggregateDefinition(
