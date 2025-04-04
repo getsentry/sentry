@@ -8,11 +8,14 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 import type {TimeSeries} from '../dashboards/widgets/common/types';
@@ -71,6 +74,59 @@ export function getExploreUrl({
   );
 }
 
+export function getExploreUrlFromSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
+  if (savedQuery.query.length > 1) {
+    return getExploreMultiQueryUrl({
+      organization,
+      ...savedQuery,
+      queries: savedQuery.query.map(q => ({
+        ...q,
+        chartType: q.visualize[0]?.chartType as ChartType, // Multi Query View only supports a single visualize per query
+        yAxes: q.visualize[0]?.yAxes ?? [],
+        groupBys: q.groupby,
+        sortBys: decodeSorts(q.orderby),
+      })),
+      title: savedQuery.name,
+      selection: {
+        datetime: {
+          end: savedQuery.end,
+          period: savedQuery.range,
+          start: savedQuery.start,
+          utc: null,
+        },
+        environments: savedQuery.environment,
+        projects: savedQuery.projects,
+      },
+    });
+  }
+  return getExploreUrl({
+    organization,
+    ...savedQuery,
+    ...savedQuery.query[0],
+    groupBy:
+      savedQuery.query[0].groupby.length === 0 ? [''] : savedQuery.query[0].groupby,
+    query: savedQuery.query[0].query,
+    title: savedQuery.name,
+    mode: savedQuery.query[0].mode as Mode,
+    selection: {
+      datetime: {
+        end: savedQuery.end,
+        period: savedQuery.range,
+        start: savedQuery.start,
+        utc: null,
+      },
+      environments: savedQuery.environment,
+      projects: savedQuery.projects,
+    },
+  });
+}
+
 export function getExploreMultiQueryUrl({
   organization,
   selection,
@@ -80,7 +136,6 @@ export function getExploreMultiQueryUrl({
   id,
 }: {
   interval: string;
-  mode: Mode;
   organization: Organization;
   queries: ReadableExploreQueryParts[];
   selection: PageFilters;
