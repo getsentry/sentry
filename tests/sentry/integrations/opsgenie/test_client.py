@@ -4,10 +4,12 @@ import orjson
 import pytest
 import responses
 
+from sentry.integrations.opsgenie.client import OpsgenieClient
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -72,9 +74,16 @@ class OpsgenieClientTest(APITestCase):
         assert group is not None
 
         rule = Rule.objects.create(project=self.project, label="my rule")
-        client = self.installation.get_keyring_client("team-123")
+        client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         with self.options({"system.url-prefix": "http://example.com"}):
-            client.send_notification(event, "P2", [rule])
+            payload = client.build_issue_alert_payload(
+                data=event,
+                rules=[rule],
+                event=event,
+                group=group,
+                priority="P2",
+            )
+            client.send_notification(payload)
 
         request = responses.calls[0].request
         payload = orjson.loads(request.body)
@@ -88,6 +97,128 @@ class OpsgenieClientTest(APITestCase):
                 "Project Name": self.project.name,
                 "Triggering Rules": "my rule",
                 "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{rule.id}/details/",
+                "Sentry Group": "Hello world",
+                "Sentry ID": group_id,
+                "Logger": "",
+                "Level": "warning",
+                "Project ID": "bar",
+                "Issue URL": f"http://example.com/organizations/baz/issues/{group_id}/?referrer=opsgenie",
+                "Release": event.release,
+            },
+            "message": "Hello world",
+            "source": "Sentry",
+        }
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @with_feature("organizations:workflow-engine-trigger-actions")
+    def test_send_notification_with_workflow_engine_trigger_actions(self, mock_record):
+        resp_data = {
+            "result": "Request will be processed",
+            "took": 1,
+            "requestId": "hello-world",
+        }
+        responses.add(responses.POST, url="https://api.opsgenie.com/v2/alerts", json=resp_data)
+
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "warning",
+                "platform": "python",
+                "culprit": "foo.bar",
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group is not None
+
+        rule = Rule.objects.create(
+            project=self.project, label="my rule", data={"legacy_rule_id": 123}
+        )
+        client: OpsgenieClient = self.installation.get_keyring_client("team-123")
+        with self.options({"system.url-prefix": "http://example.com"}):
+            payload = client.build_issue_alert_payload(
+                data=event,
+                rules=[rule],
+                event=event,
+                group=group,
+                priority="P2",
+            )
+            client.send_notification(payload)
+
+        request = responses.calls[0].request
+        payload = orjson.loads(request.body)
+        group_id = str(group.id)
+        assert payload == {
+            "tags": ["level:warning"],
+            "entity": "foo.bar",
+            "alias": "sentry: %s" % group_id,
+            "priority": "P2",
+            "details": {
+                "Project Name": self.project.name,
+                "Triggering Rules": "my rule",
+                "Triggering Rule URLs": f"http://example.com/organizations/baz/alerts/rules/{self.project.slug}/{123}/details/",
+                "Sentry Group": "Hello world",
+                "Sentry ID": group_id,
+                "Logger": "",
+                "Level": "warning",
+                "Project ID": "bar",
+                "Issue URL": f"http://example.com/organizations/baz/issues/{group_id}/?referrer=opsgenie",
+                "Release": event.release,
+            },
+            "message": "Hello world",
+            "source": "Sentry",
+        }
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @with_feature("organizations:workflow-engine-ui-links")
+    def test_send_notification_with_workflow_engine_ui_links(self, mock_record):
+        resp_data = {
+            "result": "Request will be processed",
+            "took": 1,
+            "requestId": "hello-world",
+        }
+        responses.add(responses.POST, url="https://api.opsgenie.com/v2/alerts", json=resp_data)
+
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "warning",
+                "platform": "python",
+                "culprit": "foo.bar",
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group is not None
+
+        rule = Rule.objects.create(project=self.project, label="my rule", data={"workflow_id": 123})
+        client: OpsgenieClient = self.installation.get_keyring_client("team-123")
+        with self.options({"system.url-prefix": "http://example.com"}):
+            payload = client.build_issue_alert_payload(
+                data=event,
+                rules=[rule],
+                event=event,
+                group=group,
+                priority="P2",
+            )
+            client.send_notification(payload)
+
+        request = responses.calls[0].request
+        payload = orjson.loads(request.body)
+        group_id = str(group.id)
+        assert payload == {
+            "tags": ["level:warning"],
+            "entity": "foo.bar",
+            "alias": "sentry: %s" % group_id,
+            "priority": "P2",
+            "details": {
+                "Project Name": self.project.name,
+                "Triggering Workflows": "my rule",
+                "Triggering Workflow URLs": f"http://example.com/organizations/{self.organization.id}/issues/automations/{123}/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
