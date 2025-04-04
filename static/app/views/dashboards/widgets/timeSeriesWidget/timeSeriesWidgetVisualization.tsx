@@ -21,6 +21,7 @@ import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {
+  EChartClickHandler,
   EChartDataZoomHandler,
   EChartHighlightHandler,
   ReactEchartsRef,
@@ -88,7 +89,6 @@ export interface TimeSeriesWidgetVisualizationProps {
    * Default: `auto`
    */
   showLegend?: 'auto' | 'never';
-
   /**
    * Show releases as either lines per release or a bubble for a group of releases.
    */
@@ -502,6 +502,23 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
+  const handleClick: EChartClickHandler = event => {
+    const affectedRange = seriesIndexToPlottableRangeMap.getRange(event.seriesIndex);
+    const affectedPlottable = affectedRange?.value;
+
+    if (
+      !defined(affectedRange) ||
+      !defined(affectedPlottable) ||
+      !defined(affectedPlottable.onClick)
+    ) {
+      return;
+    }
+
+    affectedPlottable.onClick(
+      getPlottableEventDataIndex(allSeries, event, affectedRange)
+    );
+  };
+
   const handleHighlight: EChartHighlightHandler = event => {
     // Unlike click events, highlights happen to potentially more than one
     // series at a time. We have to iterate each item in the batch
@@ -596,6 +613,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       period={period}
       utc={utc ?? undefined}
       onHighlight={handleHighlight}
+      onClick={handleClick}
     />
   );
 }

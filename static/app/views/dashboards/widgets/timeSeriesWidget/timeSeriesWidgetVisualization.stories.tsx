@@ -564,6 +564,38 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
+  story('Click Events', () => {
+    const [sampleId, setSampleId] = useState<string>();
+
+    const samplesPlottable = useMemo(() => {
+      return new Samples(shiftedSpanSamples, {
+        alias: 'Span Samples',
+        attributeName: 'p99(span.duration)',
+        baselineValue: 175,
+        baselineLabel: 'Average',
+        onClick: row => {
+          setSampleId(row.id);
+        },
+      });
+    }, []);
+
+    return (
+      <Fragment>
+        <p>
+          You can respond to chart click events by passing the <code>onClick</code>{' '}
+          configuration option, if it's supported by the relevant plottable. Right now,
+          only the <code>Samples</code> plottable supports this configuration option.
+        </p>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization plottables={[samplesPlottable]} render />
+
+          <p>Clicked sample ID: {sampleId}</p>
+        </MediumWidget>
+      </Fragment>
+    );
+  });
+
   story('Highlighting', () => {
     const [sampleId, setSampleId] = useState<string>();
 
