@@ -5,6 +5,8 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
@@ -15,7 +17,7 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 
@@ -26,8 +28,10 @@ SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
 
+class SeerAnomaly
 
-def get_anomaly_data_from_seer(
+# TODO: delete this once we deprecate the AlertRule model
+def get_anomaly_data_from_seer_legacy(
     alert_rule: AlertRule,
     subscription: QuerySubscription,
     last_update: float,
@@ -133,6 +137,118 @@ def get_anomaly_data_from_seer(
 
     if not results.get("success"):
         logger.info(
+            "Error when hitting Seer detect anomalies endpoint",
+            extra={
+                "error_message": results.get("message", ""),
+                **extra_data,
+            },
+        )
+        return None
+
+    ts = results.get("timeseries")
+    if not ts:
+        logger.warning(
+            "Seer anomaly detection response returned no potential anomalies",
+            extra={
+                "ad_config": anomaly_detection_config,
+                "context": context,
+                "response_data": results.get("message"),
+            },
+        )
+        return None
+    return ts
+
+
+def get_anomaly_data_from_seer(
+    sensitivity,
+    seasonality,
+    threshold_type,
+    subscription: QuerySubscription,
+    subscription_update: QuerySubscriptionUpdate,
+) -> list[TimeSeriesPoint] | None:
+    # TODO: figure out which ID we're using—detector? data condition?
+    idk = 1
+    snuba_query: SnubaQuery = subscription.snuba_query
+    # TODO: this needs to be changed to support all types of aggregation value
+    # right now, it's only supporting the most basic aggregation value
+    aggregation_value = get_aggregation_value_helper(subscription_update)
+
+    extra_data = {
+        "subscription_id": subscription.id,
+        "organization_id": subscription.project.organization.id,
+        "project_id": subscription.project_id,
+        "detector_id": idk,  # some id here
+    }
+
+    anomaly_detection_config = AnomalyDetectionConfig(
+        time_period=int(snuba_query.time_window / 60),
+        sensitivity=sensitivity,
+        direction=translate_direction(threshold_type),
+        expected_seasonality=seasonality,
+    )
+    context = AlertInSeer(
+        id=idk,  # some id here
+        cur_window=TimeSeriesPoint(
+            timestamp=subscription_update["timestamp"], value=aggregation_value
+        ),
+    )
+    detect_anomalies_request = DetectAnomaliesRequest(
+        organization_id=subscription.project.organization.id,
+        project_id=subscription.project_id,
+        config=anomaly_detection_config,
+        context=context,
+    )
+    extra_data["dataset"] = snuba_query.dataset
+    try:
+        logger.info("Sending subscription update data to Seer", extra=extra_data)
+        response = make_signed_seer_api_request(
+            SEER_ANOMALY_DETECTION_CONNECTION_POOL,
+            SEER_ANOMALY_DETECTION_ENDPOINT_URL,
+            json.dumps(detect_anomalies_request).encode("utf-8"),
+        )
+    except (TimeoutError, MaxRetryError):
+        logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
+        return None
+
+    if response.status > 400:
+        logger.error(
+            "Error when hitting Seer detect anomalies endpoint",
+            extra={
+                "response_data": response.data,
+                **extra_data,
+            },
+        )
+        return None
+    try:
+        decoded_data = response.data.decode("utf-8")
+    except AttributeError:
+        logger.exception(
+            "Failed to parse Seer anomaly detection response",
+            extra={
+                "ad_config": anomaly_detection_config,
+                "context": context,
+                "response_data": response.data,
+                "response_code": response.status,
+            },
+        )
+        return None
+
+    try:
+        results: DetectAnomaliesResponse = json.loads(decoded_data)
+    except JSONDecodeError:
+        logger.exception(
+            "Failed to parse Seer anomaly detection response",
+            extra={
+                "ad_config": anomaly_detection_config,
+                "context": context,
+                "response_data": decoded_data,
+                "response_code": response.status,
+            },
+        )
+        return None
+
+    if not results.get("success"):
+        logger.error(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
                 "error_message": results.get("message", ""),

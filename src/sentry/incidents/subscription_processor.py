@@ -50,7 +50,7 @@ from sentry.incidents.utils.types import (
 )
 from sentry.models.project import Project
 from sentry.search.eap.utils import add_start_end_conditions
-from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
+from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer_legacy
 from sentry.seer.anomaly_detection.utils import anomaly_has_confidence, has_anomaly
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -443,9 +443,9 @@ class SubscriptionProcessor:
                 },
             )
             with metrics.timer(
-                "incidents.subscription_processor.process_update.get_anomaly_data_from_seer"
+                "incidents.subscription_processor.process_update.get_anomaly_data_from_seer_legacy"
             ):
-                potential_anomalies = get_anomaly_data_from_seer(
+                potential_anomalies = get_anomaly_data_from_seer_legacy(
                     alert_rule=self.alert_rule,
                     subscription=self.subscription,
                     last_update=self.last_update.timestamp(),
