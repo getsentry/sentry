@@ -1409,7 +1409,7 @@ class CollisionTests(ImportTestCase):
     @expect_models(COLLISION_TESTED, OrganizationMemberInvite)
     def test_colliding_member_invite_token(self, expected_models: list[type[Model]]):
         org = self.create_organization(name="some-org")
-        invite = OrganizationMemberInvite.objects.create(
+        invite = self.create_member_invite(
             organization=org, email="user@example.com", token=generate_token()
         )
         assert OrganizationMemberInvite.objects.count() == 1
@@ -2246,7 +2246,7 @@ class CustomImportBehaviorTests(ImportTestCase):
                 org_member.save()
         assert (
             OrganizationMember.objects.filter(organization=org.id, inviter_id__isnull=False).count()
-            == 4
+            == 6
         )
 
         with tempfile.TemporaryDirectory() as tmp_dir:
