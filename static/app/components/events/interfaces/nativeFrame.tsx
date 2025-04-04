@@ -2,7 +2,6 @@ import type {MouseEvent} from 'react';
 import {Fragment, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Chevron} from 'sentry/components/chevron';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -24,6 +23,7 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import StrictClick from 'sentry/components/strictClick';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
+import {IconChevron} from 'sentry/icons';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -419,7 +419,7 @@ function NativeFrame({
                 size="zero"
                 borderless
                 aria-label={expanded ? t('Collapse Context') : t('Expand Context')}
-                icon={<Chevron size="medium" direction={expanded ? 'up' : 'down'} />}
+                icon={<IconChevron size="sm" direction={expanded ? 'up' : 'down'} />}
               />
             )}
           </ExpandCell>
