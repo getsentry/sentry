@@ -36,7 +36,7 @@ def literal_validator(values: list[Any]) -> Callable[[str], bool]:
 def number_validator(input: str) -> bool:
     if input.replace(".", "", 1).isdecimal():
         return True
-    raise InvalidSearchQuery(f"Invalid parameter {input}. Must be numeric type")
+    raise InvalidSearchQuery(f"Invalid parameter {input}. Must be numeric")
 
 
 def add_start_end_conditions(
