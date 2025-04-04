@@ -3240,3 +3240,8 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "taskworker.digests.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
