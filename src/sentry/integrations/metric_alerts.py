@@ -225,13 +225,14 @@ def incident_attachment_info(
 
         # We don't need to save the query param the alert rule id here because the link is to the group and not the alert rule
         # TODO(iamrajjoshi): This this through and perhaps
-        title_link_params.pop("alert", None)
+        workflow_engine_ui_params = title_link_params.copy()
+        workflow_engine_ui_params.pop("alert", None)
 
         title_link = build_title_link_workflow_engine_ui(
             metric_issue_context.group.id,
             organization,
             metric_issue_context.group.project.id,
-            title_link_params,
+            workflow_engine_ui_params,
         )
     else:
         title_link = build_title_link(
