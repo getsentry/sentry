@@ -13,11 +13,15 @@ import GridEditable, {
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
+import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconGlobe, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
@@ -25,7 +29,11 @@ import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
 
 import {useDeleteQuery} from '../hooks/useDeleteQuery';
-import {type SavedQuery, useGetSavedQueries} from '../hooks/useGetSavedQueries';
+import {
+  type SavedQuery,
+  type SortOption,
+  useGetSavedQueries,
+} from '../hooks/useGetSavedQueries';
 
 const NO_VALUE = ' \u2014 ';
 
@@ -42,17 +50,31 @@ const ORDER: Array<GridColumnOrder<keyof SavedQuery | 'options' | 'access'>> = [
 type Column = GridColumnHeader<keyof SavedQuery | 'options' | 'access'>;
 
 type Props = {
-  mode: 'owned' | 'shared';
+  cursorKey?: string;
+  mode?: 'owned' | 'shared' | 'all';
   perPage?: number;
+  searchQuery?: string;
+  sort?: SortOption;
 };
 
-export function SavedQueriesTable({mode, perPage}: Props) {
+export function SavedQueriesTable({
+  mode = 'all',
+  perPage,
+  cursorKey = 'cursor',
+  searchQuery,
+  sort = 'recentlyViewed',
+}: Props) {
   const organization = useOrganization();
   const {projects} = useProjects();
-  const {data, isLoading} = useGetSavedQueries({
-    sortBy: 'mostPopular',
-    exclude: mode === 'owned' ? 'shared' : 'owned', // Inverse because this is an exclusion
+  const location = useLocation();
+  const navigate = useNavigate();
+  const cursor = decodeScalar(location.query[cursorKey]);
+  const {data, isLoading, pageLinks} = useGetSavedQueries({
+    sortBy: sort,
+    exclude: mode === 'owned' ? 'shared' : mode === 'shared' ? 'owned' : undefined, // Inverse because this is an exclusion
     perPage,
+    cursor,
+    query: searchQuery,
   });
   const filteredData = data?.filter(row => row.query?.length > 0) ?? [];
   const {deleteQuery} = useDeleteQuery();
@@ -67,6 +89,13 @@ export function SavedQueriesTable({mode, perPage}: Props) {
     },
     [updateQueryFromSavedQuery]
   );
+
+  const handleCursor: CursorHandler = (_cursor, pathname, query) => {
+    navigate({
+      pathname,
+      query: {...query, [cursorKey]: _cursor},
+    });
+  };
 
   const renderBodyCell = (col: Column, row: SavedQuery) => {
     if (col.key === 'name') {
@@ -258,19 +287,22 @@ export function SavedQueriesTable({mode, perPage}: Props) {
     ];
   };
   return (
-    <GridEditable
-      isLoading={isLoading}
-      data={filteredData}
-      grid={{
-        renderBodyCell,
-        renderHeadCell,
-        renderPrependColumns,
-        prependColumnWidths: ['max-content'],
-      }}
-      columnOrder={ORDER}
-      columnSortBy={[]}
-      bodyStyle={{overflow: 'visible', zIndex: 'unset'}}
-    />
+    <span>
+      <GridEditable
+        isLoading={isLoading}
+        data={filteredData}
+        grid={{
+          renderBodyCell,
+          renderHeadCell,
+          renderPrependColumns,
+          prependColumnWidths: ['max-content'],
+        }}
+        columnOrder={ORDER}
+        columnSortBy={[]}
+        bodyStyle={{overflow: 'visible', zIndex: 'unset'}}
+      />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+    </span>
   );
 }
 
