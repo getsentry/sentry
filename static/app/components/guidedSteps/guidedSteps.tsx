@@ -14,6 +14,9 @@ import {type BaseButtonProps, Button} from 'sentry/components/core/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeInteger} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import usePrevious from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
@@ -60,7 +63,26 @@ function useGuidedStepsContentValue({
 }: Pick<GuidedStepsProps, 'onStepChange'>): GuidedStepsContextState {
   const registeredStepsRef = useRef<RegisteredSteps>({});
   const [totalSteps, setTotalSteps] = useState<number>(0);
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const currentStep = decodeInteger(location.query.guidedStep);
+
+  const setCurrentStep = useCallback(
+    (step: number) => {
+      if (step === currentStep) {
+        return;
+      }
+      navigate({
+        ...location,
+        query: {
+          ...location.query,
+          guidedStep: step,
+        },
+      });
+    },
+    [navigate, currentStep, location]
+  );
 
   // Steps are registered on initial render to determine the step order and which step to start on.
   // This allows Steps to be wrapped in other components, but does require that they exist on first
@@ -93,25 +115,28 @@ function useGuidedStepsContentValue({
     if (firstIncompleteStep) {
       setCurrentStep(firstIncompleteStep.stepNumber);
     }
-  }, [getFirstIncompleteStep]);
+  }, [getFirstIncompleteStep, setCurrentStep]);
 
   // On initial load, set the current step to the first incomplete step
   useEffect(() => {
-    const firstIncompleteStep = getFirstIncompleteStep();
-    setCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
-  }, [getFirstIncompleteStep]);
+    if (currentStep) {
+      return;
+    }
+    const newStep = getFirstIncompleteStep()?.stepNumber ?? 1;
+    setCurrentStep(newStep);
+  }, [getFirstIncompleteStep, currentStep, setCurrentStep]);
 
   const handleSetCurrentStep = useCallback(
     (step: number) => {
       setCurrentStep(step);
       onStepChange?.(step);
     },
-    [onStepChange]
+    [onStepChange, setCurrentStep]
   );
 
   return useMemo(
     () => ({
-      currentStep,
+      currentStep: currentStep ?? 1,
       setCurrentStep: handleSetCurrentStep,
       totalSteps,
       registerStep,
