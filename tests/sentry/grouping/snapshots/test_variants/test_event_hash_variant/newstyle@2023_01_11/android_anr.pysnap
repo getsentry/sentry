@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T00:33:56.483613+00:00'
+created: '2025-04-04T14:10:19.227967+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -808,14 +808,14 @@ system:
               "zygoteinit.java"
             function*
               "run"
-          frame
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)
               "method.java"
             function*
               "invoke"
-          frame
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)
