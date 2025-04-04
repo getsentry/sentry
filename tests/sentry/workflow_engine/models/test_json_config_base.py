@@ -3,7 +3,6 @@ from dataclasses import dataclass
 import pytest
 from jsonschema import ValidationError
 
-from sentry.incidents.grouptype import MetricAlertFire
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.testutils.cases import APITestCase
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
@@ -43,7 +42,6 @@ class JSONConfigBaseTest(BaseGroupTypeTest):
             slug = "test"
             description = "Test"
             category = GroupCategory.ERROR.value
-            detector_config_schema = self.example_schema
 
         @dataclass(frozen=True)
         class ExampleGroupType(GroupType):
@@ -51,26 +49,6 @@ class JSONConfigBaseTest(BaseGroupTypeTest):
             slug = "example"
             description = "Example"
             category = GroupCategory.PERFORMANCE.value
-            detector_config_schema = {"type": "object", "additionalProperties": False}
-
-
-# TODO - Move this to the detector model test
-class TestDetectorConfig(JSONConfigBaseTest):
-    def test_detector_no_registration(self):
-        with pytest.raises(ValueError):
-            self.create_detector(name="test_detector", type="no_registration")
-
-    def test_detector_schema(self):
-        self.create_detector(name="test_detector", type="test", config=self.correct_config)
-
-        with pytest.raises(ValidationError):
-            self.create_detector(name="test_detector", type="test", config={"hi": "there"})
-
-    def test_detector_empty_schema(self):
-        self.create_detector(name="example_detector", type="example", config={})
-
-        with pytest.raises(ValidationError):
-            self.create_detector(name="test_detector", type="example", config={"hi": "there"})
 
 
 # TODO - Move this to the workflow model test
@@ -100,7 +78,6 @@ class TestMetricAlertFireDetectorConfig(JSONConfigBaseTest, APITestCase):
             slug = "test_metric_alert_fire"
             description = "Metric alert fired"
             category = GroupCategory.METRIC_ALERT.value
-            detector_config_schema = MetricAlertFire.detector_config_schema
 
     def test_detector_correct_schema(self):
         self.create_detector(
