@@ -296,37 +296,6 @@ export function sendSampleEvent(api: Client, orgSlug: string, projectSlug: strin
 }
 
 /**
- * Creates a project
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param team The team slug to assign the project to
- * @param name Name of the project
- * @param platform The platform key of the project
- * @param options Additional options such as creating default alert rules
- */
-export function createProject({
-  api,
-  name,
-  options = {},
-  orgSlug,
-  platform,
-  team,
-}: {
-  api: Client;
-  name: string;
-  options: {defaultRules?: boolean};
-  orgSlug: string;
-  platform: string;
-  team: string;
-}) {
-  return api.requestPromise(`/teams/${orgSlug}/${team}/projects/`, {
-    method: 'POST',
-    data: {name, platform, default_rules: options.defaultRules, origin: 'ui'},
-  });
-}
-
-/**
  * Deletes a project
  *
  * @param api API Client
