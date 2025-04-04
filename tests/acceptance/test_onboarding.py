@@ -1,6 +1,7 @@
 import pytest
 
 from sentry.models.project import Project
+from sentry.testutils.asserts import assert_existing_projects
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -50,6 +51,7 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.browser.click(xpath='//a[text()="Skip Onboarding"]')
         self.browser.get("/organizations/%s/projects/" % self.org.slug)
         self.browser.wait_until(xpath='//h1[text()="Remain Calm"]')
+        assert_existing_projects(self.org, [])
 
     def test_framework_modal_open_by_selecting_vanilla_platform(self):
         self.start_onboarding()
@@ -73,3 +75,4 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.browser.click(xpath='//a[text()="Skip Onboarding"]')
         self.browser.get("/organizations/%s/projects/" % self.org.slug)
         self.browser.wait_until(f'[data-test-id="{platform}"]')
+        assert_existing_projects(self.org, [platform])
