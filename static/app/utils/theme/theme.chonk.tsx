@@ -826,11 +826,6 @@ const generateAliases = (
   progressBackground: colors.gray100,
 
   /**
-   * Overlay for partial opacity
-   */
-  overlayBackgroundAlpha: colors.gray100,
-
-  /**
    * Tag progress bars
    */
   tagBarHover: colors.chonk.blue300,
@@ -1143,7 +1138,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
 
 declare module '@emotion/react' {
   // @TODO(jonasbadalic): interface extending a type might be prone to some issues.
-  // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-shadow
+  // eslint-disable-next-line @typescript-eslint/no-shadow
   export interface DO_NOT_USE_ChonkTheme extends ChonkTheme {
     isChonk: true;
   }
@@ -1160,7 +1155,7 @@ declare module '@emotion/react' {
  * Chonk utilities and overrrides to assert correct theme type
  * inside chonk components without having to check for theme.isChonk everywhere
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
+
 interface DO_NOT_USE_ChonkTheme extends ChonkTheme {
   isChonk: true;
 }
