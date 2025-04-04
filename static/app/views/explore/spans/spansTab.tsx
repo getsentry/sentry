@@ -392,8 +392,8 @@ const Body = styled(Layout.Body)<{
     display: grid;
     ${p =>
       p.withToolbar
-        ? `grid-template-columns: 300px minmax(100px, auto);`
-        : `grid-template-columns: 0px minmax(100px, auto)`}
+        ? `grid-template-columns: 300px minmax(100px, auto) ${p.withHints ? p.thirdColumnWidth : ''};`
+        : `grid-template-columns: 0px minmax(100px, auto) ${p.withHints ? p.thirdColumnWidth : ''};`}
     grid-template-rows: auto ${p => (p.withHints ? 'auto 1fr' : '1fr')};
     align-content: start;
     gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};
