@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useProfiler} from '@sentry/react';
 
 import {Alert} from 'sentry/components/core/alert';
 import LoadingError from 'sentry/components/loadingError';
@@ -8,6 +9,14 @@ import {t} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+
+function OrganizationLoadingIndicator() {
+  /* Track how long this component is rendered for. */
+  useProfiler('OrganizationLoadingIndicator', {
+    hasRenderSpan: true,
+  });
+  return <LoadingTriangle>{t('Loading data for your organization.')}</LoadingTriangle>;
+}
 
 interface Props {
   children: React.JSX.Element;
@@ -21,7 +30,7 @@ function OrganizationContainer({children}: Props) {
   const {loading, error, errorType} = useLegacyStore(OrganizationStore);
 
   if (loading) {
-    return <LoadingTriangle>{t('Loading data for your organization.')}</LoadingTriangle>;
+    return <OrganizationLoadingIndicator />;
   }
 
   // XXX(epurkhiser): There is a special case scenarion when we're unable to

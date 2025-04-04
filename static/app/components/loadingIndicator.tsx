@@ -1,4 +1,3 @@
-import {withProfiler} from '@sentry/react';
 import classNames from 'classnames';
 
 interface LoadingIndicatorProps {
@@ -33,6 +32,4 @@ function LoadingIndicator(props: LoadingIndicatorProps) {
   );
 }
 
-export default withProfiler(LoadingIndicator, {
-  includeUpdates: false,
-});
+export default LoadingIndicator;
