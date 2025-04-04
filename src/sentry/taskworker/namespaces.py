@@ -7,6 +7,8 @@ auth_tasks = taskregistry.create_namespace("auth")
 
 auth_control_tasks = taskregistry.create_namespace("auth.control")
 
+crons_tasks = taskregistry.create_namespace("crons")
+
 deletion_tasks = taskregistry.create_namespace(
     "deletions",
     processing_deadline_duration=60 * 3,
@@ -19,6 +21,8 @@ deletion_control_tasks = taskregistry.create_namespace(
 )
 
 demomode_tasks = taskregistry.create_namespace("demomode")
+
+digests_tasks = taskregistry.create_namespace("digests")
 
 options_tasks = taskregistry.create_namespace("options")
 
