@@ -38,9 +38,11 @@ interface DrawerPanelProps {
   children: React.ReactNode;
   headerContent: React.ReactNode;
   onClose: DrawerContentContextType['onClose'];
+  drawerHeight?: DrawerOptions['drawerHeight'];
   drawerKey?: string;
   drawerWidth?: DrawerOptions['drawerWidth'];
   transitionProps?: AnimationProps['transition'];
+  useFixedWidth?: DrawerOptions['useFixedWidth'];
 }
 
 export function DrawerPanel({
@@ -51,6 +53,8 @@ export function DrawerPanel({
   onClose,
   drawerWidth,
   drawerKey,
+  useFixedWidth,
+  drawerHeight,
 }: DrawerPanelProps & {
   ref?: React.Ref<HTMLDivElement>;
 }) {
@@ -58,6 +62,7 @@ export function DrawerPanel({
     useDrawerResizing({
       drawerKey,
       drawerWidth,
+      useFixedWidth,
     });
 
   // Calculate actual drawer width in pixels
@@ -74,6 +79,7 @@ export function DrawerPanel({
           ref={mergeRefs(panelRef, ref)}
           transitionProps={transitionProps}
           panelWidth="var(--drawer-width)" // Initial width only
+          panelHeight={drawerHeight}
           className="drawer-panel"
         >
           {drawerKey && enabled && (
@@ -182,11 +188,12 @@ const DrawerContainer = styled('div')`
   pointer-events: none;
 `;
 
-const DrawerSlidePanel = styled(SlideOverPanel)`
+const DrawerSlidePanel = styled(SlideOverPanel)<{panelHeight?: string}>`
   box-shadow: 0 0 0 1px ${p => p.theme.dropShadowHeavy};
   border-left: 1px solid ${p => p.theme.border};
   position: relative;
   pointer-events: auto;
+  ${p => p.panelHeight && `height: ${p.panelHeight}`};
 
   --drawer-width: ${DEFAULT_WIDTH_PERCENT}%;
   --drawer-min-width: ${MIN_WIDTH_PERCENT}%;

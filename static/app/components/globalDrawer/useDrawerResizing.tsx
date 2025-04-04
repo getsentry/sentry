@@ -15,6 +15,7 @@ function getDrawerWidthKey(drawerKey: string) {
 interface UseDrawerResizingOptions {
   drawerKey?: string;
   drawerWidth?: string;
+  useFixedWidth?: boolean;
 }
 
 interface UseDrawerResizingResult {
@@ -28,6 +29,7 @@ interface UseDrawerResizingResult {
 export function useDrawerResizing({
   drawerKey,
   drawerWidth,
+  useFixedWidth = false,
 }: UseDrawerResizingOptions): UseDrawerResizingResult {
   const theme = useTheme();
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
@@ -38,6 +40,9 @@ export function useDrawerResizing({
 
   // Calculate initial width from props or use default
   const calculateInitialWidth = (savedWidth?: number) => {
+    // if (usePixels && drawerWidth) {
+    //   return parseFloat(drawerWidth);
+    // }
     // If we have a saved width, use it but ensure it's within bounds
     if (savedWidth !== undefined) {
       return Math.min(Math.max(savedWidth, MIN_WIDTH_PERCENT), MAX_WIDTH_PERCENT);
@@ -74,17 +79,21 @@ export function useDrawerResizing({
       panelRef.current?.style.setProperty('--drawer-width', '100%');
       panelRef.current?.style.setProperty('--drawer-min-width', '100%');
       panelRef.current?.style.setProperty('--drawer-max-width', '100%');
+    } else if (useFixedWidth) {
+      panelRef.current?.style.setProperty('--drawer-width', `${drawerWidth}`);
+      panelRef.current?.style.setProperty('--drawer-min-width', `${drawerWidth}`);
+      panelRef.current?.style.setProperty('--drawer-max-width', `${drawerWidth}`);
     } else {
       panelRef.current?.style.setProperty('--drawer-width', `${persistedWidthPercent}%`);
       panelRef.current?.style.setProperty('--drawer-min-width', `${MIN_WIDTH_PERCENT}%`);
       panelRef.current?.style.setProperty('--drawer-max-width', `${MAX_WIDTH_PERCENT}%`);
     }
-  }, [persistedWidthPercent, isSmallScreen]);
+  }, [persistedWidthPercent, isSmallScreen, useFixedWidth, drawerWidth]);
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {
       // Don't allow resizing on small screens
-      if (isSmallScreen) {
+      if (isSmallScreen || useFixedWidth) {
         return;
       }
 
@@ -157,7 +166,7 @@ export function useDrawerResizing({
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
     },
-    [setPersistedWidthPercent, isSmallScreen]
+    [isSmallScreen, useFixedWidth, setPersistedWidthPercent]
   );
 
   useLayoutEffect(() => {
@@ -173,7 +182,7 @@ export function useDrawerResizing({
     resizeHandleRef,
     handleResizeStart,
     persistedWidthPercent,
-    enabled: !isSmallScreen && !!drawerKey,
+    enabled: !isSmallScreen && !!drawerKey && !useFixedWidth,
   };
 }
 

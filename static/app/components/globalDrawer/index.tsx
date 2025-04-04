@@ -33,6 +33,10 @@ export interface DrawerOptions {
    */
   closeOnOutsideClick?: boolean;
   /**
+   * Custom height for the drawer
+   */
+  drawerHeight?: string;
+  /**
    * Key to identify the drawer and enable persistence of the drawer width
    */
   drawerKey?: string;
@@ -65,6 +69,10 @@ export interface DrawerOptions {
   // Custom framer motion transition for the drawer
   //
   transitionProps?: AnimationProps['transition'];
+  /**
+   * If true (false is default), uses the drawerWidth as a fixed width for the drawer
+   */
+  useFixedWidth?: boolean;
 }
 
 interface DrawerRenderProps {
@@ -191,6 +199,8 @@ export function GlobalDrawer({children}: any) {
               transitionProps={currentDrawerConfig?.options?.transitionProps}
               drawerWidth={currentDrawerConfig?.options?.drawerWidth}
               drawerKey={currentDrawerConfig?.options?.drawerKey}
+              drawerHeight={currentDrawerConfig?.options?.drawerHeight}
+              useFixedWidth={currentDrawerConfig?.options?.useFixedWidth}
             >
               {renderedChild}
             </DrawerComponents.DrawerPanel>
