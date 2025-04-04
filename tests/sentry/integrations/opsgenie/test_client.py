@@ -218,7 +218,7 @@ class OpsgenieClientTest(APITestCase):
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Workflows": "my rule",
-                "Triggering Workflow URLs": f"http://example.com/organizations/{self.organization.id}/workflows/{123}/",
+                "Triggering Workflow URLs": f"http://example.com/organizations/{self.organization.id}/issues/automations/{123}/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
