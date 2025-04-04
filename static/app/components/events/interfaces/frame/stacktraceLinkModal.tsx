@@ -36,6 +36,9 @@ interface StacktraceLinkModalProps extends ModalRenderProps {
   onSubmit: () => void;
   organization: Organization;
   project: Project;
+  absPath?: string;
+  module?: string;
+  platform?: string;
 }
 
 function StacktraceLinkModal({
@@ -44,6 +47,9 @@ function StacktraceLinkModal({
   organization,
   integrations,
   filename,
+  absPath,
+  module,
+  platform,
   project,
   Header,
   Body,
@@ -60,6 +66,9 @@ function StacktraceLinkModal({
         query: {
           projectId: project.id,
           stacktraceFilename: filename,
+          module,
+          absPath,
+          platform,
         },
       },
     ],
