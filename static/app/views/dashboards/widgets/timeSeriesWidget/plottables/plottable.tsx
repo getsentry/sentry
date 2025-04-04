@@ -1,5 +1,7 @@
 import type {SeriesOption} from 'echarts';
 
+import type {ReactEchartsRef} from 'sentry/types/echarts';
+
 import type {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from '../../common/settings';
 import type {TimeSeriesValueUnit} from '../../common/types';
 
@@ -48,6 +50,10 @@ export interface Plottable {
    * @param plottingOptions Plotting options depend on the specific implementation of the interface.
    */
   toSeries(plottingOptions: unknown): SeriesOption[];
+  /**
+   * Optional callback to get access to the chart `ref`. Some Plottables implement this to allow dispatching events to the chart
+   */
+  handleChartRef?: (ref: ReactEchartsRef) => void;
   /**
    * Optional label for this plottable, if it appears in the legend and in tooltips.
    */

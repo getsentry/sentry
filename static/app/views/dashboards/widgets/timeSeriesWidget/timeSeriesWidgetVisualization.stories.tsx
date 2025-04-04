@@ -1,9 +1,11 @@
 import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import shuffle from 'lodash/shuffle';
 import moment from 'moment-timezone';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Button} from 'sentry/components/core/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
@@ -51,6 +53,8 @@ const sampleDurationTimeSeries3 = {
     };
   }),
 };
+
+const shiftedSpanSamples = shiftTabularDataToNow(spanSamplesWithDurations);
 
 export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) => {
   APIReference(types.TimeSeriesWidgetVisualization);
@@ -431,8 +435,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   });
 
   story('Samples', () => {
-    const [sampleId, setSampleId] = useState<string>();
-
     const timeSeriesPlottable = useMemo(() => {
       return new Bars(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
         delay: 1800,
@@ -445,9 +447,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         attributeName: 'p99(span.duration)',
         baselineValue: 175,
         baselineLabel: 'Average',
-        onHighlight: row => {
-          setSampleId(row.id);
-        },
       });
     }, []);
 
@@ -459,13 +458,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           below, we plot a set of span duration samples on top of an aggregate series of
           the 99th percentile of those durations. Samples that are faster than a baseline
           are green, samples that are slower are red.
-        </p>
-
-        <p>
-          <code>Samples</code> supports the <code>onHighlight</code> configuration option.
-          It's a callback, called whenever a sample is highlighted by bringing the X axis
-          cursor near its timestamp. e.g., here's the sample ID of the most recent
-          highlighted sample: {sampleId}
         </p>
 
         <MediumWidget>
@@ -568,6 +560,75 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             />
           </MediumWidget>
         </SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Highlighting', () => {
+    const [sampleId, setSampleId] = useState<string>();
+
+    const aggregatePlottable = useMemo(() => {
+      return new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
+        delay: 1800,
+      });
+    }, []);
+
+    const samplesPlottable = useMemo(() => {
+      return new Samples(shiftedSpanSamples, {
+        alias: 'Span Samples',
+        attributeName: 'p99(span.duration)',
+        baselineValue: 175,
+        baselineLabel: 'Average',
+        onHighlight: row => {
+          setSampleId(row.id);
+        },
+      });
+    }, []);
+
+    const plottables = useMemo(() => {
+      return [aggregatePlottable, samplesPlottable];
+    }, [aggregatePlottable, samplesPlottable]);
+
+    return (
+      <Fragment>
+        <p>
+          You can control the highlighting of data points on your charts in two ways. The
+          first way is to pass the <code>onHighlight</code> configuration option to your
+          plottable. All plottables support this configuration option. It's a callback,
+          called whenever a data point is highlighted by bringing the X axis cursor near
+          its timestamp. The second way is to manually cause highlighting on your
+          plottables by calling the <code>highlight</code> method of the plottable
+          instance. Note: only <code>Samples</code> supports this right now.
+        </p>
+
+        <p>
+          e.g., the <code>Samples</code> plottable in the chart below has both a callback,
+          and manual highlighting. The callback reports the ID of the most recently
+          highlighted sample. The "Highlight Random Sample" button manually highlights a
+          random sample in the plottable.
+        </p>
+
+        <Button
+          size="sm"
+          onClick={() => {
+            samplesPlottable.highlight(undefined);
+
+            const sample = shuffle(shiftedSpanSamples.data).at(0) as {
+              id: string;
+              timestamp: string;
+            };
+
+            samplesPlottable.highlight(sample);
+          }}
+        >
+          Highlight Random Sample
+        </Button>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization plottables={plottables} />
+
+          <p>Highlighted sample ID: {sampleId}</p>
+        </MediumWidget>
       </Fragment>
     );
   });

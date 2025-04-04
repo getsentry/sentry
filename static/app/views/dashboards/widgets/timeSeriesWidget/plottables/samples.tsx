@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import type {ScatterSeriesOption, SeriesOption} from 'echarts';
 
 import {t} from 'sentry/locale';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import type {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {scaleTabularDataColumn} from 'sentry/utils/tabularData/scaleTabularDataColumn';
@@ -73,6 +74,7 @@ export class Samples implements Plottable {
   sampleTableData: Readonly<TabularData>;
   #timestamps: readonly string[];
   config: Readonly<SamplesConfig>;
+  chartRef?: ReactEchartsRef;
 
   constructor(samples: TabularData, config: SamplesConfig) {
     this.sampleTableData = samples;
@@ -81,6 +83,30 @@ export class Samples implements Plottable {
       .map(sample => sample.timestamp)
       .toSorted();
     this.config = config;
+  }
+
+  handleChartRef(chartRef: ReactEchartsRef) {
+    this.chartRef = chartRef;
+  }
+
+  highlight(sample: TabularRow | undefined) {
+    const {config} = this;
+
+    if (!this.chartRef) {
+      warn('`Samples.highlight` invoked before chart ref is ready');
+      return;
+    }
+
+    const chart = this.chartRef.getEchartsInstance();
+    const seriesName = this.name;
+
+    if (sample && isValidSampleRow(sample)) {
+      const dataIndex = this.sampleTableData.data.indexOf(sample);
+      chart.dispatchAction({type: 'highlight', seriesName, dataIndex});
+      config.onHighlight?.(sample);
+    } else {
+      chart.dispatchAction({type: 'downplay', seriesName});
+    }
   }
 
   get isEmpty(): boolean {
