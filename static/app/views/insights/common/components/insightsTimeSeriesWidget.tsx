@@ -34,6 +34,7 @@ import type {DiscoverSeries} from '../queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from '../utils/convertSeriesToTimeseries';
 
 export interface InsightsTimeSeriesWidgetProps extends WidgetTitleProps {
+  chartId: string;
   error: Error | null;
   isLoading: boolean;
   series: DiscoverSeries[];
@@ -59,6 +60,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     })) ?? [];
 
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
+    chartId: props.chartId,
     plottables: (props.series.filter(Boolean) ?? [])?.map(serie => {
       const timeSeries = convertSeriesToTimeseries(serie);
       const PlottableDataConstructor =

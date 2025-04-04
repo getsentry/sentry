@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
@@ -27,10 +27,7 @@ interface UseReleaseStatsParams {
  */
 export function useReleaseStats(
   {datetime, environments, projects, maxPages = 10}: UseReleaseStatsParams,
-  queryOptions: {enabled?: boolean; staleTime?: number} = {
-    staleTime: Infinity,
-    enabled: true,
-  }
+  queryOptions: {staleTime: number} = {staleTime: Infinity}
 ) {
   const organization = useOrganization();
 
@@ -65,11 +62,16 @@ export function useReleaseStats(
     }
   }, [isFetching, hasNextPage, fetchNextPage, maxPages, currentNumberPages]);
 
+  const releases = useMemo(
+    () => data?.pages.flatMap(([pageData]) => pageData) ?? [],
+    [data]
+  );
+
   return {
     isLoading,
     isPending,
     isError,
     error,
-    releases: data?.pages.flatMap(([pageData]) => pageData),
+    releases,
   };
 }
