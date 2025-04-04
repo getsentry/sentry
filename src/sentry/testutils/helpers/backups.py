@@ -114,13 +114,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
-from sentry.workflow_engine.models import (
-    Action,
-    AlertRuleDetector,
-    AlertRuleWorkflow,
-    DataConditionAlertRuleTrigger,
-    DataConditionGroup,
-)
+from sentry.workflow_engine.models import Action, DataConditionAlertRuleTrigger, DataConditionGroup
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 
 __all__ = [
