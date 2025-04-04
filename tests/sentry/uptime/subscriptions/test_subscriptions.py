@@ -8,13 +8,13 @@ from pytest import raises
 
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory, ObjectStatus
-from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.group import Group, GroupStatus
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.types.actor import Actor
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.issue_platform import create_issue_platform_occurrence
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
