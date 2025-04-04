@@ -1,15 +1,21 @@
-import {createContext, useCallback, useContext, useEffect} from 'react';
+import {createContext, useCallback, useContext} from 'react';
 
-import {TourElement} from 'sentry/components/tours/components';
-import {type TourContextType, useTourReducer} from 'sentry/components/tours/tourContext';
+import {TourElementContent} from 'sentry/components/tours/components';
+import {
+  type TourContextType,
+  type TourState,
+  useTourReducer,
+} from 'sentry/components/tours/tourContext';
 
-// Define the tour categories
+import {useLocalStorageState} from '../useLocalStorageState';
+
+export const DEMO_TOURS_KEY = 'demo-mode-tours';
+
 export const enum DemoTourCategory {
-  SOURCEMAPS = 'SOURCEMAPS',
-  RELEASES = 'RELEASES',
+  SOURCEMAPS = 'sourcemaps',
+  RELEASES = 'releases',
 }
 
-// Define the step types for each category
 export const enum DemoTourStep {
   // Sourcemaps steps
   NAME = 'demo-sourcemaps-tour-name',
@@ -20,7 +26,6 @@ export const enum DemoTourStep {
   DETAILS = 'demo-releases-tour-details',
 }
 
-// Type-safe mapping of categories to their steps
 export const DEMO_TOURS: Record<DemoTourCategory, Record<string, DemoTourStep>> = {
   [DemoTourCategory.SOURCEMAPS]: {
     NAME: DemoTourStep.NAME,
@@ -33,139 +38,120 @@ export const DEMO_TOURS: Record<DemoTourCategory, Record<string, DemoTourStep>> 
   },
 } as const;
 
-export const DEMO_SOURCEMAPS_TOUR_STEPS = [
+export const DEMO_SOURCEMAPS_TOUR_STEPS: DemoTourStep[] = [
   DemoTourStep.NAME,
   DemoTourStep.EMAIL,
   DemoTourStep.PASSWORD,
 ] as const;
 
-export const DemoSourcemapsTourContext =
-  createContext<TourContextType<DemoTourStep> | null>(null);
+export const DEMO_RELEASES_TOUR_STEPS: DemoTourStep[] = [
+  DemoTourStep.TABLE,
+  DemoTourStep.DETAILS,
+] as const;
 
-export function useDemoSourcemapsTour(): TourContextType<DemoTourStep> {
-  const tourContext = useContext(DemoSourcemapsTourContext);
+type DemoToursContextType = {
+  releases: TourContextType<DemoTourStep>;
+  sourcemaps: TourContextType<DemoTourStep>;
+};
+
+export const DemoToursContext = createContext<DemoToursContextType | null>(null);
+
+export function useDemoTours({
+  category,
+}: {
+  category: DemoTourCategory;
+}): TourContextType<DemoTourStep> {
+  const tourContext = useContext(DemoToursContext);
 
   if (!tourContext) {
     throw new Error('Must be used within a TourContextProvider');
   }
-  return tourContext;
+  return tourContext[category];
 }
 
-export const DEMO_SOURCEMAPS_TOUR_KEY = 'tour.demo_sourcemaps';
+const emptyTourState = (steps: DemoTourStep[], tourKey: string) => ({
+  currentStepId: undefined,
+  isCompleted: false,
+  orderedStepIds: steps,
+  isRegistered: true,
+  tourKey,
+});
 
-export function DemoSourcemapsTourProvider({children}: {children: React.ReactNode}) {
-  // Load initial state from localStorage
-  const loadInitialState = () => {
-    const savedState = localStorage.getItem(DEMO_SOURCEMAPS_TOUR_KEY);
-    if (savedState) {
-      const parsed = JSON.parse(savedState);
-      return {
-        currentStepId: parsed.currentStepId,
-        isCompleted: parsed.isCompleted,
-        orderedStepIds: DEMO_SOURCEMAPS_TOUR_STEPS,
-        tourKey: DEMO_SOURCEMAPS_TOUR_KEY,
-        isRegistered: parsed.isRegistered,
-      };
-    }
-    return {
-      currentStepId: undefined,
-      isCompleted: false,
-      orderedStepIds: DEMO_SOURCEMAPS_TOUR_STEPS,
-      tourKey: DEMO_SOURCEMAPS_TOUR_KEY,
-      isRegistered: true,
-    };
-  };
-
-  const updateState = useCallback(
-    (state: {isCompleted: boolean; currentStepId?: DemoTourStep | null}) => {
-      localStorage.setItem(DEMO_SOURCEMAPS_TOUR_KEY, JSON.stringify(state));
-    },
-    []
-  );
-
-  const handleStartTour = useCallback(
-    (stepId?: DemoTourStep) => {
-      updateState({
-        currentStepId: stepId,
-        isCompleted: false,
-      });
-    },
-    [updateState]
-  );
-
-  const handleEndTour = useCallback(() => {
-    updateState({
-      currentStepId: undefined,
-      isCompleted: true,
-    });
-  }, [updateState]);
-
-  const handleStepChange = useCallback(
-    (stepId: DemoTourStep) => {
-      updateState({
-        currentStepId: stepId,
-        isCompleted: false,
-      });
-    },
-    [updateState]
-  );
-
-  const tourContext = useTourReducer<DemoTourStep>(loadInitialState(), {
-    onStartTour: handleStartTour,
-    onEndTour: handleEndTour,
-    onStepChange: handleStepChange,
-    requireAllStepsRegistered: false,
+export function DemoToursProvider({children}: {children: React.ReactNode}) {
+  const [tourState, setTourState] = useLocalStorageState<
+    Record<DemoTourCategory, TourState<any>>
+  >(DEMO_TOURS_KEY, {
+    [DemoTourCategory.SOURCEMAPS]: emptyTourState(
+      DEMO_SOURCEMAPS_TOUR_STEPS,
+      DemoTourCategory.SOURCEMAPS
+    ),
+    [DemoTourCategory.RELEASES]: emptyTourState(
+      DEMO_RELEASES_TOUR_STEPS,
+      DemoTourCategory.RELEASES
+    ),
   });
 
-  // Save state changes to localStorage
-  useEffect(() => {
-    updateState({
-      currentStepId: tourContext.currentStepId,
-      isCompleted: tourContext.isCompleted,
-    });
-  }, [tourContext.currentStepId, tourContext.isCompleted, updateState]);
-
-  return (
-    <DemoSourcemapsTourContext value={tourContext}>{children}</DemoSourcemapsTourContext>
-  );
-}
-
-interface UseContinueTourOptions {
-  /**
-   * The step ID that this component represents
-   */
-  stepId: DemoTourStep;
-  /**
-   * The tour context to use
-   */
-  tour: TourContextType<DemoTourStep>;
-  /**
-   * Whether the component is loading
-   */
-  isLoadingComplete?: boolean;
-}
-
-/**
- * Hook for components to register themselves as available tour steps
- */
-export function useContinueTour({
-  tour,
-  stepId,
-  isLoadingComplete,
-}: UseContinueTourOptions) {
-  useEffect(() => {
-    if (tour.currentStepId === stepId && isLoadingComplete) {
-      tour.setStep(stepId);
-    }
-  }, [tour, stepId, isLoadingComplete]);
-
-  return {
-    isActive: tour.currentStepId === stepId,
-    onComplete: () => {
-      tour.endTour();
+  const handleStepChange = useCallback(
+    (tourKey: DemoTourCategory, stepId: DemoTourStep) => {
+      setTourState(prev => ({
+        ...prev,
+        [tourKey]: {...prev[tourKey], currentStepId: stepId},
+      }));
     },
+    [setTourState]
+  );
+
+  const handleEndTour = useCallback(
+    (tourKey: DemoTourCategory) => {
+      setTourState(prev => ({
+        ...prev,
+        [tourKey]: {
+          ...prev[tourKey],
+          currentStepId: null,
+          isCompleted: true,
+        },
+      }));
+    },
+    [setTourState]
+  );
+
+  const sourcemapsTour = useTourReducer<DemoTourStep>(
+    tourState[DemoTourCategory.SOURCEMAPS],
+    {
+      onEndTour: () => handleEndTour(DemoTourCategory.SOURCEMAPS),
+      onStepChange: (stepId: DemoTourStep) =>
+        handleStepChange(DemoTourCategory.SOURCEMAPS, stepId),
+      requireAllStepsRegistered: false,
+    }
+  );
+
+  const releasesTour = useTourReducer<DemoTourStep>(
+    tourState[DemoTourCategory.RELEASES],
+    {
+      onEndTour: () => handleEndTour(DemoTourCategory.RELEASES),
+      onStepChange: (stepId: DemoTourStep) =>
+        handleStepChange(DemoTourCategory.RELEASES, stepId),
+      requireAllStepsRegistered: false,
+    }
+  );
+
+  const value = {
+    [DemoTourCategory.SOURCEMAPS]: sourcemapsTour,
+    [DemoTourCategory.RELEASES]: releasesTour,
   };
+
+  return <DemoToursContext.Provider value={value}>{children}</DemoToursContext.Provider>;
 }
+
+const getTourFromStep = (step: DemoTourStep) => {
+  if (DEMO_TOURS[DemoTourCategory.SOURCEMAPS][step]) {
+    return DemoTourCategory.SOURCEMAPS;
+  }
+  if (DEMO_TOURS[DemoTourCategory.RELEASES][step]) {
+    return DemoTourCategory.RELEASES;
+  }
+  throw new Error(`Unknown tour step: ${step}`);
+};
 
 export function DemoTourElement({
   id,
@@ -175,18 +161,24 @@ export function DemoTourElement({
 }: {
   children: React.ReactNode;
   description: string;
-  id: string;
+  id: DemoTourStep;
   title: string;
 }) {
+  const tourKey = getTourFromStep(id);
+  const tourContextValue = useDemoTours({category: tourKey});
+
+  if (!tourContextValue) {
+    return children;
+  }
+
   return (
-    <TourElement
-      // @ts-expect-error fix this later
-      tourContext={DemoSourcemapsTourContext}
+    <TourElementContent
       id={id}
       title={title}
       description={description}
+      tourContextValue={tourContextValue}
     >
       {children}
-    </TourElement>
+    </TourElementContent>
   );
 }

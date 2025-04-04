@@ -312,13 +312,19 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
               })}
         </DemoTourElement>
       </StyledPanelTable>
-      <Pagination
-        pageLinks={
-          isDebugIdBundle
-            ? (debugIdBundlesArtifactsHeaders?.('Link') ?? '')
-            : (artifactsHeaders?.('Link') ?? '')
-        }
-      />
+      <DemoTourElement
+        id={DemoTourStep.DETAILS}
+        title={'Details Time!'}
+        description={'We need this to make your details :)'}
+      >
+        <Pagination
+          pageLinks={
+            isDebugIdBundle
+              ? (debugIdBundlesArtifactsHeaders?.('Link') ?? '')
+              : (artifactsHeaders?.('Link') ?? '')
+          }
+        />
+      </DemoTourElement>
     </Fragment>
   );
 }

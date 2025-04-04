@@ -25,9 +25,10 @@ import type {Project} from 'sentry/types/project';
 import type {SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import {
+  DemoTourCategory,
   DemoTourElement,
   DemoTourStep,
-  useDemoSourcemapsTour,
+  useDemoTours,
 } from 'sentry/utils/demoMode/demoTours';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -170,12 +171,18 @@ export function SourceMapsList({location, router, project}: Props) {
     [router, location]
   );
 
-  const {startTour} = useDemoSourcemapsTour();
+  const {startTour} = useDemoTours({category: DemoTourCategory.SOURCEMAPS});
+  const {startTour: startReleasesTour} = useDemoTours({
+    category: DemoTourCategory.RELEASES,
+  });
 
   return (
     <Fragment>
       <SettingsPageHeader title={t('Source Map Uploads')} />
-      <Button onClick={() => startTour(DemoTourStep.NAME)}>Start Tour</Button>
+      <Button onClick={() => startTour(DemoTourStep.NAME)}>Start Source Maps Tour</Button>
+      <Button onClick={() => startReleasesTour(DemoTourStep.TABLE)}>
+        Start Releases Tour
+      </Button>
       <DemoTourElement
         id={DemoTourStep.NAME}
         title={'Name Time!'}
@@ -212,7 +219,13 @@ export function SourceMapsList({location, router, project}: Props) {
           deleteSourceMaps({bundleId: id, projectSlug: project.slug});
         }}
       />
-      <Pagination pageLinks={headers?.('Link') ?? ''} />
+      <DemoTourElement
+        id={DemoTourStep.TABLE}
+        title={'Table Time!'}
+        description={'We need this to make your table :)'}
+      >
+        <Pagination pageLinks={headers?.('Link') ?? ''} />
+      </DemoTourElement>
     </Fragment>
   );
 }
