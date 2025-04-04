@@ -23,7 +23,7 @@ import {
   transformToSeriesMap,
 } from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
-import {type DashboardFilters, DisplayType, type Widget} from '../types';
+import type {DashboardFilters, Widget} from '../types';
 import {isEventsStats} from '../utils/isEventsStats';
 
 import type {
@@ -100,12 +100,7 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
     [props.widget.queries]
   );
 
-  // TODO: Remove the check for the display type when we support progressive loading
-  // for the table request as well.
-  if (
-    organization.features.includes('visibility-explore-progressive-loading') &&
-    ![DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(props.widget.displayType)
-  ) {
+  if (organization.features.includes('visibility-explore-progressive-loading')) {
     return (
       <SpansWidgetQueriesProgressiveLoadingImpl
         {...props}
