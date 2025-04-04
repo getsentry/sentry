@@ -1,6 +1,11 @@
-from typing import cast
+from typing import Literal, cast
 
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, Function
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeKey,
+    AttributeValue,
+    Function,
+    StrArray,
+)
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
@@ -75,6 +80,32 @@ def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceIt
     filter = TraceItemFilter(exists_filter=ExistsFilter(key=ratio_attribute))
 
     return (ratio_attribute, filter)
+
+
+def resolve_http_response_count(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+    code = cast(Literal[1, 2, 3, 4, 5], args[0])
+    codes = constants.RESPONSE_CODE_MAP[code]
+
+    status_code_attribute = AttributeKey(
+        name="sentry.status_code",
+        type=AttributeKey.TYPE_STRING,
+    )
+
+    filter = TraceItemFilter(
+        comparison_filter=ComparisonFilter(
+            key=AttributeKey(
+                name="sentry.status_code",
+                type=AttributeKey.TYPE_STRING,
+            ),
+            op=ComparisonFilter.OP_IN,
+            value=AttributeValue(
+                val_str_array=StrArray(
+                    values=codes,  # It is faster to exact matches then startsWith
+                ),
+            ),
+        )
+    )
+    return (status_code_attribute, filter)
 
 
 def resolve_bounded_sample(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
@@ -163,6 +194,17 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             )
         ],
         aggregate_resolver=resolve_count_starts,
+    ),
+    "http_response_count": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_COUNT,
+        default_search_type="integer",
+        arguments=[
+            ValueArgumentDefinition(
+                argument_types={"integer"},
+                validator=literal_validator(["1", "2", "3", "4", "5"]),
+            )
+        ],
+        aggregate_resolver=resolve_http_response_count,
     ),
     "bounded_sample": ConditionalAggregateDefinition(
         # Bounded sample will return True if the sample is between the lower bound (2nd parameter) and if provided, greater the upper bound (3rd parameter).
