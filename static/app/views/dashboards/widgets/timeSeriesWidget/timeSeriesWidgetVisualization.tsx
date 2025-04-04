@@ -183,6 +183,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         return;
       }
 
+      for (const plottable of props.plottables) {
+        plottable.handleChartRef?.(e);
+      }
+
       const echartsInstance = e.getEchartsInstance();
       registerWithWidgetSyncContext(echartsInstance);
 
@@ -190,7 +194,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         connectReleaseBubbleChartRef(e);
       }
     },
-    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, registerWithWidgetSyncContext]
+    [
+      hasReleaseBubblesSeries,
+      connectReleaseBubbleChartRef,
+      registerWithWidgetSyncContext,
+      props.plottables,
+    ]
   );
 
   const {onDataZoom, ...chartZoomProps} = useChartZoom({
