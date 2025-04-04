@@ -40,9 +40,6 @@ export function useDrawerResizing({
 
   // Calculate initial width from props or use default
   const calculateInitialWidth = (savedWidth?: number) => {
-    // if (usePixels && drawerWidth) {
-    //   return parseFloat(drawerWidth);
-    // }
     // If we have a saved width, use it but ensure it's within bounds
     if (savedWidth !== undefined) {
       return Math.min(Math.max(savedWidth, MIN_WIDTH_PERCENT), MAX_WIDTH_PERCENT);
