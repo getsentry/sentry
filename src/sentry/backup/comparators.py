@@ -832,6 +832,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.organizationmemberinvite": [
                 DateUpdatedComparator("date_updated", "date_added"),
+                HashObfuscatingComparator("token"),
             ],
             "sentry.projectkey": [
                 HashObfuscatingComparator("public_key", "secret_key"),

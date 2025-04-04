@@ -249,10 +249,6 @@ class OrganizationMember(ReplicatedRegionModel):
     __repr__ = sane_repr("organization_id", "user_id", "email", "role")
 
     def save(self, *args, **kwargs):
-        assert (self.user_id is None and self.email) or (
-            self.user_id and self.email is None
-        ), "Must set either user or email"
-
         with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))):
             if self.token and not self.token_expires_at:
                 self.refresh_expires_at()
