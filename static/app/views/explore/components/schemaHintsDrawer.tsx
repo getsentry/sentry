@@ -21,28 +21,44 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SchemaHintsPageParams} from 'sentry/views/explore/components/schemaHintsList';
 import {addFilterToQuery} from 'sentry/views/explore/components/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 
 type SchemaHintsDrawerProps = SchemaHintsPageParams & {
   hints: Tag[];
+  source: SchemaHintsSources;
 };
 
 function SchemaHintsDrawer({
   hints,
   exploreQuery,
-  setExploreQuery,
+  tableColumns,
+  setPageParams,
+  source,
 }: SchemaHintsDrawerProps) {
   const organization = useOrganization();
   const [searchQuery, setSearchQuery] = useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const [currentQuery, setCurrentQuery] = useState(exploreQuery);
+  const [currentTableColumns, setCurrentTableColumns] = useState(tableColumns);
 
-  const handleQueryChange = useCallback(
-    (newQuery: string) => {
-      setCurrentQuery(newQuery);
-      setExploreQuery(newQuery);
+  const handleQueryAndTableColumnsChange = useCallback(
+    (newQuery: MutableSearch, newTableColumns: string[]) => {
+      setCurrentQuery(newQuery.formatString());
+      setCurrentTableColumns(newTableColumns);
+      setPageParams(
+        source === SchemaHintsSources.LOGS
+          ? {
+              search: newQuery,
+              fields: newTableColumns,
+            }
+          : {
+              query: newQuery.formatString(),
+              fields: newTableColumns,
+            }
+      );
     },
-    [setExploreQuery]
+    [setPageParams, source]
   );
 
   const selectedFilterKeys = useMemo(() => {
@@ -117,14 +133,19 @@ function SchemaHintsDrawer({
           hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
         );
       }
-      handleQueryChange(filterQuery.formatString());
+
+      const newTableColumns = currentTableColumns.includes(hint.key)
+        ? currentTableColumns
+        : [...currentTableColumns, hint.key];
+
+      handleQueryAndTableColumnsChange(filterQuery, newTableColumns);
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
         source: 'drawer',
         organization,
       });
     },
-    [currentQuery, handleQueryChange, organization]
+    [currentQuery, currentTableColumns, handleQueryAndTableColumnsChange, organization]
   );
 
   const noAttributesMessage = (

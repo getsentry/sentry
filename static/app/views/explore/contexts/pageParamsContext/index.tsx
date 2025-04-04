@@ -52,7 +52,7 @@ interface ReadablePageParams {
   title?: string;
 }
 
-interface WritablePageParams {
+export interface WritablePageParams {
   dataset?: DiscoverDatasets | null;
   fields?: string[] | null;
   groupBys?: string[] | null;
