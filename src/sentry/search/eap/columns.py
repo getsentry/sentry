@@ -22,7 +22,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.events.types import SnubaParams
 
-ResolvedArgument: TypeAlias = AttributeKey | str | int
+ResolvedArgument: TypeAlias = AttributeKey | str | int | float
 ResolvedArguments: TypeAlias = list[ResolvedArgument]
 
 
@@ -97,7 +97,7 @@ class BaseArgumentDefinition:
 @dataclass
 class ValueArgumentDefinition(BaseArgumentDefinition):
     # the type of the argument itself, if the type is a non-string you should ensure an appropriate validator is provided to avoid conversion errors
-    argument_types: set[Literal["integer", "string"]] | None = None
+    argument_types: set[Literal["integer", "string", "number"]] | None = None
 
 
 @dataclass

@@ -96,7 +96,7 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-from sentry.monitors.models import Monitor, MonitorType, ScheduleType
+from sentry.monitors.models import Monitor, ScheduleType
 from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
@@ -118,6 +118,7 @@ from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
     AlertRuleWorkflow,
+    DataConditionAlertRuleTrigger,
     DataConditionGroup,
 )
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
@@ -506,7 +507,6 @@ class ExhaustiveFixtures(Fixtures):
         Monitor.objects.create(
             organization_id=project.organization.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
             owner_user_id=owner_id,
         )
@@ -689,16 +689,19 @@ class ExhaustiveFixtures(Fixtures):
         self.create_data_condition_group_action(
             action=trigger_workflows_action, condition_group=detector_conditions
         )
-        self.create_data_condition(
+        data_condition = self.create_data_condition(
             comparison=75,
             condition_result=True,
             condition_group=detector_conditions,
         )
         detector.workflow_condition_group = detector_conditions
 
-        AlertRuleDetector.objects.create(detector=detector, alert_rule=alert)
-        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule=alert)
+        AlertRuleDetector.objects.create(detector=detector, alert_rule_id=alert.id)
+        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule_id=alert.id)
         ActionGroupStatus.objects.create(action=send_notification_action, group=group)
+        DataConditionAlertRuleTrigger.objects.create(
+            data_condition=data_condition, alert_rule_trigger_id=trigger.id
+        )
 
         TempestCredentials.objects.create(
             project=project,

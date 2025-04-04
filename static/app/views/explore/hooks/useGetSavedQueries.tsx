@@ -72,7 +72,6 @@ export function useGetSavedQueries({
           starred: starred ? 1 : undefined,
           cursor,
           query,
-          cursor_name: 'curs',
         },
       },
     ],
