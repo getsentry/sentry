@@ -57,6 +57,10 @@ export interface DrawerOptions {
    */
   onOpen?: () => void;
   /**
+   * If true (default), allows the drawer to be resized
+   */
+  resizable?: boolean;
+  /**
    * Function to determine whether the drawer should close when interacting with
    * other elements.
    */
@@ -69,10 +73,6 @@ export interface DrawerOptions {
   // Custom framer motion transition for the drawer
   //
   transitionProps?: AnimationProps['transition'];
-  /**
-   * If true (false is default), uses the drawerWidth as a fixed width for the drawer
-   */
-  useFixedWidth?: boolean;
 }
 
 interface DrawerRenderProps {
@@ -200,7 +200,7 @@ export function GlobalDrawer({children}: any) {
               drawerWidth={currentDrawerConfig?.options?.drawerWidth}
               drawerKey={currentDrawerConfig?.options?.drawerKey}
               drawerHeight={currentDrawerConfig?.options?.drawerHeight}
-              useFixedWidth={currentDrawerConfig?.options?.useFixedWidth}
+              resizable={currentDrawerConfig?.options?.resizable}
             >
               {renderedChild}
             </DrawerComponents.DrawerPanel>

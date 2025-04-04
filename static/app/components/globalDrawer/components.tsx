@@ -41,8 +41,8 @@ interface DrawerPanelProps {
   drawerHeight?: DrawerOptions['drawerHeight'];
   drawerKey?: string;
   drawerWidth?: DrawerOptions['drawerWidth'];
+  resizable?: DrawerOptions['resizable'];
   transitionProps?: AnimationProps['transition'];
-  useFixedWidth?: DrawerOptions['useFixedWidth'];
 }
 
 export function DrawerPanel({
@@ -53,8 +53,8 @@ export function DrawerPanel({
   onClose,
   drawerWidth,
   drawerKey,
-  useFixedWidth,
   drawerHeight,
+  resizable = true,
 }: DrawerPanelProps & {
   ref?: React.Ref<HTMLDivElement>;
 }) {
@@ -62,7 +62,7 @@ export function DrawerPanel({
     useDrawerResizing({
       drawerKey,
       drawerWidth,
-      useFixedWidth,
+      enabled: resizable,
     });
 
   // Calculate actual drawer width in pixels
