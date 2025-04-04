@@ -42,68 +42,40 @@ class OrganizationInsightsTreeEndpointTest(
     def test_get_nextjs_function_data(self, mock_run_table_query):
 
         self.create_environment(self.project, name="production")
-        spans = [
-            self.create_span(
-                {"description": "Page Server Component (/path/to/component/)"},
-                organization=self.project.organization,
-                project=self.project,
-                duration=100,
-                start_ts=self.ten_mins_ago,
-            ),
-            self.create_span(
-                {"description": "Loading Server Component (/path/to/component/)"},
-                organization=self.project.organization,
-                project=self.project,
-                duration=100,
-                start_ts=self.ten_mins_ago,
-            ),
-            self.create_span(
-                {"description": "Layout Server Component (/)"},
-                organization=self.project.organization,
-                project=self.project,
-                duration=100,
-                start_ts=self.ten_mins_ago,
-            ),
-            self.create_span(
-                {"description": "Not-found Server Component (/path/to/component/)"},
-                organization=self.project.organization,
-                project=self.project,
-                duration=100,
-                start_ts=self.ten_mins_ago,
-            ),
-            self.create_span(
-                {"description": "Page.generateMetadata (/path/to/component/)"},
-                organization=self.project.organization,
-                project=self.project,
-                duration=100,
-                start_ts=self.ten_mins_ago,
-            ),
-            self.create_span(
-                {"description": "Page Server Component (/path/to/deep/component/)"},
-                organization=self.project.organization,
-                project=self.project,
-                duration=100,
-                start_ts=self.ten_mins_ago,
-            ),
-            self.create_span(
-                {"description": "Page Server Component (/path/to/deep/component/)"},
-                organization=self.project.organization,
-                project=self.project,
-                duration=100,
-                start_ts=self.ten_mins_ago,
-            ),
-            self.create_span(
-                {"description": "Layout Server Component (/path/to/component/)"},
-                organization=self.project.organization,
-                project=self.project,
-                duration=100,
-                start_ts=self.ten_mins_ago,
-            ),
+        descriptions = [
+            "Page Server Component (/app/dashboard/)",
+            "Loading Server Component (/app/dashboard/)",
+            "Layout Server Component (/app/)",
+            "Not-found Server Component (/app/dashboard/)",
+            "Head Server Component (/app/dashboard/)",
+            "Unknown Server Component (/app/dashboard/)",
+            "Page.generateMetadata (/app/dashboard/)",
+            "Page.generateImageMetadata (/app/dashboard/)",
+            "Page.generateViewport (/app/dashboard/)",
+            "Page Server Component (/app/dashboard/settings/)",
+            "Page Server Component (/app/dashboard/users/)",
+            "Layout Server Component (/app/dashboard/)",
+            "Page Server Component (/)",
+            "Page Server Component (/app/dashboard/[userId]/)",
+            "Page Server Component (/app/[category]/[product]/)",
+            "Layout Server Component (/app/[id]/)",
+            "Page Server Component (/app/[id]/)",
+            "Page Server Component (/app/[...slug]/)",
+            "Page Server Component (/app/[[...optional]]/)",
         ]
 
-        for span in spans:
+        spans = []
+        for description in descriptions:
+            span = self.create_span(
+                {"description": description},
+                organization=self.project.organization,
+                project=self.project,
+                duration=100,
+                start_ts=self.ten_mins_ago,
+            )
             span["sentry_tags"]["op"] = "function.nextjs"
             self.store_span(span, is_eap=True)
+            spans.append(span)
 
         with self.feature(self.FEATURES):
             response = self.client.get(
