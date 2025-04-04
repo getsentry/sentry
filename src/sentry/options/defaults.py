@@ -3245,3 +3245,13 @@ register(
     default="8.49.0",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "taskworker.crons.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.digests.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
