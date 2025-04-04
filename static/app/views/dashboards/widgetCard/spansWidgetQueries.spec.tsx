@@ -295,10 +295,13 @@ describe('spansWidgetQueries', () => {
       ],
       displayType: DisplayType.TABLE,
     });
-    const eventsStatsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [{a: 'rendered'}, {a: 2}, {a: 3}],
+    const {preflightMock, bestEffortMock} = mockPreflightAndBestEffortRequests({
+      type: 'events',
+      preflightData: {
+        data: [{a: 'preflight'}],
+      },
+      bestEffortData: {
+        data: [{a: 'best effort'}],
       },
     });
 
@@ -322,10 +325,16 @@ describe('spansWidgetQueries', () => {
       </OrganizationContext.Provider>
     );
 
-    expect(await screen.findByText('rendered')).toBeInTheDocument();
-    expect(eventsStatsMock).toHaveBeenCalledTimes(2);
-    expect(eventsStatsMock).toHaveBeenNthCalledWith(
-      1,
+    expect(preflightMock).toHaveBeenCalledTimes(1);
+    expect(bestEffortMock).toHaveBeenCalledTimes(0);
+
+    // Preflight data is returned
+    expect(await screen.findByText('preflight')).toBeInTheDocument();
+
+    expect(preflightMock).toHaveBeenCalledTimes(1);
+    expect(bestEffortMock).toHaveBeenCalledTimes(1);
+
+    expect(preflightMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
@@ -333,8 +342,7 @@ describe('spansWidgetQueries', () => {
         }),
       })
     );
-    expect(eventsStatsMock).toHaveBeenNthCalledWith(
-      2,
+    expect(bestEffortMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
@@ -343,8 +351,23 @@ describe('spansWidgetQueries', () => {
       })
     );
 
-    // Reset the mock so we can test that the rerender only triggers two requests
-    eventsStatsMock.mockReset();
+    // Best effort data is returned
+    expect(await screen.findByText('best effort')).toBeInTheDocument();
+
+    // Reset the mocks so we can test that the rerender only triggers two requests
+    MockApiClient.clearMockResponses();
+    const {
+      preflightMock: rerenderedPreflightMock,
+      bestEffortMock: rerenderedBestEffortMock,
+    } = mockPreflightAndBestEffortRequests({
+      type: 'events',
+      preflightData: {
+        data: [{a: 'new preflight'}],
+      },
+      bestEffortData: {
+        data: [{a: 'new best effort'}],
+      },
+    });
 
     // Rerender the component and check that the preflight is called before the best effort
     rerender(
@@ -367,10 +390,16 @@ describe('spansWidgetQueries', () => {
       </OrganizationContext.Provider>
     );
 
-    expect(await screen.findByText('rendered')).toBeInTheDocument();
-    expect(eventsStatsMock).toHaveBeenCalledTimes(2);
-    expect(eventsStatsMock).toHaveBeenNthCalledWith(
-      1,
+    expect(rerenderedPreflightMock).toHaveBeenCalledTimes(1);
+    expect(rerenderedBestEffortMock).toHaveBeenCalledTimes(0);
+
+    // Preflight data is returned
+    expect(await screen.findByText('new preflight')).toBeInTheDocument();
+
+    expect(rerenderedPreflightMock).toHaveBeenCalledTimes(1);
+    expect(rerenderedBestEffortMock).toHaveBeenCalledTimes(1);
+
+    expect(rerenderedPreflightMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
@@ -378,8 +407,7 @@ describe('spansWidgetQueries', () => {
         }),
       })
     );
-    expect(eventsStatsMock).toHaveBeenNthCalledWith(
-      2,
+    expect(rerenderedBestEffortMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
@@ -387,5 +415,8 @@ describe('spansWidgetQueries', () => {
         }),
       })
     );
+
+    // Best effort data is returned
+    expect(await screen.findByText('new best effort')).toBeInTheDocument();
   });
 });
