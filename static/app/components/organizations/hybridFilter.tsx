@@ -262,7 +262,6 @@ export function HybridFilter<Value extends SelectKey>({
                     {t('Cancel')}
                   </Button>
                   <Button
-                    borderless
                     size="xs"
                     priority="primary"
                     disabled={disableCommit}
