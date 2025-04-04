@@ -44,17 +44,21 @@ export function isUnlimitedReserved(value: number | null | undefined): boolean {
 
 export function addBillingStatTotals(
   a: BillingStatTotal,
-  b: BillingStatTotal | undefined
+  b: BillingStatTotal[]
 ): BillingStatTotal {
-  return {
-    accepted: a.accepted + (b?.accepted ?? 0),
-    dropped: a.dropped + (b?.dropped ?? 0),
-    droppedOther: a.droppedOther + (b?.droppedOther ?? 0),
-    droppedOverQuota: a.droppedOverQuota + (b?.droppedOverQuota ?? 0),
-    droppedSpikeProtection: a.droppedSpikeProtection + (b?.droppedSpikeProtection ?? 0),
-    filtered: a.filtered + (b?.filtered ?? 0),
-    projected: a.projected + (b?.projected ?? 0),
-  };
+  return b.reduce(
+    (acc, curr) => ({
+      accepted: acc.accepted + (curr?.accepted ?? 0),
+      dropped: acc.dropped + (curr?.dropped ?? 0),
+      droppedOther: acc.droppedOther + (curr?.droppedOther ?? 0),
+      droppedOverQuota: acc.droppedOverQuota + (curr?.droppedOverQuota ?? 0),
+      droppedSpikeProtection:
+        acc.droppedSpikeProtection + (curr?.droppedSpikeProtection ?? 0),
+      filtered: acc.filtered + (curr?.filtered ?? 0),
+      projected: acc.projected + (curr?.projected ?? 0),
+    }),
+    a
+  );
 }
 
 export const getSlot = (
@@ -313,7 +317,7 @@ export function isAmPlan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am');
 }
 
-function isAm2Plan(planId?: string) {
+export function isAm2Plan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am2');
 }
 
