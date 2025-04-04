@@ -1,11 +1,20 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {useNavigate} from 'sentry/utils/useNavigate';
+
 import {LegacyOnboarding, Onboarding} from './onboarding';
+
+jest.mock('sentry/utils/useNavigate');
+
+const mockUseNavigate = jest.mocked(useNavigate);
+const mockNavigate = jest.fn();
+mockUseNavigate.mockReturnValue(mockNavigate);
 
 describe('Performance Onboarding View > Unsupported Banner', function () {
   const organization = OrganizationFixture();
@@ -33,6 +42,8 @@ describe('Testing new onboarding ui', function () {
   const organization = OrganizationFixture({
     features: ['tracing-onboarding-new-ui'],
   });
+
+  const router = RouterFixture();
 
   it('Renders updated ui', async function () {
     MockApiClient.addMockResponse({
@@ -71,30 +82,11 @@ describe('Testing new onboarding ui', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher(
-          "Configuration should happen as early as possible in your application's lifecycle."
-        )
-      )
-    ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-
-    expect(await screen.findByText(/Add Distributed Tracing/)).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-
-    expect(
-      await screen.findByText(/Verify that performance monitoring is working correctly/)
-    ).toBeInTheDocument();
-
-    expect(
-      await screen.findByText("Waiting for this project's first trace")
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByRole('button', {name: 'Take me to an example'})
-    ).toBeInTheDocument();
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...router.location,
+        query: {guidedStep: 2},
+      })
+    );
   });
 });
