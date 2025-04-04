@@ -21,15 +21,15 @@ type Data = Pick<
 >;
 
 function getWebVitalScore(data: Data, webVital: WebVitals): number {
-  return (data[`performance_score(measurements.score.${webVital})`] as number) * 100;
+  return data[`performance_score(measurements.score.${webVital})`] * 100;
 }
 
 function getTotalScore(data: Data): number {
-  return (data[`avg(measurements.score.total)`] as number) * 100;
+  return data[`avg(measurements.score.total)`] * 100;
 }
 
 function getWebVitalScoreCount(data: Data, webVital: WebVitals | 'total'): number {
-  return data[`count_scores(measurements.score.${webVital})`] as number;
+  return data[`count_scores(measurements.score.${webVital})`];
 }
 
 function hasWebVitalScore(data: Data, webVital: WebVitals): boolean {

@@ -138,8 +138,9 @@ export default typescript.config([
 
         // https://typescript-eslint.io/packages/parser/#projectservice
         // `projectService` is recommended, but slower, with our current tsconfig files.
-        // projectService: true,
-        // tsconfigRootDir: import.meta.dirname,
+        projectService: true,
+        // @ts-expect-error TS1343: The import.meta meta-property is only allowed when the --module option is es2020, es2022, esnext, system, node16, or nodenext
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     linterOptions: {
@@ -443,6 +444,12 @@ export default typescript.config([
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/stylistic.ts
   ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
   ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
+  {
+    name: 'plugin/typescript-eslint/typed-aware-linting',
+    rules: {
+      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+    },
+  },
   {
     name: 'plugin/typescript-eslint/overrides',
     // https://typescript-eslint.io/rules/
