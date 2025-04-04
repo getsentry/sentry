@@ -32,6 +32,22 @@ class OrganizationDetectorWorkflowAPITestCase(APITestCase):
             detector=self.detector_2, workflow=self.workflow_1
         )
 
+        self.team_admin_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=self.team_admin_user,
+            role="member",
+            organization=self.organization,
+        )
+
+        self.member_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=self.member_user,
+            role="member",
+            organization=self.organization,
+        )
+
     def tearDown(self):
         return super().tearDown()
 
@@ -178,19 +194,12 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
             self.organization.slug,
         )
 
-    def test_team_admin_create(self):
-        team_admin_user = self.create_user()
-        self.create_member(
-            team_roles=[(self.team, "admin")],
-            user=team_admin_user,
-            role="member",
-            organization=self.organization,
-        )
-        self.login_as(user=team_admin_user)
+    def test_team_admin_can_connect_user_detectors(self):
+        self.login_as(user=self.team_admin_user)
 
         detector = self.create_detector(
             project=self.create_project(organization=self.organization),
-            created_by_id=1,
+            created_by_id=self.user.id,
         )
         body_params = {
             "detectorId": detector.id,
@@ -201,7 +210,9 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
             **body_params,
         )
 
-        # team admins can modify detectors created by Sentry
+    def test_team_admin_can_connect_sentry_detectors(self):
+        self.login_as(user=self.team_admin_user)
+
         sentry_detector = self.create_detector(
             project=self.create_project(organization=self.organization),
         )
@@ -211,12 +222,13 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         }
         self.get_success_response(self.organization.slug, **body_params)
 
+    def test_team_admin_can_connect_detectors_for_accessible_projects(self):
+        self.login_as(user=self.team_admin_user)
         self.organization.update_option("sentry:alerts_member_write", False)
 
-        # team admins can modify detectors for projects they have access to
         detector = self.create_detector(
             project=self.create_project(organization=self.organization, teams=[self.team]),
-            created_by_id=1,
+            created_by_id=self.user.id,
         )
         body_params = {
             "detectorId": detector.id,
@@ -227,10 +239,13 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
             **body_params,
         )
 
-        # team admins can not modify detectors for projects they don't have access to
+    def test_team_admin_cannot_connect_detectors_for_other_projects(self):
+        self.login_as(user=self.team_admin_user)
+        self.organization.update_option("sentry:alerts_member_write", False)
+
         other_detector = self.create_detector(
             project=self.create_project(organization=self.organization, teams=[]),
-            created_by_id=1,
+            created_by_id=self.user.id,
         )
         body_params = {
             "detectorId": other_detector.id,
@@ -238,21 +253,14 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         }
         self.get_error_response(self.organization.slug, **body_params, status_code=403)
 
-    def test_member_create(self):
+    def test_member_can_connect_user_detectors(self):
         self.organization.flags.allow_joinleave = False
         self.organization.save()
-        user = self.create_user()
-        self.create_member(
-            team_roles=[(self.team, "contributor")],
-            user=user,
-            role="member",
-            organization=self.organization,
-        )
-        self.login_as(user=user)
+        self.login_as(user=self.member_user)
 
         detector = self.create_detector(
             project=self.create_project(organization=self.organization),
-            created_by_id=1,
+            created_by_id=self.user.id,
         )
         body_params = {
             "detectorId": detector.id,
@@ -263,10 +271,14 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
             **body_params,
         )
 
-        # members can not modify detectors for projects they don't have access to
+    def test_member_cannot_connect_detectors_for_other_projects(self):
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.login_as(user=self.member_user)
+
         other_detector = self.create_detector(
             project=self.create_project(organization=self.organization, teams=[]),
-            created_by_id=1,
+            created_by_id=self.user.id,
         )
         body_params = {
             "detectorId": other_detector.id,
@@ -274,7 +286,11 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         }
         self.get_error_response(self.organization.slug, **body_params, status_code=403)
 
-        # members can never modify detectors created by Sentry
+    def test_member_cannot_connect_sentry_detectors(self):
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.login_as(user=self.member_user)
+
         sentry_detector = self.create_detector(
             project=self.create_project(organization=self.organization),
         )
@@ -284,14 +300,15 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         }
         self.get_error_response(self.organization.slug, **body_params, status_code=403)
 
+    def test_member_cannot_connect_detectors_when_alerts_member_write_disabled(self):
         self.organization.update_option("sentry:alerts_member_write", False)
         self.organization.flags.allow_joinleave = True
         self.organization.save()
+        self.login_as(user=self.member_user)
 
-        # members can not modify detectors for any projects when alerts_member_write is false
         detector = self.create_detector(
             project=self.create_project(organization=self.organization, teams=[self.team]),
-            created_by_id=1,
+            created_by_id=self.user.id,
         )
         body_params = {
             "detectorId": detector.id,
@@ -376,19 +393,12 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             self.organization.slug,
         )
 
-    def test_team_admin_delete(self):
-        team_admin_user = self.create_user()
-        self.create_member(
-            team_roles=[(self.team, "admin")],
-            user=team_admin_user,
-            role="member",
-            organization=self.organization,
-        )
-        self.login_as(user=team_admin_user)
+    def test_team_admin_can_disconnect_user_detectors(self):
+        self.login_as(user=self.team_admin_user)
 
         detector = self.create_detector(
             project=self.create_project(organization=self.organization),
-            created_by_id=1,
+            created_by_id=self.user.id,
         )
         self.create_detector_workflow(
             detector=detector,
@@ -399,7 +409,9 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             qs_params={"detector_id": detector.id, "workflow_id": self.workflow_1.id},
         )
 
-        # team admins can modify detectors created by Sentry
+    def test_team_admin_can_disconnect_sentry_detectors(self):
+        self.login_as(user=self.team_admin_user)
+
         sentry_detector = self.create_detector(
             project=self.create_project(organization=self.organization),
         )
@@ -412,12 +424,13 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             qs_params={"detector_id": sentry_detector.id, "workflow_id": self.workflow_1.id},
         )
 
+    def test_team_admin_can_disconnect_detectors_for_accessible_projects(self):
+        self.login_as(user=self.team_admin_user)
         self.organization.update_option("sentry:alerts_member_write", False)
 
-        # team admins can modify detectors for projects they have access to
         project_detector = self.create_detector(
             project=self.create_project(organization=self.organization, teams=[self.team]),
-            created_by_id=1,
+            created_by_id=self.user.id,
         )
         self.create_detector_workflow(
             detector=project_detector,
@@ -428,10 +441,13 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             qs_params={"detector_id": project_detector.id, "workflow_id": self.workflow_1.id},
         )
 
-        # team admins can not modify detectors for projects they don't have access to
+    def test_team_admin_cannot_disconnect_detectors_for_other_projects(self):
+        self.login_as(user=self.team_admin_user)
+        self.organization.update_option("sentry:alerts_member_write", False)
+
         other_detector = self.create_detector(
             project=self.create_project(organization=self.organization, teams=[]),
-            created_by_id=1,
+            created_by_id=self.user.id,
         )
         self.create_detector_workflow(
             detector=other_detector,
@@ -443,21 +459,14 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             status_code=403,
         )
 
-    def test_member_delete(self):
+    def test_member_can_disconnect_user_detectors(self):
         self.organization.flags.allow_joinleave = False
         self.organization.save()
-        user = self.create_user()
-        self.create_member(
-            team_roles=[(self.team, "contributor")],
-            user=user,
-            role="member",
-            organization=self.organization,
-        )
-        self.login_as(user=user)
+        self.login_as(user=self.member_user)
 
         detector = self.create_detector(
             project=self.create_project(organization=self.organization),
-            created_by_id=1,
+            created_by_id=self.user.id,
         )
         self.create_detector_workflow(
             detector=detector,
@@ -468,10 +477,14 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             qs_params={"detector_id": detector.id, "workflow_id": self.workflow_1.id},
         )
 
-        # members can not modify detectors for projects they don't have access to
+    def test_member_cannot_disconnect_detectors_for_other_projects(self):
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.login_as(user=self.member_user)
+
         other_detector = self.create_detector(
             project=self.create_project(organization=self.organization, teams=[]),
-            created_by_id=1,
+            created_by_id=self.user.id,
         )
         self.create_detector_workflow(
             detector=other_detector,
@@ -483,7 +496,11 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             status_code=403,
         )
 
-        # members can never modify detectors created by Sentry
+    def test_member_cannot_disconnect_sentry_detectors(self):
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.login_as(user=self.member_user)
+
         sentry_detector = self.create_detector(
             project=self.create_project(organization=self.organization),
         )
@@ -497,14 +514,15 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             status_code=403,
         )
 
+    def test_member_cannot_disconnect_detectors_when_alerts_member_write_disabled(self):
         self.organization.update_option("sentry:alerts_member_write", False)
         self.organization.flags.allow_joinleave = True
         self.organization.save()
+        self.login_as(user=self.member_user)
 
-        # members can not modify detectors for any projects when alerts_member_write is false
         detector = self.create_detector(
             project=self.create_project(organization=self.organization, teams=[self.team]),
-            created_by_id=1,
+            created_by_id=self.user.id,
         )
         self.create_detector_workflow(
             detector=detector,
@@ -518,19 +536,12 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
 
     def test_batch_delete_no_permission(self):
         self.organization.update_option("sentry:alerts_member_write", False)
-        user = self.create_user()
-        self.create_member(
-            team_roles=[(self.team, "contributor")],
-            user=user,
-            role="member",
-            organization=self.organization,
-        )
-        self.login_as(user=user)
+        self.login_as(user=self.member_user)
 
         # nothing is deleted when the user does not have permission to all detectors
         detector = self.create_detector(
             project=self.create_project(organization=self.organization, teams=[self.team]),
-            created_by_id=1,
+            created_by_id=self.user.id,
         )
         self.create_detector_workflow(
             detector=detector,

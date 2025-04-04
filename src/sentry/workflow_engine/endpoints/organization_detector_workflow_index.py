@@ -1,5 +1,6 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry import audit_log
@@ -22,7 +23,7 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers import DetectorWorkflowSerializer
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     DetectorWorkflowValidator,
-    check_can_edit_detector,
+    can_edit_detector,
 )
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 
@@ -134,7 +135,8 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
 
         # check that the user has permission to edit all detectors before deleting
         for detector_workflow in queryset:
-            check_can_edit_detector(detector_workflow.detector, request)
+            if not can_edit_detector(detector_workflow.detector, request):
+                raise PermissionDenied
 
         for detector_workflow in queryset:
             RegionScheduledDeletion.schedule(detector_workflow, days=0, actor=request.user)
