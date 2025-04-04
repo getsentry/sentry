@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import atexit
+import contextlib
 import dataclasses
 import logging
 import multiprocessing
@@ -9,6 +10,7 @@ import signal
 import sys
 import threading
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import ForkProcess
 from multiprocessing.synchronize import Event
@@ -39,6 +41,8 @@ from sentry.utils.memory import track_memory_usage
 mp_context = multiprocessing.get_context("fork")
 logger = logging.getLogger("sentry.taskworker.worker")
 
+AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
+
 
 @dataclasses.dataclass
 class ProcessingResult:
@@ -48,7 +52,22 @@ class ProcessingResult:
     status: TaskActivationStatus.ValueType
 
 
-AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
+@contextlib.contextmanager
+def timeout_alarm(seconds: int, handler: Callable[[int, Any], None]):
+    """
+    Context manager to handle SIGALRM handlers
+
+    To prevent tasks from consuming a worker forever, we set a timeout
+    alarm that will interrupt tasks that run longer than
+    their processing_deadline.
+    """
+    original = signal.signal(signal.SIGALRM, handler)
+    try:
+        signal.alarm(seconds)
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, original)
 
 
 def get_at_most_once_key(namespace: str, taskname: str, task_id: str) -> str:
@@ -106,8 +125,6 @@ def child_worker(
             )
         sys.exit(1)
 
-    signal.signal(signal.SIGALRM, handle_alarm)
-
     while True:
         if max_task_count and processed_task_count >= max_task_count:
             metrics.incr(
@@ -152,16 +169,12 @@ def child_worker(
 
         set_current_task(activation)
 
-        # Set an alarm for the processing_deadline_duration
-        signal.alarm(activation.processing_deadline_duration)
-
-        execution_start_time = time.time()
         next_state = TASK_ACTIVATION_STATUS_FAILURE
+        execution_start_time = time.time()
         try:
-            _execute_activation(task_func, activation)
+            with timeout_alarm(activation.processing_deadline_duration, handle_alarm):
+                _execute_activation(task_func, activation)
             next_state = TASK_ACTIVATION_STATUS_COMPLETE
-            # Clear the alarm
-            signal.alarm(0)
         except Exception as err:
             if task_func.should_retry(activation.retry_state, err):
                 logger.info("taskworker.task.retry", extra={"taskname": activation.taskname})
