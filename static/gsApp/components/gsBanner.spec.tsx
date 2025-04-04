@@ -19,6 +19,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {DataCategory} from 'sentry/types/core';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
@@ -1776,10 +1777,8 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-    const {router} = renderGlobalModal({enableRouterMocks: false});
+    render(<GSBanner organization={organization} />, {organization});
+    renderGlobalModal();
 
     expect(await screen.findByTestId('banner-alert-past-due')).toBeInTheDocument();
     expect(
@@ -1790,17 +1789,16 @@ describe('GSBanner', function () {
     );
     expect(await screen.findByTestId('modal-past-due')).toBeInTheDocument();
 
-    expect(
-      screen.getByRole('button', {name: 'Update Billing Details'})
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('modal-continue-button')).toBeInTheDocument();
     expect(
       screen.getByText(
         'There was an issue with your payment. Update your payment information to ensure uniterrupted access to Sentry.'
       )
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Update Billing Details'}));
-    expect(router.location.pathname).toBe(`/settings/past-due/billing/details/`);
-    expect(router.location.search).toBe(`?referrer=banner-billing-failure`);
+    await userEvent.click(screen.getByTestId('modal-continue-button'));
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      `/settings/past-due/billing/details/?referrer=banner-billing-failure`
+    );
   });
 
   it('shows past due modal and banner for non-billing users', async function () {
@@ -1821,7 +1819,7 @@ describe('GSBanner', function () {
     expect(await screen.findByTestId('banner-alert-past-due')).toBeInTheDocument();
     expect(await screen.findByTestId('modal-past-due')).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'See Who Can Update'})).toBeInTheDocument();
+    expect(screen.getByTestId('modal-continue-button')).toBeInTheDocument();
   });
 
   it('does not show past due modal for users without access', async function () {
@@ -1842,9 +1840,7 @@ describe('GSBanner', function () {
     await act(tick);
     expect(screen.queryByTestId('modal-past-due')).not.toBeInTheDocument();
 
-    expect(
-      screen.queryByRole('button', {name: 'See Who Can Update'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('modal-continue-button')).not.toBeInTheDocument();
   });
 
   it('shows specific banner text just for cron overages', async function () {
