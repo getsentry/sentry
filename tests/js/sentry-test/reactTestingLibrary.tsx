@@ -138,7 +138,7 @@ function patchBrowserHistoryMocksEnabled(history: MemoryHistory, router: Injecte
 }
 
 function makeAllTheProviders(options: ProviderOptions) {
-  const enableRouterMocks = options.enableRouterMocks ?? true;
+  const enableRouterMocks = options.enableRouterMocks ?? false;
   const {organization, router} = initializeOrg({
     organization: options.organization === null ? undefined : options.organization,
     router: options.router,
@@ -335,7 +335,7 @@ function render<T extends boolean = true>(
 ): RenderReturn<T> {
   const {initialEntry, config, legacyRouterConfig} = getInitialRouterConfig(options);
 
-  const enableRouterMocks = options.enableRouterMocks ?? true;
+  const enableRouterMocks = options.enableRouterMocks ?? false;
 
   const history = createMemoryHistory({
     initialEntries: [initialEntry],
@@ -354,7 +354,7 @@ function render<T extends boolean = true>(
     config,
   });
 
-  if (!enableRouterMocks) {
+  if (enableRouterMocks) {
     DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
   }
 
