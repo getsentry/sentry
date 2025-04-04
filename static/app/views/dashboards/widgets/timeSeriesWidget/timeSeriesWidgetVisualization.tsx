@@ -503,6 +503,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
   const handleHighlight: EChartHighlightHandler = event => {
+    // Unlike click events, highlights happen to potentially more than one
+    // series at a time. We have to iterate each item in the batch
     for (const batch of event.batch ?? []) {
       const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
       const affectedPlottable = affectedRange?.value;
@@ -515,22 +517,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         continue;
       }
 
-      // Each plottable creates anywhere from 1 to N `Series` objects.
-      // `batch.dataIndex` is the data index in the _series_, not in the
-      // plottable. e.g., If this is the third series of the plottable, the data
-      // index in the plottable needs to be offset by the data counts of the
-      // first two.
-      const dataIndexOffset: number = sum(
-        allSeries
-          .slice(affectedRange.min ?? 0, batch.seriesIndex)
-          .map(seriesOfPlottable => {
-            return Array.isArray(seriesOfPlottable.data)
-              ? seriesOfPlottable.data.length
-              : 0;
-          })
+      affectedPlottable.onHighlight(
+        getPlottableEventDataIndex(allSeries, batch, affectedRange)
       );
-
-      affectedPlottable.onHighlight(dataIndexOffset + batch.dataIndex);
     }
   };
 
@@ -618,6 +607,35 @@ function LoadingPanel() {
       <LoadingIndicator mini />
     </LoadingPlaceholder>
   );
+}
+
+/**
+ * Each plottable creates anywhere from 1 to N `Series` objects. When an event fires on a `Series` object, ECharts reports a `dataIndex`. This index won't match the data inside inside the original `Plottable`, since it produced more than on `Series`. To map backwards, we need to calculate an offset, based on how many other `Series` this plottable produced.
+ *
+ * e.g., If this is the third series of the plottable, the data index in the plottable needs to be offset by the data counts of the first two.
+ *
+ * @param series All series plotted on the chart
+ * @param affectedRange The range of series that the plottable is responsible for
+ * @param seriesIndex The index of the series where the event fires
+ * @returns The offset, as a number, of how many points the previous series are responsible for
+ */
+function getPlottableEventDataIndex(
+  series: SeriesOption[],
+  event: {
+    dataIndex: number;
+    seriesIndex: number;
+  },
+  affectedRange: Range<Plottable>
+): number {
+  const {dataIndex, seriesIndex} = event;
+
+  const dataIndexOffset = sum(
+    series.slice(affectedRange.min ?? 0, seriesIndex).map(seriesOfPlottable => {
+      return Array.isArray(seriesOfPlottable.data) ? seriesOfPlottable.data.length : 0;
+    })
+  );
+
+  return dataIndexOffset + dataIndex;
 }
 
 const LoadingPlaceholder = styled('div')`
