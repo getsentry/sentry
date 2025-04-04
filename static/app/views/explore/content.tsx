@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Button} from 'sentry/components/core/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -74,6 +74,14 @@ export function ExploreContent() {
                     {t('Switch to Old Trace Explore')}
                   </Button>
                 </Feature>
+                {!prefersStackedNav && (
+                  <LinkButton
+                    to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                    size="sm"
+                  >
+                    {t('Saved Queries')}
+                  </LinkButton>
+                )}
                 <FeedbackWidgetButton />
               </ButtonBar>
             </Layout.HeaderActions>
