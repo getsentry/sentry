@@ -1,6 +1,6 @@
 import typescript from 'typescript-eslint';
 
-import configs from './eslint.config.mjs';
+import configs, {typeAwareLintRules} from './eslint.config.mjs';
 
 export default typescript.config([
   ...configs,
@@ -13,6 +13,9 @@ export default typescript.config([
     },
   },
   {
-    extends: [typescript.configs.disableTypeChecked],
+    name: typeAwareLintRules.name,
+    rules: Object.fromEntries(
+      Object.entries(typeAwareLintRules.rules).map(([key]) => [key, 'off'])
+    ),
   },
 ]);
