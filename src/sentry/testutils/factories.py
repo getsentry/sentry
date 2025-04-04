@@ -171,6 +171,8 @@ from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.workflow_engine.models import (
     Action,
+    ActionAlertRuleTriggerAction,
+    AlertRuleDetector,
     AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
@@ -2262,16 +2264,51 @@ class Factories:
         **kwargs,
     ) -> AlertRuleWorkflow:
         if rule_id is None and alert_rule_id is None:
-            raise ValueError("Either rule or alert_rule must be provided")
+            raise ValueError("Either rule_id or alert_rule_id must be provided")
 
         if rule_id is not None and alert_rule_id is not None:
-            raise ValueError("Only one of rule or alert_rule can be provided")
+            raise ValueError("Only one of rule_id or alert_rule_id can be provided")
 
         if workflow is None:
             workflow = Factories.create_workflow()
 
         return AlertRuleWorkflow.objects.create(
             alert_rule_id=alert_rule_id, rule_id=rule_id, workflow=workflow, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_alert_rule_detector(
+        alert_rule_id: int | None = None,
+        rule_id: int | None = None,
+        detector: Detector | None = None,
+        **kwargs,
+    ) -> AlertRuleDetector:
+        if rule_id is None and alert_rule_id is None:
+            raise ValueError("Either rule_id or alert_rule_id must be provided")
+
+        if rule_id is not None and alert_rule_id is not None:
+            raise ValueError("Only one of rule_id or alert_rule_id can be provided")
+
+        if detector is None:
+            detector = Factories.create_detector()
+
+        return AlertRuleDetector.objects.create(
+            alert_rule_id=alert_rule_id, rule_id=rule_id, detector=detector, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_action_alert_rule_trigger_action(
+        alert_rule_trigger_action_id: int,
+        action: Action | None = None,
+        **kwargs,
+    ) -> ActionAlertRuleTriggerAction:
+        if action is None:
+            action = Factories.create_action()
+
+        return ActionAlertRuleTriggerAction.objects.create(
+            action=action, alert_rule_trigger_action_id=alert_rule_trigger_action_id
         )
 
     @staticmethod
