@@ -211,13 +211,13 @@ class SpansBuffer:
                         shard = self.assigned_shards[
                             int(span.trace_id, 16) % len(self.assigned_shards)
                         ]
-                        queue_keys.append(f"span-buf:q:{shard}")
+                        queue_keys.append(self._get_queue_key(shard))
 
                 results = p.execute()
 
         with metrics.timer("spans.buffer.process_spans.update_queue"):
-            queue_deletes: dict[str, set[bytes]] = {}
-            queue_adds: dict[str, MutableMapping[str | bytes, int]] = {}
+            queue_deletes: dict[bytes, set[bytes]] = {}
+            queue_adds: dict[bytes, MutableMapping[str | bytes, int]] = {}
 
             assert len(queue_keys) == len(results)
 
@@ -273,6 +273,9 @@ class SpansBuffer:
         self.add_buffer_sha = self.client.script_load(add_buffer_script.script)
         return self.add_buffer_sha
 
+    def _get_queue_key(self, shard: int) -> bytes:
+        return f"span-buf:q:{shard}".encode("ascii")
+
     def _group_by_parent(self, spans: Sequence[Span]) -> dict[tuple[str, str], list[Span]]:
         """
         Groups partial trees of spans by their top-most parent span ID in the
@@ -311,7 +314,7 @@ class SpansBuffer:
         with metrics.timer("spans.buffer.flush_segments.load_segment_ids"):
             with self.client.pipeline(transaction=False) as p:
                 for shard in self.assigned_shards:
-                    key = f"span-buf:q:{shard}"
+                    key = self._get_queue_key(shard)
                     p.zrangebyscore(
                         key, 0, cutoff, start=0 if max_segments else None, num=max_segments or None
                     )

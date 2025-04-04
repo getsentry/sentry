@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+from collections.abc import Sequence
 from unittest import mock
 
 import pytest
@@ -80,7 +81,7 @@ class _SplitBatch:
     pass
 
 
-def process_spans(spans: list[Span | _SplitBatch], buffer: SpansBuffer, now):
+def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now):
     """
     Call buffer.process_spans on the list of spans.
 
