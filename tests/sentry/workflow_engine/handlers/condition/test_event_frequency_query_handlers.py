@@ -353,7 +353,7 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
     handler = PercentSessionsQueryHandler
 
     @patch(
-        "sentry.workflow_engine.handlers.condition.slow_condition_query_handlers.MIN_SESSIONS_TO_FIRE",
+        "sentry.workflow_engine.handlers.condition.event_frequency_query_handlers.MIN_SESSIONS_TO_FIRE",
         1,
     )
     def test_batch_query_percent(self):
@@ -386,7 +386,7 @@ class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQuer
         assert batch_query == {self.event3.group_id: percent_of_sessions}
 
     @patch(
-        "sentry.workflow_engine.handlers.condition.slow_condition_query_handlers.MIN_SESSIONS_TO_FIRE",
+        "sentry.workflow_engine.handlers.condition.event_frequency_query_handlers.MIN_SESSIONS_TO_FIRE",
         100,
     )
     def test_batch_query_percent_no_avg_sessions_in_interval(self):
