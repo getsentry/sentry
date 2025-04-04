@@ -54,14 +54,14 @@ export function SavedQueriesLandingContent() {
         </span>
       ) : (
         <span>
-          <h4>{t('Owned by Me')}</h4>
+          <h4>{t('Created by Me')}</h4>
           <SavedQueriesTable
             mode="owned"
             perPage={5}
             cursorKey="ownedCursor"
             sort={sort}
           />
-          <h4>{t('Shared with Me')}</h4>
+          <h4>{t('Created by Others')}</h4>
           <SavedQueriesTable
             mode="shared"
             perPage={8}
