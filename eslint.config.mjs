@@ -42,6 +42,7 @@ export const typeAwareLintRules = {
   name: 'plugin/typescript-eslint/type-aware-linting',
   rules: {
     '@typescript-eslint/await-thenable': 'error',
+    '@typescript-eslint/no-array-delete': 'error',
     '@typescript-eslint/no-unnecessary-type-assertion': 'error',
   },
 };
