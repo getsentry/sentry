@@ -40,6 +40,8 @@ selfhosted_tasks = taskregistry.create_namespace("selfhosted")
 
 tempest_tasks = taskregistry.create_namespace("tempest")
 
+uptime_tasks = taskregistry.create_namespace("uptime")
+
 
 # Namespaces for testing taskworker tasks
 exampletasks = taskregistry.create_namespace(name="examples")
