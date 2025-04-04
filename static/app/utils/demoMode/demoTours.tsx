@@ -1,4 +1,4 @@
-import {createContext, useCallback, useContext} from 'react';
+import {createContext, useCallback, useContext, useMemo} from 'react';
 
 import {TourElementContent} from 'sentry/components/tours/components';
 import {
@@ -9,90 +9,119 @@ import {
 
 import {useLocalStorageState} from '../useLocalStorageState';
 
-export const DEMO_TOURS_KEY = 'demo-mode-tours';
+export const DEMO_TOURS_STATE_KEY = 'demo-mode:tours';
 
-export const enum DemoTourCategory {
-  SOURCEMAPS = 'sourcemaps',
+export const enum DemoTour {
+  SIDEBAR = 'sidebar',
+  ISSUES = 'issues',
   RELEASES = 'releases',
+  PERFORMANCE = 'performance',
 }
 
 export const enum DemoTourStep {
-  // Sourcemaps steps
-  NAME = 'demo-sourcemaps-tour-name',
-  EMAIL = 'demo-sourcemaps-tour-email',
-  PASSWORD = 'demo-sourcemaps-tour-password',
+  // Sidebar steps
+  SIDEBAR_PROJECTS = 'demo-tour-sidebar-projects',
+  SIDEBAR_ISSUES = 'demo-tour-sidebar-issues',
+  SIDEBAR_PERFORMANCE = 'demo-tour-sidebar-performance',
+  SIDEBAR_RELEASES = 'demo-tour-sidebar-releases',
+  SIDEBAR_DISCOVER = 'demo-tour-sidebar-discover',
+  // Issues steps
+  ISSUES_STREAM = 'demo-tour-issues-stream',
+  ISSUES_TAGS = 'demo-tour-issues-tags',
+  ISSUES_STACKTRACE = 'demo-tour-issues-stacktrace',
+  ISSUES_BREADCRUMBS = 'demo-tour-issues-breadcrumbs',
   // Releases steps
-  TABLE = 'demo-releases-tour-table',
-  DETAILS = 'demo-releases-tour-details',
+  RELEASES_COMPARE = 'demo-tour-releases-compare',
+  RELEASES_DETAILS = 'demo-tour-releases-details',
+  RELEASES_STATES = 'demo-tour-releases-states',
+  // Performance steps
+  PERFORMANCE_TABLE = 'demo-tour-performance-table',
+  PERFORMANCE_TRANSACTION_SUMMARY = 'demo-tour-performance-transaction-summary',
+  PERFORMANCE_TRANSACTIONS_TABLE = 'demo-tour-performance-transactions-table',
+  PERFORMANCE_SPAN_TREE = 'demo-tour-performance-span-tree',
 }
 
-export const DEMO_TOURS: Record<DemoTourCategory, Record<string, DemoTourStep>> = {
-  [DemoTourCategory.SOURCEMAPS]: {
-    NAME: DemoTourStep.NAME,
-    EMAIL: DemoTourStep.EMAIL,
-    PASSWORD: DemoTourStep.PASSWORD,
-  },
-  [DemoTourCategory.RELEASES]: {
-    TABLE: DemoTourStep.TABLE,
-    DETAILS: DemoTourStep.DETAILS,
-  },
-} as const;
-
-export const DEMO_SOURCEMAPS_TOUR_STEPS: DemoTourStep[] = [
-  DemoTourStep.NAME,
-  DemoTourStep.EMAIL,
-  DemoTourStep.PASSWORD,
-] as const;
-
-export const DEMO_RELEASES_TOUR_STEPS: DemoTourStep[] = [
-  DemoTourStep.TABLE,
-  DemoTourStep.DETAILS,
-] as const;
-
 type DemoToursContextType = {
+  issues: TourContextType<DemoTourStep>;
+  performance: TourContextType<DemoTourStep>;
   releases: TourContextType<DemoTourStep>;
-  sourcemaps: TourContextType<DemoTourStep>;
+  sidebar: TourContextType<DemoTourStep>;
 };
 
 export const DemoToursContext = createContext<DemoToursContextType | null>(null);
 
-export function useDemoTours({
-  category,
-}: {
-  category: DemoTourCategory;
-}): TourContextType<DemoTourStep> {
+export function useDemoTours(tourKey: DemoTour): TourContextType<DemoTourStep> {
   const tourContext = useContext(DemoToursContext);
 
   if (!tourContext) {
     throw new Error('Must be used within a TourContextProvider');
   }
-  return tourContext[category];
+  return tourContext[tourKey];
 }
 
-const emptyTourState = (steps: DemoTourStep[], tourKey: string) => ({
+const TOUR_STEPS: Record<DemoTour, DemoTourStep[]> = {
+  [DemoTour.SIDEBAR]: [
+    DemoTourStep.SIDEBAR_PROJECTS,
+    DemoTourStep.SIDEBAR_ISSUES,
+    DemoTourStep.SIDEBAR_PERFORMANCE,
+    DemoTourStep.SIDEBAR_RELEASES,
+    DemoTourStep.SIDEBAR_DISCOVER,
+  ],
+  [DemoTour.ISSUES]: [
+    DemoTourStep.ISSUES_STREAM,
+    DemoTourStep.ISSUES_TAGS,
+    DemoTourStep.ISSUES_STACKTRACE,
+    DemoTourStep.ISSUES_BREADCRUMBS,
+  ],
+  [DemoTour.RELEASES]: [
+    DemoTourStep.RELEASES_COMPARE,
+    DemoTourStep.RELEASES_DETAILS,
+    DemoTourStep.RELEASES_STATES,
+  ],
+  [DemoTour.PERFORMANCE]: [
+    DemoTourStep.PERFORMANCE_TABLE,
+    DemoTourStep.PERFORMANCE_TRANSACTION_SUMMARY,
+    DemoTourStep.PERFORMANCE_TRANSACTIONS_TABLE,
+    DemoTourStep.PERFORMANCE_SPAN_TREE,
+  ],
+};
+
+const emptyTourState = {
   currentStepId: undefined,
   isCompleted: false,
-  orderedStepIds: steps,
   isRegistered: true,
-  tourKey,
-});
+};
+
+const TOUR_STATE_INITIAL_VALUE: Record<DemoTour, TourState<any>> = {
+  [DemoTour.SIDEBAR]: {
+    ...emptyTourState,
+    orderedStepIds: TOUR_STEPS[DemoTour.SIDEBAR],
+    tourKey: DemoTour.SIDEBAR,
+  },
+  [DemoTour.ISSUES]: {
+    ...emptyTourState,
+    orderedStepIds: TOUR_STEPS[DemoTour.ISSUES],
+    tourKey: DemoTour.ISSUES,
+  },
+  [DemoTour.RELEASES]: {
+    ...emptyTourState,
+    orderedStepIds: TOUR_STEPS[DemoTour.RELEASES],
+    tourKey: DemoTour.RELEASES,
+  },
+  [DemoTour.PERFORMANCE]: {
+    ...emptyTourState,
+    orderedStepIds: TOUR_STEPS[DemoTour.PERFORMANCE],
+    tourKey: DemoTour.PERFORMANCE,
+  },
+};
 
 export function DemoToursProvider({children}: {children: React.ReactNode}) {
   const [tourState, setTourState] = useLocalStorageState<
-    Record<DemoTourCategory, TourState<any>>
-  >(DEMO_TOURS_KEY, {
-    [DemoTourCategory.SOURCEMAPS]: emptyTourState(
-      DEMO_SOURCEMAPS_TOUR_STEPS,
-      DemoTourCategory.SOURCEMAPS
-    ),
-    [DemoTourCategory.RELEASES]: emptyTourState(
-      DEMO_RELEASES_TOUR_STEPS,
-      DemoTourCategory.RELEASES
-    ),
-  });
+    Record<DemoTour, TourState<any>>
+  >(DEMO_TOURS_STATE_KEY, TOUR_STATE_INITIAL_VALUE);
 
   const handleStepChange = useCallback(
-    (tourKey: DemoTourCategory, stepId: DemoTourStep) => {
+    (tourKey: DemoTour, stepId: DemoTourStep) => {
       setTourState(prev => ({
         ...prev,
         [tourKey]: {...prev[tourKey], currentStepId: stepId},
@@ -102,7 +131,7 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
   );
 
   const handleEndTour = useCallback(
-    (tourKey: DemoTourCategory) => {
+    (tourKey: DemoTour) => {
       setTourState(prev => ({
         ...prev,
         [tourKey]: {
@@ -115,40 +144,54 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
     [setTourState]
   );
 
-  const sourcemapsTour = useTourReducer<DemoTourStep>(
-    tourState[DemoTourCategory.SOURCEMAPS],
-    {
-      onEndTour: () => handleEndTour(DemoTourCategory.SOURCEMAPS),
-      onStepChange: (stepId: DemoTourStep) =>
-        handleStepChange(DemoTourCategory.SOURCEMAPS, stepId),
+  const getTourOptions = useCallback(
+    (tourKey: DemoTour) => ({
+      onEndTour: () => handleEndTour(tourKey),
+      onStepChange: (stepId: DemoTourStep) => handleStepChange(tourKey, stepId),
       requireAllStepsRegistered: false,
-    }
+    }),
+    [handleEndTour, handleStepChange]
+  );
+
+  const sidebarTour = useTourReducer<DemoTourStep>(
+    tourState[DemoTour.SIDEBAR],
+    getTourOptions(DemoTour.SIDEBAR)
+  );
+
+  const issuesTour = useTourReducer<DemoTourStep>(
+    tourState[DemoTour.ISSUES],
+    getTourOptions(DemoTour.ISSUES)
   );
 
   const releasesTour = useTourReducer<DemoTourStep>(
-    tourState[DemoTourCategory.RELEASES],
-    {
-      onEndTour: () => handleEndTour(DemoTourCategory.RELEASES),
-      onStepChange: (stepId: DemoTourStep) =>
-        handleStepChange(DemoTourCategory.RELEASES, stepId),
-      requireAllStepsRegistered: false,
-    }
+    tourState[DemoTour.RELEASES],
+    getTourOptions(DemoTour.RELEASES)
   );
 
-  const value = {
-    [DemoTourCategory.SOURCEMAPS]: sourcemapsTour,
-    [DemoTourCategory.RELEASES]: releasesTour,
-  };
+  const performanceTour = useTourReducer<DemoTourStep>(
+    tourState[DemoTour.PERFORMANCE],
+    getTourOptions(DemoTour.PERFORMANCE)
+  );
 
-  return <DemoToursContext.Provider value={value}>{children}</DemoToursContext.Provider>;
+  const tours = useMemo(
+    () => ({
+      [DemoTour.SIDEBAR]: sidebarTour,
+      [DemoTour.ISSUES]: issuesTour,
+      [DemoTour.RELEASES]: releasesTour,
+      [DemoTour.PERFORMANCE]: performanceTour,
+    }),
+    [issuesTour, releasesTour, performanceTour, sidebarTour]
+  );
+
+  return <DemoToursContext.Provider value={tours}>{children}</DemoToursContext.Provider>;
 }
 
-const getTourFromStep = (step: DemoTourStep) => {
-  if (DEMO_TOURS[DemoTourCategory.SOURCEMAPS][step]) {
-    return DemoTourCategory.SOURCEMAPS;
-  }
-  if (DEMO_TOURS[DemoTourCategory.RELEASES][step]) {
-    return DemoTourCategory.RELEASES;
+// Helper to get tour category from step remains the same
+const getTourFromStep = (step: DemoTourStep): DemoTour => {
+  for (const [category, steps] of Object.entries(TOUR_STEPS)) {
+    if (steps.includes(step)) {
+      return category as DemoTour;
+    }
   }
   throw new Error(`Unknown tour step: ${step}`);
 };
@@ -165,7 +208,7 @@ export function DemoTourElement({
   title: string;
 }) {
   const tourKey = getTourFromStep(id);
-  const tourContextValue = useDemoTours({category: tourKey});
+  const tourContextValue = useDemoTours(tourKey);
 
   if (!tourContextValue) {
     return children;

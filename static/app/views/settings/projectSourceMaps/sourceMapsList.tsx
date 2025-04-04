@@ -25,7 +25,7 @@ import type {Project} from 'sentry/types/project';
 import type {SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import {
-  DemoTourCategory,
+  DemoTour,
   DemoTourElement,
   DemoTourStep,
   useDemoTours,
@@ -171,22 +171,20 @@ export function SourceMapsList({location, router, project}: Props) {
     [router, location]
   );
 
-  const {startTour} = useDemoTours({category: DemoTourCategory.SOURCEMAPS});
-  const {startTour: startReleasesTour} = useDemoTours({
-    category: DemoTourCategory.RELEASES,
-  });
+  const {startTour} = useDemoTours(DemoTour.SIDEBAR);
+  const {startTour: startIssuesTour} = useDemoTours(DemoTour.ISSUES);
 
   return (
     <Fragment>
       <SettingsPageHeader title={t('Source Map Uploads')} />
-      <Button onClick={() => startTour(DemoTourStep.NAME)}>Start Source Maps Tour</Button>
-      <Button onClick={() => startReleasesTour(DemoTourStep.TABLE)}>
-        Start Releases Tour
-      </Button>
+      <Button onClick={() => startTour()}>Start Sidebar Tour</Button>
+      <Button onClick={() => startIssuesTour()}>Start Issues Tour</Button>
       <DemoTourElement
-        id={DemoTourStep.NAME}
-        title={'Name Time!'}
-        description={'We need this to make your account :)'}
+        id={DemoTourStep.SIDEBAR_PROJECTS}
+        title={'Projects in the sidebar'}
+        description={t(
+          'Click on the "Projects" tab in the sidebar to view your projects.'
+        )}
       >
         <TextBlock>
           {tct(
@@ -200,9 +198,9 @@ export function SourceMapsList({location, router, project}: Props) {
         </TextBlock>
       </DemoTourElement>
       <DemoTourElement
-        id={DemoTourStep.EMAIL}
-        title={'Email Time!'}
-        description={'We need this to make your email :)'}
+        id={DemoTourStep.SIDEBAR_ISSUES}
+        title={'Issues in the sidebar'}
+        description={t('Click on the "Issues" tab in the sidebar to view your issues.')}
       >
         <SearchBarWithMarginBottom
           placeholder={t('Filter by Debug ID or Upload ID')}
@@ -220,9 +218,9 @@ export function SourceMapsList({location, router, project}: Props) {
         }}
       />
       <DemoTourElement
-        id={DemoTourStep.TABLE}
-        title={'Table Time!'}
-        description={'We need this to make your table :)'}
+        id={DemoTourStep.ISSUES_STREAM}
+        title={'Issues in the issues stream'}
+        description={t('Click on an issue in the issues stream to view more details.')}
       >
         <Pagination pageLinks={headers?.('Link') ?? ''} />
       </DemoTourElement>

@@ -237,9 +237,11 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
         isLoading={isDebugIdBundle ? debugIdBundlesArtifactsLoading : artifactsLoading}
       >
         <DemoTourElement
-          id={DemoTourStep.PASSWORD}
-          title={'Password Time!'}
-          description={'We need this to make your account :)'}
+          id={DemoTourStep.SIDEBAR_PERFORMANCE}
+          title={'Performance in the sidebar'}
+          description={t(
+            'Click on an performance metric in the sidebar to view more details.'
+          )}
         >
           {isDebugIdBundle
             ? (debugIdBundlesArtifactsData?.files ?? []).map(data => {
@@ -313,9 +315,9 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
         </DemoTourElement>
       </StyledPanelTable>
       <DemoTourElement
-        id={DemoTourStep.DETAILS}
-        title={'Details Time!'}
-        description={'We need this to make your details :)'}
+        id={DemoTourStep.ISSUES_TAGS}
+        title={'Tags in the issues stream'}
+        description={t('Click on a tag in the issues stream to view more details.')}
       >
         <Pagination
           pageLinks={
