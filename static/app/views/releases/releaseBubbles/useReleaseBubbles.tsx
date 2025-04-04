@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {type ReactElement, useContext, useEffect, useMemo, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import type {
   CustomSeriesOption,
@@ -29,16 +29,22 @@ import {type ReactRouter3Navigate, useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
+import {ReleasesDrawerContext} from 'sentry/views/releases/drawer/releasesDrawerContext';
+import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 import {
   BUBBLE_AREA_SERIES_ID,
   BUBBLE_SERIES_ID,
 } from 'sentry/views/releases/releaseBubbles/constants';
 import {createReleaseBubbleHighlighter} from 'sentry/views/releases/releaseBubbles/createReleaseBubbleHighlighter';
-import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
+import type {
+  Bucket,
+  ChartRendererProps,
+} from 'sentry/views/releases/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/releases/releaseBubbles/utils/createReleaseBuckets';
 
 interface CreateReleaseBubbleMouseListenersParams {
   alignInMiddle: boolean;
+  chartId: string;
   color: string;
   environments: readonly string[];
   location: LocationDescriptorObject;
@@ -51,6 +57,7 @@ interface CreateReleaseBubbleMouseListenersParams {
  * main chart when a release bubble is hovered over.
  */
 function createReleaseBubbleMouseListeners({
+  chartId,
   alignInMiddle,
   navigate,
   color,
@@ -76,6 +83,7 @@ function createReleaseBubbleMouseListeners({
         query: {
           ...location.query,
           showReleasesDrawer: 1,
+          rdChartId: chartId,
           rdStart: data.start,
           rdEnd: data.end,
           rdProject: projects,
@@ -328,6 +336,16 @@ ${t('Click to expand')}
 
 interface UseReleaseBubblesParams {
   /**
+   * A unique ID for the chart so that it can be deeplinked to for the releases drawer.
+   */
+  chartId: string;
+  /**
+   * Chart rendering function that is used by the Releases Drawer. This is
+   * used as an "easy" way to show the same chart in the Global Drawer,
+   * especially in the case of a new page load.
+   */
+  chartRenderer: (props: ChartRendererProps) => ReactElement;
+  /**
    * Align the starting timestamp to the middle of the release bubble (e.g. if
    * we want to match ECharts' bar charts), otherwise we draw starting at
    * starting timestamp
@@ -368,6 +386,8 @@ export function useReleaseBubbles({
   releases,
   minTime,
   maxTime,
+  chartId,
+  chartRenderer,
   datetime,
   environments,
   projects,
@@ -383,6 +403,8 @@ export function useReleaseBubbles({
   const theme = useTheme();
   const {options} = useUser();
   const {selection} = usePageFilters();
+  const {cleanup, charts, registerChart} = useReleasesDrawer();
+  // const {registerChart} = useContext(ReleasesDrawerContext);
   // `maxTime` refers to the max time on x-axis for charts.
   // There may be the need to include releases that are > maxTime (e.g. in the
   // case of relative date selection). This is used for the tooltip to show the
@@ -395,6 +417,22 @@ export function useReleaseBubbles({
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
   const totalBubblePaddingY = bubblePadding * 2;
+
+  useEffect(() => {
+    if (hasReleaseBubbles) {
+      registerChart(chartId, chartRenderer);
+    }
+
+    return () => {};
+  }, [chartId, chartRenderer, hasReleaseBubbles, registerChart]);
+
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
+
+  console.log(charts);
   const defaultBubbleXAxis = useMemo(
     () => ({
       axisLine: {onZero: true},
@@ -470,7 +508,7 @@ export function useReleaseBubbles({
     return {
       connectReleaseBubbleChartRef: () => {},
       releaseBubbleEventHandlers: {},
-      ReleaseBubbleSeries: null,
+      releaseBubbleSeries: null,
       releaseBubbleXAxis: {},
       releaseBubbleGrid: {},
     };
@@ -483,6 +521,7 @@ export function useReleaseBubbles({
      * An object map of ECharts event handlers. These should be spread onto a Chart component
      */
     releaseBubbleEventHandlers: createReleaseBubbleMouseListeners({
+      chartId,
       alignInMiddle,
       navigate,
       location,

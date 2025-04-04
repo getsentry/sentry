@@ -1,8 +1,10 @@
-import {useCallback, useRef} from 'react';
+import {Fragment, type ReactElement, useCallback, useContext, useRef} from 'react';
+import styled from '@emotion/styled';
 import type {SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
 import type {EChartsInstance} from 'echarts-for-react';
 
+import {DateTime} from 'sentry/components/dateTime';
 import {
   EventDrawerBody,
   EventDrawerContainer,
@@ -12,18 +14,37 @@ import {
   NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
 import {t, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import type {ChartRendererProps} from 'sentry/views/releases/releaseBubbles/types';
+
+type ChartRenderer = (props: ChartRendererProps) => ReactElement;
+import {
+  ReleasesDrawerContext,
+  ReleasesDrawerProvider,
+} from 'sentry/views/releases/drawer/releasesDrawerContext';
 
 import {ReleaseDrawerTable} from './releasesDrawerTable';
 
 interface ReleasesDrawerListProps {
+  charts: Record<string, ChartRenderer>;
   endTs: number;
   environments: readonly string[];
   projects: readonly number[];
   startTs: number;
+  /**
+   * A renderer function that returns a chart. It is called with the trimmed
+   * list of releases and timeSeries. It currently uses the
+   * `TimeSeriesWidgetVisualization` components props. It's possible we change
+   * it to make the props more generic, e.g. pass start/end timestamps and do
+   * the series manipulation when we call the bubble hook.
+   */
+  chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
 }
 
 type MarkLineDataCallbackFn = (item: SeriesDataUnit) => boolean;
@@ -84,7 +105,9 @@ export function ReleasesDrawerList({
   endTs,
   projects,
   environments,
+  charts,
 }: ReleasesDrawerListProps) {
+  const location = useLocation();
   const start = new Date(startTs);
   const end = new Date(endTs);
   const pageFilters = usePageFilters();
@@ -95,6 +118,7 @@ export function ReleasesDrawerList({
       end: endTs ? new Date(endTs).toISOString() : null,
     },
   });
+  // const {getChart} = useContext(ReleasesDrawerContext);
   const chartRef = useRef<ReactEchartsRef | null>(null);
 
   const handleMouseOverRelease = useCallback((release: string) => {
@@ -127,6 +151,9 @@ export function ReleasesDrawerList({
       label: t('Releases'),
     },
   ];
+  const chartRenderer = charts.get(String(location.query.rdChartId));
+  // const chartRenderer = charts[String(location.query.rdChartId)];
+  // const chartRenderer = getChart(String(location.query.rdChartId));
 
   return (
     <EventDrawerContainer>
@@ -137,6 +164,42 @@ export function ReleasesDrawerList({
         <Header>{title}</Header>
       </EventNavigator>
       <EventDrawerBody>
+        {chartRenderer ? (
+          <ChartContainer>
+            <Widget
+              Title={
+                <Fragment>
+                  {t('Releases from ')}
+                  <DateTime date={start} /> <span>{t('to')}</span> <DateTime date={end} />
+                </Fragment>
+              }
+              Visualization={chartRenderer?.({
+                ref: (e: ReactEchartsRef | null) => {
+                  chartRef.current = e;
+
+                  if (e) {
+                    // When chart is mounted, zoom the chart into the relevant
+                    // bucket
+                    e.getEchartsInstance().dispatchAction({
+                      type: 'dataZoom',
+                      batch: [
+                        {
+                          // data value at starting location
+                          startValue: startTs,
+                          // data value at ending location
+                          endValue: endTs,
+                        },
+                      ],
+                    });
+                  }
+                },
+                releases,
+                start,
+                end,
+              })}
+            />
+          </ChartContainer>
+        ) : null}
         <ReleaseDrawerTable
           projects={projects}
           environments={environments}
@@ -149,3 +212,7 @@ export function ReleasesDrawerList({
     </EventDrawerContainer>
   );
 }
+
+const ChartContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
