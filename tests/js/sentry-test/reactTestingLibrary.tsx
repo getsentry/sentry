@@ -231,7 +231,10 @@ function makeRouter({
   const routes = createRoutesFromConfig(children, config);
 
   const router = createRouter({
-    future: {v7_prependBasename: true},
+    future: {
+      v7_prependBasename: true,
+      v7_relativeSplatPath: true,
+    },
     history,
     routes,
   }).initialize();
@@ -357,7 +360,10 @@ function render<T extends boolean = true>(
     DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
   }
 
-  const renderResult = rtl.render(<RouterProvider router={memoryRouter} />, options);
+  const renderResult = rtl.render(
+    <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />,
+    options
+  );
 
   const rerender = (newUi: React.ReactElement) => {
     const newRouter = makeRouter({
@@ -366,7 +372,11 @@ function render<T extends boolean = true>(
       config,
     });
 
-    renderResult.rerender(<RouterProvider router={newRouter} />);
+    renderResult.rerender(
+      <RouterProvider router={newRouter} future={{v7_startTransition: true}} />
+    );
+    // Force the router to update children
+    rtl.act(() => newRouter.revalidate());
   };
 
   const testRouter = new TestRouter(memoryRouter);
