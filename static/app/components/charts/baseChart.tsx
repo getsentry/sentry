@@ -4,7 +4,7 @@ import 'echarts/lib/component/toolbox';
 import 'echarts/lib/component/brush';
 import 'zrender/lib/svg/svg';
 
-import {useMemo} from 'react';
+import {useId, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -181,6 +181,7 @@ export interface BaseChartProps {
    * Chart height
    */
   height?: ReactEChartOpts['height'];
+
   /**
    * If data is grouped by date; then apply default date formatting to x-axis
    * and tooltips.
@@ -478,6 +479,7 @@ function BaseChart({
       : false;
 
   const isTooltipPortalled = tooltip?.appendToBody;
+  const chartId = useId();
 
   const chartOption = useMemo(() => {
     const seriesData =
@@ -496,6 +498,7 @@ function BaseChart({
               addSecondsToTimeFormat,
               utc,
               bucketSize,
+              chartId: isTooltipPortalled ? chartId : undefined,
               ...tooltip,
               className: isTooltipPortalled
                 ? `${tooltip?.className ?? ''} chart-tooltip-portal`
@@ -568,6 +571,7 @@ function BaseChart({
       brush,
     };
   }, [
+    chartId,
     color,
     resolvedSeries,
     isTooltipPortalled,
@@ -662,7 +666,11 @@ function BaseChart({
   }, [style, autoHeightResize, height, width]);
 
   return (
-    <ChartContainer autoHeightResize={autoHeightResize} data-test-id={dataTestId}>
+    <ChartContainer
+      id={isTooltipPortalled ? chartId : undefined}
+      autoHeightResize={autoHeightResize}
+      data-test-id={dataTestId}
+    >
       {isTooltipPortalled && <Global styles={getPortalledTooltipStyles({theme})} />}
       <ReactEchartsCore
         ref={ref}
