@@ -132,7 +132,7 @@ function PrimaryNavigationQuotaExceeded({
       const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
       return `${categoryInfo?.snakeCasePlural ?? category}_overage_alert`;
     })
-    .filter(Boolean) as string[];
+    .filter(Boolean);
 
   const {isLoading, isError, isPromptDismissed, snoozePrompt, showPrompt} = usePrompts({
     features: promptsToCheck,
