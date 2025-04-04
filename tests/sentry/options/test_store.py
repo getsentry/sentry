@@ -34,8 +34,10 @@ class OptionsStoreTest(TestCase):
     def flush_local_cache(self):
         self.store.flush_local_cache()
 
-    def make_key(self, ttl=10, grace=10):
-        return self.manager.make_key(uuid1().hex, "", object, 0, ttl, grace, None)
+    def make_key(self, ttl=10, grace=10, key_name: str | None = None):
+        if key_name is None:
+            key_name = uuid1().hex
+        return self.manager.make_key(key_name, "", object, 0, ttl, grace, None)
 
     def test_simple(self):
         store, key = self.store, self.key
@@ -51,15 +53,25 @@ class OptionsStoreTest(TestCase):
 
     def test_simple_without_cache(self):
         store = OptionsStore(cache=None)
-        key = self.key
+        key = self.make_key(key_name="foo")
 
-        assert store.get(key) is None
+        with pytest.raises(AssertionError) as e:
+            store.get(key)
 
-        with pytest.raises(AssertionError):
+        assert (
+            str(e.value)
+            == "Option 'foo' requested before cache initialization, which could result in excessive store queries"
+        )
+
+        with pytest.raises(AssertionError) as e:
             store.set(key, "bar", UpdateChannel.CLI)
 
-        with pytest.raises(AssertionError):
+        assert str(e.value) == "cache must be configured before mutating options"
+
+        with pytest.raises(AssertionError) as e:
             store.delete(key)
+
+        assert str(e.value) == "cache must be configured before mutating options"
 
     @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     def test_db_and_cache_unavailable(self):
