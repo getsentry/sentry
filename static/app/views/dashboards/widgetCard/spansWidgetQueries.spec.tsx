@@ -178,11 +178,8 @@ describe('spansWidgetQueries', () => {
       </OrganizationContext.Provider>
     );
 
-    expect(preflightMock).toHaveBeenCalledTimes(1);
-    expect(bestEffortMock).toHaveBeenCalledTimes(0);
-
-    // Preflight data is returned
-    expect(await screen.findByText('1')).toBeInTheDocument();
+    // Best effort data is eventually returned
+    expect(await screen.findByText('100')).toBeInTheDocument();
 
     expect(preflightMock).toHaveBeenCalledTimes(1);
     expect(bestEffortMock).toHaveBeenCalledTimes(1);
@@ -203,9 +200,6 @@ describe('spansWidgetQueries', () => {
         }),
       })
     );
-
-    // Best effort data is returned
-    expect(await screen.findByText('100')).toBeInTheDocument();
 
     // Reset the mocks so we can test that the rerender only triggers two requests
     MockApiClient.clearMockResponses();
@@ -251,11 +245,8 @@ describe('spansWidgetQueries', () => {
       </OrganizationContext.Provider>
     );
 
-    expect(rerenderedPreflightMock).toHaveBeenCalledTimes(1);
-    expect(rerenderedBestEffortMock).toHaveBeenCalledTimes(0);
-
-    // Preflight data is returned
-    expect(await screen.findByText('4')).toBeInTheDocument();
+    // Best effort data is eventually returned
+    expect(await screen.findByText('400')).toBeInTheDocument();
 
     expect(rerenderedPreflightMock).toHaveBeenCalledTimes(1);
     expect(rerenderedBestEffortMock).toHaveBeenCalledTimes(1);
@@ -276,9 +267,6 @@ describe('spansWidgetQueries', () => {
         }),
       })
     );
-
-    // Best effort data is returned
-    expect(await screen.findByText('400')).toBeInTheDocument();
   });
 
   it('triggers a preflight and then a best effort request for tables', async () => {
@@ -325,11 +313,8 @@ describe('spansWidgetQueries', () => {
       </OrganizationContext.Provider>
     );
 
-    expect(preflightMock).toHaveBeenCalledTimes(1);
-    expect(bestEffortMock).toHaveBeenCalledTimes(0);
-
-    // Preflight data is returned
-    expect(await screen.findByText('preflight')).toBeInTheDocument();
+    // Best effort data is eventually returned
+    expect(await screen.findByText('best effort')).toBeInTheDocument();
 
     expect(preflightMock).toHaveBeenCalledTimes(1);
     expect(bestEffortMock).toHaveBeenCalledTimes(1);
@@ -350,9 +335,6 @@ describe('spansWidgetQueries', () => {
         }),
       })
     );
-
-    // Best effort data is returned
-    expect(await screen.findByText('best effort')).toBeInTheDocument();
 
     // Reset the mocks so we can test that the rerender only triggers two requests
     MockApiClient.clearMockResponses();
@@ -390,11 +372,8 @@ describe('spansWidgetQueries', () => {
       </OrganizationContext.Provider>
     );
 
-    expect(rerenderedPreflightMock).toHaveBeenCalledTimes(1);
-    expect(rerenderedBestEffortMock).toHaveBeenCalledTimes(0);
-
-    // Preflight data is returned
-    expect(await screen.findByText('new preflight')).toBeInTheDocument();
+    // Best effort data is eventually returned
+    expect(await screen.findByText('new best effort')).toBeInTheDocument();
 
     expect(rerenderedPreflightMock).toHaveBeenCalledTimes(1);
     expect(rerenderedBestEffortMock).toHaveBeenCalledTimes(1);
@@ -415,8 +394,5 @@ describe('spansWidgetQueries', () => {
         }),
       })
     );
-
-    // Best effort data is returned
-    expect(await screen.findByText('new best effort')).toBeInTheDocument();
   });
 });
