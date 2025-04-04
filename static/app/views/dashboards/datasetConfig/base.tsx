@@ -185,7 +185,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     limit?: number,
     cursor?: string,
     referrer?: string,
-    mepSetting?: MEPState | null
+    mepSetting?: MEPState | null,
+    samplingMode?: SamplingMode
   ) => Promise<[TableResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Generate the list of sort options for table

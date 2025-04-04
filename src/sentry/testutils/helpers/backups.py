@@ -114,12 +114,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
-from sentry.workflow_engine.models import (
-    Action,
-    AlertRuleDetector,
-    AlertRuleWorkflow,
-    DataConditionGroup,
-)
+from sentry.workflow_engine.models import Action, DataConditionAlertRuleTrigger, DataConditionGroup
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 
 __all__ = [
@@ -688,16 +683,19 @@ class ExhaustiveFixtures(Fixtures):
         self.create_data_condition_group_action(
             action=trigger_workflows_action, condition_group=detector_conditions
         )
-        self.create_data_condition(
+        data_condition = self.create_data_condition(
             comparison=75,
             condition_result=True,
             condition_group=detector_conditions,
         )
         detector.workflow_condition_group = detector_conditions
 
-        AlertRuleDetector.objects.create(detector=detector, alert_rule_id=alert.id)
-        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule_id=alert.id)
+        self.create_alert_rule_detector(detector=detector, alert_rule_id=alert.id)
+        self.create_alert_rule_workflow(workflow=workflow, alert_rule_id=alert.id)
         ActionGroupStatus.objects.create(action=send_notification_action, group=group)
+        DataConditionAlertRuleTrigger.objects.create(
+            data_condition=data_condition, alert_rule_trigger_id=trigger.id
+        )
 
         TempestCredentials.objects.create(
             project=project,

@@ -262,6 +262,11 @@ export function getContextTitle({
     return getPlatformContextTitle({platform: alias});
   }
 
+  if (alias === 'client_os') {
+    // To differentiate from `os` and avoid confusion with two items called "Operating System"
+    return t('Client Operating System');
+  }
+
   switch (contextType) {
     case 'app':
       return t('App');
