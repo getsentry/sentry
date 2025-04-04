@@ -42,6 +42,52 @@ class OrganizationInsightsTreeEndpointTest(
     def test_get_nextjs_function_data(self, mock_run_table_query):
 
         self.create_environment(self.project, name="production")
+        self._store_nextjs_function_spans()
+        self._store_unrelated_spans()
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "statsPeriod": "14d",
+                    "useRpc": True,
+                    "noPagination": True,
+                    "query": "span.op:function.nextjs",
+                    "mode": "aggregate",
+                    "field": ["span.description", "avg(span.duration)", "count(span.duration)"],
+                    "project": self.project.id,
+                    "dataset": "spans",
+                },
+            )
+        assert response.status_code == 200
+        span_descriptions = [row["span.description"] for row in response.data["data"]]
+        assert "Page Server Component (/app/[category]/[product]/)" in span_descriptions
+
+        root_route_idx = span_descriptions.index("Page Server Component (/)")
+        element = response.data["data"][root_route_idx]
+        assert element["function.nextjs.component_type"] == "Page Server Component"
+        assert element["function.nextjs.path"] == ["/"]
+
+        unparameterized_route_idx = span_descriptions.index(
+            "Page.generateMetadata (/app/dashboard/)"
+        )
+        element = response.data["data"][unparameterized_route_idx]
+        assert element["function.nextjs.component_type"] == "Page.generateMetadata"
+        assert element["function.nextjs.path"] == ["app", "dashboard"]
+
+        parameterized_route_idx = span_descriptions.index(
+            "Page Server Component (/app/[category]/[product]/)"
+        )
+        element = response.data["data"][parameterized_route_idx]
+        assert element["function.nextjs.component_type"] == "Page Server Component"
+        assert element["function.nextjs.path"] == ["app", "[category]", "[product]"]
+
+        catchall_route_idx = span_descriptions.index("Page Server Component (/app/[...slug]/)")
+        element = response.data["data"][catchall_route_idx]
+        assert element["function.nextjs.component_type"] == "Page Server Component"
+        assert element["function.nextjs.path"] == ["app", "[...slug]"]
+
+    def _store_nextjs_function_spans(self):
         descriptions = [
             "Page Server Component (/app/dashboard/)",
             "Loading Server Component (/app/dashboard/)",
@@ -64,7 +110,6 @@ class OrganizationInsightsTreeEndpointTest(
             "Page Server Component (/app/[[...optional]]/)",
             "unrelated description",
         ]
-
         spans = []
         for description in descriptions:
             span = self.create_span(
@@ -78,18 +123,20 @@ class OrganizationInsightsTreeEndpointTest(
             self.store_span(span, is_eap=True)
             spans.append(span)
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "statsPeriod": "14d",
-                    "useRpc": True,
-                    "noPagination": True,
-                    "query": "span.op:function.nextjs",
-                    "mode": "aggregate",
-                    "field": ["span.description", "avg(span.duration)", "count(span.duration)"],
-                    "project": self.project.id,
-                    "dataset": "spans",
-                },
+    def _store_unrelated_spans(self):
+        descriptions = [
+            "INSERT value INTO table",
+            "SELECT * FROM table",
+        ]
+        spans = []
+        for description in descriptions:
+            span = self.create_span(
+                {"description": description},
+                organization=self.project.organization,
+                project=self.project,
+                duration=100,
+                start_ts=self.ten_mins_ago,
             )
-        assert response.status_code == 200
+            span["sentry_tags"]["op"] = "db"
+            self.store_span(span, is_eap=True)
+            spans.append(span)
