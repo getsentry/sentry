@@ -73,7 +73,7 @@ export function AssigneeBadge({
 
   const loadingIcon = (
     <Fragment>
-      <StyledLoadingIndicator mini hideMessage relative size={AVATAR_SIZE} />
+      <StyledLoadingIndicator mini relative size={AVATAR_SIZE} />
       {showLabel && 'Loading...'}
       <Chevron light color="subText" direction={chevronDirection} size="small" />
     </Fragment>

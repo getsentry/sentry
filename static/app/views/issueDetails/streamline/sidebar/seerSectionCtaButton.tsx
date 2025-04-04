@@ -203,7 +203,7 @@ export function SeerSectionCtaButton({
       {getButtonText()}
       <ChevronContainer>
         {isAutofixInProgress ? (
-          <StyledLoadingIndicator mini size={14} hideMessage />
+          <StyledLoadingIndicator mini size={14} />
         ) : (
           <Chevron direction="right" size="large" />
         )}
