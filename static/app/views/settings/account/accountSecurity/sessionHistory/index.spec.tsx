@@ -47,10 +47,10 @@ describe('AccountSecuritySessionHistory', function () {
     expect(screen.getByText('US (CA)')).toBeInTheDocument();
   });
 
-  it('renders empty in demo mode even if ips exist', async () => {
+  it('renders empty in demo mode even if ips exist', () => {
     (isDemoModeActive as jest.Mock).mockReturnValue(true);
 
-    await render(<SessionHistory {...routerProps} />);
+    render(<SessionHistory {...routerProps} />);
 
     expect(screen.queryByText('127.0.0.1')).not.toBeInTheDocument();
     expect(screen.queryByText('192.168.0.1')).not.toBeInTheDocument();

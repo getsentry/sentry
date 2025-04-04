@@ -111,7 +111,7 @@ describe('useChonkTheme', () => {
       expect(result.current).toBe(DO_NOT_USE_darkChonkTheme);
     });
 
-    await act(() => {
+    act(() => {
       OrganizationStore.onUpdate(
         OrganizationFixture({
           features: [],
