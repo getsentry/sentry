@@ -15,16 +15,18 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
-        request["useRpc"] = True
-        request["noPagination"] = True
 
-        queryresult = super().get(request, organization)
-        return self._separate_span_description_info(queryresult)
+        if not request.GET.get("useRpc", False) or not request.GET.get("noPagination", False):
+            return Response(status=404)
 
-    def _separate_span_description_info(self, queryresult):
+        response = super().get(request, organization)
+        return self._separate_span_description_info(response)
+
+    def _separate_span_description_info(self, response):
         # Regex to split string into '{component_type} {space} ({path})'
         pattern = re.compile(r"^(.*?)\s+\((.*?)\)$")
-        for line in queryresult["data"]:
+
+        for line in response.data["data"]:
             match = pattern.match(line["span.description"])
             if match:
                 component_type = match.group(1)
@@ -39,4 +41,4 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
             line["function.nextjs.component_type"] = component_type
             line["function.nextjs.path"] = path_components
 
-        return queryresult
+        return response
