@@ -40,7 +40,7 @@ import {HalvedGrid} from './styles';
 import type {SpendAllocation} from './types';
 
 type AllocationFormProps = {
-  fetchSpendAllocations: () => void;
+  fetchSpendAllocations: () => Promise<void>;
   organization: Organization;
   rootAllocation: SpendAllocation | undefined;
   selectedMetric: string;

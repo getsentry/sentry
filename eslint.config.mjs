@@ -445,9 +445,10 @@ export default typescript.config([
   ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
   ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
   {
-    name: 'plugin/typescript-eslint/typed-aware-linting',
+    name: 'plugin/typescript-eslint/type-aware-linting',
     rules: {
       '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+      '@typescript-eslint/await-thenable': 'error',
     },
   },
   {
