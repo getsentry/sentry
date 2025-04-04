@@ -4,7 +4,8 @@ import {UserFixture} from 'sentry-fixture/user';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import * as useOrganization from 'sentry/utils/useOrganization';
+import type {Organization} from 'sentry/types/organization';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useExperiment} from 'getsentry/hooks/useExperiment';
 import * as logExperiment from 'getsentry/utils/logExperiment';
@@ -26,6 +27,12 @@ jest.mock('sentry/data/experimentConfig', () => ({
   },
 }));
 
+const contextWrapper = (organization: Organization) => {
+  return function ({children}: {children: React.ReactNode}) {
+    return <OrganizationContext value={organization}>{children}</OrganizationContext>;
+  };
+};
+
 describe('useExperiment', function () {
   const organization = OrganizationFixture({
     id: '1',
@@ -37,13 +44,13 @@ describe('useExperiment', function () {
 
   beforeEach(function () {
     jest.clearAllMocks();
-    jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
     jest.spyOn(logExperiment, 'default').mockResolvedValue();
   });
 
   it('injects org experiment assignment', function () {
     const {result} = renderHook(useExperiment, {
       initialProps: 'orgExperiment' as any, // Cast to any because this doesn't exist in the config types
+      wrapper: contextWrapper(organization),
     });
 
     expect(result.current).toEqual(
@@ -57,6 +64,7 @@ describe('useExperiment', function () {
     ConfigStore.set('user', UserFixture({id: '123', experiments: {userExperiment: 2}}));
     const {result} = renderHook(useExperiment, {
       initialProps: 'userExperiment' as any,
+      wrapper: contextWrapper(organization),
     });
 
     expect(result.current).toEqual(
@@ -70,6 +78,7 @@ describe('useExperiment', function () {
     const logExperimentSpy = jest.spyOn(logExperiment, 'default').mockResolvedValue();
     renderHook(useExperiment, {
       initialProps: 'orgExperiment' as any,
+      wrapper: contextWrapper(organization),
     });
 
     expect(logExperimentSpy).toHaveBeenCalledWith({key: 'orgExperiment', organization});
@@ -79,7 +88,10 @@ describe('useExperiment', function () {
     const logExperimentSpy = jest.spyOn(logExperiment, 'default').mockResolvedValue();
     const {result} = renderHook(
       (args: Parameters<typeof useExperiment>) => useExperiment(args[0], args[1]),
-      {initialProps: ['orgExperiment' as any, {logExperimentOnMount: false}]}
+      {
+        initialProps: ['orgExperiment' as any, {logExperimentOnMount: false}],
+        wrapper: contextWrapper(organization),
+      }
     );
 
     expect(logExperimentSpy).not.toHaveBeenCalled();
