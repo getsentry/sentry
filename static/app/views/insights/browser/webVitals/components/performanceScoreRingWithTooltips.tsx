@@ -6,7 +6,6 @@ import type {Location} from 'history';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMouseTracking from 'sentry/utils/useMouseTracking';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -30,6 +29,14 @@ type WebVitalsLabelCoordinates = {
   [p in WebVitals]?: Coordinates;
 };
 
+type ProjectData = {
+  'p75(measurements.cls)': number;
+  'p75(measurements.fcp)': number;
+  'p75(measurements.inp)': number;
+  'p75(measurements.lcp)': number;
+  'p75(measurements.ttfb)': number;
+};
+
 type Props = {
   height: number;
   projectScore: ProjectScore;
@@ -42,7 +49,7 @@ type Props = {
   inPerformanceWidget?: boolean;
   labelHeightPadding?: number;
   labelWidthPadding?: number;
-  projectData?: TableData;
+  projectData?: ProjectData[];
   radiusPadding?: number;
   size?: number;
   webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
@@ -57,7 +64,7 @@ type WebVitalLabelProps = {
   onHover: (webVital: WebVitals) => void;
   onUnHover: () => void;
   webVital: WebVitals;
-  projectData?: TableData;
+  projectData?: ProjectData[];
   webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
 };
 
@@ -76,10 +83,9 @@ function WebVitalLabel({
   const yOffset = webVitalLabelCoordinates?.[webVital]?.y ?? 0;
   const webvitalInfo =
     webVital === 'cls'
-      ? Math.round((projectData?.data?.[0]?.['p75(measurements.cls)'] as number) * 100) /
-        100
+      ? Math.round((projectData?.[0]?.['p75(measurements.cls)'] as number) * 100) / 100
       : getFormattedDuration(
-          (projectData?.data?.[0]?.[`p75(measurements.${webVital})`] as number) / 1000
+          (projectData?.[0]?.[`p75(measurements.${webVital})`] as number) / 1000
         );
 
   return (

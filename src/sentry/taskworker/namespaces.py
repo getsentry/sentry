@@ -1,9 +1,13 @@
 from sentry.taskworker.registry import taskregistry
 
 # Namespaces for taskworker tasks
+alerts_tasks = taskregistry.create_namespace("alerts")
+
 auth_tasks = taskregistry.create_namespace("auth")
 
 auth_control_tasks = taskregistry.create_namespace("auth.control")
+
+crons_tasks = taskregistry.create_namespace("crons")
 
 deletion_tasks = taskregistry.create_namespace(
     "deletions",

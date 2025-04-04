@@ -48,7 +48,7 @@ class GroupOpenPeriod(DefaultFieldsModel):
         # doesn't support specifying the opsclass needed to use the bigint field (group_id) in the constraint.
         # constraints = (
         #     ExclusionConstraint(
-        #         name="exclude_open_period_overlap",
+        #         name="exclude_overlapping_start_end",
         #         expressions=[
         #             (models.F("group"), RangeOperators.EQUAL),
         #             (

@@ -3230,3 +3230,13 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "taskworker.alerts.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.crons.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
