@@ -4695,6 +4695,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
         open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        assert open_period is not None
         assert open_period.date_ended == group.resolved_at
         assert open_period.resolution_activity == activity
 
@@ -4737,6 +4738,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert activity.data["version"] == release.version
 
         open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        assert open_period is not None
         assert open_period.date_ended == group.resolved_at
         assert open_period.resolution_activity == activity
 
@@ -4788,6 +4790,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not GroupResolution.has_resolution(group=group, release=release_3)
 
         open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        assert open_period is not None
         assert open_period.date_ended == group.resolved_at
         assert open_period.resolution_activity == activity
 
@@ -4940,6 +4943,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
         open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        assert open_period is not None
         assert open_period.date_ended == group.resolved_at
         assert open_period.resolution_activity == activity
 
@@ -4964,6 +4968,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
         open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        assert open_period is not None
         assert open_period.date_ended is None
 
     def test_set_unresolved(self) -> None:

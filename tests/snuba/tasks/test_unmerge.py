@@ -351,7 +351,9 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             GroupOpenPeriod.objects.filter(group=destination).order_by("-date_started").first()
         )
 
+        assert source_open_periods is not None
         assert source_open_periods.date_ended is None
+        assert destination_open_period is not None
         assert destination_open_period.date_ended is None
 
         rollup_duration = 3600

@@ -1223,7 +1223,7 @@ def update_group_open_period(
         open_period.update(
             date_ended=group.resolved_at if group.resolved_at else timezone.now(),
             resolution_activity=activity,
-            user_id=activity.user_id,
+            user_id=activity.user_id if activity else None,
         )
     elif (
         new_status == GroupStatus.UNRESOLVED

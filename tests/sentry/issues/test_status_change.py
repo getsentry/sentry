@@ -127,6 +127,7 @@ class HandleStatusChangeTest(TestCase):
 
         self.create_issue(GroupStatus.RESOLVED)
         open_period = GroupOpenPeriod.objects.filter(group=self.group).first()
+        assert open_period is not None
         assert open_period.date_ended is not None
 
         handle_status_update(
@@ -150,8 +151,9 @@ class HandleStatusChangeTest(TestCase):
         ).exists()
 
         open_period.refresh_from_db()
-        assert open_period.date_ended is None
+        assert open_period is not None
         assert open_period.resolution_activity is None
+        assert open_period.date_ended is None
 
     @patch("sentry.signals.issue_ignored.send_robust")
     def test_ignore_new_issue(self, issue_ignored: Any) -> None:

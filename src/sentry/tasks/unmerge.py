@@ -255,8 +255,16 @@ def update_open_periods(source: Group, destination: Group) -> None:
     if destination.status != GroupStatus.RESOLVED:
         return
 
-    dest_open_period = GroupOpenPeriod.objects.get(group=destination)
+    try:
+        dest_open_period = GroupOpenPeriod.objects.get(group=destination)
+    except GroupOpenPeriod.DoesNotExist:
+        logger.exception("No open period found for group", extra={"group_id": destination.id})
+
     source_open_period = GroupOpenPeriod.objects.filter(group=source).order_by("-datetime").first()
+    if not source_open_period:
+        logger.error("No open period found for group", extra={"group_id": destination.id})
+        return
+
     # For groups that are not resolved, the open period created on group creation should have the necessary information
     if source_open_period.date_ended is None:
         return
@@ -264,7 +272,7 @@ def update_open_periods(source: Group, destination: Group) -> None:
     # If the destination group is resolved, set the open period fields to match the source's open period.
     dest_open_period.update(
         date_started=source_open_period.date_started,
-        date_ended=source_open_period.date_end,
+        date_ended=source_open_period.date_ended,
         resolution_activity=source_open_period.resolution_activity,
         user_id=source_open_period.user_id,
     )
