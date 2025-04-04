@@ -136,7 +136,7 @@ function StackTracePreviewBody({
   if (isPending) {
     return (
       <NoStackTraceWrapper>
-        <LoadingIndicator hideMessage size={32} />
+        <LoadingIndicator size={32} />
       </NoStackTraceWrapper>
     );
   }

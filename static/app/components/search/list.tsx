@@ -70,7 +70,7 @@ function List({
     <DropdownBox className={dropdownClassName}>
       {isLoading ? (
         <LoadingWrapper>
-          <LoadingIndicator mini hideMessage relative />
+          <LoadingIndicator mini relative />
         </LoadingWrapper>
       ) : hasResults ? (
         resultList.map((result, index) => {

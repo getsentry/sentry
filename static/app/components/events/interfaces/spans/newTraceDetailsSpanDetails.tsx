@@ -126,7 +126,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
         <StyledDiscoverButton href="#" size="xs" disabled>
-          <StyledLoadingIndicator size={12} />
+          <StyledLoadingIndicator size={16} />
         </StyledDiscoverButton>
       );
     }
@@ -662,7 +662,6 @@ const ValueTd = styled('td')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   display: flex;
   align-items: center;
-  height: ${space(2)};
   margin: 0;
 `;
 

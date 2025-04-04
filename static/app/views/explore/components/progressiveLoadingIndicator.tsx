@@ -18,7 +18,6 @@ function ProgressiveLoadingIndicator() {
     <Tooltip title={t('This widget is currently loading higher fidelity data.')}>
       <_ProgressiveLoadingIndicator
         relative
-        hideMessage
         mini
         size={16}
         data-test-id="progressive-loading-indicator"

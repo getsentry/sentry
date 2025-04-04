@@ -75,7 +75,7 @@ export default function InviteStatusMessage({
   if (sendingInvites) {
     return (
       <StatusMessage>
-        <LoadingIndicator mini relative hideMessage size={16} />
+        <LoadingIndicator mini relative size={16} />
         {willInvite
           ? t('Sending organization invitations\u2026')
           : t('Sending invite requests\u2026')}
