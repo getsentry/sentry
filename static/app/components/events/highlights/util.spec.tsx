@@ -7,6 +7,7 @@ import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
   getHighlightTagData,
+  getRuntimeLabel,
 } from 'sentry/components/events/highlights/util';
 
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
@@ -82,5 +83,54 @@ describe('getHighlightTagData', function () {
       td => td.originalTag.key === missingTag
     );
     expect(missingTagHighlightFromEvent?.value).toBe(EMPTY_HIGHLIGHT_DEFAULT);
+  });
+});
+
+describe('getRuntimeLabel', function () {
+  it('returns null for non-JavaScript SDK events', function () {
+    const event = EventFixture({
+      sdk: {name: 'python'},
+    });
+
+    expect(getRuntimeLabel(event)).toBeNull();
+  });
+
+  it('returns explicitly set runtime type', function () {
+    const backendEvent = EventFixture({
+      sdk: {name: 'javascript'},
+    });
+
+    expect(getRuntimeLabel(backendEvent, {isBackend: true})).toBe('Backend');
+
+    const frontendEvent = EventFixture({
+      sdk: {name: 'javascript'},
+    });
+
+    expect(getRuntimeLabel(frontendEvent, {isFrontend: true})).toBe('Frontend');
+  });
+
+  it('returns inferred runtime', function () {
+    const frontedEvent = EventFixture({
+      sdk: {name: 'javascript'},
+      contexts: {browser: {name: 'Chrome'}},
+    });
+
+    expect(getRuntimeLabel(frontedEvent)).toBe('Frontend');
+
+    const backendEvent = EventFixture({
+      sdk: {name: 'javascript'},
+      contexts: {runtime: {name: 'node'}},
+    });
+
+    expect(getRuntimeLabel(backendEvent)).toBe('Backend');
+  });
+
+  it('returns null when no runtime can be determined', function () {
+    const event = EventFixture({
+      sdk: {name: 'javascript'},
+      contexts: {}, // No browser or runtime context
+    });
+
+    expect(getRuntimeLabel(event)).toBeNull();
   });
 });

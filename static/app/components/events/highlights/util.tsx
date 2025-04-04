@@ -10,6 +10,7 @@ import {
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
+import {t} from 'sentry/locale';
 import type {Event, EventTag} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -169,4 +170,33 @@ export function getHighlightTagData({
       : EMPTY_HIGHLIGHT_DEFAULT,
     originalTag: tagMap[tagKey]?.tag ?? {key: tagKey, value: EMPTY_HIGHLIGHT_DEFAULT},
   }));
+}
+
+/**
+ * Returns a label that can be used in the Event Highlight Summary.
+ * Currently only used for JavaScript-based events.
+ */
+export function getRuntimeLabel(
+  event: Event,
+  knownRuntimeType?: {isBackend?: boolean; isFrontend?: boolean}
+): string | null {
+  if (!event.sdk?.name.includes('javascript')) {
+    return null;
+  }
+
+  if (knownRuntimeType?.isBackend) {
+    return t('Backend');
+  }
+  if (knownRuntimeType?.isFrontend) {
+    return t('Frontend');
+  }
+
+  if (event.contexts.browser) {
+    return t('Frontend');
+  }
+  if (event.contexts.runtime && !event.contexts.browser) {
+    return t('Backend');
+  }
+
+  return null;
 }

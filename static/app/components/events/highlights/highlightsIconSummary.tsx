@@ -15,6 +15,7 @@ import ScreenshotModal, {
   modalCss,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {SCREENSHOT_NAMES} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/utils';
+import {getRuntimeLabel} from 'sentry/components/events/highlights/util';
 import {Text} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -106,9 +107,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   const releaseTag = event.tags?.find(tag => tag.key === 'release');
   const environmentTag = event.tags?.find(tag => tag.key === 'environment');
 
-  // fixme: derive runtime from other data (runtime is only available for server errors)
-  const runtimeLabel =
-    event.context?.runtime?.name === 'node' ? t('Backend') : t('Frontend');
+  const runtimeLabel = getRuntimeLabel(event, {isBackend: isMetaFrameworkBackendIssue});
 
   return items.length || screenshot ? (
     <Fragment>
