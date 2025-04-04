@@ -777,12 +777,6 @@ const generateAliases = (
   focusBorder: tokens.border.accent,
 
   /**
-   * Inactive
-   * NOTE: Used in only a few places, but unclear how this would map to chonkUI
-   */
-  inactive: colors.gray300,
-
-  /**
    * Link color indicates that something is clickable
    */
   linkColor: tokens.component.link.accent.default,
@@ -814,7 +808,12 @@ const generateAliases = (
   /**
    * Color for the 'others' series in topEvent charts
    */
-  chartOther: colors.gray200,
+  chartOther: tokens.content.muted,
+
+  /**
+   * Color of the divider used in the content slider diff
+   */
+  diffSliderDivider: colors.blue500,
 
   /**
    * Default Progressbar color
@@ -839,12 +838,12 @@ const generateAliases = (
 
   // @todo(jonasbadalic) should these reference chonk colors?
   searchTokenBackground: {
-    valid: colors.chonk.blue100,
-    validActive: color(colors.chonk.blue100).opaquer(1.0).string(),
-    invalid: colors.chonk.red100,
-    invalidActive: color(colors.chonk.red100).opaquer(0.8).string(),
-    warning: colors.chonk.yellow100,
-    warningActive: color(colors.chonk.yellow100).opaquer(0.8).string(),
+    valid: colors.blue100,
+    validActive: color(colors.blue100).opaquer(1.0).string(),
+    invalid: colors.red100,
+    invalidActive: color(colors.red100).opaquer(0.8).string(),
+    warning: colors.yellow100,
+    warningActive: color(colors.yellow100).opaquer(0.8).string(),
   },
 
   /**
@@ -852,23 +851,13 @@ const generateAliases = (
    * NOTE: Not being used anymore in the new Search UI
    */
   searchTokenBorder: {
-    valid: colors.chonk.blue200,
-    validActive: color(colors.chonk.blue200).opaquer(1).string(),
-    invalid: colors.chonk.red200,
-    invalidActive: color(colors.chonk.red200).opaquer(1).string(),
-    warning: colors.chonk.yellow200,
-    warningActive: color(colors.chonk.yellow200).opaquer(1).string(),
+    valid: colors.blue200,
+    validActive: color(colors.blue200).opaquer(1).string(),
+    invalid: colors.red200,
+    invalidActive: color(colors.red200).opaquer(1).string(),
+    warning: colors.yellow200,
+    warningActive: color(colors.yellow200).opaquer(1).string(),
   },
-
-  /**
-   * Count on button when active
-   */
-  buttonCountActive: colors.white,
-
-  /**
-   * Count on button
-   */
-  buttonCount: tokens.content.primary,
 
   /**
    * Background of alert banners at the top

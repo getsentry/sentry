@@ -8,6 +8,7 @@ import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {
   Table,
@@ -25,7 +26,6 @@ import {
   useSetLogsCursor,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
 import {
   FirstTableHeadCell,
@@ -42,20 +42,22 @@ const LOGS_INSTRUCTIONS_URL = 'https://github.com/getsentry/sentry/discussions/8
 export type LogsTableProps = {
   tableData: UseExploreLogsTableResult;
   allowPagination?: boolean;
+  numberAttributes?: TagCollection;
   showHeader?: boolean;
+  stringAttributes?: TagCollection;
 };
 
 export function LogsTable({
   tableData,
   showHeader = true,
   allowPagination = true,
+  stringAttributes,
+  numberAttributes,
 }: LogsTableProps) {
   const fields = useLogsFields();
   const search = useLogsSearch();
   const setCursor = useSetLogsCursor();
   const isTableEditingFrozen = useLogsIsTableEditingFrozen();
-  const {attributes: stringAttributes} = useTraceItemAttributes('string');
-  const {attributes: numberAttributes} = useTraceItemAttributes('number');
 
   const {data, isError, isPending, pageLinks, meta} = tableData;
 

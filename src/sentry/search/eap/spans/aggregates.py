@@ -2,6 +2,7 @@ from typing import cast
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, Function
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    AndFilter,
     ComparisonFilter,
     ExistsFilter,
     TraceItemFilter,
@@ -76,6 +77,38 @@ def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceIt
     return (ratio_attribute, filter)
 
 
+def resolve_bounded_sample(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+    attribute = cast(AttributeKey, args[0])
+    lower_bound = cast(int, args[1])
+    upper_bound = cast(int | None, args[2])
+
+    lower_bound_filter = TraceItemFilter(
+        comparison_filter=ComparisonFilter(
+            key=attribute,
+            op=ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+            value=AttributeValue(val_double=lower_bound),
+        )
+    )
+
+    filter = None
+
+    if upper_bound is not None:
+        upper_bound_filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=attribute,
+                op=ComparisonFilter.OP_LESS_THAN,
+                value=AttributeValue(val_double=upper_bound),
+            )
+        )
+        filter = TraceItemFilter(
+            and_filter=AndFilter(filters=[lower_bound_filter, upper_bound_filter])
+        )
+    else:
+        filter = lower_bound_filter
+
+    return (attribute, filter)
+
+
 SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
     "count_op": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
@@ -130,6 +163,21 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             )
         ],
         aggregate_resolver=resolve_count_starts,
+    ),
+    "bounded_sample": ConditionalAggregateDefinition(
+        # Bounded sample will return True if the sample is between the lower bound (2nd parameter) and if provided, greater the upper bound (3rd parameter).
+        # You should also `group_by` the `span.id` so that this function is applied to each span.
+        # TODO: We need to do some more work so that bounded sample is more random
+        internal_function=Function.FUNCTION_COUNT,
+        default_search_type="boolean",
+        arguments=[
+            AttributeArgumentDefinition(attribute_types={"millisecond"}),
+            ValueArgumentDefinition(argument_types={"integer"}),
+            ValueArgumentDefinition(argument_types={"integer"}, default_arg=None),
+        ],
+        aggregate_resolver=resolve_bounded_sample,
+        processor=lambda x: x > 0,
+        extrapolation=False,
     ),
 }
 
