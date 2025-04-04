@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
@@ -283,6 +284,10 @@ export const useOpenSeerDrawer = (
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
+      drawerCss: css`
+        height: fit-content;
+        max-height: 100%;
+      `,
       shouldCloseOnInteractOutside: element => {
         const viewAllButton = buttonRef?.current;
 

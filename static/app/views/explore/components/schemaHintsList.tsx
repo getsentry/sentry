@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -219,6 +220,10 @@ function SchemaHintsList({
             {
               ariaLabel: t('Schema Hints Drawer'),
               drawerWidth: SCHEMA_HINTS_DRAWER_WIDTH,
+              resizable: false,
+              drawerCss: css`
+                height: calc(100% - ${space(4)});
+              `,
               transitionProps: {
                 key: 'schema-hints-drawer',
                 type: 'tween',
