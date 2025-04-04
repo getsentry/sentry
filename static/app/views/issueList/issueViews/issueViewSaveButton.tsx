@@ -7,6 +7,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -65,7 +66,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
         items={[
           {
             key: 'save-as',
-            label: t('Save As'),
+            label: t('Save as new view'),
             onAction: () => {
               trackAnalytics('issue_views.save_as.clicked', {organization});
               openCreateIssueViewModal();
@@ -107,4 +108,6 @@ const PrimarySaveButton = styled(Button)`
 const DropdownTrigger = styled(Button)`
   box-shadow: none;
   border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  padding-left: ${space(1)};
+  padding-right: ${space(1)};
 `;
