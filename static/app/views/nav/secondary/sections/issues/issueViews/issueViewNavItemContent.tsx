@@ -175,6 +175,12 @@ export function IssueViewNavItemContent({
                 e.stopPropagation();
                 e.preventDefault();
               }}
+              onClick={e => {
+                if (isDragging) {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }
+              }}
             >
               <StyledInteractionStateLayer isPressed={isDragging === view.id} />
               <IconGrabbable color="gray300" />

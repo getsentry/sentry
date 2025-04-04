@@ -66,7 +66,7 @@ describe('DomainViewHeader', function () {
     const networkRequestsTab = screen.getByRole('tab', {name: 'Network Requests'});
     expect(overviewTab.firstChild).toHaveAttribute(
       'href',
-      '/domainBaseUrl?environment=prod&project=1&statsPeriod=14d'
+      '/mock-pathname/domainBaseUrl?environment=prod&project=1&statsPeriod=14d'
     );
     expect(networkRequestsTab.firstChild).toHaveAttribute(
       'href',
