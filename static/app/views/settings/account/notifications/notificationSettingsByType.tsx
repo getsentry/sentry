@@ -97,7 +97,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     });
   };
 
-  const getInitialTopOptionData = (): {[key: string]: string} => {
+  const getInitialTopOptionData = (): Record<string, string> => {
     const matchedOption = notificationOptions.find(
       option => option.type === notificationType && option.scopeType === 'user'
     );

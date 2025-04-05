@@ -186,7 +186,7 @@ type VitalCardDetail = {
 
 export const vitalCardDetails = (
   organization: Organization
-): {[key: string]: VitalCardDetail | undefined} => {
+): Record<string, VitalCardDetail | undefined> => {
   return {
     'p75(transaction.duration)': {
       title: t('Duration (p75)'),

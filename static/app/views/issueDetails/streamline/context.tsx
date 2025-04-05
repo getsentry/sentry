@@ -130,7 +130,7 @@ export interface IssueDetailsState {
   /**
    * Controls the state of each section.
    */
-  sectionData: {[key in SectionKey]?: SectionConfig};
+  sectionData: Partial<Record<SectionKey, SectionConfig>>;
 }
 
 type UpdateEventSectionAction = {

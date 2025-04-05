@@ -32,7 +32,7 @@ type Props = ModalRenderProps &
 type State = DeprecatedAsyncComponent['state'] & {
   features: IntegrationFeature[];
   lastResourceId: number;
-  resources: {[id: number]: {title?: string; url?: string}};
+  resources: Record<number, {title?: string; url?: string}>;
 };
 
 class DocIntegrationModal extends DeprecatedAsyncComponent<Props, State> {

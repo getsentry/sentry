@@ -64,7 +64,7 @@ export type PromptResponseItem = {
 };
 export type PromptResponse = {
   data?: PromptResponseItem;
-  features?: {[key: string]: PromptResponseItem};
+  features?: Record<string, PromptResponseItem>;
 };
 
 /**
@@ -271,7 +271,7 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
     organization: OrganizationSummary;
     projectId?: string;
   }
-): Promise<{[key in T[number]]: PromptData}> {
+): Promise<Record<T[number], PromptData>> {
   const query = {
     feature: features,
     organization_id: params.organization.id,
@@ -283,9 +283,9 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
   });
   const responseFeatures = response?.features;
 
-  const result: {[key in T[number]]?: PromptData} = {};
+  const result: Partial<Record<T[number], PromptData>> = {};
   if (!responseFeatures) {
-    return result as {[key in T[number]]: PromptData};
+    return result as Record<T[number], PromptData>;
   }
   for (const featureName of features) {
     const item = responseFeatures[featureName];
@@ -298,5 +298,5 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
       (result as any)[featureName] = null;
     }
   }
-  return result as {[key in T[number]]: PromptData};
+  return result as Record<T[number], PromptData>;
 }

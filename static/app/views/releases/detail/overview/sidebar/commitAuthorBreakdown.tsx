@@ -14,9 +14,10 @@ import {percent} from 'sentry/utils';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-type GroupedAuthorCommits = {
-  [key: string]: {author: User | undefined; commitCount: number};
-};
+type GroupedAuthorCommits = Record<
+  string,
+  {author: User | undefined; commitCount: number}
+>;
 
 type Props = {
   orgId: string;

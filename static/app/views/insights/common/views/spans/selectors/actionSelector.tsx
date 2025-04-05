@@ -111,7 +111,7 @@ const HTTP_ACTION_OPTIONS: Array<SelectOption<string>> = [
   })),
 ];
 
-const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
+const LABEL_FOR_MODULE_NAME: Record<ModuleName, ReactNode> = {
   http: t('HTTP Method'),
   db: t('Command'),
   cache: t('Action'),

@@ -230,7 +230,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
     ),
   };
 
-  const settingToVital: {[x: string]: WebVital} = {
+  const settingToVital: Record<string, WebVital> = {
     [PerformanceWidgetSetting.WORST_LCP_VITALS]: WebVital.LCP,
     [PerformanceWidgetSetting.WORST_FCP_VITALS]: WebVital.FCP,
     [PerformanceWidgetSetting.WORST_FID_VITALS]: WebVital.FID,

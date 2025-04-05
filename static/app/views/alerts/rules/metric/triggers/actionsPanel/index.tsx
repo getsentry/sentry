@@ -288,7 +288,7 @@ class ActionsPanel extends PureComponent<Props> {
   updateParentFromSentryAppRule = (
     triggerIndex: number,
     actionIndex: number,
-    formData: {[key: string]: string}
+    formData: Record<string, string>
   ): void => {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex]!;

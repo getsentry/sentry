@@ -51,9 +51,9 @@ export class MutableSearch {
    * @param params
    * @returns {MutableSearch}
    */
-  static fromQueryObject(params: {
-    [key: string]: string[] | string | number | undefined;
-  }): MutableSearch {
+  static fromQueryObject(
+    params: Record<string, string[] | string | number | undefined>
+  ): MutableSearch {
     const query = new MutableSearch('');
 
     Object.entries(params).forEach(([key, value]) => {

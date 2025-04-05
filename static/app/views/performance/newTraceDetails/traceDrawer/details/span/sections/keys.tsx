@@ -40,8 +40,8 @@ const SIZE_DATA_KEYS = [
 ];
 
 function partitionSizes(data: RawSpanType['data']): {
-  nonSizeKeys: {[key: string]: unknown};
-  sizeKeys: {[key: string]: number};
+  nonSizeKeys: Record<string, unknown>;
+  sizeKeys: Record<string, number>;
 } {
   if (!data) {
     return {

@@ -14,13 +14,12 @@ type SpecialColumns = {
 export type EventsResultsDataRow<F extends string> = Pick<
   SpecialColumns,
   Extract<keyof SpecialColumns, F>
-> & {
-  [K in Exclude<F, keyof SpecialColumns>]: string[] | string | number | null;
-};
+> &
+  Record<Exclude<F, keyof SpecialColumns>, string[] | string | number | null>;
 
 export type EventsResultsMeta<F extends string> = {
-  fields: Partial<{[K in F]: FieldValueType}>;
-  units: Partial<{[K in F]: Unit}>;
+  fields: Partial<Record<F, FieldValueType>>;
+  units: Partial<Record<F, Unit>>;
 };
 
 export type EventsResults<F extends string> = {

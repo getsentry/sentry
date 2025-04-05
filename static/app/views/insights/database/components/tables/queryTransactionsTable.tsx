@@ -169,7 +169,7 @@ function renderBodyCell(
 
     const pathname = `${moduleURL}/spans/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`;
 
-    const query: {[key: string]: string | undefined} = {
+    const query: Record<string, string | undefined> = {
       ...location.query,
       transaction: row.transaction,
       transactionMethod: row['transaction.method'],

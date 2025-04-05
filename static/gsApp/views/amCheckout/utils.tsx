@@ -174,9 +174,7 @@ export function getBucket({
 
 type ReservedTotalProps = {
   plan: Plan;
-  reserved: {
-    [categoryKey in DataCategory]?: number;
-  };
+  reserved: Partial<Record<DataCategory, number>>;
   amount?: number;
   creditCategory?: string;
   discountType?: string;

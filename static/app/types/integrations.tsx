@@ -588,14 +588,16 @@ export type CodeownersFile = {
   raw: string;
 };
 
-export type FilesByRepository = {
-  [repoName: string]: {
-    [fileName: string]: {
-      authors?: {[email: string]: CommitAuthor};
+export type FilesByRepository = Record<
+  string,
+  Record<
+    string,
+    {
+      authors?: Record<string, CommitAuthor>;
       types?: Set<string>;
-    };
-  };
-};
+    }
+  >
+>;
 
 interface BaseRepositoryProjectPathConfig {
   id: string;
