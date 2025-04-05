@@ -79,7 +79,7 @@ export default function FlagDrawerContent({
 
   useEffect(() => {
     if (!isPending && !isError && !showCTA) {
-      trackAnalytics('flags.distributions_rendered', {
+      trackAnalytics('flags.drawer_rendered', {
         organization,
         numFlags: data.length,
       });

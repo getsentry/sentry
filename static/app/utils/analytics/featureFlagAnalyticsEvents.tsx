@@ -1,7 +1,8 @@
 export type FeatureFlagEventParameters = {
   'flags.cta_dismissed': {area: string; type: string};
   'flags.cta_rendered': {area: string};
-  'flags.distributions_rendered': {
+  'flags.drawer_details_clicked': Record<string, unknown>;
+  'flags.drawer_rendered': {
     numFlags: number;
   };
   'flags.event_and_suspect_flags_found': {
@@ -30,7 +31,8 @@ export type FeatureFlagEventKey = keyof FeatureFlagEventParameters;
 export const featureFlagEventMap: Record<FeatureFlagEventKey, string | null> = {
   'flags.cta_dismissed': 'Flag CTA Dismissed',
   'flags.cta_rendered': 'Flag CTA Rendered',
-  'flags.distributions_rendered': 'Feature Flag Distributions Rendered',
+  'flags.drawer_details_clicked': 'Feature Flag Drawer Details Clicked',
+  'flags.drawer_rendered': 'Feature Flag Drawer Rendered',
   'flags.event_and_suspect_flags_found': 'Number of Event and Suspect Flags',
   'flags.logs-paginated': 'Feature Flag Logs Paginated',
   'flags.sort_flags': 'Sorted Flags',
