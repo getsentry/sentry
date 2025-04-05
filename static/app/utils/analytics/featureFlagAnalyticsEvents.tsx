@@ -1,18 +1,13 @@
-import type {FeatureFlagOnboardingSurface} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
-
 export type FeatureFlagEventParameters = {
-  'flags.cta_dismissed': {type: string};
+  'flags.cta_dismissed': {area: string; type: string};
   'flags.event_and_suspect_flags_found': {
     numEventFlags: number;
     numSuspectFlags: number;
     numTotalFlags: number;
   };
   'flags.logs-paginated': {
+    area: string;
     direction: 'next' | 'prev';
-    surface: 'settings' | 'flag_drawer';
-  };
-  'flags.setup_sidebar_opened': {
-    surface: 'issue_details.flags_section' | 'issue_details.flags_drawer';
   };
   'flags.sort_flags': {sortMethod: string};
   'flags.table_rendered': {
@@ -22,7 +17,7 @@ export type FeatureFlagEventParameters = {
   };
   'flags.view-all-clicked': Record<string, unknown>;
   'flags.view-setup-sidebar': {
-    surface: FeatureFlagOnboardingSurface;
+    area: string;
   };
 };
 
@@ -36,5 +31,4 @@ export const featureFlagEventMap: Record<FeatureFlagEventKey, string | null> = {
   'flags.cta_dismissed': 'Flag CTA Dismissed',
   'flags.logs-paginated': 'Feature Flag Logs Paginated',
   'flags.view-setup-sidebar': 'Viewed Feature Flag Onboarding Sidebar',
-  'flags.setup_sidebar_opened': 'Feature Flag Setup Sidebar Opened',
 };

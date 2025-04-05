@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -37,6 +38,22 @@ import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hoo
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 export function EventFeatureFlagList({
+  event,
+  group,
+  project,
+}: {
+  event: Event;
+  group: Group;
+  project: Project;
+}) {
+  return (
+    <AnalyticsArea name="event_feature_flag_list">
+      <BaseEventFeatureFlagList event={event} group={group} project={project} />
+    </AnalyticsArea>
+  );
+}
+
+function BaseEventFeatureFlagList({
   event,
   group,
   project,
