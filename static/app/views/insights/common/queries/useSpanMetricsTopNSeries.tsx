@@ -83,7 +83,7 @@ export const useSpanMetricsTopNSeries = <Fields extends SpanMetricsProperty[]>(
     });
   });
 
-  return {...result, data: seriesByKey as Record<string, Series>};
+  return {...result, data: seriesByKey};
 };
 
 const DEFAULT_EVENT_COUNT = 5;

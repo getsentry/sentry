@@ -400,7 +400,7 @@ class GridEditable<
           <GridBodyCell data-test-id="grid-body-cell" key={`${col.key}${i}`}>
             {grid.renderBodyCell
               ? grid.renderBodyCell(col, dataRow, row, i)
-              : dataRow[col.key]}
+              : dataRow[col.key as string]}
           </GridBodyCell>
         ))}
       </GridRow>
