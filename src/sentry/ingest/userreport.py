@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
+import random
 from datetime import datetime, timedelta
 
-import sentry_sdk
 from django.db import IntegrityError, router
 from django.utils import timezone
 
@@ -201,16 +201,17 @@ def should_filter_user_report(
                 "referrer": source.value,
             },
         )
-        logger.info(
-            "Feedback message exceeds max size.",
-            extra={
-                "project_id": project_id,
-                "entrypoint": "save_userreport",
-                "referrer": source.value,
-            },
-        )
-        # For Sentry employee debugging. Sentry will capture a truncated `feedback_message` in local variables.
-        sentry_sdk.capture_message("Feedback message exceeds max size.", "warning")
+        if random.random() < 0.1:
+            logger.info(
+                "Feedback message exceeds max size.",
+                extra={
+                    "project_id": project_id,
+                    "entrypoint": "save_userreport",
+                    "referrer": source.value,
+                    "length": len(comments),
+                    "feedback_message": comments[:100],
+                },
+            )
         return True, "Too Large"
 
     return False, None

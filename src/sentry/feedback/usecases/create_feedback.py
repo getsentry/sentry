@@ -8,7 +8,6 @@ from typing import Any, TypedDict
 from uuid import uuid4
 
 import jsonschema
-import sentry_sdk
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -268,16 +267,17 @@ def should_filter_feedback(
                 "referrer": source.value,
             },
         )
-        logger.info(
-            "Feedback message exceeds max size.",
-            extra={
-                "project_id": project_id,
-                "entrypoint": "create_feedback_issue",
-                "referrer": source.value,
-            },
-        )
-        # For Sentry employee debugging. Sentry will capture a truncated `feedback_message` in local variables.
-        sentry_sdk.capture_message("Feedback message exceeds max size.", "warning")
+        if random.random() < 0.1:
+            logger.info(
+                "Feedback message exceeds max size.",
+                extra={
+                    "project_id": project_id,
+                    "entrypoint": "create_feedback_issue",
+                    "referrer": source.value,
+                    "length": len(message),
+                    "feedback_message": message[:100],
+                },
+            )
         return True, "Too Large"
 
     return False, None
