@@ -422,7 +422,7 @@ function IssueViewsIssueListHeaderTabsContent({
   const allTabs = tempView ? [...views, tempView] : views;
 
   const initialTabKey =
-    viewId && views.find(tab => tab.id === viewId)
+    viewId && views.some(tab => tab.id === viewId)
       ? views.find(tab => tab.id === viewId)!.key
       : query
         ? TEMPORARY_TAB_KEY

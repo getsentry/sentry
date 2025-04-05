@@ -20,14 +20,14 @@ interface CreateSavedSearchModalProps extends ModalRenderProps {
 }
 
 function validateSortOption({sort}: {sort?: string}) {
-  const sortOptions = [
+  const sortOptions: string[] = [
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];
-  if (sortOptions.find(option => option === sort)) {
+  if (sort && sortOptions.includes(sort)) {
     return sort as string;
   }
 

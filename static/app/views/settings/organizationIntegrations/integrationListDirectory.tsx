@@ -116,7 +116,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
     // we don't want the app to render twice if its the org that created
     // the published app.
     const orgOwned = orgOwnedApps?.filter(
-      app => !published.find(p => p.slug === app.slug)
+      app => !published.some(p => p.slug === app.slug)
     );
 
     /**

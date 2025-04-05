@@ -60,7 +60,7 @@ export function IssueViewNavItems({
   // If the `viewId` (from `/issues/views/:viewId`) is not found in the views array,
   // then redirect to the "All Issues" page
   useEffect(() => {
-    if (viewId && !views.find(v => v.id === viewId)) {
+    if (viewId && !views.some(v => v.id === viewId)) {
       navigate(
         normalizeUrl({
           pathname: `${baseUrl}/`,
@@ -74,7 +74,7 @@ export function IssueViewNavItems({
   const replaceWithPersistentViewIds = useCallback(
     (responseViews: GroupSearchView[]) => {
       const newlyCreatedViews = responseViews.filter(
-        view => !views.find(tab => tab.id === view.id)
+        view => !views.some(tab => tab.id === view.id)
       );
       if (newlyCreatedViews.length > 0) {
         const assignedIds = new Set();

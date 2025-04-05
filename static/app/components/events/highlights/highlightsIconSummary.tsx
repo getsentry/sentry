@@ -72,7 +72,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
     }))
     .filter((item, _index, array) => {
       // Prefer the "os" context for OS information
-      if (item.contextType === 'client_os' && array.find(i => i.contextType === 'os')) {
+      if (item.contextType === 'client_os' && array.some(i => i.contextType === 'os')) {
         return false;
       }
 
