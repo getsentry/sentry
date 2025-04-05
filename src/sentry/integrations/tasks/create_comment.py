@@ -9,6 +9,9 @@ from sentry.integrations.tasks import should_comment_sync
 from sentry.models.activity import Activity
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_tasks
+from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 
 
@@ -18,6 +21,10 @@ from sentry.types.activity import ActivityType
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+        retry=Retry(times=5),
+    ),
 )
 @retry(exclude=(Integration.DoesNotExist))
 def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> None:
