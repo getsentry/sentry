@@ -20,14 +20,9 @@ from sentry.api.exceptions import BadRequest
 from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.types import SupportedTraceItemType, TraceItemAttribute
-from sentry.search.eap.utils import translate_internal_to_public_alias
+from sentry.search.eap.utils import PRIVATE_ATTRIBUTES, translate_internal_to_public_alias
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
-
-DISALLOW_LIST = {
-    "sentry.organization_id",
-    "sentry.item_type",
-}
 
 
 def convert_rpc_attribute_to_json(
@@ -37,7 +32,7 @@ def convert_rpc_attribute_to_json(
     result: list[TraceItemAttribute] = []
     for attribute in attributes:
         internal_name = attribute["name"]
-        if internal_name in DISALLOW_LIST:
+        if internal_name in PRIVATE_ATTRIBUTES.get(trace_item_type, []):
             continue
         source = attribute["value"]
         if len(source) == 0:
