@@ -295,7 +295,6 @@ function AddToDashboardModal({
                   forceTransactions={metricsDataSide.forceTransactionsOnly}
                 >
                   <WidgetCard
-                    organization={organization}
                     isEditingDashboard={false}
                     showContextMenu={false}
                     widgetLimitReached={false}

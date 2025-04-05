@@ -1,9 +1,7 @@
 import {useContext, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
-import type {Location} from 'history';
 
-import type {Client} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -12,8 +10,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
-import type {Confidence, Organization} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -21,13 +18,11 @@ import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
@@ -53,12 +48,8 @@ export const SESSION_DURATION_ALERT = (
   <PanelAlert type="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
 );
 
-type Props = WithRouterProps & {
-  api: Client;
+type Props = {
   isEditingDashboard: boolean;
-  location: Location;
-  organization: Organization;
-  selection: PageFilters;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
@@ -83,6 +74,7 @@ type Props = WithRouterProps & {
   onUpdate?: (widget: Widget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  selection?: PageFilters;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
@@ -103,6 +95,12 @@ type Data = {
 };
 
 function WidgetCard(props: Props) {
+  const api = useApi();
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {selection: pageFilterSelection} = usePageFilters();
+
   const [data, setData] = useState<Data>();
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
 
@@ -115,17 +113,14 @@ function WidgetCard(props: Props) {
   };
 
   const {
-    api,
-    organization,
-    selection,
     widget,
+    selection: overrideSelection,
     isMobile,
     renderErrorMessage,
     tableItemLimit,
     windowWidth,
     dashboardFilters,
     isWidgetInvalid,
-    location,
     onWidgetSplitDecision,
     shouldResize,
     onLegendSelectChanged,
@@ -136,6 +131,8 @@ function WidgetCard(props: Props) {
     showConfidenceWarning,
     minTableColumnWidth,
   } = props;
+
+  const selection = overrideSelection ?? pageFilterSelection;
 
   if (widget.displayType === DisplayType.TOP_N) {
     const queries = widget.queries.map(query => ({
@@ -174,7 +171,7 @@ function WidgetCard(props: Props) {
         isSampled: data?.isSampled,
       });
 
-      props.router.push({
+      navigate({
         pathname: `${location.pathname}${
           location.pathname.endsWith('/') ? '' : '/'
         }widget/${props.index}/`,
@@ -278,7 +275,7 @@ function WidgetCard(props: Props) {
   );
 }
 
-export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
+export default WidgetCard;
 
 function useOnDemandWarning(props: {widget: Widget}): string | null {
   const organization = useOrganization();
