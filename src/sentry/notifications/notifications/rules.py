@@ -66,7 +66,9 @@ GENERIC_TEMPLATE_NAME = "generic"
 
 
 def get_key_from_rule_data(rule: Rule, key: str) -> str:
-    return rule.data.get("actions", [{}])[0].get(key)
+    value = rule.data.get("actions", [{}])[0].get(key)
+    assert value is not None
+    return value
 
 
 class AlertRuleNotification(ProjectNotification):
