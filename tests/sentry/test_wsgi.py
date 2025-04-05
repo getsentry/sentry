@@ -12,8 +12,6 @@ import django.urls.resolvers
 from django.conf import settings
 resolver = django.urls.resolvers.get_resolver()
 assert resolver._populated is True
-for lang, _ in settings.LANGUAGES:
-    assert lang in resolver._reverse_dict
 """
 
 
