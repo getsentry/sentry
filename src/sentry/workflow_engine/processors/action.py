@@ -116,6 +116,8 @@ def get_notification_plugins_for_org(organization: Organization) -> list[PluginS
     """
 
     projects = Project.objects.filter(organization_id=organization.id)
+
+    # Need to use a map to deduplicate plugins by slug because the same plugin can be enabled for multiple projects
     plugin_map = {}
 
     for project in projects:
