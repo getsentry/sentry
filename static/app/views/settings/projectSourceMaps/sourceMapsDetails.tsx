@@ -19,6 +19,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import type {Artifact} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUUID} from 'sentry/utils/string/isUUID';
@@ -182,6 +183,13 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
     [router, location]
   );
 
+  // const tour = useMyTour();
+  // useContinueTour({
+  //   tour,
+  //   stepId: MyTour.PASSWORD,
+  //   isLoadingComplete: !debugIdBundlesArtifactsLoading,
+  // });
+
   return (
     <Fragment>
       <SettingsPageHeader
@@ -200,11 +208,13 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
           <DebugIdBundleDetails debugIdBundle={debugIdBundlesArtifactsData} />
         </DetailsPanel>
       )}
+
       <SearchBarWithMarginBottom
         placeholder={isDebugIdBundle ? t('Filter by Path or ID') : t('Filter by Path')}
         onSearch={handleSearch}
         query={query}
       />
+
       <StyledPanelTable
         hasTypeColumn={isDebugIdBundle}
         headers={[
@@ -226,82 +236,97 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
         }
         isLoading={isDebugIdBundle ? debugIdBundlesArtifactsLoading : artifactsLoading}
       >
-        {isDebugIdBundle
-          ? (debugIdBundlesArtifactsData?.files ?? []).map(data => {
-              const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
-                project.slug
-              }/artifact-bundles/${encodeURIComponent(params.bundleId)}/files/${
-                data.id
-              }/?download=1`;
+        <DemoTourElement
+          id={DemoTourStep.SIDEBAR_PERFORMANCE}
+          title={'Performance in the sidebar'}
+          description={t(
+            'Click on an performance metric in the sidebar to view more details.'
+          )}
+        >
+          {isDebugIdBundle
+            ? (debugIdBundlesArtifactsData?.files ?? []).map(data => {
+                const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
+                  project.slug
+                }/artifact-bundles/${encodeURIComponent(params.bundleId)}/files/${
+                  data.id
+                }/?download=1`;
 
-              return (
-                <ArtifactsTableRow
-                  key={data.id}
-                  size={data.fileSize}
-                  name={data.filePath}
-                  type={
-                    debugIdBundleTypeLabels[data.fileType as DebugIdBundleArtifactType]
-                  }
-                  downloadUrl={downloadUrl}
-                  orgSlug={organization.slug}
-                  artifactColumnDetails={
-                    <Fragment>
-                      {data.sourcemap ? (
-                        <div>
-                          <SubText>{t('Sourcemap Reference:')}</SubText> {data.sourcemap}
-                        </div>
-                      ) : null}
-                      {data.debugId ? (
-                        <div>
-                          <SubText>{t('Debug ID:')}</SubText> {data.debugId}
-                        </div>
-                      ) : null}
-                    </Fragment>
-                  }
-                />
-              );
-            })
-          : artifactsData?.map(data => {
-              const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
-                project.slug
-              }/releases/${encodeURIComponent(params.bundleId)}/files/${
-                data.id
-              }/?download=1`;
+                return (
+                  <ArtifactsTableRow
+                    key={data.id}
+                    size={data.fileSize}
+                    name={data.filePath}
+                    type={
+                      debugIdBundleTypeLabels[data.fileType as DebugIdBundleArtifactType]
+                    }
+                    downloadUrl={downloadUrl}
+                    orgSlug={organization.slug}
+                    artifactColumnDetails={
+                      <Fragment>
+                        {data.sourcemap ? (
+                          <div>
+                            <SubText>{t('Sourcemap Reference:')}</SubText>{' '}
+                            {data.sourcemap}
+                          </div>
+                        ) : null}
+                        {data.debugId ? (
+                          <div>
+                            <SubText>{t('Debug ID:')}</SubText> {data.debugId}
+                          </div>
+                        ) : null}
+                      </Fragment>
+                    }
+                  />
+                );
+              })
+            : artifactsData?.map(data => {
+                const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
+                  project.slug
+                }/releases/${encodeURIComponent(params.bundleId)}/files/${
+                  data.id
+                }/?download=1`;
 
-              return (
-                <ArtifactsTableRow
-                  key={data.id}
-                  size={data.size}
-                  name={data.name}
-                  downloadUrl={downloadUrl}
-                  orgSlug={organization.slug}
-                  artifactColumnDetails={
-                    <TimeAndDistWrapper>
-                      <TimeWrapper>
-                        <IconClock size="sm" />
-                        <TimeSince date={data.dateCreated} />
-                      </TimeWrapper>
-                      <Tooltip
-                        title={data.dist ? undefined : t('No distribution set')}
-                        skipWrapper
-                      >
-                        <StyledTag type={data.dist ? 'info' : undefined}>
-                          {data.dist ?? t('none')}
-                        </StyledTag>
-                      </Tooltip>
-                    </TimeAndDistWrapper>
-                  }
-                />
-              );
-            })}
+                return (
+                  <ArtifactsTableRow
+                    key={data.id}
+                    size={data.size}
+                    name={data.name}
+                    downloadUrl={downloadUrl}
+                    orgSlug={organization.slug}
+                    artifactColumnDetails={
+                      <TimeAndDistWrapper>
+                        <TimeWrapper>
+                          <IconClock size="sm" />
+                          <TimeSince date={data.dateCreated} />
+                        </TimeWrapper>
+                        <Tooltip
+                          title={data.dist ? undefined : t('No distribution set')}
+                          skipWrapper
+                        >
+                          <StyledTag type={data.dist ? 'info' : undefined}>
+                            {data.dist ?? t('none')}
+                          </StyledTag>
+                        </Tooltip>
+                      </TimeAndDistWrapper>
+                    }
+                  />
+                );
+              })}
+        </DemoTourElement>
       </StyledPanelTable>
-      <Pagination
-        pageLinks={
-          isDebugIdBundle
-            ? (debugIdBundlesArtifactsHeaders?.('Link') ?? '')
-            : (artifactsHeaders?.('Link') ?? '')
-        }
-      />
+      <DemoTourElement
+        id={DemoTourStep.ISSUES_TAGS}
+        title={'Tags in the issues stream'}
+        description={t('Click on a tag in the issues stream to view more details.')}
+      >
+        <Pagination
+          pageLinks={
+            isDebugIdBundle
+              ? (debugIdBundlesArtifactsHeaders?.('Link') ?? '')
+              : (artifactsHeaders?.('Link') ?? '')
+          }
+        />
+      </DemoTourElement>
     </Fragment>
   );
 }
