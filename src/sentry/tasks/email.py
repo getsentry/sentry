@@ -4,7 +4,7 @@ from sentry.auth import access
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskWorkerConfig
+from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import notifications_control_tasks, notifications_tasks
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -51,7 +51,7 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str):
     default_retry_delay=60 * 5,
     max_retries=None,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskWorkerConfig(
+    taskworker_config=TaskworkerConfig(
         namespace=notifications_tasks,
     ),
 )
@@ -65,7 +65,7 @@ def send_email(message):
     default_retry_delay=60 * 5,
     max_retries=None,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskWorkerConfig(
+    taskworker_config=TaskworkerConfig(
         namespace=notifications_control_tasks,
     ),
 )

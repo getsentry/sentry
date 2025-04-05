@@ -9,7 +9,7 @@ from sentry.db.models import Model
 from sentry.notifications.class_manager import NotificationClassNotSetException, get
 from sentry.silo.base import SiloMode, region_silo_function
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import TaskWorkerConfig
+from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import notifications_tasks
 
 if TYPE_CHECKING:
@@ -68,7 +68,7 @@ def async_send_notification(
     name="src.sentry.notifications.utils.async_send_notification",
     silo_mode=SiloMode.REGION,
     queue="notifications",
-    taskworker_config=TaskWorkerConfig(
+    taskworker_config=TaskworkerConfig(
         namespace=notifications_tasks,
     ),
 )
