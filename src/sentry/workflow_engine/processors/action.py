@@ -125,7 +125,6 @@ def get_notification_plugins_for_org(organization: Organization) -> list[PluginS
             if not isinstance(plugin, NotificationPlugin):
                 continue
 
-            if plugin.slug not in plugin_map:
-                plugin_map[plugin.slug] = PluginService(plugin)
+            plugin_map[plugin.slug] = PluginService(plugin)
 
     return list(plugin_map.values())
