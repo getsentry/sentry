@@ -21,15 +21,19 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     DataConditionGroupAction,
     Workflow,
+    WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     WorkflowDataConditionGroupType,
+    create_workflow_fire_histories,
     delete_workflow,
     enqueue_workflow,
     evaluate_workflow_triggers,
     evaluate_workflows_action_filters,
+    fire_actions,
+    get_actions_to_workflows,
     process_workflows,
 )
 from sentry.workflow_engine.types import WorkflowEventData
@@ -624,6 +628,65 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                 {"event_id": self.event.event_id, "occurrence_id": self.group_event.occurrence_id}
             ),
         )
+
+
+class TestFireActions(BaseWorkflowTest):
+    def setUp(self):
+        self.detector = self.create_detector()
+        self.workflow = self.create_workflow()
+        _, self.action = self.create_workflow_action(self.workflow)
+        self.group, self.event, self.group_event = self.create_group_event()
+        self.event_data = WorkflowEventData(event=self.group_event)
+
+    def test_get_actions_to_workflows(self):
+        workflow = self.create_workflow()
+        _, action = self.create_workflow_action(workflow)
+
+        assert get_actions_to_workflows([self.action, action]) == {
+            self.action.id: self.workflow,
+            action.id: workflow,
+        }
+
+    def test_create_workflow_fire_histories(self):
+        workflow = self.create_workflow()
+        _, action = self.create_workflow_action(workflow)
+
+        actions_to_workflow = {
+            self.action.id: self.workflow,
+            action.id: workflow,
+        }
+
+        create_workflow_fire_histories(actions_to_workflow, self.event_data)
+
+        assert WorkflowFireHistory.objects.all().count() == 2
+        assert WorkflowFireHistory.objects.filter(workflow=self.workflow, group=self.group).exists()
+        assert WorkflowFireHistory.objects.filter(workflow=workflow, group=self.group).exists()
+
+    @with_feature("organizations:workflow-engine-trigger-actions")
+    @patch("sentry.workflow_engine.processors.workflow.Action.trigger")
+    def test_fire_actions(self, mock_trigger):
+        workflow = self.create_workflow()
+        _, action = self.create_workflow_action(workflow)
+
+        fire_actions([self.action, action], self.detector, self.event_data)
+
+        assert (
+            WorkflowFireHistory.objects.filter(
+                workflow__in=[self.workflow, workflow], group=self.event_data.event.group
+            ).count()
+            == 2
+        )
+        for call in mock_trigger.call_args_list:
+            args = call[0]
+            event_data = args[0]
+            assert event_data.workflow_id
+            notification_uuid = args[2]
+            assert (
+                notification_uuid
+                == WorkflowFireHistory.objects.get(
+                    workflow_id=event_data.workflow_id
+                ).notification_uuid
+            )
 
 
 @django_db_all

@@ -1,4 +1,5 @@
 from unittest.mock import Mock, patch
+from uuid import uuid4
 
 import pytest
 from django.test import TestCase
@@ -72,7 +73,7 @@ class TestAction(TestCase):
         mock_handler = Mock(spec=ActionHandler)
 
         with patch.object(self.action, "get_handler", return_value=mock_handler):
-            self.action.trigger(self.mock_event, self.mock_detector)
+            self.action.trigger(self.mock_event, self.mock_detector, str(uuid4()))
 
             mock_handler.execute.assert_called_once_with(
                 self.mock_event, self.action, self.mock_detector
@@ -84,7 +85,7 @@ class TestAction(TestCase):
 
         with patch.object(self.action, "get_handler", return_value=mock_handler):
             with pytest.raises(Exception, match="Handler failed"):
-                self.action.trigger(self.mock_event, self.mock_detector)
+                self.action.trigger(self.mock_event, self.mock_detector, str(uuid4()))
 
     def test_config_schema(self):
         mock_handler = Mock(spec=ActionHandler)

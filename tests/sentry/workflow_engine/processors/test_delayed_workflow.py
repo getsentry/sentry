@@ -27,6 +27,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Detector,
     Workflow,
+    WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import (
     PERCENT_CONDITIONS,
@@ -769,14 +770,18 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         )
 
         assert mock_trigger.call_count == 2
-        assert mock_trigger.call_args_list[0][0] == (
-            WorkflowEventData(event=self.event1.for_group(self.group1)),
-            self.detector,
+        assert mock_trigger.call_args_list[0][0][0] == WorkflowEventData(
+            event=self.event1.for_group(self.group1),
+            workflow_env=self.workflow1.environment,
+            workflow_id=self.workflow1.id,
         )
-        assert mock_trigger.call_args_list[1][0] == (
-            WorkflowEventData(event=self.event2.for_group(self.group2)),
-            self.detector,
+        assert mock_trigger.call_args_list[0][0][1] == self.detector
+        assert mock_trigger.call_args_list[1][0][0] == WorkflowEventData(
+            event=self.event2.for_group(self.group2),
+            workflow_env=self.workflow2.environment,
+            workflow_id=self.workflow2.id,
         )
+        assert mock_trigger.call_args_list[1][0][1] == self.detector
 
     @patch("sentry.workflow_engine.processors.workflow.enqueue_workflow")
     def test_fire_actions_for_groups__enqueue(self, mock_enqueue):
@@ -799,6 +804,37 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.event2.for_group(self.group2),
             WorkflowDataConditionGroupType.ACTION_FILTER,
         )
+
+    @with_feature("organizations:workflow-engine-trigger-actions")
+    @patch("sentry.workflow_engine.processors.delayed_workflow.Action.trigger")
+    def test_fire_actions_for_groups__workflow_fire_history(self, mock_trigger):
+        fire_actions_for_groups(
+            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+        )
+        assert WorkflowFireHistory.objects.all().count() == 2
+        assert (
+            WorkflowFireHistory.objects.filter(
+                workflow=self.workflow1, group=self.group1, event_id=self.event1.event_id
+            ).count()
+            == 1
+        )
+        assert (
+            WorkflowFireHistory.objects.filter(
+                workflow=self.workflow2, group=self.group2, event_id=self.event2.event_id
+            ).count()
+            == 1
+        )
+        for call in mock_trigger.call_args_list:
+            args = call[0]
+            event_data = args[0]
+            assert event_data.workflow_id
+            notification_uuid = args[2]
+            assert (
+                notification_uuid
+                == WorkflowFireHistory.objects.get(
+                    workflow_id=event_data.workflow_id
+                ).notification_uuid
+            )
 
 
 class TestCleanupRedisBuffer(TestDelayedWorkflowBase):

@@ -66,7 +66,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
 
-    def trigger(self, event_data: WorkflowEventData, detector: Detector) -> None:
+    def trigger(self, event_data: WorkflowEventData, detector: Detector, uuid: str) -> None:
         # get the handler for the action type
         handler = self.get_handler()
         handler.execute(event_data, self, detector)
