@@ -90,6 +90,7 @@ function InnerTraceView({traceSlug}: {traceSlug: string}) {
                 organization={organization}
                 traceSlug={traceSlug}
                 traceEventView={traceEventView}
+                logs={logsTableData.logsData?.data}
               />
               <TraceInnerLayout>
                 <TraceWaterfall
