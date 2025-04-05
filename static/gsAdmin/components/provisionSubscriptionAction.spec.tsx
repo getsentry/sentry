@@ -391,7 +391,6 @@ describe('provisionSubscriptionAction', function () {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
-      canProvisionDsPlan: true,
       onSuccess,
       billingConfig: mockBillingConfig,
     });
@@ -452,7 +451,6 @@ describe('provisionSubscriptionAction', function () {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
-      canProvisionDsPlan: true,
       onSuccess,
       billingConfig: mockBillingConfig,
     });
@@ -1143,7 +1141,6 @@ describe('provisionSubscriptionAction', function () {
       subscription: am3Sub,
       orgId: am3Sub.slug,
       onSuccess,
-      canProvisionDsPlan: true,
       billingConfig: mockBillingConfig,
     });
 
