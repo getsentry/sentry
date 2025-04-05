@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 export default function FlagDetailsLink({
@@ -12,12 +14,18 @@ export default function FlagDetailsLink({
   tag: GroupTag;
 }) {
   const location = useLocation();
+  const organization = useOrganization();
 
   return (
     <StyledLink
       to={{
         pathname: `${location.pathname}${tag.key}/`,
         query: location.query,
+      }}
+      onClick={() => {
+        trackAnalytics('flags.drawer_details_clicked', {
+          organization,
+        });
       }}
     >
       {children}
