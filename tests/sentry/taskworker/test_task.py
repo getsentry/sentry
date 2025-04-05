@@ -1,4 +1,5 @@
 import datetime
+from unittest.mock import patch
 
 import pytest
 import sentry_sdk
@@ -46,6 +47,25 @@ def test_define_task_at_most_once_with_retry(task_namespace: TaskNamespace):
             retry=Retry(times=3),
         )
     assert "You cannot enable at_most_once and have retries" in str(err)
+
+
+def test_apply_async_expires(task_namespace: TaskNamespace) -> None:
+    def test_func(*args, **kwargs) -> None:
+        pass
+
+    task = Task(
+        name="test.test_func",
+        func=test_func,
+        namespace=task_namespace,
+    )
+    with patch.object(task_namespace, "send_task") as mock_send:
+        task.apply_async(args=["arg2"], kwargs={"org_id": 2}, expires=10, producer=None)
+        assert mock_send.call_count == 1
+        call_params = mock_send.call_args
+
+    activation = call_params.args[0]
+    assert activation.expires == 10
+    assert activation.parameters == json.dumps({"args": ["arg2"], "kwargs": {"org_id": 2}})
 
 
 def test_delay_taskrunner_immediate_mode(task_namespace: TaskNamespace) -> None:
@@ -133,7 +153,7 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
         at_most_once=True,
     )
     # No retries will be made as there is no retry policy on the task or namespace.
-    activation = no_retry_task.create_activation()
+    activation = no_retry_task.create_activation([], {})
     assert activation.taskname == "test.no_retry"
     assert activation.namespace == task_namespace.name
     assert activation.retry_state
@@ -141,7 +161,7 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
     assert activation.retry_state.max_attempts == 1
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DISCARD
 
-    activation = retry_task.create_activation()
+    activation = retry_task.create_activation([], {})
     assert activation.taskname == "test.with_retry"
     assert activation.namespace == task_namespace.name
     assert activation.retry_state
@@ -149,17 +169,22 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
     assert activation.retry_state.max_attempts == 3
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
 
-    activation = timedelta_expiry_task.create_activation()
+    activation = timedelta_expiry_task.create_activation([], {})
     assert activation.taskname == "test.with_timedelta_expires"
     assert activation.expires == 300
     assert activation.processing_deadline_duration == 30
 
-    activation = int_expiry_task.create_activation()
+    activation = int_expiry_task.create_activation([], {})
     assert activation.taskname == "test.with_int_expires"
     assert activation.expires == 300
     assert activation.processing_deadline_duration == 30
 
-    activation = at_most_once_task.create_activation()
+    activation = int_expiry_task.create_activation([], {}, expires=600)
+    assert activation.taskname == "test.with_int_expires"
+    assert activation.expires == 600
+    assert activation.processing_deadline_duration == 30
+
+    activation = at_most_once_task.create_activation([], {})
     assert activation.taskname == "test.at_most_once"
     assert activation.namespace == task_namespace.name
     assert activation.retry_state
@@ -174,7 +199,7 @@ def test_create_activation_parameters(task_namespace: TaskNamespace) -> None:
     def with_parameters(one: str, two: int, org_id: int) -> None:
         raise NotImplementedError
 
-    activation = with_parameters.create_activation("one", 22, org_id=99)
+    activation = with_parameters.create_activation(["one", 22], {"org_id": 99})
     params = json.loads(activation.parameters)
     assert params["args"]
     assert params["args"] == ["one", 22]
@@ -187,8 +212,24 @@ def test_create_activation_tracing(task_namespace: TaskNamespace) -> None:
         raise NotImplementedError
 
     with sentry_sdk.start_transaction(op="test.task"):
-        activation = with_parameters.create_activation("one", 22, org_id=99)
+        activation = with_parameters.create_activation(["one", 22], {"org_id": 99})
 
     headers = activation.headers
     assert headers["sentry-trace"]
     assert "baggage" in headers
+
+
+def test_create_activation_headers(task_namespace: TaskNamespace) -> None:
+    @task_namespace.register(name="test.parameters")
+    def with_parameters(one: str, two: int, org_id: int) -> None:
+        raise NotImplementedError
+
+    with sentry_sdk.start_transaction(op="test.task"):
+        activation = with_parameters.create_activation(
+            ["one", 22], {"org_id": 99}, {"key": "value"}
+        )
+
+    headers = activation.headers
+    assert headers["sentry-trace"]
+    assert "baggage" in headers
+    assert headers["key"] == "value"

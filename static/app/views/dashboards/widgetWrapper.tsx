@@ -4,7 +4,9 @@ import {motion} from 'framer-motion';
 
 import type {Widget} from './types';
 
-const WidgetWrapper = styled(motion.div)<{displayType: Widget['displayType']}>`
+const WidgetWrapper = styled(motion.div, {
+  shouldForwardProp: prop => prop !== 'displayType',
+})<{displayType: Widget['displayType']}>`
   position: relative;
   touch-action: manipulation;
 

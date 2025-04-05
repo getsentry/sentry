@@ -81,15 +81,29 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
         trace_details_response = self.do_request("logs", item_id)
 
         assert trace_details_response.status_code == 200, trace_details_response.content
+
+        timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
         assert trace_details_response.data["attributes"] == [
             {"name": "bool_attr", "type": "bool", "value": True},
             {"name": "log.severity_number", "type": "float", "value": 0.0},
             {"name": "tags[bool_attr,number]", "type": "float", "value": 1.0},
             {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
             {"name": "tags[int_attr,number]", "type": "float", "value": 2.0},
+            # this is stored as a float for searching, so it is not actually very precise
+            {
+                "name": "tags[sentry.timestamp_precise,number]",
+                "type": "float",
+                "value": pytest.approx(float(timestamp_nanos), abs=1e12),
+            },
             {"name": "log.severity_number", "type": "int", "value": "0"},
             {"name": "project_id", "type": "int", "value": str(self.project.id)},
             {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
+            # this is the precise one
+            {
+                "name": "tags[sentry.timestamp_precise,number]",
+                "type": "int",
+                "value": str(timestamp_nanos),
+            },
             {"name": "log.body", "type": "str", "value": "foo"},
             {"name": "log.severity_text", "type": "str", "value": "INFO"},
             {"name": "str_attr", "type": "str", "value": "1"},
@@ -147,6 +161,8 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
         trace_details_response = self.do_request("logs", item_id)
 
         assert trace_details_response.status_code == 200, trace_details_response.content
+
+        timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
         assert trace_details_response.data == {
             "attributes": [
                 {"name": "bool_attr", "type": "bool", "value": True},
@@ -154,9 +170,21 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                 {"name": "tags[bool_attr,number]", "type": "float", "value": 1.0},
                 {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
                 {"name": "tags[int_attr,number]", "type": "float", "value": 2.0},
+                # this is stored as a float for searching, so it is not actually very precise
+                {
+                    "name": "tags[sentry.timestamp_precise,number]",
+                    "type": "float",
+                    "value": pytest.approx(float(timestamp_nanos), abs=1e12),
+                },
                 {"name": "log.severity_number", "type": "int", "value": "0"},
                 {"name": "project_id", "type": "int", "value": str(self.project.id)},
                 {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
+                # this is the precise one
+                {
+                    "name": "tags[sentry.timestamp_precise,number]",
+                    "type": "int",
+                    "value": str(timestamp_nanos),
+                },
                 {"name": "log.body", "type": "str", "value": "foo"},
                 {"name": "log.severity_text", "type": "str", "value": "INFO"},
                 {"name": "str_attr", "type": "str", "value": "1"},

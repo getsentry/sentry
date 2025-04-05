@@ -228,9 +228,7 @@ function CreatePRsButton({
     <Button
       priority="primary"
       onClick={createPRs}
-      icon={
-        hasClickedCreatePr && <ProcessingStatusIndicator size={14} mini hideMessage />
-      }
+      icon={hasClickedCreatePr && <StyledLoadingIndicator size={14} mini />}
       size="sm"
       busy={hasClickedCreatePr}
       disabled={isBusy}
@@ -302,9 +300,7 @@ function CreateBranchButton({
   return (
     <Button
       onClick={pushToBranch}
-      icon={
-        hasClickedPushToBranch && <ProcessingStatusIndicator size={14} mini hideMessage />
-      }
+      icon={hasClickedPushToBranch && <StyledLoadingIndicator size={14} mini />}
       size="sm"
       busy={hasClickedPushToBranch}
       disabled={isBusy}
@@ -653,10 +649,8 @@ const HeaderIconWrapper = styled('div')`
   justify-content: center;
 `;
 
-const ProcessingStatusIndicator = styled(LoadingIndicator)`
+const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
     margin: 0;
-    height: 14px;
-    width: 14px;
   }
 `;
