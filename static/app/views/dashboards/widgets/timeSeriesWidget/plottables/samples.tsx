@@ -51,7 +51,11 @@ export type SamplesConfig = {
    */
   baselineValue?: number;
   /**
-   * Callback for ECharts' `onHighlight`. Called with the sample that corresponds to the highlighted sample in the chart
+   * Callback for ECharts' `onClick` mouse event. Called with the sample that corresponds to the highlighted sample in the chart
+   */
+  onClick?: (datum: ValidSampleRow) => void;
+  /**
+   * Callback for ECharts' `onHighlight`. Called with the sample that corresponds to the clicked sample in the chart
    */
   onHighlight?: (datum: ValidSampleRow) => void;
 };
@@ -181,26 +185,42 @@ export class Samples implements Plottable {
     return new Samples(this.constrainSamples(boundaryStart, boundaryEnd), this.config);
   }
 
-  onHighlight(dataIndex: number): void {
-    const {config} = this;
-
+  #getSampleByIndex(dataIndex: number): ValidSampleRow | undefined {
     const sample = this.sampleTableData.data.at(dataIndex);
 
     if (!sample) {
-      error('`Samples` plottable `onHighlight` out-of-range error', {
+      error('`Samples` plottable data out-of-range error', {
         dataIndex,
       });
-      return;
+      return undefined;
     }
 
     if (!isValidSampleRow(sample)) {
       warn('`Samples` plottable `onHighlight` almost received an invalid row', {
         dataIndex,
       });
-      return;
+      return undefined;
     }
 
-    config.onHighlight?.(sample);
+    return sample;
+  }
+
+  onClick(dataIndex: number): void {
+    const {config} = this;
+
+    const sample = this.#getSampleByIndex(dataIndex);
+    if (sample) {
+      config.onClick?.(sample);
+    }
+  }
+
+  onHighlight(dataIndex: number): void {
+    const {config} = this;
+
+    const sample = this.#getSampleByIndex(dataIndex);
+    if (sample) {
+      config.onHighlight?.(sample);
+    }
   }
 
   toSeries(plottingOptions: SamplesPlottingOptions): SeriesOption[] {
