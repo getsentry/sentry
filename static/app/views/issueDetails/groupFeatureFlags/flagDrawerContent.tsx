@@ -1,10 +1,12 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
 import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
@@ -73,6 +75,17 @@ export default function FlagDrawerContent({
     !project.hasFlags &&
     featureFlagOnboardingPlatforms.includes(project.platform ?? 'other');
 
+  const organization = useOrganization();
+
+  useEffect(() => {
+    if (!isPending && !isError && !showCTA) {
+      trackAnalytics('flags.distributions_rendered', {
+        organization,
+        numFlags: data.length,
+      });
+    }
+  }, [organization, data.length, isPending, isError, showCTA]);
+
   return isPending ? (
     <LoadingIndicator />
   ) : isError ? (
@@ -82,11 +95,13 @@ export default function FlagDrawerContent({
     />
   ) : showCTA ? (
     <FlagDrawerCTA />
+  ) : data.length === 0 ? (
+    <StyledEmptyStateWarning withIcon>
+      {t('No feature flags were found for this issue')}
+    </StyledEmptyStateWarning>
   ) : displayTags.length === 0 ? (
     <StyledEmptyStateWarning withIcon>
-      {data.length === 0
-        ? t('No feature flags were found for this issue')
-        : t('No feature flags were found for this search')}
+      {t('No feature flags were found for this search')}
     </StyledEmptyStateWarning>
   ) : (
     <Container>
