@@ -228,9 +228,9 @@ function UsageHistoryRow({history, subscription}: RowProps) {
   const sortedCategories = sortCategories(categories);
 
   const hasGifts =
-    Object.values(DataCategory).filter(c => {
+    Object.values(DataCategory).some(c => {
       return !!categories[c]?.free;
-    }).length > 0;
+    });
 
   return (
     <StyledPanelItem>

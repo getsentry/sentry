@@ -352,7 +352,7 @@ export function TimeRangeSelector({
             trigger ??
             ((triggerProps, isOpen) => {
               const relativeSummary =
-                items.findIndex(item => item.value === relative) > -1
+                items.some(item => item.value === relative) 
                   ? relative?.toUpperCase()
                   : t('Invalid Period');
               const defaultLabel =
