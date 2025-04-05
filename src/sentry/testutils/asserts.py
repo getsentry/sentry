@@ -2,9 +2,12 @@ from functools import reduce
 
 from django.http import StreamingHttpResponse
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -43,6 +46,13 @@ def assert_status_code(response, minimum: int, maximum: int | None = None):
         response.status_code,
         response.getvalue() if isinstance(response, StreamingHttpResponse) else response.content,
     )
+
+
+def assert_existing_projects(org: Organization, project_ids: list[str]):
+    active_project_ids = Project.objects.filter(
+        organization=org, status=ObjectStatus.ACTIVE
+    ).values_list("id", flat=True)
+    assert list(active_project_ids) == project_ids
 
 
 @assume_test_silo_mode(SiloMode.CONTROL)
