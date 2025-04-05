@@ -57,6 +57,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.grouptombstone import GroupTombstone
@@ -245,7 +246,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolves_group(self, send_robust: mock.MagicMock) -> None:
-        ts = time() - 300
+        ts = before_now(minutes=5).isoformat()
 
         # N.B. EventManager won't unresolve the group unless the event2 has a
         # later timestamp than event1.
@@ -259,13 +260,31 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         group.save()
         assert group.is_resolved()
 
-        manager = EventManager(make_event(event_id="b" * 32, checksum="a" * 32, timestamp=ts + 50))
+        resolved_at = before_now(minutes=4)
+        GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True).update(
+            date_ended=resolved_at
+        )
+
+        manager = EventManager(
+            make_event(
+                event_id="b" * 32, checksum="a" * 32, timestamp=before_now(minutes=3).isoformat()
+            )
+        )
         event2 = manager.save(self.project.id)
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=group.id)
         assert not group.is_resolved()
         assert send_robust.called
+
+        open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
+        assert len(open_periods) == 2
+        open_period = open_periods[0]
+        assert open_period.date_started == event2.datetime
+        assert open_period.date_ended is None
+        open_period = open_periods[1]
+        assert open_period.date_started == group.first_seen
+        assert open_period.date_ended == resolved_at
 
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_does_not_unresolve_group(self, plugin_is_regression: mock.MagicMock) -> None:
@@ -939,15 +958,24 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
     @mock.patch("sentry.models.Group.is_resolved")
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved: mock.MagicMock) -> None:
-        ts = time() - 100
+        ts = before_now(minutes=5).isoformat()
         mock_is_resolved.return_value = False
         manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
         with self.tasks():
             event = manager.save(self.project.id)
         assert event.group is not None
 
+        resolved_at = before_now(minutes=4)
+        GroupOpenPeriod.objects.get(group=event.group, date_ended__isnull=True).update(
+            date_ended=resolved_at
+        )
+
         mock_is_resolved.return_value = True
-        manager = EventManager(make_event(event_id="b" * 32, checksum="a" * 32, timestamp=ts + 100))
+        manager = EventManager(
+            make_event(
+                event_id="b" * 32, checksum="a" * 32, timestamp=before_now(minutes=3).isoformat()
+            )
+        )
         with self.tasks():
             event2 = manager.save(self.project.id)
         assert event2.group is not None
@@ -957,6 +985,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.active_at
         assert group.active_at.replace(second=0) == event2.datetime.replace(second=0)
         assert group.active_at.replace(second=0) != event.datetime.replace(second=0)
+
+        open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
+        assert len(open_periods) == 2
+        open_period = open_periods[0]
+        assert open_period.date_started == event2.datetime
+        assert open_period.date_ended is None
+        open_period = open_periods[1]
+        assert open_period.date_started == group.first_seen
+        assert open_period.date_ended == resolved_at
 
     def test_invalid_transaction(self) -> None:
         dict_input = {"messages": "foo"}
@@ -1392,6 +1429,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data["metadata"]["title"] == "foo bar"
 
     def test_error_event_type(self) -> None:
+        from sentry.models.groupopenperiod import GroupOpenPeriod
+
         manager = EventManager(
             make_event(**{"exception": {"values": [{"type": "Foo", "value": "bar"}]}})
         )
@@ -1407,6 +1446,13 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             "value": "bar",
             "initial_priority": PriorityLevel.HIGH,
         }
+
+        open_period = GroupOpenPeriod.objects.filter(group=group)
+        assert len(open_period) == 1
+        assert open_period[0].group_id == group.id
+        assert open_period[0].project_id == self.project.id
+        assert open_period[0].date_started == group.first_seen
+        assert open_period[0].date_ended is None
 
     def test_csp_event_type(self) -> None:
         manager = EventManager(

@@ -31,7 +31,7 @@ from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.commit import Commit
-from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
+from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus, update_group_open_period
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
@@ -642,6 +642,13 @@ def process_group_resolution(
         # before sending notifications on bulk changes
         if not len(group_list) > 1:
             transaction.on_commit(lambda: activity.send_notification(), router.db_for_write(Group))
+
+        update_group_open_period(
+            group=group,
+            new_status=GroupStatus.RESOLVED,
+            activity=activity,
+            should_reopen_open_period=False,
+        )
 
 
 def merge_groups(

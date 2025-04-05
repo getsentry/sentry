@@ -1,5 +1,7 @@
 from unittest import mock
 
+from django.utils import timezone
+
 from sentry.integrations.example.integration import AliasedIntegrationProvider, ExampleIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -7,6 +9,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
@@ -19,6 +22,9 @@ class IssueSyncIntegration(TestCase):
     def test_status_sync_inbound_resolve(self):
         group = self.group
         assert group.status == GroupStatus.UNRESOLVED
+        open_period = GroupOpenPeriod.objects.get(group=group)
+        open_period.update(date_ended=None)
+        assert open_period.date_ended is None
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(provider="example", external_id="123456")
@@ -65,6 +71,9 @@ class IssueSyncIntegration(TestCase):
                 "provider": integration.get_provider().name,
                 "provider_key": integration.get_provider().key,
             }
+
+            open_period.refresh_from_db()
+            assert open_period.date_ended is not None
 
     def test_sync_status_resolve_in_next_release_no_releases(self):
         group = self.group
@@ -405,6 +414,8 @@ class IssueSyncIntegration(TestCase):
         group.substatus = None
         group.save()
         assert group.status == GroupStatus.RESOLVED
+        open_period = GroupOpenPeriod.objects.get(group=group, project=group.project)
+        open_period.update(date_ended=timezone.now())
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(provider="example", external_id="123456")
@@ -454,12 +465,19 @@ class IssueSyncIntegration(TestCase):
                 "provider_key": integration.get_provider().key,
             }
 
+            open_period.refresh_from_db()
+            assert open_period.date_ended is None
+
 
 class IssueDefaultTest(TestCase):
     def setUp(self):
         self.group.status = GroupStatus.RESOLVED
         self.group.substatus = None
         self.group.save()
+
+        GroupOpenPeriod.objects.create(
+            group=self.group, project=self.group.project, date_ended=timezone.now()
+        )
 
         integration = self.create_integration(
             organization=self.group.organization, provider="example", external_id="123456"

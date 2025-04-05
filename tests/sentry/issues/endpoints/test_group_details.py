@@ -17,6 +17,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsnooze import GroupSnooze
@@ -312,6 +313,36 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
     @with_feature("organizations:issue-open-periods")
     def test_open_periods(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+
+        # test a new group has an open period
+        group.type = MetricIssuePOC.type_id
+        group.save()
+
+        GroupOpenPeriod.objects.all().delete()
+
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+            name="Test Alert Rule",
+        )
+        time = timezone.now() - timedelta(seconds=alert_rule.snuba_query.time_window)
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        open_periods = response.data["openPeriods"]
+        assert len(open_periods) == 1
+        open_period = open_periods[0]
+        assert open_period["start"] == group.first_seen
+        assert open_period["end"] is None
+        assert open_period["duration"] is None
+        assert open_period["isOpen"] is True
+        assert open_period["lastChecked"] > time
+
+    @with_feature("organizations:issue-open-periods")
+    def test_group_open_periods(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
