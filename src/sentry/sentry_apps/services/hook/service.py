@@ -8,6 +8,7 @@ import abc
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.sentry_apps.services.hook import RpcServiceHook
+from sentry.sentry_apps.services.hook.model import RpcServiceHookProject
 from sentry.silo.base import SiloMode
 
 
@@ -46,6 +47,23 @@ class HookService(RpcService):
         webhook_url: str | None,
         events: list[str],
     ) -> list[RpcServiceHook]:
+        pass
+
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def replace_service_hook_projects(
+        self, *, installation_id: int, project_ids: list[int]
+    ) -> list[RpcServiceHookProject]:
+        pass
+
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def delete_service_hook_projects(self, installation_id: int) -> list[RpcServiceHookProject]:
+        pass
+
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def list_service_hook_projects(self, installation_id: int) -> list[RpcServiceHookProject]:
         pass
 
 

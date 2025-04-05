@@ -4,9 +4,13 @@ from django.db import router, transaction
 
 from sentry import deletions
 from sentry.sentry_apps.logic import expand_events
-from sentry.sentry_apps.models.servicehook import ServiceHook
+from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.hook import HookService, RpcServiceHook
-from sentry.sentry_apps.services.hook.serial import serialize_service_hook
+from sentry.sentry_apps.services.hook.model import RpcServiceHookProject
+from sentry.sentry_apps.services.hook.serial import (
+    serialize_service_hook,
+    serialize_service_hook_project,
+)
 
 
 class DatabaseBackedHookService(HookService):
@@ -59,3 +63,33 @@ class DatabaseBackedHookService(HookService):
                     hook.add_project(project_id)
 
             return serialize_service_hook(hook)
+
+    def replace_service_hook_projects(
+        self, installation_id: int, project_ids: list[int]
+    ) -> list[RpcServiceHookProject]:
+
+        with transaction.atomic(router.db_for_write(ServiceHookProject)):
+            hook = ServiceHook.objects.get(installation_id=installation_id)
+            ServiceHookProject.objects.filter(service_hook_id=hook.id).delete()
+            hook_projects = []
+            for project_id in project_ids:
+                hook_projects.append(
+                    ServiceHookProject.objects.create(
+                        project_id=project_id,
+                        service_hook_id=hook.id,
+                    )
+                )
+            return [serialize_service_hook_project(hp) for hp in hook_projects]
+
+    def delete_service_hook_projects(self, installation_id: int) -> list[RpcServiceHookProject]:
+
+        hook = ServiceHook.objects.get(installation_id=installation_id)
+        hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
+        deletions.exec_sync_many(list(hook_projects))
+        return []
+
+    def list_service_hook_projects(self, installation_id: int) -> list[RpcServiceHookProject]:
+
+        hook = ServiceHook.objects.get(installation_id=installation_id)
+        hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
+        return [serialize_service_hook_project(hp) for hp in hook_projects]

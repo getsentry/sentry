@@ -24,3 +24,12 @@ class RpcServiceHook(RpcModel):
 
     def get_audit_log_data(self) -> Mapping[str, Any]:
         return {"url": self.url}
+
+
+class RpcServiceHookProject(RpcModel):
+    id: int = -1
+    project_id: int = -1
+    service_hook_id: int = -1
+
+    def __hash__(self) -> int:
+        return hash(self.id)
