@@ -42,13 +42,124 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         self.registry_patcher.stop()
         self.plugins_registry_patcher.stop()
 
-    def test_simple(self):
+    def setup_email(self):
         @self.registry.register(Action.Type.EMAIL)
         @dataclass(frozen=True)
         class EmailActionHandler(ActionHandler):
             group = ActionHandler.Group.NOTIFICATION
             config_schema = {}
             data_schema = {}
+
+    def setup_integrations(self):
+        @self.registry.register(Action.Type.SLACK)
+        @dataclass(frozen=True)
+        class SlackActionHandler(IntegrationActionHandler):
+            group = ActionHandler.Group.NOTIFICATION
+            provider_slug = "slack"
+            config_schema = {}
+            data_schema = {}
+
+        token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        self.slack_integration = self.create_integration(
+            organization=self.organization,
+            external_id="1",
+            name="My Slack Integration",
+            provider="slack",
+            metadata={"access_token": token, "installation_type": "born_as_bot"},
+        )
+
+        @self.registry.register(Action.Type.GITHUB)
+        @dataclass(frozen=True)
+        class GithubActionHandler(IntegrationActionHandler):
+            group = ActionHandler.Group.TICKET_CREATION
+            provider_slug = "github"
+            config_schema = {}
+            data_schema = {}
+
+        token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        self.github_integration = self.create_integration(
+            organization=self.organization,
+            external_id="1",
+            name="My GitHub Integration",
+            provider="github",
+            metadata={"access_token": token, "installation_type": "born_as_bot"},
+        )
+
+        # should not return integrations that are not installed
+        @self.registry.register(Action.Type.MSTEAMS)
+        @dataclass(frozen=True)
+        class MSTeamsActionHandler(IntegrationActionHandler):
+            group = ActionHandler.Group.NOTIFICATION
+            provider_slug = "msteams"
+            config_schema = {}
+            data_schema = {}
+
+    def setup_sentry_apps(self):
+        @self.registry.register(Action.Type.SENTRY_APP)
+        @dataclass(frozen=True)
+        class SentryAppActionHandler(ActionHandler):
+            group = ActionHandler.Group.OTHER
+            config_schema = {}
+            data_schema = {}
+
+        self.no_component_sentry_app = self.create_sentry_app(
+            name="Poppy's Fire Sentry App",
+            organization=self.organization,
+            is_alertable=True,
+        )
+        self.no_component_sentry_app_installation = self.create_sentry_app_installation(
+            slug=self.no_component_sentry_app.slug, organization=self.organization
+        )
+
+        self.sentry_app = self.create_sentry_app(
+            name="Moo Deng's Fire Sentry App",
+            organization=self.organization,
+            schema={
+                "elements": [
+                    self.create_alert_rule_action_schema(),
+                ]
+            },
+            is_alertable=True,
+        )
+        self.sentry_app_installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization
+        )
+
+        # should not return sentry apps that are not installed
+        self.create_sentry_app(
+            name="Bad Sentry App",
+            organization=self.organization,
+            is_alertable=True,
+        )
+
+    def setup_webhooks(self):
+        @self.registry.register(Action.Type.WEBHOOK)
+        @dataclass(frozen=True)
+        class WebhookActionHandler(ActionHandler):
+            group = ActionHandler.Group.OTHER
+            config_schema = {}
+            data_schema = {}
+
+        self.plugin_registry.register(WebHooksPlugin)
+        self.webhooks_plugin = self.plugin_registry.get(WebHooksPlugin.slug)
+        self.webhooks_plugin.enable(self.project)
+
+        self.plugin_registry.register(SlackPlugin)
+        self.slack_plugin = self.plugin_registry.get(SlackPlugin.slug)
+        self.slack_plugin.enable(self.project)
+        # each plugin should only be returned once, even if it's enabled for multiple projects
+        self.slack_plugin.enable(self.create_project())
+
+        # non notification plugins should not be returned
+        self.plugin_registry.register(TrelloPlugin)
+        self.trello_plugin = self.plugin_registry.get(TrelloPlugin.slug)
+        self.trello_plugin.enable(self.project)
+
+        # plugins that are not enabled should not be returned
+        self.plugin_registry.register(PagerDutyPlugin)
+
+    def test_simple(self):
+        self.setup_email()
 
         response = self.get_success_response(
             self.organization.slug,
@@ -65,83 +176,38 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         ]
 
     def test_integrations(self):
-        @self.registry.register(Action.Type.MSTEAMS)
-        @dataclass(frozen=True)
-        class MSTeamsActionHandler(IntegrationActionHandler):
-            group = ActionHandler.Group.NOTIFICATION
-            provider_slug = "msteams"
-            config_schema = {}
-            data_schema = {}
-
-        @self.registry.register(Action.Type.SLACK)
-        @dataclass(frozen=True)
-        class SlackActionHandler(IntegrationActionHandler):
-            group = ActionHandler.Group.NOTIFICATION
-            provider_slug = "slack"
-            config_schema = {}
-            data_schema = {}
-
-        token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        self.integration = self.create_integration(
-            organization=self.organization,
-            external_id="1",
-            name="My Slack Integration",
-            provider="slack",
-            metadata={"access_token": token, "installation_type": "born_as_bot"},
-        )
+        self.setup_integrations()
 
         response = self.get_success_response(
             self.organization.slug,
             status_code=200,
         )
-        assert len(response.data) == 1
+        assert len(response.data) == 2
         assert response.data == [
+            # notification actions first
             {
                 "type": Action.Type.SLACK,
                 "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
                 "configSchema": {},
                 "dataSchema": {},
-                "integrations": [{"id": str(self.integration.id), "name": self.integration.name}],
+                "integrations": [
+                    {"id": str(self.slack_integration.id), "name": self.slack_integration.name}
+                ],
+            },
+            # then ticket creation actions
+            {
+                "type": Action.Type.GITHUB,
+                "handlerGroup": ActionHandler.Group.TICKET_CREATION.value,
+                "configSchema": {},
+                "dataSchema": {},
+                "integrations": [
+                    {"id": str(self.github_integration.id), "name": self.github_integration.name}
+                ],
             },
         ]
 
     def test_sentry_apps(self):
-        @self.registry.register(Action.Type.SENTRY_APP)
-        @dataclass(frozen=True)
-        class SentryAppActionHandler(ActionHandler):
-            group = ActionHandler.Group.OTHER
-            config_schema = {}
-            data_schema = {}
-
-        self.sentry_app = self.create_sentry_app(
-            name="Moo Deng's Fire Sentry App",
-            organization=self.organization,
-            schema={
-                "elements": [
-                    self.create_alert_rule_action_schema(),
-                ]
-            },
-            is_alertable=True,
-        )
-        self.sentry_app_installation = self.create_sentry_app_installation(
-            slug=self.sentry_app.slug, organization=self.organization
-        )
-
-        self.no_component_sentry_app = self.create_sentry_app(
-            name="Poppy's Fire Sentry App",
-            organization=self.organization,
-            is_alertable=True,
-        )
-        self.no_component_sentry_app_installation = self.create_sentry_app_installation(
-            slug=self.no_component_sentry_app.slug, organization=self.organization
-        )
-
-        # should not return sentry apps that are not installed
-        self.create_sentry_app(
-            name="Bad Sentry App",
-            organization=self.organization,
-            is_alertable=True,
-        )
+        self.setup_sentry_apps()
 
         response = self.get_success_response(
             self.organization.slug,
@@ -177,34 +243,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         ]
 
     def test_webhooks(self):
-        @self.registry.register(Action.Type.WEBHOOK)
-        @dataclass(frozen=True)
-        class WebhookActionHandler(ActionHandler):
-            group = ActionHandler.Group.OTHER
-            config_schema = {}
-            data_schema = {}
-
-        response = self.get_success_response(
-            self.organization.slug,
-            status_code=200,
-        )
-        assert len(response.data) == 0
-
-        self.plugin_registry.register(WebHooksPlugin)
-        self.webhooks_plugin = self.plugin_registry.get(WebHooksPlugin.slug)
-        self.webhooks_plugin.enable(self.project)
-
-        self.plugin_registry.register(SlackPlugin)
-        self.slack_plugin = self.plugin_registry.get(SlackPlugin.slug)
-        self.slack_plugin.enable(self.project)
-
-        # non notification plugins should not be returned
-        self.plugin_registry.register(TrelloPlugin)
-        self.trello_plugin = self.plugin_registry.get(TrelloPlugin.slug)
-        self.trello_plugin.enable(self.project)
-
-        # plugins that are not enabled should not be returned
-        self.plugin_registry.register(PagerDutyPlugin)
+        self.setup_webhooks()
 
         response = self.get_success_response(
             self.organization.slug,
@@ -225,92 +264,11 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         ]
 
     def test_actions_sorting(self):
-        @self.registry.register(Action.Type.MSTEAMS)
-        @dataclass(frozen=True)
-        class MSTeamsActionHandler(IntegrationActionHandler):
-            group = ActionHandler.Group.NOTIFICATION
-            provider_slug = "msteams"
-            config_schema = {}
-            data_schema = {}
 
-        @self.registry.register(Action.Type.EMAIL)
-        @dataclass(frozen=True)
-        class EmailActionHandler(ActionHandler):
-            group = ActionHandler.Group.NOTIFICATION
-            config_schema = {}
-            data_schema = {}
-
-        @self.registry.register(Action.Type.SENTRY_APP)
-        @dataclass(frozen=True)
-        class SentryAppActionHandler(ActionHandler):
-            group = ActionHandler.Group.OTHER
-            config_schema = {}
-            data_schema = {}
-
-        self.no_component_sentry_app = self.create_sentry_app(
-            name="Poppy's Fire Sentry App",
-            organization=self.organization,
-            is_alertable=True,
-        )
-        self.no_component_sentry_app_installation = self.create_sentry_app_installation(
-            slug=self.no_component_sentry_app.slug, organization=self.organization
-        )
-
-        self.sentry_app = self.create_sentry_app(
-            name="Moo Deng's Fire Sentry App",
-            organization=self.organization,
-            schema={
-                "elements": [
-                    self.create_alert_rule_action_schema(),
-                ]
-            },
-            is_alertable=True,
-        )
-        self.sentry_app_installation = self.create_sentry_app_installation(
-            slug=self.sentry_app.slug, organization=self.organization
-        )
-
-        @self.registry.register(Action.Type.SLACK)
-        @dataclass(frozen=True)
-        class SlackActionHandler(IntegrationActionHandler):
-            group = ActionHandler.Group.NOTIFICATION
-            provider_slug = "slack"
-            config_schema = {}
-            data_schema = {}
-
-        token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        self.slack_integration = self.create_integration(
-            organization=self.organization,
-            external_id="1",
-            name="My Slack Integration",
-            provider="slack",
-            metadata={"access_token": token, "installation_type": "born_as_bot"},
-        )
-
-        @self.registry.register(Action.Type.JIRA)
-        @dataclass(frozen=True)
-        class JiraActionHandler(IntegrationActionHandler):
-            group = ActionHandler.Group.TICKET_CREATION
-            provider_slug = "jira"
-            config_schema = {}
-            data_schema = {}
-
-        @self.registry.register(Action.Type.GITHUB)
-        @dataclass(frozen=True)
-        class GithubActionHandler(IntegrationActionHandler):
-            group = ActionHandler.Group.TICKET_CREATION
-            provider_slug = "github"
-            config_schema = {}
-            data_schema = {}
-
-        token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        self.github_integration = self.create_integration(
-            organization=self.organization,
-            external_id="1",
-            name="My GitHub Integration",
-            provider="github",
-            metadata={"access_token": token, "installation_type": "born_as_bot"},
-        )
+        self.setup_sentry_apps()
+        self.setup_integrations()
+        self.setup_webhooks()
+        self.setup_email()
 
         @self.registry.register(Action.Type.PLUGIN)
         @dataclass(frozen=True)
@@ -319,17 +277,6 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
 
             config_schema = {}
             data_schema = {}
-
-        @self.registry.register(Action.Type.WEBHOOK)
-        @dataclass(frozen=True)
-        class WebhookActionHandler(ActionHandler):
-            group = ActionHandler.Group.OTHER
-            config_schema = {}
-            data_schema = {}
-
-        self.plugin_registry.register(WebHooksPlugin)
-        self.webhooks_plugin = self.plugin_registry.get(WebHooksPlugin.slug)
-        self.webhooks_plugin.enable(self.project)
 
         response = self.get_success_response(
             self.organization.slug,
@@ -366,6 +313,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "configSchema": {},
                 "dataSchema": {},
                 "services": [
+                    {"slug": "slack", "name": "(Legacy) Slack"},
                     {"slug": "webhooks", "name": "WebHooks"},
                 ],
             },

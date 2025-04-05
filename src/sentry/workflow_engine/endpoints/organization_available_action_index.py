@@ -110,7 +110,7 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                         )
                     )
 
-            # add all other actions
+            # add all other action types (EMAIL, PLUGIN, etc.)
             else:
                 actions.append(
                     serialize(

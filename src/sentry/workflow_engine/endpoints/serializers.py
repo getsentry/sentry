@@ -86,7 +86,7 @@ class ActionHandlerSerializer(Serializer):
         }
 
         integrations = kwargs.get("integrations")
-        if integrations is not None:
+        if integrations:
             result["integrations"] = [
                 {"id": str(integration.id), "name": integration.name}
                 for integration in integrations
