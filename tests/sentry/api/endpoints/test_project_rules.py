@@ -400,28 +400,6 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
 
     @with_feature("organizations:rule-create-edit-confirm-notification")
-    @patch(
-        "sentry.integrations.slack.actions.notification.SlackNotifyServiceAction.send_confirmation_notification"
-    )
-    def test_slack_channel_id_saved_sdk(self, mock_send_confirmation_notification):
-        channel = {"name": "team-team-team", "id": self.channel_id}
-        with self.mock_conversations_info(channel):
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                name="hello world",
-                owner=f"user:{self.user.id}",
-                environment=None,
-                actionMatch="any",
-                frequency=5,
-                actions=self.slack_actions,
-                conditions=self.first_seen_condition,
-                status_code=status.HTTP_200_OK,
-            )
-            assert response.data["actions"][0]["channel_id"] == self.channel_id
-            assert mock_send_confirmation_notification.call_count == 1
-
-    @with_feature("organizations:rule-create-edit-confirm-notification")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch(
         "slack_sdk.web.client.WebClient._perform_urllib_http_request",

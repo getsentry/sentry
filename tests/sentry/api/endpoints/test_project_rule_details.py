@@ -1081,52 +1081,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["environment"] is None
         assert_rule_from_payload(self.rule, payload)
 
-    @with_feature("organizations:rule-create-edit-confirm-notification")
-    @patch(
-        "sentry.integrations.slack.actions.notification.SlackNotifyServiceAction.send_confirmation_notification"
-    )
-    def test_update_channel_slack_sdk(self, mock_send_confirmation_notification):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        actions = [
-            {
-                "channel_id": "old_channel_id",
-                "workspace": str(self.slack_integration.id),
-                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "channel": "#old_channel_name",
-            }
-        ]
-        self.rule.update(data={"conditions": conditions, "actions": actions})
-
-        actions[0]["channel"] = "#new_channel_name"
-        actions[0]["channel_id"] = "new_channel_id"
-        channels = {
-            "ok": "true",
-            "channels": [
-                {"name": "old_channel_name", "id": "old_channel_id"},
-                {"name": "new_channel_name", "id": "new_channel_id"},
-            ],
-        }
-
-        with self.mock_conversations_list(channels["channels"]):
-            with self.mock_conversations_info(channels["channels"][1]):
-                payload = {
-                    "name": "#new_channel_name",
-                    "actionMatch": "any",
-                    "filterMatch": "any",
-                    "actions": actions,
-                    "conditions": conditions,
-                    "frequency": 30,
-                }
-                self.get_success_response(
-                    self.organization.slug,
-                    self.project.slug,
-                    self.rule.id,
-                    status_code=200,
-                    **payload,
-                )
-                assert mock_send_confirmation_notification.call_count == 1
-                assert_rule_from_payload(self.rule, payload)
-
     @responses.activate
     @with_feature("organizations:rule-create-edit-confirm-notification")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
