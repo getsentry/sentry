@@ -543,8 +543,8 @@ function Sidebar() {
                 collapsed={collapsed || horizontal}
                 organization={organization}
               />
-              {HookStore.get('sidebar:bottom-items').length > 0 &&
-                HookStore.get('sidebar:bottom-items')[0]!({
+              {HookStore.get('sidebar:try-business').length > 0 &&
+                HookStore.get('sidebar:try-business')[0]!({
                   orientation,
                   collapsed,
                   hasPanel,

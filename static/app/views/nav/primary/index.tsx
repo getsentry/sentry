@@ -161,10 +161,11 @@ export function PrimaryNavigationItems() {
 
         <PrimaryNavigationWhatsNew />
         <Hook
-          name="sidebar:bottom-items"
+          name="sidebar:try-business"
           organization={organization}
           orientation="left"
         />
+        <Hook name="sidebar:billing-status" organization={organization} />
         <PrimaryNavigationServiceIncidents />
         <PrimaryNavigationOnboarding />
       </SidebarFooter>

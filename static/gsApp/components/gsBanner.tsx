@@ -33,6 +33,7 @@ import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import {
@@ -978,6 +979,11 @@ class GSBanner extends Component<Props, State> {
     const plan = subscription.planDetails;
     let overquotaPrompt: React.ReactNode;
     let eventTypes: EventType[] = [];
+
+    if (prefersStackedNav()) {
+      // new nav uses sidebar quota alert (see quotaExceededNavItem.tsx)
+      return null;
+    }
 
     const eventTypeToElement = (eventType: EventType): React.JSX.Element => {
       const onClick = () => {
