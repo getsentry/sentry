@@ -27,53 +27,50 @@ class RequestCacheTest(TestCase):
         super().setUp()
 
     def tearDown(self):
-        # remove the request, trigger the signal to clear the cache, restore receivers
-        app.env.clear()
         request_finished.send(sender=WSGIHandler)
         request_finished.receivers = self.original_receivers
         super().tearDown()
 
     @patch("django.utils.timezone.now")
     def test_basic_cache(self, mock_now):
-        app.env.request = HttpRequest()
-        assert cached_fn("cat", arg2="dog") == "catdog"
-        assert cached_fn("cat", arg2="dog") == "catdog"
-        assert mock_now.call_count == 1
+        with app.env.active_request(HttpRequest()):
+            assert cached_fn("cat", arg2="dog") == "catdog"
+            assert cached_fn("cat", arg2="dog") == "catdog"
+            assert mock_now.call_count == 1
 
     @patch("django.utils.timezone.now")
     def test_cache_none(self, mock_now):
-        app.env.request = HttpRequest()
-        assert cached_fn(None) is None
-        assert cached_fn(None) is None
-        assert mock_now.call_count == 1
+        with app.env.active_request(HttpRequest()):
+            assert cached_fn(None) is None
+            assert cached_fn(None) is None
+            assert mock_now.call_count == 1
 
     @patch("django.utils.timezone.now")
     def test_different_args(self, mock_now):
-        app.env.request = HttpRequest()
-        assert cached_fn("cat", arg2="dog") == "catdog"
-        assert cached_fn("hey", arg2="dog") == "heydog"
-        assert mock_now.call_count == 2
+        with app.env.active_request(HttpRequest()):
+            assert cached_fn("cat", arg2="dog") == "catdog"
+            assert cached_fn("hey", arg2="dog") == "heydog"
+            assert mock_now.call_count == 2
 
     @patch("django.utils.timezone.now")
     def test_different_kwargs(self, mock_now):
-        app.env.request = HttpRequest()
-        assert cached_fn("cat", arg2="dog") == "catdog"
-        assert cached_fn("cat", arg2="hat") == "cathat"
-        assert mock_now.call_count == 2
+        with app.env.active_request(HttpRequest()):
+            assert cached_fn("cat", arg2="dog") == "catdog"
+            assert cached_fn("cat", arg2="hat") == "cathat"
+            assert mock_now.call_count == 2
 
     @patch("django.utils.timezone.now")
     def test_different_request(self, mock_now):
-        app.env.request = HttpRequest()
-        assert cached_fn("cat") == "cat"
+        with app.env.active_request(HttpRequest()):
+            assert cached_fn("cat") == "cat"
         request_finished.send(sender=WSGIHandler)
-        app.env.request = HttpRequest()
-        assert cached_fn("cat") == "cat"
+        with app.env.active_request(HttpRequest()):
+            assert cached_fn("cat") == "cat"
         assert mock_now.call_count == 2
 
     @patch("django.utils.timezone.now")
     def test_request_over(self, mock_now):
-        app.env.request = HttpRequest()
-        assert cached_fn("cat") == "cat"
-        app.env.clear()
+        with app.env.active_request(HttpRequest()):
+            assert cached_fn("cat") == "cat"
         assert cached_fn("cat") == "cat"
         assert mock_now.call_count == 2

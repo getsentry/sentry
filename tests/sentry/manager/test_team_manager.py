@@ -1,14 +1,9 @@
-from sentry.app import env
 from sentry.models.team import Team
 from sentry.testutils.cases import TestCase
 from sentry.users.services.user.service import user_service
 
 
 class TeamManagerTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        env.clear()
-
     def test_simple(self):
         user = self.create_user()
         org = self.create_organization()
