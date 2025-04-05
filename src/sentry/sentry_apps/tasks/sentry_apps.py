@@ -8,7 +8,7 @@ from typing import Any
 from django.urls import reverse
 from requests.exceptions import RequestException
 
-from sentry import analytics, nodestore
+from sentry import analytics, features, nodestore
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
@@ -521,12 +521,20 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
             "additional_payload_key": None,
             "additional_payload": None,
         }
+
         # If the future comes from a rule with a UI component form in the schema, append the issue alert payload
+        # TODO(ecosystem): We need to change this payload format after alerts create issues
+        id = f.rule.id
+        # if we are using the new workflow engine, we need to use the legacy rule id
+        if features.has("organizations:workflow-engine-trigger-actions", event.group.organization):
+            id = f.rule.data.get("actions", [{}])[0].get("legacy_rule_id")
+            assert id is not None
+
         settings = f.kwargs.get("schema_defined_settings")
         if settings:
             extra_kwargs["additional_payload_key"] = "issue_alert"
             extra_kwargs["additional_payload"] = {
-                "id": f.rule.id,
+                "id": id,
                 "title": f.rule.label,
                 "sentry_app_id": f.kwargs["sentry_app"].id,
                 "settings": settings,

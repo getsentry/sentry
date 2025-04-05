@@ -326,6 +326,70 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @with_feature("organizations:workflow-engine-trigger-actions")
+    def test_send_alert_event_with_additional_payload_legacy_rule_id(
+        self, mock_record, safe_urlopen
+    ):
+        rule = self.create_project_rule(
+            action_data=[
+                {
+                    "sentryAppInstallationUuid": self.install.uuid,
+                    "legacy_rule_id": "123",
+                }
+            ]
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        group_event = GroupEvent.from_event(event, event.group)
+        settings = [
+            {"name": "alert_prefix", "value": "[Not Good]"},
+            {"name": "channel", "value": "#ignored-errors"},
+            {"name": "best_emoji", "value": ":fire:"},
+            {"name": "teamId", "value": 1},
+            {"name": "assigneeId", "value": 3},
+        ]
+
+        rule_future = RuleFuture(
+            rule=rule,
+            kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": settings},
+        )
+
+        with self.tasks():
+            notify_sentry_app(group_event, [rule_future])
+
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        payload = json.loads(kwargs["data"])
+
+        assert payload["action"] == "triggered"
+        assert payload["data"]["triggered_rule"] == rule.label
+        assert payload["data"]["issue_alert"] == {
+            # Use the legacy rule id
+            "id": "123",
+            "title": rule.label,
+            "sentry_app_id": self.sentry_app.id,
+            "settings": settings,
+        }
+
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        requests = buffer.get_requests()
+
+        assert len(requests) == 1
+        assert requests[0]["response_code"] == 200
+        assert requests[0]["event_type"] == "event_alert.triggered"
+
+        # SLO validation
+        assert_success_metric(mock_record=mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+        )
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_send_alert_event_with_groupevent(self, mock_record, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence_data = self.build_occurrence_data(
