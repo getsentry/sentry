@@ -39,7 +39,7 @@ interface UseMetricsSeriesOptions<Fields> {
   interval?: string;
   overriddenRoute?: string;
   referrer?: string;
-  search?: MutableSearch;
+  search?: MutableSearch | string; // TODO: Remove string type and always require MutableSearch
   transformAliasToInputFormat?: boolean;
   yAxis?: Fields;
 }
@@ -61,7 +61,13 @@ export const useMetricsSeries = <Fields extends MetricsProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {},
   referrer: string
 ) => {
-  return useDiscoverSeries<Fields>(options, DiscoverDatasets.METRICS, referrer);
+  const location = useLocation();
+  const useEap = location.query?.useEap === '1';
+  return useDiscoverSeries<Fields>(
+    options,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
+    referrer
+  );
 };
 
 /**
