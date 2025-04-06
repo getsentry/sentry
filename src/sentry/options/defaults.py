@@ -3265,3 +3265,8 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "taskworker.replays.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
