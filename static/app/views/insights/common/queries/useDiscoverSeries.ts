@@ -16,6 +16,7 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   MetricsProperty,
   SpanFunctions,
@@ -48,8 +49,7 @@ export const useSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {},
   referrer: string
 ) => {
-  const location = useLocation();
-  const useEap = location.query?.useEap === '1';
+  const useEap = useInsightsEap();
   return useDiscoverSeries<Fields>(
     options,
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
@@ -61,8 +61,7 @@ export const useMetricsSeries = <Fields extends MetricsProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {},
   referrer: string
 ) => {
-  const location = useLocation();
-  const useEap = location.query?.useEap === '1';
+  const useEap = useInsightsEap();
   return useDiscoverSeries<Fields>(
     options,
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
@@ -80,9 +79,10 @@ export const useSpanIndexedSeries = <
   referrer: string,
   dataset?: DiscoverDatasets
 ) => {
+  const useEap = useInsightsEap();
   return useDiscoverSeries<Fields>(
     options,
-    dataset ?? DiscoverDatasets.SPANS_INDEXED,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : (dataset ?? DiscoverDatasets.SPANS_INDEXED),
     referrer
   );
 };

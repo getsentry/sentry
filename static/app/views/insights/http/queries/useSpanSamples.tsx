@@ -3,10 +3,10 @@
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   SpanIndexedField,
   SpanIndexedProperty,
@@ -35,7 +35,6 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
   } = options;
 
   const {selection} = usePageFilters();
-  const location = useLocation();
   const organization = useOrganization();
 
   if (defined(min) && min < 0) {
@@ -82,7 +81,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
           upperBound: max,
           additionalFields: fields,
           referrer,
-          useRpc: location.query?.useEap,
+          useRpc: useInsightsEap(),
         },
       },
     ],
