@@ -427,7 +427,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         identity: RpcIdentity | None = None,
         actions: Sequence[MessageAction | BlockKitMessageAction] | None = None,
         rules: list[Rule] | None = None,
-        link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
         recipient: Actor | None = None,
@@ -442,7 +441,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.identity = identity
         self.actions = actions
         self.rules = rules
-        self.link_to_event = link_to_event
         self.issue_details = issue_details
         self.notification = notification
         self.recipient = recipient
@@ -462,7 +460,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         title_link = get_title_link(
             self.group,
             self.event,
-            self.link_to_event,
             self.issue_details,
             self.notification,
             ExternalProviders.SLACK,

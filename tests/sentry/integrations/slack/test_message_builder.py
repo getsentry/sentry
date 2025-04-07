@@ -74,7 +74,6 @@ def build_test_message_blocks(
     users: set[User],
     group: Group,
     event: Event | None = None,
-    link_to_event: bool = False,
     tags: dict[str, str] | None = None,
     suggested_assignees: str | None = None,
     initial_assignee: Team | User | None = None,
@@ -93,7 +92,7 @@ def build_test_message_blocks(
         title = event.title
         if title == "<unlabeled event>":
             formatted_title = "&lt;unlabeled event&gt;"
-        if link_to_event:
+        if event:
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
     if rule:
@@ -317,13 +316,12 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), link_to_event=True
+            group, event.for_group(group)
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
             event=event,
-            link_to_event=True,
         )
 
         test_message = build_test_message_blocks(
@@ -407,13 +405,12 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), link_to_event=True
+            group, event.for_group(group)
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
             event=event,
-            link_to_event=True,
         )
 
         test_message = build_test_message_blocks(

@@ -33,7 +33,6 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         event: GroupEvent | None = None,
         tags: set[str] | None = None,
         rules: list[Rule] | None = None,
-        link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
     ) -> None:
@@ -41,7 +40,6 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         self.event = event
         self.tags = tags
         self.rules = rules
-        self.link_to_event = link_to_event
         self.issue_details = issue_details
         self.notification = notification
 
@@ -65,7 +63,6 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
                 url=get_title_link(
                     self.group,
                     self.event,
-                    self.link_to_event,
                     self.issue_details,
                     self.notification,
                     ExternalProviders.DISCORD,
