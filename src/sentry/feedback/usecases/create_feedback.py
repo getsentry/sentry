@@ -366,11 +366,6 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     if user_email and "user.email" not in event_fixed["tags"]:
         event_fixed["tags"]["user.email"] = user_email
 
-    # Set the trace.id tag to expose it for the feedback UI.
-    trace_id = get_path(event_fixed, "contexts", "trace", "trace_id")
-    if trace_id:
-        event_fixed["tags"]["trace.id"] = trace_id
-
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)
 
