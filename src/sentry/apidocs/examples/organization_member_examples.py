@@ -20,13 +20,6 @@ ORGANIZATION_MEMBER = {
         "isSuperuser": False,
         "isStaff": False,
         "experiments": {},
-        "emails": [
-            {
-                "id": "2153450836",
-                "email": "sirpenguin@antarcticarocks.com",
-                "is_verified": True,
-            }
-        ],
         "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
         "canReset2fa": True,
     },
