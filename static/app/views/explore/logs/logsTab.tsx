@@ -18,6 +18,7 @@ import SchemaHintsList, {
 } from 'sentry/views/explore/components/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
   type LogPageParamsUpdate,
   useLogsFields,
@@ -73,6 +74,9 @@ export function LogsTabContent({
           stringTags={stringAttributes}
           numberTags={numberAttributes}
           hiddenKeys={HiddenColumnEditorLogFields}
+          handleReset={() => {
+            setFields(defaultLogFields());
+          }}
           isDocsButtonHidden
         />
       ),
