@@ -314,7 +314,7 @@ class TestInit(RuleTestCase):
         }
 
         action_data = self.action_data.copy()
-        action_data["legacy_rule_id"] = 123
+        action_data["legacy_rule_id"] = "123"
         rule = self.create_project_rule(project=self.project, action_data=[action_data])
         rule.id = self.action.id
         rule.environment_id = None
@@ -356,7 +356,7 @@ class TestInit(RuleTestCase):
         }
 
         action_data = self.action_data.copy()
-        action_data["legacy_rule_id"] = 123
+        action_data["legacy_rule_id"] = "123"
 
         rule_cls_instance = self.get_rule(data=action_data)
 
@@ -415,7 +415,7 @@ class TestInit(RuleTestCase):
         )
 
         action_data = self.action_data.copy()
-        action_data["legacy_rule_id"] = 123
+        action_data["legacy_rule_id"] = "123"
 
         rule_cls_instance = self.get_rule(data=action_data)
 
