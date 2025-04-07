@@ -4,6 +4,7 @@ import re
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.endpoints.organization_events import OrganizationEventsEndpoint
 
@@ -12,6 +13,10 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
