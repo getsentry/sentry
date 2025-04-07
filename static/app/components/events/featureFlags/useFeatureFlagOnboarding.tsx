@@ -24,11 +24,18 @@ export function useFeatureFlagOnboarding() {
     }
   }, [location.hash, organization, area]);
 
-  const activateSidebar = useCallback((event: React.MouseEvent) => {
-    event.preventDefault();
-    window.location.hash = FLAG_HASH;
-    SidebarPanelStore.activatePanel(SidebarPanelKey.FEATURE_FLAG_ONBOARDING);
-  }, []);
+  const activateSidebar = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      window.location.hash = FLAG_HASH;
+      SidebarPanelStore.activatePanel(SidebarPanelKey.FEATURE_FLAG_ONBOARDING);
+      trackAnalytics('flags.view-setup-sidebar', {
+        organization,
+        area,
+      });
+    },
+    [organization, area]
+  );
 
   return {activateSidebar};
 }
