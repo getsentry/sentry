@@ -8,7 +8,7 @@ from sentry.utils.snuba import raw_snql_query
 
 
 @sentry_sdk.trace
-def get_suspect_flag_scores(
+def get_suspect_tag_scores(
     org_id: int,
     project_id: int,
     start: datetime,
@@ -22,7 +22,7 @@ def get_suspect_flag_scores(
     """
     outliers = query_selection_set(org_id, project_id, start, end, envs, group_id=group_id)
     baseline = query_baseline_set(
-        org_id, project_id, start, end, envs, flag_keys=[o[0] for o in outliers]
+        org_id, project_id, start, end, envs, tag_keys=[o[0] for o in outliers]
     )
 
     outliers_count = query_error_counts(org_id, project_id, start, end, envs, group_id=group_id)
@@ -43,20 +43,20 @@ def query_baseline_set(
     start: datetime,
     end: datetime,
     environments: list[str],
-    flag_keys: list[str],
+    tag_keys: list[str],
 ) -> list[KeyedValueCount]:
     """
-    Query for the count of unique flag-key, flag-value pairings for a set of flag keys.
+    Query for the count of unique tag-key, tag-value pairings for a set of tag keys.
 
     SQL:
-        SELECT arrayJoin(arrayZip(flags.key, flags.value)) as variants, count()
+        SELECT arrayJoin(arrayZip(tags.key, tags.value)) as variants, count()
         FROM errors_dist
         WHERE (
             project_id = {project_id} AND
             timestamp >= {start} AND
             timestamp < {end} AND
             environment IN environments AND
-            has({flag_keys}, tupleElement(variants, 1)) = 1
+            has({tag_keys}, tupleElement(variants, 1)) = 1
         )
         GROUP BY variants
     """
@@ -73,8 +73,8 @@ def query_baseline_set(
                     Function(
                         "arrayZip",
                         parameters=[
-                            Column("flags.key"),
-                            Column("flags.value"),
+                            Column("tags.key"),
+                            Column("tags.value"),
                         ],
                     ),
                 ],
@@ -90,7 +90,7 @@ def query_baseline_set(
                 Function(
                     "has",
                     parameters=[
-                        flag_keys,
+                        tag_keys,
                         Function("tupleElement", parameters=[Column("variants"), 1]),
                     ],
                 ),
@@ -112,7 +112,7 @@ def query_baseline_set(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.suspect_flags.query_baseline_set",
+        referrer="issues.suspect_tags.query_baseline_set",
         use_cache=True,
     )
 
@@ -132,10 +132,10 @@ def query_selection_set(
     group_id: int,
 ) -> list[KeyedValueCount]:
     """
-    Query for the count of unique flag-key, flag-value pairings for a given group_id.
+    Query for the count of unique tag-key, tag-value pairings for a given group_id.
 
     SQL:
-        SELECT arrayJoin(arrayZip(flags.key, flags.value)) as variants, count()
+        SELECT arrayJoin(arrayZip(tags.key, tags.value)) as variants, count()
         FROM errors_dist
         WHERE (
             project_id = {project_id} AND
@@ -159,8 +159,8 @@ def query_selection_set(
                     Function(
                         "arrayZip",
                         parameters=[
-                            Column("flags.key"),
-                            Column("flags.value"),
+                            Column("tags.key"),
+                            Column("tags.value"),
                         ],
                     ),
                 ],
@@ -188,7 +188,7 @@ def query_selection_set(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.suspect_flags.query_selection_set",
+        referrer="issues.suspect_tags.query_selection_set",
         use_cache=True,
     )
 
@@ -250,7 +250,7 @@ def query_error_counts(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.suspect_flags.query_error_counts",
+        referrer="issues.suspect_tags.query_error_counts",
         use_cache=True,
     )
 
