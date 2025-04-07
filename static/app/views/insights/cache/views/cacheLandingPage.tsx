@@ -35,7 +35,12 @@ import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstS
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {
+  type MetricsProperty,
+  ModuleName,
+  SpanFunction,
+  SpanMetricsField,
+} from 'sentry/views/insights/types';
 
 import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
 import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
@@ -60,6 +65,7 @@ const CACHE_ERROR_MESSAGE = 'Column cache.hit was not found in metrics indexer';
 export function CacheLandingPage() {
   const location = useLocation();
   const {setPageInfo, pageAlert} = usePageAlert();
+  const useEap = location.query?.useEap === '1';
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
@@ -124,6 +130,14 @@ export function CacheLandingPage() {
     Referrer.LANDING_CACHE_TRANSACTION_LIST
   );
 
+  const search = useEap
+    ? `transaction:[${transactionsList.map(({transaction}) => `"${transaction.replaceAll('"', '\\"')}"`).join(',')}] AND is_transaction:true`
+    : `transaction:[${transactionsList.map(({transaction}) => `"${transaction.replaceAll('"', '\\"')}"`).join(',')}]`;
+
+  const fields: MetricsProperty[] = useEap
+    ? ['avg(span.duration)', 'transaction']
+    : [`avg(transaction.duration)`, 'transaction'];
+
   const {
     data: transactionDurationData,
     error: transactionDurationError,
@@ -131,8 +145,8 @@ export function CacheLandingPage() {
     isFetching: isTransactionDurationFetching,
   } = useMetrics(
     {
-      search: `transaction:[${transactionsList.map(({transaction}) => `"${transaction.replaceAll('"', '\\"')}"`).join(',')}]`,
-      fields: [`avg(transaction.duration)`, 'transaction'],
+      search,
+      fields,
       enabled: !isTransactionsListFetching && transactionsList.length > 0,
       noPagination: true,
     },
