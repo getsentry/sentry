@@ -14,9 +14,6 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
     def validate_conditions(self, value) -> list[DataCondition]:
         conditions: list[DataCondition] = []
 
-        import pdb
-
-        pdb.set_trace()
         for condition in value:
             condition_validator = BaseDataConditionValidator(data=condition)
 
