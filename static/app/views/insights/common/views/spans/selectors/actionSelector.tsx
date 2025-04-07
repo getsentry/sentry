@@ -1,13 +1,10 @@
 import type {ReactNode} from 'react';
-import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
+import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -33,19 +30,24 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const eventView = getEventView(location, moduleName, spanCategory);
+
+  const query = buildEventViewQuery({
+    moduleName,
+    location: {...location, query: omit(location.query, ['span.action', 'span.domain'])},
+    spanCategory,
+  }).join(' ');
+
+  const search = new MutableSearch(query);
 
   if (filters) {
-    Object.entries(filters).forEach(([key, val]) =>
-      eventView.additionalConditions.addFilterValue(key, val)
-    );
+    Object.entries(filters).forEach(([key, val]) => search.addFilterValue(key, val));
   }
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
   const {data: actions} = useSpanMetrics(
     {
-      search: eventView.query,
+      search,
       fields: [SPAN_ACTION, 'count()'],
       enabled: !useHTTPActions,
       sorts: [{field: 'count()', kind: 'desc'}],
@@ -132,22 +134,3 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   ai: 'Action',
   sessions: t('Action'),
 };
-
-function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
-  const query = buildEventViewQuery({
-    moduleName,
-    location: {...location, query: omit(location.query, ['span.action', 'span.domain'])},
-    spanCategory,
-  }).join(' ');
-  return EventView.fromNewQueryWithLocation(
-    {
-      name: '',
-      fields: [SPAN_ACTION, 'count()'],
-      orderby: '-count',
-      query,
-      dataset: DiscoverDatasets.SPANS_METRICS,
-      version: 2,
-    },
-    location
-  );
-}
