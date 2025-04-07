@@ -18,7 +18,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
 from sentry.api.endpoints.organization_member.utils import ROLE_CHOICES, RelaxedMemberPermission
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
 from sentry.apidocs.constants import (
@@ -34,7 +33,6 @@ from sentry.auth.services.auth import auth_service
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.roles import organization_roles, team_roles
@@ -125,9 +123,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         Response will be a pending invite if it has been approved by organization owners or managers but is waiting to be accepted by the invitee.
         """
-        invite = OrganizationMemberInvite.objects.filter(organization_member_id=member.id).first()
-        if invite is not None:
-            raise ResourceDoesNotExist
         allowed_roles = get_allowed_org_roles(request, organization, member)
         return Response(
             serialize(
@@ -188,9 +183,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        invite = OrganizationMemberInvite.objects.filter(organization_member_id=member.id).first()
-        if invite is not None:
-            raise ResourceDoesNotExist
         allowed_roles = get_allowed_org_roles(request, organization)
         serializer = OrganizationMemberRequestSerializer(
             data=request.data,
@@ -456,10 +448,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         """
         Remove an organization member.
         """
-        invite = OrganizationMemberInvite.objects.filter(organization_member_id=member.id).first()
-        if invite is not None:
-            raise ResourceDoesNotExist
-
         # with superuser read write separation, superuser read cannot hit this endpoint
         # so we can keep this as is_active_superuser
         if request.user.is_authenticated and not is_active_superuser(request):

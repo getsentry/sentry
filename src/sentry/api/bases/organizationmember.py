@@ -12,6 +12,7 @@ from sentry.api.permissions import StaffPermissionMixin
 from sentry.db.models.fields.bounded import BoundedAutoField
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -123,5 +124,12 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
 
         if invite_status:
             kwargs["invite_status"] = invite_status.value
+
+        if kwargs.get("id"):
+            invite = OrganizationMemberInvite.objects.filter(
+                organization_member_id=kwargs["id"]
+            ).first()
+            if invite is not None:
+                raise ResourceDoesNotExist
 
         return OrganizationMember.objects.filter(**kwargs).get()
