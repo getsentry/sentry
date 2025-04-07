@@ -1,5 +1,7 @@
+import {useCallback} from 'react';
+
 import type {Actor} from 'sentry/types/core';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Query = {
@@ -29,21 +31,23 @@ export type SavedQuery = {
   query: [Query, ...Query[]];
   queryDataset: string;
   range: string;
+  starred: boolean;
   start: string;
 };
 
 type Props = {
-  sortBy: string;
   exclude?: 'owned' | 'shared';
   perPage?: number;
+  sortBy?: 'lastVisited' | 'dateAdded' | 'dateUpdated' | 'mostPopular';
+  starred?: boolean;
 };
 
-export function useGetSavedQueries({sortBy, exclude, perPage = 5}: Props) {
+export function useGetSavedQueries({sortBy, exclude, starred, perPage = 5}: Props) {
   const organization = useOrganization();
   const {data, isLoading} = useApiQuery<SavedQuery[]>(
     [
       `/organizations/${organization.slug}/explore/saved/`,
-      {query: {sortBy, exclude, per_page: perPage}},
+      {query: {sortBy, exclude, per_page: perPage, starred: starred ? 1 : undefined}},
     ],
     {
       staleTime: 0,
@@ -51,4 +55,15 @@ export function useGetSavedQueries({sortBy, exclude, perPage = 5}: Props) {
   );
 
   return {data, isLoading};
+}
+
+export function useInvalidateSavedQueries() {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  return useCallback(() => {
+    queryClient.invalidateQueries({
+      queryKey: [`/organizations/${organization.slug}/explore/saved/`],
+    });
+  }, [queryClient, organization.slug]);
 }

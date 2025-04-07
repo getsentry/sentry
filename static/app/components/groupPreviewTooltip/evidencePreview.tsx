@@ -47,7 +47,7 @@ function SpanEvidencePreviewBody({
   if (isPending) {
     return (
       <EmptyWrapper>
-        <LoadingIndicator hideMessage size={32} />
+        <LoadingIndicator size={32} />
       </EmptyWrapper>
     );
   }

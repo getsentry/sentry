@@ -808,7 +808,7 @@ const generateAliases = (
   /**
    * Color for the 'others' series in topEvent charts
    */
-  chartOther: colors.gray200,
+  chartOther: tokens.content.muted,
 
   /**
    * Color of the divider used in the content slider diff
@@ -824,11 +824,6 @@ const generateAliases = (
    * Default Progressbar color
    */
   progressBackground: colors.gray100,
-
-  /**
-   * Overlay for partial opacity
-   */
-  overlayBackgroundAlpha: colors.gray100,
 
   /**
    * Tag progress bars
@@ -858,16 +853,6 @@ const generateAliases = (
     warning: colors.yellow200,
     warningActive: color(colors.yellow200).opaquer(1).string(),
   },
-
-  /**
-   * Count on button when active
-   */
-  buttonCountActive: colors.white,
-
-  /**
-   * Count on button
-   */
-  buttonCount: tokens.content.primary,
 
   /**
    * Background of alert banners at the top

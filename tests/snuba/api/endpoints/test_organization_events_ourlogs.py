@@ -149,3 +149,30 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["log.body"] == "baz"
+
+    @pytest.mark.xfail(
+        reason="Failing because of https://github.com/getsentry/eap-planning/issues/238"
+    )
+    def test_project_slug_field(self):
+        logs = [
+            self.create_ourlog(
+                {"body": "bar"},
+                timestamp=self.ten_mins_ago,
+            ),
+        ]
+        self.store_ourlogs(logs)
+        response = self.do_request(
+            {
+                "field": ["project"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["project"] == self.project.slug
+
+        assert meta["dataset"] == self.dataset

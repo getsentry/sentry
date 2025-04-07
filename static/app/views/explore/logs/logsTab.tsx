@@ -20,14 +20,16 @@ import SchemaHintsList, {
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
+  type LogPageParamsUpdate,
   useLogsFields,
   useLogsSearch,
   useSetLogsFields,
+  useSetLogsPageParams,
   useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {HiddenLogDetailFields} from 'sentry/views/explore/logs/constants';
+import {HiddenColumnEditorLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -49,6 +51,7 @@ export function LogsTabContent({
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const setFields = useSetLogsFields();
+  const setLogsPageParams = useSetLogsPageParams();
   const tableData = useExploreLogsTable({});
   const isSchemaHintsDrawerOpenOnLargeScreen = useSchemaHintsOnLargeScreen();
 
@@ -71,7 +74,8 @@ export function LogsTabContent({
           onColumnsChange={setFields}
           stringTags={stringAttributes}
           numberTags={numberAttributes}
-          hiddenKeys={HiddenLogDetailFields}
+          hiddenKeys={HiddenColumnEditorLogFields}
+          isDocsButtonHidden
         />
       ),
       {closeEvents: 'escape-key'}
@@ -100,6 +104,7 @@ export function LogsTabContent({
             numberAttributes={numberAttributes}
             stringAttributes={stringAttributes}
             itemType={TraceItemDataset.LOGS}
+            submitOnFilterChange
           />
 
           <Button onClick={openColumnEditor} icon={<IconTable />}>
@@ -116,8 +121,11 @@ export function LogsTabContent({
               stringTags={stringAttributes}
               isLoading={numberAttributesLoading || stringAttributesLoading}
               exploreQuery={logsSearch.formatString()}
-              setExploreQuery={setLogsQuery}
               source={SchemaHintsSources.LOGS}
+              setPageParams={pageParams =>
+                setLogsPageParams(pageParams as LogPageParamsUpdate)
+              }
+              tableColumns={fields}
             />
           </SchemaHintsSection>
         </Feature>

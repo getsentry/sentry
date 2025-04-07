@@ -246,6 +246,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       onDataFetched,
       onDemandControlContext,
       mepSetting,
+      samplingMode,
     } = this.props;
     const widget = this.widgetForRequest(cloneDeep(originalWidget));
     const responses = await Promise.all(
@@ -269,7 +270,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           requestLimit,
           cursor,
           getReferrer(widget.displayType),
-          mepSetting
+          mepSetting,
+          samplingMode
         );
       })
     );

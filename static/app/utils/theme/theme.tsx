@@ -395,11 +395,6 @@ export const generateThemeAliases = (colors: Colors) => ({
   progressBackground: colors.gray100,
 
   /**
-   * Overlay for partial opacity
-   */
-  overlayBackgroundAlpha: color(colors.surface200).alpha(0.7).string(),
-
-  /**
    * Tag progress bars
    */
   tagBarHover: colors.purple200,
@@ -428,16 +423,6 @@ export const generateThemeAliases = (colors: Colors) => ({
     warning: colors.yellow200,
     warningActive: color(colors.yellow200).opaquer(1).string(),
   },
-
-  /**
-   * Count on button when active
-   */
-  buttonCountActive: colors.white,
-
-  /**
-   * Count on button
-   */
-  buttonCount: colors.gray500,
 
   /**
    * Background of alert banners at the top
