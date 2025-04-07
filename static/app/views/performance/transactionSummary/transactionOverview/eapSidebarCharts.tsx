@@ -2,7 +2,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-// import {SectionHeading} from 'sentry/components/charts/styles';
 import {space} from 'sentry/styles/space';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
