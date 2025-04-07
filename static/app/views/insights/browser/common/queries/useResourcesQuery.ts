@@ -25,11 +25,11 @@ const {
 const {TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 type Props = {
+  limit: number;
   referrer: string;
   sort: ValidSort;
   cursor?: string;
   defaultResourceTypes?: string[];
-  limit?: number;
   query?: string;
 };
 
@@ -79,7 +79,7 @@ export const useResourcesQuery = ({
       sorts: [sort],
       search: queryConditions.join(' '),
       cursor,
-      limit,
+      limit: limit || 100,
       fields: [
         NORMALIZED_DESCRIPTION,
         SPAN_OP,
