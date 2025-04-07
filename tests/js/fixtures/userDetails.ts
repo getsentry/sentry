@@ -34,6 +34,7 @@ export function UserDetailsFixture(params: Partial<User> = {}): User {
       prefersIssueDetailsStreamlinedUI: false,
       prefersSpecializedProjectOverview: {},
       prefersStackedNavigation: false,
+      prefersChonkUI: false,
       quickStartDisplay: {},
     },
     avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
