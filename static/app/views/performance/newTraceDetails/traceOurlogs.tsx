@@ -16,8 +16,8 @@ import {
   useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
 
 export type UseTraceViewLogsDataProps = {
   children: React.ReactNode;
@@ -43,7 +43,7 @@ export function TraceViewLogsSection() {
   return (
     <InterimSection
       key="logs"
-      type={SectionKey.LOGS}
+      type={TraceContextSectionKeys.LOGS}
       title={t('Logs')}
       data-test-id="logs-data-section"
       initialCollapse={false}

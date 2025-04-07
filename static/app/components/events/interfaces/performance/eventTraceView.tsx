@@ -20,8 +20,8 @@ import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/trace
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {ToggleTraceFormatButton} from 'sentry/views/performance/newTraceDetails/traceHeader';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import {
   loadTraceViewPreferences,
   type TracePreferencesState,
@@ -167,7 +167,10 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       title={t('Trace Preview')}
       actions={
         <ButtonBar gap={1}>
-          <ToggleTraceFormatButton location={location} organization={organization} />
+          <TraceHeaderComponents.ToggleTraceFormatButton
+            location={location}
+            organization={organization}
+          />
           <LinkButton
             size="xs"
             to={getTraceLinkForIssue(traceTarget)}
