@@ -25,11 +25,11 @@ const {
 const {TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 type Props = {
-  limit: number;
   referrer: string;
   sort: ValidSort;
   cursor?: string;
   defaultResourceTypes?: string[];
+  limit?: number;
   query?: string;
 };
 
