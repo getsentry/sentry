@@ -158,6 +158,16 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         assert "emails" not in response.data["user"]
         assert "emails" not in response.data.get("serializedUser", {})
 
+    def test_does_not_serialize_placeholder_member(self):
+        invite = self.create_member_invite(organization=self.organization)
+        placeholder_om = invite.organization_member
+
+        response = self.get_error_response(self.organization.slug, placeholder_om.id)
+        assert (
+            response.data["detail"]
+            == "Cannot serialize details for a placeholder organization member"
+        )
+
 
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMixin):
     method = "put"
