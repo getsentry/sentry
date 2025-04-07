@@ -21,7 +21,7 @@ const MENUS = {
 } as const;
 
 type Props = {
-  params: {[param: string]: string | undefined};
+  params: Record<string, string | undefined>;
   route: any;
   routes: RouteWithName[];
   className?: string;

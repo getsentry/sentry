@@ -68,7 +68,7 @@ export const SORTABLE_FIELDS = new Set([
   'count_op(queue.process)',
   'avg_if(span.duration,span.op,queue.process)',
   'avg(messaging.message.receive.latency)',
-  'time_spent_percentage(app,span.duration)',
+  'time_spent_percentage(span.duration)',
 ]);
 
 const NUMERIC_FIELDS = new Set([

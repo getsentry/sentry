@@ -20,7 +20,6 @@ import {
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {MaybeBrowserProfilingBetaWarning} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
@@ -28,6 +27,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct, tctCode} from 'sentry/locale';
+import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -255,16 +255,40 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig = {
-  ...onboarding,
-  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
-};
+const profilingOnboarding = getJavascriptProfilingOnboarding({
+  getInstallConfig: () => [
+    {
+      language: 'bash',
+      code: [
+        {
+          label: 'npm',
+          value: 'npm',
+          language: 'bash',
+          code: 'npm install --save @sentry/nuxt',
+        },
+        {
+          label: 'yarn',
+          value: 'yarn',
+          language: 'bash',
+          code: 'yarn add @sentry/nuxt',
+        },
+        {
+          label: 'pnpm',
+          value: 'pnpm',
+          language: 'bash',
+          code: 'pnpm add @sentry/nuxt',
+        },
+      ],
+    },
+  ],
+  docsLink:
+    'https://docs.sentry.io/platforms/javascript/guides/nuxt/profiling/browser-profiling/',
+});
 
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-
   crashReportOnboarding,
   profilingOnboarding,
   featureFlagOnboarding,

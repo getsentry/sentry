@@ -29,7 +29,7 @@ import {OUTPUT_TYPE, YAxis} from 'sentry/views/insights/mobile/screenload/consta
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
-  const transformedSeries: {[release: string]: Series} = {};
+  const transformedSeries: Record<string, Series> = {};
 
   // Check that 'meta' is not in the data object because that's a sign
   // that we did not get a multi-series response for comparison

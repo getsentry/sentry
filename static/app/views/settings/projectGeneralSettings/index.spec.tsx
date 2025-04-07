@@ -51,8 +51,6 @@ describe('projectGeneralSettings', function () {
   };
 
   beforeEach(function () {
-    jest.spyOn(window.location, 'assign');
-
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/grouping-configs/`,
@@ -79,7 +77,6 @@ describe('projectGeneralSettings', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
-    jest.restoreAllMocks();
   });
 
   it('renders form fields', function () {

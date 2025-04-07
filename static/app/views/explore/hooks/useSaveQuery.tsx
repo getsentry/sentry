@@ -6,7 +6,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {
+  type SavedQuery,
+  useInvalidateSavedQueries,
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 const TRACE_EXPLORER_DATASET = 'spans';
 
@@ -91,8 +94,26 @@ export function useSaveQuery() {
         data,
       }
     );
+    invalidateSavedQueries();
     return response;
-  }, [api, organization.slug, id, data]);
+  }, [api, organization.slug, id, data, invalidateSavedQueries]);
 
-  return {saveQuery, updateQuery};
+  const updateQueryFromSavedQuery = useCallback(
+    async (savedQuery: SavedQuery) => {
+      const response = await api.requestPromise(
+        `/organizations/${organization.slug}/explore/saved/${savedQuery.id}/`,
+        {
+          method: 'PUT',
+          data: {
+            ...savedQuery,
+          },
+        }
+      );
+      invalidateSavedQueries();
+      return response;
+    },
+    [api, organization.slug, invalidateSavedQueries]
+  );
+
+  return {saveQuery, updateQuery, updateQueryFromSavedQuery};
 }

@@ -73,9 +73,7 @@ export function locationDescriptorToTo(path: LocationDescriptor): To {
   return to;
 }
 
-type DefaultQuery<T = string> = {
-  [key: string]: T | T[] | null | undefined;
-};
+type DefaultQuery<T = string> = Record<string, T | T[] | null | undefined>;
 
 /**
  * Translate react-router 6 Location object to a react-router3 Location

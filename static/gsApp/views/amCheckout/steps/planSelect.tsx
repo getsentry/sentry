@@ -34,7 +34,7 @@ import {formatPrice, getDiscountedPrice} from 'getsentry/views/amCheckout/utils'
 
 export type PlanContent = {
   description: React.ReactNode;
-  features: {[key: string]: React.ReactNode};
+  features: Record<string, React.ReactNode>;
   hasMoreLink?: boolean;
 };
 

@@ -81,7 +81,6 @@ describe('ReprocessEventModal', function () {
       body: [],
     });
 
-    jest.spyOn(window.location, 'reload').mockImplementation(() => {});
     const handleCloseModal = jest.fn();
 
     render(

@@ -43,6 +43,7 @@ export function useLoadGettingStarted({
   useEffect(() => {
     async function getGettingStartedDoc() {
       if (
+        platform.id === 'other' ||
         !platformPath ||
         (productType === 'replay' && !replayPlatforms.includes(platform.id)) ||
         (productType === 'performance' && !withPerformanceOnboarding.has(platform.id)) ||

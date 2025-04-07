@@ -41,6 +41,7 @@ export function CommitAuthorFixture(params: Partial<User> = {}): User {
       prefersIssueDetailsStreamlinedUI: false,
       prefersSpecializedProjectOverview: {},
       prefersStackedNavigation: false,
+      prefersChonkUI: false,
       quickStartDisplay: {},
     },
     permissions: new Set(),

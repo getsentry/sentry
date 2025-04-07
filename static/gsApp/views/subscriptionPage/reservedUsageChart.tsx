@@ -318,8 +318,8 @@ export function mapCostStatsToChart({
     const {prepaidSpend, prepaidPrice} = calculateCategoryPrepaidUsage(
       category,
       subscription,
-      {accepted},
-      prepaid
+      prepaid,
+      accepted
     );
     sumReserved = isCumulative ? sumReserved + prepaidSpend : prepaidSpend;
     // Ensure that the reserved amount does not exceed the prepaid amount.
@@ -390,8 +390,8 @@ export function mapReservedBudgetStatsToChart({
         const {prepaidSpend, prepaidPrice} = calculateCategoryPrepaidUsage(
           category,
           subscription,
-          {accepted},
           prepaid,
+          accepted,
           reservedCpe
         );
         sumReserved = isCumulative ? sumReserved + prepaidSpend : prepaidSpend;
@@ -559,8 +559,8 @@ function ReservedUsageChart({
         const {prepaidPrice} = calculateCategoryPrepaidUsage(
           category,
           subscription,
-          {accepted: 0},
-          reservedBudgetCategoryInfo[category]?.prepaidBudget ?? currentHistory.prepaid
+          reservedBudgetCategoryInfo[category]?.prepaidBudget ?? currentHistory.prepaid,
+          0
         );
         const {onDemandCategoryMax} = calculateCategoryOnDemandUsage(
           category,

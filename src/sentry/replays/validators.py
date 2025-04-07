@@ -69,6 +69,12 @@ UTC ISO8601 or epoch seconds. Use along with `start` instead of `statsPeriod`.
         help_text="The ID of the projects to filter by.",
         child=serializers.IntegerField(),
     )
+    projectSlug = serializers.ListField(
+        required=False,
+        allow_empty=True,
+        child=serializers.CharField(),
+        help_text=("A list of project slugs to filter your results by."),
+    )
     environment = serializers.CharField(help_text="The environment to filter by.", required=False)
     sort = serializers.CharField(help_text="The field to sort the output by.", required=False)
     query = serializers.CharField(
@@ -109,5 +115,11 @@ class ReplaySelectorValidator(serializers.Serializer):
         required=False,
         help_text="The ID of the projects to filter by.",
         child=serializers.IntegerField(),
+    )
+    projectSlug = serializers.ListField(
+        required=False,
+        allow_empty=True,
+        child=serializers.CharField(),
+        help_text=("A list of project slugs to filter your results by."),
     )
     sort = serializers.CharField(help_text="The field to sort the output by.", required=False)

@@ -12,7 +12,7 @@ export function hasSpanTags(span: RawSpanType) {
 
 export function Tags({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   const span = node.value;
-  const tags: {[tag_name: string]: string} | undefined = span?.tags;
+  const tags: Record<string, string> | undefined = span?.tags;
 
   if (!tags) {
     return null;

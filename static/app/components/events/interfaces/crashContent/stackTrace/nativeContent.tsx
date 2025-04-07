@@ -86,7 +86,7 @@ export function NativeContent({
     [includeSystemFrames, groupingCurrentLevel]
   );
 
-  function setInitialFrameMap(): {[frameIndex: number]: boolean} {
+  function setInitialFrameMap(): Record<number, boolean> {
     const indexMap: Record<number, boolean> = {};
     frames.forEach((frame, frameIdx) => {
       const nextFrame = frames[frameIdx + 1]!;
@@ -100,7 +100,7 @@ export function NativeContent({
 
   const [toggleFrameMap, setToggleFrameMap] = useState(() => setInitialFrameMap());
 
-  function getInitialFrameCounts(): {[frameIndex: number]: number} {
+  function getInitialFrameCounts(): Record<number, number> {
     let count = 0;
     const countMap: Record<number, number> = {};
     frames.forEach((frame, frameIdx) => {

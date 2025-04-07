@@ -15,9 +15,7 @@ enum EventExtraDataType {
   CRASHED_PROCESS = 'crashed_process',
 }
 
-type TEventExtraData = {
-  [key: string]: any;
-};
+type TEventExtraData = Record<string, any>;
 
 type Output = {
   subject: string;

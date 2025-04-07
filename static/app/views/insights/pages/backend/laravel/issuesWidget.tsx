@@ -14,14 +14,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 export function IssuesWidget({query = ''}: {query?: string}) {
   const location = useLocation();
-  const queryWithDefault = `is:unresolved ${query}`.trim();
+  const queryWithDefault = `is:unresolved event.type:error ${query}`.trim();
 
   const queryParams = {
     limit: '5',
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),
-    queryWithDefault,
+    query: queryWithDefault,
     sort: 'freq',
   };
 
@@ -64,7 +64,8 @@ export function IssuesWidget({query = ''}: {query?: string}) {
       renderEmptyMessage={renderEmptyMessage}
       withChart={breakpoints.xlarge}
       withPagination={false}
-      source="release"
+      useFilteredStats={false}
+      source="laravel-insights"
     />
   );
 }

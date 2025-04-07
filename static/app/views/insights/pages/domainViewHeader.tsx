@@ -18,6 +18,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
   type RoutableModuleNames,
@@ -64,7 +65,7 @@ export function DomainViewHeader({
   const navigate = useNavigate();
   const moduleURLBuilder = useModuleURLBuilder();
   const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
-  const useEap = location.query?.useEap === '1';
+  const useEap = useInsightsEap();
   const hasEapFlag = organization.features.includes('insights-modules-use-eap');
 
   const toggleUseEap = () => {

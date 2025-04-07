@@ -31,9 +31,7 @@ import {
 } from '../../../dashboards/utils/isEventsStats';
 import {getRetryDelay, shouldRetryHandler} from '../utils/retryHandlers';
 
-type SeriesMap = {
-  [seriesName: string]: TimeSeries[];
-};
+type SeriesMap = Record<string, TimeSeries[]>;
 
 interface Options<Fields> {
   enabled?: boolean;

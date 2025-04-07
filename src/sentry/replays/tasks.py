@@ -12,6 +12,9 @@ from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.reader import fetch_segments_metadata
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import replays_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -22,6 +25,12 @@ from sentry.utils.pubsub import KafkaPublisher
     default_retry_delay=5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=replays_tasks,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 def delete_recording_segments(project_id: int, replay_id: str, **kwargs: Any) -> None:
     """Asynchronously delete a replay."""
@@ -38,6 +47,12 @@ def delete_recording_segments(project_id: int, replay_id: str, **kwargs: Any) ->
     default_retry_delay=5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=replays_tasks,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 def delete_replay_recording_async(project_id: int, replay_id: str) -> None:
     delete_replay_recording(project_id, replay_id)

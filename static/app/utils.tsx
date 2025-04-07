@@ -124,7 +124,7 @@ export function generateOrgSlugUrl(orgSlug: any) {
 /**
  * Encodes given object into url-friendly format
  */
-export function urlEncode(object: {[key: string]: any}): string {
+export function urlEncode(object: Record<string, any>): string {
   return Object.keys(object)
     .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`)
     .join('&');

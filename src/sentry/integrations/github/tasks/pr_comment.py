@@ -28,6 +28,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_tasks
 from sentry.types.referrer_ids import GITHUB_PR_BOT_REFERRER
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -132,7 +134,11 @@ def get_comment_contents(issue_list: list[int]) -> list[PullRequestIssue]:
 
 
 @instrumented_task(
-    name="sentry.integrations.github.tasks.github_comment_workflow", silo_mode=SiloMode.REGION
+    name="sentry.integrations.github.tasks.github_comment_workflow",
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+    ),
 )
 def github_comment_workflow(pullrequest_id: int, project_id: int):
     cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pullrequest_id)
@@ -266,7 +272,11 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
 
 @instrumented_task(
-    name="sentry.integrations.github.tasks.github_comment_reactions", silo_mode=SiloMode.REGION
+    name="sentry.integrations.github.tasks.github_comment_reactions",
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+    ),
 )
 def github_comment_reactions():
     logger.info("github.pr_comment.reactions_task")

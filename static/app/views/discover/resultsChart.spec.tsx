@@ -67,7 +67,7 @@ describe('Discover > ResultsChart', function () {
           DisplayModes.DAILY,
           DisplayModes.PREVIOUS,
           DisplayModes.BAR,
-        ].includes(value as DisplayModes)
+        ].includes(value)
       ) {
         expect(screen.getByRole('option', {name: String(label)})).toBeEnabled();
       }

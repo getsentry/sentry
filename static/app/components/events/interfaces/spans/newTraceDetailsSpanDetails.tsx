@@ -313,8 +313,8 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function partitionSizes(data: any): {
-    nonSizeKeys: {[key: string]: unknown};
-    sizeKeys: {[key: string]: number};
+    nonSizeKeys: Record<string, unknown>;
+    sizeKeys: Record<string, number>;
   } {
     const sizeKeys = SIZE_DATA_KEYS.reduce(
       (keys, key) => {
@@ -730,7 +730,7 @@ export function Row({
 }
 
 export function Tags({span}: {span: RawSpanType}) {
-  const tags: {[tag_name: string]: string} | undefined = span?.tags;
+  const tags: Record<string, string> | undefined = span?.tags;
 
   if (!tags) {
     return null;

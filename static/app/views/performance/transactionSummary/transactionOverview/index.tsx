@@ -185,11 +185,9 @@ function OTelOverviewContentWrapper(props: ChildProps) {
   };
 
   let totals: TotalValues | null =
-    (tableData?.data?.[0] as {
-      [k: string]: number;
-    }) ?? null;
+    (tableData?.data?.[0] as Record<string, number>) ?? null;
   const totalCountData: TotalValues | null =
-    (totalCountTableData?.data?.[0] as {[k: string]: number}) ?? null;
+    (totalCountTableData?.data?.[0] as Record<string, number>) ?? null;
 
   // Count is always a count of indexed events,
   // while other fields could be either metrics or index based
@@ -293,11 +291,9 @@ function OverviewContentWrapper(props: ChildProps) {
   };
 
   let totals: TotalValues | null =
-    (tableData?.data?.[0] as {
-      [k: string]: number;
-    }) ?? null;
+    (tableData?.data?.[0] as Record<string, number>) ?? null;
   const totalCountData: TotalValues | null =
-    (totalCountTableData?.data?.[0] as {[k: string]: number}) ?? null;
+    (totalCountTableData?.data?.[0] as Record<string, number>) ?? null;
 
   // Count is always a count of indexed events,
   // while other fields could be either metrics or index based

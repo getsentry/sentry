@@ -66,7 +66,7 @@ describe('SavedQueriesTable', () => {
         `/organizations/${organization.slug}/explore/saved/`,
         expect.objectContaining({
           method: 'GET',
-          query: expect.objectContaining({sortBy: 'mostPopular', exclude: 'shared'}),
+          query: expect.objectContaining({sortBy: 'recentlyViewed', exclude: 'shared'}),
         })
       )
     );
@@ -80,7 +80,7 @@ describe('SavedQueriesTable', () => {
         expect.objectContaining({
           method: 'GET',
           query: expect.objectContaining({
-            sortBy: 'mostPopular',
+            sortBy: 'recentlyViewed',
             exclude: 'owned',
           }),
         })
@@ -181,7 +181,6 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" />);
     await screen.findByText('Query Name');
     screen.getByText('Starred Query');
-    expect(screen.getByLabelText('Starred Queries')).toBeInTheDocument();
     expect(screen.getByLabelText('Unstar')).toBeInTheDocument();
     expect(screen.getByLabelText('Star')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Star'));
@@ -207,6 +206,28 @@ describe('SavedQueriesTable', () => {
           },
         })
       )
+    );
+  });
+
+  it('should sort by most popular', async () => {
+    render(<SavedQueriesTable mode="owned" sort="mostPopular" />);
+    await screen.findByText('Query Name');
+    expect(getQueriesMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/explore/saved/`,
+      expect.objectContaining({
+        query: expect.objectContaining({sortBy: 'mostPopular'}),
+      })
+    );
+  });
+
+  it('should search for a query', async () => {
+    render(<SavedQueriesTable mode="owned" searchQuery="Query Name" />);
+    await screen.findByText('Query Name');
+    expect(getQueriesMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/explore/saved/`,
+      expect.objectContaining({
+        query: expect.objectContaining({query: 'Query Name'}),
+      })
     );
   });
 });

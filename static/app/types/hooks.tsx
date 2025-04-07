@@ -287,11 +287,12 @@ export type FeatureDisabledHooks = {
 export type InterfaceChromeHooks = {
   footer: GenericComponentHook;
   'help-modal:footer': HelpModalFooterHook;
-  'sidebar:bottom-items': SidebarBottomItemsHook;
+  'sidebar:billing-status': GenericOrganizationComponentHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:item-label': SidebarItemLabelHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
+  'sidebar:try-business': SidebarTryBusinessHook;
 };
 
 /**
@@ -522,7 +523,7 @@ type SidebarProps = Pick<
 /**
  * Returns an additional list of sidebar items.
  */
-type SidebarBottomItemsHook = (
+type SidebarTryBusinessHook = (
   opts: SidebarProps & {organization: Organization}
 ) => React.ReactNode;
 

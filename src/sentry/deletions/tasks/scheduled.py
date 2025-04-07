@@ -44,6 +44,7 @@ def reattempt_deletions_control() -> None:
     queue="cleanup",
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(namespace=deletion_tasks),
 )
 def reattempt_deletions() -> None:
     _reattempt_deletions(RegionScheduledDeletion)

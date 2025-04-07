@@ -74,6 +74,8 @@ class ResolvedAttribute(ResolvedColumn):
     # The internal rpc alias for this column
     internal_name: str
     is_aggregate: bool = field(default=False, init=False)
+    # There are columns in RPC that are available but we don't want rendered to the user
+    private: bool = False
 
     @property
     def proto_definition(self) -> AttributeKey:

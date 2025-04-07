@@ -16,9 +16,7 @@ import useApi from 'sentry/utils/useApi';
 import type {CustomMeasurementsContextValue} from './customMeasurementsContext';
 import {CustomMeasurementsContext} from './customMeasurementsContext';
 
-type MeasurementsMetaResponse = {
-  [x: string]: {functions: string[]; unit: string};
-};
+type MeasurementsMetaResponse = Record<string, {functions: string[]; unit: string}>;
 
 function fetchCustomMeasurements(
   api: Client,

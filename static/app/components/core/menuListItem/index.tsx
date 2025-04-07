@@ -90,7 +90,6 @@ interface OtherProps {
   isPressed?: boolean;
   isSelected?: boolean;
   labelProps?: Partial<React.ComponentProps<typeof Label>>;
-  showDivider?: boolean;
 }
 
 interface Props extends MenuListItemProps, OtherProps {
@@ -104,7 +103,6 @@ function BaseMenuListItem({
   priority = 'default',
   size,
   disabled = false,
-  showDivider = false,
   leadingItems = false,
   trailingItems = false,
   isFocused = false,
@@ -153,7 +151,7 @@ function BaseMenuListItem({
                 : leadingItems}
             </LeadingItems>
           )}
-          <ContentWrap isFocused={isFocused} showDivider={showDivider} size={size}>
+          <ContentWrap isFocused={isFocused} size={size}>
             <LabelWrap>
               <Label id={labelId} data-test-id="menu-list-item-label" {...labelProps}>
                 {label}
@@ -368,7 +366,6 @@ const getVerticalPadding = (size: Props['size']) => {
 const ContentWrap = withChonk(
   styled('div')<{
     isFocused: boolean;
-    showDivider: boolean;
     size: Props['size'];
   }>`
     position: relative;
@@ -378,21 +375,6 @@ const ContentWrap = withChonk(
     gap: ${space(1)};
     justify-content: space-between;
     padding: ${p => getVerticalPadding(p.size)} 0;
-
-    ${p =>
-      p.showDivider &&
-      !p.isFocused &&
-      `
-      li:not(:last-child) &::after {
-        content: '';
-        position: absolute;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        height: 1px;
-        box-shadow:  0 1px 0 0 ${p.theme.innerBorder};
-      }
-    `}
   `,
   ChonkContentWrap
 );

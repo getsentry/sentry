@@ -96,10 +96,6 @@ interface DropdownMenuItemProps {
    * Tag name for item wrapper
    */
   renderAs?: React.ElementType;
-  /**
-   * Whether to show a divider below this item
-   */
-  showDivider?: boolean;
 }
 
 /**
@@ -112,7 +108,6 @@ function DropdownMenuItem({
   state,
   closeOnSelect,
   onClose,
-  showDivider,
   renderAs = 'li',
   ref,
   ...props
@@ -239,7 +234,6 @@ function DropdownMenuItem({
       label={itemLabel}
       disabled={isDisabled}
       isFocused={isFocused}
-      showDivider={showDivider}
       innerWrapProps={makeInnerWrapProps()}
       labelProps={labelProps}
       detailsProps={descriptionProps}

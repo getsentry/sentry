@@ -230,7 +230,7 @@ describe('TrialSubscriptionAction', function () {
         <TrialSubscriptionAction
           subscription={SubscriptionFixture({
             organization,
-            trialEnd: trialEnd.toString(),
+            trialEnd: trialEnd.toISOString(),
             plan: 'am1_t',
             isFree: true,
           })}
@@ -259,7 +259,7 @@ describe('TrialSubscriptionAction', function () {
         <TrialSubscriptionAction
           subscription={SubscriptionFixture({
             organization,
-            trialEnd: trialEnd.toString(),
+            trialEnd: trialEnd.toISOString(),
             plan: 'am1_t',
             isFree: true,
           })}

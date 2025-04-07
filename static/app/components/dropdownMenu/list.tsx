@@ -140,8 +140,6 @@ function DropdownMenuList({
     [menuProps, hasFocus]
   );
 
-  const showDividers = stateCollection.some(item => !!item.props.details);
-
   // Render a single menu item
   const renderItem = (node: Node<MenuItemProps>) => {
     return (
@@ -150,7 +148,6 @@ function DropdownMenuList({
         state={state}
         onClose={onClose}
         closeOnSelect={closeOnSelect}
-        showDivider={showDividers}
       />
     );
   };
@@ -166,7 +163,6 @@ function DropdownMenuList({
         renderAs="div"
         node={node}
         state={state}
-        showDivider={showDividers}
         closeOnSelect={false}
         {...omit(triggerProps, [
           'onClick',

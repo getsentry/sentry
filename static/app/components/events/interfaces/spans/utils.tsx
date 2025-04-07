@@ -683,13 +683,14 @@ export function isEventFromBrowserJavaScriptSDK(
 // PerformancePaintTiming: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformancePaintTiming
 export const durationlessBrowserOps = ['mark', 'paint'];
 
-type Measurements = {
-  [name: string]: {
+type Measurements = Record<
+  string,
+  {
     failedThreshold: boolean;
     timestamp: number;
     value: number | undefined;
-  };
-};
+  }
+>;
 
 export type VerticalMark = {
   failedThreshold: boolean;

@@ -100,6 +100,7 @@ export const DetailsWrapper = styled('div')`
   flex-direction: column;
   white-space: nowrap;
   grid-column: 1 / -1;
+  z-index: ${2 /* place above the grid resizing lines */};
 `;
 
 export const DetailsGrid = styled(StyledPanel)`

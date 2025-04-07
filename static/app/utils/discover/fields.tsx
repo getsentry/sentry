@@ -617,7 +617,7 @@ export const ALIASES = {
   tps: AggregationKey.EPS,
 };
 
-assert(AGGREGATIONS as Readonly<{[key in AggregationKey]: Aggregation}>);
+assert(AGGREGATIONS as Readonly<Record<AggregationKey, Aggregation>>);
 
 export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES | '';
 

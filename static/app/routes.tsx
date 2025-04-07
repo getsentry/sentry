@@ -2050,7 +2050,8 @@ function buildRoutes() {
         <Route
           component={make(() => import('sentry/views/codecov/coverage/coverageWrapper'))}
         >
-          <IndexRoute
+          <Route
+            path="file-explorer/"
             component={make(() => import('sentry/views/codecov/coverage/coverage'))}
           />
           <Route

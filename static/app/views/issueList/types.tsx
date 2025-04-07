@@ -21,6 +21,11 @@ export enum GroupSearchViewVisibility {
   ORGANIZATION = 'organization',
 }
 
+export enum GroupSearchViewCreatedBy {
+  ME = 'me',
+  OTHERS = 'others',
+}
+
 export type GroupSearchView = {
   environments: string[];
   id: string;

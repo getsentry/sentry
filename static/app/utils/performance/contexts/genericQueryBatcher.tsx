@@ -12,9 +12,7 @@ import {createDefinedContext} from './utils';
 
 type QueryObject = {
   includeAllArgs: boolean | undefined;
-  query: {
-    [k: string]: any;
-  };
+  query: Record<string, any>;
 }; // TODO(k-fish): Fix to ensure exact types for all requests. Simplified type for now, need to pull this in from events file.
 
 export type Transform = (data: any, queryDefinition: BatchQueryDefinition) => any;

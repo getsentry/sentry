@@ -19,7 +19,7 @@ import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouter from 'sentry/utils/useRouter';
 
-import type {NotificationOptionsObject} from './constants';
+import type {NotificationOptionsObject, NotificationSettingsType} from './constants';
 import {NOTIFICATION_SETTING_FIELDS} from './fields2';
 import {OrganizationSelectHeader} from './organizationSelectHeader';
 
@@ -112,7 +112,8 @@ function NotificationSettingsByEntity({
     handleAddNotificationOption(data);
   };
 
-  const valueOptions = NOTIFICATION_SETTING_FIELDS[notificationType]!.choices;
+  const valueOptions =
+    NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType].choices;
 
   const renderOverrides = () => {
     const matchedOptions = notificationOptions.filter(

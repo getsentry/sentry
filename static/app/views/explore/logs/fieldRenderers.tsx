@@ -9,6 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {stripLogParamsFromLocation} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   AlignedCellContent,
   ColoredLogCircle,
@@ -131,12 +132,13 @@ export function TimestampRenderer(props: LogFieldRendererProps) {
 
 export function TraceIDRenderer(props: LogFieldRendererProps) {
   const traceId = props.item.value as string;
+  const location = stripLogParamsFromLocation(props.extra.location);
   const target = getTraceDetailsUrl({
     traceSlug: traceId,
     timestamp: props.tableResultLogRow?.[OurLogKnownFieldKey.TIMESTAMP],
     organization: props.extra.organization,
     dateSelection: props.extra.location,
-    location: props.extra.location,
+    location,
     source: TraceViewSources.TRACES,
   });
   return <Link to={target}>{props.basicRendered}</Link>;

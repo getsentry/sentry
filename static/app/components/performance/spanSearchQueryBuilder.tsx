@@ -35,7 +35,6 @@ interface SpanSearchQueryBuilderProps {
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
-  submitOnFilterChange?: boolean;
 }
 
 export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
@@ -68,7 +67,6 @@ export function SpanSearchQueryBuilder({
   onBlur,
   placeholder,
   projects,
-  submitOnFilterChange,
 }: SpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -144,7 +142,6 @@ export function SpanSearchQueryBuilder({
       fieldDefinitionGetter={getSpanFieldDefinitionFunction(filterTags)}
       onSearch={onSearch}
       onBlur={onBlur}
-      onChange={submitOnFilterChange ? onSearch : undefined}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
       getTagValues={getSpanFilterTagValues}
@@ -175,7 +172,6 @@ export function EAPSpanSearchQueryBuilder({
   supportedAggregates = [],
   projects,
   portalTarget,
-  submitOnFilterChange,
 }: EAPSpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -246,7 +242,6 @@ export function EAPSpanSearchQueryBuilder({
       fieldDefinitionGetter={getSpanFieldDefinitionFunction(filterTags)}
       onSearch={onSearch}
       onBlur={onBlur}
-      onChange={submitOnFilterChange ? onSearch : undefined}
       getFilterTokenWarning={getFilterTokenWarning}
       searchSource={searchSource}
       filterKeySections={filterKeySections}

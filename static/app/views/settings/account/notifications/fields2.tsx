@@ -8,7 +8,7 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
-export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
+export const NOTIFICATION_SETTING_FIELDS = {
   alerts: {
     name: 'alerts',
     type: 'select',
@@ -93,6 +93,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   email: {
     name: 'email routing',
     type: 'blank',
+    choices: undefined,
     label: t('Email Routing'),
     help: t('Change the email address that receives notifications.'),
   },
@@ -139,7 +140,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     ],
     help: t("When you resolve an unassigned issue, we'll auto-assign it to you."),
   },
-};
+} satisfies Record<string, Field>;
 
 const CATEGORY_QUOTA_FIELDS = Object.values(DATA_CATEGORY_INFO)
   .filter(categoryInfo => categoryInfo.isBilledCategory)

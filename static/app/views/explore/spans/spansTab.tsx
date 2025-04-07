@@ -29,9 +29,7 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreCharts} from 'sentry/views/explore/charts';
-import {useSchemaHintsOnLargeScreen} from 'sentry/views/explore/components/schemaHintsDrawer';
 import SchemaHintsList, {
-  SCHEMA_HINTS_DRAWER_WIDTH,
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
@@ -106,8 +104,6 @@ export function SpansTabContentImpl({
       visitQuery(id);
     }
   }, [id, visitQuery]);
-
-  const isSchemaHintsDrawerOpenOnLargeScreen = useSchemaHintsOnLargeScreen();
 
   const toolbarExtras = [
     ...(organization?.features?.includes('visibility-explore-dataset')
@@ -209,9 +205,6 @@ export function SpansTabContentImpl({
     <Body
       withToolbar={expanded}
       withHints={organization.features.includes('traces-schema-hints')}
-      thirdColumnWidth={
-        isSchemaHintsDrawerOpenOnLargeScreen ? SCHEMA_HINTS_DRAWER_WIDTH : '0px'
-      }
     >
       <TopSection>
         <StyledPageFilterBar condensed>
@@ -232,7 +225,6 @@ export function SpansTabContentImpl({
             initialQuery={query}
             onSearch={setQuery}
             searchSource="explore"
-            submitOnFilterChange
           />
         ) : (
           <EAPSpanSearchQueryBuilder
@@ -259,12 +251,11 @@ export function SpansTabContentImpl({
             }
             numberTags={numberTags}
             stringTags={stringTags}
-            submitOnFilterChange
           />
         )}
       </TopSection>
       <Feature features="organizations:traces-schema-hints">
-        <SchemaHintsSection withSchemaHintsDrawer={isSchemaHintsDrawerOpenOnLargeScreen}>
+        <SchemaHintsSection>
           <SchemaHintsList
             supportedAggregates={
               mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
@@ -394,7 +385,7 @@ function checkIsAllowedSelection(
 }
 
 const Body = styled(Layout.Body)<{
-  thirdColumnWidth: string;
+  // thirdColumnWidth: string;
   withHints: boolean;
   withToolbar: boolean;
 }>`
@@ -402,8 +393,8 @@ const Body = styled(Layout.Body)<{
     display: grid;
     ${p =>
       p.withToolbar
-        ? `grid-template-columns: 300px minmax(100px, auto) ${p.withHints ? p.thirdColumnWidth : ''};`
-        : `grid-template-columns: 0px minmax(100px, auto) ${p.withHints ? p.thirdColumnWidth : ''};`}
+        ? `grid-template-columns: 300px minmax(100px, auto);`
+        : `grid-template-columns: 0px minmax(100px, auto);`}
     grid-template-rows: auto ${p => (p.withHints ? 'auto 1fr' : '1fr')};
     align-content: start;
     gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};

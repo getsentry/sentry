@@ -213,6 +213,17 @@ class OrganizationAlertRulePermission(OrganizationPermission):
     }
 
 
+class OrganizationDetectorPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
+        # grant org:read permission, but raise permission denied if the members aren't allowed
+        # to create alerts and the user isn't a team admin
+        "POST": ["org:read", "org:write", "org:admin", "alerts:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "alerts:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "alerts:write"],
+    }
+
+
 class OrgAuthTokenPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],

@@ -99,7 +99,7 @@ export function EventDetailsContent({
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
     const {entries = []} = event;
-    return entries.reduce<{[key in EntryType]?: Entry}>((entryMap, entry) => {
+    return entries.reduce<Partial<Record<EntryType, Entry>>>((entryMap, entry) => {
       entryMap[entry.type] = entry;
       return entryMap;
     }, {});

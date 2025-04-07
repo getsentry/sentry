@@ -21,7 +21,7 @@ export const BASE_FILTERS = {
   has: 'sentry.normalized_description',
 };
 
-export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
+export const MIN_SDK_VERSION_BY_PLATFORM: Record<string, string> = {
   'sentry.python': '1.29.2',
   'sentry.javascript': '7.63.0',
   'sentry.laravel': '3.8.0',

@@ -58,7 +58,7 @@ import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import {getFormatter} from '../../../components/charts/components/tooltip';
 import {getDatasetConfig} from '../datasetConfig/base';
 import type {Widget} from '../types';
-import {DisplayType} from '../types';
+import {DisplayType, WidgetType} from '../types';
 import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from '../widgets/bigNumberWidget/bigNumberWidgetVisualization';
 
@@ -165,7 +165,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             location={location}
             fields={fields}
             title={tableResults.length > 1 ? result.title : ''}
-            loading={loading}
+            // Bypass the loading state for span widgets because this renders the loading placeholder
+            // and we want to show the underlying data during preflight instead
+            loading={widget.widgetType === WidgetType.SPANS ? false : loading}
             loader={<LoadingPlaceholder />}
             metadata={result.meta}
             data={result.data}

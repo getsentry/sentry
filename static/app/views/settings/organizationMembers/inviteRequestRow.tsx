@@ -18,7 +18,7 @@ import type {Member, Organization, OrgRole} from 'sentry/types/organization';
 type Props = {
   allRoles: OrgRole[];
   inviteRequest: Member;
-  inviteRequestBusy: {[key: string]: boolean};
+  inviteRequestBusy: Record<string, boolean>;
   onApprove: (inviteRequest: Member) => void;
   onDeny: (inviteRequest: Member) => void;
   onUpdate: (data: Partial<Member>) => void;

@@ -59,6 +59,10 @@ export interface Plottable {
    */
   label?: string;
   /**
+   * `TimeSeriesWidgetVisualization` will call this function if the user clicks a point on a series that originated from this plottable.
+   */
+  onClick?: (dataIndex: number) => void;
+  /**
    * `TimeSeriesWidgetVisualization` will call this function if the user highlights (via mouse, or imperatively) a point on a series that originated from this plottable.
    */
   onHighlight?: (dataIndex: number) => void;

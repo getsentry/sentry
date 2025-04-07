@@ -57,6 +57,7 @@ export function ActivityFeedFixture(params: Partial<Activity> = {}): Activity {
         prefersIssueDetailsStreamlinedUI: false,
         prefersSpecializedProjectOverview: {},
         prefersStackedNavigation: false,
+        prefersChonkUI: false,
         quickStartDisplay: {},
       },
       flags: {newsletter_consent_prompt: false},

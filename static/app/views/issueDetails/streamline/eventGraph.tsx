@@ -272,7 +272,6 @@ export function EventGraph({
 
   const {
     connectReleaseBubbleChartRef,
-    releaseBubbleEventHandlers,
     releaseBubbleSeries,
     releaseBubbleXAxis,
     releaseBubbleGrid,
@@ -496,7 +495,6 @@ export function EventGraph({
       )}
       <ChartContainer role="figure" ref={chartContainerRef}>
         <BarChart
-          {...releaseBubbleEventHandlers}
           ref={mergeRefs(ref, handleConnectRef)}
           height={100}
           series={series}

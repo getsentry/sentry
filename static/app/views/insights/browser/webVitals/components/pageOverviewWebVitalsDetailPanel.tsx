@@ -151,7 +151,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const webVitalData: LineChartSeries = {
     data:
       !isTimeseriesLoading && webVital
-        ? timeseriesData?.[webVital].map(({name, value}) => ({
+        ? timeseriesData?.[`p75(measurements.${webVital})`].data.map(({name, value}) => ({
             name,
             value,
           }))

@@ -73,14 +73,17 @@ def taskworker_override(
     task_name: str,
 ) -> Callable[P, R]:
     def override(*args: P.args, **kwargs: P.kwargs) -> R:
-        rollout = 0
+        rollout_rate = 0
         option_flag = f"taskworker.{namespace}.rollout"
         if options.isset(option_flag):
             rollout_map = options.get(option_flag)
-            rollout = rollout_map.get(task_name, 0)
+            if task_name in rollout_map:
+                rollout_rate = rollout_map.get(task_name, 0)
+            elif "*" in rollout_map:
+                rollout_rate = rollout_map.get("*", 0)
 
         random.seed(datetime.now().timestamp())
-        if rollout > random.random():
+        if rollout_rate > random.random():
             return taskworker_attr(*args, **kwargs)
 
         return celery_task_attr(*args, **kwargs)

@@ -19,9 +19,7 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
 
-interface TagTree {
-  [key: string]: TagTreeContent;
-}
+type TagTree = Record<string, TagTreeContent>;
 
 export interface TagTreeContent {
   subtree: TagTree;

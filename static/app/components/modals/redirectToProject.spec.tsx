@@ -7,9 +7,8 @@ import {RedirectToProjectModal} from 'sentry/components/modals/redirectToProject
 jest.unmock('sentry/utils/recreateRoute');
 
 describe('RedirectToProjectModal', function () {
-  jest.useFakeTimers();
-
   it('has timer to redirect to new slug after mounting', function () {
+    jest.useFakeTimers();
     const {routerProps} = initializeOrg({
       router: {
         routes: [
@@ -20,8 +19,6 @@ describe('RedirectToProjectModal', function () {
         params: {orgId: 'org-slug', projectId: 'project-slug'},
       },
     });
-
-    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
 
     renderGlobalModal();
 

@@ -52,9 +52,7 @@ jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(fu
 });
 
 describe('SpansTabContent', function () {
-  const {organization, project} = initializeOrg({
-    organization: {features: ['visibility-explore-rpc']},
-  });
+  const {organization, project} = initializeOrg();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
