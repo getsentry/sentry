@@ -232,7 +232,6 @@ export function SpansTabContentImpl({
             initialQuery={query}
             onSearch={setQuery}
             searchSource="explore"
-            submitOnFilterChange
           />
         ) : (
           <EAPSpanSearchQueryBuilder
@@ -259,7 +258,6 @@ export function SpansTabContentImpl({
             }
             numberTags={numberTags}
             stringTags={stringTags}
-            submitOnFilterChange
           />
         )}
       </TopSection>

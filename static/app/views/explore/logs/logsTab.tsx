@@ -104,7 +104,6 @@ export function LogsTabContent({
             numberAttributes={numberAttributes}
             stringAttributes={stringAttributes}
             itemType={TraceItemDataset.LOGS}
-            submitOnFilterChange
           />
 
           <Button onClick={openColumnEditor} icon={<IconTable />}>
