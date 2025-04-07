@@ -21,12 +21,10 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {GroupStatus, IssueCategory, IssueType} from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
   getAnalyticsDataForEvent,
@@ -37,10 +35,10 @@ import {
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import recreateRoute from 'sentry/utils/recreateRoute';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -49,7 +47,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
@@ -82,10 +79,7 @@ import {
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
-type RouterParams = {groupId: string; eventId?: string};
-type RouteProps = RouteComponentProps<RouterParams>;
-
-interface GroupDetailsProps extends RouteComponentProps<{groupId: string}> {
+interface GroupDetailsProps {
   children: React.ReactNode;
 }
 
@@ -121,24 +115,26 @@ function getFetchDataRequestErrorType(status?: number | null): Error {
 }
 
 function getReprocessingNewRoute({
+  orgSlug,
   group,
   currentTab,
-  router,
   baseUrl,
+  location,
+  currentParamGroupId,
 }: {
-  baseUrl: string;
-  currentTab: Tab;
+  /**
+   * The groupId from the URL params to compare against the group id that was loaded.
+   */
+  currentParamGroupId: string;
   group: Group;
-  router: RouteProps['router'];
-}) {
-  const {routes, params, location} = router;
-  const {groupId} = params;
-
+  location: ReturnType<typeof useLocation>;
+  orgSlug: string;
+} & ReturnType<typeof useGroupDetailsRoute>) {
   const {id: nextGroupId} = group;
 
   const reprocessingStatus = getGroupReprocessingStatus(group);
 
-  if (groupId !== nextGroupId) {
+  if (currentParamGroupId !== nextGroupId) {
     // Redirects to the Activities tab
     if (
       reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
@@ -146,14 +142,13 @@ function getReprocessingNewRoute({
     ) {
       return {
         pathname: `${baseUrl}${Tab.ACTIVITY}/`,
-        query: {...params, groupId: nextGroupId},
+        query: {...location.query, groupId: nextGroupId},
       };
     }
 
-    return recreateRoute('', {
-      routes,
-      location,
-      params: {...params, groupId: nextGroupId},
+    return normalizeUrl({
+      pathname: `/organizations/${orgSlug}/issues/${nextGroupId}/`,
+      query: location.query,
     });
   }
 
@@ -163,7 +158,7 @@ function getReprocessingNewRoute({
   ) {
     return {
       pathname: baseUrl,
-      query: params,
+      query: location.query,
     };
   }
 
@@ -174,7 +169,7 @@ function getReprocessingNewRoute({
   ) {
     return {
       pathname: `${baseUrl}${Tab.ACTIVITY}/`,
-      query: params,
+      query: location.query,
     };
   }
 
@@ -231,8 +226,8 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
 function useFetchGroupDetails(): FetchGroupDetailsState {
   const api = useApi();
   const organization = useOrganization();
-  const router = useRouter();
-  const params = router.params;
+  const location = useLocation();
+  const params = useParams<{groupId: string; eventId?: string}>();
   const navigate = useNavigate();
   const defaultIssueEvent = useDefaultIssueEvent();
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -279,19 +274,19 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       isLatestOrRecommendedEvent &&
       isEventError &&
       // Expanding this list to ensure invalid date ranges get removed as well as queries
-      (router.location.query.query ||
-        router.location.query.start ||
-        router.location.query.end ||
-        router.location.query.statsPeriod)
+      (location.query.query ||
+        location.query.start ||
+        location.query.end ||
+        location.query.statsPeriod)
     ) {
       // If we get an error from the helpful event endpoint, it probably means
       // the query failed validation. We should remove the query to try again if
       // we are not using streamlined UI.
       navigate(
         {
-          ...router.location,
+          ...location,
           query: {
-            project: router.location.query.project,
+            project: location.query.project,
           },
         },
         {replace: true}
@@ -301,7 +296,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     defaultIssueEvent,
     isEventError,
     navigate,
-    router.location,
+    location,
     params.eventId,
     hasStreamlinedUI,
   ]);
@@ -372,15 +367,26 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       const reprocessingNewRoute = getReprocessingNewRoute({
         group,
         currentTab,
-        router,
+        location,
         baseUrl,
+        currentParamGroupId: params.groupId,
+        orgSlug: organization.slug,
       });
 
       if (reprocessingNewRoute) {
-        browserHistory.push(reprocessingNewRoute);
+        navigate(reprocessingNewRoute);
       }
     }
-  }, [group, event, router, currentTab, baseUrl]);
+  }, [
+    group,
+    event,
+    location,
+    currentTab,
+    baseUrl,
+    navigate,
+    organization.slug,
+    params.groupId,
+  ]);
 
   useEffect(() => {
     const matchingProjectSlug = group?.project?.slug;
@@ -401,7 +407,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     params.groupId,
   ]);
 
-  const allProjectsFlag = router.location.query._allp;
+  const allProjectsFlag = location.query._allp;
 
   useEffect(() => {
     const locationQuery = qs.parse(window.location.search) || {};
@@ -425,7 +431,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       group?.project.id
     ) {
       locationQuery.project = group?.project.id;
-      browserHistory.replace({...window.location, query: locationQuery});
+      navigate({...window.location, query: locationQuery}, {replace: true});
     }
 
     if (allProjectsFlag && !allProjectChanged) {
@@ -434,10 +440,10 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       // this is not an ideal solution and will ultimately be replaced with
       // something smarter.
       delete locationQuery._allp;
-      browserHistory.replace({...window.location, query: locationQuery});
+      navigate({...window.location, query: locationQuery}, {replace: true});
       setAllProjectChanged(true);
     }
-  }, [allProjectsFlag, group?.project.id, allProjectChanged]);
+  }, [allProjectsFlag, group?.project.id, allProjectChanged, navigate]);
 
   const errorType = groupError ? getFetchDataRequestErrorType(groupError.status) : null;
   useEffect(() => {
