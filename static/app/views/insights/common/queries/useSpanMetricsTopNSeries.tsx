@@ -60,7 +60,7 @@ export const useSpanMetricsTopNSeries = <Fields extends SpanMetricsProperty[]>(
     enabled: options.enabled,
   });
 
-  const seriesByKey: {[key: string]: Series} = {};
+  const seriesByKey: Record<string, Series> = {};
 
   (result?.data ?? []).forEach(datum => {
     // `interval` is the timestamp of the data point. Every other key is the value of a requested or found timeseries. `groups` is used to disambiguate top-N multi-axis series, which aren't supported here so the value is useless
@@ -83,7 +83,7 @@ export const useSpanMetricsTopNSeries = <Fields extends SpanMetricsProperty[]>(
     });
   });
 
-  return {...result, data: seriesByKey as {[key: string]: Series}};
+  return {...result, data: seriesByKey};
 };
 
 const DEFAULT_EVENT_COUNT = 5;

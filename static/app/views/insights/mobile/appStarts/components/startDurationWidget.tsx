@@ -37,7 +37,7 @@ const WARM_START_CONDITIONS = [
 ];
 
 export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
-  const transformedSeries: {[releaseName: string]: Series} = {};
+  const transformedSeries: Record<string, Series> = {};
 
   if (defined(data)) {
     Object.keys(data).forEach(releaseName => {

@@ -40,7 +40,7 @@ interface StepProps {
 }
 
 type RegisterStepInfo = Pick<StepProps, 'stepKey' | 'isCompleted'>;
-type RegisteredSteps = {[key: string]: {stepNumber: number; isCompleted?: boolean}};
+type RegisteredSteps = Record<string, {stepNumber: number; isCompleted?: boolean}>;
 
 const GuidedStepsContext = createContext<GuidedStepsContextState>({
   advanceToNextIncompleteStep: () => {},

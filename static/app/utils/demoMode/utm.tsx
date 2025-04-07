@@ -13,14 +13,14 @@ const toFirstTouchKey = (utm: string) => `ft_${utm}__c`;
 const toLastTouchKey = (utm: string) => `lt_${utm}__c`;
 
 type UTMState = {
-  data: {[key: string]: string};
-  touches: {[key: string]: string};
-  trackableQuery: {[key: string]: string};
+  data: Record<string, string>;
+  touches: Record<string, string>;
+  trackableQuery: Record<string, string>;
 };
 
 export function getUTMState(): UTMState {
   const query = qs.parse(window.location.search);
-  const trackableQuery: {[key: string]: string} = Object.keys(query).reduce((a, k) => {
+  const trackableQuery: Record<string, string> = Object.keys(query).reduce((a, k) => {
     return trackableParamsRegExp.test(k) && !!query[k] ? {...a, [k]: query[k]} : a;
   }, {});
 
@@ -32,7 +32,7 @@ export function getUTMState(): UTMState {
   }, {});
 
   // Add the saved touch data to the form payload
-  let touches: {[key: string]: string} = {};
+  let touches: Record<string, string> = {};
   try {
     const saved = localStorage.getItem(lsKey);
     if (saved) {
@@ -64,7 +64,7 @@ export function getUTMState(): UTMState {
           }
           return a;
         },
-        {} as {[key: string]: string}
+        {} as Record<string, string>
       ),
   };
   return {

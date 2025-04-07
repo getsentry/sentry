@@ -29,13 +29,12 @@ export type EventsDisplayFilter = {
   sort?: {field: string; kind: 'desc' | 'asc'};
 };
 
-export type EventsFilterOptions = {
-  [name in EventsDisplayFilterName]: EventsDisplayFilter;
-};
+export type EventsFilterOptions = Record<EventsDisplayFilterName, EventsDisplayFilter>;
 
-export type EventsFilterPercentileValues = {
-  [name in Exclude<EventsDisplayFilterName, EventsDisplayFilterName.P100>]: number;
-};
+export type EventsFilterPercentileValues = Record<
+  Exclude<EventsDisplayFilterName, EventsDisplayFilterName.P100>,
+  number
+>;
 
 export function getEventsFilterOptions(
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter,

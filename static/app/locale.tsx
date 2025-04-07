@@ -156,7 +156,7 @@ type TemplateSubvalue = string | {group: string; id: string};
 /**
  * ParsedTemplate is a mapping of group names to Template Subvalue arrays.
  */
-type ParsedTemplate = {[group: string]: TemplateSubvalue[]};
+type ParsedTemplate = Record<string, TemplateSubvalue[]>;
 
 /**
  * ComponentMap maps template group keys to react node instances.
@@ -168,7 +168,7 @@ type ParsedTemplate = {[group: string]: TemplateSubvalue[]};
  * In the above example the component map of {groupName: <strong>text</strong>}
  * will be translated to `<strong>this string is the sub value</strong>`.
  */
-type ComponentMap = {[group: string]: React.ReactNode};
+type ComponentMap = Record<string, React.ReactNode>;
 
 /**
  * Parses a template string into groups.

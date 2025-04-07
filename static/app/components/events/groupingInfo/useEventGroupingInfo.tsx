@@ -8,9 +8,7 @@ import {type Group, IssueCategory} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface EventGroupingInfoResponse {
-  [variant: string]: EventGroupVariant;
-}
+type EventGroupingInfoResponse = Record<string, EventGroupVariant>;
 
 function generatePerformanceGroupInfo({
   event,

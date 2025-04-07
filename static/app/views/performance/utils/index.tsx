@@ -248,7 +248,7 @@ export function trendsTargetRoute({
 }: {
   location: Location;
   organization: Organization;
-  additionalQuery?: {[x: string]: string};
+  additionalQuery?: Record<string, string>;
   initialConditions?: MutableSearch;
   view?: DomainView;
 }) {

@@ -87,7 +87,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
     isError,
     isSuccess,
     refetch,
-  } = useApiQuery<{[key: string]: string}>(['/users/me/notifications/'], {
+  } = useApiQuery<Record<string, string>>(['/users/me/notifications/'], {
     staleTime: 0,
   });
 

@@ -74,7 +74,7 @@ function Content({
     );
   }
 
-  function setInitialFrameMap(): {[frameIndex: number]: boolean} {
+  function setInitialFrameMap(): Record<number, boolean> {
     const indexMap: Record<string, boolean> = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
@@ -86,7 +86,7 @@ function Content({
     return indexMap;
   }
 
-  function getInitialFrameCounts(): {[frameIndex: number]: number} {
+  function getInitialFrameCounts(): Record<number, number> {
     let count = 0;
     const countMap: Record<string, number> = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {

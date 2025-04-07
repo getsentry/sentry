@@ -27,7 +27,7 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   currentProject: string;
   disabled: boolean;
-  errors: Map<number, {[fieldName: string]: string}>;
+  errors: Map<number, Record<string, string>>;
   onChange: (
     triggers: Trigger[],
     triggerIndex?: number,

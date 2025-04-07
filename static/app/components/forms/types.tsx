@@ -41,9 +41,9 @@ interface BaseField {
   'aria-label'?: string;
   autosize?: boolean;
   choices?:
-    | ((props: {[key: string]: any}) => void)
+    | ((props: Record<string, any>) => void)
     | ReadonlyArray<Readonly<[number | string, React.ReactNode]>>;
-  confirm?: {[key: string]: React.ReactNode | boolean};
+  confirm?: Record<string, React.ReactNode | boolean>;
   defaultValue?: FieldValue;
   disabled?: boolean | ((props: any) => boolean);
   disabledReason?: React.ReactNode | ((props: any) => React.ReactNode);

@@ -13,16 +13,12 @@ import type {
   Query,
 } from 'history';
 
-interface Params {
-  [key: string]: string;
-}
+type Params = Record<string, string>;
 
 type RoutePattern = string;
 export type RouteComponent = React.ComponentClass<any> | React.FunctionComponent<any>;
 
-interface RouteComponents {
-  [name: string]: RouteComponent;
-}
+type RouteComponents = Record<string, RouteComponent>;
 
 interface RouterState<Q = any> {
   components: RouteComponent[];

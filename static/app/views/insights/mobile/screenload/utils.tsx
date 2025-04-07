@@ -26,11 +26,7 @@ export function transformReleaseEvents({
   yAxes: YAxis[];
   primaryRelease?: string;
   secondaryRelease?: string;
-}): {
-  [yAxisName: string]: {
-    [releaseVersion: string]: Series;
-  };
-} {
+}): Record<string, Record<string, Series>> {
   const topTransactionsIndex = Object.fromEntries(
     topTransactions.map((e: any, i: any) => [e, i])
   );
@@ -88,11 +84,7 @@ export function transformDeviceClassEvents({
   data?: TableData;
   primaryRelease?: string;
   secondaryRelease?: string;
-}): {
-  [yAxisName: string]: {
-    [releaseVersion: string]: Series;
-  };
-} {
+}): Record<string, Record<string, Series>> {
   const transformedData = yAxes.reduce(
     (acc, yAxis) => ({...acc, [YAXIS_COLUMNS[yAxis]]: {}}),
     {}

@@ -5,7 +5,7 @@
  */
 export default function replaceRouterParams(
   route: string,
-  params: {[key: string]: string | number | undefined}
+  params: Record<string, string | number | undefined>
 ): string {
   // parse route params from route
   const matches = route.match(/:\w+/g);

@@ -20,9 +20,7 @@ export const COLORS = {
  * Sentry-apps which read popularity from the db.
  */
 
-export const POPULARITY_WEIGHT: {
-  [key: string]: number;
-} = {
+export const POPULARITY_WEIGHT: Record<string, number> = {
   // First-party-integrations
   slack: 50,
   github: 20,

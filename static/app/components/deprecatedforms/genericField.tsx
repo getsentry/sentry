@@ -46,9 +46,7 @@ type AsyncSelectFieldConfig = Omit<SelectFieldConfig, 'has_autocomplete'> & {
   url: string;
 };
 
-interface FormData {
-  [name: string]: string;
-}
+type FormData = Record<string, string>;
 
 type Props = {
   config: Config | SelectFieldConfig | AsyncSelectFieldConfig;

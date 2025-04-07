@@ -82,8 +82,8 @@ export class VirtualizedViewManager {
     {indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined
   > = [];
   timeline_indicators: Array<HTMLElement | undefined> = [];
-  vertical_indicators: {[key: string]: VerticalIndicator} = {};
-  vertical_indicator_labels: {[key: string]: HTMLElement | undefined} = {};
+  vertical_indicators: Record<string, VerticalIndicator> = {};
+  vertical_indicator_labels: Record<string, HTMLElement | undefined> = {};
   span_bars: Array<
     {color: string; ref: HTMLElement; space: [number, number]} | undefined
   > = [];

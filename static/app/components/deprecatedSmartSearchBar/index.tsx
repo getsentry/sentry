@@ -1465,7 +1465,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     const project = location?.query ? location.query.projectId : undefined;
 
     const url = `/organizations/${organization.slug}/releases/`;
-    const fetchQuery: {[key: string]: string | number} = {
+    const fetchQuery: Record<string, string | number> = {
       per_page: MAX_AUTOCOMPLETE_RELEASES,
     };
 

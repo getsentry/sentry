@@ -86,7 +86,7 @@ export function useReleases(
 
   const metricsFetched = releaseMetrics.every(result => result.isFetched);
 
-  const metricsStats: {[version: string]: {count: number}} = {};
+  const metricsStats: Record<string, {count: number}> = {};
   if (metricsFetched) {
     releaseMetrics.forEach(c =>
       c.data?.data?.forEach(release => {

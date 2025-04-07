@@ -115,16 +115,12 @@ export type SpanStringFields =
   | 'profiler.id'
   | 'thread.id';
 
-export type SpanMetricsQueryFilters = {
-  [Field in SpanStringFields]?: string;
-} & {
+export type SpanMetricsQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanMetricsField.PROJECT_ID]?: string;
   [SpanMetricsField.SPAN_DOMAIN]?: string;
 };
 
-export type SpanIndexedQueryFilters = {
-  [Field in SpanStringFields]?: string;
-} & {
+export type SpanIndexedQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 
@@ -189,18 +185,15 @@ export type SpanMetricsResponse = {
 } & {
   ['project']: string;
   ['project.id']: number;
-} & {
-  [Function in RegressionFunctions]: number;
-} & {
-  [Function in SpanAnyFunction]: string;
-} & {
-  [Property in ConditionalAggregate as
-    | `${Property}(${string})`
-    | `${Property}(${string},${string})`
-    | `${Property}(${string},${string},${string})`]: number;
-} & {
-  [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
-};
+} & Record<RegressionFunctions, number> &
+  Record<SpanAnyFunction, string> & {
+    [Property in ConditionalAggregate as
+      | `${Property}(${string})`
+      | `${Property}(${string},${string})`
+      | `${Property}(${string},${string},${string})`]: number;
+  } & {
+    [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+  };
 
 export type MetricsFilters = {
   [Property in SpanStringFields as `${Property}`]?: string | string[];
@@ -221,19 +214,16 @@ export type EAPSpanResponse = {
 } & {
   ['project']: string;
   ['project.id']: number;
-} & {
-  [Function in RegressionFunctions]: number;
-} & {
-  [Function in SpanAnyFunction]: string;
-} & {
-  [Property in ConditionalAggregate as
-    | `${Property}(${string})`
-    | `${Property}(${string},${string})`
-    | `${Property}(${string},${string},${string})`]: number;
-} & {
-  [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
-  [SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG]: string;
-};
+} & Record<RegressionFunctions, number> &
+  Record<SpanAnyFunction, string> & {
+    [Property in ConditionalAggregate as
+      | `${Property}(${string})`
+      | `${Property}(${string},${string})`
+      | `${Property}(${string},${string},${string})`]: number;
+  } & {
+    [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG]: string;
+  };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;
 
@@ -507,9 +497,7 @@ export type MetricsResponse = {
 
 export type MetricsProperty = keyof MetricsResponse;
 
-export type MetricsQueryFilters = {
-  [Field in MetricsStringFields]?: string;
-} & {
+export type MetricsQueryFilters = Partial<Record<MetricsStringFields, string>> & {
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 
