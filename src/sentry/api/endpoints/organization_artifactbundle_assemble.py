@@ -51,11 +51,26 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                 "additionalProperties": False,
             }
 
+            error_messages = {
+                "version": 'The provided version is invalid. Versions cannot be empty and cannot contain any "/" characters.',
+                "dist": "The distribution value must be a string.",
+                "projects": "Projects must be provided as an array of strings.",
+                "checksum": "Checksum must be a 40-character hexadecimal string.",
+                "chunks": "Chunks must be provided as an array of 40-character hexadecimal strings.",
+            }
+
             try:
                 data = orjson.loads(request.body)
                 jsonschema.validate(data, schema)
             except jsonschema.ValidationError as e:
-                return Response({"error": str(e).splitlines()[0]}, status=400)
+                # Get the field from the path if available
+                field = None
+                if e.path:
+                    # Create a copy of the path to avoid modifying the original
+                    path = list(e.path)
+                    field = path.pop(0) if path else None
+
+                return Response({"error": error_messages.get(field, e.message)}, status=400)
             except Exception:
                 return Response({"error": "Invalid json body"}, status=400)
 
