@@ -57,12 +57,14 @@ export default function MultiQueryMode() {
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
               {!prefersStackedNav && (
-                <LinkButton
-                  to={`/organizations/${organization.slug}/explore/saved-queries/`}
-                  size="sm"
-                >
-                  {t('Saved Queries"')}
-                </LinkButton>
+                <Feature organization={organization} features="performance-saved-queries">
+                  <LinkButton
+                    to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                    size="sm"
+                  >
+                    {t('Saved Queries')}
+                  </LinkButton>
+                </Feature>
               )}
               <FeedbackWidgetButton />
             </ButtonBar>
