@@ -12,7 +12,7 @@ from sentry.grouping.strategies.configurations import CONFIGURATIONS
 class GroupingConfigsEndpoint(Endpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = ()
 

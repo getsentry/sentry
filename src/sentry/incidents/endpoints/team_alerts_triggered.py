@@ -29,7 +29,7 @@ from sentry.models.team import Team
 class TeamAlertsTriggeredTotalsEndpoint(TeamEndpoint, EnvironmentMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, team: Team) -> Response:
@@ -130,7 +130,7 @@ class TriggeredAlertRuleSerializer(AlertRuleSerializer):
 class TeamAlertsTriggeredIndexEndpoint(TeamEndpoint, EnvironmentMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request, team: Team) -> Response:

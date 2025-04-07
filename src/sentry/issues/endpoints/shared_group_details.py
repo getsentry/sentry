@@ -15,7 +15,7 @@ from sentry.models.group import Group
 class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = ()
 

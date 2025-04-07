@@ -71,7 +71,7 @@ def get_event_ids_from_filters(
 @region_silo_endpoint
 class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, group) -> Response:
