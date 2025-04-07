@@ -80,7 +80,6 @@ export function useReleasesDrawer() {
       openDrawer(
         () => (
           <ReleasesDrawerList
-            charts={charts}
             environments={rdEnv}
             projects={rdProject.map(Number)}
             startTs={Number(rdStart)}
