@@ -220,7 +220,8 @@ function SchemaHintsList({
             {
               ariaLabel: t('Schema Hints Drawer'),
               drawerWidth: SCHEMA_HINTS_DRAWER_WIDTH,
-              resizable: false,
+              drawerKey: 'schema-hints-drawer',
+              resizable: true,
               drawerCss: css`
                 height: calc(100% - ${space(4)});
               `,
