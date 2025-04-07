@@ -9,6 +9,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
@@ -210,7 +211,16 @@ export function useLogsSortBys() {
 
 export function useLogsFields() {
   const {fields} = useLogsPageParams();
-  return fields;
+  const [persistentFields, _] = useLocalStorageState('logs-params-v0', {
+    fields: defaultLogFields(),
+  });
+  if (fields?.length) {
+    return fields;
+  }
+  if (persistentFields?.fields?.length) {
+    return persistentFields?.fields;
+  }
+  return defaultLogFields();
 }
 
 export function useLogsProjectIds() {
@@ -220,11 +230,13 @@ export function useLogsProjectIds() {
 
 export function useSetLogsFields() {
   const setPageParams = useSetLogsPageParams();
+  const [_, setPersistentParams] = useLocalStorageState('logs-params-v0', {});
   return useCallback(
     (fields: string[]) => {
       setPageParams({fields});
+      setPersistentParams({fields});
     },
-    [setPageParams]
+    [setPageParams, setPersistentParams]
   );
 }
 
