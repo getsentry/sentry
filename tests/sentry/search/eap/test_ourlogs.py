@@ -26,8 +26,19 @@ class SearchResolverQueryTest(TestCase):
             params=SnubaParams(), config=SearchResolverConfig(), definitions=OURLOG_DEFINITIONS
         )
 
+    def test_freetext_search_query(self):
+        where, having, _ = self.resolver.resolve_query("foo")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_LIKE,
+                value=AttributeValue(val_str="%foo%"),
+            )
+        )
+        assert having is None
+
     def test_simple_query(self):
-        where, having, _ = self.resolver.resolve_query("sentry.body:foo")
+        where, having, _ = self.resolver.resolve_query("message:foo")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
@@ -38,7 +49,7 @@ class SearchResolverQueryTest(TestCase):
         assert having is None
 
     def test_negation(self):
-        where, having, _ = self.resolver.resolve_query("!sentry.body:foo")
+        where, having, _ = self.resolver.resolve_query("!message:foo")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
@@ -49,7 +60,7 @@ class SearchResolverQueryTest(TestCase):
         assert having is None
 
     def test_in_filter(self):
-        where, having, _ = self.resolver.resolve_query("sentry.body:[foo,bar,baz]")
+        where, having, _ = self.resolver.resolve_query("message:[foo,bar,baz]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),

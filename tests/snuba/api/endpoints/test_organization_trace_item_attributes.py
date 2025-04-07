@@ -119,7 +119,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
                 organization=self.organization,
                 project=self.project,
                 attributes={
-                    "sentry.body": {"string_value": "value1"},
+                    "message": {"string_value": "value1"},
                 },
             ),
         ]
