@@ -26,8 +26,8 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 
 class TestMigrateIssueAlerts(TestMigrations):
-    migrate_from = "0035_action_model_drop_legacy_fields"
-    migrate_to = "0036_migrate_issue_alerts"
+    migrate_from = "0042_workflow_fire_history_add_fired_actions_bool"
+    migrate_to = "0043_migrate_issue_alerts"
     app = "workflow_engine"
 
     def setup_initial_state(self):
@@ -92,14 +92,16 @@ class TestMigrateIssueAlerts(TestMigrations):
             condition_data=conditions,
             frequency=5,
         )
-        RuleSnooze.objects.create(rule=self.issue_alert_snoozed)
+        RuleSnooze.objects.create(rule_id=self.issue_alert_snoozed.id)
 
         self.issue_alert_snoozed_for_user = self.create_project_rule(
             name="test5-2",
             condition_data=conditions,
             frequency=5,
         )
-        RuleSnooze.objects.create(rule=self.issue_alert_snoozed_for_user, user_id=self.user.id)
+        RuleSnooze.objects.create(
+            rule_id=self.issue_alert_snoozed_for_user.id, user_id=self.user.id
+        )
 
         invalid_conditions = [
             {
@@ -174,11 +176,21 @@ class TestMigrateIssueAlerts(TestMigrations):
             frequency=5,
         )
 
+        self.issue_alert_no_triggers = self.create_project_rule(
+            name="test12",
+            action_match="any",
+            filter_match="any",
+            action_data=self.action_data,
+            frequency=5,
+        )
+        self.issue_alert_no_triggers.data["conditions"] = []
+        self.issue_alert_no_triggers.save()
+
     def assert_issue_alert_migrated(
         self, issue_alert, is_enabled=True, logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
     ) -> Workflow:
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=issue_alert)
-        issue_alert_detector = AlertRuleDetector.objects.get(rule=issue_alert)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=issue_alert.id)
+        issue_alert_detector = AlertRuleDetector.objects.get(rule_id=issue_alert.id)
 
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
         assert workflow.name == issue_alert.label
@@ -246,6 +258,7 @@ class TestMigrateIssueAlerts(TestMigrations):
         self._test_run__detector_exists()
         self._test_run__every_event_condition()
         self._test_run__invalid_action()
+        self._test_run__no_triggers()
 
     def _test_run(self):
         workflow = self.assert_issue_alert_migrated(self.issue_alert)
@@ -295,7 +308,7 @@ class TestMigrateIssueAlerts(TestMigrations):
 
     def _test_run__skip_invalid_conditions(self):
         issue_alert_workflow = AlertRuleWorkflow.objects.get(
-            rule=self.issue_alert_invalid_condition
+            rule_id=self.issue_alert_invalid_condition.id
         )
 
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
@@ -309,13 +322,20 @@ class TestMigrateIssueAlerts(TestMigrations):
 
     def _test_run__skip_migration_if_no_valid_conditions(self):
         assert (
-            AlertRuleWorkflow.objects.filter(rule=self.issue_alert_no_valid_conditions).count() == 0
+            AlertRuleWorkflow.objects.filter(
+                rule_id=self.issue_alert_no_valid_conditions.id
+            ).count()
+            == 0
         )
 
     def _test_run__no_double_migrate(self):
         # there should be only 1
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert_already_migrated)
-        issue_alert_detector = AlertRuleDetector.objects.get(rule=self.issue_alert_already_migrated)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(
+            rule_id=self.issue_alert_already_migrated.id
+        )
+        issue_alert_detector = AlertRuleDetector.objects.get(
+            rule_id=self.issue_alert_already_migrated.id
+        )
         Workflow.objects.get(id=issue_alert_workflow.workflow.id)
         Detector.objects.get(id=issue_alert_detector.detector.id)
 
@@ -327,7 +347,7 @@ class TestMigrateIssueAlerts(TestMigrations):
 
     def _test_run__every_event_condition(self):
         # removes every event condition
-        workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert_every_event).workflow
+        workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert_every_event.id).workflow
         assert workflow.when_condition_group
         assert (
             DataCondition.objects.filter(condition_group=workflow.when_condition_group).count() == 1
@@ -344,3 +364,10 @@ class TestMigrateIssueAlerts(TestMigrations):
         assert dcg_actions.count() == 1
 
         assert dcg_actions[0].action.type == Action.Type.OPSGENIE
+
+    def _test_run__no_triggers(self):
+        workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert_no_triggers.id).workflow
+        assert workflow.when_condition_group
+        assert (
+            DataCondition.objects.filter(condition_group=workflow.when_condition_group).count() == 0
+        )
