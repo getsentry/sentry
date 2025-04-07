@@ -42,7 +42,7 @@ export function ConnectionCell({
 
 function Overlay(props: ConnectionCellProps) {
   const {ids, type} = props;
-
+  // TODO(natemoo-re): fetch data for each id
   return ids.map((id, index) => {
     const link = `/${type}s/${id}/`;
     const description = 'description';
