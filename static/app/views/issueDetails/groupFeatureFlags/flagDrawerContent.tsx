@@ -1,10 +1,12 @@
 import {useMemo} from 'react';
 
+import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
@@ -25,6 +27,8 @@ function getSortedTags(tags: GroupTag[]) {
   // Alphabetical by key.
   return tags.toSorted((t1, t2) => t1.key.localeCompare(t2.key));
 }
+
+const SHOW_SCORES_LOCAL_STORAGE_KEY = 'flag-drawer-show-suspicion-scores';
 
 export default function FlagDrawerContent({
   group,
@@ -67,15 +71,20 @@ export default function FlagDrawerContent({
   }, [data, search, tagValues]);
 
   // Suspect flag scoring. This a rudimentary INTERNAL-ONLY display for testing our scoring algorithms.
+  const [showScores, setShowScores] = useLocalStorageState(
+    SHOW_SCORES_LOCAL_STORAGE_KEY,
+    '0'
+  );
+
   const organization = useOrganization();
-  const showScores = organization.features.includes(
+  const scoresEnabled = organization.features.includes(
     'organizations:suspect-scores-sandbox-ui'
   );
 
   const {data: suspectScores} = useGroupSuspectFlagScores({
     groupId: group.id,
     environment: environments.length ? environments : undefined,
-    enabled: showScores,
+    enabled: scoresEnabled && showScores === '1',
   });
 
   const suspectScoresMap = useMemo(() => {
@@ -110,17 +119,24 @@ export default function FlagDrawerContent({
         : t('No feature flags were found for this search')}
     </StyledEmptyStateWarning>
   ) : (
-    <Container>
-      {displayTags.map(tag => (
-        <div key={tag.key}>
-          <FlagDetailsLink tag={tag} key={tag.key}>
-            <TagDistribution tag={tag} key={tag.key} />
-          </FlagDetailsLink>
-          {showScores && (
-            <div>{`Suspicion Score: ${suspectScoresMap[tag.key] ?? 'unknown'}`}</div>
-          )}
-        </div>
-      ))}
-    </Container>
+    <div>
+      <Container>
+        {displayTags.map(tag => (
+          <div key={tag.key}>
+            <FlagDetailsLink tag={tag} key={tag.key}>
+              <TagDistribution tag={tag} key={tag.key} />
+            </FlagDetailsLink>
+            {scoresEnabled && showScores === '1' && (
+              <div>{`Suspicion Score: ${suspectScoresMap[tag.key] ?? 'unknown'}`}</div>
+            )}
+          </div>
+        ))}
+      </Container>
+      {scoresEnabled && (
+        <Button onClick={() => setShowScores(showScores === '1' ? '0' : '1')}>
+          {showScores === '1' ? t('Hide Suspicion Scores') : t('Show Suspicion Scores')}
+        </Button>
+      )}
+    </div>
   );
 }
