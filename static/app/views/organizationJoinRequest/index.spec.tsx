@@ -90,7 +90,6 @@ describe('OrganizationJoinRequest', function () {
   });
 
   it('cancels', async function () {
-    const spy = jest.spyOn(window.location, 'assign').mockImplementation(() => {});
     render(
       <OrganizationJoinRequest
         {...RouteComponentPropsFixture()}
@@ -99,6 +98,6 @@ describe('OrganizationJoinRequest', function () {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
-    expect(spy).toHaveBeenCalledWith(`/auth/login/${org.slug}/`);
+    expect(window.location.assign).toHaveBeenCalledWith(`/auth/login/${org.slug}/`);
   });
 });
