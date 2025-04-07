@@ -47,7 +47,7 @@ describe('EventGroupingInfo', function () {
       screen.getByRole('button', {name: 'View Event Grouping Information Section'})
     );
     expect(await screen.findByText('variant description')).toBeInTheDocument();
-    expect(await screen.findByText('123')).toBeInTheDocument();
+    expect(screen.getByText('123')).toBeInTheDocument();
   });
 
   it('gets performance grouping info from group/event data', async function () {
@@ -59,9 +59,6 @@ describe('EventGroupingInfo', function () {
 
     render(
       <EventGroupingInfoSection {...defaultProps} event={perfEvent} group={perfGroup} />
-    );
-    await userEvent.click(
-      screen.getByRole('button', {name: 'View Event Grouping Information Section'})
     );
 
     expect(await screen.findByText('performance problem')).toBeInTheDocument();
@@ -80,9 +77,6 @@ describe('EventGroupingInfo', function () {
     });
 
     render(<EventGroupingInfoSection {...defaultProps} showGroupingConfig />);
-    await userEvent.click(
-      screen.getByRole('button', {name: 'View Event Grouping Information Section'})
-    );
 
     // Should show first hash
     await screen.findByText('123');
