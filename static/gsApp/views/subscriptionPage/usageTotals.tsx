@@ -155,7 +155,7 @@ type State = {expanded: boolean; trialButtonBusy: boolean};
  *
  * @param category - The data category to calculate usage for (e.g. 'errors', 'transactions')
  * @param subscription - The subscription object containing plan and usage details
- * @param totals - Object containing the accepted event count for this category
+ * @param accepted - The accepted event count for this category
  * @param prepaid - The prepaid/reserved event limit (volume-based reserved) or commited spend (budget-based reserved) for this category
  * @param reservedCpe - The reserved cost-per-event for this category (for reserved budget categories), in cents
  * @param reservedSpend - The reserved spend for this category (for reserved budget categories). If provided, calculations with `totals` and `reservedCpe` are overriden to use the number provided for `prepaidSpend`
@@ -170,8 +170,8 @@ type State = {expanded: boolean; trialButtonBusy: boolean};
 export function calculateCategoryPrepaidUsage(
   category: string,
   subscription: Subscription,
-  totals: Pick<BillingStatTotal, 'accepted'>,
   prepaid: number,
+  accepted?: number | null,
   reservedCpe?: number | null,
   reservedSpend?: number | null
 ): {
@@ -184,6 +184,10 @@ export function calculateCategoryPrepaidUsage(
   prepaidSpend: number;
   prepaidUsage: number;
 } {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  const categoryInfo: BillingMetricHistory = subscription.categories[category];
+  const usage = accepted ?? categoryInfo.usage;
+
   // Calculate the prepaid total
   let prepaidTotal: any;
   if (isUnlimitedReserved(prepaid)) {
@@ -201,13 +205,10 @@ export function calculateCategoryPrepaidUsage(
   }
   const hasReservedBudget = reservedCpe || typeof reservedSpend === 'number'; // reservedSpend can be 0
   const prepaidUsed = hasReservedBudget
-    ? (reservedSpend ?? totals.accepted * (reservedCpe ?? 0))
-    : totals.accepted;
+    ? (reservedSpend ?? usage * (reservedCpe ?? 0))
+    : usage;
   const prepaidPercentUsed = getPercentage(prepaidUsed, prepaidTotal);
 
-  // Calculate the prepaid price
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const categoryInfo: BillingMetricHistory = subscription.categories[category];
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const slots: EventBucket[] = subscription.planDetails.planCategories[category];
 
@@ -246,7 +247,7 @@ export function calculateCategoryPrepaidUsage(
     (hasReservedBudget && prepaidUsed >= prepaidTotal)
       ? categoryInfo.onDemandQuantity
       : 0;
-  const prepaidUsage = totals.accepted - onDemandUsage;
+  const prepaidUsage = usage - onDemandUsage;
 
   return {
     prepaidPrice,
@@ -438,13 +439,14 @@ function UsageTotals({
     onDemandCategoryMax,
   } = calculateCategoryOnDemandUsage(category, subscription);
   const unusedOnDemandWidth = 100 - ondemandPercentUsed;
-
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  const categoryInfo: BillingMetricHistory = subscription.categories[category];
   const {prepaidPrice, prepaidPercentUsed, prepaidUsage, onDemandUsage} =
     calculateCategoryPrepaidUsage(
       category,
       subscription,
-      totals,
       prepaid,
+      null,
       undefined,
       reservedSpend
     );
@@ -495,7 +497,7 @@ function UsageTotals({
   }
 
   const formattedUnitsUsed = formatUsageWithUnits(
-    totals.accepted,
+    categoryInfo.usage,
     category,
     usageOptions
   );
@@ -510,9 +512,9 @@ function UsageTotals({
             ? (eventTotals[DataCategory.PROFILES] ?? EMPTY_STAT_TOTAL)
             : EMPTY_STAT_TOTAL,
         ]),
-        accepted: totals.accepted,
+        accepted: categoryInfo.usage,
       }
-    : totals;
+    : {...totals, accepted: categoryInfo.usage};
 
   const hasReservedQuota: boolean =
     reserved !== null && (reserved === UNLIMITED_RESERVED || reserved > 0);
