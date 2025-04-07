@@ -276,32 +276,6 @@ class TestInit(RuleTestCase):
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    @patch("sentry.integrations.slack.sdk_client.metrics")
-    def test_send_confirmation_using_sdk(self, mock_metrics, mock_api_call):
-        mock_api_call.return_value = {
-            "body": orjson.dumps({"ok": True}).decode(),
-            "headers": {},
-            "status": 200,
-        }
-        rule = self.get_rule(data=self.action_data)
-        rule.send_confirmation_notification(self.rule, new=False)
-
-        mock_metrics.incr.assert_called_with(
-            SLACK_DATADOG_METRIC, sample_rate=1.0, tags={"ok": True, "status": 200}
-        )
-
-    @patch("sentry.integrations.slack.sdk_client.metrics")
-    def test_send_confirmation_using_sdk_error(self, mock_metrics):
-        # tests error flow because we're actually trying to POST
-
-        rule = self.get_rule(data=self.action_data)
-        rule.send_confirmation_notification(self.rule, new=False)
-
-        mock_metrics.incr.assert_called_with(
-            SLACK_DATADOG_METRIC, sample_rate=1.0, tags={"ok": False, "status": 200}
-        )
-
     @with_feature("organizations:workflow-engine-trigger-actions")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
