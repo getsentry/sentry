@@ -51,6 +51,27 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
         ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("environment"),
+        # Deprecated
+        ResolvedAttribute(
+            public_alias="log.body",
+            internal_name="sentry.body",
+            search_type="string",
+            secondary_alias=True,
+        ),
+        # Deprecated
+        ResolvedAttribute(
+            public_alias="log.severity_number",
+            internal_name="sentry.severity_number",
+            search_type="integer",
+            secondary_alias=True,
+        ),
+        # Deprecated
+        ResolvedAttribute(
+            public_alias="log.severity_text",
+            internal_name="sentry.severity_text",
+            search_type="string",
+            secondary_alias=True,
+        ),
     ]
 }
 
