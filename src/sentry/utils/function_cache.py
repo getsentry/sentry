@@ -71,8 +71,8 @@ def cache_func_for_models(
     Each entry in `cache_invalidators` is a tuple of (<Model>, <func>). In more detail:
      - Model is the model we'll listen to for updates. When this model fires a `post_save` or `post_delete` signal
        we'll invalidate the cache.
-     - Func is a function that accepts an instance of `Model` and returns a combination (tuple) of arguments to the
-       decorated function for which the cached return value should be invalidated.
+     - Func is a function that accepts an instance of `Model` and returns a tuple of values that can be used to call
+       the cached function. These values are used to invalidate the cache.
 
     This only works with functions that are called using args.
 

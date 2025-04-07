@@ -15,6 +15,10 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 
 
+class ProjectAccessError(Exception):
+    pass
+
+
 @region_silo_endpoint
 class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
@@ -49,10 +53,7 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
                     organization_id=installation.organization_id, id=p
                 )
                 if not request.access.has_project_access(p_obj):
-                    return Response(
-                        status=400,
-                        data={"error": "Some projects affected by this request are not accessible"},
-                    )
+                    raise ProjectAccessError("Can not remove projects that are not accessible")
 
             # Remove projects
             ServiceHookProject.objects.filter(
@@ -121,7 +122,13 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
                     data={"error": f"Project '{project}' does not exist or is not accessible"},
                 )
 
-        hook_projects = self._replace_hook_projects(installation, project_ids, request)
+        try:
+            hook_projects = self._replace_hook_projects(installation, project_ids, request)
+        except ProjectAccessError:
+            return Response(
+                status=400,
+                data={"error": "Some projects affected by this request are not accessible"},
+            )
 
         return self.paginate(
             request=request,
