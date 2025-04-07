@@ -165,6 +165,10 @@ services:
       - host.docker.internal:host-gateway
   spotlight:
     image: ghcr.io/getsentry/spotlight:latest
+    healthcheck:
+      interval: 1s
+      timeout: 1s
+      retries: 3
     restart: unless-stopped
     ports:
       - '127.0.0.1:8969:8969/tcp'
