@@ -588,10 +588,12 @@ export type CodeownersFile = {
   raw: string;
 };
 
+type RepoName = string;
+type FileName = string;
 export type FilesByRepository = Record<
-  string,
+  RepoName,
   Record<
-    string,
+    FileName,
     {
       authors?: Record<string, CommitAuthor>;
       types?: Set<string>;
