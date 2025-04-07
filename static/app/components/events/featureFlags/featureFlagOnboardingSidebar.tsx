@@ -135,6 +135,8 @@ function SidebarContent() {
     ];
   }, [supportedProjects, unsupportedProjects]);
 
+  const organization = useOrganization();
+
   return (
     <Fragment>
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
@@ -164,9 +166,14 @@ function SidebarContent() {
                 )
               }
               value={currentProject?.id}
-              onChange={opt =>
-                setCurrentProject(allProjects.find(p => p.id === opt.value))
-              }
+              onChange={opt => {
+                const newProject = allProjects.find(p => p.id === opt.value);
+                setCurrentProject(newProject);
+                trackAnalytics('flags.setup_sidebar_selection', {
+                  organization,
+                  platform: newProject?.platform,
+                });
+              }}
               triggerProps={{'aria-label': currentProject?.slug}}
               options={projectSelectOptions}
               position="bottom-end"
@@ -247,7 +254,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                     value={sdkProvider.value}
                     onChange={value => {
                       setsdkProvider(value);
-                      trackAnalytics('flags.setup_sidebar_provider_selected', {
+                      trackAnalytics('flags.setup_sidebar_selection', {
                         organization,
                         platform: currentProject.platform,
                         provider: value.value,
@@ -273,7 +280,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         onChange={value => {
           setSetupMode(value);
           if (value === 'generic') {
-            trackAnalytics('flags.setup_sidebar_provider_selected', {
+            trackAnalytics('flags.setup_sidebar_selection', {
               organization,
               platform: currentProject.platform,
               provider: sdkProvider.value,

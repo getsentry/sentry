@@ -16,9 +16,9 @@ export type FeatureFlagEventParameters = {
     area: string;
     direction: 'next' | 'prev';
   };
-  'flags.setup_sidebar_provider_selected': {
-    provider: string;
+  'flags.setup_sidebar_selection': {
     platform?: string;
+    provider?: string;
   };
   'flags.sort_flags': {sortMethod: string};
   'flags.table_rendered': {
@@ -42,8 +42,8 @@ export const featureFlagEventMap: Record<FeatureFlagEventKey, string | null> = {
   'flags.drawer_rendered': 'Feature Flag Drawer Rendered',
   'flags.event_and_suspect_flags_found': 'Number of Event and Suspect Flags',
   'flags.logs-paginated': 'Feature Flag Logs Paginated',
-  'flags.setup_sidebar_provider_selected':
-    'Selected Provider in Feature Flag Onboarding Sidebar',
+  'flags.setup_sidebar_selection':
+    'Selected Provider or Project in Feature Flag Onboarding Sidebar',
   'flags.sort_flags': 'Sorted Flags',
   'flags.table_rendered': 'Flag Table Rendered',
   'flags.view-all-clicked': 'Clicked View All Flags',
