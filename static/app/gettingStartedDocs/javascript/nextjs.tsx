@@ -29,6 +29,7 @@ import {
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -393,6 +394,72 @@ Sentry.init({
   nextSteps: () => [],
 };
 
+const profilingOnboarding = getJavascriptFullStackOnboarding({
+  basePackage: '@sentry/nextjs',
+  browserProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/nextjs/profiling/browser-profiling/',
+  nodeProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/nextjs/profiling/node-profiling/',
+  getProfilingHeaderConfig: () => [
+    {
+      description: tct(
+        'In Next.js you can configure document response headers via the headers option in [code:next.config.js]:',
+        {
+          code: <code />,
+        }
+      ),
+      code: [
+        {
+          label: 'ESM',
+          value: 'esm',
+          language: 'javascript',
+          filename: 'next.config.js',
+          code: `
+export default withSentryConfig({
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Document-Policy",
+            value: "js-profiling",
+          },
+        ],
+      },
+    ];
+  },
+  // ... other Next.js config options
+});`,
+        },
+        {
+          label: 'CJS',
+          value: 'cjs',
+          language: 'javascript',
+          filename: 'next.config.js',
+          code: `
+module.exports = withSentryConfig({
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Document-Policy",
+            value: "js-profiling",
+          },
+        ],
+      },
+    ];
+  },
+  // ... other Next.js config options
+});`,
+        },
+      ],
+    },
+  ],
+});
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
@@ -400,6 +467,7 @@ const docs: Docs = {
   performanceOnboarding,
   crashReportOnboarding,
   featureFlagOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;
