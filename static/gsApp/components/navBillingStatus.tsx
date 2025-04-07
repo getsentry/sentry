@@ -48,13 +48,11 @@ function QuotaExceededContent({
   organization,
   onCheck,
   isDismissed,
-  statusTextColor,
 }: {
   exceededCategories: string[];
   isDismissed: boolean;
   onCheck: (checked: boolean) => void;
   organization: Organization;
-  statusTextColor: string;
   subscription: Subscription;
 }) {
   const eventTypes: EventType[] = exceededCategories.map(category => {
@@ -64,7 +62,7 @@ function QuotaExceededContent({
   return (
     <Container>
       <Header>
-        <HeaderTitle textColor={statusTextColor}>{t('Status')}</HeaderTitle>
+        <HeaderTitle>{t('Billing Status')}</HeaderTitle>
       </Header>
       <Body>
         <Title>{t('Quota Exceeded')}</Title>
@@ -148,7 +146,7 @@ function PrimaryNavigationQuotaExceeded({
   const prefersStackedNav = usePrefersStackedNav();
   const theme = useTheme();
   const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
-  const statusTextColor = prefersDarkMode ? theme.black : theme.textColor;
+  const iconColor = prefersDarkMode ? theme.background : theme.textColor;
 
   const shouldShow =
     prefersStackedNav &&
@@ -180,7 +178,7 @@ function PrimaryNavigationQuotaExceeded({
         buttonProps={{...overlayTriggerProps, style: {backgroundColor: theme.warning}}}
       >
         <motion.div {...(isOpen || hasSnoozedAllPrompts() ? {} : ANIMATE_PROPS)}>
-          <IconWarning color={statusTextColor as Color} />
+          <IconWarning color={iconColor as Color} />
         </motion.div>
       </SidebarButton>
       {isOpen && (
@@ -191,7 +189,6 @@ function PrimaryNavigationQuotaExceeded({
             organization={organization}
             isDismissed={hasSnoozedAllPrompts()}
             onCheck={onCheckboxChange}
-            statusTextColor={statusTextColor}
           />
         </PrimaryButtonOverlay>
       )}
@@ -206,14 +203,14 @@ const Container = styled('div')`
 `;
 
 const Header = styled('div')`
-  background: ${p => p.theme.warning};
+  background: ${p => p.theme.background};
   padding: ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const HeaderTitle = styled('h1')<{textColor: string}>`
+const HeaderTitle = styled('h1')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: 0;
-  color: ${p => p.textColor};
 `;
 
 const Title = styled('h2')`
