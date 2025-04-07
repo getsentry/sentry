@@ -14,7 +14,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
@@ -30,10 +30,6 @@ type Props = {
   spanCategory?: string;
   value?: string;
 };
-
-interface DomainData {
-  'span.domain': string[];
-}
 
 export function DomainSelector({
   value = '',
@@ -70,12 +66,15 @@ export function DomainSelector({
     data: domainData,
     isPending,
     pageLinks,
-  } = useSpansQuery<DomainData[]>({
-    eventView,
-    initialData: [],
-    limit: LIMIT,
-    referrer: 'api.starfish.get-span-domains',
-  });
+  } = useSpanMetrics(
+    {
+      limit: LIMIT,
+      search: eventView.query,
+      sorts: [{field: 'count()', kind: 'desc'}],
+      fields: [SpanMetricsField.SPAN_DOMAIN, 'count()'],
+    },
+    'api.starfish.get-span-domains'
+  );
 
   const wasSearchSpaceExhausted = useWasSearchSpaceExhausted({
     query: searchQuery,
