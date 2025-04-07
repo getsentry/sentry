@@ -14,6 +14,8 @@ from sentry.roles import organization_roles
 from sentry.users.api.parsers.email import AllowedEmailField
 from sentry.users.services.user.service import user_service
 
+ERR_WRONG_METHOD = "You cannot reject an invite request via this method."
+
 
 class OrganizationMemberInviteRequestValidator(serializers.Serializer):
     email = AllowedEmailField(
@@ -160,6 +162,9 @@ class ApproveInviteRequestValidator(serializers.Serializer):
     def validate_approve(self, approve):
         invited_member = self.context["invited_member"]
         allowed_roles = self.context["allowed_roles"]
+        # you can't reject an invite request via a PUT request
+        if approve is False:
+            raise serializers.ValidationError(ERR_WRONG_METHOD)
 
         try:
             invited_member.validate_invitation(allowed_roles)

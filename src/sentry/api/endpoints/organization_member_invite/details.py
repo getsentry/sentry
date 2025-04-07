@@ -18,6 +18,7 @@ from sentry.api.serializers.rest_framework.organizationmemberinvite import (
     ApproveInviteRequestValidator,
     OrganizationMemberInviteRequestValidator,
 )
+from sentry.auth.services.auth import auth_service
 from sentry.models.organization import Organization
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.utils import metrics
@@ -30,7 +31,6 @@ ERR_EDIT_WHEN_REINVITING = (
 )
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
-ERR_WRONG_METHOD = "You cannot reject an invite request via this method."
 ERR_INVITE_UNAPPROVED = "You cannot resend an invitation that has not been approved."
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
@@ -73,29 +73,34 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
     ) -> Response:
         if not invited_member.invite_approved:
             return Response({"detail": ERR_INVITE_UNAPPROVED}, status=400)
-        if ratelimits.for_organization_member_invite(
-            organization=organization,
-            email=invited_member.email,
-            user=request.user,
-            auth=request.auth,
-        ):
-            metrics.incr(
-                "member-invite.attempt",
-                instance="rate_limited",
-                skip_internal=True,
-                sample_rate=1.0,
-            )
-            return Response({"detail": ERR_RATE_LIMITED}, status=429)
-        if regenerate:
-            if request.access.has_scope("member:admin"):
-                with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
-                    invited_member.regenerate_token()
-                    invited_member.save()
-            else:
-                return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
-        if invited_member.token_expired:
-            return Response({"detail": ERR_EXPIRED}, status=400)
-        invited_member.send_invite_email()
+        if invited_member.is_scim_provisioned:
+            auth_provider = auth_service.get_auth_provider(organization_id=organization.id)
+            if auth_provider and not (invited_member.sso_linked):
+                invited_member.send_sso_linked_email(request.user.email, auth_provider)
+        else:
+            if ratelimits.for_organization_member_invite(
+                organization=organization,
+                email=invited_member.email,
+                user=request.user,
+                auth=request.auth,
+            ):
+                metrics.incr(
+                    "member-invite.attempt",
+                    instance="rate_limited",
+                    skip_internal=True,
+                    sample_rate=1.0,
+                )
+                return Response({"detail": ERR_RATE_LIMITED}, status=429)
+            if regenerate:
+                if request.access.has_scope("member:admin"):
+                    with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
+                        invited_member.regenerate_token()
+                        invited_member.save()
+                else:
+                    return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
+            if invited_member.token_expired:
+                return Response({"detail": ERR_EXPIRED}, status=400)
+            invited_member.send_invite_email()
 
         self.create_audit_entry(
             request=request,
@@ -193,10 +198,6 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
             invited_member.set_teams(result["teams"])
 
         if "approve" in request.data:
-            # you can't reject an invite request via a PUT request
-            if request.data["approve"] is False:
-                return Response({"detail": ERR_WRONG_METHOD}, status=400)
-
             approval_validator = ApproveInviteRequestValidator(
                 data=request.data,
                 context={
