@@ -24,12 +24,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
-import {
-  DemoTour,
-  DemoTourElement,
-  DemoTourStep,
-  useDemoTours,
-} from 'sentry/utils/demoMode/demoTours';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -171,43 +165,26 @@ export function SourceMapsList({location, router, project}: Props) {
     [router, location]
   );
 
-  const {startTour} = useDemoTours(DemoTour.SIDEBAR);
-  const {startTour: startIssuesTour} = useDemoTours(DemoTour.ISSUES);
-
   return (
     <Fragment>
       <SettingsPageHeader title={t('Source Map Uploads')} />
-      <Button onClick={() => startTour()}>Start Sidebar Tour</Button>
-      <Button onClick={() => startIssuesTour()}>Start Issues Tour</Button>
-      <DemoTourElement
-        id={DemoTourStep.SIDEBAR_PROJECTS}
-        title={'Projects in the sidebar'}
-        description={t(
-          'Click on the "Projects" tab in the sidebar to view your projects.'
+
+      <TextBlock>
+        {tct(
+          `These source map archives help Sentry identify where to look when code is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].`,
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
+            ),
+          }
         )}
-      >
-        <TextBlock>
-          {tct(
-            `These source map archives help Sentry identify where to look when code is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].`,
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
-              ),
-            }
-          )}
-        </TextBlock>
-      </DemoTourElement>
-      <DemoTourElement
-        id={DemoTourStep.SIDEBAR_ISSUES}
-        title={'Issues in the sidebar'}
-        description={t('Click on the "Issues" tab in the sidebar to view your issues.')}
-      >
-        <SearchBarWithMarginBottom
-          placeholder={t('Filter by Debug ID or Upload ID')}
-          onSearch={handleSearch}
-          query={query}
-        />
-      </DemoTourElement>
+      </TextBlock>
+
+      <SearchBarWithMarginBottom
+        placeholder={t('Filter by Debug ID or Upload ID')}
+        onSearch={handleSearch}
+        query={query}
+      />
       <SourceMapUploadsList
         project={project}
         sourceMapUploads={sourceMapUploads}
@@ -217,13 +194,8 @@ export function SourceMapsList({location, router, project}: Props) {
           deleteSourceMaps({bundleId: id, projectSlug: project.slug});
         }}
       />
-      <DemoTourElement
-        id={DemoTourStep.ISSUES_STREAM}
-        title={'Issues in the issues stream'}
-        description={t('Click on an issue in the issues stream to view more details.')}
-      >
-        <Pagination pageLinks={headers?.('Link') ?? ''} />
-      </DemoTourElement>
+
+      <Pagination pageLinks={headers?.('Link') ?? ''} />
     </Fragment>
   );
 }

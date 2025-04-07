@@ -65,9 +65,9 @@ const TOUR_STEPS: Record<DemoTour, DemoTourStep[]> = {
   [DemoTour.SIDEBAR]: [
     DemoTourStep.SIDEBAR_PROJECTS,
     DemoTourStep.SIDEBAR_ISSUES,
-    // DemoTourStep.SIDEBAR_PERFORMANCE,
-    // DemoTourStep.SIDEBAR_RELEASES,
-    // DemoTourStep.SIDEBAR_DISCOVER,
+    DemoTourStep.SIDEBAR_PERFORMANCE,
+    DemoTourStep.SIDEBAR_RELEASES,
+    DemoTourStep.SIDEBAR_DISCOVER,
   ],
   [DemoTour.ISSUES]: [
     DemoTourStep.ISSUES_STREAM,
