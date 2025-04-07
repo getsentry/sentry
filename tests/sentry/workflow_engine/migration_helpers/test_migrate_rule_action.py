@@ -24,7 +24,7 @@ from sentry.workflow_engine.typings.notification_action import (
     SentryAppIdentifier,
     TicketDataBlob,
     TicketFieldMappingKeys,
-    issue_alert_action_translator_registry,
+    issue_alert_action_translator_mapping,
 )
 
 
@@ -83,7 +83,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         Asserts that the action data is equivalent to the compare_dict.
         Uses the translator to determine which keys should be excluded from the data blob.
         """
-        translator_class = issue_alert_action_translator_registry.get(compare_dict["id"])
+        translator_class = issue_alert_action_translator_mapping[compare_dict["id"]]
         translator = translator_class(compare_dict)
 
         # Get the keys we need to ignore
@@ -154,7 +154,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         """
         Asserts that the action attributes are equivalent to the compare_dict using the translator.
         """
-        translator_class = issue_alert_action_translator_registry.get(compare_dict["id"])
+        translator_class = issue_alert_action_translator_mapping[compare_dict["id"]]
         translator = translator_class(compare_dict)
 
         # Assert action type matches the translator
@@ -179,7 +179,7 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         # Assert target_type matches
         if translator.target_type is not None:
-            assert action.config.get("target_type") == translator.target_type.value
+            assert action.config.get("target_type") == translator.target_type
         else:
             assert action.config.get("target_type") is None
 
@@ -762,7 +762,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         for registry_id, expected_type in test_cases:
-            translator_class = issue_alert_action_translator_registry.get(registry_id)
+            translator_class = issue_alert_action_translator_mapping[registry_id]
             # Create an instance with empty action data
             translator = translator_class({"id": registry_id})
             assert translator.action_type == expected_type, (

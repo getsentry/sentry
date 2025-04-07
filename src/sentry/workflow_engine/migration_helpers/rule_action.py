@@ -1,11 +1,8 @@
 import logging
 from typing import Any
 
-from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.action import Action
-from sentry.workflow_engine.typings.notification_action import (
-    issue_alert_action_translator_registry,
-)
+from sentry.workflow_engine.typings.notification_action import issue_alert_action_translator_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +35,9 @@ def translate_rule_data_actions_to_notification_actions(
 
         # Fetch the translator class
         try:
-            translator_class = issue_alert_action_translator_registry.get(registry_id)
+            translator_class = issue_alert_action_translator_mapping[registry_id]
             translator = translator_class(action)
-        except NoRegistrationExistsError as e:
+        except KeyError as e:
             logger.exception(
                 "Action translator not found for action",
                 extra={

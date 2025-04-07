@@ -48,7 +48,7 @@ from sentry.workflow_engine.typings.notification_action import (
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-def pop_keys_from_data_blob(data_blob: dict, action_type: Action.Type) -> dict:
+def pop_keys_from_data_blob(data_blob: dict, action_type: str) -> dict:
     """
     Remove standard action fields from each dictionary in the data blob.
 
