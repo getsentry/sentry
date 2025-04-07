@@ -311,15 +311,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert raw_frame_list[1].in_app
         assert raw_frame_list[2].in_app
 
-    @requires_symbolicator
-    @pytest.mark.symbolicator
-    def test_sourcemap_source_expansion(self):
-        self.project.update_option("sentry:scrape_javascript", False)
-        release = Release.objects.create(
-            organization_id=self.project.organization_id, version="abc"
-        )
-        release.add_project(self.project)
-
+    def _create_source_files_and_sourcemaps(self, release):
         for file in ["file.min.js", "file1.js", "file2.js", "file.sourcemap.js"]:
             with open(get_fixture_path(file), "rb") as f:
                 f1 = File.objects.create(
@@ -335,6 +327,17 @@ class TestJavascriptIntegration(RelayStoreHelper):
                 organization_id=self.project.organization_id,
                 file=f1,
             )
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_sourcemap_source_expansion(self):
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
+        )
+        release.add_project(self.project)
+
+        self._create_source_files_and_sourcemaps(release)
 
         data = {
             "timestamp": self.min_ago,
@@ -2482,33 +2485,8 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "url": "http://example.com/file.malformed.sourcemap.js",
         }
 
-    @requires_symbolicator
-    @pytest.mark.symbolicator
-    def test_symbolicated_in_app_after_symbolication(self):
-        self.project.update_option("sentry:scrape_javascript", False)
-        release = Release.objects.create(
-            organization_id=self.project.organization_id, version="abc"
-        )
-        release.add_project(self.project)
-
-        # Create source files and sourcemaps
-        for file in ["file.min.js", "file1.js", "file2.js", "file.sourcemap.js"]:
-            with open(get_fixture_path(file), "rb") as f:
-                f1 = File.objects.create(
-                    name=file,
-                    type="release.file",
-                    headers={},
-                )
-                f1.putfile(f)
-
-            ReleaseFile.objects.create(
-                name=f"http://example.com/{f1.name}",
-                release_id=release.id,
-                organization_id=self.project.organization_id,
-                file=f1,
-            )
-
-        data = {
+    def generate_symbolicated_in_app_event_data(self, frames):
+        return {
             "timestamp": self.min_ago,
             "message": "hello",
             "platform": "javascript",
@@ -2518,27 +2496,42 @@ class TestJavascriptIntegration(RelayStoreHelper):
                     {
                         "type": "Error",
                         "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/file.min.js",
-                                    "filename": "file.min.js",
-                                    "lineno": 1,
-                                    "colno": 39,
-                                    "in_app": True,
-                                },
-                                {
-                                    "abs_path": "http://example.com/file.min.js",
-                                    "filename": "file.min.js",
-                                    "lineno": 1,
-                                    "colno": 183,
-                                    "in_app": True,
-                                },
-                            ]
+                            "frames": frames,
                         },
                     }
                 ]
             },
         }
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_symbolicated_in_app_after_symbolication(self):
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
+        )
+        release.add_project(self.project)
+
+        self._create_source_files_and_sourcemaps(release)
+
+        data = self.generate_symbolicated_in_app_event_data(
+            [
+                {
+                    "abs_path": "http://example.com/file.min.js",
+                    "filename": "file.min.js",
+                    "lineno": 1,
+                    "colno": 39,
+                    "in_app": True,
+                },
+                {
+                    "abs_path": "http://example.com/file.min.js",
+                    "filename": "file.min.js",
+                    "lineno": 1,
+                    "colno": 183,
+                    "in_app": True,
+                },
+            ]
+        )
 
         event = self.post_and_retrieve_event(data)
         exception = event.interfaces["exception"]
@@ -2580,37 +2573,24 @@ class TestJavascriptIntegration(RelayStoreHelper):
                 file=f1,
             )
 
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "release": "abc",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/file.min.js",
-                                    "filename": "file.min.js",
-                                    "lineno": 1,
-                                    "colno": 39,
-                                    "in_app": True,
-                                },
-                                {
-                                    "abs_path": "http://example.com/webpack2.min.js",
-                                    "filename": "webpack2.min.js",
-                                    "lineno": 1,
-                                    "colno": 183,
-                                    "in_app": True,
-                                },
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
+        data = self.generate_symbolicated_in_app_event_data(
+            [
+                {
+                    "abs_path": "http://example.com/file.min.js",
+                    "filename": "file.min.js",
+                    "lineno": 1,
+                    "colno": 39,
+                    "in_app": True,
+                },
+                {
+                    "abs_path": "http://example.com/webpack2.min.js",
+                    "filename": "webpack2.min.js",
+                    "lineno": 1,
+                    "colno": 183,
+                    "in_app": True,
+                },
+            ]
+        )
 
         event = self.post_and_retrieve_event(data)
         exception = event.interfaces["exception"]
@@ -2636,37 +2616,24 @@ class TestJavascriptIntegration(RelayStoreHelper):
         )
         release.add_project(self.project)
 
-        data = {
-            "timestamp": self.min_ago,
-            "message": "hello",
-            "platform": "javascript",
-            "release": "abc",
-            "exception": {
-                "values": [
-                    {
-                        "type": "Error",
-                        "stacktrace": {
-                            "frames": [
-                                {
-                                    "abs_path": "http://example.com/webpack2.min.js",
-                                    "filename": "webpack2.min.js",
-                                    "lineno": 1,
-                                    "colno": 39,
-                                    "in_app": False,
-                                },
-                                {
-                                    "abs_path": "http://example.com/webpack2.min.js",
-                                    "filename": "webpack2.min.js",
-                                    "lineno": 1,
-                                    "colno": 183,
-                                    "in_app": False,
-                                },
-                            ]
-                        },
-                    }
-                ]
-            },
-        }
+        data = self.generate_symbolicated_in_app_event_data(
+            [
+                {
+                    "abs_path": "http://example.com/webpack2.min.js",
+                    "filename": "webpack2.min.js",
+                    "lineno": 1,
+                    "colno": 39,
+                    "in_app": False,
+                },
+                {
+                    "abs_path": "http://example.com/webpack2.min.js",
+                    "filename": "webpack2.min.js",
+                    "lineno": 1,
+                    "colno": 183,
+                    "in_app": False,
+                },
+            ]
+        )
 
         event = self.post_and_retrieve_event(data)
         exception = event.interfaces["exception"]
