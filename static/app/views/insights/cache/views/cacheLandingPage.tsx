@@ -184,7 +184,7 @@ export function CacheLandingPage() {
   const transactionsListWithDuration =
     transactionsList?.map(transaction => ({
       ...transaction,
-      'avg(transaction.duration)': useEap
+      'avg(span.duration)': useEap
         ? transactionDurationsMap[transaction.transaction]?.['avg(span.duration)']!
         : transactionDurationsMap[transaction.transaction]?.[
             'avg(transaction.duration)'
@@ -276,11 +276,16 @@ const combineMeta = (
   };
 };
 
-// TODO - this should come from the backend
+// TODO - this won't be needed once we migrate to EAP
 const addCustomMeta = (meta?: EventsMetaType) => {
   if (meta?.fields) {
     meta.fields[`avg(${CACHE_ITEM_SIZE})`] = 'size';
     meta.units[`avg(${CACHE_ITEM_SIZE})`] = 'byte';
+    meta.units[`avg(span.duration)`] = 'duration';
+  }
+
+  if (meta?.units) {
+    meta.units[`avg(span.duration)`] = 'millisecond';
   }
 };
 
