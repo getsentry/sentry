@@ -135,7 +135,8 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 };
 
-const getInstallSnippet = (basePackage: string, minimumVersion: string) =>
+const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
+const getProfilingInstallSnippet = (basePackage: string, minimumVersion: string) =>
   `pip install --upgrade ${minimumVersion ? `${basePackage}>=${minimumVersion}` : basePackage}`;
 
 const getSdkSetupSnippet = (params: Params) => `
@@ -216,7 +217,7 @@ const onboarding: OnboardingConfig = {
                 )
               : undefined,
           language: 'bash',
-          code: getInstallSnippet('sentry_sdk', '1.18.0'),
+          code: getInstallSnippet(),
         },
       ],
     },
@@ -435,7 +436,7 @@ export const getPythonProfilingOnboarding = ({
       configurations: [
         {
           language: 'bash',
-          code: getInstallSnippet(basePackage, '1.18.0'),
+          code: getProfilingInstallSnippet(basePackage, '1.18.0'),
         },
       ],
     },
@@ -443,33 +444,13 @@ export const getPythonProfilingOnboarding = ({
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'Set up the [code:nodeProfilingIntegration] in your [code:Sentry.init()] call.',
-        {
-          code: <code />,
-        }
+      description: t(
+        "Import and initialize the Sentry SDK early in your application's setup:"
       ),
       configurations: [
         {
           language: 'python',
-          code: [
-            {
-              label: 'Python',
-              value: 'python',
-              language: 'python',
-              code: getSdkSetupSnippet(params),
-            },
-          ],
-          additionalInfo: tct(
-            'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
-            {
-              link: (
-                <ExternalLink
-                  href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling`}
-                />
-              ),
-            }
-          ),
+          code: getSdkSetupSnippet(params),
         },
         {
           description: tct(
@@ -484,8 +465,13 @@ export const getPythonProfilingOnboarding = ({
           ),
         },
       ],
+      additionalInfo: params.isProfilingSelected &&
+        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+          <AlternativeConfiguration />
+        ),
     },
   ],
+
   verify: () => [
     {
       type: StepType.VERIFY,
