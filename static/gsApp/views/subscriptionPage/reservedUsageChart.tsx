@@ -559,7 +559,8 @@ function ReservedUsageChart({
         const {prepaidPrice} = calculateCategoryPrepaidUsage(
           category,
           subscription,
-          reservedBudgetCategoryInfo[category]?.prepaidBudget ?? currentHistory.prepaid
+          reservedBudgetCategoryInfo[category]?.prepaidBudget ?? currentHistory.prepaid,
+          0
         );
         const {onDemandCategoryMax} = calculateCategoryOnDemandUsage(
           category,
