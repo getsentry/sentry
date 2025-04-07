@@ -217,8 +217,8 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
 class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     rule_field = "rule"
 
@@ -254,8 +254,8 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
 class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     rule_field = "alert_rule"
 
