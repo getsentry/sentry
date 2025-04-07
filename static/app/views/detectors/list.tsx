@@ -12,6 +12,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
+import {mockDetectors} from 'sentry/views/detectors/mock/detector';
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
@@ -21,7 +22,7 @@ export default function DetectorsList() {
       <ActionsProvider actions={<Actions />}>
         <ListLayout>
           <TableHeader />
-          <DetectorListTable detectors={[]} />
+          <DetectorListTable detectors={mockDetectors} />
         </ListLayout>
       </ActionsProvider>
     </SentryDocumentTitle>
