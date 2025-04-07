@@ -73,30 +73,23 @@ function getHeaderTitle(
 /**
  * Shared tags and feature flags distributions drawer, used by streamlined issue details UI.
  */
-export function GroupDistributionsDrawer({
-  group,
-  includeFeatureFlagsTab,
-}: {
-  group: Group;
-  includeFeatureFlagsTab: boolean;
-}) {
+export function GroupDistributionsDrawer(props: GroupDistributionsDrawerProps) {
   return (
     <AnalyticsArea name="distributions_drawer">
-      <BaseGroupDistributionsDrawer
-        group={group}
-        includeFeatureFlagsTab={includeFeatureFlagsTab}
-      />
+      <BaseGroupDistributionsDrawer {...props} />
     </AnalyticsArea>
   );
 }
 
+type GroupDistributionsDrawerProps = {
+  group: Group;
+  includeFeatureFlagsTab: boolean;
+};
+
 function BaseGroupDistributionsDrawer({
   group,
   includeFeatureFlagsTab,
-}: {
-  group: Group;
-  includeFeatureFlagsTab: boolean;
-}) {
+}: GroupDistributionsDrawerProps) {
   const location = useLocation();
   const organization = useOrganization();
   const environments = useEnvironmentsFromUrl();

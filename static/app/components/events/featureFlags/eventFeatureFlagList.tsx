@@ -37,31 +37,21 @@ import useSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/featureF
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-export function EventFeatureFlagList({
-  event,
-  group,
-  project,
-}: {
-  event: Event;
-  group: Group;
-  project: Project;
-}) {
+export function EventFeatureFlagList(props: EventFeatureFlagListProps) {
   return (
     <AnalyticsArea name="event_feature_flag_list">
-      <BaseEventFeatureFlagList event={event} group={group} project={project} />
+      <BaseEventFeatureFlagList {...props} />
     </AnalyticsArea>
   );
 }
 
-function BaseEventFeatureFlagList({
-  event,
-  group,
-  project,
-}: {
+type EventFeatureFlagListProps = {
   event: Event;
   group: Group;
   project: Project;
-}) {
+};
+
+function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagListProps) {
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
