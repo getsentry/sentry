@@ -403,7 +403,7 @@ export function useReleaseBubbles({
   const theme = useTheme();
   const {options} = useUser();
   const {selection} = usePageFilters();
-  const {cleanup, charts, registerChart: registerChartHook} = useReleasesDrawer();
+  const {cleanup} = useReleasesDrawer();
   const {registerChart} = useContext(ReleasesDrawerContext);
   // `maxTime` refers to the max time on x-axis for charts.
   // There may be the need to include releases that are > maxTime (e.g. in the
@@ -432,7 +432,6 @@ export function useReleaseBubbles({
     };
   }, [cleanup]);
 
-  console.log(charts);
   const defaultBubbleXAxis = useMemo(
     () => ({
       axisLine: {onZero: true},
