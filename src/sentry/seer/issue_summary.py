@@ -32,6 +32,8 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tasks.autofix.trigger_autofix_from_issue_summary",
     max_retries=1,
+    soft_time_limit=60,  # 1 minute
+    time_limit=65,
 )
 def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, auto_run_source: str):
     """
