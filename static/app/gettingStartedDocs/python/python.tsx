@@ -135,7 +135,8 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 };
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
+const getInstallSnippet = (basePackage: string, minimumVersion: string) =>
+  `pip install --upgrade ${minimumVersion ? `${basePackage}>=${minimumVersion}` : basePackage}`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -215,7 +216,7 @@ const onboarding: OnboardingConfig = {
                 )
               : undefined,
           language: 'bash',
-          code: getInstallSnippet(),
+          code: getInstallSnippet('sentry_sdk', '1.18.0'),
         },
       ],
     },
@@ -417,13 +418,90 @@ export const featureFlagOnboarding: OnboardingConfig = {
   verify: () => [],
   nextSteps: () => [],
 };
+export const getPythonProfilingOnboarding = ({
+  basePackage = 'sentry_sdk',
+}: {
+  basePackage?: string;
+} = {}): OnboardingConfig => ({
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'To enable profiling, update the Sentry SDK to a compatible version ([code:1.18.0] or higher).',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'bash',
+          code: getInstallSnippet(basePackage, '1.18.0'),
+        },
+      ],
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Set up the [code:nodeProfilingIntegration] in your [code:Sentry.init()] call.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: [
+            {
+              label: 'Python',
+              value: 'python',
+              language: 'python',
+              code: getSdkSetupSnippet(params),
+            },
+          ],
+          additionalInfo: tct(
+            'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
+            {
+              link: (
+                <ExternalLink
+                  href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling`}
+                />
+              ),
+            }
+          ),
+        },
+        {
+          description: tct(
+            'For more detailed information on profiling, see the [link:profiling documentation].',
+            {
+              link: (
+                <ExternalLink
+                  href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/`}
+                />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that profiling is working correctly by simply using your application.'
+      ),
+    },
+  ],
+});
 
 const docs: Docs = {
   onboarding,
   performanceOnboarding,
-  profilingOnboarding: onboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
+  profilingOnboarding: getPythonProfilingOnboarding(),
 };
 
 export default docs;
