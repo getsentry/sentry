@@ -64,7 +64,8 @@ export function IssuesWidget({query = ''}: {query?: string}) {
       renderEmptyMessage={renderEmptyMessage}
       withChart={breakpoints.xlarge}
       withPagination={false}
-      source="release"
+      useFilteredStats={false}
+      source="laravel-insights"
     />
   );
 }
