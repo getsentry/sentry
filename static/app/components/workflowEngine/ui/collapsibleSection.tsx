@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -17,17 +16,12 @@ export default function CollapsibleSection({
   description?: string;
   open?: boolean;
 }) {
-  const [isOpen, setIsOpen] = useState(open);
-  const toggleOpen = () => {
-    setIsOpen(!isOpen);
-  };
-
   return (
-    <Body open={open} onToggle={toggleOpen}>
+    <Body open={open}>
       <HeadingWrapper>
         <InteractionStateLayer />
         <Heading>{title}</Heading>
-        <IconChevron direction={isOpen ? 'up' : 'down'} />
+        <IconChevron className="arrow" direction={'down'} />
       </HeadingWrapper>
 
       <Flex column gap={space(0.5)}>
@@ -51,9 +45,15 @@ export const Body = styled('details')`
     summary {
       padding-bottom: ${space(0.75)};
     }
+    .arrow {
+      transform: rotate(180deg);
+    }
   }
   summary {
     padding-bottom: ${space(2)};
+  }
+  .arrow {
+    transform: none;
   }
 `;
 
