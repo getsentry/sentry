@@ -125,10 +125,9 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
         if invite_status:
             kwargs["invite_status"] = invite_status.value
 
-        if kwargs.get("id"):
-            invite = OrganizationMemberInvite.objects.filter(
-                organization_member_id=kwargs["id"]
-            ).first()
+        om_id = kwargs.get("id")
+        if isinstance(om_id, int):
+            invite = OrganizationMemberInvite.objects.filter(organization_member_id=om_id).first()
             if invite is not None:
                 raise ResourceDoesNotExist
 
