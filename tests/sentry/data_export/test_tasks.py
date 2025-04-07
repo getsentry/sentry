@@ -457,7 +457,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             },
         ]
         with self.tasks():
-            assemble_download(de.id, count_down=0)
+            assemble_download(de.id)
         de = ExportedData.objects.get(id=de.id)
         assert de.date_finished is not None
         assert de.date_expired is not None
@@ -482,87 +482,87 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
         mock_query.side_effect = QueryIllegalTypeOfArgument("test")
         with self.tasks():
-            assemble_download(de.id, count_down=0)
+            assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == "Invalid query. Argument to function is wrong type."
 
         # unicode
         mock_query.side_effect = QueryIllegalTypeOfArgument("\xfc")
         with self.tasks():
-            assemble_download(de.id, count_down=0)
+            assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == "Invalid query. Argument to function is wrong type."
 
         mock_query.side_effect = SnubaError("test")
         with self.tasks():
-            assemble_download(de.id, count_down=0)
+            assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Please try again."
 
         # unicode
         mock_query.side_effect = SnubaError("\xfc")
         with self.tasks():
-            assemble_download(de.id, count_down=0)
+            assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Please try again."
 
         mock_query.side_effect = RateLimitExceeded("test")
         with self.tasks():
-            assemble_download(de.id, count_down=0)
+            assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == TIMEOUT_ERROR_MESSAGE
 
         mock_query.side_effect = QueryMemoryLimitExceeded("test")
         with self.tasks():
-            assemble_download(de.id, count_down=0)
+            assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == TIMEOUT_ERROR_MESSAGE
 
         mock_query.side_effect = QueryExecutionTimeMaximum("test")
         with self.tasks():
-            assemble_download(de.id, count_down=0)
+            assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == TIMEOUT_ERROR_MESSAGE
 
         mock_query.side_effect = QueryTooManySimultaneous("test")
         with self.tasks():
-            assemble_download(de.id, count_down=0)
+            assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == TIMEOUT_ERROR_MESSAGE
 
         mock_query.side_effect = DatasetSelectionError("test")
         with self.tasks():
-            assemble_download(de.id, count_down=0)
+            assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Your query failed to run."
 
         mock_query.side_effect = QueryConnectionFailed("test")
         with self.tasks():
-            assemble_download(de.id, count_down=0)
+            assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Your query failed to run."
 
         mock_query.side_effect = QuerySizeExceeded("test")
         with self.tasks():
-            assemble_download(de.id, count_down=0)
+            assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Your query failed to run."
 
         mock_query.side_effect = QueryExecutionError("test")
         with self.tasks():
-            assemble_download(de.id, count_down=0)
+            assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Your query failed to run."
 
         mock_query.side_effect = SchemaValidationError("test")
         with self.tasks():
-            assemble_download(de.id, count_down=0)
+            assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Your query failed to run."
 
         mock_query.side_effect = UnqualifiedQueryError("test")
         with self.tasks():
-            assemble_download(de.id, count_down=0)
+            assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Your query failed to run."
 

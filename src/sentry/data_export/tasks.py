@@ -54,7 +54,6 @@ def assemble_download(
     bytes_written=0,
     environment_id=None,
     export_retries=3,
-    countdown=60,
     **kwargs,
 ):
     with sentry_sdk.start_span(op="assemble"):
@@ -148,7 +147,6 @@ def assemble_download(
                         "environment_id": environment_id,
                         "export_retries": export_retries - 1,
                     },
-                    countdown=countdown,
                 )
             else:
                 return data_export.email_failure(message=str(error))
@@ -187,7 +185,6 @@ def assemble_download(
                         "environment_id": environment_id,
                         "export_retries": export_retries,
                     },
-                    countdown=3,
                 )
             else:
                 metrics.distribution("dataexport.row_count", next_offset, sample_rate=1.0)
