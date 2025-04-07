@@ -1180,7 +1180,7 @@ describe('AM3 Checkout', function () {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toString(),
+      contractPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am2_sponsored_team_auf',
       planTier: PlanTier.AM2,
       isSponsored: true,
@@ -1237,7 +1237,7 @@ describe('AM3 Checkout', function () {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toString(),
+      contractPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am3_f',
       planTier: PlanTier.AM3,
       isSelfServePartner: true,
@@ -1295,7 +1295,7 @@ describe('AM3 Checkout', function () {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toString(),
+      contractPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am3_f',
       planTier: PlanTier.AM3,
       isSelfServePartner: true,

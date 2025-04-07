@@ -37,9 +37,9 @@ describe('NotificationSettings', function () {
       'reports',
       'email',
       ...SELF_NOTIFICATION_SETTINGS_TYPES,
-    ]) {
+    ] as const) {
       expect(
-        await screen.findByText(String(NOTIFICATION_SETTING_FIELDS[field]!.label))
+        await screen.findByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
       ).toBeInTheDocument();
     }
     expect(screen.getByText('Issue Alerts')).toBeInTheDocument();
@@ -69,9 +69,9 @@ describe('NotificationSettings', function () {
       'email',
       'quota',
       ...SELF_NOTIFICATION_SETTINGS_TYPES,
-    ]) {
+    ] as const) {
       expect(
-        await screen.findByText(String(NOTIFICATION_SETTING_FIELDS[field]!.label))
+        await screen.findByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
       ).toBeInTheDocument();
     }
     expect(screen.getByText('Issue Alerts')).toBeInTheDocument();

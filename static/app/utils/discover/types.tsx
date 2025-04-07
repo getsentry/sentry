@@ -55,14 +55,14 @@ export const INTERVAL_DISPLAY_MODES: string[] = [
   DisplayModes.BAR,
 ];
 
-export const DISPLAY_MODE_OPTIONS: Array<SelectValue<string>> = [
+export const DISPLAY_MODE_OPTIONS = [
   {value: DisplayModes.DEFAULT, label: t('Total Period')},
   {value: DisplayModes.PREVIOUS, label: t('Previous Period')},
   {value: DisplayModes.TOP5, label: t('Top 5 Period')},
   {value: DisplayModes.DAILY, label: t('Total Daily')},
   {value: DisplayModes.DAILYTOP5, label: t('Top 5 Daily')},
   {value: DisplayModes.BAR, label: t('Bar Chart')},
-];
+] satisfies Array<SelectValue<string>>;
 
 /**
  * The chain of fallback display modes to try to use when one is disabled.
