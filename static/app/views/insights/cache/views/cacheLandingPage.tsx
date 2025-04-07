@@ -184,8 +184,11 @@ export function CacheLandingPage() {
   const transactionsListWithDuration =
     transactionsList?.map(transaction => ({
       ...transaction,
-      'avg(transaction.duration)':
-        transactionDurationsMap[transaction.transaction]?.['avg(transaction.duration)']!,
+      'avg(transaction.duration)': useEap
+        ? transactionDurationsMap[transaction.transaction]?.['avg(span.duration)']!
+        : transactionDurationsMap[transaction.transaction]?.[
+            'avg(transaction.duration)'
+          ]!,
     })) || [];
 
   const meta = combineMeta(transactionsListMeta, transactionDurationMeta);
