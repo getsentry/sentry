@@ -15,6 +15,11 @@ export type RawFlag = {
 
 export type RawFlagData = {data: RawFlag[]};
 
+export type SuspectFlagScore = {
+  flag: string;
+  score: number;
+};
+
 type FlagSeriesDatapoint = {
   // flag action
   label: {formatter: () => string};
