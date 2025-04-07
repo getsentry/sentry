@@ -12,15 +12,15 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import {GroupSearchViewVisibility} from 'sentry/views/issueList/types';
+import {GroupSearchViewCreatedBy} from 'sentry/views/issueList/types';
 
 type IssueViewSectionProps = {
+  createdBy: GroupSearchViewCreatedBy;
   cursorQueryParam: string;
   limit: number;
-  visibility: GroupSearchViewVisibility;
 };
 
-function IssueViewSection({visibility, limit, cursorQueryParam}: IssueViewSectionProps) {
+function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSectionProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -36,7 +36,7 @@ function IssueViewSection({visibility, limit, cursorQueryParam}: IssueViewSectio
     getResponseHeader,
   } = useFetchGroupSearchViews({
     orgSlug: organization.slug,
-    visibility,
+    createdBy,
     limit,
     cursor,
   });
@@ -89,15 +89,15 @@ export default function IssueViewsList() {
             }}
             placeholder=""
           />
-          <TableHeading>{t('Owned by Me')}</TableHeading>
+          <TableHeading>{t('My Views')}</TableHeading>
           <IssueViewSection
-            visibility={GroupSearchViewVisibility.OWNER}
+            createdBy={GroupSearchViewCreatedBy.ME}
             limit={10}
             cursorQueryParam="mc"
           />
-          <TableHeading>{t('Shared with Me')}</TableHeading>
+          <TableHeading>{t('Others')}</TableHeading>
           <IssueViewSection
-            visibility={GroupSearchViewVisibility.ORGANIZATION}
+            createdBy={GroupSearchViewCreatedBy.OTHERS}
             limit={10}
             cursorQueryParam="sc"
           />
