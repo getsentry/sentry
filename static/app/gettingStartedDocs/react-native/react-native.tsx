@@ -124,7 +124,17 @@ Sentry.mobileReplayIntegration({
 }),`;
 
 const getReactNativeProfilingOnboarding = (): OnboardingConfig => ({
-  install: () => [],
+  install: params => [
+    {
+      title: t('Install SDK Package'),
+      description: t(
+        'Make sure your Sentry React Native SDK version is at least 5.32.0. If you already have the SDK installed, you can update it to the latest version with:'
+      ),
+      configurations: getInstallConfig(params, {
+        basePackage: '@sentry/react-native',
+      }),
+    },
+  ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
