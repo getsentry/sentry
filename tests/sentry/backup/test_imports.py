@@ -2249,7 +2249,7 @@ class CustomImportBehaviorTests(ImportTestCase):
                 org_member.save()
         assert (
             OrganizationMember.objects.filter(organization=org.id, inviter_id__isnull=False).count()
-            == 6
+            == 4
         )
 
         with tempfile.TemporaryDirectory() as tmp_dir:

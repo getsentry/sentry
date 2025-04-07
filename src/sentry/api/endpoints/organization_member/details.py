@@ -18,6 +18,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
 from sentry.api.endpoints.organization_member.utils import ROLE_CHOICES, RelaxedMemberPermission
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
 from sentry.apidocs.constants import (
@@ -126,10 +127,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         """
         invite = OrganizationMemberInvite.objects.filter(organization_member_id=member.id).first()
         if invite is not None:
-            return Response(
-                {"detail": "Cannot serialize details for a placeholder organization member"},
-                status=400,
-            )
+            raise ResourceDoesNotExist
         allowed_roles = get_allowed_org_roles(request, organization, member)
         return Response(
             serialize(
@@ -190,6 +188,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
+        invite = OrganizationMemberInvite.objects.filter(organization_member_id=member.id).first()
+        if invite is not None:
+            raise ResourceDoesNotExist
         allowed_roles = get_allowed_org_roles(request, organization)
         serializer = OrganizationMemberRequestSerializer(
             data=request.data,
@@ -455,6 +456,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         """
         Remove an organization member.
         """
+        invite = OrganizationMemberInvite.objects.filter(organization_member_id=member.id).first()
+        if invite is not None:
+            raise ResourceDoesNotExist
 
         # with superuser read write separation, superuser read cannot hit this endpoint
         # so we can keep this as is_active_superuser
