@@ -13,14 +13,15 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
 type IntervalUnits = 's' | 'm' | 'h' | 'd';
 
-type RelativeUnitsMapping = {
-  [Unit: string]: {
+type RelativeUnitsMapping = Record<
+  string,
+  {
     convertToDaysMultiplier: number;
     label: (num: number) => string;
     momentUnit: moment.unitOfTime.DurationConstructor;
     searchKey: string;
-  };
-};
+  }
+>;
 
 const SUPPORTED_RELATIVE_PERIOD_UNITS: RelativeUnitsMapping = {
   s: {

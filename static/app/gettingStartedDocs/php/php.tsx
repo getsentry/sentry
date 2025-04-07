@@ -218,6 +218,7 @@ const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   performanceOnboarding,
+  profilingOnboarding: onboarding,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
 };

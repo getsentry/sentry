@@ -6,7 +6,7 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 type Options = {
   // parameters to replace any route string parameters (e.g. if route is `:orgId`,
   // params should have `{orgId: slug}`
-  params: {[key: string]: string | undefined};
+  params: Record<string, string | undefined>;
 
   routes: PlainRoute[];
 

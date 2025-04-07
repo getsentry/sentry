@@ -283,6 +283,14 @@ function getLogCursorFromLocation(location: Location): string {
   return decodeScalar(location.query[LOGS_CURSOR_KEY], '');
 }
 
+export function stripLogParamsFromLocation(location: Location): Location {
+  const target: Location = {...location, query: {...location.query}};
+  delete target.query[LOGS_CURSOR_KEY];
+  delete target.query[LOGS_FIELDS_KEY];
+  delete target.query[LOGS_QUERY_KEY];
+  return target;
+}
+
 interface ToggleableSortBy {
   field: string;
   defaultDirection?: 'asc' | 'desc'; // Defaults to descending if not provided.

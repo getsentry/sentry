@@ -29,7 +29,7 @@ import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage(app,span.duration)' as const,
+  field: 'time_spent_percentage(span.duration)' as const,
   kind: 'desc' as const,
 };
 

@@ -132,6 +132,7 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
         assert response.data[0]["id"] == str(objs["user_one_views"][0].id)
         assert response.data[1]["id"] == str(objs["user_one_views"][1].id)
         assert response.data[2]["id"] == str(objs["user_one_views"][2].id)
+        assert all(view["starred"] for view in response.data)
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -156,6 +157,8 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
             assert not response.data[1]["lastVisited"]
             assert not response.data[2]["lastVisited"]
 
+            assert all(view["starred"] for view in response.data)
+
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_get_user_two_custom_views(self) -> None:
@@ -166,6 +169,7 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
 
         assert response.data[0]["id"] == str(objs["user_two_views"][0].id)
         assert response.data[1]["id"] == str(objs["user_two_views"][1].id)
+        assert all(view["starred"] for view in response.data)
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -193,6 +197,7 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
         assert response.data[0]["timeFilters"] == {"period": "14d"}
         assert response.data[0]["projects"] == []
         assert response.data[0]["environments"] == []
+        assert all(view["starred"] for view in response.data)
 
 
 class OrganizationGroupSearchViewsPostTest(APITestCase):
@@ -1229,6 +1234,15 @@ class OrganizationGroupSearchViewsGetCreatedByQueryParamTest(APITestCase):
             visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
 
+        self.my_view_3 = GroupSearchView.objects.create(
+            name="My View 3",
+            organization=self.organization,
+            user_id=self.user.id,
+            query="is:archived",
+            query_sort="date",
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
+        )
+
         # Create views for another user
         self.other_view_1 = GroupSearchView.objects.create(
             name="Other View 1",
@@ -1252,15 +1266,22 @@ class OrganizationGroupSearchViewsGetCreatedByQueryParamTest(APITestCase):
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
             user_id=self.user.id,
-            group_search_view=self.my_view_1,
+            group_search_view=self.my_view_2,
             position=0,
         )
 
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
             user_id=self.user.id,
-            group_search_view=self.my_view_2,
+            group_search_view=self.my_view_3,
             position=1,
+        )
+
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            group_search_view=self.other_view_2,
+            position=2,
         )
 
     @with_feature({"organizations:issue-stream-custom-views": True})
@@ -1270,11 +1291,17 @@ class OrganizationGroupSearchViewsGetCreatedByQueryParamTest(APITestCase):
         response = self.get_success_response(self.organization.slug, createdBy="me")
 
         # Should return views created by current user, ordered by name
-        assert len(response.data) == 2
-        assert response.data[0]["id"] == str(self.my_view_1.id)
-        assert response.data[0]["name"] == "My View 1"
-        assert response.data[1]["id"] == str(self.my_view_2.id)
-        assert response.data[1]["name"] == "My View 2"
+        assert len(response.data) == 3
+        assert response.data[0]["id"] == str(self.my_view_2.id)
+        assert response.data[0]["name"] == "My View 2"
+        assert response.data[0]["starred"]
+        assert response.data[1]["id"] == str(self.my_view_3.id)
+        assert response.data[1]["name"] == "My View 3"
+        assert response.data[1]["starred"]
+        # View 1 should appear last since it's the only non-starred view
+        assert response.data[2]["id"] == str(self.my_view_1.id)
+        assert response.data[2]["name"] == "My View 1"
+        assert not response.data[2]["starred"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -1284,10 +1311,14 @@ class OrganizationGroupSearchViewsGetCreatedByQueryParamTest(APITestCase):
 
         # Should return only organization-visible views created by other users
         assert len(response.data) == 2
-        assert response.data[0]["id"] == str(self.other_view_1.id)
-        assert response.data[0]["name"] == "Other View 1"
-        assert response.data[1]["id"] == str(self.other_view_2.id)
-        assert response.data[1]["name"] == "Other View 2"
+        # View 2 should appear first since it's starred view
+        assert response.data[0]["id"] == str(self.other_view_2.id)
+        assert response.data[0]["name"] == "Other View 2"
+        assert response.data[0]["starred"]
+        # View 1 should appear last since it's not starred
+        assert response.data[1]["id"] == str(self.other_view_1.id)
+        assert response.data[1]["name"] == "Other View 1"
+        assert not response.data[1]["starred"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -1296,12 +1327,17 @@ class OrganizationGroupSearchViewsGetCreatedByQueryParamTest(APITestCase):
         response = self.get_success_response(self.organization.slug)
 
         # Should return only starred views for current user
-        assert len(response.data) == 2
+        assert len(response.data) == 3
         # Ordered by position in starred views
-        assert response.data[0]["id"] == str(self.my_view_1.id)
-        assert response.data[0]["name"] == "My View 1"
-        assert response.data[1]["id"] == str(self.my_view_2.id)
-        assert response.data[1]["name"] == "My View 2"
+        assert response.data[0]["id"] == str(self.my_view_2.id)
+        assert response.data[0]["name"] == "My View 2"
+        assert response.data[0]["starred"]
+        assert response.data[1]["id"] == str(self.my_view_3.id)
+        assert response.data[1]["name"] == "My View 3"
+        assert response.data[1]["starred"]
+        assert response.data[2]["id"] == str(self.other_view_2.id)
+        assert response.data[2]["name"] == "Other View 2"
+        assert response.data[2]["starred"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})

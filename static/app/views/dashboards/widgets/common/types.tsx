@@ -74,4 +74,4 @@ export type Release = {
   version: string;
 };
 
-export type LegendSelection = {[key: string]: boolean};
+export type LegendSelection = Record<string, boolean>;
