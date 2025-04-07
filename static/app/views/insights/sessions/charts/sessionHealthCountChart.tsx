@@ -36,7 +36,7 @@ export default function SessionHealthCountChart() {
       isLoading={isPending}
       error={error}
       legendSelection={{
-        [aliases.healthy_session_count]: false,
+        healthy_session_count: false,
       }}
     />
   );
