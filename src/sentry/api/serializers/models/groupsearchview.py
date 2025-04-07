@@ -78,4 +78,5 @@ class GroupSearchViewSerializer(Serializer):
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
             "starred": attrs["starred"] if attrs else False,
+            # "popularity": obj.popularity,
         }
