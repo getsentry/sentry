@@ -3270,3 +3270,13 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "taskworker.integrations.control.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.integrations.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
