@@ -49,7 +49,9 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
 
         topic_definition = get_topic_definition(Topic.SNUBA_SPANS)
         producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
-        self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+        self.producer = KafkaProducer(
+            build_kafka_configuration(default_config=producer_config), use_simple_futures=True
+        )
         self.output_topic = ArroyoTopic(topic_definition["real_topic_name"])
 
     def create_with_partitions(
