@@ -33,7 +33,9 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         project = Project.objects.get(organization=self.org, slug="javascript-react")
         assert project.name == "javascript-react"
         assert project.platform == "javascript-react"
-        assert_existing_projects_status(self.org, [project.id], [])
+        assert_existing_projects_status(
+            self.org, active_project_ids=[project.id], deleted_project_ids=[]
+        )
 
     def test_project_deletion_on_going_back(self):
         self.start_onboarding()
@@ -52,7 +54,9 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.browser.click(xpath='//a[text()="Skip Onboarding"]')
         self.browser.get("/organizations/%s/projects/" % self.org.slug)
         self.browser.wait_until(xpath='//h1[text()="Remain Calm"]')
-        assert_existing_projects_status(self.org, [], [project1.id, project2.id])
+        assert_existing_projects_status(
+            self.org, active_project_ids=[], deleted_project_ids=[project1.id, project2.id]
+        )
 
     def test_framework_modal_open_by_selecting_vanilla_platform(self):
         self.start_onboarding()
@@ -66,7 +70,9 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         project = Project.objects.get(organization=self.org, slug="javascript")
         assert project.name == "javascript"
         assert project.platform == "javascript"
-        assert_existing_projects_status(self.org, [project.id], [])
+        assert_existing_projects_status(
+            self.org, active_project_ids=[project.id], deleted_project_ids=[]
+        )
 
     def test_create_delete_create_same_platform(self):
         "This test ensures that the regression fixed in PR https://github.com/getsentry/sentry/pull/87869 no longer occurs."
@@ -85,4 +91,6 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.browser.click(xpath='//a[text()="Skip Onboarding"]')
         self.browser.get("/organizations/%s/projects/" % self.org.slug)
         self.browser.wait_until("[data-test-id='javascript-nextjs']")
-        assert_existing_projects_status(self.org, [project2.id], [project1.id])
+        assert_existing_projects_status(
+            self.org, active_project_ids=[project2.id], deleted_project_ids=[project1.id]
+        )
