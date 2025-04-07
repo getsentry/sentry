@@ -8,6 +8,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {activateZendesk, zendeskIsLoaded} from 'sentry/utils/zendesk';
 import {SidebarMenu} from 'sentry/views/nav/primary/components';
 import {
@@ -49,6 +50,7 @@ function getContactSupportItem({
 
 export function PrimaryNavigationHelp() {
   const organization = useOrganization();
+  const user = useUser();
   const {mutate: mutateUserOptions} = useMutateUserOptions();
   const contactSupportItem = getContactSupportItem({organization});
   const openForm = useFeedbackForm();
@@ -133,16 +135,17 @@ export function PrimaryNavigationHelp() {
                   );
                 },
               },
-              organization?.features?.includes('chonk-ui') && {
-                key: 'new-chonk-ui',
-                label: t('Switch to old UI theme'),
-                onAction() {
-                  mutateUserOptions({prefersChonkUI: false});
-                  trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
-                    organization,
-                  });
+              organization?.features?.includes('chonk-ui') &&
+                user.options.prefersChonkUI && {
+                  key: 'new-chonk-ui',
+                  label: t('Switch to old UI theme'),
+                  onAction() {
+                    mutateUserOptions({prefersChonkUI: false});
+                    trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
+                      organization,
+                    });
+                  },
                 },
-              },
             ].filter(n => !!n),
           },
         ]}

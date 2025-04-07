@@ -13,6 +13,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
+import {useUser} from 'sentry/utils/useUser';
 import {useNavPrompts} from 'sentry/views/nav/useNavPrompts';
 
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
@@ -27,6 +28,7 @@ type Props = Pick<
 };
 
 function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
+  const user = useUser();
   const {shouldShowHelpMenuDot, onOpenHelpMenu} = useNavPrompts({
     collapsed,
     organization,
@@ -103,18 +105,19 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                   {t('Try New Navigation')} <Badge type="alpha">Alpha</Badge>
                 </SidebarMenuItem>
               )}
-              {organization?.features?.includes('chonk-ui') && (
-                <SidebarMenuItem
-                  onClick={() => {
-                    mutateUserOptions({prefersChonkUI: true});
-                    trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {
-                      organization,
-                    });
-                  }}
-                >
-                  {t('Try New UI2 Theme')} <Badge type="internal">Internal</Badge>
-                </SidebarMenuItem>
-              )}
+              {organization?.features?.includes('chonk-ui') &&
+                !user.options.prefersChonkUI && (
+                  <SidebarMenuItem
+                    onClick={() => {
+                      mutateUserOptions({prefersChonkUI: true});
+                      trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {
+                        organization,
+                      });
+                    }}
+                  >
+                    {t('Try New UI2 Theme')} <Badge type="internal">Internal</Badge>
+                  </SidebarMenuItem>
+                )}
             </HelpMenu>
           )}
         </HelpRoot>
