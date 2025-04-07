@@ -99,7 +99,7 @@ export function useSelectSolution({groupId, runId}: {groupId: string; runId: str
           };
         }
       );
-      addSuccessMessage("Great, let's move forward with this solution.");
+      addSuccessMessage('On it.');
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when selecting the solution.'));
