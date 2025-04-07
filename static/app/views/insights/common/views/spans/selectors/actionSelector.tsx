@@ -11,7 +11,7 @@ import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
@@ -43,12 +43,15 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
-  const {data: actions} = useSpansQuery<Array<{'span.action': string}>>({
-    eventView,
-    initialData: [],
-    enabled: !useHTTPActions,
-    referrer: 'api.starfish.get-span-actions',
-  });
+  const {data: actions} = useSpanMetrics(
+    {
+      search: eventView.query,
+      fields: [SPAN_ACTION, 'count()'],
+      enabled: !useHTTPActions,
+      sorts: [{field: 'count()', kind: 'desc'}],
+    },
+    'api.starfish.get-span-actions'
+  );
 
   const options: Array<SelectOption<string>> = useHTTPActions
     ? HTTP_ACTION_OPTIONS
