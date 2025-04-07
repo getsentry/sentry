@@ -126,7 +126,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const {
     connectReleaseBubbleChartRef,
-    releaseBubbleEventHandlers,
     releaseBubbleSeries,
     releaseBubbleXAxis,
     releaseBubbleGrid,
@@ -543,7 +542,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   return (
     <BaseChart
       ref={mergeRefs(props.ref, chartRef, handleChartRef)}
-      {...releaseBubbleEventHandlers}
       autoHeightResize
       series={allSeries}
       grid={{
