@@ -245,15 +245,16 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           </div>
         );
       })}
-      {((activeLog && lastStep!.status === 'PROCESSING') || lastStep!.output_stream) && (
-        <AutofixOutputStream
-          stream={lastStep!.output_stream ?? ''}
-          activeLog={activeLog}
-          groupId={groupId}
-          runId={runId}
-          responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
-        />
-      )}
+      {((activeLog && lastStep!.status === 'PROCESSING') || lastStep!.output_stream) &&
+        lastStep!.type !== AutofixStepType.CHANGES && (
+          <AutofixOutputStream
+            stream={lastStep!.output_stream ?? ''}
+            activeLog={activeLog}
+            groupId={groupId}
+            runId={runId}
+            responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
+          />
+        )}
     </StepsContainer>
   );
 }
