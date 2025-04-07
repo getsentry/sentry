@@ -47,13 +47,13 @@ export function getTourTask(
   guide: string
 ): {task: OnboardingTaskKey; tour: string} | undefined {
   switch (guide) {
-    case 'sidebar_v2':
+    case 'sidebar':
       return {tour: 'tabs', task: OnboardingTaskKey.SIDEBAR_GUIDE};
-    case 'issues_v3':
+    case 'issues':
       return {tour: 'issues', task: OnboardingTaskKey.ISSUE_GUIDE};
-    case 'release-details_v2':
+    case 'releases':
       return {tour: 'releases', task: OnboardingTaskKey.RELEASE_GUIDE};
-    case 'transaction_details_v2':
+    case 'performance':
       return {tour: 'performance', task: OnboardingTaskKey.PERFORMANCE_GUIDE};
     default:
       return undefined;

@@ -1,11 +1,13 @@
 import {createContext, useCallback, useContext, useMemo} from 'react';
 
+import {recordFinish} from 'sentry/actionCreators/guides';
 import {TourElementContent} from 'sentry/components/tours/components';
 import {
   type TourContextType,
   type TourState,
   useTourReducer,
 } from 'sentry/components/tours/tourContext';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {useLocalStorageState} from '../useLocalStorageState';
 
@@ -63,9 +65,9 @@ const TOUR_STEPS: Record<DemoTour, DemoTourStep[]> = {
   [DemoTour.SIDEBAR]: [
     DemoTourStep.SIDEBAR_PROJECTS,
     DemoTourStep.SIDEBAR_ISSUES,
-    DemoTourStep.SIDEBAR_PERFORMANCE,
-    DemoTourStep.SIDEBAR_RELEASES,
-    DemoTourStep.SIDEBAR_DISCOVER,
+    // DemoTourStep.SIDEBAR_PERFORMANCE,
+    // DemoTourStep.SIDEBAR_RELEASES,
+    // DemoTourStep.SIDEBAR_DISCOVER,
   ],
   [DemoTour.ISSUES]: [
     DemoTourStep.ISSUES_STREAM,
@@ -116,6 +118,7 @@ const TOUR_STATE_INITIAL_VALUE: Record<DemoTour, TourState<any>> = {
 };
 
 export function DemoToursProvider({children}: {children: React.ReactNode}) {
+  const org = useOrganization();
   const [tourState, setTourState] = useLocalStorageState<
     Record<DemoTour, TourState<any>>
   >(DEMO_TOURS_STATE_KEY, TOUR_STATE_INITIAL_VALUE);
@@ -140,8 +143,9 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
           isCompleted: true,
         },
       }));
+      recordFinish(tourKey, org.id, org.slug, org);
     },
-    [setTourState]
+    [setTourState, org]
   );
 
   const getTourOptions = useCallback(
