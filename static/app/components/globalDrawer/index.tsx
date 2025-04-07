@@ -130,7 +130,11 @@ export function GlobalDrawer({children}: any) {
   useLayoutEffect(
     () => {
       // Defaults to closing the drawer when the location changes
-      if (currentDrawerConfig?.options.shouldCloseOnLocationChange?.(location) ?? true) {
+      if (
+        // Drawer should be closed already if `currentDrawerConfig` is undefined
+        currentDrawerConfig !== undefined &&
+        (currentDrawerConfig?.options.shouldCloseOnLocationChange?.(location) ?? true)
+      ) {
         // Call `closeDrawer` without invoking `onClose` callback, since those callbacks often update the URL
         closeDrawer();
       }
