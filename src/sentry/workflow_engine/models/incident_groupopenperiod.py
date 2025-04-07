@@ -15,7 +15,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
     A lookup model for incidents and group open periods.
     """
 
-    __relocation_scope__ = RelocationScope.Global
+    __relocation_scope__ = RelocationScope.Excluded
 
     incident_id = BoundedBigIntegerField(null=True)
     group_open_period = FlexibleForeignKey("sentry.GroupOpenPeriod")

@@ -72,7 +72,6 @@ from sentry.models.dashboard_widget import (
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewProject
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
@@ -115,12 +114,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
-from sentry.workflow_engine.models import (
-    Action,
-    DataConditionAlertRuleTrigger,
-    DataConditionGroup,
-    IncidentGroupOpenPeriod,
-)
+from sentry.workflow_engine.models import Action, DataConditionAlertRuleTrigger, DataConditionGroup
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 
 __all__ = [
@@ -648,12 +642,6 @@ class ExhaustiveFixtures(Fixtures):
                 group=group,
                 user_id=owner_id,
             )
-        group_open_period = GroupOpenPeriod.objects.create(
-            project=project, group=group, user_id=owner_id
-        )
-        IncidentGroupOpenPeriod.objects.create(
-            incident_id=incident.id, group_open_period=group_open_period
-        )
 
         # DataSecrecyWaiver
         DataSecrecyWaiver.objects.create(
@@ -844,7 +832,6 @@ class ExhaustiveFixtures(Fixtures):
         every model. The end result is two users, in one organization, with one full set of
         extensions, and all global flags set.
         """
-
         superadmin = self.create_exhaustive_user(
             "superadmin", is_admin=is_superadmin, is_superuser=is_superadmin, is_staff=is_superadmin
         )
