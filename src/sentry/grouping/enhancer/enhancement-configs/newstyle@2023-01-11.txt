@@ -429,27 +429,27 @@ function:nextTick -app -group
 path:**/go/pkg/mod/** -app
 
 ## java
-module:akka.* category=not_in_app
-module:com.fasterxml.* category=not_in_app
-module:com.microsoft.* category=not_in_app
-module:com.sun.* category=not_in_app
-module:feign.* category=not_in_app
-module:io.opentelemetry.* category=not_in_app
-module:io.sentry.* category=not_in_app -group
-module:jdk.* category=not_in_app
-module:oauth.* category=not_in_app
-module:org.apache.* category=not_in_app
-module:org.glassfish.* category=not_in_app
-module:org.jboss.* category=not_in_app
-module:org.jdesktop.* category=not_in_app
-module:org.postgresql.* category=not_in_app
-module:org.springframework.* category=not_in_app
-module:org.web3j.* category=not_in_app
-module:reactor.core.* category=not_in_app
-module:scala.* category=not_in_app
-module:sun.* category=not_in_app
+module:akka.* category=framework
+module:com.fasterxml.* category=framework
+module:com.microsoft.* category=framework
+module:com.sun.* category=framework
+module:feign.* category=framework
+module:io.opentelemetry.* category=framework
+module:io.sentry.* category=framework -group
+module:jdk.* category=framework
+module:oauth.* category=framework
+module:org.apache.* category=framework
+module:org.glassfish.* category=framework
+module:org.jboss.* category=framework
+module:org.jdesktop.* category=framework
+module:org.postgresql.* category=framework
+module:org.springframework.* category=framework
+module:org.web3j.* category=framework
+module:reactor.core.* category=framework
+module:scala.* category=framework
+module:sun.* category=framework
 
-category:not_in_app -app
+category:framework -app
 
 ## kotlin
 module:kotlin.* -app
