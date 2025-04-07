@@ -2,32 +2,20 @@ import logging
 from typing import Any
 
 from django.conf import settings
-from urllib3.exceptions import MaxRetryError, TimeoutError
 
-from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
-from sentry.incidents.models.alert_rule import (
-    AlertRuleSeasonality,
-    AlertRuleSensitivity,
-    AlertRuleThresholdType,
-)
 from sentry.net.http import connection_from_url
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
 from sentry.seer.anomaly_detection.types import (
-    AlertInSeer,
-    AnomalyDetectionConfig,
-    DetectAnomaliesRequest,
-    DetectAnomaliesResponse,
-    TimeSeriesPoint,
+    AnomalyDetectionSeasonality,
+    AnomalyDetectionSensitivity,
+    AnomalyDetectionThresholdType,
+    AnomalyType,
 )
-from sentry.seer.anomaly_detection.utils import translate_direction
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.snuba.models import QuerySubscription, SnubaQuery
-from sentry.utils import json
-from sentry.utils.json import JSONDecodeError
+from sentry.snuba.models import QuerySubscription
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler
+from sentry.workflow_engine.types import DataConditionHandler, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +23,17 @@ SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
+
+SEER_EVALUATION_TO_DETECTOR_PRIORITY = {
+    AnomalyType.HIGH_CONFIDENCE: DetectorPriorityLevel.HIGH,
+    AnomalyType.LOW_CONFIDENCE: DetectorPriorityLevel.MEDIUM,
+    AnomalyType.NONE: DetectorPriorityLevel.OK,
+}
+
+
+# placeholder until we create this in the workflow engine model
+class DetectorError(Exception):
+    pass
 
 
 @condition_handler_registry.register(Condition.ANOMALY_DETECTION)
@@ -45,27 +44,23 @@ class AnomalyDetectionHandler(DataConditionHandler[DataPacket]):
         "properties": {
             "sensitivity": {
                 "type": "string",
-                "enum": [sensitivity.value for sensitivity in AlertRuleSensitivity],
+                "enum": [sensitivity.value for sensitivity in AnomalyDetectionSensitivity],
             },
             "seasonality": {
                 "type": "string",
-                "enum": [seasonality.value for seasonality in AlertRuleSeasonality],
+                "enum": [seasonality.value for seasonality in AnomalyDetectionSeasonality],
             },
-            # TODO: we'll probably want to remove the dependency on the old AlertRuleThresholdType type
-            # What's the replacement?
             "threshold_type": {
                 "type": "integer",
-                "enum": [threshold_type.value for threshold_type in AlertRuleThresholdType],
+                "enum": [threshold_type.value for threshold_type in AnomalyDetectionThresholdType],
             },
         },
         "required": ["sensitivity", "seasonality", "threshold_type"],
         "additionalProperties": False,
     }
 
-    # import has_anomaly, compare to comparison
-
     @staticmethod
-    def evaluate_value(update: DataPacket, comparison: Any) -> bool:
+    def evaluate_value(update: DataPacket, comparison: Any) -> DetectorPriorityLevel:
         sensitivity = comparison["sensitivity"]
         seasonality = comparison["seasonality"]
         threshold_type = comparison["threshold_type"]
@@ -79,3 +74,8 @@ class AnomalyDetectionHandler(DataConditionHandler[DataPacket]):
         if anomaly_data is None:
             # something went wrong during evaluation
             raise DetectorError("Error during Seer data evaluation process.")
+
+        anomaly_type = anomaly_data.get("anomaly", {}).get("anomaly_type")
+        if anomaly_type == AnomalyType.NO_DATA:
+            raise DetectorError("Project doesn't have enough data for detector to evaluate")
+        return SEER_EVALUATION_TO_DETECTOR_PRIORITY[anomaly_type]

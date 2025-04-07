@@ -28,7 +28,6 @@ SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
 
-class SeerAnomaly
 
 # TODO: delete this once we deprecate the AlertRule model
 def get_anomaly_data_from_seer_legacy(
