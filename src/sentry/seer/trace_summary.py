@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from typing import Any
 
 import orjson
 import requests
@@ -23,7 +24,7 @@ def get_trace_summary(
     traceTree: list[dict],
     organization: Organization,
     user: User | RpcUser | AnonymousUser | None = None,
-):
+) -> tuple[dict[str, Any], int]:
     """
     Generate an AI summary for a single trace. Trace must be in the EAP format.
 
@@ -35,7 +36,7 @@ def get_trace_summary(
         user: The user requesting the summary
 
     Returns:
-        A dictionary containing the trace summary.
+        A tuple containing (summary_data, status_code)
     """
     if user is None:
         user = AnonymousUser()
@@ -60,7 +61,7 @@ def get_trace_summary(
 
     cache.set(cache_key, trace_summary_dict, timeout=int(timedelta(days=7).total_seconds()))
 
-    return trace_summary_dict
+    return trace_summary_dict, 200
 
 
 def _call_seer(
