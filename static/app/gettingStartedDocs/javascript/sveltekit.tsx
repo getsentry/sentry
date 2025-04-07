@@ -27,6 +27,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
+import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -253,13 +254,21 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding = getJavascriptFullStackOnboarding({
+  basePackage: '@sentry/sveltekit',
+  browserProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/sveltekit/profiling/browser-profiling/',
+  nodeProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/sveltekit/profiling/node-profiling/',
+});
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-
   crashReportOnboarding,
   featureFlagOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;

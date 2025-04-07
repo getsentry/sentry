@@ -133,7 +133,7 @@ function SpanDetail(props: Props) {
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
         <StyledDiscoverButton href="#" size="xs" disabled>
-          <StyledLoadingIndicator size={12} />
+          <StyledLoadingIndicator size={16} />
         </StyledDiscoverButton>
       );
     }
@@ -368,8 +368,8 @@ function SpanDetail(props: Props) {
   }
 
   function partitionSizes(data: any): {
-    nonSizeKeys: {[key: string]: unknown};
-    sizeKeys: {[key: string]: number};
+    nonSizeKeys: Record<string, unknown>;
+    sizeKeys: Record<string, number>;
   } {
     const sizeKeys = SIZE_DATA_KEYS.reduce(
       (keys, key) => {
@@ -641,7 +641,6 @@ const ValueTd = styled('td')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   display: flex;
   align-items: center;
-  height: ${space(2)};
   margin: 0;
 `;
 
@@ -711,7 +710,7 @@ export function Row({
 }
 
 export function Tags({span}: {span: RawSpanType}) {
-  const tags: {[tag_name: string]: string} | undefined = span?.tags;
+  const tags: Record<string, string> | undefined = span?.tags;
 
   if (!tags) {
     return null;

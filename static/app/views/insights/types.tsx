@@ -82,6 +82,7 @@ export type SpanNumberFields =
   | SpanMetricsField.PRECISE_FINISH_TS;
 
 export type SpanStringFields =
+  | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
   | 'span_id'
   | 'span.op'
   | 'span.description'
@@ -114,23 +115,19 @@ export type SpanStringFields =
   | 'profiler.id'
   | 'thread.id';
 
-export type SpanMetricsQueryFilters = {
-  [Field in SpanStringFields]?: string;
-} & {
+export type SpanMetricsQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanMetricsField.PROJECT_ID]?: string;
   [SpanMetricsField.SPAN_DOMAIN]?: string;
 };
 
-export type SpanIndexedQueryFilters = {
-  [Field in SpanStringFields]?: string;
-} & {
+export type SpanIndexedQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 
 export type SpanStringArrayFields = 'span.domain';
 
 export const COUNTER_AGGREGATES = ['sum', 'avg', 'min', 'max', 'p100'] as const;
-export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p95', 'p99'] as const;
+export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p90', 'p95', 'p99'] as const;
 
 export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as const;
 
@@ -149,7 +146,7 @@ export const SPAN_FUNCTIONS = [
   'count',
   'time_spent_percentage',
   'http_response_rate',
-  'http_error_count',
+  'http_response_count',
   'cache_hit_rate',
   'cache_miss_rate',
   'sum',
@@ -177,6 +174,10 @@ export type SpanMetricsResponse = {
   [Property in SpanStringArrayFields as `${Property}`]: string[];
 } & {
   // TODO: This should include all valid HTTP codes or just all integers
+  'http_response_count(2)': number;
+  'http_response_count(3)': number;
+  'http_response_count(4)': number;
+  'http_response_count(5)': number;
   'http_response_rate(2)': number;
   'http_response_rate(3)': number;
   'http_response_rate(4)': number;
@@ -184,18 +185,15 @@ export type SpanMetricsResponse = {
 } & {
   ['project']: string;
   ['project.id']: number;
-} & {
-  [Function in RegressionFunctions]: number;
-} & {
-  [Function in SpanAnyFunction]: string;
-} & {
-  [Property in ConditionalAggregate as
-    | `${Property}(${string})`
-    | `${Property}(${string},${string})`
-    | `${Property}(${string},${string},${string})`]: number;
-} & {
-  [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
-};
+} & Record<RegressionFunctions, number> &
+  Record<SpanAnyFunction, string> & {
+    [Property in ConditionalAggregate as
+      | `${Property}(${string})`
+      | `${Property}(${string},${string})`
+      | `${Property}(${string},${string},${string})`]: number;
+  } & {
+    [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+  };
 
 export type MetricsFilters = {
   [Property in SpanStringFields as `${Property}`]?: string | string[];
@@ -216,19 +214,16 @@ export type EAPSpanResponse = {
 } & {
   ['project']: string;
   ['project.id']: number;
-} & {
-  [Function in RegressionFunctions]: number;
-} & {
-  [Function in SpanAnyFunction]: string;
-} & {
-  [Property in ConditionalAggregate as
-    | `${Property}(${string})`
-    | `${Property}(${string},${string})`
-    | `${Property}(${string},${string},${string})`]: number;
-} & {
-  [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
-  [SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG]: string;
-};
+} & Record<RegressionFunctions, number> &
+  Record<SpanAnyFunction, string> & {
+    [Property in ConditionalAggregate as
+      | `${Property}(${string})`
+      | `${Property}(${string},${string})`
+      | `${Property}(${string},${string},${string})`]: number;
+  } & {
+    [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG]: string;
+  };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;
 
@@ -406,7 +401,7 @@ export enum SpanFunction {
   SPS = 'sps',
   EPM = 'epm',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
-  HTTP_ERROR_COUNT = 'http_error_count',
+  HTTP_RESPONSE_COUNT = 'http_response_count',
   HTTP_RESPONSE_RATE = 'http_response_rate',
   CACHE_HIT_RATE = 'cache_hit_rate',
   CACHE_MISS_RATE = 'cache_miss_rate',
@@ -416,7 +411,14 @@ export enum SpanFunction {
 
 // TODO - add more functions and fields, combine shared ones, etc
 
-export const METRICS_FUNCTIONS = ['count', 'performance_score'] as const;
+export const METRICS_FUNCTIONS = [
+  'count',
+  'performance_score',
+  'count_scores',
+  'opportunity_score',
+  'total_opportunity_score',
+  'p75',
+] as const;
 
 export enum MetricsFields {
   TRANSACTION_DURATION = 'transaction.duration',
@@ -427,6 +429,25 @@ export enum MetricsFields {
   INP_SCORE = 'measurements.score.inp',
   CLS_SCORE = 'measurements.score.cls',
   TTFB_SCORE = 'measurements.score.ttfb',
+  TOTAL_SCORE = 'measurements.score.total',
+  LCP_WEIGHT = 'measurements.score.weight.lcp',
+  FCP_WEIGHT = 'measurements.score.weight.fcp',
+  INP_WEIGHT = 'measurements.score.weight.inp',
+  CLS_WEIGHT = 'measurements.score.weight.cls',
+  TTFB_WEIGHT = 'measurements.score.weight.ttfb',
+  TOTAL_WEIGHT = 'measurements.score.weight.total',
+  PROJECT_ID = 'project.id',
+  LCP = 'measurements.lcp',
+  FCP = 'measurements.fcp',
+  INP = 'measurements.inp',
+  CLS = 'measurements.cls',
+  TTFB = 'measurements.ttfb',
+  ID = 'id',
+  TRACE = 'trace',
+  USER_DISPLAY = 'user.display',
+  REPLAY_ID = 'replayId',
+  TIMESTAMP = 'timestamp',
+  PROFILE_ID = 'profile.id',
 }
 
 export type MetricsNumberFields =
@@ -435,9 +456,30 @@ export type MetricsNumberFields =
   | MetricsFields.FCP_SCORE
   | MetricsFields.INP_SCORE
   | MetricsFields.CLS_SCORE
-  | MetricsFields.TTFB_SCORE;
+  | MetricsFields.TTFB_SCORE
+  | MetricsFields.TOTAL_SCORE
+  | MetricsFields.LCP_WEIGHT
+  | MetricsFields.FCP_WEIGHT
+  | MetricsFields.INP_WEIGHT
+  | MetricsFields.CLS_WEIGHT
+  | MetricsFields.TTFB_WEIGHT
+  | MetricsFields.TOTAL_WEIGHT
+  | MetricsFields.LCP
+  | MetricsFields.FCP
+  | MetricsFields.INP
+  | MetricsFields.CLS
+  | MetricsFields.TTFB;
 
-export type MetricsStringFields = MetricsFields.TRANSACTION;
+export type MetricsStringFields =
+  | MetricsFields.TRANSACTION
+  | MetricsFields.PROJECT
+  | MetricsFields.PROJECT_ID
+  | MetricsFields.ID
+  | MetricsFields.TRACE
+  | MetricsFields.USER_DISPLAY
+  | MetricsFields.REPLAY_ID
+  | MetricsFields.TIMESTAMP
+  | MetricsFields.PROFILE_ID;
 
 export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
 
@@ -449,13 +491,13 @@ export type MetricsResponse = {
   [Function in MetricsFunctions as `${Function}()`]: number;
 } & {
   [Property in MetricsStringFields as `${Property}`]: string;
+} & {
+  [Property in MetricsNumberFields as `count_web_vitals(${Property}, any)`]: string[];
 };
 
 export type MetricsProperty = keyof MetricsResponse;
 
-export type MetricsQueryFilters = {
-  [Field in MetricsStringFields]?: string;
-} & {
+export type MetricsQueryFilters = Partial<Record<MetricsStringFields, string>> & {
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 

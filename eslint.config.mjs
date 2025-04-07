@@ -37,6 +37,16 @@ invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
 invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 
+// lint rules that need type information need to go here
+export const typeAwareLintRules = {
+  name: 'plugin/typescript-eslint/type-aware-linting',
+  rules: {
+    '@typescript-eslint/await-thenable': 'error',
+    '@typescript-eslint/no-array-delete': 'error',
+    '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+  },
+};
+
 const restrictedImportPaths = [
   {
     name: '@testing-library/react',
@@ -138,8 +148,9 @@ export default typescript.config([
 
         // https://typescript-eslint.io/packages/parser/#projectservice
         // `projectService` is recommended, but slower, with our current tsconfig files.
-        // projectService: true,
-        // tsconfigRootDir: import.meta.dirname,
+        projectService: true,
+        // @ts-expect-error TS1343: The import.meta meta-property is only allowed when the --module option is es2020, es2022, esnext, system, node16, or nodenext
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     linterOptions: {
@@ -296,6 +307,12 @@ export default typescript.config([
           message:
             'Please do not mock useProjects. Use `ProjectsStore.loadInitialData([ProjectFixture()])` instead. It can be used before the component is mounted or in a beforeEach hook.',
         },
+        {
+          selector:
+            "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useOrganization']",
+          message:
+            'Please do not mock useOrganization. Pass organization to the render options. `render(<Component />, {organization: OrganizationFixture({isSuperuser: true})})`',
+        },
       ],
       'no-return-assign': 'error',
       'no-script-url': 'error',
@@ -443,6 +460,7 @@ export default typescript.config([
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/stylistic.ts
   ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
   ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
+  typeAwareLintRules,
   {
     name: 'plugin/typescript-eslint/overrides',
     // https://typescript-eslint.io/rules/
@@ -471,7 +489,6 @@ export default typescript.config([
       '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
       '@typescript-eslint/class-literal-property-style': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
-      '@typescript-eslint/consistent-indexed-object-style': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
 

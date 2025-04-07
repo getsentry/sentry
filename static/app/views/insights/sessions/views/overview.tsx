@@ -18,16 +18,7 @@ import {
   type DomainView,
   useDomainViewFilters,
 } from 'sentry/views/insights/pages/useFilters';
-import CrashFreeSessionsChart from 'sentry/views/insights/sessions/charts/crashFreeSessionsChart';
-import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
-import NewAndResolvedIssueChart from 'sentry/views/insights/sessions/charts/newAndResolvedIssueChart';
-import ReleaseNewIssuesChart from 'sentry/views/insights/sessions/charts/releaseNewIssuesChart';
-import ReleaseSessionCountChart from 'sentry/views/insights/sessions/charts/releaseSessionCountChart';
-import ReleaseSessionPercentageChart from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChart';
-import SessionHealthCountChart from 'sentry/views/insights/sessions/charts/sessionHealthCountChart';
-import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessionHealthRateChart';
-import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
-import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
+import {ChartPlacementSlot} from 'sentry/views/insights/sessions/components/chartPlacement';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
 import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
@@ -100,61 +91,51 @@ function ViewSpecificCharts({
   setFilters: (filter: string[]) => void;
   view: DomainView | '';
 }) {
+  const chartProps = {
+    project: projects[0]!,
+  };
+
   switch (view) {
-    case FRONTEND_LANDING_SUB_PATH:
+    case FRONTEND_LANDING_SUB_PATH: {
       return (
         <Fragment>
           <ModuleLayout.Half>
-            <ErrorFreeSessionsChart />
+            <ChartPlacementSlot view={view} index={0} chartProps={chartProps} />
           </ModuleLayout.Half>
           <ModuleLayout.Half>
-            <UserHealthRateChart />
+            <ChartPlacementSlot view={view} index={1} chartProps={chartProps} />
           </ModuleLayout.Half>
 
           <ModuleLayout.Third>
-            <UserHealthCountChart />
+            <ChartPlacementSlot view={view} index={2} chartProps={chartProps} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="issue" project={projects[0]!} />
+            <ChartPlacementSlot view={view} index={3} chartProps={chartProps} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <SessionHealthRateChart />
-          </ModuleLayout.Third>
-
-          <ModuleLayout.Third>
-            <SessionHealthCountChart />
+            <ChartPlacementSlot view={view} index={4} chartProps={chartProps} />
           </ModuleLayout.Third>
         </Fragment>
       );
-
-    case MOBILE_LANDING_SUB_PATH:
+    }
+    case MOBILE_LANDING_SUB_PATH: {
       return (
         <Fragment>
           <ModuleLayout.Half>
-            <CrashFreeSessionsChart />
+            <ChartPlacementSlot view={view} index={0} chartProps={chartProps} />
           </ModuleLayout.Half>
           <ModuleLayout.Half>
-            <ReleaseSessionPercentageChart />
+            <ChartPlacementSlot view={view} index={1} chartProps={chartProps} />
           </ModuleLayout.Half>
 
           <ModuleLayout.Third>
-            <ReleaseNewIssuesChart project={projects[0]!} />
+            <ChartPlacementSlot view={view} index={2} chartProps={chartProps} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ReleaseSessionCountChart />
+            <ChartPlacementSlot view={view} index={3} chartProps={chartProps} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <SessionHealthCountChart />
-          </ModuleLayout.Third>
-
-          <ModuleLayout.Third>
-            <UserHealthCountChart />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <SessionHealthRateChart />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <UserHealthRateChart />
+            <ChartPlacementSlot view={view} index={4} chartProps={chartProps} />
           </ModuleLayout.Third>
 
           <ModuleLayout.Full>
@@ -166,6 +147,7 @@ function ViewSpecificCharts({
           </ModuleLayout.Full>
         </Fragment>
       );
+    }
     default:
       return null;
   }
