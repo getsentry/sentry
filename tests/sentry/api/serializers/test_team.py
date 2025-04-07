@@ -1,5 +1,3 @@
-from unittest import mock
-
 from django.conf import settings
 
 from sentry.api.serializers import serialize
@@ -227,7 +225,7 @@ class TeamSerializerTest(TestCase):
         req.user = user
         req.superuser.set_logged_in(req.user)
 
-        with mock.patch.object(env, "request", req):
+        with env.active_request(req):
             result = serialize(team, user)
             assert result["access"] == TEAM_ADMIN["scopes"]
             assert result["hasAccess"] is True

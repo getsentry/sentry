@@ -6,9 +6,7 @@ import {useTestRouteContext} from 'sentry/utils/useRouteContext';
 
 import {location6ToLocation3} from './reactRouter6Compat/location';
 
-type DefaultQuery<T = string> = {
-  [key: string]: T | T[] | null | undefined;
-};
+type DefaultQuery<T = string> = Record<string, T | T[] | null | undefined>;
 
 export function useLocation<Q extends Query = DefaultQuery>(): Location<Q> {
   // When running in test mode we still read from the legacy route context to

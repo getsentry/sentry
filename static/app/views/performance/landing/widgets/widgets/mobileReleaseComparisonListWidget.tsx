@@ -268,9 +268,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
     getItems(provided).map(item => ({header: item, content: getChart(provided)}));
 
   const getChart = (provided: ComponentData) => {
-    const transformedReleaseSeries: {
-      [releaseVersion: string]: Series;
-    } = {};
+    const transformedReleaseSeries: Record<string, Series> = {};
 
     const series = provided.widgetData.chart.data;
     if (defined(series)) {
