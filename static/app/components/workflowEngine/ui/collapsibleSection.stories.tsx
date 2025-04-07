@@ -10,13 +10,8 @@ export default storyBook('Collapsible Section', story => {
     <Fragment>
       <p>
         The <code>CollapsibleSection</code> component can be customized to start open or
-        closed by setting <code>initialCollapse</code>. By default, collapsible sections
-        are collapsed.
-      </p>
-
-      <p>
-        A static section can be created by setting <code>collapsible</code> to{' '}
-        <code>false</code>. A static section can not be collapsed.
+        closed by setting <code>open</code>. By default, collapsible sections are
+        collapsed.
       </p>
     </Fragment>
   ));
@@ -25,16 +20,15 @@ export default storyBook('Collapsible Section', story => {
       <CollapsibleSection
         title="Collapsed Section"
         description="Your optional description here"
-        collapsible
       >
         <p>Child components go here</p>
       </CollapsibleSection>
       <CollapsibleSection
         title="Static Section"
         description="Your optional description here"
-        collapsible={false}
+        open
       >
-        <p>This static section will always be expanded!</p>
+        <p>This section starts expanded!</p>
       </CollapsibleSection>
     </Flex>
   ));

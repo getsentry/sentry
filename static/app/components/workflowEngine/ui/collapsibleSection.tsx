@@ -10,47 +10,51 @@ export default function CollapsibleSection({
   children,
   title,
   description,
-  collapsible = true,
-  initialCollapse = false,
+  open = false,
 }: {
   children: React.ReactNode;
   title: string;
-  collapsible?: boolean;
   description?: string;
-  initialCollapse?: boolean;
+  open?: boolean;
 }) {
-  const [isOpen, setIsOpen] = useState(initialCollapse);
+  const [isOpen, setIsOpen] = useState(open);
   const toggleOpen = () => {
     setIsOpen(!isOpen);
   };
 
   return (
-    <Body column>
-      <HeadingWrapper
-        onClick={toggleOpen}
-        justify="space-between"
-        collapsible={collapsible}
-      >
-        <InteractionStateLayer hidden={!collapsible} />
+    <Body open={open} onToggle={toggleOpen}>
+      <HeadingWrapper>
+        <InteractionStateLayer />
         <Heading>{title}</Heading>
-        {collapsible && <IconChevron direction={isOpen ? 'down' : 'up'} />}
+        <IconChevron direction={isOpen ? 'up' : 'down'} />
       </HeadingWrapper>
 
-      {!collapsible || isOpen ? (
-        <Flex column gap={space(0.5)}>
-          {description && <Description>{description}</Description>}
-          {children}
-        </Flex>
-      ) : null}
+      <Flex column gap={space(0.5)}>
+        {description && <Description>{description}</Description>}
+        {children}
+      </Flex>
     </Body>
   );
 }
 
-export const Body = styled(Flex)`
+export const Body = styled('details')`
+  display: flex;
+  flex-direction: column;
   background-color: ${p => p.theme.white};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${space(2)} ${space(2)};
+
+  &[open] {
+    gap: ${space(2)};
+    summary {
+      padding-bottom: ${space(0.75)};
+    }
+  }
+  summary {
+    padding-bottom: ${space(2)};
+  }
 `;
 
 export const Heading = styled('h2')`
@@ -58,12 +62,13 @@ export const Heading = styled('h2')`
   margin: 0;
 `;
 
-export const HeadingWrapper = styled(Flex)<{collapsible: boolean}>`
+export const HeadingWrapper = styled('summary')`
+  display: flex;
+  justify-content: space-between;
   position: relative;
   align-items: center;
-  cursor: ${p => (p.collapsible ? 'pointer' : 'initial')};
-  padding: ${space(0.75)} ${space(1.5)};
-  margin: 0 -${space(1.5)};
+  padding: ${space(2)} ${space(2)};
+  margin: -${space(2)} -${space(2)};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
