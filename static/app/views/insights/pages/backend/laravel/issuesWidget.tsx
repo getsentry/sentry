@@ -9,7 +9,7 @@ import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
-import { MutableSearch } from 'sentry/utils/tokenizeSearch';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useLocation} from 'sentry/utils/useLocation';
 
