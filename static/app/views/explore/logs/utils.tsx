@@ -168,8 +168,8 @@ export function getTableHeaderLabel(
 export function isLogAttributeUnit(unit: string | null): unit is LogAttributeUnits {
   return (
     unit === null ||
-    unit === `${DurationUnit}` ||
-    unit === `${CurrencyUnit}` ||
+    Object.values(DurationUnit).includes(unit as DurationUnit) ||
+    Object.values(CurrencyUnit).includes(unit as CurrencyUnit) ||
     unit === 'count' ||
     unit === 'percentage' ||
     unit === 'percent_change'
