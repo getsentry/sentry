@@ -26,7 +26,6 @@ interface IssueListTableProps {
   onCursor: CursorHandler;
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;
-  onSortChange: (sort: string) => void;
   organizationSavedSearches: SavedSearch[];
   pageLinks: string;
   paginationAnalyticsEvent: (direction: string) => void;
@@ -37,7 +36,6 @@ interface IssueListTableProps {
   refetchGroups: (fetchAllCounts?: boolean) => void;
   selectedProjectIds: number[];
   selection: PageFilters;
-  sort: string;
   statsPeriod: string;
 }
 
@@ -47,11 +45,9 @@ function IssueListTable({
   groupIds,
   onDelete,
   onSelectStatsPeriod,
-  onSortChange,
   query,
   queryCount,
   selection,
-  sort,
   statsPeriod,
   onActionTaken,
   issuesLoading,
@@ -87,8 +83,6 @@ function IssueListTable({
             groupIds={groupIds}
             allResultsVisible={allResultsVisible}
             displayReprocessingActions={displayReprocessingActions}
-            sort={sort}
-            onSortChange={onSortChange}
           />
         )}
         <PanelBody>

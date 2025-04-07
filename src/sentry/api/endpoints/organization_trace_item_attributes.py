@@ -12,7 +12,6 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
 )
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType as ProtoTraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, TraceItemFilter
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -96,17 +95,6 @@ def as_attribute_key(
     }
 
 
-def empty_filter(trace_item_type: SupportedTraceItemType):
-    column_name = (
-        "sentry.body" if trace_item_type == SupportedTraceItemType.LOGS else "sentry.description"
-    )
-    return TraceItemFilter(
-        exists_filter=ExistsFilter(
-            key=AttributeKey(name=column_name),
-        )
-    )
-
-
 @region_silo_endpoint
 class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
@@ -151,7 +139,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         snuba_params.start = adjusted_start_date
         snuba_params.end = adjusted_end_date
 
-        filter = filter or empty_filter(trace_item_type)
         attr_type = (
             AttributeKey.Type.TYPE_DOUBLE
             if attribute_type == "number"

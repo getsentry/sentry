@@ -3,7 +3,12 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import ProjectIssueGrouping from 'sentry/views/settings/projectIssueGrouping';
+
+jest.mock('sentry/utils/isActiveSuperuser', () => ({
+  isActiveSuperuser: jest.fn(),
+}));
 
 describe('projectIssueGrouping', () => {
   const {organization, projects} = initializeOrg();
@@ -48,5 +53,39 @@ describe('projectIssueGrouping', () => {
     expect(
       await screen.findByText('Failed to load grouping configs')
     ).toBeInTheDocument();
+  });
+
+  it('shows derived grouping enhancements only for superusers', async () => {
+    // Mock the API response
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/grouping-configs/`,
+      body: [],
+    });
+
+    // First render with a non-superuser
+    const {rerender} = render(
+      <ProjectIssueGrouping
+        organization={organization}
+        project={project}
+        {...RouteComponentPropsFixture()}
+      />
+    );
+
+    // Verify the section is not visible for non-superuser
+    expect(await screen.findByText('Issue Grouping')).toBeInTheDocument();
+    expect(screen.queryByText(/Derived Grouping Enhancements/)).not.toBeInTheDocument();
+
+    // Re-render for superuser
+    jest.mocked(isActiveSuperuser).mockReturnValue(true);
+    rerender(
+      <ProjectIssueGrouping
+        organization={organization}
+        project={project}
+        {...RouteComponentPropsFixture()}
+      />
+    );
+
+    // Verify the section is visible for superuser
+    expect(screen.getByText(/Derived Grouping Enhancements/)).toBeInTheDocument();
   });
 });

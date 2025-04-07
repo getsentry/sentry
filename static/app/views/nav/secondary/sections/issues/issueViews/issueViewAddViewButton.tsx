@@ -90,8 +90,6 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
 }
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  width: 14px;
-  height: 14px !important;
   margin: 0 !important;
 `;
 

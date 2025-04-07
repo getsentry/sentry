@@ -1,11 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import {Select} from 'sentry/components/core/select';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -15,7 +15,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
@@ -24,20 +23,13 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
+import RouteError from 'sentry/views/routeError';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-
-// installationId present for Github flow
-type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}>;
-
-type State = DeprecatedAsyncComponent['state'] & {
-  installationData?: GitHubIntegrationInstallation;
-  installationDataLoading?: boolean;
-  organization?: Organization;
-  provider?: IntegrationProvider;
-  selectedOrgSlug?: string;
-};
 
 interface GitHubIntegrationInstallation {
   account: {
@@ -50,166 +42,167 @@ interface GitHubIntegrationInstallation {
   };
 }
 
-export default class IntegrationOrganizationLink extends DeprecatedAsyncComponent<
-  Props,
-  State
-> {
-  disableErrorReport = false;
-
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    return [['organizations', '/organizations/?include_feature_flags=1']];
+function trackExternalAnalytics({
+  eventName,
+  startSession,
+  organization,
+  provider,
+}: {
+  eventName: IntegrationAnalyticsKey;
+  organization: Organization | null;
+  provider: IntegrationProvider | null;
+  startSession?: boolean;
+}) {
+  if (!organization || !provider) {
+    return;
   }
 
-  trackIntegrationAnalytics = (
-    eventName: IntegrationAnalyticsKey,
-    startSession?: boolean
-  ) => {
-    const {organization, provider} = this.state;
-    // should have these set but need to make TS happy
-    if (!organization || !provider) {
-      return;
+  trackIntegrationAnalytics(
+    eventName,
+    {
+      integration_type: 'first_party',
+      integration: provider.key,
+      // We actually don't know if it's installed but neither does the user in the view and multiple installs is possible
+      already_installed: false,
+      view: 'external_install',
+      organization,
+    },
+    {startSession: !!startSession}
+  );
+}
+
+export default function IntegrationOrganizationLink() {
+  const location = useLocation();
+  const {integrationSlug, installationId} = useParams<{
+    integrationSlug: string;
+    // installationId present for Github flow
+    installationId?: string;
+  }>();
+  const [selectedOrgSlug, setSelectedOrgSlug] = useState<string | null>(null);
+
+  const {
+    data: organizations = [],
+    isPending: isPendingOrganizations,
+    error: organizationsError,
+  } = useApiQuery<Organization[]>(
+    ['/organizations/', {query: {include_feature_flags: 1}}],
+    {staleTime: Infinity}
+  );
+
+  const isOrganizationQueryEnabled = !!selectedOrgSlug;
+  const organizationQuery = useApiQuery<Organization>(
+    [`/organizations/${selectedOrgSlug}/`, {query: {include_feature_flags: 1}}],
+    {staleTime: Infinity, enabled: isOrganizationQueryEnabled}
+  );
+  const organization = organizationQuery.data ?? null;
+  const isPendingOrganization = isOrganizationQueryEnabled && organizationQuery.isPending;
+
+  useEffect(() => {
+    if (organizationQuery.error) {
+      addErrorMessage(t('Failed to retrieve organization details'));
     }
+  }, [organizationQuery.error]);
 
-    trackIntegrationAnalytics(
-      eventName,
-      {
-        integration_type: 'first_party',
-        integration: provider.key,
-        // We actually don't know if it's installed but neither does the user in the view and multiple installs is possible
-        already_installed: false,
-        view: 'external_install',
-        organization,
-      },
-      {startSession: !!startSession}
-    );
-  };
+  const isProviderQueryEnabled = !!selectedOrgSlug;
+  const providerQuery = useApiQuery<{
+    providers: IntegrationProvider[];
+  }>(
+    [
+      `/organizations/${selectedOrgSlug}/config/integrations/`,
+      {query: {provider_key: integrationSlug}},
+    ],
+    {staleTime: Infinity, enabled: isProviderQueryEnabled}
+  );
+  const provider = providerQuery.data?.providers[0] ?? null;
+  const isPendingProviders = isProviderQueryEnabled && providerQuery.isPending;
 
-  trackOpened() {
-    this.trackIntegrationAnalytics('integrations.integration_viewed', true);
-  }
+  useEffect(() => {
+    const hasEmptyProvider = !provider && !isPendingProviders;
+    if (providerQuery.error || hasEmptyProvider) {
+      addErrorMessage(t('Failed to retrieve integration details'));
+    }
+  }, [providerQuery.error, isPendingProviders, provider]);
 
-  trackInstallationStart() {
-    this.trackIntegrationAnalytics('integrations.installation_start');
-  }
+  const isInstallationQueryEnabled = !!installationId && integrationSlug === 'github';
+  const installationQuery = useApiQuery<GitHubIntegrationInstallation>(
+    [`/../../extensions/github/installation/${installationId}/`],
+    {staleTime: Infinity, enabled: isInstallationQueryEnabled}
+  );
+  const installationData = installationQuery.data ?? null;
 
-  get integrationSlug() {
-    return this.props.params.integrationSlug;
-  }
+  useEffect(() => {
+    if (installationQuery.error) {
+      addErrorMessage(t('Failed to retrieve GitHub installation details'));
+    }
+  }, [installationQuery.error]);
 
-  get queryParams() {
-    return this.props.location.query;
-  }
+  // These two queries are recomputed when an organization is selected
+  const isPendingSelection = isPendingOrganization || isPendingProviders;
 
-  getOrgBySlug = (orgSlug: string): Organization | undefined => {
-    return this.state.organizations.find((org: Organization) => org.slug === orgSlug);
-  };
+  const selectOrganization = useCallback(
+    (orgSlug: string) => {
+      const customerDomain = ConfigStore.get('customerDomain');
+      // redirect to the org if it's different than the org being selected
+      if (customerDomain?.subdomain && orgSlug !== customerDomain?.subdomain) {
+        const urlWithQuery = generateOrgSlugUrl(orgSlug) + location.search;
+        window.location.assign(urlWithQuery);
+        return;
+      }
+      // otherwise proceed as normal
+      setSelectedOrgSlug(orgSlug);
+    },
+    [location.search]
+  );
 
-  onLoadAllEndpointsSuccess() {
-    // auto select the org if there is only one
-    const {organizations} = this.state;
+  useEffect(() => {
+    // If only one organization, select it and redirect
     if (organizations.length === 1) {
-      this.onSelectOrg(organizations[0].slug);
+      const urlWithQuery = generateOrgSlugUrl(organizations[0]?.slug) + location.search;
+      window.location.assign(urlWithQuery);
     }
-
-    // now check the subomdain and use that org slug if it exists
+    // Now, check the subdomain and use that org slug if it exists
     const customerDomain = ConfigStore.get('customerDomain');
     if (customerDomain?.subdomain) {
-      this.onSelectOrg(customerDomain.subdomain);
+      selectOrganization(customerDomain.subdomain);
     }
-  }
+  }, [organizations, location.search, selectOrganization]);
 
-  onSelectOrg = async (orgSlug: string) => {
-    const customerDomain = ConfigStore.get('customerDomain');
-    // redirect to the org if it's different than the org being selected
-    if (customerDomain?.subdomain && orgSlug !== customerDomain?.subdomain) {
-      const urlWithQuery = generateOrgSlugUrl(orgSlug) + this.props.location.search;
-      window.location.assign(urlWithQuery);
-      return;
-    }
-
-    // otherwise proceed as normal
-    this.setState({selectedOrgSlug: orgSlug, reloading: true, organization: undefined});
-
-    try {
-      const [organization, {providers}]: [
-        Organization,
-        {providers: IntegrationProvider[]},
-      ] = await Promise.all([
-        this.api.requestPromise(`/organizations/${orgSlug}/`, {
-          query: {
-            include_feature_flags: 1,
-          },
-        }),
-        this.api.requestPromise(
-          `/organizations/${orgSlug}/config/integrations/?provider_key=${this.integrationSlug}`
-        ),
-      ]);
-
-      // should never happen with a valid provider
-      if (providers.length === 0) {
-        throw new Error('Invalid provider');
-      }
-
-      let installationData = undefined;
-      if (this.integrationSlug === 'github') {
-        const {installationId} = this.props.params;
-        try {
-          // The API endpoint /extensions/github/installation is not prefixed with /api/0
-          // so we have to use this workaround.
-          installationData = await this.api.requestPromise(
-            `/../../extensions/github/installation/${installationId}/`
-          );
-        } catch (_err) {
-          addErrorMessage(t('Failed to retrieve GitHub installation details'));
-        }
-        this.setState({installationDataLoading: false});
-      }
-
-      this.setState(
-        {organization, reloading: false, provider: providers[0], installationData},
-        this.trackOpened
-      );
-    } catch (_err) {
-      addErrorMessage(t('Failed to retrieve organization or integration details'));
-      this.setState({reloading: false});
-    }
-  };
-
-  hasAccess = () => {
-    const {organization} = this.state;
+  const hasAccess = useMemo(() => {
     return organization?.access.includes('org:integrations');
-  };
+  }, [organization]);
 
   // used with Github to redirect to the integration detail
-  onInstallWithInstallationId = (data: Integration) => {
-    const {organization} = this.state;
-    const orgId = organization?.slug;
-    const normalizedUrl = normalizeUrl(
-      `/settings/${orgId}/integrations/${data.provider.key}/${data.id}/`
-    );
-    window.location.assign(
-      `${organization?.links.organizationUrl || ''}${normalizedUrl}`
-    );
-  };
+  const onInstallWithInstallationId = useCallback(
+    (data: Integration) => {
+      const orgId = organization?.slug;
+      const normalizedUrl = normalizeUrl(
+        `/settings/${orgId}/integrations/${data.provider.key}/${data.id}/`
+      );
+      window.location.assign(
+        `${organization?.links.organizationUrl || ''}${normalizedUrl}`
+      );
+    },
+    [organization]
+  );
 
   // non-Github redirects to the extension view where the backend will finish the installation
-  finishInstallation = () => {
+  const finishInstallation = useCallback(() => {
     // add the selected org to the query parameters and then redirect back to configure
-    const {selectedOrgSlug, organization} = this.state;
-    const query = {orgSlug: selectedOrgSlug, ...this.queryParams};
-    this.trackInstallationStart();
+    const query = {orgSlug: selectedOrgSlug, ...location.query};
+    trackExternalAnalytics({
+      eventName: 'integrations.installation_start',
+      organization,
+      provider,
+    });
     // need to send to control silo to finish the installation
     window.location.assign(
       `${organization?.links.organizationUrl || ''}/extensions/${
-        this.integrationSlug
+        integrationSlug
       }/configure/?${urlEncode(query)}`
     );
-  };
+  }, [integrationSlug, location.query, organization, provider, selectedOrgSlug]);
 
-  renderAddButton() {
-    const {installationId} = this.props.params;
-    const {organization, provider} = this.state;
-    // should never happen but we need this check for TS
+  const renderAddButton = useMemo(() => {
     if (!provider || !organization) {
       return null;
     }
@@ -236,20 +229,20 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
         {({disabled, disabledReason}) => (
           <AddIntegration
             provider={provider}
-            onInstall={this.onInstallWithInstallationId}
+            onInstall={onInstallWithInstallationId}
             organization={organization}
           >
             {addIntegrationWithInstallationId => (
               <ButtonWrapper>
                 <Button
                   priority="primary"
-                  disabled={!this.hasAccess() || disabled}
+                  disabled={!hasAccess || disabled}
                   onClick={() =>
                     installationId
                       ? addIntegrationWithInstallationId({
                           installation_id: installationId,
                         })
-                      : this.finishInstallation()
+                      : finishInstallation()
                   }
                 >
                   {t('Install %s', provider.name)}
@@ -261,18 +254,25 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
         )}
       </IntegrationFeatures>
     );
-  }
+  }, [
+    installationId,
+    provider,
+    organization,
+    hasAccess,
+    onInstallWithInstallationId,
+    finishInstallation,
+  ]);
 
-  renderBottom() {
-    const {organization, selectedOrgSlug, provider, reloading} = this.state;
+  const renderBottom = useMemo(() => {
     const {FeatureList} = getIntegrationFeatureGate();
-    if (reloading) {
+
+    if (isPendingSelection) {
       return <LoadingIndicator />;
     }
 
     return (
       <Fragment>
-        {selectedOrgSlug && organization && !this.hasAccess() && (
+        {selectedOrgSlug && organization && !hasAccess && (
           <Alert.Container>
             <Alert type="error" showIcon>
               <p>
@@ -288,7 +288,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
           </Alert.Container>
         )}
 
-        {provider && organization && this.hasAccess() && FeatureList && (
+        {provider && organization && hasAccess && FeatureList && (
           <Fragment>
             <p>
               {tct(
@@ -303,24 +303,24 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
             />
           </Fragment>
         )}
-
-        <div className="form-actions">{this.renderAddButton()}</div>
+        <div className="form-actions">{renderAddButton}</div>
       </Fragment>
     );
-  }
+  }, [
+    isPendingSelection,
+    hasAccess,
+    provider,
+    organization,
+    renderAddButton,
+    selectedOrgSlug,
+  ]);
 
-  renderCallout() {
-    const {installationData, installationDataLoading} = this.state;
-
-    if (this.integrationSlug !== 'github') {
+  const renderCallout = useCallback(() => {
+    if (integrationSlug !== 'github') {
       return null;
     }
 
     if (!installationData) {
-      if (installationDataLoading !== false) {
-        return null;
-      }
-
       return (
         <Alert.Container>
           <Alert type="warning" showIcon>
@@ -364,51 +364,54 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
         </Alert>
       </Alert.Container>
     );
+  }, [integrationSlug, installationData]);
+
+  if (isPendingOrganizations) {
+    return <LoadingIndicator />;
   }
 
-  renderBody() {
-    const {selectedOrgSlug} = this.state;
-    const options = this.state.organizations.map((org: Organization) => ({
-      value: org.slug,
-      label: (
-        <IdBadge
-          organization={org}
-          avatarSize={20}
-          displayName={org.name}
-          avatarProps={{consistentWidth: true}}
+  if (organizationsError) {
+    return <RouteError error={organizationsError} />;
+  }
+
+  const options = organizations.map((org: Organization) => ({
+    value: org.slug,
+    label: (
+      <IdBadge
+        organization={org}
+        avatarSize={20}
+        displayName={org.name}
+        avatarProps={{consistentWidth: true}}
+      />
+    ),
+  }));
+
+  return (
+    <NarrowLayout>
+      <SentryDocumentTitle title={t('Choose Installation Organization')} />
+      <h3>{t('Finish integration installation')}</h3>
+      {renderCallout()}
+      <p>
+        {tct(
+          `Please pick a specific [organization:organization] to link with
+          your integration installation of [integation].`,
+          {
+            organization: <strong />,
+            integation: <strong>{integrationSlug}</strong>,
+          }
+        )}
+      </p>
+      <FieldGroup label={t('Organization')} inline={false} stacked required>
+        <Select
+          onChange={(option: SelectOption<string>) => selectOrganization(option.value)}
+          value={selectedOrgSlug}
+          placeholder={t('Select an organization')}
+          options={options}
         />
-      ),
-    }));
-
-    return (
-      <NarrowLayout>
-        <SentryDocumentTitle title={t('Choose Installation Organization')} />
-        <h3>{t('Finish integration installation')}</h3>
-        {this.renderCallout()}
-        <p>
-          {tct(
-            `Please pick a specific [organization:organization] to link with
-            your integration installation of [integation].`,
-            {
-              organization: <strong />,
-              integation: <strong>{this.integrationSlug}</strong>,
-            }
-          )}
-        </p>
-
-        <FieldGroup label={t('Organization')} inline={false} stacked required>
-          <Select
-            // @ts-expect-error TS(7031): Binding element 'orgSlug' implicitly has an 'any' ... Remove this comment to see the full error message
-            onChange={({value: orgSlug}) => this.onSelectOrg(orgSlug)}
-            value={selectedOrgSlug}
-            placeholder={t('Select an organization')}
-            options={options}
-          />
-        </FieldGroup>
-        {this.renderBottom()}
-      </NarrowLayout>
-    );
-  }
+      </FieldGroup>
+      {renderBottom}
+    </NarrowLayout>
+  );
 }
 
 const InstallLink = styled('pre')`

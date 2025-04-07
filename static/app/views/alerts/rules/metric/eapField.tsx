@@ -8,6 +8,11 @@ import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {parseFunction, prettifyTagKey} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {
+  DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_AGGREGATE,
+  DEFAULT_VISUALIZATION_FIELD,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 export const DEFAULT_EAP_FIELD = 'span.duration';
@@ -37,6 +42,11 @@ function EAPField({aggregate, onChange}: Props) {
     name: aggregation,
     arguments: [field],
   } = parseFunction(aggregate) ?? {arguments: [undefined]};
+  //
+  // We want to lock down the fields dropdown when using count so that we can
+  // render `count(spans)` for better legibility. However, for backwards
+  // compatibility, we don't want to lock down all `count` queries immediately.
+  const lockOptions = aggregate === DEFAULT_VISUALIZATION;
 
   const {tags: storedTags} = useSpanTags('number');
   const numberTags: TagCollection = useMemo(() => {
@@ -74,11 +84,11 @@ function EAPField({aggregate, onChange}: Props) {
 
   const handleOperationChange = useCallback(
     (option: any) => {
-      if (field) {
-        onChange(`${option.value}(${field})`, {});
-      } else {
-        onChange(`${option.value}(${DEFAULT_EAP_FIELD})`, {});
-      }
+      const newAggregate =
+        option.value === DEFAULT_VISUALIZATION_AGGREGATE
+          ? DEFAULT_VISUALIZATION
+          : `${option.value}(${field || DEFAULT_EAP_FIELD})`;
+      onChange(newAggregate, {});
     },
     [field, onChange]
   );
@@ -103,7 +113,9 @@ function EAPField({aggregate, onChange}: Props) {
   const fieldName = fieldsArray.find(f => f.key === field)?.name;
 
   // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
-  const selectedOption = field && {label: fieldName, value: field};
+  const selectedOption = lockOptions
+    ? {label: t('spans'), value: DEFAULT_VISUALIZATION_FIELD}
+    : field && {label: fieldName, value: field};
 
   return (
     <Wrapper>
@@ -125,6 +137,7 @@ function EAPField({aggregate, onChange}: Props) {
         loadOptions={(searchText: any) => Promise.resolve(getFieldOptions(searchText))}
         value={selectedOption}
         onChange={handleFieldChange}
+        disabled={lockOptions}
       />
     </Wrapper>
   );

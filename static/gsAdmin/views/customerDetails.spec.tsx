@@ -33,7 +33,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import * as useOrganization from 'sentry/utils/useOrganization';
 
 import {FREE_EVENTS_KEYS} from 'admin/components/addGiftEventsAction';
 import type {StatsGroup} from 'admin/components/customers/customerStats';
@@ -598,10 +597,6 @@ function setUpMocks(
   organization: Organization,
   subscription?: Partial<MockSubscription>
 ) {
-  // We mock the useOrganization hook here instead on the top level because we call renderMocks explicitly with different orgs
-  // TODO(ogi): find a better way to do this
-  jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
-
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/`,
     body: organization,
@@ -1116,9 +1111,7 @@ describe('Customer Details', function () {
         route={{}}
         params={{orgId: organization.slug}}
       />,
-      {
-        router,
-      }
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -1136,9 +1129,7 @@ describe('Customer Details', function () {
         route={{}}
         params={{orgId: organization.slug}}
       />,
-      {
-        router,
-      }
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -1171,7 +1162,8 @@ describe('Customer Details', function () {
         routeParams={router.params}
         route={{}}
         params={{orgId: organization.slug}}
-      />
+      />,
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -1219,7 +1211,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1254,7 +1247,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: softCapOrg.slug}}
-        />
+        />,
+        {organization: softCapOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1280,7 +1274,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: softCapOrg.slug}}
-        />
+        />,
+        {organization: softCapOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1312,7 +1307,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: softCapOrg.slug}}
-        />
+        />,
+        {organization: softCapOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1360,7 +1356,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: softCapOrg.slug}}
-        />
+        />,
+        {organization: softCapOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1415,7 +1412,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: softCapOrg.slug}}
-        />
+        />,
+        {organization: softCapOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1445,7 +1443,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: softCapOrg.slug}}
-        />
+        />,
+        {organization: softCapOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1481,7 +1480,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: softCapOrg.slug}}
-        />
+        />,
+        {organization: softCapOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1532,7 +1532,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: noNotificationsOrg.slug}}
-        />
+        />,
+        {organization: noNotificationsOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1577,7 +1578,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: pendingChangesOrg.slug}}
-        />
+        />,
+        {organization: pendingChangesOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1602,7 +1604,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1631,7 +1634,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: cannotTrialOrg.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1656,7 +1660,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1681,7 +1686,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1712,7 +1718,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: cannotTrialOrg.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1757,7 +1764,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: gracePeriodOrg.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1782,7 +1790,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1824,7 +1833,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: gracePeriodOrg.slug}}
-        />
+        />,
+        {organization: gracePeriodOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1875,7 +1885,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: terminateOrg.slug}}
-        />
+        />,
+        {organization: terminateOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1921,7 +1932,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: terminateOrg.slug}}
-        />
+        />,
+        {organization: terminateOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1965,7 +1977,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: terminateOrg.slug}}
-        />
+        />,
+        {organization: terminateOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2013,7 +2026,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2077,7 +2091,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2157,7 +2172,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2236,7 +2252,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2312,7 +2329,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2354,7 +2372,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2430,7 +2449,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2511,7 +2531,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: cancelSubOrg.slug}}
-        />
+        />,
+        {organization: cancelSubOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2552,68 +2573,7 @@ describe('Customer Details', function () {
       plan: 'mm2_b_500k',
     });
 
-    it('can change to an mm2 plan', async function () {
-      setUpMocks(organization, sub);
-
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${sub.slug}/`,
-        method: 'PUT',
-        body: sub,
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/subscriptions/${sub.slug}/`,
-        body: sub,
-      });
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
-      renderGlobalModal();
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[1]!
-      );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      // When clicking on a different tier, it takes time for the plan list to update
-      await waitFor(() => {
-        const radios = document.querySelectorAll('input[type="radio"]');
-        expect(radios.length).toBeGreaterThan(0);
-      });
-
-      await userEvent.click(screen.getByRole('tab', {name: 'MM2'}));
-
-      await userEvent.click(screen.getByTestId('change-plan-radio-btn-mm2_b_500k'));
-
-      await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
-
-      await waitFor(() => {
-        expect(updateMock).toHaveBeenCalledWith(
-          `/customers/${sub.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              plan: 'mm2_b_500k',
-            },
-          })
-        );
-      });
-    });
-
-    it('can change NT plan', async function () {
+    it('is enabled for NT customers', async function () {
       const Subscription = SubscriptionFixture({
         organization,
         plan: 'am2_business',
@@ -2649,7 +2609,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       renderGlobalModal();
@@ -2660,22 +2621,13 @@ describe('Customer Details', function () {
           name: 'Customers Actions',
         })[1]!
       );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      // When clicking on a different tier, it takes time for the plan list to update
-      await waitFor(() => {
-        const radios = document.querySelectorAll('input[type="radio"]');
-        expect(radios.length).toBeGreaterThan(0);
-      });
-
-      expect(screen.queryByTestId('am2-tier')).not.toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am2_business')
-      ).toBeInTheDocument();
+      expect(screen.getByTestId('action-changePlan')).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      );
     });
 
-    it('can change plan of deactivated partner account', async function () {
+    it('is enabled for deactivated partner account', async function () {
       const partnerSubscription = SubscriptionFixture({
         organization,
         plan: 'am2_business',
@@ -2712,7 +2664,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       renderGlobalModal();
@@ -2723,22 +2676,13 @@ describe('Customer Details', function () {
           name: 'Customers Actions',
         })[1]!
       );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      // When clicking on a different tier, it takes time for the plan list to update
-      await waitFor(() => {
-        const radios = document.querySelectorAll('input[type="radio"]');
-        expect(radios.length).toBeGreaterThan(0);
-      });
-
-      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am3_business')
-      ).toBeInTheDocument();
+      expect(screen.getByTestId('action-changePlan')).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      );
     });
 
-    it('cannot change plan of active, non-XX partner account', async function () {
+    it('is disabled for active, non-XX partner account', async function () {
       const partnerSubscription = SubscriptionFixture({
         organization,
         plan: 'am2_business',
@@ -2765,7 +2709,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2779,518 +2724,6 @@ describe('Customer Details', function () {
         'aria-disabled',
         'true'
       );
-    });
-
-    it('can change to an am1 plan', async function () {
-      const am1Sub = SubscriptionFixture({organization, plan: 'am1_f'});
-      setUpMocks(organization, am1Sub);
-
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/`,
-        method: 'PUT',
-      });
-
-      const subscriptionMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/subscription/`,
-        method: 'PUT',
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
-        body: am1Sub,
-      });
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
-
-      renderGlobalModal();
-
-      await screen.findByRole('heading', {name: 'Customers'});
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[1]!
-      );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      // When clicking on a different tier, it takes time for the plan list to update
-      await waitFor(() => {
-        const radios = document.querySelectorAll('input[type="radio"]');
-        expect(radios.length).toBeGreaterThan(0);
-      });
-
-      await userEvent.click(screen.getByRole('tab', {name: 'AM1'}));
-
-      await userEvent.click(screen.getByTestId('change-plan-radio-btn-am1_team'));
-
-      // reservedErrors
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Errors'}));
-      await userEvent.click(
-        screen.getByText('100,000', {selector: '[data-test-id="menu-list-item-label"]'})
-      );
-
-      // reservedTransactions
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Transactions'})
-      );
-      await userEvent.click(screen.getByText('250,000'));
-
-      // reservedReplays
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Replays'}));
-      await userEvent.click(screen.getByText('25,000'));
-
-      // reservedAttachments
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Attachments (GB)'})
-      );
-      await userEvent.click(screen.getByText('25'));
-
-      // reservedMonitorSeats
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Cron monitors'})
-      );
-      await userEvent.click(
-        screen
-          .getAllByText('1')
-          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
-      );
-
-      // reservedUptime
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Uptime monitors'})
-      );
-      await userEvent.click(
-        screen
-          .getAllByText('1')
-          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
-      );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
-
-      await waitFor(() => {
-        expect(subscriptionMock).toHaveBeenCalledWith(
-          `/customers/${organization.slug}/subscription/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              plan: 'am1_team',
-              reservedErrors: 100000,
-              reservedTransactions: 250000,
-              reservedReplays: 25_000,
-              reservedAttachments: 25,
-              reservedMonitorSeats: 1,
-              reservedUptime: 1,
-              reservedProfileDuration: 0,
-              reservedProfileDurationUI: 0,
-            },
-          })
-        );
-      });
-
-      expect(updateMock).not.toHaveBeenCalled();
-    });
-
-    it('requires am1 reserved volumes to be set', async function () {
-      setUpMocks(organization, sub);
-
-      MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
-        body: sub,
-      });
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
-      renderGlobalModal();
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[1]!
-      );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      // When clicking on a different tier, it takes time for the plan list to update
-      await waitFor(() => {
-        const radios = document.querySelectorAll('input[type="radio"]');
-        expect(radios.length).toBeGreaterThan(0);
-      });
-
-      await userEvent.click(screen.getByRole('tab', {name: 'AM1'}));
-      await userEvent.click(screen.getByTestId('change-plan-radio-btn-am1_team'));
-
-      // Cannot submit yet.
-      expect(screen.getByRole('button', {name: 'Change Plan'})).toBeDisabled();
-    });
-
-    it('can change to an am2 plan', async function () {
-      setUpMocks(organization, sub);
-
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/`,
-        method: 'PUT',
-      });
-      const subscriptionMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/subscription/`,
-        method: 'PUT',
-      });
-      MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
-        body: sub,
-      });
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[1]!
-      );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      renderGlobalModal();
-
-      await userEvent.click(screen.getByRole('tab', {name: 'AM2'}));
-      await userEvent.click(screen.getByTestId('change-plan-radio-btn-am2_team'));
-
-      // all plan options show up
-      expect(screen.getByTestId('change-plan-radio-btn-am2_team')).toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am2_business')
-      ).toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am2_team_bundle')
-      ).toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am2_business_249_bundle')
-      ).toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am2_business_bundle')
-      ).toBeInTheDocument();
-
-      // reservedErrors
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Errors'}));
-      await userEvent.click(screen.getByText('100,000'));
-
-      // reservedTransactions
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Performance units'})
-      );
-      await userEvent.click(screen.getByText('250,000'));
-
-      // reservedReplays
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Replays'}));
-      await userEvent.click(screen.getByText('75,000'));
-
-      // reservedAttachments
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Attachments (GB)'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '25'}));
-
-      // reservedMonitorSeats
-      await userEvent.click(
-        screen
-          .getAllByText('1')
-          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
-      );
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Cron monitors'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '1'}));
-
-      // reservedUptime
-      await userEvent.click(
-        screen
-          .getAllByText('1')
-          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
-      );
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Uptime monitors'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '1'}));
-
-      await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
-
-      await waitFor(() =>
-        expect(subscriptionMock).toHaveBeenCalledWith(
-          `/customers/${organization.slug}/subscription/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              plan: 'am2_team',
-              reservedErrors: 100000,
-              reservedTransactions: 250000,
-              reservedReplays: 75000,
-              reservedAttachments: 25,
-              reservedMonitorSeats: 1,
-              reservedUptime: 1,
-              reservedProfileDuration: 0,
-              reservedProfileDurationUI: 0,
-            },
-          })
-        )
-      );
-
-      expect(updateMock).not.toHaveBeenCalled();
-    });
-
-    it('can change to an am3 plan', async function () {
-      setUpMocks(organization, sub);
-
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/`,
-        method: 'PUT',
-      });
-      const subscriptionMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/subscription/`,
-        method: 'PUT',
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
-        body: sub,
-      });
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
-      renderGlobalModal();
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[1]!
-      );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      await userEvent.click(screen.getByRole('tab', {name: 'AM3'}));
-      await userEvent.click(screen.getByTestId('change-plan-radio-btn-am3_team'));
-
-      // all plan options show up
-      expect(screen.getByTestId('change-plan-radio-btn-am3_team')).toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am3_business')
-      ).toBeInTheDocument();
-
-      // reservedErrors
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Errors'}));
-      await userEvent.click(screen.getByText('100,000'));
-
-      // reservedReplays
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Replays'}));
-      await userEvent.click(screen.getByText('75,000'));
-
-      // reservedSpans
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Spans'}));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '20,000,000'}));
-
-      // reservedMonitorSeats
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Cron monitors'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '1'}));
-
-      // reservedUptime
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Uptime monitors'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '1'}));
-
-      // reservedAttachments
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Attachments (GB)'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '25'}));
-
-      await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
-
-      await waitFor(() =>
-        expect(subscriptionMock).toHaveBeenCalledWith(
-          `/customers/${organization.slug}/subscription/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              plan: 'am3_team',
-              reservedErrors: 100_000,
-              reservedReplays: 75_000,
-              reservedSpans: 20_000_000,
-              reservedMonitorSeats: 1,
-              reservedAttachments: 25,
-              reservedProfileDuration: 0,
-              reservedProfileDurationUI: 0,
-              reservedUptime: 1,
-            },
-          })
-        )
-      );
-
-      expect(updateMock).not.toHaveBeenCalled();
-    });
-
-    it('can change to an am3 plan with zero reserved', async function () {
-      setUpMocks(organization, sub);
-      MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/billing-config/?tier=am3`,
-        body: {
-          ...BillingConfigFixture(PlanTier.AM3),
-          defaultReserved: {
-            errors: 50_000,
-            attachments: 1,
-            replays: 50,
-            monitorSeats: 1,
-            spans: 10_000_000,
-            profileDuration: 0,
-            uptime: 1,
-          },
-        },
-      });
-
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/`,
-        method: 'PUT',
-      });
-      const subscriptionMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/subscription/`,
-        method: 'PUT',
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
-        body: sub,
-      });
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
-      renderGlobalModal();
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[1]!
-      );
-
-      await userEvent.click(screen.getByText('Change Plan'));
-
-      // When clicking on a different tier, it takes time for the plan list to update
-      await waitFor(() => {
-        const radios = document.querySelectorAll('input[type="radio"]');
-        expect(radios.length).toBeGreaterThan(0);
-      });
-
-      await userEvent.click(screen.getByRole('tab', {name: 'AM3'}));
-      await userEvent.click(screen.getByTestId('change-plan-radio-btn-am3_team'));
-
-      // all plan options show up
-      expect(screen.getByTestId('change-plan-radio-btn-am3_team')).toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am3_business')
-      ).toBeInTheDocument();
-
-      // reservedErrors
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Errors'}));
-      await userEvent.click(screen.getByText('100,000'));
-
-      // reservedReplays
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Replays'}));
-      await userEvent.click(screen.getByText('75,000'));
-
-      // reservedSpans
-      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Spans'}));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '20,000,000'}));
-
-      // reservedMonitorSeats
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Cron monitors'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '1'}));
-
-      // reservedUptime
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Uptime monitors'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '1'}));
-
-      // reservedAttachments
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Attachments (GB)'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '25'}));
-
-      await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
-
-      await waitFor(() =>
-        expect(subscriptionMock).toHaveBeenCalledWith(
-          `/customers/${organization.slug}/subscription/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              plan: 'am3_team',
-              reservedErrors: 100_000,
-              reservedReplays: 75_000,
-              reservedSpans: 20_000_000,
-              reservedMonitorSeats: 1,
-              reservedAttachments: 25,
-              reservedProfileDuration: 0,
-              reservedProfileDurationUI: 0,
-              reservedUptime: 1,
-            },
-          })
-        )
-      );
-
-      expect(updateMock).not.toHaveBeenCalled();
     });
   });
 
@@ -3314,7 +2747,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: trialOrg.slug}}
-        />
+        />,
+        {organization: trialOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3355,7 +2789,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3407,7 +2842,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: onDemandInvoicedOrg.slug}}
-        />
+        />,
+        {organization: onDemandInvoicedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3445,7 +2881,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: onDemandInvoicedOrg.slug}}
-        />
+        />,
+        {organization: onDemandInvoicedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3483,7 +2920,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: onDemandInvoicedOrg.slug}}
-        />
+        />,
+        {organization: onDemandInvoicedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3526,7 +2964,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: invoicedOrg.slug}}
-        />
+        />,
+        {organization: invoicedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3585,7 +3024,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: onDemandInvoicedOrg.slug}}
-        />
+        />,
+        {organization: onDemandInvoicedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3634,7 +3074,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3703,7 +3144,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3755,7 +3197,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3785,7 +3228,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3823,7 +3267,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3882,7 +3327,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3945,7 +3391,8 @@ describe('Customer Details', function () {
         routeParams={router.params}
         route={{}}
         params={{orgId: organization.slug}}
-      />
+      />,
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -4005,7 +3452,8 @@ describe('Customer Details', function () {
         routeParams={router.params}
         route={{}}
         params={{orgId: organization.slug}}
-      />
+      />,
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -4064,7 +3512,8 @@ describe('Customer Details', function () {
         routeParams={router.params}
         route={{}}
         params={{orgId: organization.slug}}
-      />
+      />,
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -4092,7 +3541,8 @@ describe('Customer Details', function () {
         routeParams={router.params}
         route={{}}
         params={{orgId: organization.slug}}
-      />
+      />,
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -4122,7 +3572,8 @@ describe('Customer Details', function () {
         routeParams={router.params}
         route={{}}
         params={{orgId: organization.slug}}
-      />
+      />,
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -4192,7 +3643,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: invoicedOrg.slug}}
-        />
+        />,
+        {organization: invoicedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -4221,7 +3673,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: invoicedOrg.slug}}
-        />
+        />,
+        {organization: invoicedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -4256,7 +3709,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: suspendedOrg.slug}}
-        />
+        />,
+        {organization: suspendedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -4287,7 +3741,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: suspendedOrg.slug}}
-        />
+        />,
+        {organization: suspendedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -4334,7 +3789,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -4394,7 +3850,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -4421,7 +3878,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -4454,7 +3912,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -4492,6 +3951,76 @@ describe('Customer Details', function () {
           })
         );
       });
+    });
+  });
+
+  describe('delete billing metric history', function () {
+    // Add afterEach to clean up after tests
+    afterEach(function () {
+      MockApiClient.clearMockResponses();
+      jest.restoreAllMocks();
+      ModalStore.reset();
+    });
+
+    it('shows option when feature flag is enabled', async function () {
+      // Set up organization with the required feature flag
+      const orgWithDeleteFeature = OrganizationFixture({
+        features: ['delete-billing-metric-history-admin'],
+      });
+      setUpMocks(orgWithDeleteFeature);
+
+      render(
+        <CustomerDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+          params={{orgId: orgWithDeleteFeature.slug}}
+        />,
+        {organization: orgWithDeleteFeature}
+      );
+
+      await screen.findByRole('heading', {name: 'Customers'});
+      renderGlobalModal();
+
+      // Open the actions dropdown
+      await userEvent.click(
+        screen.getAllByRole('button', {name: /customers actions/i})[1]!
+      );
+
+      // The delete option should be present
+      expect(screen.getByText('Delete Billing Metric History')).toBeInTheDocument();
+    });
+
+    it('does not show option when feature flag is missing', async function () {
+      // Set up organization without the feature flag
+      const orgWithoutDeleteFeature = OrganizationFixture({
+        features: [],
+      });
+      setUpMocks(orgWithoutDeleteFeature);
+
+      render(
+        <CustomerDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+          params={{orgId: orgWithoutDeleteFeature.slug}}
+        />,
+        {organization: orgWithoutDeleteFeature}
+      );
+
+      await screen.findByRole('heading', {name: 'Customers'});
+
+      // Open the actions dropdown
+      await userEvent.click(
+        screen.getAllByRole('button', {name: /customers actions/i})[1]!
+      );
+
+      // The delete option should not be present
+      expect(screen.queryByText('Delete Billing Metric History')).not.toBeInTheDocument();
     });
   });
 });

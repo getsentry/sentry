@@ -1153,7 +1153,7 @@ describe('SearchQueryBuilder', function () {
       const opButton = await screen.findByRole('button', {
         name: 'Edit operator for filter: browser.name',
       });
-      await act(() => opButton.focus());
+      act(() => opButton.focus());
 
       // Pressing backspace once should focus the token
       await userEvent.keyboard('{backspace}');

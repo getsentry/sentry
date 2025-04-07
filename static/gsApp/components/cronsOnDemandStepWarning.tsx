@@ -5,12 +5,7 @@ import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-import {
-  type MonitorCountResponse,
-  type Plan,
-  PlanTier,
-  type Subscription,
-} from 'getsentry/types';
+import type {MonitorCountResponse, Plan, Subscription} from 'getsentry/types';
 
 interface Props {
   activePlan: Plan;
@@ -55,8 +50,7 @@ export function CronsOnDemandStepWarning({
           "These changes will take effect at the start of your next billing cycle. Heads up that you're currently using $[currentUsageDollars] of Cron Monitors. These monitors will be turned off at the start of your next billing cycle unless you increase your [budgetType] budget.",
           {
             currentUsageDollars: currentUsage / 100,
-            budgetType:
-              subscription.planTier === PlanTier.AM3 ? 'pay-as-you-go' : 'on-demand',
+            budgetType: subscription.planDetails.budgetTerm,
           }
         )}
       </Alert>

@@ -38,6 +38,10 @@ function FocusTabs({isVideoReplay}: Props) {
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
 
+  const tabs = Object.entries(getReplayTabs({isVideoReplay})).filter(
+    ([_, v]) => v !== null
+  );
+
   return (
     <TabContainer>
       <Tabs
@@ -56,7 +60,7 @@ function FocusTabs({isVideoReplay}: Props) {
         }}
       >
         <TabList>
-          {Object.entries(getReplayTabs({isVideoReplay})).map(([tab, label]) => (
+          {tabs.map(([tab, label]) => (
             <TabList.Item key={tab} data-test-id={`replay-details-${tab}-btn`}>
               {label}
             </TabList.Item>

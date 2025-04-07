@@ -19,6 +19,7 @@ from sentry.issues.grouptype import (
     ProfileFunctionRegressionType,
 )
 from sentry.models.group import Group
+from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -62,6 +63,12 @@ def get_group_substatus_text(group: Group) -> str:
 
 
 GENERIC_TEMPLATE_NAME = "generic"
+
+
+def get_key_from_rule_data(rule: Rule, key: str) -> str:
+    value = rule.data.get("actions", [{}])[0].get(key)
+    assert value is not None
+    return value
 
 
 class AlertRuleNotification(ProjectNotification):

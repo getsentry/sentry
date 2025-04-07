@@ -8,12 +8,12 @@ export default function useProjectHasSessions() {
   const projectIds = selection.projects;
 
   const projects = projectIds.length
-    ? projectIds.map(projectId => {
-        return allProjects.find(p => p.id === projectId.toString());
-      })
+    ? projectIds
+        .map(projectId => allProjects.find(p => p.id === projectId.toString()))
+        .filter(project => project !== undefined)
     : allProjects;
 
-  const hasSessionData = projects.some(p => p?.hasSessions);
+  const hasSessionData = projects.some(p => p.hasSessions);
 
-  return hasSessionData;
+  return {projects, hasSessionData};
 }

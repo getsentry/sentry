@@ -20,6 +20,7 @@ from sentry.api.serializers.rest_framework.organizationmemberinvite import (
     OrganizationMemberInviteRequestValidator,
 )
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberinvite import InviteStatus, OrganizationMemberInvite
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
@@ -73,8 +74,10 @@ def _create_invite_object(
         for team in result.get("teams", []):
             teams.append({"id": team.id, "slug": team.slug, "role": None})
 
+        om = OrganizationMember.objects.create(organization=organization)
         omi = OrganizationMemberInvite(
             organization=organization,
+            organization_member=om,
             email=result["email"],
             role=result["orgRole"],
             inviter_id=request.user.id,

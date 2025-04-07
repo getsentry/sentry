@@ -74,7 +74,13 @@ function StepHeader({
         ) : (
           <EditStep>
             {isCompleted && <a onClick={() => onEdit(stepNumber)}>{t('Edit')}</a>}
-            {canEdit && <Chevron direction="down" aria-label={t('Expand section')} />}
+            {canEdit && (
+              <StyledIconChevron
+                direction="down"
+                aria-label={t('Expand section')}
+                size="sm"
+              />
+            )}
           </EditStep>
         )}
       </div>
@@ -121,7 +127,7 @@ const EditStep = styled('div')`
   align-items: center;
 `;
 
-const Chevron = styled(IconChevron)`
+const StyledIconChevron = styled(IconChevron)`
   color: ${p => p.theme.border};
   justify-self: end;
 `;

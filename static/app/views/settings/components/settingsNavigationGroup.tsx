@@ -1,11 +1,13 @@
 import {trackAnalytics} from 'sentry/utils/analytics';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import {useParams} from 'sentry/utils/useParams';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import SettingsNavItem from 'sentry/views/settings/components/settingsNavItem';
 import type {NavigationGroupProps} from 'sentry/views/settings/types';
 
 function SettingsNavigationGroup(props: NavigationGroupProps) {
   const {organization, project, name, items} = props;
+  const params = useParams();
 
   const navLinks = items.map(({path, title, index, show, badge, id, recordAnalytics}) => {
     if (typeof show === 'function' && !show(props)) {
@@ -15,10 +17,7 @@ function SettingsNavigationGroup(props: NavigationGroupProps) {
       return null;
     }
     const badgeResult = typeof badge === 'function' ? badge(props) : null;
-    const to = replaceRouterParams(path, {
-      ...(organization ? {orgId: organization.slug} : {}),
-      ...(project ? {projectId: project.slug} : {}),
-    });
+    const to = replaceRouterParams(path, {...params, orgId: organization?.slug});
 
     const handleClick = () => {
       // only call the analytics event if the URL is changing

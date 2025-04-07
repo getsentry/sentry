@@ -3,15 +3,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useProjects');
 
 function mockPageFilters(projects: number[]) {
   jest.mocked(usePageFilters).mockReturnValue({
@@ -32,19 +31,6 @@ function mockPageFilters(projects: number[]) {
   });
 }
 
-function mockProjects(projects: Project[]) {
-  jest.mocked(useProjects).mockReturnValue({
-    fetchError: null,
-    fetching: false,
-    hasMore: false,
-    initiallyLoaded: false,
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-    projects,
-  });
-}
-
 describe('useCrossPlatformProject', () => {
   let mockProject: Project;
   beforeEach(() => {
@@ -52,7 +38,7 @@ describe('useCrossPlatformProject', () => {
 
     mockProject = ProjectFixture({platform: 'flutter'});
     jest.mocked(useLocation).mockReturnValue(LocationFixture());
-    mockProjects([mockProject]);
+    ProjectsStore.loadInitialData([mockProject]);
   });
 
   it('returns null for project if >1 project is selected', () => {
@@ -83,7 +69,7 @@ describe('useCrossPlatformProject', () => {
   it('returns false for isProjectCrossPlatform if project is not cross platform', () => {
     const testProject = ProjectFixture({platform: 'python'});
 
-    mockProjects([testProject]);
+    ProjectsStore.loadInitialData([testProject]);
     mockPageFilters([parseInt(testProject.id, 10)]);
 
     const {result} = renderHook(useCrossPlatformProject);

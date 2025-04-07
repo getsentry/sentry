@@ -11,13 +11,14 @@ import {
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import * as useProjects from 'sentry/utils/useProjects';
 import Onboarding from 'sentry/views/onboarding/onboarding';
 
 describe('Onboarding', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    ProjectsStore.reset();
   });
 
   it('renders the welcome page', function () {
@@ -347,16 +348,7 @@ describe('Onboarding', function () {
       slug: 'javascript-nextjs',
     });
 
-    jest.spyOn(useProjects, 'default').mockReturnValue({
-      projects: [nextJsProject],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData([nextJsProject]);
 
     const routeParams = {
       step: 'select-platform',

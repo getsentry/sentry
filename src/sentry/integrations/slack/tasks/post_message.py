@@ -7,6 +7,8 @@ from typing import Any
 from sentry.integrations.slack.service import SlackService
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_control_tasks
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
 
@@ -37,6 +39,9 @@ def post_message(
     queue="integrations.control",
     max_retries=0,
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_control_tasks,
+    ),
 )
 def post_message_control(
     integration_id: int,

@@ -142,6 +142,7 @@ export function CachesWidget({query}: {query?: string}) {
       emptyMessage={<HighestCacheMissRateTransactionsWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
+        showLegend: 'never',
         plottables: timeSeries.map(
           (ts, index) =>
             new Line(convertSeriesToTimeseries(ts), {color: colorPalette[index]})

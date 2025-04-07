@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {LinkButton} from 'sentry/components/core/button';
 
 interface ClientDetails {
   clientID: string;
@@ -23,12 +22,9 @@ function ClientSecretModal({
           Your client secret is <b>{clientSecret}</b>
         </p>
         <p>Make sure you save this now! You will not be able to see it again later.</p>
-        <Button
-          priority="danger"
-          onClick={() => browserHistory.push(`/_admin/instance-level-oauth/${clientID}/`)}
-        >
+        <LinkButton priority="danger" to={`/_admin/instance-level-oauth/${clientID}/`}>
           I understand, take me to the rest of my client details.
-        </Button>
+        </LinkButton>
       </Body>
     </Fragment>
   );

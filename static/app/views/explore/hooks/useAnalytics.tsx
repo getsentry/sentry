@@ -8,6 +8,7 @@ import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {
   useLogsFields,
@@ -24,6 +25,7 @@ import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/vi
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
@@ -37,6 +39,7 @@ interface UseTrackAnalyticsProps {
   dataset: DiscoverDatasets;
   fields: string[];
   interval: string;
+  isTopN: boolean;
   page_source: 'explore' | 'compare';
   query: string;
   queryType: 'aggregate' | 'samples' | 'traces';
@@ -60,6 +63,7 @@ export function useTrackAnalytics({
   visualizes,
   page_source,
   interval,
+  isTopN,
 }: UseTrackAnalyticsProps) {
   const organization = useOrganization();
 
@@ -108,6 +112,7 @@ export function useTrackAnalytics({
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
       confidences: computeConfidence(visualizes, timeseriesResult.data),
+      sample_counts: computeTotals(visualizes, timeseriesResult.data, isTopN),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
       interval,
@@ -149,6 +154,7 @@ export function useTrackAnalytics({
     query_status,
     page_source,
     interval,
+    isTopN,
   ]);
 
   useEffect(() => {
@@ -178,6 +184,7 @@ export function useTrackAnalytics({
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
       confidences: computeConfidence(visualizes, timeseriesResult.data),
+      sample_counts: computeTotals(visualizes, timeseriesResult.data, isTopN),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
       interval,
@@ -215,6 +222,7 @@ export function useTrackAnalytics({
     query_status,
     page_source,
     interval,
+    isTopN,
   ]);
 
   const tracesTableResultDefined = defined(tracesTableResult);
@@ -259,6 +267,7 @@ export function useTrackAnalytics({
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
       confidences: computeConfidence(visualizes, timeseriesResult.data),
+      sample_counts: computeTotals(visualizes, timeseriesResult.data, isTopN),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
       interval,
@@ -282,6 +291,7 @@ export function useTrackAnalytics({
     page_source,
     tracesTableResultDefined,
     interval,
+    isTopN,
   ]);
 }
 
@@ -306,6 +316,8 @@ export function useAnalytics({
   const query = useExploreQuery();
   const fields = useExploreFields();
   const visualizes = useExploreVisualizes();
+  const topEvents = useTopEvents();
+  const isTopN = topEvents ? topEvents > 0 : false;
 
   return useTrackAnalytics({
     queryType,
@@ -320,6 +332,7 @@ export function useAnalytics({
     visualizes,
     interval,
     page_source: 'explore',
+    isTopN,
   });
 }
 
@@ -331,6 +344,7 @@ export function useCompareAnalytics({
   spansTableResult,
   timeseriesResult,
   interval,
+  isTopN,
 }: Pick<
   UseTrackAnalyticsProps,
   | 'queryType'
@@ -338,6 +352,7 @@ export function useCompareAnalytics({
   | 'spansTableResult'
   | 'timeseriesResult'
   | 'interval'
+  | 'isTopN'
 > & {
   index: number;
   query: ReadableExploreQueryParts;
@@ -364,6 +379,7 @@ export function useCompareAnalytics({
     visualizes,
     interval,
     page_source: 'compare',
+    isTopN,
   });
 }
 
@@ -448,6 +464,19 @@ function computeConfidence(
     const dedupedYAxes = dedupeArray(visualize.yAxes);
     const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
     return String(combineConfidenceForSeries(series));
+  });
+}
+
+function computeTotals(
+  visualizes: Visualize[],
+  data: ReturnType<typeof useSortedTimeSeries>['data'],
+  isTopN: boolean
+) {
+  return visualizes.map(visualize => {
+    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
+    const {sampleCount} = determineSeriesSampleCountAndIsSampled(series, isTopN);
+    return sampleCount;
   });
 }
 

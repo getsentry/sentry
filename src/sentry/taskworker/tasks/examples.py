@@ -3,12 +3,12 @@ from __future__ import annotations
 import logging
 from time import sleep
 
-from sentry.taskworker.registry import taskregistry
-from sentry.taskworker.retry import LastAction, Retry, RetryError
+from sentry.taskworker.namespaces import exampletasks
+from sentry.taskworker.retry import LastAction, NoRetriesRemainingError, Retry, RetryError
+from sentry.taskworker.retry import retry_task as retry_task_helper
+from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)
-
-exampletasks = taskregistry.create_namespace(name="examples")
 
 
 @exampletasks.register(name="examples.say_hello")
@@ -21,6 +21,17 @@ def say_hello(name: str) -> None:
 )
 def retry_deadletter() -> None:
     raise RetryError
+
+
+@exampletasks.register(
+    name="examples.retry_state", retry=Retry(times=2, times_exceeded=LastAction.Deadletter)
+)
+def retry_state() -> None:
+    try:
+        retry_task_helper()
+    except NoRetriesRemainingError:
+        redis = redis_clusters.get("default")
+        redis.set("no-retries-remaining", 1)
 
 
 @exampletasks.register(

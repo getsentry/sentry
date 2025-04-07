@@ -54,7 +54,7 @@ function SpanSummaryCharts() {
   } = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(filters),
-      yAxis: ['spm()'],
+      yAxis: ['epm()'],
     },
     SpanSummaryReferrer.SPAN_SUMMARY_THROUGHPUT_CHART
   );
@@ -141,7 +141,7 @@ function SpanSummaryCharts() {
         <ChartPanel title={t('Span Throughput')}>
           <Chart
             height={160}
-            data={[throughputData?.[`spm()`]]}
+            data={[throughputData?.[`epm()`]]}
             loading={isThroughputDataLoading}
             type={ChartType.LINE}
             definedAxisTicks={4}

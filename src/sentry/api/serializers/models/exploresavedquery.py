@@ -3,7 +3,11 @@ from typing import DefaultDict, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
+from sentry.explore.models import (
+    ExploreSavedQuery,
+    ExploreSavedQueryDataset,
+    ExploreSavedQueryStarred,
+)
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
@@ -29,12 +33,21 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
     dateUpdated: str
     lastVisited: str
     createdBy: UserSerializerResponse
+    starred: bool
 
 
 @register(ExploreSavedQuery)
 class ExploreSavedQueryModelSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         result: DefaultDict[str, dict] = defaultdict(lambda: {"created_by": {}})
+
+        starred_query_ids = set(
+            ExploreSavedQueryStarred.objects.filter(
+                explore_saved_query__in=item_list,
+                user_id=user.id,
+                organization=item_list[0].organization if item_list else None,
+            ).values_list("explore_saved_query_id", flat=True)
+        )
 
         service_serialized = user_service.serialize_many(
             filter={
@@ -52,6 +65,7 @@ class ExploreSavedQueryModelSerializer(Serializer):
             result[explore_saved_query]["created_by"] = serialized_users.get(
                 str(explore_saved_query.created_by_id)
             )
+            result[explore_saved_query]["starred"] = explore_saved_query.id in starred_query_ids
 
         return result
 
@@ -74,6 +88,7 @@ class ExploreSavedQueryModelSerializer(Serializer):
             "dateUpdated": obj.date_updated,
             "lastVisited": obj.last_visited,
             "createdBy": attrs.get("created_by"),
+            "starred": attrs.get("starred"),
         }
 
         for key in query_keys:

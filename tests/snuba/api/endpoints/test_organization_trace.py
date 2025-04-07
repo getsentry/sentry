@@ -99,7 +99,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.load_trace(is_eap=True)
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={},
+                data={"timestamp": self.day_ago},
             )
         assert response.status_code == 200, response.content
         data = response.data
@@ -111,7 +111,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         with self.feature(self.FEATURES):
             # The trace endpoint should ignore the project param
             response = self.client_get(
-                data={"project": self.project.id},
+                data={"project": self.project.id, "timestamp": self.day_ago},
             )
         assert response.status_code == 200, response.content
         data = response.data
@@ -135,7 +135,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={},
+                data={"timestamp": self.day_ago},
             )
         assert response.status_code == 200, response.content
         data = response.data
@@ -153,7 +153,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.load_trace(is_eap=True)
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={},
+                data={"timestamp": self.day_ago},
             )
         assert response.status_code == 200, response.content
         data = response.data

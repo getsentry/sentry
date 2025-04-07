@@ -6,8 +6,8 @@ export enum NavLayout {
 export enum PrimaryNavGroup {
   ISSUES = 'issues',
   DASHBOARDS = 'dashboards',
-  EXPLORE = 'explorer',
+  EXPLORE = 'explore',
   INSIGHTS = 'insights',
   SETTINGS = 'settings',
-  PIPELINE = 'pipeline',
+  CODECOV = 'codecov',
 }

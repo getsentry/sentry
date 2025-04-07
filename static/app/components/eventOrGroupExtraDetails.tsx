@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
@@ -76,7 +75,6 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
     data.issueCategory &&
     !!getReplayCountForIssue(data.id, data.issueCategory);
 
-  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
   const {subtitle} = getTitle(data);
 
   const items = [
@@ -92,7 +90,7 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
     showLifetime ? (
       <Lifetime firstSeen={firstSeen} lastSeen={lastSeen} lifetime={lifetime} />
     ) : null,
-    hasNewLayout && subtitle ? <Location>{subtitle}</Location> : null,
+    subtitle ? <Location>{subtitle}</Location> : null,
     numComments > 0 ? (
       <CommentsLink
         to={{
@@ -110,7 +108,7 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
     ) : null,
     showReplayCount ? <IssueReplayCount group={data as Group} /> : null,
     logger ? (
-      <LoggerAnnotation hasNewLayout={hasNewLayout}>
+      <LoggerAnnotation>
         <GlobalSelectionLink
           to={{
             pathname: issuesPath,
@@ -124,7 +122,7 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
       </LoggerAnnotation>
     ) : null,
     ...(annotations?.map((annotation, key) => (
-      <AnnotationNoMargin key={key} hasNewLayout={hasNewLayout}>
+      <AnnotationNoMargin key={key}>
         <ExternalLink href={annotation.url}>{annotation.displayName}</ExternalLink>
       </AnnotationNoMargin>
     )) ?? []),
@@ -134,14 +132,10 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
   ].filter(defined);
 
   return (
-    <GroupExtra hasNewLayout={hasNewLayout}>
+    <GroupExtra>
       {items.map((item, i) => {
         if (!item) {
           return null;
-        }
-
-        if (!hasNewLayout) {
-          return <Fragment key={i}>{item}</Fragment>;
         }
 
         return (
@@ -155,27 +149,20 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
   );
 }
 
-const GroupExtra = styled('div')<{hasNewLayout: boolean}>`
+const GroupExtra = styled('div')`
   display: inline-grid;
   grid-auto-flow: column dense;
-  gap: ${p => (p.hasNewLayout ? space(0.75) : space(1.5))};
+  gap: ${space(0.75)};
   justify-content: start;
   align-items: center;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
-  min-width: 500px;
   white-space: nowrap;
   line-height: 1.2;
 
-  ${p =>
-    p.hasNewLayout &&
-    css`
-      min-width: auto;
-      color: ${p.theme.subText};
-      & > a {
-        color: ${p.theme.subText};
-      }
-    `}
+  & > a {
+    color: ${p => p.theme.subText};
+  }
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     line-height: 1;
@@ -204,27 +191,15 @@ const CommentsLink = styled(Link)`
   position: relative;
 `;
 
-const AnnotationNoMargin = styled(EventAnnotation)<{hasNewLayout: boolean}>`
+const AnnotationNoMargin = styled(EventAnnotation)`
   margin-left: 0;
   padding-left: 0;
   border-left: none;
   position: relative;
 
-  ${p =>
-    !p.hasNewLayout &&
-    css`
-      & > a {
-        color: ${p.theme.textColor};
-      }
-    `}
-
-  ${p =>
-    p.hasNewLayout &&
-    css`
-      & > a:hover {
-        color: ${p.theme.linkHoverColor};
-      }
-    `}
+  & > a:hover {
+    color: ${p => p.theme.linkHoverColor};
+  }
 `;
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`

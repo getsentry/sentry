@@ -14,4 +14,7 @@ export const MODULE_DOC_LINK =
 export const DEFAULT_QUERY_FILTER =
   'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>"';
 
+export const DEFAULT_EAP_QUERY_FILTER =
+  'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,pageload,""] !transaction:"<< unparameterized >>"';
+
 export const MODULE_FEATURES = ['insights-initial-modules'];

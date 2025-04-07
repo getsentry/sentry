@@ -224,10 +224,11 @@ function ReviewAndConfirmHeader({
   let subText;
   if (subscription.isSelfServePartner) {
     subText = tct(
-      'These changes will apply [applyDate], and you will be billed by [partnerName] monthly for any recurring subscription fees and incurred pay-as-you-go fees.',
+      'These changes will apply [applyDate], and you will be billed by [partnerName] monthly for any recurring subscription fees and incurred [budgetType] fees.',
       {
         applyDate: effectiveNow ? 'immediately' : 'on the date above',
         partnerName: subscription.partner?.partnership.displayName,
+        budgetType: subscription.planDetails.budgetTerm,
       }
     );
   } else {

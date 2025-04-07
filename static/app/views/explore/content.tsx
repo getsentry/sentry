@@ -10,10 +10,12 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
+import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
@@ -40,6 +42,7 @@ export function ExploreContent() {
   const hasSavedQueries = organization.features.includes('performance-saved-queries');
 
   const title = getTitleFromLocation(location);
+  const id = getIdFromLocation(location);
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
@@ -47,7 +50,7 @@ export function ExploreContent() {
         <Layout.Page>
           <Layout.Header unified={prefersStackedNav}>
             <Layout.HeaderContent unified={prefersStackedNav}>
-              {hasSavedQueries && title ? <ExploreBreadcrumb /> : null}
+              {hasSavedQueries && title && defined(id) ? <ExploreBreadcrumb /> : null}
               <Layout.Title>
                 {hasSavedQueries && title ? title : t('Traces')}
                 <PageHeadingQuestionTooltip

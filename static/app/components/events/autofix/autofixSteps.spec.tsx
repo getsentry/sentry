@@ -49,7 +49,10 @@ describe('AutofixSteps', () => {
           index: 1,
         }),
       ],
-      repositories: [],
+      request: {
+        repos: [],
+      },
+      codebases: {},
       created_at: '2023-01-01T00:00:00Z',
       run_id: '1',
       status: AutofixStatus.PROCESSING,

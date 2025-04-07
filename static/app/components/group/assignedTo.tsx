@@ -7,7 +7,6 @@ import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import AssigneeSelectorDropdown from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Chevron} from 'sentry/components/chevron';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Button} from 'sentry/components/core/button';
 import {
@@ -16,7 +15,7 @@ import {
 } from 'sentry/components/group/assigneeSelector';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {IconSettings, IconUser} from 'sentry/icons';
+import {IconChevron, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -256,9 +255,9 @@ function AssignedTo({
           <ActorName>{getAssignedToDisplayName(group) ?? t('No one')}</ActorName>
         </ActorWrapper>
         {!disableDropdown && (
-          <Chevron
+          <IconChevron
             data-test-id="assigned-to-chevron-icon"
-            size="large"
+            size="md"
             direction={isOpen ? 'up' : 'down'}
           />
         )}
@@ -343,7 +342,5 @@ const StyledSidebarTitle = styled(SidebarSection.Title)`
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  width: 24px;
-  height: 24px;
   margin: 0 !important;
 `;

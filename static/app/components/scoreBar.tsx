@@ -73,8 +73,7 @@ const Bar = styled('div')<BarProps>`
   border-radius: ${p => p.radius}px;
   margin: 2px;
   /* @TODO(jonasbadalic) This used to be defined on the theme, but is component specific and had no dark mode color. */
-  ${p => p.empty && `background-color: #e2dee6;`}
-  ${p => p.color && `background-color: ${p.color};`}
+  background-color: ${p => (p.empty ? p.theme.gray200 : p.color)};
 
   width: ${p => (p.vertical ? p.size : p.thickness)}px;
   height: ${p => (p.vertical ? p.thickness : p.size)}px;

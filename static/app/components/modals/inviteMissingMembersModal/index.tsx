@@ -110,7 +110,7 @@ export function InviteMissingMembersModal({
     if (sendingInvites) {
       return (
         <StatusMessage>
-          <LoadingIndicator mini relative hideMessage size={16} />
+          <LoadingIndicator mini relative size={16} />
           {t('Sending organization invitations\u2026')}
         </StatusMessage>
       );

@@ -75,8 +75,8 @@ const getP95Threshold = (avg: number) => {
 
 const getCellColor = (value: number, thresholds: Record<string, number>) => {
   return Object.entries(thresholds).find(([_, threshold]) => value >= threshold)?.[0] as
-    | 'error'
-    | 'warning'
+    | 'errorText'
+    | 'warningText'
     | undefined;
 };
 

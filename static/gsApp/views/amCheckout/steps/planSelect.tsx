@@ -230,6 +230,7 @@ function PlanSelect({
                   : undefined
               }
               shouldShowDefaultPayAsYouGo={shouldShowDefaultPayAsYouGo}
+              shouldShowEventPrice
             />
           );
         })}

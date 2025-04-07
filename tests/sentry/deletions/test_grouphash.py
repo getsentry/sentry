@@ -1,12 +1,9 @@
-from dataclasses import asdict
 from unittest.mock import patch
 
-from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.deletions.tasks.groups import delete_groups
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
-from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.tasks.unmerge import unmerge
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
@@ -43,24 +40,11 @@ class DeleteGroupHashTest(TestCase):
         existing_grouphash = GroupHash.objects.filter(group_id=existing_group_id).first()
         assert existing_grouphash
 
-        seer_result_data = SeerSimilarIssueData(
-            parent_hash=existing_event.get_primary_hash(),
-            parent_group_id=existing_group_id,
-            stacktrace_distance=0.01,
-            should_group=True,
-        )
-
         with (
             patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
             patch(
                 "sentry.grouping.ingest.seer.get_seer_similar_issues",
-                return_value=(
-                    {
-                        "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                        "results": [asdict(seer_result_data)],
-                    },
-                    existing_grouphash,
-                ),
+                return_value=(0.01, existing_grouphash),
             ),
         ):
             new_event = self.store_event(
@@ -96,24 +80,11 @@ class DeleteGroupHashTest(TestCase):
         ).first()
         assert existing_grouphash
 
-        seer_result_data = SeerSimilarIssueData(
-            parent_hash=existing_event.get_primary_hash(),
-            parent_group_id=existing_event.group.id,
-            stacktrace_distance=0.01,
-            should_group=True,
-        )
-
         with (
             patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
             patch(
                 "sentry.grouping.ingest.seer.get_seer_similar_issues",
-                return_value=(
-                    {
-                        "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                        "results": [asdict(seer_result_data)],
-                    },
-                    existing_grouphash,
-                ),
+                return_value=(0.01, existing_grouphash),
             ),
         ):
             new_event = self.store_event(

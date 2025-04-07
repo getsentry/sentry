@@ -9,29 +9,19 @@ import CreateAlertButton, {
   CreateAlertFromViewButton,
 } from 'sentry/components/createAlertButton';
 import GuideStore from 'sentry/stores/guideStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import useProjects from 'sentry/utils/useProjects';
 import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 
 const onClickMock = jest.fn();
 
-jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/actionCreators/navigation');
 
 describe('CreateAlertFromViewButton', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
-    jest.mocked(useProjects).mockReturnValue({
-      projects: [],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData([]);
   });
 
   afterEach(() => {
@@ -70,16 +60,7 @@ describe('CreateAlertFromViewButton', () => {
         access: [],
       },
     ];
-    jest.mocked(useProjects).mockReturnValue({
-      projects,
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData(projects);
 
     render(
       <CreateAlertFromViewButton
@@ -106,16 +87,7 @@ describe('CreateAlertFromViewButton', () => {
         access: [],
       },
     ];
-    jest.mocked(useProjects).mockReturnValue({
-      projects,
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData(projects);
 
     render(
       <CreateAlertFromViewButton
@@ -154,17 +126,7 @@ describe('CreateAlertFromViewButton', () => {
         access: ['alerts:read' as const],
       },
     ];
-
-    jest.mocked(useProjects).mockReturnValue({
-      projects,
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData(projects);
 
     render(
       <CreateAlertFromViewButton
@@ -258,16 +220,7 @@ describe('CreateAlertFromViewButton', () => {
     const router = RouterFixture();
 
     const projects = [ProjectFixture()];
-    jest.mocked(useProjects).mockReturnValue({
-      projects,
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData(projects);
 
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,

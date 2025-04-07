@@ -12,7 +12,7 @@ type Query = {
 
 const SORTABLE_FIELDS = [
   `avg(${SPAN_SELF_TIME})`,
-  'spm()',
+  'epm()',
   `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
 ] as const;
 

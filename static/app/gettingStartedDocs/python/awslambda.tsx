@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {
+  type StepProps,
+  StepType,
+} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
   DocsPageLocation,
@@ -75,6 +78,53 @@ sentry_sdk.init(
   ],
 )`;
 
+const installStep = (params: Params): StepProps => ({
+  type: StepType.INSTALL,
+  description: tct('Install our Python SDK using [code:pip]:', {code: <code />}),
+  configurations: [
+    {
+      description:
+        params.docsLocation === DocsPageLocation.PROFILING_PAGE
+          ? tct(
+              'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
+              {
+                code: <code />,
+              }
+            )
+          : undefined,
+      language: 'bash',
+      code: getInstallSnippet(),
+    },
+  ],
+});
+
+const configureStep = (params: Params): StepProps => ({
+  type: StepType.CONFIGURE,
+  description: t('You can use the AWS Lambda integration for the Python SDK like this:'),
+  configurations: [
+    {
+      language: 'python',
+      code: getSdkSetupSnippet(params),
+    },
+  ],
+  additionalInfo: (
+    <Fragment>
+      {params.isProfilingSelected &&
+        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+          <Fragment>
+            <AlternativeConfiguration />
+            <br />
+          </Fragment>
+        )}
+      {tct("Check out Sentry's [link:AWS sample apps] for detailed examples.", {
+        link: (
+          <ExternalLink href="https://github.com/getsentry/examples/tree/master/aws-lambda/python" />
+        ),
+      })}
+    </Fragment>
+  ),
+});
+
 const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
@@ -85,56 +135,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
         ),
       }
     ),
-  install: (params: Params) => [
-    {
-      type: StepType.INSTALL,
-      description: tct('Install our Python SDK using [code:pip]:', {code: <code />}),
-      configurations: [
-        {
-          description:
-            params.docsLocation === DocsPageLocation.PROFILING_PAGE
-              ? tct(
-                  'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
-                  {
-                    code: <code />,
-                  }
-                )
-              : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
-    },
-  ],
+  install: (params: Params) => [installStep(params)],
   configure: (params: Params) => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        'You can use the AWS Lambda integration for the Python SDK like this:'
-      ),
-      configurations: [
-        {
-          language: 'python',
-          code: getSdkSetupSnippet(params),
-        },
-      ],
-      additionalInfo: (
-        <Fragment>
-          {params.isProfilingSelected &&
-            params.profilingOptions?.defaultProfilingMode === 'continuous' && (
-              <Fragment>
-                <AlternativeConfiguration />
-                <br />
-              </Fragment>
-            )}
-          {tct("Check out Sentry's [link:AWS sample apps] for detailed examples.", {
-            link: (
-              <ExternalLink href="https://github.com/getsentry/examples/tree/master/aws-lambda/python" />
-            ),
-          })}
-        </Fragment>
-      ),
-    },
+    configureStep(params),
     {
       title: t('Timeout Warning'),
       description: tct(
@@ -189,10 +192,16 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   },
 };
 
+const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: (params: Params) => [installStep(params)],
+  configure: (params: Params) => [configureStep(params)],
+  verify: () => [],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
-
   crashReportOnboarding: crashReportOnboardingPython,
+  profilingOnboarding,
   platformOptions,
 };
 

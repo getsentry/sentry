@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.explore.models import ExploreSavedQuery
+from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -262,6 +262,36 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["lastVisited"] == last_visited
+
+    def test_get_no_starred_queries(self):
+        with self.feature(self.feature_name):
+            response = self.client.get(self.url, data={"starred": "1"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+    def test_get_starred_queries(self):
+        query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Starred query",
+            query=query,
+        )
+        model.set_projects(self.project_ids)
+
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model,
+            position=1,
+        )
+
+        with self.feature(self.feature_name):
+            response = self.client.get(self.url, data={"starred": "1"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Starred query"
+        assert response.data[0]["starred"] == 1
 
     def test_post_require_mode(self):
         with self.feature(self.feature_name):

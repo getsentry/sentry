@@ -65,9 +65,24 @@ export function AggregateFlamegraphSidePanel({
 
   const examples = useMemo(() => {
     const referenceNodes = frame ? [frame] : flamegraph.root.children;
-    return referenceNodes
-      .flatMap(n => n.profileIds?.map(example => ({example, node: n})) || [])
-      .sort((a, b) => getReferenceStart(b.example) - getReferenceStart(a.example));
+
+    const seen: Set<Profiling.ProfileReference> = new Set();
+
+    const allExamples = [];
+
+    for (const node of referenceNodes) {
+      for (const example of node.profileIds || []) {
+        if (seen.has(example)) {
+          continue;
+        }
+        seen.add(example);
+        allExamples.push({example, node});
+      }
+    }
+
+    return [...allExamples].sort(
+      (a, b) => getReferenceStart(b.example) - getReferenceStart(a.example)
+    );
   }, [flamegraph, frame]);
 
   return (

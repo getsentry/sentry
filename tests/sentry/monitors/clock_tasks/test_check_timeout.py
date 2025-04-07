@@ -14,7 +14,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorStatus,
-    MonitorType,
     ScheduleType,
 )
 from sentry.testutils.cases import TestCase
@@ -33,7 +32,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "0 0 * * *",
@@ -124,7 +122,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 # Every hour, 90 minute run time allowed
                 "schedule_type": ScheduleType.CRONTAB,
@@ -231,7 +228,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 # Every hour, 90 minute run time allowed
                 "schedule_type": ScheduleType.CRONTAB,
@@ -302,7 +298,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule_type": ScheduleType.INTERVAL,
                 "schedule": [10, "minute"],
@@ -377,7 +372,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "0 0 * * *",
@@ -466,7 +460,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "0 0 * * *",

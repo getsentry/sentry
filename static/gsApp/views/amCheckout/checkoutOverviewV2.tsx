@@ -112,6 +112,7 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
     const paygCategories = [
       DataCategory.MONITOR_SEATS,
       DataCategory.PROFILE_DURATION,
+      DataCategory.PROFILE_DURATION_UI,
       DataCategory.UPTIME,
     ];
 

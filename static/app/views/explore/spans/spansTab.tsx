@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -38,9 +38,12 @@ import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUti
 import {
   PageParamsProvider,
   useExploreDataset,
+  useExploreFields,
+  useExploreId,
   useExploreMode,
   useExploreQuery,
   useExploreVisualizes,
+  useSetExplorePageParams,
   useSetExploreQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -56,6 +59,7 @@ import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeser
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
+import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {
@@ -92,6 +96,16 @@ export function SpansTabContentImpl({
 
   const query = useExploreQuery();
   const setQuery = useSetExploreQuery();
+  const fields = useExploreFields();
+  const setExplorePageParams = useSetExplorePageParams();
+
+  const id = useExploreId();
+  const visitQuery = useVisitQuery();
+  useEffect(() => {
+    if (defined(id)) {
+      visitQuery(id);
+    }
+  }, [id, visitQuery]);
 
   const isSchemaHintsDrawerOpenOnLargeScreen = useSchemaHintsOnLargeScreen();
 
@@ -257,8 +271,9 @@ export function SpansTabContentImpl({
             stringTags={stringTags}
             isLoading={numberTagsLoading || stringTagsLoading}
             exploreQuery={query}
-            setExploreQuery={setQuery}
             source={SchemaHintsSources.EXPLORE}
+            tableColumns={fields}
+            setPageParams={setExplorePageParams}
           />
         </SchemaHintsSection>
       </Feature>

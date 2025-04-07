@@ -142,7 +142,7 @@ export function IssueViewsTable({views, isPending, isError}: IssueViewsTableProp
           <Cell>
             <TimeCellContent timeFilters={view.timeFilters} />
           </Cell>
-          <Cell>{getSortLabel(view.querySort, organization)}</Cell>
+          <Cell>{getSortLabel(view.querySort)}</Cell>
           <Cell>
             <SharingCellContent visibility={view.visibility} />
           </Cell>

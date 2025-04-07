@@ -11,7 +11,7 @@ import {
 } from 'sentry/views/insights/common/views/spans/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
-const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
+const {SPAN_SELF_TIME, NORMALIZED_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
 
 type Props = {
   appliedFilters: ModuleFilters;
@@ -28,7 +28,7 @@ export function ResourceLandingPageCharts({appliedFilters, extraQuery}: Props) {
   const {data, isPending, error} = useSpanMetricsSeries(
     {
       search: new MutableSearch(query),
-      yAxis: ['spm()', `avg(${SPAN_SELF_TIME})`],
+      yAxis: ['epm()', `avg(${SPAN_SELF_TIME})`],
       transformAliasToInputFormat: true,
     },
     'api.starfish.span-time-charts'
@@ -39,7 +39,7 @@ export function ResourceLandingPageCharts({appliedFilters, extraQuery}: Props) {
       <ChartsContainerItem>
         <InsightsLineChartWidget
           title={getThroughputChartTitle('resource')}
-          series={[data['spm()']]}
+          series={[data['epm()']]}
           isLoading={isPending}
           error={error}
         />
@@ -73,7 +73,7 @@ const buildDiscoverQueryConditions = (appliedFilters: ModuleFilters) => {
       return `${key}:${value}`;
     });
 
-  result.push(`has:${SPAN_DESCRIPTION}`);
+  result.push(`has:${NORMALIZED_DESCRIPTION}`);
 
   return result.join(' ');
 };

@@ -90,6 +90,7 @@ function InnerTraceView({traceSlug}: {traceSlug: string}) {
                 organization={organization}
                 traceSlug={traceSlug}
                 traceEventView={traceEventView}
+                logs={logsTableData.logsData?.data}
               />
               <TraceInnerLayout>
                 <TraceWaterfall
@@ -132,5 +133,5 @@ const TraceInnerLayout = styled('div')`
   overflow-y: scroll;
   margin-bottom: ${space(1)};
 
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.background};
 `;

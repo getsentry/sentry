@@ -142,7 +142,7 @@ function TagTreeColumns({
   });
   const assembledColumns = useMemo(() => {
     if (isPending) {
-      return <TreeLoadingIndicator hideMessage />;
+      return <TreeLoadingIndicator />;
     }
 
     if (!project) {

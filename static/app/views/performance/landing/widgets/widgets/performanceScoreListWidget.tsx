@@ -96,7 +96,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const getHeaders = () =>
     transactionWebVitals.map((listItem, i) => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
-      const scoreCount = projectScoresData?.data?.[0]?.[
+      const scoreCount = projectScoresData?.[0]?.[
         'count_scores(measurements.score.total)'
       ] as number;
       const opportunity = scoreCount ? (listItem.opportunity ?? 0) * 100 : 0;

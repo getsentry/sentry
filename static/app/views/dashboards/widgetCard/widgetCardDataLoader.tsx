@@ -20,6 +20,7 @@ type Results = {
   loading: boolean;
   confidence?: Confidence;
   errorMessage?: string;
+  isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
@@ -104,7 +105,6 @@ export function WidgetCardDataLoader({
     return (
       <SpansWidgetQueries
         api={api}
-        organization={organization}
         widget={widget}
         selection={selection}
         limit={tableItemLimit}

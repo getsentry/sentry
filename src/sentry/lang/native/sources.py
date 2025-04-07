@@ -80,6 +80,7 @@ COMMON_SOURCE_PROPERTIES = {
     "layout": LAYOUT_SCHEMA,
     "filters": FILTERS_SCHEMA,
     "is_public": {"type": "boolean"},
+    "has_index": {"type": "boolean"},
 }
 
 APP_STORE_CONNECT_SCHEMA = {
@@ -109,14 +110,31 @@ APP_STORE_CONNECT_SCHEMA = {
     "additionalProperties": False,
 }
 
+# Abstract out commonalities between HTTP_SOURCE_SCHEMA
+# and BUILTIN_HTTP_SOURCE_SCHEMA
+HTTP_SOURCE_SCHEMA_INNER = {
+    "type": {"type": "string", "enum": ["http"]},
+    "url": {"type": "string"},
+    "username": {"type": "string"},
+    "password": {"type": "string"},
+    **COMMON_SOURCE_PROPERTIES,
+}
+
 HTTP_SOURCE_SCHEMA = {
     "type": "object",
+    "properties": HTTP_SOURCE_SCHEMA_INNER,
+    "required": ["type", "id", "url", "layout"],
+    "additionalProperties": False,
+}
+
+# Like HTTP_SOURCE_SCHEMA, but also allows a map of headers.
+# We don't want to expose that functionality via the API.
+BUILTIN_HTTP_SOURCE_SCHEMA = {
+    "type": "object",
     "properties": dict(
-        type={"type": "string", "enum": ["http"]},
-        url={"type": "string"},
-        username={"type": "string"},
-        password={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES,
+        headers={"type": "object", "patternProperties": {".*": {"type": "string"}}},
+        accept_invalid_certs={"type": "boolean"},
+        **HTTP_SOURCE_SCHEMA_INNER,
     ),
     "required": ["type", "id", "url", "layout"],
     "additionalProperties": False,
@@ -154,6 +172,15 @@ GCS_SOURCE_SCHEMA = {
 SOURCE_SCHEMA = {
     "oneOf": [
         HTTP_SOURCE_SCHEMA,
+        S3_SOURCE_SCHEMA,
+        GCS_SOURCE_SCHEMA,
+        APP_STORE_CONNECT_SCHEMA,
+    ]
+}
+
+BUILTIN_SOURCE_SCHEMA = {
+    "oneOf": [
+        BUILTIN_HTTP_SOURCE_SCHEMA,
         S3_SOURCE_SCHEMA,
         GCS_SOURCE_SCHEMA,
         APP_STORE_CONNECT_SCHEMA,

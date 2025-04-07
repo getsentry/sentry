@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventMessage from 'sentry/components/events/eventMessage';
 import EventTitleError from 'sentry/components/eventTitleError';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {IconStar} from 'sentry/icons';
@@ -11,7 +10,7 @@ import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {getLocation, getMessage, isTombstone} from 'sentry/utils/events';
+import {getLocation, isTombstone} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface EventOrGroupHeaderProps {
@@ -83,9 +82,6 @@ function IssueTitle(props: IssueTitleProps) {
 
 export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
   const eventLocation = getLocation(data);
-  const organization = useOrganization();
-
-  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
 
   return (
     <div data-test-id="event-issue-header">
@@ -93,15 +89,6 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
         <IssueTitle data={data} event_id={event_id} />
       </Title>
       {eventLocation ? <Location>{eventLocation}</Location> : null}
-      {hasNewLayout ? null : (
-        <StyledEventMessage
-          data={data}
-          level={'level' in data ? data.level : undefined}
-          message={getMessage(data)}
-          type={data.type}
-          levelIndicatorSize={9}
-        />
-      )}
     </div>
   );
 }
@@ -141,11 +128,6 @@ function Location(props: any) {
     </LocationWrapper>
   );
 }
-
-const StyledEventMessage = styled(EventMessage)`
-  margin: 0 0 5px;
-  gap: ${space(0.5)};
-`;
 
 const IconWrapper = styled('span')`
   position: relative;

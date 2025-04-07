@@ -26,6 +26,9 @@ import {
   isAutogroupedNode,
   isBrowserRequestSpan,
   isCollapsedNode,
+  isEAPError,
+  isEAPErrorNode,
+  isEAPSpan,
   isEAPSpanNode,
   isEAPTraceNode,
   isEAPTransaction,
@@ -164,7 +167,12 @@ export declare namespace TraceTree {
     sdk_name: string;
   }
 
+  type EAPTrace = Array<EAPSpan | EAPError>;
+
   type Trace = TraceSplitResults<Transaction> | EAPTrace;
+
+  // Represents events that we render an individual row for in the trace waterfall.
+  type TraceEvent = Transaction | Span | TraceError | EAPSpan | EAPError;
 
   type TraceError = TraceErrorType;
   type TraceErrorIssue = TraceError | EAPError;
@@ -178,8 +186,6 @@ export declare namespace TraceTree {
     slug: string;
   };
   type Root = null;
-
-  type EAPTrace = EAPSpan[];
 
   // All possible node value types
   type NodeValue =
@@ -337,7 +343,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceTree.Transaction | TraceTree.TraceError | TraceTree.EAPSpan
+      value:
+        | TraceTree.Transaction
+        | TraceTree.TraceError
+        | TraceTree.EAPSpan
+        | TraceTree.EAPError
     ) {
       tree.projects.set(value.project_id, {
         slug: value.project_slug,
@@ -427,7 +437,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         }
       }
 
-      if (isTraceErrorNode(c)) {
+      if (isTraceErrorNode(c) || isEAPErrorNode(c)) {
         traceNode.errors.add(c.value);
       }
 
@@ -1303,7 +1313,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         return node.previous.value.span_id === id || node.next.value.span_id === id;
       }
 
-      if (type === 'error' && isTraceErrorNode(node)) {
+      if (type === 'error' && (isTraceErrorNode(node) || isEAPErrorNode(node))) {
         return node.value.event_id === id;
       }
 
@@ -1353,7 +1363,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
           }
         }
       }
-      if (isTraceErrorNode(n)) {
+      if (isEAPSpanNode(n)) {
+        if (n.value.event_id === eventId) {
+          return true;
+        }
+      }
+      if (isTraceErrorNode(n) || isEAPErrorNode(n)) {
         return n.value.event_id === eventId;
       }
       if (isTraceNode(n)) {
@@ -1918,63 +1933,73 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     let traceStats: {
-      javascriptRootTransactions: Array<TraceTree.Transaction | TraceTree.EAPSpan>;
-      orphans: number;
-      roots: number;
+      javascript_root_transactions_count: number;
+      orphan_errors_count: number;
+      orphan_spans_count: number;
+      roots_count: number;
     };
 
     if (isEAPTraceNode(trace)) {
       traceStats = {
-        javascriptRootTransactions: trace.value.filter(isJavascriptSDKEvent),
-        orphans: trace.value.filter(span => span.parent_span_id !== null).length,
-        roots: trace.value.filter(span => span.parent_span_id === null).length,
+        javascript_root_transactions_count: trace.value.filter(
+          (v): v is TraceTree.EAPSpan => isEAPSpan(v) && isJavascriptSDKEvent(v)
+        ).length,
+        orphan_spans_count: trace.value.filter(
+          v => isEAPSpan(v) && v.parent_span_id !== null
+        ).length,
+        roots_count: trace.value.filter(v => isEAPSpan(v) && v.parent_span_id === null)
+          .length,
+        orphan_errors_count: trace.value.filter(v => isEAPError(v)).length,
       };
     } else if (isTraceNode(trace)) {
-      traceStats = trace.value.transactions.reduce<{
-        javascriptRootTransactions: TraceTree.Transaction[];
-        orphans: number;
-        roots: number;
-      }>(
-        (stats, transaction) => {
-          if (isRootEvent(transaction)) {
-            stats.roots++;
+      traceStats = {
+        ...trace.value.transactions.reduce<{
+          javascript_root_transactions_count: number;
+          orphan_spans_count: number;
+          roots_count: number;
+        }>(
+          (stats, transaction) => {
+            if (isRootEvent(transaction)) {
+              stats.roots_count++;
 
-            if (isJavascriptSDKEvent(transaction)) {
-              stats.javascriptRootTransactions.push(transaction);
+              if (isJavascriptSDKEvent(transaction)) {
+                stats.javascript_root_transactions_count++;
+              }
+            } else {
+              stats.orphan_spans_count++;
             }
-          } else {
-            stats.orphans++;
-          }
-          return stats;
-        },
-        {roots: 0, orphans: 0, javascriptRootTransactions: []}
-      );
+            return stats;
+          },
+          {roots_count: 0, orphan_spans_count: 0, javascript_root_transactions_count: 0}
+        ),
+        orphan_errors_count: trace.value.orphan_errors.length,
+      };
     } else {
       throw new Error('Unknown trace type');
     }
 
-    if (traceStats.roots === 0) {
-      if (traceStats.orphans > 0) {
+    if (traceStats.roots_count === 0) {
+      if (traceStats.orphan_spans_count > 0) {
         return TraceShape.NO_ROOT;
       }
 
-      if (isTraceNode(trace) && (trace.value.orphan_errors?.length ?? 0) > 0) {
+      if (traceStats.orphan_errors_count > 0) {
         return TraceShape.ONLY_ERRORS;
       }
 
       return TraceShape.EMPTY_TRACE;
     }
 
-    if (traceStats.roots === 1) {
-      if (traceStats.orphans > 0) {
+    if (traceStats.roots_count === 1) {
+      if (traceStats.orphan_spans_count > 0) {
         return TraceShape.BROKEN_SUBTRACES;
       }
 
       return TraceShape.ONE_ROOT;
     }
 
-    if (traceStats.roots > 1) {
-      if (traceStats.javascriptRootTransactions.length > 0) {
+    if (traceStats.roots_count > 1) {
+      if (traceStats.javascript_root_transactions_count > 0) {
         return TraceShape.BROWSER_MULTIPLE_ROOTS;
       }
 
@@ -2102,7 +2127,7 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
     return `trace-root`;
   }
 
-  if (isTraceErrorNode(n)) {
+  if (isTraceErrorNode(n) || isEAPErrorNode(n)) {
     return `error-${n.value.event_id}`;
   }
 
@@ -2168,7 +2193,7 @@ function printTraceTreeNode(
     return padding + 'eap trace root';
   }
 
-  if (isTraceErrorNode(t)) {
+  if (isTraceErrorNode(t) || isEAPErrorNode(t)) {
     return padding + (t.value.event_id || t.value.level) || 'unknown trace error';
   }
 
@@ -2186,7 +2211,11 @@ function traceQueueIterator(
   root: TraceTreeNode<TraceTree.NodeValue>,
   visitor: (
     parent: TraceTreeNode<TraceTree.NodeValue>,
-    value: TraceTree.Transaction | TraceTree.TraceError | TraceTree.EAPSpan
+    value:
+      | TraceTree.Transaction
+      | TraceTree.TraceError
+      | TraceTree.EAPSpan
+      | TraceTree.EAPError
   ) => void
 ) {
   if (!isTraceSplitResult(trace)) {

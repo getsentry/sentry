@@ -62,10 +62,7 @@ def process_resource_change(instance, **kwargs):
 
         # CODEOWNERS file added or modified, trigger auto-sync
         if instance.filename in filepaths and instance.type in ["A", "M"]:
-            # Trigger the task after 5min to make sure all records in the transactions has been saved.
-            code_owners_auto_sync.apply_async(
-                kwargs={"commit_id": instance.commit_id}, countdown=60 * 5
-            )
+            code_owners_auto_sync.delay(commit_id=instance.commit_id)
 
     transaction.on_commit(_spawn_task, router.db_for_write(CommitFileChange))
 

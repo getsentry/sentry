@@ -9,7 +9,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -18,6 +18,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {CronsOnDemandStepWarning} from 'getsentry/components/cronsOnDemandStepWarning';
 import type {OnDemandBudgets, Plan, Subscription} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import {getPlanCategoryName, listDisplayNames} from 'getsentry/utils/dataCategory';
 
 function coerceValue(value: number): number {
@@ -46,10 +47,9 @@ type Props = {
 class OnDemandBudgetEdit extends Component<Props> {
   onDemandUnsupportedCopy = () => {
     const {subscription} = this.props;
-    return t(
-      '%s is not supported for your account.',
-      subscription.planTier === PlanTier.AM3 ? 'Pay-as-you-go' : 'On-demand'
-    );
+    return tct('[budgetType] is not supported for your account.', {
+      budgetType: displayBudgetName(subscription.planDetails, {title: true}),
+    });
   };
   renderInputFields = (displayBudgetMode: OnDemandBudgetMode) => {
     const {
@@ -80,7 +80,7 @@ class OnDemandBudgetEdit extends Component<Props> {
                 <OnDemandInput
                   disabled={!onDemandSupported}
                   aria-label={
-                    subscription.planTier === PlanTier.AM3
+                    subscription.planDetails.budgetTerm === 'pay-as-you-go'
                       ? t('Pay-as-you-go max budget')
                       : t('Shared max budget')
                   }
@@ -192,7 +192,7 @@ class OnDemandBudgetEdit extends Component<Props> {
       categories: activePlan.onDemandCategories,
     });
 
-    if (subscription.planTier === PlanTier.AM3) {
+    if (subscription.planDetails.budgetTerm === 'pay-as-you-go') {
       return (
         <PaygBody>
           <BudgetDetails>

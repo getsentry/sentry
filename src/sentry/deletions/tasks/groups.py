@@ -51,7 +51,6 @@ def delete_groups(
                 "transaction_id": transaction_id,
                 "eventstream_state": eventstream_state,
             },
-            countdown=15,
         )
     else:
         # all groups have been deleted

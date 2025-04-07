@@ -14,7 +14,6 @@ from sentry.api.bases.group import GroupAiEndpoint
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
-from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -46,11 +45,6 @@ def get_autofix_integration_setup_problems(
 
     if not installation:
         return "integration_missing"
-
-    code_mappings = get_sorted_code_mapping_configs(project)
-
-    if not code_mappings:
-        return "integration_no_code_mappings"
 
     return None
 

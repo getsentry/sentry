@@ -40,14 +40,11 @@ from typing import is_typeddict
 
 import drf_spectacular
 from drf_spectacular.drainage import get_override
-from drf_spectacular.plumbing import (
-    UnableToProceedError,
-    build_array_type,
-    build_basic_type,
-    build_object_type,
-    is_basic_type,
-)
+from drf_spectacular.plumbing import UnableToProceedError
+from drf_spectacular.plumbing import build_array_type as drf_build_array_type
+from drf_spectacular.plumbing import build_basic_type, build_object_type, is_basic_type
 from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import _SchemaType
 
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
@@ -98,6 +95,17 @@ def build_choice_description_list(choices) -> str:
 drf_spectacular.plumbing.build_choice_description_list = build_choice_description_list
 
 
+def build_array_type(
+    schema: _SchemaType | None, min_length: int | None = None, max_length: int | None = None
+):
+    """
+    This function wraps the build_array_type from `drf-spectacular` because it is not type-safe.
+    """
+    if schema is None:
+        raise ValueError("Schema cannot be None")
+    return drf_build_array_type(schema=schema, min_length=min_length, max_length=max_length)
+
+
 def resolve_type_hint(hint) -> Any:
     """drf-spectacular library method modified as described above"""
     origin, args = _get_type_hint_origin(hint)
@@ -124,7 +132,7 @@ def resolve_type_hint(hint) -> Any:
         )
     elif origin is dict or origin is defaultdict:
         schema = build_basic_type(OpenApiTypes.OBJECT)
-        if args and args[1] is not typing.Any:
+        if args and args[1] is not typing.Any and schema is not None:
             schema["additionalProperties"] = resolve_type_hint(args[1])
         return schema
     elif origin is set:
@@ -136,13 +144,19 @@ def resolve_type_hint(hint) -> Any:
         # behaves slightly different w.r.t. __origin__
         schema = {"enum": list(args)}
         if all(type(args[0]) is type(choice) for choice in args):
-            schema.update(build_basic_type(type(args[0])))
+            basic_type = build_basic_type(type(args[0]))
+            if basic_type is None:
+                raise ValueError(f"Cannot update schema with None type: {type(args[0])}")
+            schema.update(basic_type)
         return schema
     elif inspect.isclass(hint) and issubclass(hint, Enum):
         schema = {"enum": [item.value for item in hint]}
         mixin_base_types = [t for t in hint.__mro__ if is_basic_type(t)]
         if mixin_base_types:
-            schema.update(build_basic_type(mixin_base_types[0]))
+            basic_type = build_basic_type(mixin_base_types[0])
+            if basic_type is None:
+                raise ValueError(f"Cannot update schema with None type: {mixin_base_types[0]}")
+            schema.update(basic_type)
         return schema
     elif is_typeddict(hint):
         return build_object_type(
@@ -165,7 +179,7 @@ def resolve_type_hint(hint) -> Any:
             schema = {"anyOf": [resolve_type_hint(arg) for arg in type_args]}
         else:
             schema = resolve_type_hint(type_args[0])
-        if type(None) in args:
+        if type(None) in args and schema is not None:
             # There's an issue where if 3 or more types are OR'd together and one of
             # them is None, validating the schema will fail because "nullable: true"
             # with "anyOf" raises an error because there is no "type" key on the

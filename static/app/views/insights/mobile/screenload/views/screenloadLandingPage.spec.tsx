@@ -4,36 +4,27 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {PLATFORM_LOCAL_STORAGE_KEY} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import PageloadModule from 'sentry/views/insights/mobile/screenload/views/screenloadLandingPage';
 
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
 
 describe('PageloadModule', function () {
-  const project = ProjectFixture({platform: 'react-native', hasInsightsScreenLoad: true});
+  const project = ProjectFixture({
+    platform: 'react-native',
+    hasInsightsScreenLoad: true,
+    firstTransactionEvent: true,
+  });
   const organization = OrganizationFixture({
     features: ['insights-initial-modules', 'insights-entry-points'],
   });
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
-  jest.mocked(useProjects).mockReturnValue({
-    fetchError: null,
-    fetching: false,
-    hasMore: false,
-    initiallyLoaded: false,
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-    projects: [project],
-  });
+  ProjectsStore.loadInitialData([project]);
 
   jest.mocked(useLocation).mockReturnValue({
     action: 'PUSH',

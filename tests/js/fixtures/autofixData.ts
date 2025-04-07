@@ -7,7 +7,10 @@ export function AutofixDataFixture(params: Partial<AutofixData>): AutofixData {
     completed_at: '',
     created_at: '',
     steps: [],
-    repositories: [],
+    request: {
+      repos: [],
+    },
+    codebases: {},
     ...params,
   };
 }

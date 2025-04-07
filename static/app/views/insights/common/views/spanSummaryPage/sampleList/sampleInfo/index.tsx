@@ -46,7 +46,7 @@ function SampleInfo(props: Props) {
       search: MutableSearch.fromQueryObject(ribbonFilters),
       fields: [
         SpanMetricsField.SPAN_OP,
-        'spm()',
+        'epm()',
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
         'time_spent_percentage()',
@@ -68,7 +68,7 @@ function SampleInfo(props: Props) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         title={getThroughputTitle(spanMetrics?.[SpanMetricsField.SPAN_OP])}
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        value={spanMetrics?.['spm()']}
+        value={spanMetrics?.['epm()']}
         unit={RateUnit.PER_MINUTE}
         isLoading={isPending}
       />

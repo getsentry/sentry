@@ -17,18 +17,18 @@ function IssueListContainer({children}: Props) {
   const prefersStackedNav = usePrefersStackedNav();
   const {viewId} = useParams<{orgId?: string; viewId?: string}>();
 
+  const onNewIssuesFeed = prefersStackedNav && !viewId;
   const useGlobalPageFilters =
-    !organization.features.includes('issue-stream-custom-views') ||
-    (prefersStackedNav && !viewId);
+    !organization.features.includes('issue-stream-custom-views') || onNewIssuesFeed;
 
   return (
     <SentryDocumentTitle title={t('Issues')} orgSlug={organization.slug}>
       <PageFiltersContainer
         skipLoadLastUsed={!useGlobalPageFilters}
         disablePersistence={!useGlobalPageFilters}
-        skipInitializeUrlParams={organization.features.includes(
-          'issue-stream-custom-views'
-        )}
+        skipInitializeUrlParams={
+          !onNewIssuesFeed && organization.features.includes('issue-stream-custom-views')
+        }
       >
         <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
       </PageFiltersContainer>

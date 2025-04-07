@@ -442,7 +442,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         org = self.create_organization(name=org_slug)
 
         with assume_test_silo_mode(SiloMode.REGION):
-            OrganizationMemberInvite.objects.create(organization=org, email=from_user.email)
+            self.create_member_invite(organization=org, email=from_user.email)
         with outbox_runner():
             from_user.merge_to(to_user)
 

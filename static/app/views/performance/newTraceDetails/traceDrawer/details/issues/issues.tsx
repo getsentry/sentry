@@ -1,5 +1,5 @@
-import {Fragment, useMemo} from 'react';
-import {css, type Theme} from '@emotion/react';
+import {useMemo} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
@@ -22,9 +22,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {TracePerformanceIssue} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
 import {HeaderDivider} from 'sentry/views/issueList/actions';
-import {NarrowAssigneeLabel} from 'sentry/views/issueList/actions/headers';
+import {AssigneeLabel} from 'sentry/views/issueList/actions/headers';
 
 import {isTracePerformanceIssue} from '../../../traceGuards';
 import {TraceIcons} from '../../../traceIcons';
@@ -32,8 +31,6 @@ import type {TraceTree} from '../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
 import {useHasTraceNewUi} from '../../../useHasTraceNewUi';
 import {TraceDrawerComponents} from '../styles';
-
-import {IssueSummary} from './issueSummary';
 
 type IssueProps = {
   issue: TraceTree.TraceIssue;
@@ -71,7 +68,6 @@ function sortIssuesByLevel(
 }
 
 function Issue(props: IssueProps) {
-  const {organization} = props;
   const hasTraceNewUi = useHasTraceNewUi();
   const {
     isPending,
@@ -93,8 +89,6 @@ function Issue(props: IssueProps) {
       staleTime: 2 * 60 * 1000,
     }
   );
-
-  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
 
   if (!hasTraceNewUi) {
     return (
@@ -124,21 +118,10 @@ function Issue(props: IssueProps) {
           <TraceIcons.Icon event={props.issue} />
         </IconBackground>
       </IconWrapper>
-      {hasNewLayout ? (
-        <NarrowSummaryWrapper>
-          <EventOrGroupHeader data={fetchedIssue} eventId={props.issue.event_id} />
-          <EventOrGroupExtraDetails data={fetchedIssue} />
-        </NarrowSummaryWrapper>
-      ) : (
-        <SummaryWrapper>
-          <IssueSummary
-            data={fetchedIssue}
-            organization={props.organization}
-            event_id={props.issue.event_id}
-          />
-          <EventOrGroupExtraDetails data={fetchedIssue} />
-        </SummaryWrapper>
-      )}
+      <SummaryWrapper>
+        <EventOrGroupHeader data={fetchedIssue} eventId={props.issue.event_id} />
+        <EventOrGroupExtraDetails data={fetchedIssue} />
+      </SummaryWrapper>
     </StyledPanelItem>
   ) : isError ? (
     <LoadingError
@@ -224,17 +207,12 @@ const IconWrapper = styled('div')`
   }
 `;
 
-const NarrowSummaryWrapper = styled('div')`
+const SummaryWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
   width: 100%;
   justify-content: left;
-`;
-
-const SummaryWrapper = styled('div')`
-  overflow: hidden;
-  flex: 1;
 `;
 
 function LegacyIssue(
@@ -245,30 +223,16 @@ function LegacyIssue(
     isPending: boolean;
   }
 ) {
-  const {organization} = props;
-  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
-
   return props.isPending ? (
     <StyledLoadingIndicatorWrapper>
       <LoadingIndicator size={24} mini />
     </StyledLoadingIndicatorWrapper>
   ) : props.fetchedIssue ? (
     <StyledLegacyPanelItem>
-      {hasNewLayout ? (
-        <NarrowIssueSummaryWrapper>
-          <EventOrGroupHeader data={props.fetchedIssue} />
-          <EventOrGroupExtraDetails data={props.fetchedIssue} />
-        </NarrowIssueSummaryWrapper>
-      ) : (
-        <IssueSummaryWrapper>
-          <IssueSummary
-            data={props.fetchedIssue}
-            organization={props.organization}
-            event_id={props.issue.event_id}
-          />
-          <EventOrGroupExtraDetails data={props.fetchedIssue} />
-        </IssueSummaryWrapper>
-      )}
+      <NarrowIssueSummaryWrapper>
+        <EventOrGroupHeader data={props.fetchedIssue} />
+        <EventOrGroupExtraDetails data={props.fetchedIssue} />
+      </NarrowIssueSummaryWrapper>
       <ChartWrapper>
         <GroupStatusChart
           stats={
@@ -289,17 +253,7 @@ function LegacyIssue(
         />
       </ChartWrapper>
       <EventsWrapper>
-        {hasNewLayout ? (
-          <NarrowEventsOrUsersWrapper>
-            <PrimaryCount
-              value={
-                props.fetchedIssue.filtered
-                  ? props.fetchedIssue.filtered.count
-                  : props.fetchedIssue.count
-              }
-            />
-          </NarrowEventsOrUsersWrapper>
-        ) : (
+        <EventsOrUsersWrapper>
           <PrimaryCount
             value={
               props.fetchedIssue.filtered
@@ -307,38 +261,20 @@ function LegacyIssue(
                 : props.fetchedIssue.count
             }
           />
-        )}
+        </EventsOrUsersWrapper>
       </EventsWrapper>
-      {hasNewLayout ? (
-        <NarrowEventsOrUsersWrapper>
-          <PrimaryCount
-            value={
-              props.fetchedIssue.filtered
-                ? props.fetchedIssue.filtered.userCount
-                : props.fetchedIssue.userCount
-            }
-          />
-        </NarrowEventsOrUsersWrapper>
-      ) : (
-        <UserCountWrapper>
-          <PrimaryCount
-            value={
-              props.fetchedIssue.filtered
-                ? props.fetchedIssue.filtered.userCount
-                : props.fetchedIssue.userCount
-            }
-          />
-        </UserCountWrapper>
-      )}
-      {hasNewLayout ? (
-        <NarrowAssigneeWrapper>
-          <AssigneeBadge assignedTo={props.fetchedIssue.assignedTo ?? undefined} />
-        </NarrowAssigneeWrapper>
-      ) : (
-        <AssigneeWrapper>
-          <AssigneeBadge assignedTo={props.fetchedIssue.assignedTo ?? undefined} />
-        </AssigneeWrapper>
-      )}
+      <EventsOrUsersWrapper>
+        <PrimaryCount
+          value={
+            props.fetchedIssue.filtered
+              ? props.fetchedIssue.filtered.userCount
+              : props.fetchedIssue.userCount
+          }
+        />
+      </EventsOrUsersWrapper>
+      <AssigneeWrapper>
+        <AssigneeBadge assignedTo={props.fetchedIssue.assignedTo ?? undefined} />
+      </AssigneeWrapper>
     </StyledLegacyPanelItem>
   ) : props.isError ? (
     <LoadingError
@@ -454,8 +390,6 @@ function IssueListHeader({
   node: TraceTreeNode<TraceTree.NodeValue>;
   performanceIssues: TracePerformanceIssue[];
 }) {
-  const organization = useOrganization();
-
   const [singular, plural] = useMemo((): [string, string] => {
     const label = [t('Issue'), t('Issues')] as [string, string];
     for (const event of errorIssues) {
@@ -465,8 +399,6 @@ function IssueListHeader({
     }
     return label;
   }, [errorIssues]);
-
-  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
 
   const issueHeadingContent =
     errorIssues.length + performanceIssues.length > MAX_DISPLAYED_ISSUES_COUNT
@@ -503,39 +435,24 @@ function IssueListHeader({
             );
 
   return (
-    <StyledPanelHeader disablePadding hasNewLayout={hasNewLayout}>
-      {hasNewLayout ? (
-        <StyledIssueStreamHeaderLabel>
-          {issueHeadingContent}
-          <HeaderDivider />
-        </StyledIssueStreamHeaderLabel>
-      ) : (
-        <IssueHeading>{issueHeadingContent}</IssueHeading>
-      )}
-      {hasNewLayout ? (
-        <Fragment>
-          <NarrowGraphLabel>
-            {t('Trend')}
-            <HeaderDivider />
-          </NarrowGraphLabel>
-          <NarrowEventsLabel>
-            {t('Events')}
-            <HeaderDivider />
-          </NarrowEventsLabel>
-          <NarrowUsersLabel>
-            {t('Users')}
-            <HeaderDivider />
-          </NarrowUsersLabel>
-          <NarrowAssigneeLabel>{t('Assignee')}</NarrowAssigneeLabel>
-        </Fragment>
-      ) : (
-        <Fragment>
-          <GraphHeading>{t('Graph')}</GraphHeading>
-          <EventsHeading>{t('Events')}</EventsHeading>
-          <UsersHeading>{t('Users')}</UsersHeading>
-          <AssigneeHeading>{t('Assignee')}</AssigneeHeading>
-        </Fragment>
-      )}
+    <StyledPanelHeader disablePadding>
+      <StyledIssueStreamHeaderLabel>
+        {issueHeadingContent}
+        <HeaderDivider />
+      </StyledIssueStreamHeaderLabel>
+      <GraphLabel>
+        {t('Trend')}
+        <HeaderDivider />
+      </GraphLabel>
+      <EventsLabel>
+        {t('Events')}
+        <HeaderDivider />
+      </EventsLabel>
+      <UsersLabel>
+        {t('Users')}
+        <HeaderDivider />
+      </UsersLabel>
+      <AssigneeLabel>{t('Assignee')}</AssigneeLabel>
     </StyledPanelHeader>
   );
 }
@@ -552,26 +469,7 @@ const Heading = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const IssueHeading = styled(Heading)`
-  flex: 1;
-  width: 66.66%;
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    width: 50%;
-  }
-`;
-
-const GraphHeading = styled(Heading)`
-  width: 160px;
-  display: flex;
-  justify-content: center;
-
-  @container (width < ${TABLE_WIDTH_BREAKPOINTS.FIRST}px) {
-    display: none;
-  }
-`;
-
-const NarrowGraphLabel = styled(IssueStreamHeaderLabel)`
+const GraphLabel = styled(IssueStreamHeaderLabel)`
   width: 200px;
   display: flex;
   justify-content: space-between;
@@ -587,7 +485,7 @@ const EventsHeading = styled(Heading)`
   }
 `;
 
-const NarrowEventsLabel = styled(EventsHeading)`
+const EventsLabel = styled(EventsHeading)`
   display: flex;
   justify-content: space-between;
   width: 60px;
@@ -603,17 +501,11 @@ const UsersHeading = styled(Heading)`
   }
 `;
 
-const NarrowUsersLabel = styled(UsersHeading)`
+const UsersLabel = styled(UsersHeading)`
   display: flex;
   justify-content: space-between;
   width: 60px;
   margin-left: 0;
-`;
-
-const AssigneeHeading = styled(Heading)`
-  @container (width < ${TABLE_WIDTH_BREAKPOINTS.FOURTH}px) {
-    display: none;
-  }
 `;
 
 const StyledPanel = styled(Panel)`
@@ -632,14 +524,10 @@ const IssuesWrapper = styled('div')`
   }
 `;
 
-const StyledPanelHeader = styled(PanelHeader)<{hasNewLayout: boolean}>`
+const StyledPanelHeader = styled(PanelHeader)`
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
-  ${p =>
-    p.hasNewLayout &&
-    css`
-      text-transform: none;
-    `}
+  text-transform: none;
 `;
 
 const StyledLoadingIndicatorWrapper = styled('div')`
@@ -653,16 +541,6 @@ const StyledLoadingIndicatorWrapper = styled('div')`
   /* Add a border between two rows of loading issue states */
   & + & {
     border-top: 1px solid ${p => p.theme.border};
-  }
-`;
-
-const IssueSummaryWrapper = styled('div')`
-  overflow: hidden;
-  flex: 1;
-  width: 66.66%;
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    width: 50%;
   }
 `;
 
@@ -686,18 +564,12 @@ const UserCountWrapper = styled(ColumnWrapper)`
   }
 `;
 
-const NarrowEventsOrUsersWrapper = styled(UserCountWrapper)`
+const EventsOrUsersWrapper = styled(UserCountWrapper)`
   margin-left: 0;
   justify-content: center;
 `;
 
 const AssigneeWrapper = styled(ColumnWrapper)`
-  @container (width < ${TABLE_WIDTH_BREAKPOINTS.FOURTH}px) {
-    display: none;
-  }
-`;
-
-const NarrowAssigneeWrapper = styled(ColumnWrapper)`
   margin-right: ${space(2)};
 `;
 

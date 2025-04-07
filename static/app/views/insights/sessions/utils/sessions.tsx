@@ -14,3 +14,5 @@ export const getCountStatusSeries = (
   groups.find(group => group.by['session.status'] === status)?.series[
     'count_unique(user)'
   ] ?? [];
+
+export const SESSION_HEALTH_CHART_HEIGHT = 400;

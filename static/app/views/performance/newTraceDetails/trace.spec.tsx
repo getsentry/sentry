@@ -914,9 +914,9 @@ describe('trace view', () => {
   });
 
   it('renders empty state for successfully ingested trace', async () => {
-    // set timestamp to 3 minutes ago
-    const threeMinutesAgoInSeconds = Math.floor(
-      new Date(Date.now() - 3 * 60 * 1000).getTime() / 1000
+    // set timestamp to 12 minutes ago
+    const twelveMinutesAgoInSeconds = Math.floor(
+      new Date(Date.now() - 12 * 60 * 1000).getTime() / 1000
     );
 
     mockPerformanceSubscriptionDetailsResponse();
@@ -930,7 +930,7 @@ describe('trace view', () => {
     mockTraceTagsResponse();
     mockEventsResponse();
 
-    window.location.search = `?timestamp=${threeMinutesAgoInSeconds.toString()}`;
+    window.location.search = `?timestamp=${twelveMinutesAgoInSeconds.toString()}`;
     render(<TraceView />, {
       router,
     });
@@ -962,7 +962,7 @@ describe('trace view', () => {
     });
     expect(
       await screen.findByText(
-        /We're still processing this trace. In a few seconds, refresh/i
+        /We're still processing this trace. Please try refreshing after a minute/i
       )
     ).toBeInTheDocument();
   });

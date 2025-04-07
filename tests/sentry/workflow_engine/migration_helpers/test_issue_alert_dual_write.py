@@ -112,7 +112,7 @@ class RuleMigrationHelpersTest(TestCase):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
         rule_snooze = RuleSnooze.objects.create(rule=self.issue_alert)
 
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
 
         assert workflow.enabled is False
@@ -126,7 +126,7 @@ class RuleMigrationHelpersTest(TestCase):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
         RuleSnooze.objects.create(rule=self.issue_alert, user_id=self.user.id)
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
 
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
         workflow.refresh_from_db()
@@ -166,7 +166,7 @@ class RuleMigrationHelpersTest(TestCase):
         )
         update_migrated_issue_alert(self.issue_alert)
 
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
         assert workflow.name == self.issue_alert.label
         assert self.issue_alert.project
@@ -234,7 +234,7 @@ class RuleMigrationHelpersTest(TestCase):
         )
         update_migrated_issue_alert(self.issue_alert)
 
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
         assert workflow.when_condition_group
         assert workflow.when_condition_group.logic_type == DataConditionGroup.Type.ALL
@@ -304,7 +304,7 @@ class RuleMigrationHelpersTest(TestCase):
         )
         update_migrated_issue_alert(self.issue_alert)
 
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
+        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
         assert workflow.environment is None
         assert workflow.owner_user_id is None
@@ -332,7 +332,7 @@ class RuleMigrationHelpersTest(TestCase):
     def test_delete_issue_alert(self):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
         workflow = alert_rule_workflow.workflow
         when_dcg = workflow.when_condition_group
         if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
@@ -347,7 +347,7 @@ class RuleMigrationHelpersTest(TestCase):
 
         delete_migrated_issue_alert(self.issue_alert)
 
-        assert not AlertRuleWorkflow.objects.filter(rule=self.issue_alert).exists()
+        assert not AlertRuleWorkflow.objects.filter(rule_id=self.issue_alert.id).exists()
         assert not Workflow.objects.filter(id=workflow.id).exists()
         assert not DataConditionGroup.objects.filter(id=when_dcg.id).exists()
         assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()

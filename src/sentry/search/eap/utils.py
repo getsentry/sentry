@@ -10,8 +10,14 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.constants import SAMPLING_MODES
-from sentry.search.eap.ourlogs.attributes import LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
-from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
+from sentry.search.eap.ourlogs.attributes import (
+    LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+    LOGS_PRIVATE_ATTRIBUTES,
+)
+from sentry.search.eap.spans.attributes import (
+    SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+    SPANS_PRIVATE_ATTRIBUTES,
+)
 from sentry.search.eap.types import SupportedTraceItemType
 
 # TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
@@ -31,6 +37,12 @@ def literal_validator(values: list[Any]) -> Callable[[str], bool]:
         raise InvalidSearchQuery(f"Invalid parameter {input}. Must be one of {values}")
 
     return _validator
+
+
+def number_validator(input: str) -> bool:
+    if input.replace(".", "", 1).isdecimal():
+        return True
+    raise InvalidSearchQuery(f"Invalid parameter {input}. Must be numeric")
 
 
 def add_start_end_conditions(
@@ -98,6 +110,12 @@ INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
 ] = {
     SupportedTraceItemType.SPANS: SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SupportedTraceItemType.LOGS: LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
+}
+
+
+PRIVATE_ATTRIBUTES: dict[SupportedTraceItemType, set[str]] = {
+    SupportedTraceItemType.SPANS: SPANS_PRIVATE_ATTRIBUTES,
+    SupportedTraceItemType.LOGS: LOGS_PRIVATE_ATTRIBUTES,
 }
 
 

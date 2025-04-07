@@ -15,7 +15,6 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
     MonitorStatus,
-    MonitorType,
     ScheduleType,
 )
 from sentry.monitors.tasks.detect_broken_monitor_envs import detect_broken_monitor_envs
@@ -65,7 +64,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             name=name,
             organization_id=organization_id,
             project_id=project_id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule": [1, "day"],
                 "schedule_type": ScheduleType.INTERVAL,

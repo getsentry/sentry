@@ -31,10 +31,12 @@ import {
 } from 'getsentry/types';
 import {
   addBillingStatTotals,
+  displayBudgetName,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
   getPotentialProductTrial,
+  isAm2Plan,
   isUnlimitedReserved,
   MILLISECONDS_IN_HOUR,
 } from 'getsentry/utils/billing';
@@ -400,15 +402,24 @@ function UsageTotals({
       reservedInfo = tct('[reservedInfo] (True Forward)', {reservedInfo});
     }
     if (displayGifts) {
-      reservedInfo = tct('[reservedInfo] + [giftedAmount] Gifted', {
-        reservedInfo,
-        giftedAmount: formatReservedWithUnits(
-          free,
-          category,
-          reservedOptions,
-          hasReservedBudget
-        ),
-      });
+      reservedInfo = hasReservedQuota
+        ? tct('[reservedInfo] + [giftedAmount] Gifted', {
+            reservedInfo,
+            giftedAmount: formatReservedWithUnits(
+              free,
+              category,
+              reservedOptions,
+              hasReservedBudget
+            ),
+          })
+        : tct('[giftedAmount] Gifted', {
+            giftedAmount: formatReservedWithUnits(
+              free,
+              category,
+              reservedOptions,
+              hasReservedBudget
+            ),
+          });
     }
     return reservedInfo;
   }
@@ -490,12 +501,15 @@ function UsageTotals({
   );
 
   // use dropped profile chunks to estimate dropped continuous profiling
+  // for AM3 plans, include profiles category to estimate dropped continuous profile hours
   const total = isContinuousProfiling(category)
     ? {
-        ...addBillingStatTotals(
-          totals,
-          eventTotals[getChunkCategoryFromDuration(category)]
-        ),
+        ...addBillingStatTotals(totals, [
+          eventTotals[getChunkCategoryFromDuration(category)] ?? EMPTY_STAT_TOTAL,
+          !isAm2Plan(subscription.plan) && category === DataCategory.PROFILE_DURATION
+            ? (eventTotals[DataCategory.PROFILES] ?? EMPTY_STAT_TOTAL)
+            : EMPTY_STAT_TOTAL,
+        ]),
         accepted: totals.accepted,
       }
     : totals;
@@ -751,9 +765,7 @@ function UsageTotals({
                   {isDisplayingSpend ? (
                     <div>
                       <LegendTitle>
-                        {subscription.planTier === PlanTier.AM3
-                          ? t('Pay-as-you-go')
-                          : t('On-Demand')}
+                        {displayBudgetName(subscription.planDetails, {title: true})}
                       </LegendTitle>
                       <LegendPrice>
                         {formatCurrency(onDemandCategorySpend)} of{' '}
@@ -769,9 +781,7 @@ function UsageTotals({
                   ) : (
                     <div>
                       <LegendTitle>
-                        {subscription.planTier === PlanTier.AM3
-                          ? t('Pay-as-you-go')
-                          : t('On-Demand')}
+                        {displayBudgetName(subscription.planDetails, {title: true})}
                       </LegendTitle>
                       <LegendPrice>
                         {formatUsageWithUnits(onDemandUsage, category, usageOptions)}
@@ -796,9 +806,7 @@ function UsageTotals({
                   {showOnDemand && (
                     <Fragment>
                       {formatCurrency(onDemandCategorySpend)}{' '}
-                      {subscription.planTier === PlanTier.AM3
-                        ? t('Pay-as-you-go')
-                        : t('On-Demand')}
+                      {displayBudgetName(subscription.planDetails, {title: true})}
                     </Fragment>
                   )}
                 </TotalSpendLabel>

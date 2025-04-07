@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
@@ -26,8 +26,7 @@ import {
   MOBILE_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
-import {NAV_GROUP_LABELS} from 'sentry/views/nav/constants';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
@@ -36,13 +35,9 @@ import {isLinkActive} from 'sentry/views/nav/utils';
 import {MODULE_BASE_URLS} from '../../../../insights/common/utils/useModuleURL';
 import {ModuleName} from '../../../../insights/types';
 
-type InsightsNavigationProps = {
-  children: React.ReactNode;
-};
-
 const platformsUsingOverviewAsProjectDetails: PlatformKey[] = ['php-laravel'];
 
-function InsightsSecondaryNav({children}: InsightsNavigationProps) {
+export function InsightsSecondaryNav() {
   const organization = useOrganization();
   const location = useLocation();
   const baseUrl = `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}`;
@@ -78,100 +73,87 @@ function InsightsSecondaryNav({children}: InsightsNavigationProps) {
     : nonStarredProjects.filter(project => project.isMember).slice(0, 8);
 
   return (
-    <Fragment>
-      <SecondaryNav group={PrimaryNavGroup.INSIGHTS}>
-        <SecondaryNav.Header>
-          {NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
-        </SecondaryNav.Header>
-        <SecondaryNav.Body>
-          <SecondaryNav.Section>
-            <SecondaryNav.Item
-              to={`${baseUrl}/${FRONTEND_LANDING_SUB_PATH}/`}
-              analyticsItemName="insights_frontend"
-            >
-              {FRONTEND_SIDEBAR_LABEL}
-            </SecondaryNav.Item>
-            <SecondaryNav.Item
-              isActive={
-                isLinkActive(
-                  `${baseUrl}/${BACKEND_LANDING_SUB_PATH}/`,
-                  location.pathname
-                ) &&
-                // The starred param indicates that the overview is being accessed via the starred projects nav item
-                (!isStarredProjectSelected || !isLaravelInsightsEnabled)
-              }
-              to={`${baseUrl}/${BACKEND_LANDING_SUB_PATH}/`}
-              analyticsItemName="insights_backend"
-            >
-              {BACKEND_SIDEBAR_LABEL}
-            </SecondaryNav.Item>
-            <SecondaryNav.Item
-              to={`${baseUrl}/${MOBILE_LANDING_SUB_PATH}/`}
-              analyticsItemName="insights_mobile"
-            >
-              {MOBILE_SIDEBAR_LABEL}
-            </SecondaryNav.Item>
-            <SecondaryNav.Item
-              to={`${baseUrl}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
-              analyticsItemName="insights_ai"
-            >
-              {AI_SIDEBAR_LABEL}
-            </SecondaryNav.Item>
-          </SecondaryNav.Section>
-          <SecondaryNav.Section
-            title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
+    <SecondaryNav>
+      <SecondaryNav.Header>
+        {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.INSIGHTS].label}
+      </SecondaryNav.Header>
+      <SecondaryNav.Body>
+        <SecondaryNav.Section>
+          <SecondaryNav.Item
+            to={`${baseUrl}/${FRONTEND_LANDING_SUB_PATH}/`}
+            analyticsItemName="insights_frontend"
           >
-            {projectsToDisplay.map(project => (
-              <SecondaryNav.Item
-                key={project.id}
-                to={
-                  isUsingOverviewAsProjectDetails(project)
-                    ? {
-                        pathname: `${baseUrl}/backend/`,
-                        search: `?project=${project.id}&starred=1`,
-                      }
-                    : `${baseUrl}/projects/${project.slug}/`
-                }
-                isActive={
-                  isUsingOverviewAsProjectDetails(project)
-                    ? isLinkActive(`${baseUrl}/backend/`, location.pathname) &&
-                      isProjectSelectedExclusively(project) &&
-                      isStarredProjectSelected
-                    : undefined
-                }
-                leadingItems={
-                  <StyledProjectIcon
-                    projectPlatforms={project.platform ? [project.platform] : ['default']}
-                  />
-                }
-                analyticsItemName="insights_project_starred"
-              >
-                {project.slug}
-              </SecondaryNav.Item>
-            ))}
+            {FRONTEND_SIDEBAR_LABEL}
+          </SecondaryNav.Item>
+          <SecondaryNav.Item
+            isActive={
+              isLinkActive(
+                `${baseUrl}/${BACKEND_LANDING_SUB_PATH}/`,
+                location.pathname
+              ) &&
+              // The starred param indicates that the overview is being accessed via the starred projects nav item
+              (!isStarredProjectSelected || !isLaravelInsightsEnabled)
+            }
+            to={`${baseUrl}/${BACKEND_LANDING_SUB_PATH}/`}
+            analyticsItemName="insights_backend"
+          >
+            {BACKEND_SIDEBAR_LABEL}
+          </SecondaryNav.Item>
+          <SecondaryNav.Item
+            to={`${baseUrl}/${MOBILE_LANDING_SUB_PATH}/`}
+            analyticsItemName="insights_mobile"
+          >
+            {MOBILE_SIDEBAR_LABEL}
+          </SecondaryNav.Item>
+          <SecondaryNav.Item
+            to={`${baseUrl}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
+            analyticsItemName="insights_ai"
+          >
+            {AI_SIDEBAR_LABEL}
+          </SecondaryNav.Item>
+        </SecondaryNav.Section>
+        <SecondaryNav.Section
+          title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
+        >
+          {projectsToDisplay.map(project => (
             <SecondaryNav.Item
-              to={`${baseUrl}/projects/`}
-              end
-              analyticsItemName="insights_projects_all"
+              key={project.id}
+              to={
+                isUsingOverviewAsProjectDetails(project)
+                  ? {
+                      pathname: `${baseUrl}/backend/`,
+                      search: `?project=${project.id}&starred=1`,
+                    }
+                  : `${baseUrl}/projects/${project.slug}/`
+              }
+              isActive={
+                isUsingOverviewAsProjectDetails(project)
+                  ? isLinkActive(`${baseUrl}/backend/`, location.pathname) &&
+                    isProjectSelectedExclusively(project) &&
+                    isStarredProjectSelected
+                  : undefined
+              }
+              leadingItems={
+                <StyledProjectIcon
+                  projectPlatforms={project.platform ? [project.platform] : ['default']}
+                />
+              }
+              analyticsItemName="insights_project_starred"
             >
-              {t('All Projects')}
+              {project.slug}
             </SecondaryNav.Item>
-          </SecondaryNav.Section>
-        </SecondaryNav.Body>
-      </SecondaryNav>
-      {children}
-    </Fragment>
+          ))}
+          <SecondaryNav.Item
+            to={`${baseUrl}/projects/`}
+            end
+            analyticsItemName="insights_projects_all"
+          >
+            {t('All Projects')}
+          </SecondaryNav.Item>
+        </SecondaryNav.Section>
+      </SecondaryNav.Body>
+    </SecondaryNav>
   );
-}
-
-export default function InsightsNavigation({children}: InsightsNavigationProps) {
-  const prefersStackedNav = usePrefersStackedNav();
-
-  if (!prefersStackedNav) {
-    return children;
-  }
-
-  return <InsightsSecondaryNav>{children}</InsightsSecondaryNav>;
 }
 
 const StyledProjectIcon = styled(ProjectIcon)`

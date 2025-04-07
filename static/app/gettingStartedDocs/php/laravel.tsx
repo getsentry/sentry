@@ -261,6 +261,7 @@ class Handler extends ExceptionHandler
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
+  profilingOnboarding: onboarding,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
 };

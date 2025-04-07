@@ -13,6 +13,7 @@ from sentry.issues.endpoints.group_similar_issues_embeddings import (
 )
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
 from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.testutils.cases import APITestCase
@@ -445,6 +446,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
         assert existing_grouphash.group_id is None
 
+        # Create metadata for the grouphash so it has a creation date
+        GroupHashMetadata.objects.get_or_create(grouphash=existing_grouphash)
+
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
@@ -476,10 +480,14 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             extra={
                 "hash": self.event.get_primary_hash(),
                 "parent_hash": "dogs are great",
+                "parent_gh_age_in_sec": mock.ANY,  # See below
                 "project_id": self.project.id,
                 "event_id": self.event.event_id,
             },
         )
+        logged_gh_age = mock_logger.warning.call_args.kwargs["extra"]["parent_gh_age_in_sec"]
+        assert isinstance(logged_gh_age, float)
+        assert logged_gh_age > 0 and logged_gh_age < 1
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")

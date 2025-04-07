@@ -6,14 +6,18 @@ from unittest import mock
 import grpc
 import pytest
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
+    ON_ATTEMPTS_EXCEEDED_DISCARD,
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
+    RetryState,
     TaskActivation,
 )
 
+from sentry.taskworker.state import current_task
 from sentry.taskworker.worker import ProcessingResult, TaskWorker, child_worker
 from sentry.testutils.cases import TestCase
+from sentry.utils.redis import redis_clusters
 
 SIMPLE_TASK = TaskActivation(
     id="111",
@@ -53,6 +57,20 @@ AT_MOST_ONCE_TASK = TaskActivation(
     namespace="examples",
     parameters='{"args": [], "kwargs": {}}',
     processing_deadline_duration=2,
+)
+
+RETRY_STATE_TASK = TaskActivation(
+    id="654",
+    taskname="examples.retry_state",
+    namespace="examples",
+    parameters='{"args": [], "kwargs": {}}',
+    processing_deadline_duration=2,
+    retry_state=RetryState(
+        # no more attempts left
+        attempts=1,
+        max_attempts=2,
+        on_attempts_exceeded=ON_ATTEMPTS_EXCEEDED_DISCARD,
+    ),
 )
 
 
@@ -181,6 +199,44 @@ class TestTaskWorker(TestCase):
             taskworker.shutdown()
             assert mock_client.get_task.called
             assert mock_client.update_task.call_count == 3
+
+    def test_run_once_current_task_state(self) -> None:
+        # Run a task that uses retry_task() helper
+        # to raise and catch a NoRetriesRemainingError
+        max_runtime = 5
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1)
+        with mock.patch.object(taskworker, "client") as mock_client:
+
+            def update_task_response(*args, **kwargs):
+                return None
+
+            mock_client.update_task.side_effect = update_task_response
+            mock_client.get_task.return_value = RETRY_STATE_TASK
+            taskworker.start_result_thread()
+
+            # Run until two tasks have been processed
+            start = time.time()
+            while True:
+                taskworker.run_once()
+                if mock_client.update_task.call_count >= 1:
+                    break
+                if time.time() - start > max_runtime:
+                    taskworker.shutdown()
+                    raise AssertionError("Timeout waiting for get_task to be called")
+
+            taskworker.shutdown()
+            assert mock_client.get_task.called
+            assert mock_client.update_task.call_count == 1
+            # status is complete, as retry_state task handles the NoRetriesRemainingError
+            mock_client.update_task.assert_called_with(
+                task_id=RETRY_STATE_TASK.id,
+                status=TASK_ACTIVATION_STATUS_COMPLETE,
+                fetch_next_task=None,
+            )
+            redis = redis_clusters.get("default")
+            assert current_task() is None, "should clear current task on completion"
+            assert redis.get("no-retries-remaining"), "key should exist if except block was hit"
+            redis.delete("no-retries-remaining")
 
 
 @pytest.mark.django_db

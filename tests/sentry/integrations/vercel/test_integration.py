@@ -10,7 +10,7 @@ from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.identity.vercel import VercelIdentityProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.vercel import VercelClient, VercelIntegrationProvider
+from sentry.integrations.vercel import VercelClient, VercelIntegrationProvider, metadata
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -19,7 +19,7 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
 )
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -426,3 +426,29 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert ScheduledDeletion.objects.filter(
             model_name="OrganizationIntegration", object_id=org_integration.id
         ).exists()
+
+
+class VercelIntegrationMetadataTest(TestCase):
+
+    def test_asdict(self):
+        assert metadata.asdict() == {
+            "description": "Vercel is an all-in-one platform with Global CDN supporting static & JAMstack deployment and Serverless Functions.",
+            "features": [
+                {
+                    "description": "Connect your Sentry and Vercel projects to automatically upload source maps and notify Sentry of new releases being deployed.",
+                    "featureGate": "integrations-deployment",
+                }
+            ],
+            "author": "The Sentry Team",
+            "noun": "Installation",
+            "issue_url": "https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Vercel%20Integration%20Problem",
+            "source_url": "https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vercel",
+            "aspects": {
+                "configure_integration": {"title": "Connect Your Projects"},
+                "externalInstall": {
+                    "url": "https://vercel.com/integrations/sentry/add",
+                    "buttonText": "Vercel Marketplace",
+                    "noticeText": "Visit the Vercel Marketplace to install this integration. After installing the Sentry integration, you'll be redirected back to Sentry to finish syncing Vercel and Sentry projects.",
+                },
+            },
+        }

@@ -16,7 +16,26 @@ import {
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {
+  DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_AGGREGATE,
+  DEFAULT_VISUALIZATION_FIELD,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+describe('defaults', function () {
+  it('default', function () {
+    expect(DEFAULT_VISUALIZATION).toBe('count(span.duration)');
+  });
+
+  it('default aggregate', function () {
+    expect(DEFAULT_VISUALIZATION_AGGREGATE).toBe('count');
+  });
+
+  it('default field', function () {
+    expect(DEFAULT_VISUALIZATION_FIELD).toBe('span.duration');
+  });
+});
 
 describe('PageParamsProvider', function () {
   let pageParams: ReturnType<typeof useExplorePageParams>;
@@ -51,7 +70,7 @@ describe('PageParamsProvider', function () {
       <PageParamsProvider>
         <Component />
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     act(() =>
@@ -79,7 +98,7 @@ describe('PageParamsProvider', function () {
       <PageParamsProvider>
         <Component />
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     expect(pageParams).toEqual({
@@ -98,9 +117,9 @@ describe('PageParamsProvider', function () {
       sortBys: [{field: 'timestamp', kind: 'desc'}],
       visualizes: [
         {
-          chartType: ChartType.LINE,
+          chartType: ChartType.BAR,
           label: 'A',
-          yAxes: ['avg(span.duration)'],
+          yAxes: ['count(span.duration)'],
         },
       ],
     });

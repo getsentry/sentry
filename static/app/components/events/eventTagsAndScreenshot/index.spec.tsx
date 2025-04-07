@@ -156,7 +156,7 @@ describe('EventTagsAndScreenshot', function () {
       Object.keys(TagFilter).length
     );
 
-    await expect(mockDetailedProject).toHaveBeenCalled();
+    expect(mockDetailedProject).toHaveBeenCalled();
     expect(await tagsContainer.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.getByTestId('event-tags-tree')).toBeInTheDocument();
   }

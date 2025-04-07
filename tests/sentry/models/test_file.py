@@ -58,7 +58,7 @@ class FileBlobTest(TestCase):
                 blob.delete()
         # Even though postgres failed we should still queue
         # a task to delete the filestore object.
-        assert mock_delete_file_region.apply_async.call_count == 1
+        assert mock_delete_file_region.delay.call_count == 1
 
         # blob is still around.
         assert FileBlob.objects.get(id=blob.id)

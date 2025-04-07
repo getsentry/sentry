@@ -24,7 +24,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
 
     @property
     def features(self):
-        return {"organizations:feature-flag-audit-log": True}
+        return {}
 
     def test_generic_post_create(self, mock_incr):
         request_data = {
@@ -195,12 +195,6 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             response = self.client.post(url, {})
             assert response.status_code == 404
             assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
-
-    def test_post_disabled(self, mock_incr):
-        response = self.client.post(self.url, data={})
-        assert response.status_code == 404
-        assert response.content == b'"Not enabled."'
-        assert call("feature_flags.audit_log_event_posted") not in mock_incr.call_args_list
 
     def test_post_missing_signature(self, mock_incr):
         with self.feature(self.features):

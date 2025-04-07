@@ -3,16 +3,15 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
 import SpanSummary from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/content';
 
 jest.mock('sentry/utils/useParams');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
 
 describe('SpanSummaryPage', function () {
   const organization = OrganizationFixture();
@@ -28,16 +27,7 @@ describe('SpanSummaryPage', function () {
     key: '',
   });
 
-  jest.mocked(useProjects).mockReturnValue({
-    projects: [],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-    fetching: false,
-    hasMore: null,
-    fetchError: null,
-    initiallyLoaded: false,
-  });
+  ProjectsStore.loadInitialData([project]);
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,

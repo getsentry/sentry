@@ -6,8 +6,9 @@ import {FieldKind} from 'sentry/utils/fields';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHintsList';
 import {
   PageParamsProvider,
+  useExploreFields,
   useExploreQuery,
-  useSetExploreQuery,
+  useSetExplorePageParams,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 
 const mockStringTags: TagCollection = {
@@ -28,12 +29,23 @@ jest.mock('sentry/utils/useNavigate', () => ({
 }));
 
 function Subject(
-  props: Omit<Parameters<typeof SchemaHintsList>[0], 'exploreQuery' | 'setExploreQuery'>
+  props: Omit<
+    Parameters<typeof SchemaHintsList>[0],
+    'exploreQuery' | 'setPageParams' | 'tableColumns'
+  >
 ) {
   function Content() {
     const query = useExploreQuery();
-    const setQuery = useSetExploreQuery();
-    return <SchemaHintsList {...props} exploreQuery={query} setExploreQuery={setQuery} />;
+    const fields = useExploreFields();
+    const setPageParams = useSetExplorePageParams();
+    return (
+      <SchemaHintsList
+        {...props}
+        exploreQuery={query}
+        tableColumns={fields}
+        setPageParams={setPageParams}
+      />
+    );
   }
   return (
     <PageParamsProvider>
@@ -123,7 +135,12 @@ describe('SchemaHintsList', () => {
     await userEvent.click(stringTag1Hint);
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {query: '!stringTag1:""'}})
+      expect.objectContaining({
+        query: {
+          query: '!stringTag1:""',
+          field: expect.arrayContaining(['stringTag1']),
+        },
+      })
     );
   });
 
@@ -179,14 +196,21 @@ describe('SchemaHintsList', () => {
     await userEvent.click(stringTag1Checkbox);
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {query: '!stringTag1:""'}})
+      expect.objectContaining({
+        query: {query: '!stringTag1:""', field: expect.arrayContaining(['stringTag1'])},
+      })
     );
 
     const numberTag1Checkbox = withinDrawer.getByText('numberTag1');
     await userEvent.click(numberTag1Checkbox);
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {query: '!stringTag1:"" numberTag1:>0'}})
+      expect.objectContaining({
+        query: {
+          query: '!stringTag1:"" numberTag1:>0',
+          field: expect.arrayContaining(['stringTag1', 'numberTag1']),
+        },
+      })
     );
   });
 
@@ -201,7 +225,13 @@ describe('SchemaHintsList', () => {
         organization,
         router: {
           ...router,
-          location: {...router.location, query: {query: '!stringTag1:"" numberTag1:>0'}},
+          location: {
+            ...router.location,
+            query: {
+              query: '!stringTag1:"" numberTag1:>0',
+              field: ['stringTag1', 'numberTag1'],
+            },
+          },
         },
       }
     );
@@ -214,7 +244,12 @@ describe('SchemaHintsList', () => {
     await userEvent.click(stringTag1Checkbox);
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {query: 'numberTag1:>0'}})
+      expect.objectContaining({
+        query: {
+          query: 'numberTag1:>0',
+          field: expect.arrayContaining(['numberTag1', 'stringTag1']),
+        },
+      })
     );
   });
 

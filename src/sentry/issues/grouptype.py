@@ -601,18 +601,6 @@ class FeedbackGroup(GroupType):
 
 
 @dataclass(frozen=True)
-class UptimeDomainCheckFailure(GroupType):
-    type_id = 7001
-    slug = "uptime_domain_failure"
-    description = "Uptime Domain Monitor Failure"
-    category = GroupCategory.UPTIME.value
-    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-
-
-@dataclass(frozen=True)
 class MetricIssuePOC(GroupType):
     type_id = 8002
     slug = "metric_issue_poc"

@@ -45,7 +45,7 @@ describe('getHighlightContextData', function () {
   it.each([
     ['alias', {client_os: ['version']}],
     ['type', {os: ['version']}],
-    ['title', {'Operating System': ['version']}],
+    ['title', {'Client Operating System': ['version']}],
   ])('matches highlights on context %s', (_type, highlightContext) => {
     const {organization, project} = initializeOrg();
     const event = EventFixture({

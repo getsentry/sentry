@@ -6,7 +6,7 @@ import BooleanField from 'sentry/components/forms/fields/booleanField';
 import DateTimeField from 'sentry/components/forms/fields/dateTimeField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {PromoCode} from 'admin/types';
 
@@ -22,6 +22,7 @@ type Props = ModalRenderProps & {
 };
 
 function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Props) {
+  const navigate = useNavigate();
   const [isDateToggleEnabled, setIsDateToggleEnabled] = useState(false);
   const [isTrialPromo, setIsTrialPromo] = useState(false);
 
@@ -47,7 +48,7 @@ function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Prop
             if (promoCode) {
               closeModal();
             } else {
-              browserHistory.push(`/_admin/promocodes/${newCode.code}/`);
+              navigate(`/_admin/promocodes/${newCode.code}/`);
             }
           }}
           initialData={promoCode || {duration: '1', setExpiration: false}}

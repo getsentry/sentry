@@ -141,7 +141,6 @@ describe('EventOrGroupTitle', function () {
       render(<EventOrGroupTitle data={perfData} />);
 
       expect(screen.getByText('N+1 Query')).toBeInTheDocument();
-      expect(screen.getByText('transaction name')).toBeInTheDocument();
     });
   });
 });

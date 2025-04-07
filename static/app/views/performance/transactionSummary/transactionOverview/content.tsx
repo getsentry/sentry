@@ -43,6 +43,7 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
 import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
+import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   makeVitalGroups,
@@ -141,10 +142,6 @@ function OTelSummaryContentInner({
 
     navigate(target);
   }
-
-  const hasPerformanceChartInterpolation = organization.features.includes(
-    'performance-chart-interpolation'
-  );
 
   const query = useMemo(() => {
     return decodeScalar(location.query.query, '');
@@ -263,16 +260,11 @@ function OTelSummaryContentInner({
           </PageFilterBar>
           <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
         </FilterActions>
+        <EAPChartsWidgetContainer>
+          <EAPChartsWidget transactionName={transactionName} />
+        </EAPChartsWidgetContainer>
+
         <PerformanceAtScaleContextProvider>
-          <TransactionSummaryCharts
-            organization={organization}
-            location={location}
-            eventView={eventView}
-            totalValue={totalCount}
-            currentFilter={spanOperationBreakdownFilter}
-            withoutZerofill={hasPerformanceChartInterpolation}
-            project={project}
-          />
           <ServiceEntrySpansTable
             eventView={transactionsListEventView}
             handleDropdownChange={handleTransactionsListSortChange}
@@ -874,6 +866,11 @@ const StyledSearchBarWrapper = styled('div')`
 
 const StyledIconWarning = styled(IconWarning)`
   display: block;
+`;
+
+const EAPChartsWidgetContainer = styled('div')`
+  height: 300px;
+  margin-bottom: ${space(2)};
 `;
 
 export default withProjects(SummaryContent);

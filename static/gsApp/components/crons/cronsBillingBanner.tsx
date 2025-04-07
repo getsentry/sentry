@@ -12,12 +12,7 @@ import {
 } from 'getsentry/components/crons/cronsBannerUpgradeCTA';
 import withSubscription from 'getsentry/components/withSubscription';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
-import {
-  type BillingConfig,
-  type MonitorCountResponse,
-  PlanTier,
-  type Subscription,
-} from 'getsentry/types';
+import type {BillingConfig, MonitorCountResponse, Subscription} from 'getsentry/types';
 import {getTrialDaysLeft} from 'getsentry/utils/billing';
 
 interface Props {
@@ -116,8 +111,7 @@ function TrialEndingBanner({
   trialDaysLeft,
   subscription,
 }: TrialEndingBannerProps & {subscription: Subscription}) {
-  const budgetType =
-    subscription.planTier === PlanTier.AM3 ? 'pay-as-you-go' : 'on-demand';
+  const budgetType = subscription.planDetails.budgetTerm;
   return (
     <TrialBanner hasBillingAccess={hasBillingAccess}>
       {hasBillingAccess
@@ -172,8 +166,7 @@ function InsufficentOnDemandMonitorsDisabledBanner({
   hasBillingAccess,
   subscription,
 }: BannerProps & {subscription: Subscription}) {
-  const budgetType =
-    subscription.planTier === PlanTier.AM3 ? 'pay-as-you-go' : 'on-demand';
+  const budgetType = subscription.planDetails.budgetTerm;
   return (
     <Alert.Container>
       <NoBorderRadiusAlert

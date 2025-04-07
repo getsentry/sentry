@@ -335,7 +335,7 @@ function TagsHeatMap(
                 if (isTransactionsLoading) {
                   return (
                     <LoadingContainer>
-                      <LoadingIndicator size={40} hideMessage />
+                      <LoadingIndicator size={40} />
                     </LoadingContainer>
                   );
                 }

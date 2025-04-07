@@ -21,6 +21,9 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.utils import build_query_strings
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import alerts_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import metrics, snuba_rpc
 from sentry.utils.snuba import SNUBA_INFO, SnubaError, _snuba_pool
 
@@ -35,6 +38,7 @@ SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
     queue="subscriptions",
     default_retry_delay=5,
     max_retries=5,
+    taskworker_config=TaskworkerConfig(namespace=alerts_tasks, retry=Retry(times=5)),
 )
 def create_subscription_in_snuba(query_subscription_id, **kwargs):
     """
@@ -80,6 +84,7 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
     queue="subscriptions",
     default_retry_delay=5,
     max_retries=5,
+    taskworker_config=TaskworkerConfig(namespace=alerts_tasks, retry=Retry(times=5)),
 )
 def update_subscription_in_snuba(
     query_subscription_id,
@@ -154,6 +159,7 @@ def update_subscription_in_snuba(
     queue="subscriptions",
     default_retry_delay=5,
     max_retries=5,
+    taskworker_config=TaskworkerConfig(namespace=alerts_tasks, retry=Retry(times=5)),
 )
 def delete_subscription_from_snuba(query_subscription_id, **kwargs):
     """
@@ -308,6 +314,7 @@ def _delete_from_snuba(dataset: Dataset, subscription_id: str, entity_key: Entit
 @instrumented_task(
     name="sentry.snuba.tasks.subscription_checker",
     queue="subscriptions",
+    taskworker_config=TaskworkerConfig(namespace=alerts_tasks),
 )
 def subscription_checker(**kwargs):
     """

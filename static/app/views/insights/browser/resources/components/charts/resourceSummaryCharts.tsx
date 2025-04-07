@@ -48,7 +48,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
     {
       search: mutableSearch,
       yAxis: [
-        `spm()`,
+        `epm()`,
         `avg(${SPAN_SELF_TIME})`,
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
         `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
@@ -74,7 +74,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
       <ModuleLayout.Third>
         <InsightsLineChartWidget
           title={getThroughputChartTitle('resource')}
-          series={[spanMetricsSeriesData?.[`spm()`]]}
+          series={[spanMetricsSeriesData?.[`epm()`]]}
           isLoading={areSpanMetricsSeriesLoading}
           error={spanMetricsSeriesError}
         />

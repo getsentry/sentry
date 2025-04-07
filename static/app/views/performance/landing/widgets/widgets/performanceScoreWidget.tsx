@@ -28,7 +28,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const projectScore =
     isProjectScoresLoading || isPending
       ? undefined
-      : getWebVitalScoresFromTableDataRow(projectScores?.data?.[0]);
+      : getWebVitalScoresFromTableDataRow(projectScores?.[0]);
   const ringSegmentColors = theme.chart.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
@@ -60,7 +60,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
                 {provided.children({
                   data,
                   isLoading: loading,
-                  hasData: !loading && (data?.data?.[0]?.['count()'] as number) > 0,
+                  hasData: !loading && (data?.[0]?.['count()'] as number) > 0,
                 })}
               </Fragment>
             );

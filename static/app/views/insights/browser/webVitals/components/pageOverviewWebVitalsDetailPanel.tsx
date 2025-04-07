@@ -121,7 +121,7 @@ export function PageOverviewWebVitalsDetailPanel({
     subregions,
   });
 
-  const projectScore = getWebVitalScoresFromTableDataRow(projectScoresData?.data?.[0]);
+  const projectScore = getWebVitalScoresFromTableDataRow(projectScoresData?.[0]);
 
   const {data: transactionsTableData, isLoading: isTransactionWebVitalsQueryLoading} =
     useTransactionSamplesCategorizedQuery({
@@ -151,7 +151,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const webVitalData: LineChartSeries = {
     data:
       !isTimeseriesLoading && webVital
-        ? timeseriesData?.[webVital].map(({name, value}) => ({
+        ? timeseriesData?.[`p75(measurements.${webVital})`].data.map(({name, value}) => ({
             name,
             value,
           }))
@@ -429,9 +429,9 @@ export function PageOverviewWebVitalsDetailPanel({
 
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const webVitalScore = projectScore[`${webVital}Score`];
-  const webVitalValue = projectData?.data[0]?.[`p75(measurements.${webVital})`] as
-    | number
-    | undefined;
+  const webVitalValue = webVital
+    ? projectData?.[0]?.[`p75(measurements.${webVital})`]
+    : undefined;
 
   return (
     <PageAlertProvider>

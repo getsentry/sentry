@@ -31,14 +31,14 @@ type Row = Pick<
   SpanMetricsResponse,
   | 'transaction'
   | 'transaction.method'
-  | 'spm()'
+  | 'epm()'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
   | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
-  'transaction' | 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
+  'transaction' | 'epm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -48,7 +48,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
+    key: 'epm()',
     name: getThroughputTitle('db'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -66,7 +66,7 @@ const COLUMN_ORDER: Column[] = [
 
 const SORTABLE_FIELDS = [
   'avg(span.self_time)',
-  'spm()',
+  'epm()',
   'time_spent_percentage()',
 ] as const;
 

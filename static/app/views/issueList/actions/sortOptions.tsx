@@ -2,7 +2,6 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
   FOR_REVIEW_QUERIES,
   getSortLabel,
@@ -44,7 +43,6 @@ function IssueListSortOptions({
   triggerSize = 'xs',
   showIcon = true,
 }: Props) {
-  const organization = useOrganization();
   const sortKey = sort || IssueSortOptions.DATE;
   const sortKeys = [
     ...(FOR_REVIEW_QUERIES.includes(query || '') ? [IssueSortOptions.INBOX] : []),
@@ -62,7 +60,7 @@ function IssueListSortOptions({
       onChange={opt => onSelect(opt.value)}
       options={sortKeys.map(key => ({
         value: key,
-        label: getSortLabel(key, organization),
+        label: getSortLabel(key),
         details: getSortTooltip(key),
       }))}
       menuWidth={240}

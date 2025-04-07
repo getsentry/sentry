@@ -162,8 +162,6 @@ const ButtonWrapper = styled('div')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
     /* margin: 0 ${space(0.5)} 0 ${space(1)}; */
-    height: 14px;
-    width: 14px;
   }
 `;
 

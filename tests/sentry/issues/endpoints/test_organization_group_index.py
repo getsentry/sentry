@@ -4,7 +4,6 @@ from time import sleep
 from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
-import psycopg2
 from django.db import OperationalError
 from django.urls import reverse
 from django.utils import timezone
@@ -4066,14 +4065,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         only when it's a statement timeout, and remains a 500 for user cancellation"""
 
         class TimeoutError(OperationalError):
-            pgcode = psycopg2.errorcodes.QUERY_CANCELED
-
             def __str__(self):
                 return "canceling statement due to statement timeout"
 
         class UserCancelError(OperationalError):
-            pgcode = psycopg2.errorcodes.QUERY_CANCELED
-
             def __str__(self):
                 return "canceling statement due to user request"
 
