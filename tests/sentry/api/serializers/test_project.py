@@ -172,7 +172,7 @@ class ProjectSerializerTest(TestCase):
         req.user = self.user
         req.superuser.set_logged_in(req.user)
 
-        with mock.patch.object(env, "request", req):
+        with env.active_request(req):
             result = serialize(self.project, self.user)
             assert result["access"] == TEAM_ADMIN["scopes"]
             assert result["hasAccess"] is True
