@@ -66,7 +66,7 @@ def get_trace_summary(
 def _call_seer(
     trace_id: str,
     trace_content: list[dict],
-    only_transaction: bool = True,
+    only_transaction: bool = False,
 ) -> SummarizeTraceResponse:
 
     path = "/v1/automation/summarize/trace"
