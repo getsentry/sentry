@@ -8,6 +8,12 @@ from sentry.search.events.types import EventsResponse
 
 
 @dataclass(frozen=True)
+class FieldsACL:
+    functions: set[str] = field(default_factory=set)
+    attributes: set[str] = field(default_factory=set)
+
+
+@dataclass(frozen=True)
 class SearchResolverConfig:
     # Automatically add id, etc. if there are no aggregates
     auto_fields: bool = False
@@ -16,8 +22,8 @@ class SearchResolverConfig:
     # TODO: do we need parser_config_overrides? it looks like its just for alerts
     # Whether to process the results from snuba
     process_results: bool = True
-    # If a `FunctionDefinition` is private, it will only be available if it is in the `functions_acl`
-    functions_acl: set[str] = field(default_factory=set)
+    # If a field is private, it will only be available if it is in the `fields_acl`
+    fields_acl: FieldsACL = field(default_factory=lambda: FieldsACL())
 
 
 CONFIDENCES: dict[Reliability.ValueType, Literal["low", "high"]] = {

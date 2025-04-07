@@ -93,7 +93,7 @@ type UsageProps = {
   /**
    * All category totals when needed for reserved budgets.
    */
-  allTotalsByCategory?: {[key: string]: BillingStatTotal};
+  allTotalsByCategory?: Record<string, BillingStatTotal>;
   /**
    * Do not allow the table to be expansded
    */
@@ -101,7 +101,7 @@ type UsageProps = {
   /**
    * Event breakdown totals used by Performance Units
    */
-  eventTotals?: {[key: string]: BillingStatTotal};
+  eventTotals?: Record<string, BillingStatTotal>;
   /**
    * Gifted budget for the current billing period.
    */

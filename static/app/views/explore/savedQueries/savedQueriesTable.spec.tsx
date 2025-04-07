@@ -181,7 +181,6 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" />);
     await screen.findByText('Query Name');
     screen.getByText('Starred Query');
-    expect(screen.getByLabelText('Starred Queries')).toBeInTheDocument();
     expect(screen.getByLabelText('Unstar')).toBeInTheDocument();
     expect(screen.getByLabelText('Star')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Star'));

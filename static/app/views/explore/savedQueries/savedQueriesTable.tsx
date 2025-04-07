@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -5,6 +6,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Avatar from 'sentry/components/core/avatar';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
@@ -14,6 +16,7 @@ import GridEditable, {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import {GridHeadCellStatic} from 'sentry/components/gridEditable/styles';
 import Link from 'sentry/components/links/link';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
@@ -26,8 +29,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
+import {StreamlineGridEditable} from 'sentry/views/issueDetails/streamline/eventListTable';
 
 import {useDeleteQuery} from '../hooks/useDeleteQuery';
 import {
@@ -38,17 +43,16 @@ import {
 
 const NO_VALUE = ' \u2014 ';
 
-const ORDER: Array<GridColumnOrder<keyof SavedQuery | 'options' | 'access'>> = [
+const ORDER: Array<GridColumnOrder<keyof SavedQuery | 'access'>> = [
   {key: 'name', width: COL_WIDTH_UNDEFINED, name: t('Name')},
-  {key: 'projects', width: COL_WIDTH_UNDEFINED, name: t('Projects')},
+  {key: 'projects', width: 80, name: t('Projects')},
   {key: 'query', width: COL_WIDTH_UNDEFINED, name: t('Query')},
-  {key: 'createdBy', width: 24, name: t('Owner')},
-  {key: 'access', width: 24, name: t('Access')},
-  {key: 'lastVisited', width: COL_WIDTH_UNDEFINED, name: t('Last Viewed')},
-  {key: 'options', width: 24, name: ''},
+  {key: 'createdBy', width: 80, name: t('Owner')},
+  {key: 'access', width: 80, name: t('Access')},
+  {key: 'lastVisited', width: 120, name: t('Last Viewed')},
 ];
 
-type Column = GridColumnHeader<keyof SavedQuery | 'options' | 'access'>;
+type Column = GridColumnHeader<keyof SavedQuery | 'access'>;
 
 type Props = {
   cursorKey?: string;
@@ -80,6 +84,16 @@ export function SavedQueriesTable({
   const filteredData = data?.filter(row => row.query?.length > 0) ?? [];
   const {deleteQuery} = useDeleteQuery();
   const {starQuery} = useStarQuery();
+  const {updateQueryFromSavedQuery} = useSaveQuery();
+
+  const getHandleUpdateFromSavedQuery = useCallback(
+    (savedQuery: SavedQuery) => {
+      return (name: string) => {
+        return updateQueryFromSavedQuery({...savedQuery, name});
+      };
+    },
+    [updateQueryFromSavedQuery]
+  );
 
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
     navigate({
@@ -87,6 +101,7 @@ export function SavedQueriesTable({
       query: {...query, [cursorKey]: _cursor},
     });
   };
+
   const renderBodyCell = (col: Column, row: SavedQuery) => {
     if (col.key === 'name') {
       const link = getExploreUrlFromSavedQueryUrl({savedQuery: row, organization});
@@ -94,57 +109,6 @@ export function SavedQueriesTable({
         <NoOverflow>
           <Link to={link}>{row.name}</Link>
         </NoOverflow>
-      );
-    }
-    if (col.key === 'options') {
-      return (
-        <Center>
-          <DropdownMenu
-            items={[
-              // TODO
-              {
-                key: 'rename',
-                label: t('Rename'),
-              },
-              {
-                key: 'duplicate',
-                label: t('Duplicate'),
-              },
-              {
-                key: 'delete',
-                label: t('Delete'),
-                onAction: () => {
-                  addLoadingMessage(t('Deleting query...'));
-                  try {
-                    deleteQuery(row.id);
-                    addSuccessMessage(t('Query deleted'));
-                  } catch (error) {
-                    addErrorMessage(t('Unable to delete query'));
-                  }
-                },
-                priority: 'danger',
-              },
-            ]}
-            trigger={triggerProps => (
-              <DropdownTriggerWrapper>
-                <Button
-                  {...triggerProps}
-                  aria-label={t('Query actions')}
-                  size="xs"
-                  borderless
-                  onClick={e => {
-                    e.stopPropagation();
-                    e.preventDefault();
-
-                    triggerProps.onClick?.(e);
-                  }}
-                  icon={<IconEllipsis direction="down" size="sm" />}
-                  data-test-id="menu-trigger"
-                />
-              </DropdownTriggerWrapper>
-            )}
-          />
-        </Center>
       );
     }
     if (col.key === 'query') {
@@ -184,9 +148,70 @@ export function SavedQueriesTable({
     }
     if (col.key === 'lastVisited') {
       return (
-        <AlignRight>
-          {row.lastVisited ? new Date(row.lastVisited).toDateString() : NO_VALUE}
-        </AlignRight>
+        <LastColumnWrapper>
+          <span>
+            {row.lastVisited ? new Date(row.lastVisited).toDateString() : NO_VALUE}
+          </span>
+          <span>
+            <DropdownMenu
+              items={[
+                {
+                  key: 'rename',
+                  label: t('Rename'),
+                  onAction: () => {
+                    openSaveQueryModal({
+                      organization,
+                      queries: row.query.map((query, queryIndex) => ({
+                        query: query.query,
+                        groupBys: query.groupby,
+                        visualizes: query.visualize.map((v, visualizationIndex) => ({
+                          ...v,
+                          label: `visualization-${queryIndex}-${visualizationIndex}`,
+                        })),
+                      })),
+                      saveQuery: getHandleUpdateFromSavedQuery(row),
+                      name: row.name,
+                    });
+                  },
+                },
+                {
+                  key: 'duplicate',
+                  label: t('Duplicate'),
+                },
+                {
+                  key: 'delete',
+                  label: t('Delete'),
+                  onAction: () => {
+                    addLoadingMessage(t('Deleting query...'));
+                    try {
+                      deleteQuery(row.id);
+                      addSuccessMessage(t('Query deleted'));
+                    } catch (error) {
+                      addErrorMessage(t('Unable to delete query'));
+                    }
+                  },
+                  priority: 'danger',
+                },
+              ]}
+              trigger={triggerProps => (
+                <OptionsButton
+                  {...triggerProps}
+                  aria-label={t('Query actions')}
+                  size="xs"
+                  borderless
+                  onClick={e => {
+                    e.stopPropagation();
+                    e.preventDefault();
+
+                    triggerProps.onClick?.(e);
+                  }}
+                  icon={<IconEllipsis direction="down" size="sm" />}
+                  data-test-id="menu-trigger"
+                />
+              )}
+            />
+          </span>
+        </LastColumnWrapper>
       );
     }
     if (col.key === 'access') {
@@ -219,21 +244,14 @@ export function SavedQueriesTable({
       return <Center>{col.name}</Center>;
     }
     if (col.key === 'lastVisited') {
-      return <AlignRight>{col.name}</AlignRight>;
+      return <div>{col.name}</div>;
     }
     return <div>{col.name}</div>;
   };
 
   const renderPrependColumns = (isHeader: boolean, row?: SavedQuery) => {
     if (isHeader) {
-      return [
-        <IconStar
-          color="yellow300"
-          isSolid
-          aria-label={t('Starred Queries')}
-          key="starred-header"
-        />,
-      ];
+      return [<span key="starred-header" />];
     }
     if (!row) {
       return [null];
@@ -244,13 +262,7 @@ export function SavedQueriesTable({
           aria-label={row.starred ? t('Unstar') : t('Star')}
           size="zero"
           borderless
-          icon={
-            <IconStar
-              size="sm"
-              color={row.starred ? 'yellow300' : 'gray300'}
-              isSolid={row.starred}
-            />
-          }
+          icon={<IconStar size="sm" color="gray400" isSolid={row.starred} />}
           onClick={() => {
             if (row.starred) {
               addLoadingMessage(t('Unstarring query...'));
@@ -268,19 +280,22 @@ export function SavedQueriesTable({
   };
   return (
     <span>
-      <GridEditable
-        isLoading={isLoading}
-        data={filteredData}
-        grid={{
-          renderBodyCell,
-          renderHeadCell,
-          renderPrependColumns,
-          prependColumnWidths: ['max-content'],
-        }}
-        columnOrder={ORDER}
-        columnSortBy={[]}
-        bodyStyle={{overflow: 'visible', zIndex: 'unset'}}
-      />
+      <StyledStreamlineGridEditable>
+        <GridEditable
+          isLoading={isLoading}
+          data={filteredData}
+          grid={{
+            renderBodyCell,
+            renderHeadCell,
+            renderPrependColumns,
+            prependColumnWidths: ['max-content'],
+          }}
+          columnOrder={ORDER}
+          columnSortBy={[]}
+          bodyStyle={{overflow: 'visible', zIndex: 'unset'}}
+          minimumColWidth={30}
+        />
+      </StyledStreamlineGridEditable>
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </span>
   );
@@ -293,11 +308,11 @@ const Center = styled('div')`
   width: 100%;
 `;
 
-const AlignRight = styled('div')`
+const LastColumnWrapper = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   width: 100%;
+  justify-content: space-between;
 `;
 
 const StackedProjectBadges = styled('div')`
@@ -318,10 +333,6 @@ const StackedProjectBadges = styled('div')`
   }
 `;
 
-const DropdownTriggerWrapper = styled('div')`
-  width: 20px;
-`;
-
 const FormattedQueryWrapper = styled('div')`
   display: flex;
   align-items: center;
@@ -339,4 +350,15 @@ const NoOverflow = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+`;
+
+const StyledStreamlineGridEditable = styled(StreamlineGridEditable)`
+  ${GridHeadCellStatic}:first-child {
+    height: auto;
+    padding-left: ${space(1.5)};
+  }
+`;
+
+const OptionsButton = styled(Button)`
+  padding: 0;
 `;
