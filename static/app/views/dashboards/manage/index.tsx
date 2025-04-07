@@ -169,7 +169,8 @@ function ManageDashboards() {
           const paginationObject = parseLinkHeader(dashboardsPageLinks);
           if (
             dashboards?.length &&
-            paginationObject.next!.results &&
+            paginationObject?.next &&
+            paginationObject?.next?.results &&
             rowCount * columnCount > dashboards.length
           ) {
             refetchDashboards();
