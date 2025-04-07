@@ -129,8 +129,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
 
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 3
-        assert "log.body" in keys
+        assert keys == {"log.body", "log.severity_text", "message", "project"}
 
 
 class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpointTestBase):
