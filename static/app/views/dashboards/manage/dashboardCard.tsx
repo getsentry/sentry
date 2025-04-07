@@ -16,7 +16,7 @@ import type {User} from 'sentry/types/user';
 
 interface Props {
   detail: React.ReactNode;
-  onFavorite: (isFavorited: boolean) => void;
+  onFavorite: (isFavorited: boolean) => Promise<void>;
   renderWidgets: () => React.ReactNode;
   title: string;
   to: LinkProps['to'];
@@ -209,6 +209,7 @@ const ContextMenuWrapper = styled('div')`
   right: ${space(2)};
   bottom: ${space(1)};
   display: flex;
+  ${p => (p.theme.isChonk ? `gap: ${space(0.5)};` : '')}
 `;
 
 const StyledButton = styled(Button)`

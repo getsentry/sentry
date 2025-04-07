@@ -642,8 +642,6 @@ const MenuTitle = styled('span')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
     margin: 0 ${space(0.5)} 0 ${space(1)};
-    height: 12px;
-    width: 12px;
   }
 `;
 

@@ -1,5 +1,4 @@
 from sentry.models.promptsactivity import PromptsActivity
-from sentry.utils.request_cache import request_cache
 
 DEFAULT_PROMPTS = {
     "releases": {"required_fields": ["organization_id", "project_id"]},
@@ -60,7 +59,6 @@ class PromptsConfig:
 prompt_config = PromptsConfig(DEFAULT_PROMPTS)
 
 
-@request_cache
 def get_prompt_activities_for_user(organization_ids, user_id, features):
     return PromptsActivity.objects.filter(
         organization_id__in=organization_ids, feature__in=features, user_id=user_id

@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import Hook from 'sentry/components/hook';
 import {
+  IconCodecov,
   IconDashboard,
   IconGraph,
   IconIssues,
@@ -14,9 +15,9 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import {NAV_GROUP_LABELS} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {SeparatorItem, SidebarLink} from 'sentry/views/nav/primary/components';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {PrimaryNavigationHelp} from 'sentry/views/nav/primary/help';
 import {PrimaryNavigationOnboarding} from 'sentry/views/nav/primary/onboarding';
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/nav/primary/serviceIncidents';
@@ -57,7 +58,7 @@ export function PrimaryNavigationItems() {
           <SidebarLink
             to={`/${prefix}/issues/`}
             analyticsKey="issues"
-            label={NAV_GROUP_LABELS[PrimaryNavGroup.ISSUES]}
+            label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.ISSUES].label}
           >
             <IconIssues />
           </SidebarLink>
@@ -76,7 +77,7 @@ export function PrimaryNavigationItems() {
             }
             activeTo={`/${prefix}/explore`}
             analyticsKey="explore"
-            label={NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}
+            label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.EXPLORE].label}
           >
             <IconSearch />
           </SidebarLink>
@@ -98,7 +99,7 @@ export function PrimaryNavigationItems() {
               analyticsKey="dashboards"
               label={
                 layout === NavLayout.MOBILE
-                  ? NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]
+                  ? PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.DASHBOARDS].label
                   : t('Dash')
               }
             >
@@ -117,11 +118,22 @@ export function PrimaryNavigationItems() {
               to={`/${prefix}/insights/frontend/`}
               activeTo={`/${prefix}/insights`}
               analyticsKey="insights"
-              label={NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
+              label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.INSIGHTS].label}
             >
               <IconGraph type="area" />
             </SidebarLink>
           </NavTourElement>
+        </Feature>
+
+        <Feature features={['codecov-ui']}>
+          <SidebarLink
+            to={`/${prefix}/codecov/coverage/`}
+            activeTo={`/${prefix}/codecov/`}
+            analyticsKey="codecov"
+            label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.CODECOV].label}
+          >
+            <IconCodecov />
+          </SidebarLink>
         </Feature>
 
         <SeparatorItem />
@@ -135,7 +147,7 @@ export function PrimaryNavigationItems() {
             to={`/${prefix}/settings/${organization.slug}/`}
             activeTo={`/${prefix}/settings/`}
             analyticsKey="settings"
-            label={NAV_GROUP_LABELS[PrimaryNavGroup.SETTINGS]}
+            label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.SETTINGS].label}
           >
             <IconSettings />
           </SidebarLink>

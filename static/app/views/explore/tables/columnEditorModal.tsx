@@ -28,6 +28,8 @@ interface ColumnEditorModalProps extends ModalRenderProps {
   numberTags: TagCollection;
   onColumnsChange: (fields: string[]) => void;
   stringTags: TagCollection;
+  hiddenKeys?: string[];
+  isDocsButtonHidden?: boolean;
 }
 
 export function ColumnEditorModal({
@@ -39,9 +41,11 @@ export function ColumnEditorModal({
   onColumnsChange,
   numberTags,
   stringTags,
+  hiddenKeys,
+  isDocsButtonHidden = false,
 }: ColumnEditorModalProps) {
   const tags: Array<SelectOption<string>> = useMemo(() => {
-    const allTags = [
+    let allTags = [
       ...columns
         .filter(
           column =>
@@ -75,19 +79,21 @@ export function ColumnEditorModal({
         };
       }),
     ];
-    allTags.sort((a, b) => {
-      if (a.label < b.label) {
-        return -1;
-      }
+    allTags = allTags
+      .filter(tag => !(hiddenKeys ?? []).includes(tag.label))
+      .toSorted((a, b) => {
+        if (a.label < b.label) {
+          return -1;
+        }
 
-      if (a.label > b.label) {
-        return 1;
-      }
+        if (a.label > b.label) {
+          return 1;
+        }
 
-      return 0;
-    });
+        return 0;
+      });
     return allTags;
-  }, [columns, stringTags, numberTags]);
+  }, [columns, stringTags, numberTags, hiddenKeys]);
 
   // We keep a temporary state for the columns so that we can apply the changes
   // only when the user clicks on the apply button.
@@ -133,9 +139,11 @@ export function ColumnEditorModal({
           </Body>
           <Footer data-test-id="editor-footer">
             <ButtonBar gap={1}>
-              <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
-                {t('Read the Docs')}
-              </LinkButton>
+              {!isDocsButtonHidden && (
+                <LinkButton priority="default" href={SPAN_PROPS_DOCS_URL} external>
+                  {t('Read the Docs')}
+                </LinkButton>
+              )}
               <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
                 {t('Apply')}
               </Button>

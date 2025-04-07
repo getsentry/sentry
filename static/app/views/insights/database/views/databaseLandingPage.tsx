@@ -47,7 +47,9 @@ export function DatabaseLandingPage() {
   const hasModuleData = useHasFirstSpan(moduleName);
 
   const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
-  const spanDescription = decodeScalar(location.query?.['span.description'], '');
+  const spanDescription =
+    decodeScalar(location.query?.['sentry.normalized_description'], '') ||
+    decodeScalar(location.query?.['span.description'], '');
   const spanAction = decodeScalar(location.query?.['span.action']);
   const spanDomain = decodeScalar(location.query?.['span.domain']);
 
@@ -76,7 +78,7 @@ export function DatabaseLandingPage() {
       ...location,
       query: {
         ...location.query,
-        'span.description': newQuery === '' ? undefined : newQuery,
+        'sentry.normalized_description': newQuery === '' ? undefined : newQuery,
         [QueryParameterNames.SPANS_CURSOR]: undefined,
       },
     });
@@ -93,7 +95,7 @@ export function DatabaseLandingPage() {
     ...BASE_FILTERS,
     'span.action': spanAction,
     'span.domain': spanDomain,
-    'span.description': spanDescription ? `*${spanDescription}*` : undefined,
+    'sentry.normalized_description': spanDescription ? `*${spanDescription}*` : undefined,
     'span.system': system,
   };
 
@@ -105,9 +107,9 @@ export function DatabaseLandingPage() {
       fields: [
         'project.id',
         'span.group',
-        'span.description',
+        'sentry.normalized_description',
         'span.action',
-        'spm()',
+        'epm()',
         'avg(span.self_time)',
         'sum(span.self_time)',
         'time_spent_percentage()',
@@ -126,7 +128,7 @@ export function DatabaseLandingPage() {
   } = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: ['spm()'],
+      yAxis: ['epm()'],
       transformAliasToInputFormat: true,
     },
     'api.starfish.span-landing-page-metrics-chart'
@@ -153,7 +155,7 @@ export function DatabaseLandingPage() {
     durationData[`${selectedAggregate}(span.self_time)`].data?.some(
       ({value}) => value > 0
     ) ||
-    throughputData['spm()'].data?.some(({value}) => value > 0);
+    throughputData['epm()'].data?.some(({value}) => value > 0);
 
   return (
     <React.Fragment>
@@ -180,7 +182,7 @@ export function DatabaseLandingPage() {
                 <ModuleLayout.Half>
                   <InsightsLineChartWidget
                     title={getThroughputChartTitle('db')}
-                    series={[throughputData['spm()']]}
+                    series={[throughputData['epm()']]}
                     isLoading={isThroughputDataLoading}
                     error={throughputError}
                   />

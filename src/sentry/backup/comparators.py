@@ -832,6 +832,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.organizationmemberinvite": [
                 DateUpdatedComparator("date_updated", "date_added"),
+                HashObfuscatingComparator("token"),
             ],
             "sentry.projectkey": [
                 HashObfuscatingComparator("public_key", "secret_key"),
@@ -915,10 +916,16 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "workflow_engine.alertruleworkflow": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
+            "workflow_engine.dataconditionalertruletrigger": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
             "tempest.tempestcredentials": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
             "explore.exploresavedquery": [DateUpdatedComparator("date_updated", "date_added")],
+            "explore.exploresavedquerystarred": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
         },
     )
 

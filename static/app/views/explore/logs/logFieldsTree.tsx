@@ -21,16 +21,17 @@ import {
   useSetLogsFields,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import type {TraceItemAttributes} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import type {
   LogAttributesRendererMap,
   RendererExtra,
 } from 'sentry/views/explore/logs/fieldRenderers';
 import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
+  adjustAliases,
   adjustLogTraceID,
   getLogAttributeItem,
-  removeSentryPrefix,
+  prettifyAttributeName,
 } from 'sentry/views/explore/logs/utils';
 
 const MAX_TREE_DEPTH = 4;
@@ -66,14 +67,12 @@ interface LogAttributeFieldRender {
 }
 
 interface LogFieldsTreeProps extends LogAttributeFieldRender {
-  attributes: TraceItemAttributes;
+  attributes: TraceItemResponseAttribute[];
   hiddenAttributes?: OurLogFieldKey[];
 }
 
-interface LogFieldsTreeColumnsProps extends LogAttributeFieldRender {
-  attributes: TraceItemAttributes;
+interface LogFieldsTreeColumnsProps extends LogFieldsTreeProps {
   columnCount: number;
-  hiddenAttributes?: OurLogFieldKey[];
 }
 
 interface LogFieldsTreeRowConfig {
@@ -208,10 +207,8 @@ function LogFieldsTreeColumns({
     }
 
     // Convert attributes record to the format expected by addToAttributeTree
-    const visibleAttributes = (
-      Array.isArray(attributes) ? attributes : Object.keys(attributes)
-    )
-      .map(key => getAttribute(attributes, key, hiddenAttributes))
+    const visibleAttributes = attributes
+      .map(key => getAttribute(key, hiddenAttributes))
       .filter(defined);
 
     // Create the AttributeTree data structure using all the given attributes
@@ -331,7 +328,11 @@ function LogFieldsTreeRow({
           </Fragment>
         )}
         <TreeSearchKey aria-hidden>{originalAttribute.attribute_key}</TreeSearchKey>
-        <TreeKey hasErrors={hasErrors} title={originalAttribute.attribute_key}>
+        <TreeKey
+          hasErrors={hasErrors}
+          title={originalAttribute.attribute_key}
+          data-test-id={`tree-key-${content.originalAttribute?.original_attribute_key}`}
+        >
           {attributeKey}
         </TreeKey>
       </TreeKeyTrunk>
@@ -516,64 +517,25 @@ function LogFieldsTreeValue({
  * Filters out hidden attributes, replaces sentry. prefixed keys, and simplifies the value
  */
 function getAttribute(
-  attributes: TraceItemAttributes,
-  attributeKey: string | Record<string, any>,
+  attribute: TraceItemResponseAttribute,
   hiddenAttributes: OurLogFieldKey[]
 ): Attribute | undefined {
-  if (typeof attributeKey === 'object') {
-    return getAttributeFromObject(attributes, attributeKey, hiddenAttributes);
-  }
-
   // Filter out hidden attributes
-  if (hiddenAttributes.includes(attributeKey)) {
+  if (hiddenAttributes.includes(attribute.name)) {
     return undefined;
   }
-
-  const attribute = attributes[attributeKey];
-  if (!attribute) {
-    return undefined;
-  }
-
-  // Replace the key name with the new key name
-  const newKeyName = removeSentryPrefix(attributeKey);
 
   const attributeValue =
     attribute.type === 'bool' ? String(attribute.value) : attribute.value;
+
   if (!defined(attributeValue)) {
     return undefined;
   }
 
   return {
-    attribute_key: newKeyName,
+    attribute_key: prettifyAttributeName(attribute.name),
     attribute_value: attributeValue,
-    original_attribute_key: attributeKey,
-  };
-}
-
-function getAttributeFromObject(
-  _: TraceItemAttributes,
-  attribute: Record<string, any>,
-  hiddenAttributes: OurLogFieldKey[]
-): Attribute | undefined {
-  const attributeKey = attribute.name;
-  // Filter out hidden attributes
-  if (hiddenAttributes.includes(attributeKey)) {
-    return undefined;
-  }
-
-  // Replace the key name with the new key name
-  const newKeyName = removeSentryPrefix(attributeKey);
-
-  const attributeValue =
-    attribute.type === 'bool' ? String(attribute.value) : attribute.value;
-  if (!defined(attributeValue)) {
-    return undefined;
-  }
-
-  return {
-    attribute_key: newKeyName,
-    attribute_value: attributeValue,
-    original_attribute_key: attributeKey,
+    original_attribute_key: adjustAliases(attribute.name),
   };
 }
 

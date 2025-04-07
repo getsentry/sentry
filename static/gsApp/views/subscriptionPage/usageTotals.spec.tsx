@@ -127,12 +127,84 @@ describe('Subscription > UsageTotals', function () {
       droppedOther: 0,
     });
 
+    const profilesTotals = UsageTotalFixture({
+      accepted: 0,
+      dropped: 5 * MILLISECONDS_IN_HOUR,
+      droppedOverQuota: 0,
+      droppedSpikeProtection: 0,
+      droppedOther: 0,
+    });
+
     render(
       <UsageTotals
         category="profileDuration"
         totals={profileDurationTotals}
-        eventTotals={{profileChunks: profileChunksTotals}}
+        eventTotals={{profileChunks: profileChunksTotals, profiles: profilesTotals}}
         subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(
+      screen.getByText('Continuous profile hours usage this period')
+    ).toBeInTheDocument();
+    expect(screen.getByText('15')).toBeInTheDocument();
+
+    // Expand usage table
+    await userEvent.click(screen.getByRole('button'));
+
+    expect(
+      screen.getByRole('row', {
+        name: 'Continuous Profile Hours Quantity % of Continuous Profile Hours',
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Accepted 15 60%'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: 'Total Dropped (estimated) 10 40%'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Over Quota 0 0%'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Spike Protection 0 0%'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Other 0 0%'})).toBeInTheDocument();
+  });
+
+  it('does not include profiles for estimates on non-AM3 plans', async function () {
+    const profileDurationTotals = UsageTotalFixture({
+      accepted: 15 * MILLISECONDS_IN_HOUR,
+      dropped: 0,
+      droppedOverQuota: 0,
+      droppedSpikeProtection: 0,
+      droppedOther: 0,
+    });
+
+    const profileChunksTotals = UsageTotalFixture({
+      accepted: 0,
+      dropped: 5 * MILLISECONDS_IN_HOUR,
+      droppedOverQuota: 0,
+      droppedSpikeProtection: 0,
+      droppedOther: 0,
+    });
+
+    const profilesTotals = UsageTotalFixture({
+      accepted: 0,
+      dropped: 5 * MILLISECONDS_IN_HOUR,
+      droppedOverQuota: 0,
+      droppedSpikeProtection: 0,
+      droppedOther: 0,
+    });
+
+    const am2Subscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_business',
+    });
+    SubscriptionStore.set(organization.slug, am2Subscription);
+
+    render(
+      <UsageTotals
+        category="profileDuration"
+        totals={profileDurationTotals}
+        eventTotals={{profileChunks: profileChunksTotals, profiles: profilesTotals}}
+        subscription={am2Subscription}
         organization={organization}
         displayMode="usage"
       />
@@ -1016,6 +1088,9 @@ describe('Subscription > UsageTotals', function () {
     );
 
     expect(screen.getByTestId('gifted-profileDuration')).toHaveTextContent('50 Gifted');
+    expect(screen.getByTestId('gifted-profileDuration')).not.toHaveTextContent(
+      '0 Reserved'
+    );
   });
 
   it('renders gifted hours for profile duration ui when gifted present', function () {
@@ -1033,6 +1108,9 @@ describe('Subscription > UsageTotals', function () {
     );
 
     expect(screen.getByTestId('gifted-profileDurationUI')).toHaveTextContent('50 Gifted');
+    expect(screen.getByTestId('gifted-profileDurationUI')).not.toHaveTextContent(
+      '0 Reserved'
+    );
   });
 });
 

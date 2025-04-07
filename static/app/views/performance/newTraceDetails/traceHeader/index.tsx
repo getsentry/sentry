@@ -23,7 +23,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {ProjectsRenderer} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -73,33 +73,31 @@ function FeedbackButton() {
   ) : null;
 }
 
-export function SwitchToNonEAPTraceButton({
-  location,
+export const TRACE_FORMAT_PREFERENCE_KEY = 'trace_format_preference';
+
+export function ToggleTraceFormatButton({
   organization,
 }: {
   location: Location;
   organization: Organization;
 }) {
-  const navigate = useNavigate();
-  const switchToNonEAPTrace = useCallback(() => {
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        trace_format: 'non-eap',
-      },
-    });
-  }, [location, navigate]);
+  const [storedTraceFormat, setStoredTraceFormat] = useSyncedLocalStorageState(
+    TRACE_FORMAT_PREFERENCE_KEY,
+    'non-eap'
+  );
 
   return (
-    <Feature organization={organization} features="visibility-explore-admin">
+    <Feature organization={organization} features="trace-spans-format">
       <Button
-        disabled={location.query.trace_format === 'non-eap'}
         size="xs"
-        aria-label="non-eap-trace-btn"
-        onClick={switchToNonEAPTrace}
+        aria-label="toggle-trace-format-btn"
+        onClick={() => {
+          setStoredTraceFormat(storedTraceFormat === 'eap' ? 'non-eap' : 'eap');
+        }}
       >
-        {t('Switch to Non-EAP Trace')}
+        {storedTraceFormat === 'eap'
+          ? t('Switch to Non-EAP Trace')
+          : t('Switch to EAP Trace')}
       </Button>
     </Feature>
   );
@@ -123,7 +121,7 @@ function PlaceHolder({organization}: {organization: Organization}) {
             )}
           />
           <ButtonBar gap={1}>
-            <SwitchToNonEAPTraceButton location={location} organization={organization} />
+            <ToggleTraceFormatButton location={location} organization={organization} />
             <FeedbackButton />
           </ButtonBar>
         </HeaderRow>
@@ -171,9 +169,7 @@ const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>
 
 const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation'];
 
-export const getRepresentativeEvent = (
-  tree: TraceTree
-): TraceTree.Transaction | TraceTree.EAPSpan | null => {
+const getRepresentativeEvent = (tree: TraceTree): TraceTree.TraceEvent | null => {
   const traceNode = tree.root.children[0];
 
   if (!traceNode) {
@@ -184,11 +180,13 @@ export const getRepresentativeEvent = (
     throw new TypeError('Not trace node');
   }
 
-  let firstRootEvent: TraceTree.Transaction | TraceTree.EAPSpan | null = null;
-  let candidateEvent: TraceTree.Transaction | TraceTree.EAPSpan | null = null;
-  let firstEvent: TraceTree.Transaction | TraceTree.EAPSpan | null = null;
+  let firstRootEvent: TraceTree.TraceEvent | null = null;
+  let candidateEvent: TraceTree.TraceEvent | null = null;
+  let firstEvent: TraceTree.TraceEvent | null = null;
 
-  const events = isTraceNode(traceNode) ? traceNode.value.transactions : traceNode.value;
+  const events = isTraceNode(traceNode)
+    ? [...traceNode.value.transactions, ...traceNode.value.orphan_errors]
+    : traceNode.value;
   for (const event of events) {
     // If we find a root transaction, we can stop looking and use it for the title.
     if (!firstRootEvent && isRootEvent(event)) {
@@ -200,7 +198,11 @@ export const getRepresentativeEvent = (
       // a root.
       !candidateEvent &&
       CANDIDATE_TRACE_TITLE_OPS.includes(
-        'transaction.op' in event ? event['transaction.op'] : event.op
+        'transaction.op' in event
+          ? event['transaction.op']
+          : 'op' in event
+            ? event.op
+            : ''
       )
     ) {
       candidateEvent = event;
@@ -289,11 +291,16 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     props.rootEventResults.isLoading ||
     props.tree.type === 'loading';
 
-  if (isLoading) {
+  const isError =
+    props.metaResults.status === 'error' ||
+    props.rootEventResults.status === 'error' ||
+    props.tree.type === 'error';
+
+  if (isLoading || isError) {
     return <PlaceHolder organization={props.organization} />;
   }
 
-  const representativeTransaction = getRepresentativeEvent(props.tree);
+  const representativeEvent = getRepresentativeEvent(props.tree);
 
   return (
     <HeaderLayout>
@@ -308,7 +315,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             )}
           />
           <ButtonBar gap={1}>
-            <SwitchToNonEAPTraceButton
+            <ToggleTraceFormatButton
               location={location}
               organization={props.organization}
             />
@@ -319,14 +326,14 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           <Title
             tree={props.tree}
             traceSlug={props.traceSlug}
-            representativeTransaction={representativeTransaction}
+            representativeEvent={representativeEvent}
           />
           <Meta
             organization={props.organization}
             rootEventResults={props.rootEventResults}
             tree={props.tree}
             meta={props.metaResults.data}
-            representativeTransaction={representativeTransaction}
+            representativeEvent={representativeEvent}
           />
         </HeaderRow>
         {props.rootEventResults.data ? (

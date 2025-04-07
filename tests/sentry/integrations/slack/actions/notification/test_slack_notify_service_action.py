@@ -316,6 +316,7 @@ class TestInit(RuleTestCase):
         # Create a rule with a numeric ID for the test
         rule = self.get_rule(data=self.action_data)
         rule.id = self.action.id
+        rule.environment_id = None
 
         results = list(rule.after(event=self.event))
         assert len(results) == 1
@@ -353,6 +354,7 @@ class TestInit(RuleTestCase):
 
         rule = self.get_rule(data=self.action_data)
         rule.id = self.action.id
+        rule.environment_id = None
         results = list(rule.after(event=self.event))
         assert len(results) == 1
 
@@ -405,6 +407,7 @@ class TestInit(RuleTestCase):
 
         rule = self.get_rule(data=self.action_data)
         rule.id = self.action.id
+        rule.environment_id = None
         results = list(rule.after(event=event))
         assert len(results) == 1
 

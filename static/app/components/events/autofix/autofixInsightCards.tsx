@@ -6,6 +6,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
+import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
+import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
@@ -15,9 +17,6 @@ import {space} from 'sentry/styles/space';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-
-import AutofixHighlightPopup from './autofixHighlightPopup';
-import {useTextSelection} from './useTextSelection';
 
 export function ExpandableInsightContext({
   children,
@@ -84,10 +83,6 @@ function AutofixInsightCard({
   isNewInsight,
 }: AutofixInsightCardProps) {
   const isLastInsightInStep = index === insightCount - 1;
-  const headerRef = useRef<HTMLDivElement>(null);
-  const justificationRef = useRef<HTMLDivElement>(null);
-  const headerSelection = useTextSelection(headerRef);
-  const justificationSelection = useTextSelection(justificationRef);
   const isUserMessage = insight.justification === 'USER';
   const [expanded, setExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -124,28 +119,6 @@ function AutofixInsightCard({
 
   return (
     <ContentWrapper>
-      <AnimatePresence>
-        {headerSelection && (
-          <AutofixHighlightPopup
-            selectedText={headerSelection.selectedText}
-            referenceElement={headerSelection.referenceElement}
-            groupId={groupId}
-            runId={runId}
-            stepIndex={stepIndex}
-            retainInsightCardIndex={insightCardAboveIndex}
-          />
-        )}
-        {justificationSelection && (
-          <AutofixHighlightPopup
-            selectedText={justificationSelection.selectedText}
-            referenceElement={justificationSelection.referenceElement}
-            groupId={groupId}
-            runId={runId}
-            stepIndex={stepIndex}
-            retainInsightCardIndex={insightCardAboveIndex}
-          />
-        )}
-      </AnimatePresence>
       <AnimatePresence initial={isNewInsight}>
         <AnimationWrapper key="content">
           {hasCardAbove && (
@@ -197,12 +170,19 @@ function AutofixInsightCard({
                 onClick={isUserMessage ? undefined : toggleExpand}
                 isUserMessage={isUserMessage}
               >
-                <MiniHeader
-                  ref={headerRef}
-                  dangerouslySetInnerHTML={{
-                    __html: singleLineRenderer(insight.insight),
-                  }}
-                />
+                <AutofixHighlightWrapper
+                  groupId={groupId}
+                  runId={runId}
+                  stepIndex={stepIndex}
+                  retainInsightCardIndex={insightCardAboveIndex}
+                >
+                  <MiniHeader
+                    dangerouslySetInnerHTML={{
+                      __html: singleLineRenderer(insight.insight),
+                    }}
+                  />
+                </AutofixHighlightWrapper>
+
                 <RightSection>
                   {!isUserMessage && (
                     <Button
@@ -242,18 +222,36 @@ function AutofixInsightCard({
                     bounce: 0.1,
                   }}
                 >
-                  <ContextBody>
-                    <p
-                      ref={justificationRef}
-                      dangerouslySetInnerHTML={{
-                        __html: marked(
-                          replaceHeadersWithBold(
-                            insight.justification || t('No details here.')
-                          )
-                        ),
-                      }}
-                    />
-                  </ContextBody>
+                  <AutofixHighlightWrapper
+                    groupId={groupId}
+                    runId={runId}
+                    stepIndex={stepIndex}
+                    retainInsightCardIndex={insightCardAboveIndex}
+                  >
+                    <ContextBody>
+                      {insight.justification || !insight.change_diff ? (
+                        <p
+                          dangerouslySetInnerHTML={{
+                            __html: marked(
+                              replaceHeadersWithBold(
+                                insight.justification || t('No details here.')
+                              )
+                            ),
+                          }}
+                        />
+                      ) : (
+                        <DiffContainer>
+                          <AutofixDiff
+                            diff={insight.change_diff}
+                            groupId={groupId}
+                            runId={runId}
+                            editable={false}
+                            isExpandable={false}
+                          />
+                        </DiffContainer>
+                      )}
+                    </ContextBody>
+                  </AutofixHighlightWrapper>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -765,6 +763,10 @@ const AddButton = styled(Button)`
     color: ${p => p.theme.pink400};
   }
   margin-right: ${space(1)};
+`;
+
+const DiffContainer = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 export default AutofixInsightCards;

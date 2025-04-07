@@ -12,7 +12,7 @@ type Props = {
 const yAxis: SpanMetricsProperty[] = [
   'avg(span.duration)',
   'avg(messaging.message.receive.latency)',
-  'spm()',
+  'epm()',
 ];
 
 export function useProcessQueuesTimeSeriesQuery({enabled, destination, referrer}: Props) {
