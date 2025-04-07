@@ -48,11 +48,21 @@ def assert_status_code(response, minimum: int, maximum: int | None = None):
     )
 
 
-def assert_existing_projects(org: Organization, project_ids: list[str]):
-    active_project_ids = Project.objects.filter(
-        organization=org, status=ObjectStatus.ACTIVE
-    ).values_list("id", flat=True)
-    assert list(active_project_ids) == project_ids
+def assert_existing_projects_status(
+    org: Organization, active_project_ids: list[str], deleted_project_ids: list[str]
+):
+    all_projects = Project.objects.filter(organization=org).values_list("id", "status")
+    active_projects = []
+    deleted_or_to_be_deleted_projects = []
+
+    for project_id, status in all_projects:
+        if status == ObjectStatus.ACTIVE:
+            active_projects.append(project_id)
+        else:
+            deleted_or_to_be_deleted_projects.append(project_id)
+
+    assert active_projects == active_project_ids
+    assert deleted_or_to_be_deleted_projects == deleted_project_ids
 
 
 @assume_test_silo_mode(SiloMode.CONTROL)

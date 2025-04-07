@@ -1,7 +1,7 @@
 import pytest
 
 from sentry.models.project import Project
-from sentry.testutils.asserts import assert_existing_projects
+from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -26,33 +26,33 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.browser.click('[aria-label="Start"]')
         self.browser.wait_until('[data-test-id="onboarding-step-select-platform"]')
 
-    def click_on_platform(self, platform):
-        self.browser.click(f'[data-test-id="platform-{platform}"]')
-
-    # def verify_project_creation(self, platform, heading):
-    #     self.browser.wait_until(xpath=f'//h2[text()="Configure {heading} SDK"]')
-    #     project = Project.objects.get(organization=self.org, slug=platform)
-    #     assert project.name == platform
-    #     assert project.platform == platform
-    #     return project
-
     def test_onboarding_happy_path(self):
         self.start_onboarding()
-        self.click_on_platform("javascript-react")
-        self.verify_project_creation("javascript-react", "React")
+        self.browser.click('[data-test-id="platform-javascript-react"]')
+        self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+        project = Project.objects.get(organization=self.org, slug="javascript-react")
+        assert project.name == "javascript-react"
+        assert project.platform == "javascript-react"
+        assert_existing_projects_status(self.org, [project.id], [])
 
     def test_project_deletion_on_going_back(self):
         self.start_onboarding()
-        self.click_on_platform("javascript-nextjs")
-        self.verify_project_creation("javascript-nextjs", "Next.js")
+        self.browser.click('[data-test-id="platform-javascript-nextjs"]')
+        self.browser.wait_until(xpath='//h2[text()="Configure Next.js SDK"]')
+        project1 = Project.objects.get(organization=self.org, slug="javascript-nextjs")
+        assert project1.name == "javascript-nextjs"
+        assert project1.platform == "javascript-nextjs"
         self.browser.click('[aria-label="Back"]')
-        self.click_on_platform("javascript-react")
-        self.verify_project_creation("javascript-react", "React")
+        self.browser.click('[data-test-id="platform-javascript-react"]')
+        self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+        project2 = Project.objects.get(organization=self.org, slug="javascript-react")
+        assert project2.name == "javascript-react"
+        assert project2.platform == "javascript-react"
         self.browser.back()
         self.browser.click(xpath='//a[text()="Skip Onboarding"]')
         self.browser.get("/organizations/%s/projects/" % self.org.slug)
         self.browser.wait_until(xpath='//h1[text()="Remain Calm"]')
-        assert_existing_projects(self.org, [])
+        assert_existing_projects_status(self.org, [], [project1.id, project2.id])
 
     def test_framework_modal_open_by_selecting_vanilla_platform(self):
         self.start_onboarding()
@@ -62,24 +62,27 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         assert not self.browser.element_exists('[aria-label="Clear"]')
         self.browser.click('[data-test-id="platform-javascript"]')
         self.browser.click('[aria-label="Configure SDK"]')
-        self.verify_project_creation("javascript", "Browser JavaScript")
+        self.browser.wait_until(xpath='//h2[text()="Configure Browser JavaScript SDK"]')
+        project = Project.objects.get(organization=self.org, slug="javascript")
+        assert project.name == "javascript"
+        assert project.platform == "javascript"
+        assert_existing_projects_status(self.org, [project.id], [])
 
     def test_create_delete_create_same_platform(self):
         "This test ensures that the regression fixed in PR https://github.com/getsentry/sentry/pull/87869 no longer occurs."
-        platform = "javascript-nextjs"
         self.start_onboarding()
-        self.click_on_platform(platform)
+        self.browser.click('[data-test-id="platform-javascript-nextjs"]')
         self.browser.wait_until(xpath='//h2[text()="Configure Next.js SDK"]')
-        project1 = Project.objects.get(organization=self.org, slug=platform)
-        assert project1.name == platform
-        assert project1.platform == platform
+        project1 = Project.objects.get(organization=self.org, slug="javascript-nextjs")
+        assert project1.name == "javascript-nextjs"
+        assert project1.platform == "javascript-nextjs"
         self.browser.click('[aria-label="Back"]')
-        self.click_on_platform(platform)
+        self.browser.click('[data-test-id="platform-javascript-nextjs"]')
         self.browser.wait_until(xpath='//h2[text()="Configure Next.js SDK"]')
-        project2 = Project.objects.get(organization=self.org, slug=platform)
-        assert project2.name == platform
-        assert project2.platform == platform
+        project2 = Project.objects.get(organization=self.org, slug="javascript-nextjs")
+        assert project2.name == "javascript-nextjs"
+        assert project2.platform == "javascript-nextjs"
         self.browser.click(xpath='//a[text()="Skip Onboarding"]')
         self.browser.get("/organizations/%s/projects/" % self.org.slug)
-        self.browser.wait_until(f'[data-test-id="{platform}"]')
-        assert_existing_projects(self.org, [project2.id])
+        self.browser.wait_until("[data-test-id='javascript-nextjs']")
+        assert_existing_projects_status(self.org, [project2.id], [project1.id])
