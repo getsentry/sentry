@@ -26,19 +26,16 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             public_alias="severity_number",
             internal_name="sentry.severity_number",
             search_type="integer",
-            secondary_alias=True,
         ),
         ResolvedAttribute(
             public_alias="severity_text",
             internal_name="sentry.severity_text",
             search_type="string",
-            secondary_alias=True,
         ),
         ResolvedAttribute(
             public_alias="message",
             internal_name="sentry.body",
             search_type="string",
-            secondary_alias=True,
         ),
         ResolvedAttribute(
             public_alias="trace",
@@ -59,18 +56,21 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             public_alias="log.body",
             internal_name="sentry.body",
             search_type="string",
+            secondary_alias=True,
         ),
         # Deprecated
         ResolvedAttribute(
             public_alias="log.severity_number",
             internal_name="sentry.severity_number",
             search_type="integer",
+            secondary_alias=True,
         ),
         # Deprecated
         ResolvedAttribute(
             public_alias="log.severity_text",
             internal_name="sentry.severity_text",
             search_type="string",
+            secondary_alias=True,
         ),
     ]
 }
