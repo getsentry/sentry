@@ -4,19 +4,22 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as useOrganization from 'sentry/utils/useOrganization';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useReplayTraces} from './useReplayTraces';
 
-const organization = OrganizationFixture();
 const queryClient = makeTestQueryClient();
 const replayRecord = ReplayRecordFixture();
+const organization = OrganizationFixture();
+
+const wrapper = ({children}: {children: React.ReactNode}) => (
+  <OrganizationContext value={organization}>{children}</OrganizationContext>
+);
 
 describe('useTraceMeta', () => {
   beforeEach(function () {
     queryClient.clear();
     jest.clearAllMocks();
-    jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
   });
 
   it('Returns replay traces', async () => {
@@ -43,7 +46,9 @@ describe('useTraceMeta', () => {
       },
     });
 
-    const {result} = renderHook(() => useReplayTraces({replayRecord}));
+    const {result} = renderHook(() => useReplayTraces({replayRecord}), {
+      wrapper,
+    });
 
     expect(result.current.indexComplete).toBe(false);
 
@@ -69,7 +74,9 @@ describe('useTraceMeta', () => {
       statusCode: 400,
     });
 
-    const {result} = renderHook(() => useReplayTraces({replayRecord}));
+    const {result} = renderHook(() => useReplayTraces({replayRecord}), {
+      wrapper,
+    });
 
     expect(result.current.indexComplete).toBe(false);
 
