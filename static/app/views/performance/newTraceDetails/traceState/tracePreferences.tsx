@@ -21,9 +21,7 @@ type TracePreferencesAction =
 type TraceDrawerPreferences = {
   layoutOptions: TraceLayoutPreferences[];
   minimized: boolean;
-  sizes: {
-    [key in TraceLayoutPreferences | 'trace grid height']: number;
-  };
+  sizes: Record<TraceLayoutPreferences | 'trace grid height', number>;
 };
 
 export type TracePreferencesState = {

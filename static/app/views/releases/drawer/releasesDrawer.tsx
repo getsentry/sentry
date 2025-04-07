@@ -23,7 +23,7 @@ import {ReleasesDrawerList} from 'sentry/views/releases/drawer/releasesDrawerLis
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
 
-type Without<T, U> = {[P in Exclude<keyof T, keyof U>]?: never};
+type Without<T, U> = Partial<Record<Exclude<keyof T, keyof U>, never>>;
 type XOR<T, Tcopy> =
   T extends Record<PropertyKey, unknown> ? Without<Exclude<Tcopy, T>, T> & T : T;
 
