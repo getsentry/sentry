@@ -1183,14 +1183,7 @@ describe('calculateCategoryPrepaidUsage', () => {
       reserved: prepaid,
       usage: prepaidUsage,
     });
-    expect(
-      calculateCategoryPrepaidUsage(
-        'errors',
-        subscription,
-        subscription.categories.errors,
-        prepaid
-      )
-    ).toEqual({
+    expect(calculateCategoryPrepaidUsage('errors', subscription, prepaid)).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 50,
       prepaidPrice: 5000,
@@ -1210,14 +1203,7 @@ describe('calculateCategoryPrepaidUsage', () => {
       {events: 100_000, price: prepaidPrice * 12, unitPrice: 0.1, onDemandPrice: 0.2},
     ];
     subscription.categories.errors = MetricHistoryFixture({});
-    expect(
-      calculateCategoryPrepaidUsage(
-        'errors',
-        subscription,
-        subscription.categories.errors,
-        prepaidPrice
-      )
-    ).toEqual({
+    expect(calculateCategoryPrepaidUsage('errors', subscription, prepaidPrice)).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 0,
       prepaidPrice,
@@ -1236,12 +1222,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     delete subscription.planDetails.planCategories.monitorSeats;
     subscription.categories.errors = MetricHistoryFixture({});
     expect(
-      calculateCategoryPrepaidUsage(
-        'monitorSeats',
-        subscription,
-        subscription.categories.errors,
-        prepaidPrice
-      )
+      calculateCategoryPrepaidUsage('monitorSeats', subscription, prepaidPrice)
     ).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 0,
@@ -1263,14 +1244,7 @@ describe('calculateCategoryPrepaidUsage', () => {
       reserved: prepaid,
       usage: prepaidUsage,
     });
-    expect(
-      calculateCategoryPrepaidUsage(
-        'monitorSeats',
-        subscription,
-        subscription.categories.monitorSeats,
-        prepaid
-      )
-    ).toEqual({
+    expect(calculateCategoryPrepaidUsage('monitorSeats', subscription, prepaid)).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 0,
       prepaidPrice: 0,
@@ -1292,12 +1266,7 @@ describe('calculateCategoryPrepaidUsage', () => {
       usage: 150_000,
     });
 
-    const result = calculateCategoryPrepaidUsage(
-      'errors',
-      subscription,
-      subscription.categories.errors,
-      prepaid
-    );
+    const result = calculateCategoryPrepaidUsage('errors', subscription, prepaid);
 
     expect(result.onDemandUsage).toBe(50_000);
     expect(result.prepaidUsage).toBe(100_000);
@@ -1316,12 +1285,7 @@ describe('calculateCategoryPrepaidUsage', () => {
       usage: 80_000,
     });
 
-    const result = calculateCategoryPrepaidUsage(
-      'errors',
-      subscription,
-      subscription.categories.errors,
-      prepaid
-    );
+    const result = calculateCategoryPrepaidUsage('errors', subscription, prepaid);
 
     expect(result.onDemandUsage).toBe(0);
     expect(result.prepaidUsage).toBe(80_000);
@@ -1341,12 +1305,7 @@ describe('calculateCategoryPrepaidUsage', () => {
       usage: 150_000,
     });
 
-    const result = calculateCategoryPrepaidUsage(
-      'errors',
-      subscription,
-      subscription.categories.errors,
-      prepaid
-    );
+    const result = calculateCategoryPrepaidUsage('errors', subscription, prepaid);
 
     expect(result.onDemandUsage).toBe(0);
     expect(result.prepaidUsage).toBe(150_000);
@@ -1364,8 +1323,8 @@ describe('calculateCategoryPrepaidUsage', () => {
     const result = calculateCategoryPrepaidUsage(
       'spans',
       subscription,
-      subscription.categories.spans,
       prepaid,
+      null,
       undefined,
       10_000_00
     );
@@ -1381,8 +1340,8 @@ describe('calculateCategoryPrepaidUsage', () => {
     const result2 = calculateCategoryPrepaidUsage(
       'spans',
       subscription,
-      subscription.categories.spans,
       prepaid,
+      null,
       undefined,
       100_000_00
     );
@@ -1397,8 +1356,8 @@ describe('calculateCategoryPrepaidUsage', () => {
     const result3 = calculateCategoryPrepaidUsage(
       'spans',
       subscription,
-      subscription.categories.spans,
       prepaid,
+      null,
       undefined,
       0
     );
@@ -1423,8 +1382,8 @@ describe('calculateCategoryPrepaidUsage', () => {
     const result = calculateCategoryPrepaidUsage(
       'spans',
       subscription,
-      subscription.categories.spans,
       prepaid,
+      null,
       100
     );
 
