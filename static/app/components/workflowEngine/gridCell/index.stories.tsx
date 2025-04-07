@@ -108,25 +108,6 @@ export default storyBook('Grid Cell Components', story => {
       linkedItems: {
         ids: ['abc123', 'def456'],
         type: 'workflow',
-        // items: [
-        //   {
-        //     name: 'test automation',
-        //     project: {slug: 'bruh', platform: 'android'},
-        //     description: 'transaction.duration',
-        //     link: '/issues/automations/jkl012',
-        //   },
-        //   {
-        //     name: 'test python automation',
-        //     project: {slug: 'bruh.py', platform: 'python'},
-        //     link: '/issues/automations/mno345',
-        //   },
-        //   {
-        //     name: 'test swift automation',
-        //     project: {slug: 'bruh.swift', platform: 'swift'},
-        //     link: '/issues/automations/pqr678',
-        //   },
-        // ],
-        // renderText: count => tn('%s automation', '%s automations', count),
       },
       creator: 'sentry',
       type: 'metric',
