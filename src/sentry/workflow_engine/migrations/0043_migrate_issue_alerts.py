@@ -10,6 +10,7 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from sentry.constants import ObjectStatus
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
+from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.processing.processor import split_conditions_and_filters
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
@@ -70,7 +71,7 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
             try:
                 if (
                     condition["id"] == EventUniqueUserFrequencyConditionWithConditions.id
-                ):  # special case
+                ):  # special case: this condition uses filters, so the migration needs to combine the filters into the condition
                     dcg_conditions.append(
                         create_event_unique_user_frequency_condition_with_conditions(
                             dict(condition), dcg, filters
@@ -134,14 +135,17 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
 
         # the only time the data_conditions list will be empty is if somebody only has EveryEventCondition in their conditions list.
         # if it's empty and this is not the case, we should not migrate
-        no_conditions = len(data_conditions) == 0
+        no_conditions = len(conditions) == 0
+        no_data_conditions = len(data_conditions) == 0
         only_has_every_event_cond = (
-            len(conditions) == 1
-            and conditions[0]["id"] == "sentry.rules.conditions.every_event.EveryEventCondition"
+            len(conditions) == 1 and conditions[0]["id"] == EveryEventCondition.id
         )
 
-        if no_conditions and not only_has_every_event_cond:
-            raise SkipMigratingException("No valid conditions, skipping migration")
+        if no_data_conditions and no_conditions:
+            # originally no conditions and we expect no data conditions
+            pass
+        elif no_data_conditions and not only_has_every_event_cond:
+            raise Exception("No valid trigger conditions, skipping migration")
 
         enabled = True
         rule_snooze = RuleSnooze.objects.filter(rule=rule, user_id=None).first()
@@ -167,7 +171,7 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
         # workflow.update(date_added=rule.date_added) # this does not work in a migration context
         Workflow.objects.filter(id=workflow.id).update(date_added=rule.date_added)
         DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
-        AlertRuleWorkflow.objects.create(rule=rule, workflow=workflow)
+        AlertRuleWorkflow.objects.create(rule_id=rule.id, workflow_id=workflow.id)
 
         return workflow
 
@@ -223,7 +227,7 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
                     with transaction.atomic(router.db_for_write(Workflow)):
                         # make sure rule is not already migrated
                         _, created = AlertRuleDetector.objects.get_or_create(
-                            detector=error_detector, rule=rule
+                            detector_id=error_detector.id, rule_id=rule.id
                         )
                         if not created:
                             raise SkipMigratingException("Rule already migrated")
@@ -279,7 +283,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("workflow_engine", "0035_action_model_drop_legacy_fields"),
+        ("workflow_engine", "0042_workflow_fire_history_add_fired_actions_bool"),
     ]
 
     operations = [
