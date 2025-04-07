@@ -24,8 +24,15 @@ function CodecovSecondaryNav() {
       </SecondaryNav.Header>
       <SecondaryNav.Body>
         <SecondaryNav.Section>
-          <SecondaryNav.Item to={coveragePathname}>{t('Coverage')}</SecondaryNav.Item>
-          <SecondaryNav.Item to={testsPathname}>{t('Tests')}</SecondaryNav.Item>
+          <SecondaryNav.Item
+            to={`${coveragePathname}commits/`}
+            activeTo={coveragePathname}
+          >
+            {t('Coverage')}
+          </SecondaryNav.Item>
+          <SecondaryNav.Item to={testsPathname} activeTo={testsPathname}>
+            {t('Tests')}
+          </SecondaryNav.Item>
         </SecondaryNav.Section>
       </SecondaryNav.Body>
     </SecondaryNav>

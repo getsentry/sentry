@@ -16,7 +16,7 @@ export default function CodecovPage({children}: Props) {
 
   // Redirect to coverage page if the user lands on the pipeline page
   if (location.pathname === `/${CODECOV_BASE_URL}/`) {
-    return <Redirect to={`/${CODECOV_BASE_URL}/coverage/`} />;
+    return <Redirect to={`/${CODECOV_BASE_URL}/coverage/commits`} />;
   }
 
   return (
