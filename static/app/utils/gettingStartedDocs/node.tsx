@@ -1,4 +1,10 @@
-import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {t, tct} from 'sentry/locale';
 
 export function getInstallSnippet({
   params,
@@ -205,3 +211,104 @@ Sentry.startSpan({
 });`
       : ''
   }`;
+
+export const nodeProfilingOnboarding: OnboardingConfig = {
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'To enable profiling, add [code:@sentry/profiling-node] to your imports.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(params, {
+        basePackage: '@sentry/nestjs',
+      }),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Set up the [code:nodeProfilingIntegration] in your [code:Sentry.init()] call.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: [
+            {
+              label: 'Javascript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    nodeProfilingIntegration(),
+  ],
+  // Tracing must be enabled for profiling to work
+  tracesSampleRate: 1.0, //  Capture 100% of the transactions${
+    params.profilingOptions?.defaultProfilingMode === 'continuous'
+      ? `
+  // Set sampling rate for profiling - this is evaluated only once per SDK.init call
+  profileSessionSampleRate: 1.0,
+  // Trace lifecycle automatically enables profiling during active traces
+  profileLifecycle: 'trace',`
+      : `
+  // Set sampling rate for profiling - this is evaluated only once per SDK.init call
+  profilesSampleRate: 1.0,`
+  }
+});${
+                params.profilingOptions?.defaultProfilingMode === 'continuous'
+                  ? `
+
+// Profiling happens automatically after setting it up with \`Sentry.init()\`.
+// All spans (unless those discarded by sampling) will have profiling data attached to them.
+Sentry.startSpan({
+  name: "My Span",
+}, () => {
+  // The code executed here will be profiled
+});`
+                  : ''
+              }`,
+            },
+          ],
+          additionalInfo: tct(
+            'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
+            {
+              link: (
+                <ExternalLink
+                  href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling`}
+                />
+              ),
+            }
+          ),
+        },
+        {
+          description: tct(
+            'For more detailed information on profiling, see the [link:profiling documentation].',
+            {
+              link: (
+                <ExternalLink
+                  href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/`}
+                />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that profiling is working correctly by simply using your application.'
+      ),
+    },
+  ],
+};

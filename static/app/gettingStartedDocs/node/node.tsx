@@ -20,6 +20,7 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getSdkInitSnippet,
+  nodeProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
@@ -242,19 +243,13 @@ Sentry.init({
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig = {
-  ...onboarding,
-  introduction: () => null,
-};
-
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-
   performanceOnboarding,
   crashReportOnboarding,
-  profilingOnboarding,
   feedbackOnboardingJsLoader,
+  profilingOnboarding: nodeProfilingOnboarding,
 };
 
 export default docs;

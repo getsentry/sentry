@@ -11,7 +11,11 @@ import {
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDocs/node';
+import {
+  getInstallConfig,
+  getSdkInitSnippet,
+  nodeProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -96,6 +100,7 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   crashReportOnboarding,
+  profilingOnboarding: nodeProfilingOnboarding,
 };
 
 export default docs;

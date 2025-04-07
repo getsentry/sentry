@@ -17,6 +17,7 @@ import {
   getInstallConfig,
   getSdkInitSnippet,
   getSentryImportSnippet,
+  nodeProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
@@ -137,8 +138,8 @@ const crashReportOnboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-
   crashReportOnboarding,
+  profilingOnboarding: nodeProfilingOnboarding,
 };
 
 export default docs;

@@ -12,7 +12,11 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDocs/node';
+import {
+  getInstallConfig,
+  getSdkInitSnippet,
+  nodeProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/node';
 import {
   InstallationMode,
   platformOptions,
@@ -117,6 +121,7 @@ const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
 const docs: Docs<PlatformOptions> = {
   onboarding,
   crashReportOnboarding,
+  profilingOnboarding: nodeProfilingOnboarding,
   platformOptions,
 };
 
