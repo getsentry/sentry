@@ -202,7 +202,7 @@ export default function IntegrationOrganizationLink() {
     );
   }, [integrationSlug, location.query, organization, provider, selectedOrgSlug]);
 
-  const renderAddButton = useCallback(() => {
+  const renderAddButton = useMemo(() => {
     if (!provider || !organization) {
       return null;
     }
@@ -263,7 +263,7 @@ export default function IntegrationOrganizationLink() {
     finishInstallation,
   ]);
 
-  const renderBottom = useCallback(() => {
+  const renderBottom = useMemo(() => {
     const {FeatureList} = getIntegrationFeatureGate();
 
     if (isPendingSelection) {
@@ -303,7 +303,7 @@ export default function IntegrationOrganizationLink() {
             />
           </Fragment>
         )}
-        <div className="form-actions">{renderAddButton()}</div>
+        <div className="form-actions">{renderAddButton}</div>
       </Fragment>
     );
   }, [
@@ -409,7 +409,7 @@ export default function IntegrationOrganizationLink() {
           options={options}
         />
       </FieldGroup>
-      {renderBottom()}
+      {renderBottom}
     </NarrowLayout>
   );
 }
