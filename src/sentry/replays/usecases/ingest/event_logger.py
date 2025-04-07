@@ -75,7 +75,6 @@ def emit_click_events(
 
     publisher = _initialize_publisher()
     publisher.publish("ingest-replay-events", json.dumps(action))
-    publisher.flush()
 
 
 @sentry_sdk.trace
