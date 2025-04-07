@@ -84,7 +84,12 @@ class Task(Generic[P, R]):
         self.apply_async(args=args, kwargs=kwargs)
 
     def apply_async(
-        self, args: Any = None, kwargs: Any = None, headers: Mapping[str, Any] | None = None
+        self,
+        args: Any = None,
+        kwargs: Any = None,
+        headers: Mapping[str, Any] | None = None,
+        expires: int | datetime.timedelta | None = None,
+        **options: Any,
     ) -> None:
         """
         Schedule a task to run later with a set of arguments.
@@ -97,7 +102,7 @@ class Task(Generic[P, R]):
         else:
             # TODO(taskworker) promote parameters to headers
             self._namespace.send_task(
-                self.create_activation(args=args, kwargs=kwargs, headers=headers),
+                self.create_activation(args=args, kwargs=kwargs, headers=headers, expires=expires),
                 wait_for_delivery=self.wait_for_delivery,
             )
 
@@ -106,6 +111,7 @@ class Task(Generic[P, R]):
         args: Collection[Any],
         kwargs: Mapping[Any, Any],
         headers: Mapping[str, Any] | None = None,
+        expires: int | datetime.timedelta | None = None,
     ) -> TaskActivation:
         received_at = Timestamp()
         received_at.FromDatetime(timezone.now())
@@ -114,7 +120,8 @@ class Task(Generic[P, R]):
         if isinstance(processing_deadline, datetime.timedelta):
             processing_deadline = int(processing_deadline.total_seconds())
 
-        expires = self._expires
+        if expires is None:
+            expires = self._expires
         if isinstance(expires, datetime.timedelta):
             expires = int(expires.total_seconds())
 
