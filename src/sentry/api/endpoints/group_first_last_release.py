@@ -11,7 +11,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 @region_silo_endpoint
 class GroupFirstLastReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     enforce_rate_limit = True
     rate_limits = {

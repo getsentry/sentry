@@ -33,7 +33,7 @@ def get_codeowner_contents(config):
 class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationIntegrationsPermission,)
 

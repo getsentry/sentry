@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
@@ -60,6 +61,7 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 
 @region_silo_endpoint
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,

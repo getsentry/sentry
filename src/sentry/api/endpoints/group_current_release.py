@@ -16,7 +16,7 @@ from sentry.models.releases.release_project import ReleaseProject
 @region_silo_endpoint
 class GroupCurrentReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def _get_current_release(self, group, environments):

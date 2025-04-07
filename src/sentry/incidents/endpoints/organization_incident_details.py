@@ -32,8 +32,8 @@ class IncidentSerializer(serializers.Serializer):
 class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (IncidentPermission,)
 

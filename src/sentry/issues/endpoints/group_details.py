@@ -61,9 +61,9 @@ def get_group_global_count(group: Group) -> str:
 @region_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     enforce_rate_limit = True
     rate_limits = {

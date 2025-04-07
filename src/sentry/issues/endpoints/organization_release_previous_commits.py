@@ -16,7 +16,7 @@ from sentry.ratelimits.config import RateLimitConfig
 @region_silo_endpoint
 class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
     rate_limits = RateLimitConfig(group="CLI")
