@@ -74,11 +74,13 @@ function OrganizationFeatureFlagsIndex() {
   );
 }
 
-export default (
-  <AnalyticsArea name="feature_flag_org_settings">
-    <OrganizationFeatureFlagsIndex />
-  </AnalyticsArea>
-);
+export default function OrganizationFeatureFlagsIndexRoute() {
+  return (
+    <AnalyticsArea name="feature_flag_org_settings">
+      <OrganizationFeatureFlagsIndex />
+    </AnalyticsArea>
+  );
+}
 
 const Large = styled('span')`
   font-size: ${p => p.theme.fontSizeLarge};

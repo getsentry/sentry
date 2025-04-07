@@ -67,8 +67,10 @@ function OrganizationFeatureFlagsNewSecet() {
   );
 }
 
-export default (
-  <AnalyticsArea name="feature_flag_org_settings">
-    <OrganizationFeatureFlagsNewSecet />
-  </AnalyticsArea>
-);
+export default function OrganizationFeatureFlagsNewSecretRoute() {
+  return (
+    <AnalyticsArea name="feature_flag_org_settings">
+      <OrganizationFeatureFlagsNewSecet />
+    </AnalyticsArea>
+  );
+}

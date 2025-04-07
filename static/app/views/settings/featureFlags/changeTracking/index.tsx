@@ -201,11 +201,13 @@ function OrganizationFeatureFlagsChangeTracking() {
   );
 }
 
-export default (
-  <AnalyticsArea name="feature_flag_org_settings">
-    <OrganizationFeatureFlagsChangeTracking />
-  </AnalyticsArea>
-);
+export default function OrganizationFeatureFlagsChangeTrackingRoute() {
+  return (
+    <AnalyticsArea name="feature_flag_org_settings">
+      <OrganizationFeatureFlagsChangeTracking />
+    </AnalyticsArea>
+  );
+}
 
 const ResponsivePanelTable = styled(PanelTable)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
