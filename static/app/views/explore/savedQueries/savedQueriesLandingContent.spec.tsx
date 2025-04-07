@@ -26,17 +26,17 @@ describe('SavedQueriesTable', () => {
 
   it('should render', async () => {
     render(<SavedQueriesLandingContent />);
-    await screen.findByText('Owned by Me');
-    await screen.findByText('Shared with Me');
+    await screen.findByText('Created by Me');
+    await screen.findByText('Created by Others');
     await screen.findByText('Recently Viewed');
   });
 
   it('should show a single table when searching', async () => {
     render(<SavedQueriesLandingContent />);
-    await screen.findByText('Owned by Me');
-    await screen.findByText('Shared with Me');
+    await screen.findByText('Created by Me');
+    await screen.findByText('Created by Others');
     await userEvent.type(screen.getByPlaceholderText('Search for a query'), 'Query Name');
-    expect(screen.queryByText('Owned by Me')).not.toBeInTheDocument();
-    expect(screen.queryByText('Shared with Me')).not.toBeInTheDocument();
+    expect(screen.queryByText('Created by Me')).not.toBeInTheDocument();
+    expect(screen.queryByText('Created by Others')).not.toBeInTheDocument();
   });
 });
