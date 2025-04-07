@@ -19,6 +19,7 @@ import {
   type DocsParams,
   ProductSolution,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -224,6 +225,9 @@ export function Onboarding() {
     projSlug: project?.slug,
   });
 
+  const {isPending: isLoadingRegistry, data: registryData} =
+    useSourcePackageRegistries(organization);
+
   const doesSupportProfiling = currentPlatform
     ? profilingPlatforms.includes(currentPlatform.id)
     : false;
@@ -296,8 +300,8 @@ export function Onboarding() {
     isProfilingSelected: true,
     isReplaySelected: false,
     sourcePackageRegistries: {
-      isLoading: false,
-      data: undefined,
+      isLoading: isLoadingRegistry,
+      data: registryData,
     },
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
     docsLocation: DocsPageLocation.PROFILING_PAGE,
