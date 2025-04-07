@@ -376,7 +376,6 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-
   crashReportOnboarding,
   featureFlagOnboarding,
 };

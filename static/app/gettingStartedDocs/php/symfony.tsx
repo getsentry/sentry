@@ -190,6 +190,7 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
+  profilingOnboarding: onboarding,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
 };

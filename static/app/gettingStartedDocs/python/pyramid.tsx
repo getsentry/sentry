@@ -110,7 +110,6 @@ if __name__ == '__main__':
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,

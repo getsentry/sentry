@@ -563,6 +563,7 @@ const docs: Docs<PlatformOptions> = {
   feedbackOnboardingCrashApi,
   crashReportOnboarding: feedbackOnboardingCrashApi,
   replayOnboarding,
+  profilingOnboarding: onboarding,
   platformOptions,
   profilingOnboarding: getReactNativeProfilingOnboarding(),
 };

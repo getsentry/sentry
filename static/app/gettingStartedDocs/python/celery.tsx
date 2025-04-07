@@ -201,7 +201,7 @@ def init_sentry(**_kwargs):
 
 const docs: Docs = {
   onboarding,
-
+  profilingOnboarding: onboarding,
   crashReportOnboarding: crashReportOnboardingPython,
 };
 
