@@ -577,7 +577,7 @@ export function getMetricChartTooltipFormatter({
         )}</strong></span></div>`,
       `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span>${pointYFormatted}</div>`,
       comparisonSeries &&
-        `<div><span class="tooltip-label">${comparisonSeries.marker} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
+        `<div><span class="tooltip-label">${comparisonSeries.marker as string} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
       `</div>`,
       `<div class="tooltip-footer">`,
       `<span>${startTime} &mdash; ${endTime}</span>`,
