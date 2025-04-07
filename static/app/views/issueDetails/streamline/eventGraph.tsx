@@ -239,20 +239,15 @@ export function EventGraph({
     }
   );
 
-  const {releases} = useReleaseStats(
-    {
-      projects: eventView.project,
-      environments: eventView.environment,
-      datetime: {
-        start: eventView.start,
-        end: eventView.end,
-        period: eventView.statsPeriod,
-      },
+  const {releases} = useReleaseStats({
+    projects: eventView.project,
+    environments: eventView.environment,
+    datetime: {
+      start: eventView.start,
+      end: eventView.end,
+      period: eventView.statsPeriod,
     },
-    {
-      staleTime: Infinity,
-    }
-  );
+  });
 
   const releaseSeries = useReleaseMarkLineSeries({
     group,
