@@ -41,10 +41,17 @@ class OrganizationTraceSummaryEndpoint(OrganizationEndpoint):
 
         data = orjson.loads(request.body) if request.body else {}
         trace_id = data.get("trace_id", None)
+        trace_tree = data.get("trace_tree", [])
+
+        if not trace_id:
+            return Response({"detail": "Missing trace_id parameter"}, status=400)
+
+        if not trace_tree:
+            return Response({"detail": "Missing trace_tree data"}, status=400)
 
         summary_data, status_code = get_trace_summary(
             traceSlug=trace_id,
-            traceTree=request.trace_tree,
+            traceTree=trace_tree,
             organization=organization,
             user=request.user,
         )
