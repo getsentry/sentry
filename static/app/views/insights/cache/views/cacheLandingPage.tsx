@@ -33,6 +33,7 @@ import {
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {
@@ -65,7 +66,7 @@ const CACHE_ERROR_MESSAGE = 'Column cache.hit was not found in metrics indexer';
 export function CacheLandingPage() {
   const location = useLocation();
   const {setPageInfo, pageAlert} = usePageAlert();
-  const useEap = location.query?.useEap === '1';
+  const useEap = useInsightsEap();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
