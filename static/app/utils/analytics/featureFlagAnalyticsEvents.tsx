@@ -1,3 +1,4 @@
+import type {SdkProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import type {PlatformKey} from 'sentry/types/project';
 
 export type FeatureFlagEventParameters = {
@@ -18,7 +19,7 @@ export type FeatureFlagEventParameters = {
   };
   'flags.setup_sidebar_selection': {
     platform?: string;
-    provider?: string;
+    provider?: SdkProviderEnum;
   };
   'flags.sort_flags': {sortMethod: string};
   'flags.table_rendered': {

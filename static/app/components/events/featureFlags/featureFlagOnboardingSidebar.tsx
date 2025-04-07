@@ -211,7 +211,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     });
 
   const [sdkProvider, setsdkProvider] = useState<{
-    value: string;
+    value: SdkProviderEnum;
     label?: ReactNode;
   }>(sdkProviderOptions[0]!);
 
@@ -283,7 +283,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
             trackAnalytics('flags.setup_sidebar_selection', {
               organization,
               platform: currentProject.platform,
-              provider: sdkProvider.value,
+              provider: SdkProviderEnum.GENERIC,
             });
           }
           window.location.hash = ORIGINAL_HASH;
