@@ -95,7 +95,7 @@ export default function IssueViewsList() {
             limit={10}
             cursorQueryParam="mc"
           />
-          <TableHeading>{t('Others')}</TableHeading>
+          <TableHeading>{t('Created by Others')}</TableHeading>
           <IssueViewSection
             createdBy={GroupSearchViewCreatedBy.OTHERS}
             limit={10}
