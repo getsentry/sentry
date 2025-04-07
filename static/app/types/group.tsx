@@ -710,11 +710,14 @@ export type GroupActivity =
 export type Activity = GroupActivity;
 
 interface GroupFiltered {
-  count: string;
+  count: number;
   firstSeen: string;
   lastSeen: string;
   stats: Record<string, TimeseriesValue[]>;
   userCount: number;
+  // TODO: remove once backend is updated
+  totalCount?: number;
+  totalUserCount?: number;
 }
 
 export interface GroupStats extends GroupFiltered {
