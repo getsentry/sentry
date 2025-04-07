@@ -407,10 +407,9 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     params.groupId,
   ]);
 
-  const allProjectsFlag = location.query._allp;
-
   useEffect(() => {
     const locationQuery = qs.parse(window.location.search) || {};
+    const allProjectsFlag = locationQuery._allp;
 
     // We use _allp as a temporary measure to know they came from the
     // issue list page with no project selected (all projects included in
@@ -443,7 +442,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       navigate({...window.location, query: locationQuery}, {replace: true});
       setAllProjectChanged(true);
     }
-  }, [allProjectsFlag, group?.project.id, allProjectChanged, navigate]);
+  }, [group?.project.id, allProjectChanged, navigate]);
 
   const errorType = groupError ? getFetchDataRequestErrorType(groupError.status) : null;
   useEffect(() => {
