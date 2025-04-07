@@ -81,7 +81,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
           upperBound: max,
           additionalFields: fields,
           referrer,
-          useRpc: useInsightsEap(),
+          useRpc: useInsightsEap() ? '1' : undefined,
         },
       },
     ],
