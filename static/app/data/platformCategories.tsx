@@ -1,3 +1,4 @@
+import {platforms} from 'sentry/data/platforms';
 import type {PlatformKey} from 'sentry/types/project';
 
 export enum PlatformCategory {
@@ -590,65 +591,12 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
   ...feedbackCrashApiPlatforms,
 ];
 
-// Feature flag platforms with gettingStartedDocs.
-export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
-  'javascript',
-  'python',
-  'javascript-angular',
-  'javascript-astro',
-  'javascript-ember',
-  'javascript-gatsby',
-  'javascript-nextjs',
-  'javascript-nuxt',
-  'javascript-react',
-  'javascript-remix',
-  'javascript-solid',
-  'javascript-solidstart',
-  'javascript-svelte',
-  'javascript-sveltekit',
-  'javascript-tanstackstart-react',
-  'javascript-vue',
-  'python-aiohttp',
-  'python-bottle',
-  'python-django',
-  'python-falcon',
-  'python-fastapi',
-  'python-flask',
-  'python-pyramid',
-  'python-quart',
-  'python-sanic',
-  'python-starlette',
-  'python-tornado',
-];
+// Feature flag platforms with gettingStartedDocs. Note backend js platforms start with 'node-'.
+export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = platforms
+  .map(p => p.id)
+  .filter(id => id.startsWith('javascript') || id.startsWith('python'));
 
 // Feature flag platforms to show the issue details distribution drawer for.
-export const featureFlagDrawerPlatforms: readonly PlatformKey[] = [
-  'javascript',
-  'python',
-  'other',
-  'javascript-angular',
-  'javascript-astro',
-  'javascript-ember',
-  'javascript-gatsby',
-  'javascript-nextjs',
-  'javascript-nuxt',
-  'javascript-react',
-  'javascript-remix',
-  'javascript-solid',
-  'javascript-solidstart',
-  'javascript-svelte',
-  'javascript-sveltekit',
-  'javascript-tanstackstart-react',
-  'javascript-vue',
-  'python-aiohttp',
-  'python-bottle',
-  'python-django',
-  'python-falcon',
-  'python-fastapi',
-  'python-flask',
-  'python-pyramid',
-  'python-quart',
-  'python-sanic',
-  'python-starlette',
-  'python-tornado',
-];
+export const featureFlagDrawerPlatforms: readonly PlatformKey[] = platforms
+  .map(p => p.id)
+  .filter(id => id.startsWith('javascript') || id.startsWith('python'));
