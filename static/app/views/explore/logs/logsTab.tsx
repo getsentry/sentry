@@ -13,7 +13,6 @@ import {IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {useSchemaHintsOnLargeScreen} from 'sentry/views/explore/components/schemaHintsDrawer';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHintsList';
@@ -53,7 +52,6 @@ export function LogsTabContent({
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useExploreLogsTable({});
-  const isSchemaHintsDrawerOpenOnLargeScreen = useSchemaHintsOnLargeScreen();
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');
@@ -111,9 +109,7 @@ export function LogsTabContent({
           </Button>
         </FilterBarContainer>
         <Feature features="organizations:traces-schema-hints">
-          <SchemaHintsSection
-            withSchemaHintsDrawer={isSchemaHintsDrawerOpenOnLargeScreen}
-          >
+          <SchemaHintsSection>
             <SchemaHintsList
               supportedAggregates={[]}
               numberTags={numberAttributes}
