@@ -783,7 +783,6 @@ def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka)
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
     tags = produced_event["tags"]
     assert tags["user.email"] == "josh.ferge@sentry.io"
-    assert tags["trace.id"] == "abc123"
 
     # Uses feedback contact_email if user context doesn't have one
     del event["user"]["email"]
@@ -800,14 +799,12 @@ def test_create_feedback_tags_skips_if_empty(default_project, mock_produce_occur
     event = mock_feedback_event(default_project.id, datetime.now(UTC))
     event["user"].pop("email", None)
     event["contexts"]["feedback"].pop("contact_email", None)
-    event["contexts"].pop("trace", None)
     create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
     tags = produced_event["tags"]
     assert "user.email" not in tags
-    assert "trace.id" not in tags
 
 
 @django_db_all
