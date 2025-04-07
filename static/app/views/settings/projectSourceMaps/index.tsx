@@ -1,6 +1,5 @@
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
-import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
 
 import {SourceMapsDetails} from './sourceMapsDetails';
 import {SourceMapsList} from './sourceMapsList';
@@ -16,27 +15,21 @@ type Props = RouteComponentProps<{
 };
 
 export default function ProjectSourceMapsContainer({params, location, ...props}: Props) {
-  // if (params.bundleId) {
-  //   return (
-
-  //   );
-  // }
+  if (params.bundleId) {
+    return (
+      <SourceMapsDetails
+        {...props}
+        location={location}
+        params={{...params, bundleId: params.bundleId}}
+      />
+    );
+  }
 
   return (
-    <DemoToursProvider>
-      {params.bundleId ? (
-        <SourceMapsDetails
-          {...props}
-          location={location}
-          params={{...params, bundleId: params.bundleId}}
-        />
-      ) : (
-        <SourceMapsList
-          {...props}
-          location={location}
-          params={{...params, bundleId: params.bundleId}}
-        />
-      )}
-    </DemoToursProvider>
+    <SourceMapsList
+      {...props}
+      location={location}
+      params={{...params, bundleId: params.bundleId}}
+    />
   );
 }
