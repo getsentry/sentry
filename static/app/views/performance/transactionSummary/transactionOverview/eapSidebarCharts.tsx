@@ -1,13 +1,17 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tag} from 'sentry/components/core/badge/tag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import toPercent from 'sentry/utils/number/toPercent';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {eapSeriesDataToTimeSeries} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
@@ -41,11 +45,12 @@ type FailureRateWidgetProps = {
 function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
   const organization = useOrganization();
   const theme = useTheme();
+  const {selection} = usePageFilters();
 
   const {
-    data: failureRateData,
-    isPending: isFailureRatePending,
-    isError: isFailureRateError,
+    data: failureRateSeriesData,
+    isPending: isFailureRateSeriesPending,
+    isError: isFailureRateSeriesError,
   } = useEAPSeries(
     {
       search: new MutableSearch(`transaction:${transactionName}`),
@@ -54,7 +59,21 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     REFERRER
   );
 
-  if (isFailureRatePending || isFailureRateError) {
+  const {
+    data: failureRateValue,
+    isPending: isFailureRateValuePending,
+    isError: isFailureRateValueError,
+  } = useEAPSpans(
+    {
+      search: new MutableSearch(`transaction:${transactionName}`),
+      fields: ['failure_rate()'],
+      pageFilters: selection,
+    },
+    REFERRER,
+    true
+  );
+
+  if (isFailureRateSeriesPending || isFailureRateSeriesError) {
     return (
       <Widget
         Title={t('Failure Rate')}
@@ -63,11 +82,20 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     );
   }
 
-  const timeSeries = eapSeriesDataToTimeSeries(failureRateData);
+  const failureRateText = toPercent(failureRateValue[0]?.['failure_rate()'] ?? 0);
+
+  const timeSeries = eapSeriesDataToTimeSeries(failureRateSeriesData);
   const plottables = timeSeries.map(series => new Line(series, {color: theme.red300}));
   return (
     <Widget
       Title={t('Failure Rate')}
+      TitleBadges={
+        (!isFailureRateValuePending || !isFailureRateValueError) && (
+          <Tag key="failure-rate-value" type="error">
+            {failureRateText}
+          </Tag>
+        )
+      }
       Actions={
         <Widget.WidgetToolbar>
           <Widget.WidgetDescription
