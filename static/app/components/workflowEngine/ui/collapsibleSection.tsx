@@ -21,7 +21,7 @@ export default function CollapsibleSection({
       <HeadingWrapper>
         <InteractionStateLayer />
         <Heading>{title}</Heading>
-        <IconChevron className="arrow" direction={'down'} />
+        <IconChevron className="arrow" />
       </HeadingWrapper>
 
       <Flex column gap={space(0.5)}>
@@ -46,14 +46,14 @@ export const Body = styled('details')`
       padding-bottom: ${space(0.75)};
     }
     .arrow {
-      transform: rotate(180deg);
+      transform: rotate(0deg);
     }
   }
   summary {
     padding-bottom: ${space(2)};
   }
   .arrow {
-    transform: none;
+    transform: rotate(180deg);
   }
 `;
 
@@ -70,6 +70,7 @@ export const HeadingWrapper = styled('summary')`
   padding: ${space(2)} ${space(2)};
   margin: -${space(2)} -${space(2)};
   border-radius: ${p => p.theme.borderRadius};
+  cursor: pointer;
 `;
 
 export const Description = styled('span')`
