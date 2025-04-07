@@ -48,6 +48,8 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_tasks
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER
 from sentry.utils import metrics
@@ -407,7 +409,11 @@ def get_top_5_issues_by_count_for_file(
 
 
 @instrumented_task(
-    name="sentry.integrations.github.tasks.open_pr_comment_workflow", silo_mode=SiloMode.REGION
+    name="sentry.integrations.github.tasks.open_pr_comment_workflow",
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+    ),
 )
 def open_pr_comment_workflow(pr_id: int) -> None:
     logger.info("github.open_pr_comment.start_workflow")

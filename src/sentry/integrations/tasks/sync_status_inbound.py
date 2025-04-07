@@ -17,6 +17,9 @@ from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_tasks
+from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
@@ -189,6 +192,10 @@ def group_was_recently_resolved(group: Group) -> bool:
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+        retry=Retry(times=5),
+    ),
 )
 @retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation
