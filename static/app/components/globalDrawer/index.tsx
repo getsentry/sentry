@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type {Interpolation, Theme} from '@emotion/react';
 import type {AnimationProps} from 'framer-motion';
 import {AnimatePresence} from 'framer-motion';
 import type {Location} from 'history';
@@ -33,6 +34,10 @@ export interface DrawerOptions {
    */
   closeOnOutsideClick?: boolean;
   /**
+   * Custom CSS for the drawer
+   */
+  drawerCss?: Interpolation<Theme>;
+  /**
    * Key to identify the drawer and enable persistence of the drawer width
    */
   drawerKey?: string;
@@ -52,6 +57,10 @@ export interface DrawerOptions {
    * Callback for when the drawer opens
    */
   onOpen?: () => void;
+  /**
+   * If true (default), allows the drawer to be resized
+   */
+  resizable?: boolean;
   /**
    * Function to determine whether the drawer should close when interacting with
    * other elements.
@@ -191,6 +200,8 @@ export function GlobalDrawer({children}: any) {
               transitionProps={currentDrawerConfig?.options?.transitionProps}
               drawerWidth={currentDrawerConfig?.options?.drawerWidth}
               drawerKey={currentDrawerConfig?.options?.drawerKey}
+              resizable={currentDrawerConfig?.options?.resizable}
+              drawerCss={currentDrawerConfig?.options?.drawerCss}
             >
               {renderedChild}
             </DrawerComponents.DrawerPanel>

@@ -17,6 +17,8 @@ from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_tasks
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
 
@@ -25,6 +27,9 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     name="sentry.integrations.slack.tasks.search_channel_id_for_rule",
     queue="integrations",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+    ),
 )
 def find_channel_id_for_rule(
     project: Project,

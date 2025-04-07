@@ -11,6 +11,9 @@ from sentry.plugins.base import plugins
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_control_tasks, integrations_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
@@ -19,6 +22,10 @@ from sentry.utils.rollback_metrics import incr_rollback_metrics
     queue="integrations",
     default_retry_delay=60 * 5,
     max_retries=5,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+        retry=Retry(times=5),
+    ),
 )
 @retry(exclude=(Integration.DoesNotExist))
 def migrate_issues(integration_id: int, organization_id: int) -> None:
@@ -121,6 +128,10 @@ def migrate_issues(integration_id: int, organization_id: int) -> None:
     default_retry_delay=20,
     max_retries=5,
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_control_tasks,
+        retry=Retry(times=5),
+    ),
 )
 @retry(on=(IntegrationError,), exclude=(Integration.DoesNotExist,))
 def sync_metadata(integration_id: int) -> None:

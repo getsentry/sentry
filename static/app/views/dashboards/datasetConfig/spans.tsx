@@ -111,7 +111,8 @@ export const SpansConfig: DatasetConfig<
     limit?: number,
     cursor?: string,
     referrer?: string,
-    _mepSetting?: MEPState | null
+    _mepSetting?: MEPState | null,
+    samplingMode?: SamplingMode
   ) => {
     return getEventsRequest(
       api,
@@ -120,7 +121,10 @@ export const SpansConfig: DatasetConfig<
       pageFilters,
       limit,
       cursor,
-      referrer
+      referrer,
+      undefined,
+      undefined,
+      samplingMode
     );
   },
   getSeriesRequest,
@@ -202,7 +206,8 @@ function getEventsRequest(
   cursor?: string,
   referrer?: string,
   _mepSetting?: MEPState | null,
-  queryExtras?: DiscoverQueryExtras
+  queryExtras?: DiscoverQueryExtras,
+  samplingMode?: SamplingMode
 ) {
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
@@ -231,6 +236,7 @@ function getEventsRequest(
     {
       ...eventView.generateQueryStringObject(),
       ...params,
+      ...(samplingMode ? {sampling: samplingMode} : {}),
     },
     // Tries events request up to 3 times on rate limit
     {
