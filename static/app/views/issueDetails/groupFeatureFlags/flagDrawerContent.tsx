@@ -6,7 +6,6 @@ import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
 import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
@@ -69,18 +68,13 @@ export default function FlagDrawerContent({
 
   // Suspect flag scoring. This a rudimentary INTERNAL-ONLY display for testing our scoring algorithms.
   const organization = useOrganization();
-  const {selection} = usePageFilters();
-
   const showScores = organization.features.includes(
     'organizations:suspect-scores-sandbox-ui'
   );
 
   const {data: suspectScores} = useSuspectFlagScores({
-    organization,
-    issue_id: group.id,
+    group,
     environment: environments.length ? environments : undefined,
-    start: selection.datetime.start?.toString(),
-    end: selection.datetime.end?.toString(),
     enabled: showScores,
   });
 

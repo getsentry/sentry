@@ -1,33 +1,39 @@
-import type {Organization} from 'sentry/types/organization';
+import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SuspectFlagScore} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
 
+/**
+ * Query all feature flags and their scores for a given issue. Defaults to page filters for datetime and environment params.
+ */
 export function useSuspectFlagScores({
-  organization,
-  issue_id,
+  group,
   environment,
   statsPeriod,
   start,
   end,
   enabled = true,
 }: {
-  issue_id: string;
-  organization: Organization;
+  group: Group;
   enabled?: boolean;
   end?: string;
   environment?: string[] | string;
   start?: string;
   statsPeriod?: string;
 }) {
+  const {selection} = usePageFilters();
   const query = {
-    environment,
-    statsPeriod,
-    start,
-    end,
+    environment: environment ?? selection.environments,
+    statsPeriod: statsPeriod ?? selection.datetime.period,
+    start: start ?? selection.datetime.start?.toString(),
+    end: end ?? selection.datetime.end?.toString(),
   };
 
   return useApiQuery<SuspectFlagScoresResponse>(
-    [`/organizations/${organization.slug}/issues/${issue_id}/suspect/flags/`, {query}],
+    [
+      `/organizations/${group.project.organization.slug}/issues/${group.id}/suspect/flags/`,
+      {query},
+    ],
     {
       staleTime: 30000,
       enabled,
