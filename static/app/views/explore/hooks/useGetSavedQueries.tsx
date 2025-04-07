@@ -1,5 +1,7 @@
+import {useCallback} from 'react';
+
 import type {Actor} from 'sentry/types/core';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Query = {
@@ -13,6 +15,13 @@ type Query = {
     yAxes: string[];
   }>;
 };
+
+export type SortOption =
+  | 'name'
+  | 'dateAdded'
+  | 'dateUpdated'
+  | 'mostPopular'
+  | 'recentlyViewed';
 
 // Comes from ExploreSavedQueryModelSerializer
 export type SavedQuery = {
@@ -29,26 +38,60 @@ export type SavedQuery = {
   query: [Query, ...Query[]];
   queryDataset: string;
   range: string;
+  starred: boolean;
   start: string;
 };
 
 type Props = {
-  sortBy: string;
+  cursor?: string;
   exclude?: 'owned' | 'shared';
   perPage?: number;
+  query?: string;
+  sortBy?: SortOption;
+  starred?: boolean;
 };
 
-export function useGetSavedQueries({sortBy, exclude, perPage = 5}: Props) {
+export function useGetSavedQueries({
+  sortBy,
+  exclude,
+  starred,
+  perPage = 5,
+  cursor,
+  query,
+}: Props) {
   const organization = useOrganization();
-  const {data, isLoading} = useApiQuery<SavedQuery[]>(
+
+  const {data, isLoading, getResponseHeader} = useApiQuery<SavedQuery[]>(
     [
       `/organizations/${organization.slug}/explore/saved/`,
-      {query: {sortBy, exclude, per_page: perPage}},
+      {
+        query: {
+          sortBy,
+          exclude,
+          per_page: perPage,
+          starred: starred ? 1 : undefined,
+          cursor,
+          query,
+        },
+      },
     ],
     {
       staleTime: 0,
     }
   );
 
-  return {data, isLoading};
+  const pageLinks = getResponseHeader?.('Link');
+
+  return {data, isLoading, pageLinks};
+}
+
+export function useInvalidateSavedQueries() {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  return useCallback(() => {
+    queryClient.invalidateQueries({
+      queryKey: [`/organizations/${organization.slug}/explore/saved/`],
+    });
+  }, [queryClient, organization.slug]);
 }

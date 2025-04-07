@@ -176,6 +176,8 @@ def process_profile_task(
             if features.has("organizations:profiling-sdks", organization):
                 try:
                     track_latest_sdk(project, profile)
+                except (UnknownClientSDKException, UnknownProfileTypeException):
+                    pass
                 except Exception as e:
                     sentry_sdk.capture_exception(e)
 

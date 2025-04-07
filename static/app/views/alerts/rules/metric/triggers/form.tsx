@@ -48,7 +48,7 @@ type Props = {
   /**
    * Map of fieldName -> errorMessage
    */
-  error?: {[fieldName: string]: string};
+  error?: Record<string, string>;
 
   hideControl?: boolean;
 };
@@ -126,7 +126,7 @@ type TriggerFormContainerProps = Omit<
     resolveThreshold: UnsavedMetricRule['resolveThreshold']
   ) => void;
   triggers: Trigger[];
-  errors?: Map<number, {[fieldName: string]: string}>;
+  errors?: Map<number, Record<string, string>>;
 };
 
 class TriggerFormContainer extends Component<TriggerFormContainerProps> {

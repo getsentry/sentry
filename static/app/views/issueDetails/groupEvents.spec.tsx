@@ -16,7 +16,7 @@ import type {Organization} from 'sentry/types/organization';
 import GroupEvents from 'sentry/views/issueDetails/groupEvents';
 
 describe('groupEvents', () => {
-  const requests: {[requestName: string]: jest.Mock} = {};
+  const requests: Record<string, jest.Mock> = {};
   let group!: Group;
   let organization: Organization;
   let router: ReturnType<typeof RouterFixture>;

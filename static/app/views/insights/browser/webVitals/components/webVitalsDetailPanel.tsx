@@ -122,7 +122,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
   const webVitalData: LineChartSeries = {
     data:
       !isTimeseriesLoading && webVital
-        ? timeseriesData?.[webVital].map(({name, value}) => ({
+        ? timeseriesData?.[`p75(measurements.${webVital})`].data.map(({name, value}) => ({
             name,
             value,
           }))
@@ -235,9 +235,7 @@ export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
 
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const webVitalScore = projectScore[`${webVital}Score`];
-  const webVitalValue = projectData?.[0]?.[mapWebVitalToColumn(webVital)] as
-    | number
-    | undefined;
+  const webVitalValue = projectData?.[0]?.[mapWebVitalToColumn(webVital)];
 
   return (
     <PageAlertProvider>

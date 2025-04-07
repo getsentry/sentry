@@ -17,31 +17,35 @@ import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import type {WidgetTitleProps} from 'sentry/views/dashboards/widgets/widget/widgetTitle';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {ModalChartContainer} from 'sentry/views/insights/pages/backend/laravel/styles';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
 import useRecentIssues from 'sentry/views/insights/sessions/queries/useRecentIssues';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function ChartWithIssues({
-  project,
-  series,
-  plottables,
-  title,
-  description,
-  isPending,
-  error,
-  legendSelection,
-}: {
+interface Props extends WidgetTitleProps {
   description: string;
   error: Error | null;
   isPending: boolean;
   plottables: Plottable[];
   project: Project;
   series: DiscoverSeries[];
-  title: string;
+  interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
-}) {
+}
+
+export default function ChartWithIssues({
+  description,
+  error,
+  interactiveTitle,
+  isPending,
+  legendSelection,
+  plottables,
+  project,
+  series,
+  title,
+}: Props) {
   const {recentIssues, isPending: isPendingRecentIssues} = useRecentIssues({
     projectId: project.id,
   });
@@ -65,6 +69,12 @@ export default function ChartWithIssues({
       />
     );
   }
+
+  const Title = interactiveTitle ? (
+    interactiveTitle()
+  ) : (
+    <Widget.WidgetTitle title={title} />
+  );
 
   const visualization = (
     <WidgetVisualizationStates
@@ -92,7 +102,7 @@ export default function ChartWithIssues({
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={title} />}
+      Title={Title}
       height={SESSION_HEALTH_CHART_HEIGHT}
       Visualization={visualization}
       Actions={

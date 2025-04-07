@@ -299,10 +299,10 @@ type Props = {
 
 type State = {
   deactivatedMemberDismissed: boolean;
-  overageAlertDismissed: {[key in EventType]: boolean};
+  overageAlertDismissed: Record<EventType, boolean>;
 
-  overageWarningDismissed: {[key in EventType]: boolean};
-  productTrialDismissed: {[key in EventType]: boolean};
+  overageWarningDismissed: Record<EventType, boolean>;
+  productTrialDismissed: Record<EventType, boolean>;
 };
 
 class GSBanner extends Component<Props, State> {
@@ -807,7 +807,7 @@ class GSBanner extends Component<Props, State> {
     }
   }
 
-  get overageAlertActive(): {[key in EventType]: boolean} {
+  get overageAlertActive(): Record<EventType, boolean> {
     const {subscription} = this.props;
     if (subscription.hasOverageNotificationsDisabled) {
       return ALERTS_OFF;
@@ -843,7 +843,7 @@ class GSBanner extends Component<Props, State> {
     };
   }
 
-  get overageWarningActive(): {[key in EventType]: boolean} {
+  get overageWarningActive(): Record<EventType, boolean> {
     const {subscription} = this.props;
     // disable warnings if org has on-demand
     if (
@@ -925,7 +925,7 @@ class GSBanner extends Component<Props, State> {
 
   handleOverageSnooze(eventTypes: EventType[], isWarning: boolean) {
     const {organization, api} = this.props;
-    const dismissState: {[key in EventType]: boolean} = isWarning
+    const dismissState: Record<EventType, boolean> = isWarning
       ? this.state.overageWarningDismissed
       : this.state.overageAlertDismissed;
 
@@ -955,7 +955,7 @@ class GSBanner extends Component<Props, State> {
       });
     }
 
-    const dismissedState: {[key in EventType]: boolean} = {
+    const dismissedState: Record<EventType, boolean> = {
       error: true,
       attachment: true,
       replay: true,
@@ -1107,7 +1107,7 @@ class GSBanner extends Component<Props, State> {
             })}
           </ExternalLink>
         ),
-      }[eventType]!;
+      }[eventType];
     };
 
     let strictlyCronsOverage = false;
