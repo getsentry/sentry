@@ -14,8 +14,8 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getInstallConfig,
+  getNodeProfilingOnboarding,
   getSdkInitSnippet,
-  nodeProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/node';
 import {
   InstallationMode,
@@ -121,7 +121,9 @@ const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
 const docs: Docs<PlatformOptions> = {
   onboarding,
   crashReportOnboarding,
-  profilingOnboarding: nodeProfilingOnboarding,
+  profilingOnboarding: getNodeProfilingOnboarding({
+    basePackage: '@sentry/aws-serverless',
+  }),
   platformOptions,
 };
 

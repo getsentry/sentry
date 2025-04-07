@@ -13,8 +13,8 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
+  getNodeProfilingOnboarding,
   getSdkInitSnippet,
-  nodeProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
@@ -100,7 +100,7 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   crashReportOnboarding,
-  profilingOnboarding: nodeProfilingOnboarding,
+  profilingOnboarding: getNodeProfilingOnboarding(),
 };
 
 export default docs;

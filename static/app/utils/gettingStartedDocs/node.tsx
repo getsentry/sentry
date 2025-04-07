@@ -212,7 +212,11 @@ Sentry.startSpan({
       : ''
   }`;
 
-export const nodeProfilingOnboarding: OnboardingConfig = {
+export const getNodeProfilingOnboarding = ({
+  basePackage = '@sentry/node',
+}: {
+  basePackage?: string;
+} = {}): OnboardingConfig => ({
   install: params => [
     {
       type: StepType.INSTALL,
@@ -223,7 +227,7 @@ export const nodeProfilingOnboarding: OnboardingConfig = {
         }
       ),
       configurations: getInstallConfig(params, {
-        basePackage: '@sentry/nestjs',
+        basePackage,
       }),
     },
   ],
@@ -311,4 +315,4 @@ Sentry.startSpan({
       ),
     },
   ],
-};
+});
