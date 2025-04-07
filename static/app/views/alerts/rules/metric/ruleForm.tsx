@@ -144,7 +144,7 @@ type State = {
   sensitivity: UnsavedMetricRule['sensitivity'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   timeWindow: number;
-  triggerErrors: Map<number, {[fieldName: string]: string}>;
+  triggerErrors: Map<number, Record<string, string>>;
   triggers: Trigger[];
   chartError?: boolean;
   chartErrorMessage?: string;

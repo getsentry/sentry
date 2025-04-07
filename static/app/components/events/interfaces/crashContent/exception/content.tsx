@@ -38,7 +38,7 @@ type Props = {
   threadId?: number;
 } & Pick<React.ComponentProps<typeof StackTrace>, 'groupingCurrentLevel'>;
 
-type CollapsedExceptionMap = {[exceptionId: number]: boolean};
+type CollapsedExceptionMap = Record<number, boolean>;
 
 const useCollapsedExceptions = (values?: ExceptionValue[]) => {
   const [collapsedExceptions, setCollapsedSections] = useState<CollapsedExceptionMap>(
