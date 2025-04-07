@@ -5,6 +5,7 @@ from concurrent.futures import Future
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 
+from arroyo.backends.abstract import ProducerFuture
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.dlq import InvalidMessage, KafkaDlqProducer
 from arroyo.processing.strategies.abstract import (
@@ -43,7 +44,7 @@ class MultipleDestinationDlqProducer(KafkaDlqProducer):
         self,
         value: BrokerValue[KafkaPayload],
         reason: str | None = None,
-    ) -> Future[BrokerValue[KafkaPayload]]:
+    ) -> ProducerFuture[BrokerValue[KafkaPayload]]:
 
         reject_reason = RejectReason(reason) if reason else RejectReason.INVALID
         producer = self.producers.get(reject_reason)

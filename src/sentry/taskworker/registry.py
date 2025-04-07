@@ -144,7 +144,9 @@ class TaskNamespace:
             ArroyoTopic(name=topic.value),
             KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
         )
-        produce_future.add_done_callback(
+        # We know this type is futures.Future, but cannot assert so,
+        # because it is also mock.Mock in tests.
+        produce_future.add_done_callback(  # type:ignore[attr-defined]
             lambda future: self._handle_produce_future(
                 future=future,
                 tags={
