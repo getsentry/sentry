@@ -10,7 +10,6 @@ from typing import Any, ParamSpec, TypeVar
 from celery import Task
 from django.conf import settings
 from django.db.models import Model
-from kombu import Producer
 
 from sentry import options
 from sentry.celery import app
@@ -82,9 +81,6 @@ def taskworker_override(
 
         random.seed(datetime.now().timestamp())
         if rollout > random.random():
-            producer = kwargs.get("producer")
-            if isinstance(producer, Producer):
-                del kwargs["producer"]
             return taskworker_attr(*args, **kwargs)
 
         return celery_task_attr(*args, **kwargs)

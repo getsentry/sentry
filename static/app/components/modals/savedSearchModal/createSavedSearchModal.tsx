@@ -28,7 +28,7 @@ function validateSortOption({sort}: {sort?: string}) {
     IssueSortOptions.USER,
   ];
   if (sort && sortOptions.includes(sort)) {
-    return sort as string;
+    return sort;
   }
 
   return IssueSortOptions.DATE;

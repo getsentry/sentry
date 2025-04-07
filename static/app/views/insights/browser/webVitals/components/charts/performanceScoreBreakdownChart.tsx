@@ -9,14 +9,13 @@ import type {WebVitalsScoreBreakdown} from 'sentry/views/insights/browser/webVit
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {useDefaultWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/utils/useDefaultQuery';
 import {InsightsTimeSeriesWidget} from 'sentry/views/insights/common/components/insightsTimeSeriesWidget';
 import {
   type DiscoverSeries,
   useMetricsSeries,
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
-
-import {DEFAULT_QUERY_FILTER} from '../../settings';
 
 import {WebVitalsWeightList} from './webVitalWeightList';
 
@@ -52,10 +51,9 @@ export function PerformanceScoreBreakdownChart({
 }: Props) {
   const theme = useTheme();
   const segmentColors = theme.chart.getColorPalette(3).slice(0, 5);
+  const defaultQuery = useDefaultWebVitalsQuery();
 
-  const search = new MutableSearch(
-    `${DEFAULT_QUERY_FILTER} has:measurements.score.total`
-  );
+  const search = new MutableSearch(`${defaultQuery} has:measurements.score.total`);
 
   if (transaction) {
     search.addFilterValue('transaction', transaction);
@@ -92,7 +90,7 @@ export function PerformanceScoreBreakdownChart({
   const webVitalsThatHaveData: WebVitals[] = vitalScoresData
     ? ORDER.filter(webVital => {
         const key = `performance_score(measurements.score.${webVital})` as const;
-        const series = vitalScoresData[key]!;
+        const series = vitalScoresData[key];
 
         return series.data.some(datum => datum.value > 0);
       })
@@ -103,7 +101,7 @@ export function PerformanceScoreBreakdownChart({
   const allSeries: DiscoverSeries[] = vitalScoresData
     ? ORDER.map((webVital, index) => {
         const key = `performance_score(measurements.score.${webVital})` as const;
-        const series = vitalScoresData[key]!;
+        const series = vitalScoresData[key];
 
         const scaledSeries: DiscoverSeries = {
           ...series,

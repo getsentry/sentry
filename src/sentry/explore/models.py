@@ -89,11 +89,16 @@ class ExploreSavedQuery(DefaultFieldsModel):
 
 class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
 
-    def num_starred_queries(self, organization: Organization, user_id: int) -> int:
+    def get_last_position(self, organization: Organization, user_id: int) -> int:
         """
-        Returns the number of starred queries for a user in an organization.
+        Returns the last position of a user's starred queries in an organization.
         """
-        return self.filter(organization=organization, user_id=user_id).count()
+        last_starred_query = (
+            self.filter(organization=organization, user_id=user_id).order_by("-position").first()
+        )
+        if last_starred_query:
+            return last_starred_query.position
+        return 0
 
     def get_starred_query(
         self, organization: Organization, user_id: int, query: ExploreSavedQuery
@@ -162,7 +167,7 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
             if self.get_starred_query(organization, user_id, query):
                 return False
 
-            position = self.num_starred_queries(organization, user_id)
+            position = self.get_last_position(organization, user_id) + 1
 
             self.create(
                 organization=organization,

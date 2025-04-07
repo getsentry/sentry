@@ -57,6 +57,7 @@ class TestBaseActionValidator(TestCase):
             "type": Action.Type.SLACK,
             "config": {"foo": "bar"},
             "data": {"baz": "bar"},
+            "integrationId": 1,
         }
 
     def test_validate_type(self, mock_action_handler_get):

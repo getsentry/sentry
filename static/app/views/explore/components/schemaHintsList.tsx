@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -30,6 +31,8 @@ import {
   removeHiddenKeys,
   SchemaHintsSources,
 } from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
+import type {LogPageParamsUpdate} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {WritablePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
@@ -45,7 +48,8 @@ interface SchemaHintsListProps extends SchemaHintsPageParams {
 
 export interface SchemaHintsPageParams {
   exploreQuery: string;
-  setExploreQuery: (query: string) => void;
+  setPageParams: (pageParams: WritablePageParams | LogPageParamsUpdate) => void;
+  tableColumns: string[];
 }
 
 const seeFullListTag: Tag = {
@@ -90,7 +94,8 @@ function SchemaHintsList({
   stringTags,
   isLoading,
   exploreQuery,
-  setExploreQuery,
+  tableColumns,
+  setPageParams,
   source = SchemaHintsSources.EXPLORE,
 }: SchemaHintsListProps) {
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
@@ -207,12 +212,18 @@ function SchemaHintsList({
               <SchemaHintsDrawer
                 hints={filterTagsSorted}
                 exploreQuery={exploreQuery}
-                setExploreQuery={setExploreQuery}
+                tableColumns={tableColumns}
+                setPageParams={setPageParams}
+                source={source}
               />
             ),
             {
               ariaLabel: t('Schema Hints Drawer'),
               drawerWidth: SCHEMA_HINTS_DRAWER_WIDTH,
+              resizable: false,
+              drawerCss: css`
+                height: calc(100% - ${space(4)});
+              `,
               transitionProps: {
                 key: 'schema-hints-drawer',
                 type: 'tween',
@@ -224,8 +235,8 @@ function SchemaHintsList({
                   location.pathname !== newLocation.pathname ||
                   // will close if anything but the filter query has changed
                   !isEqual(
-                    omit(location.query, ['query']),
-                    omit(newLocation.query, ['query'])
+                    omit(location.query, ['query', 'field', 'search', 'logsQuery']),
+                    omit(newLocation.query, ['query', 'field', 'search', 'logsQuery'])
                   )
                 );
               },
@@ -260,7 +271,24 @@ function SchemaHintsList({
         getFieldDefinition(hint.key, 'span', hint.kind)?.valueType ===
         FieldValueType.BOOLEAN;
       addFilterToQuery(newSearchQuery, hint, isBoolean);
-      setExploreQuery(newSearchQuery.formatString());
+
+      const newTableColumns = tableColumns.includes(hint.key)
+        ? tableColumns
+        : [...tableColumns, hint.key];
+      const newQuery = newSearchQuery.formatString();
+
+      setPageParams(
+        source === SchemaHintsSources.LOGS
+          ? {
+              search: newSearchQuery,
+              fields: newTableColumns,
+            }
+          : {
+              query: newQuery,
+              fields: newTableColumns,
+            }
+      );
+
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
         source: 'list',
@@ -269,9 +297,11 @@ function SchemaHintsList({
     },
     [
       exploreQuery,
-      setExploreQuery,
-      isDrawerOpen,
+      tableColumns,
+      setPageParams,
+      source,
       organization,
+      isDrawerOpen,
       openDrawer,
       filterTagsSorted,
       location.pathname,

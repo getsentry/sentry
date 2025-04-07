@@ -2452,9 +2452,12 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
 @sentry_sdk.tracing.trace
 def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
-        job["performance_problems"] = detect_performance_problems(
-            job["data"], projects[job["project_id"]]
-        )
+        if job["data"].get("_performance_issues_spans"):
+            job["performance_problems"] = []
+        else:
+            job["performance_problems"] = detect_performance_problems(
+                job["data"], projects[job["project_id"]]
+            )
 
 
 @sentry_sdk.tracing.trace
