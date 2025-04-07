@@ -23,7 +23,7 @@ jest.mock('sentry/components/lazyRender', () => ({
 describe('MultiQueryModeContent', function () {
   const {organization, project} = initializeOrg({
     organization: {
-      features: ['visibility-explore-rpc', 'performance-saved-queries'],
+      features: ['performance-saved-queries'],
     },
   });
   let eventsRequest: any;
