@@ -100,15 +100,10 @@ class OptionsStore:
         Fetches a value from the options store.
         """
         result = self.get_cache(key, silent=silent)
-        should_log = random() < LOGGING_SAMPLE_RATE
         if result is not None:
-            if should_log:
-                logger.info(
-                    "sentry_options_store.cache_hit",
-                    extra={"key": key.name, "cache_configured": self.cache is not None},
-                )
             return result
 
+        should_log = random() < LOGGING_SAMPLE_RATE
         if should_log:
             # Log some percentage of our cache misses for option retrieval to
             # help triage excessive queries against the store.
@@ -130,6 +125,10 @@ class OptionsStore:
         First check against our local in-process cache, falling
         back to the network cache.
         """
+        assert (
+            self.cache is not None
+        ), f"Option '{key.name}' requested before cache initialization, which could result in excessive store queries"
+
         value = self.get_local_cache(key)
         if value is not None:
             return value
