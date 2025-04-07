@@ -229,7 +229,12 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagListP
     const showCTA =
       featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
       organization.features.includes('feature-flag-cta');
-    return showCTA ? <FeatureFlagInlineCTA projectId={event.projectID} /> : null;
+    return showCTA ? (
+      <FeatureFlagInlineCTA
+        projectId={event.projectID}
+        projectPlatform={project.platform}
+      />
+    ) : null;
   }
 
   const actions = (

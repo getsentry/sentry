@@ -3,13 +3,18 @@ import {useCallback, useEffect} from 'react';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const FLAG_HASH = '#flag-sidequest';
 
-export function useFeatureFlagOnboarding() {
+export function useFeatureFlagOnboarding({
+  projectPlatform,
+}: {
+  projectPlatform?: PlatformKey;
+}) {
   const location = useLocation();
   const organization = useOrganization();
   const area = useAnalyticsArea();
@@ -20,9 +25,10 @@ export function useFeatureFlagOnboarding() {
       trackAnalytics('flags.view-setup-sidebar', {
         organization,
         area,
+        platform: projectPlatform,
       });
     }
-  }, [location.hash, organization, area]);
+  }, [location.hash, organization, area, projectPlatform]);
 
   const activateSidebar = useCallback(
     (event: React.MouseEvent) => {
@@ -32,9 +38,10 @@ export function useFeatureFlagOnboarding() {
       trackAnalytics('flags.view-setup-sidebar', {
         organization,
         area,
+        platform: projectPlatform,
       });
     },
-    [organization, area]
+    [organization, area, projectPlatform]
   );
 
   return {activateSidebar};

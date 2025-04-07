@@ -1,3 +1,5 @@
+import type {PlatformKey} from 'sentry/types/project';
+
 export type FeatureFlagEventParameters = {
   'flags.cta_dismissed': {area: string; type: string};
   'flags.cta_rendered': {area: string};
@@ -27,6 +29,7 @@ export type FeatureFlagEventParameters = {
   'flags.view-all-clicked': Record<string, unknown>;
   'flags.view-setup-sidebar': {
     area: string;
+    platform?: PlatformKey;
   };
 };
 
