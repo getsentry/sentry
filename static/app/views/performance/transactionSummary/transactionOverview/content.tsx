@@ -98,8 +98,6 @@ function OTelSummaryContentInner({
   spanOperationBreakdownFilter,
   organization,
   projects,
-  isLoading,
-  error,
   projectId,
   transactionName,
 }: Props) {
@@ -126,15 +124,6 @@ function OTelSummaryContentInner({
     [location, navigate]
   );
 
-  function generateTagUrl(key: string, value: string) {
-    const query = generateQueryWithTag(location.query, {key: formatTagKey(key), value});
-
-    return {
-      ...location,
-      query,
-    };
-  }
-
   function handleTransactionsListSortChange(value: string) {
     const target = {
       pathname: location.pathname,
@@ -147,8 +136,6 @@ function OTelSummaryContentInner({
   const query = useMemo(() => {
     return decodeScalar(location.query.query, '');
   }, [location]);
-
-  const totalCount = totalValues === null ? null : totalValues['count()']!;
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.
@@ -316,16 +303,6 @@ function OTelSummaryContentInner({
         />
       </Layout.Main>
       <Layout.Side>
-        <UserStats
-          organization={organization}
-          location={location}
-          isLoading={isLoading}
-          hasWebVitals={hasWebVitals}
-          error={error}
-          totals={totalValues}
-          transactionName={transactionName}
-          eventView={eventView}
-        />
         {!isFrontendView && (
           <StatusBreakdown
             eventView={eventView}
@@ -334,15 +311,8 @@ function OTelSummaryContentInner({
           />
         )}
         <SidebarSpacer />
-        <EAPSidebarCharts transactionName={transactionName} />
+        <EAPSidebarCharts transactionName={transactionName} hasWebVitals={hasWebVitals} />
         <SidebarSpacer />
-        <Tags
-          generateUrl={generateTagUrl}
-          totalValues={totalCount}
-          eventView={eventView}
-          organization={organization}
-          location={location}
-        />
       </Layout.Side>
     </Fragment>
   );

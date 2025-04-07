@@ -8,21 +8,19 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {
-  getTermHelp,
-  PERFORMANCE_TERMS,
-  PerformanceTerm,
-} from 'sentry/views/performance/data';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 type Props = {
+  hasWebVitals: boolean;
   transactionName: string;
 };
 
 const REFERRER = 'eap-sidebar-charts';
 
-export function EAPSidebarCharts({transactionName}: Props) {
+export function EAPSidebarCharts({transactionName, hasWebVitals}: Props) {
   return (
     <ChartContainer>
+      {hasWebVitals && <Widget Title={t('Web Vitals')} />}
       <FailureRateWidget transactionName={transactionName} />
     </ChartContainer>
   );
@@ -34,7 +32,11 @@ const ChartContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-function FailureRateWidget({transactionName}: Props) {
+type FailureRateWidgetProps = {
+  transactionName: string;
+};
+
+function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
   const organization = useOrganization();
 
   const {
