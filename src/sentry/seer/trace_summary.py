@@ -1,6 +1,5 @@
 import logging
 from datetime import timedelta
-from typing import Any
 
 import orjson
 import requests
@@ -21,23 +20,22 @@ logger = logging.getLogger(__name__)
 
 def get_trace_summary(
     traceSlug: str,
-    rootEvent: Any,  # TODO: Fix type
     traceTree: list[dict],
     organization: Organization,
     user: User | RpcUser | AnonymousUser | None = None,
 ):
     """
-    Generate an AI summary for a single trace.
+    Generate an AI summary for a single trace. Trace must be in the EAP format.
 
     Args:
         traceSlug: The slug of the trace to summarize. Equivalent to the trace ID.
-        rootEvent: The root event of the trace.
+        timestamp: The timestamp of the root event of the trace.
         traceTree: The trace tree for the trace to summarize. List of spans in the EAP format.
         organization: The organization the trace belongs to.
         user: The user requesting the summary
 
     Returns:
-        A dictionary containing the trace ID, trace content, and trace summary
+        A dictionary containing the trace summary.
     """
     if user is None:
         user = AnonymousUser()
@@ -48,11 +46,15 @@ def get_trace_summary(
     if cached_summary := cache.get(cache_key):
         return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
 
-    trace_summary = _call_seer(
-        traceSlug,
-        rootEvent.startTimestamp,
-        traceTree,
-    )
+    trace_summary = None
+    try:
+        trace_summary = _call_seer(
+            traceSlug,
+            traceTree,
+        )
+    except Exception as e:
+        logger.exception("Error calling Seer: %s", e)
+        return {"detail": "Error calling Seer"}, 500
 
     trace_summary_dict = trace_summary.dict()
 
@@ -63,7 +65,6 @@ def get_trace_summary(
 
 def _call_seer(
     trace_id: str,
-    timestamp: float,
     trace_content: list[dict],
     only_transaction: bool = True,
 ) -> SummarizeTraceResponse:
@@ -74,8 +75,7 @@ def _call_seer(
             "trace_id": trace_id,
             "only_transaction": only_transaction,
             "trace": {
-                "id": trace_id,
-                "timestamp": timestamp,
+                "trace_id": trace_id,
                 "trace_content": trace_content,
             },
         },
