@@ -10,7 +10,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {Threads} from 'sentry/components/events/interfaces/threads';
-import {displayOptions} from 'sentry/components/events/traceEventDataSection';
+import {stackTraceDisplayOptionLabels} from 'sentry/components/events/traceEventDataSection';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
@@ -317,7 +317,7 @@ describe('Threads', function () {
 
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
-        Object.entries(displayOptions).forEach(([key, value]) => {
+        Object.entries(stackTraceDisplayOptionLabels).forEach(([key, value]) => {
           if (key === 'minified' || key === 'raw-stack-trace') {
             expect(screen.getByText(value)).toBeInTheDocument();
             return;
@@ -327,7 +327,7 @@ describe('Threads', function () {
         });
 
         // Hover over the Minified option
-        await userEvent.hover(screen.getByText(displayOptions.minified));
+        await userEvent.hover(screen.getByText(stackTraceDisplayOptionLabels.minified));
 
         // Minified option is disabled
         expect(
@@ -1143,12 +1143,14 @@ describe('Threads', function () {
 
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
-        Object.values(displayOptions).forEach(value => {
+        Object.values(stackTraceDisplayOptionLabels).forEach(value => {
           expect(screen.getByText(value)).toBeInTheDocument();
         });
 
         // Hover over absolute file paths option
-        await userEvent.hover(screen.getByText(displayOptions['absolute-file-paths']));
+        await userEvent.hover(
+          screen.getByText(stackTraceDisplayOptionLabels['absolute-file-paths'])
+        );
 
         // Absolute file paths option is disabled
         expect(
@@ -1156,7 +1158,7 @@ describe('Threads', function () {
         ).toBeInTheDocument();
 
         // Hover over Minified option
-        await userEvent.hover(screen.getByText(displayOptions.minified));
+        await userEvent.hover(screen.getByText(stackTraceDisplayOptionLabels.minified));
 
         // Minified option is disabled
         expect(
@@ -1171,7 +1173,9 @@ describe('Threads', function () {
         ).toBeInTheDocument();
 
         // Click on verbose function name option
-        await userEvent.click(screen.getByText(displayOptions['verbose-function-names']));
+        await userEvent.click(
+          screen.getByText(stackTraceDisplayOptionLabels['verbose-function-names'])
+        );
 
         // Function name is now verbose
         expect(
@@ -1186,7 +1190,9 @@ describe('Threads', function () {
         ).toBeInTheDocument();
 
         // Click on absolute file paths option
-        await userEvent.click(screen.getByText(displayOptions['absolute-addresses']));
+        await userEvent.click(
+          screen.getByText(stackTraceDisplayOptionLabels['absolute-addresses'])
+        );
 
         // Address is now absolute
         expect(
@@ -1200,7 +1206,9 @@ describe('Threads', function () {
         });
 
         // Click on raw stack trace option
-        await userEvent.click(screen.getByText(displayOptions['raw-stack-trace']));
+        await userEvent.click(
+          screen.getByText(stackTraceDisplayOptionLabels['raw-stack-trace'])
+        );
 
         // Download button is displayed
         expect(screen.getByRole('button', {name: 'Download'})).toBeInTheDocument();
@@ -1308,7 +1316,9 @@ describe('Threads', function () {
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
         // Click on raw stack trace option
-        await userEvent.click(await screen.findByText(displayOptions['raw-stack-trace']));
+        await userEvent.click(
+          await screen.findByText(stackTraceDisplayOptionLabels['raw-stack-trace'])
+        );
 
         // Raw crash report content should be displayed
         await screen.findByText('crash report content');
@@ -1320,7 +1330,7 @@ describe('Threads', function () {
         );
 
         // Click on minified option
-        await userEvent.click(screen.getByText(displayOptions.minified));
+        await userEvent.click(screen.getByText(stackTraceDisplayOptionLabels.minified));
 
         // Raw crash report content should be displayed (now with minified response)
         await screen.findByText('crash report content (minified)');
