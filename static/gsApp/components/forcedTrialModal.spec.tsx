@@ -20,7 +20,7 @@ describe('ForcedTrialModal', function () {
     });
     sub = SubscriptionFixture({
       organization: org,
-      trialEnd: now.add(14, 'day').toString(),
+      trialEnd: now.add(14, 'day').toISOString(),
       ...subParams,
     });
     SubscriptionStore.set(org.slug, sub);

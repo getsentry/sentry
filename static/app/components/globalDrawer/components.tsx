@@ -19,10 +19,6 @@ import {
 
 const DrawerWidthContext = createContext<number | undefined>(undefined);
 
-export function useDrawerWidth() {
-  return useContext(DrawerWidthContext);
-}
-
 interface DrawerContentContextType {
   ariaLabel: string;
   onClose: DrawerOptions['onClose'];
@@ -42,8 +38,10 @@ interface DrawerPanelProps {
   children: React.ReactNode;
   headerContent: React.ReactNode;
   onClose: DrawerContentContextType['onClose'];
+  drawerCss?: DrawerOptions['drawerCss'];
   drawerKey?: string;
   drawerWidth?: DrawerOptions['drawerWidth'];
+  resizable?: DrawerOptions['resizable'];
   transitionProps?: AnimationProps['transition'];
 }
 
@@ -55,17 +53,21 @@ export function DrawerPanel({
   onClose,
   drawerWidth,
   drawerKey,
+  resizable = true,
+  drawerCss,
 }: DrawerPanelProps & {
   ref?: React.Ref<HTMLDivElement>;
 }) {
-  const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent} =
+  const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
     useDrawerResizing({
       drawerKey,
       drawerWidth,
+      enabled: resizable,
     });
 
   // Calculate actual drawer width in pixels
-  const actualDrawerWidth = (window.innerWidth * persistedWidthPercent) / 100;
+  const actualDrawerWidth =
+    (window.innerWidth * (enabled ? persistedWidthPercent : 100)) / 100;
 
   return (
     <DrawerContainer>
@@ -78,8 +80,9 @@ export function DrawerPanel({
           transitionProps={transitionProps}
           panelWidth="var(--drawer-width)" // Initial width only
           className="drawer-panel"
+          css={drawerCss}
         >
-          {drawerKey && (
+          {drawerKey && enabled && (
             <ResizeHandle
               ref={resizeHandleRef}
               onMouseDown={handleResizeStart}
@@ -190,6 +193,7 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
   border-left: 1px solid ${p => p.theme.border};
   position: relative;
   pointer-events: auto;
+  height: 100%;
 
   --drawer-width: ${DEFAULT_WIDTH_PERCENT}%;
   --drawer-min-width: ${MIN_WIDTH_PERCENT}%;

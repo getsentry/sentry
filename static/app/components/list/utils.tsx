@@ -1,4 +1,4 @@
-import type {Theme} from '@emotion/react';
+import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 
 import {space} from 'sentry/styles/space';
@@ -40,7 +40,9 @@ const numericStyle = (
             height: 24px;
             font-weight: ${theme.fontWeightNormal};
             font-size: ${theme.fontSizeSmall};
-            background-color: ${theme.yellow300};
+            background-color: ${theme.isChonk
+              ? (theme as DO_NOT_USE_ChonkTheme).colors.chonk.yellow400
+              : theme.yellow300};
             color: ${theme.black};
           `
         : css`
@@ -49,7 +51,7 @@ const numericStyle = (
             height: 18px;
             font-weight: ${theme.fontWeightBold};
             font-size: 10px;
-            border: 1px solid ${theme.gray500};
+            border: 1px solid ${theme.border};
           `}
     }
   }

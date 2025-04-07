@@ -822,13 +822,13 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
 
 // TODO: Extend the two lists below with more options upon backend support
 export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
-  SpanIndexedField.SPAN_DURATION,
+  SpanIndexedField.SPAN_DURATION, // DO NOT RE-ORDER: the first element is used as the default
   SpanIndexedField.SPAN_SELF_TIME,
 ];
 
 export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
+  AggregationKey.COUNT, // DO NOT RE-ORDER: the first element is used as the default
   AggregationKey.AVG,
-  AggregationKey.COUNT,
   AggregationKey.P50,
   AggregationKey.P75,
   AggregationKey.P90,
@@ -2397,7 +2397,7 @@ export const FEEDBACK_FIELDS = [
   FeedbackFieldKey.MESSAGE,
   FeedbackFieldKey.OS_NAME,
   FeedbackFieldKey.OS_VERSION,
-  FieldKey.PLATFORM,
+  FieldKey.PLATFORM_NAME,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
   FieldKey.TIMESTAMP,

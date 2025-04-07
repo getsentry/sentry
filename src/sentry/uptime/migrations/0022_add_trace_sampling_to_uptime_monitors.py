@@ -52,6 +52,7 @@ class Migration(CheckedMigration):
         #
         # This was never cleaned up so we're doing that here
         SafeRunSQL(
-            "DROP INDEX CONCURRENTLY IF EXISTS uptime_uptimesubscription_unique_subscription_check_2"
+            "DROP INDEX CONCURRENTLY IF EXISTS uptime_uptimesubscription_unique_subscription_check_2",
+            hints={"tables": ["uptime_uptimesubscription"]},
         ),
     ]

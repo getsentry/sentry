@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons';
@@ -30,9 +31,12 @@ export function OptInBanner({collapsed, organization}: Props) {
 
   return (
     <TranslucentBackgroundPanel isDarkMode={isDarkMode}>
-      <Title>{t('✨ Try New Navigation')}</Title>
+      <Title>
+        {t('New Navigation')}
+        <FeatureBadge type="alpha" />
+      </Title>
       <Description>
-        {t("We've redesigned our sidebar to make it easier to navigate Sentry.")}
+        {t('Say hello to your improved sidebar — less clutter, clearer workflows.')}
       </Description>
       <OptInButton
         priority="primary"
@@ -66,10 +70,13 @@ const TranslucentBackgroundPanel = styled(Panel)<{isDarkMode: boolean}>`
   margin-bottom: ${space(1)};
 `;
 
-const Title = styled('p')`
+const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0;
+
+  display: flex;
+  align-items: center;
 `;
 
 const Description = styled('p')`

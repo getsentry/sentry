@@ -142,6 +142,10 @@ class GroupSearchViewStarredManager(BaseManager["GroupSearchViewStarred"]):
             ).update(position=models.F("position") - 1)
             return True
 
+    def clear_starred_view_for_all_members(self, organization: Organization, view: GroupSearchView):
+        for starred_view in self.filter(organization=organization, group_search_view=view):
+            self.delete_starred_view(organization, starred_view.user_id, view)
+
 
 @region_silo_model
 class GroupSearchViewStarred(DefaultFieldsModel):
