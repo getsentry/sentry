@@ -36,7 +36,7 @@ export default function SessionHealthRateChart() {
       isLoading={isPending}
       error={error}
       legendSelection={{
-        [aliases.healthy_session_rate]: false,
+        healthy_session_rate: false,
       }}
     />
   );

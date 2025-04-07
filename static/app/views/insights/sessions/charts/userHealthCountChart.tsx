@@ -39,7 +39,7 @@ export default function UserHealthCountChart() {
       isLoading={isPending}
       error={error}
       legendSelection={{
-        [aliases.healthy_user_count]: false,
+        healthy_user_count: false,
       }}
     />
   );
