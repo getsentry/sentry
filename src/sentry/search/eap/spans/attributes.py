@@ -409,6 +409,12 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[
     },
 }
 
+SPANS_PRIVATE_ATTRIBUTES: set[str] = {
+    definition.internal_name
+    for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+    if definition.private
+}
+
 
 SPAN_VIRTUAL_CONTEXTS = {
     "device.class": VirtualColumnDefinition(

@@ -86,3 +86,9 @@ LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[s
         if not definition.secondary_alias and definition.search_type != "string"
     },
 }
+
+LOGS_PRIVATE_ATTRIBUTES: set[str] = {
+    definition.internal_name
+    for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values()
+    if definition.private
+}
