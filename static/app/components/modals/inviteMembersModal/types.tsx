@@ -1,4 +1,4 @@
-export type InviteStatus = {[email: string]: {sent: boolean; error?: string}};
+export type InviteStatus = Record<string, {sent: boolean; error?: string}>;
 
 export type InviteRow = {
   emails: Set<string>;
