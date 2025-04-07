@@ -10,7 +10,7 @@ from sentry.issues.suspect_tags import (
 from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
-class SnubaTest(TestCase, SnubaTestCase):
+class SuspectTagsTest(TestCase, SnubaTestCase):
     def mock_event(self, ts, hash="a" * 32, group_id=None, project_id=1, tags=None):
         self.snuba_insert(
             (
