@@ -28,6 +28,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -244,7 +245,14 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                   <CompactSelect
                     triggerLabel={sdkProvider.label}
                     value={sdkProvider.value}
-                    onChange={setsdkProvider}
+                    onChange={value => {
+                      setsdkProvider(value);
+                      trackAnalytics('flags.setup_sidebar_provider_selected', {
+                        organization,
+                        platform: currentProject.platform ?? 'unknown',
+                        provider: value.value,
+                      });
+                    }}
                     options={sdkProviderOptions}
                     position="bottom-end"
                     key={sdkProvider.value}
@@ -264,6 +272,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         value={setupMode()}
         onChange={value => {
           setSetupMode(value);
+          if (value === 'generic') {
+            trackAnalytics('flags.setup_sidebar_provider_selected', {
+              organization,
+              platform: currentProject.platform ?? 'unknown',
+              provider: sdkProvider.value,
+            });
+          }
           window.location.hash = ORIGINAL_HASH;
         }}
       />
