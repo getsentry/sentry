@@ -80,6 +80,7 @@ COMMON_SOURCE_PROPERTIES = {
     "layout": LAYOUT_SCHEMA,
     "filters": FILTERS_SCHEMA,
     "is_public": {"type": "boolean"},
+    "has_index": {"type": "boolean"},
 }
 
 APP_STORE_CONNECT_SCHEMA = {
