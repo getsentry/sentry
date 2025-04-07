@@ -9,6 +9,7 @@ import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {DATE_FORMAT} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   SpanIndexedFieldTypes,
   SpanMetricsQueryFilters,
@@ -107,7 +108,7 @@ export const useSpanSamples = (options: Options) => {
     project: pageFilter.selection.projects,
     environment: pageFilter.selection.environments,
     query: query.formatString(),
-    useRpc: location.query?.useEap,
+    useRpc: useInsightsEap(),
     ...(additionalFields?.length ? {additionalFields} : {}),
   };
   const {data, ...result} = useApiQuery<{data: SpanSample[]}>(
