@@ -42,7 +42,6 @@ const Time = memo(function Time({
           </Title>
         }
         containerDisplayMode="inline-flex"
-        isHoverable
       >
         {getDynamicText({
           value: <Highlight text={searchTerm}>{displayTime}</Highlight>,
