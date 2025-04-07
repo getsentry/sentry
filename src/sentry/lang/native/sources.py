@@ -132,6 +132,7 @@ BUILTIN_HTTP_SOURCE_SCHEMA = {
     "type": "object",
     "properties": dict(
         headers={"type": "object", "patternProperties": {".*": {"type": "string"}}},
+        accept_invalid_certs={"type": "boolean"},
         **HTTP_SOURCE_SCHEMA_INNER,
     ),
     "required": ["type", "id", "url", "layout"],
