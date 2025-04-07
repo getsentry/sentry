@@ -54,9 +54,9 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
             error_messages = {
                 "version": 'The version field cannot be empty and cannot contain any "/" characters.',
                 "dist": "The dist field must be a string.",
-                "projects": "The projects field must be provided as an array of strings.",
-                "checksum": "The checksum field must be a 40-character hexadecimal string.",
-                "chunks": "The chunks field must be provided as an array of 40-character hexadecimal strings.",
+                "projects": "The projects field is required and must be provided as an array of strings.",
+                "checksum": "The checksum field is required and must be a 40-character hexadecimal string.",
+                "chunks": "The chunks field is required and must be provided as an array of 40-character hexadecimal strings.",
             }
 
             try:
