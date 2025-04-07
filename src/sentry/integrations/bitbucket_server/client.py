@@ -6,7 +6,7 @@ from requests import PreparedRequest
 from requests_oauthlib import OAuth1
 
 from sentry.identity.services.identity.model import RpcIdentity
-from sentry.integrations.base import IntegrationFeatureNotImplementedError
+from sentry.integrations.bitbucket_server.utils import BitbucketServerAPIPath
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -15,20 +15,6 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
-
-
-class BitbucketServerAPIPath:
-    """
-    project is the short key of the project
-    repo is the fully qualified slug
-    """
-
-    repository = "/rest/api/1.0/projects/{project}/repos/{repo}"
-    repositories = "/rest/api/1.0/repos"
-    repository_hook = "/rest/api/1.0/projects/{project}/repos/{repo}/webhooks/{id}"
-    repository_hooks = "/rest/api/1.0/projects/{project}/repos/{repo}/webhooks"
-    repository_commits = "/rest/api/1.0/projects/{project}/repos/{repo}/commits"
-    commit_changes = "/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}/changes"
 
 
 class BitbucketServerSetupClient(ApiClient):
@@ -256,9 +242,25 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
         return values
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
-        raise IntegrationFeatureNotImplementedError
+        return self.head_cached(
+            path=BitbucketServerAPIPath.build_source(
+                project=repo.config["project"],
+                repo=repo.config["repo"],
+                path=path,
+                sha=version,
+            ),
+        )
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
     ) -> str:
-        raise IntegrationFeatureNotImplementedError
+        response = self.get_cached(
+            path=BitbucketServerAPIPath.build_raw(
+                project=repo.config["project"],
+                repo=repo.config["repo"],
+                path=path,
+                sha=ref,
+            ),
+            raw_response=True,
+        )
+        return response.text
