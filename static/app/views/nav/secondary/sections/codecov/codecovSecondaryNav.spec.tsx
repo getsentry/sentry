@@ -38,7 +38,7 @@ describe('CodecovSecondaryNav', () => {
         enableRouterMocks: false,
         initialRouterConfig: {
           location: {
-            pathname: '/organizations/org-slug/codecov/coverage/',
+            pathname: '/organizations/org-slug/codecov/coverage/commits/',
           },
         },
       }
@@ -48,7 +48,7 @@ describe('CodecovSecondaryNav', () => {
     expect(coverageLink).toBeInTheDocument();
     expect(coverageLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/codecov/coverage/'
+      '/organizations/org-slug/codecov/coverage/commits/'
     );
   });
 
