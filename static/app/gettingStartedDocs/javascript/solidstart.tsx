@@ -515,7 +515,7 @@ const crashReportOnboarding: OnboardingConfig = {
 const profilingOnboarding = getJavascriptProfilingOnboarding({
   getInstallConfig,
   docsLink:
-    'https://docs.sentry.io/platforms/javascript/guides/solid/profiling/browser-profiling/',
+    'https://docs.sentry.io/platforms/javascript/guides/solidstart/profiling/browser-profiling/',
 });
 
 const docs: Docs = {
