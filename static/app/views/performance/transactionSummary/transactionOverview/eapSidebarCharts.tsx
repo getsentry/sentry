@@ -1,11 +1,18 @@
 import styled from '@emotion/styled';
 
+import {t} from 'sentry/locale';
 // import {SectionHeading} from 'sentry/components/charts/styles';
 import {space} from 'sentry/styles/space';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
-import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {
+  getTermHelp,
+  PERFORMANCE_TERMS,
+  PerformanceTerm,
+} from 'sentry/views/performance/data';
 
 type Props = {
   transactionName: string;
@@ -14,30 +21,11 @@ type Props = {
 const REFERRER = 'eap-sidebar-charts';
 
 export function EAPSidebarCharts({transactionName}: Props) {
-  const {
-    data: failureRateData,
-    isPending: isFailureRatePending,
-    isError: isFailureRateError,
-  } = useSpanIndexedSeries(
-    {
-      search: new MutableSearch(`transaction:${transactionName}`),
-      yAxis: ['failure_rate()'],
-    },
-    REFERRER,
-    DiscoverDatasets.SPANS_EAP
+  return (
+    <ChartContainer>
+      <FailureRateWidget transactionName={transactionName} />
+    </ChartContainer>
   );
-
-  if (isFailureRatePending || isFailureRateError) {
-    return (
-      <ChartContainer>
-        <TimeSeriesWidgetVisualization.LoadingPlaceholder />
-      </ChartContainer>
-    );
-  }
-
-  console.dir(failureRateData);
-
-  return <ChartContainer>EAPSidebarCharts</ChartContainer>;
 }
 
 const ChartContainer = styled('div')`
@@ -46,20 +34,41 @@ const ChartContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-// const RelativeBox = styled('div')`
-//   position: relative;
-// `;
+function FailureRateWidget({transactionName}: Props) {
+  const organization = useOrganization();
 
-// const ChartTitle = styled(SectionHeading)`
-//   margin: 0;
-// `;
+  const {
+    data: failureRateData,
+    isPending: isFailureRatePending,
+    isError: isFailureRateError,
+  } = useEAPSeries(
+    {
+      search: new MutableSearch(`transaction:${transactionName}`),
+      yAxis: ['failure_rate()'],
+    },
+    REFERRER
+  );
 
-// const ChartLabel = styled('div')<{top: string}>`
-//   position: absolute;
-//   top: ${p => p.top};
-//   z-index: 1;
-// `;
+  if (isFailureRatePending || isFailureRateError) {
+    return (
+      <Widget
+        Title={t('Failure Rate')}
+        Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
+      />
+    );
+  }
 
-// const ChartValue = styled('div')`
-//   font-size: ${p => p.theme.fontSizeExtraLarge};
-// `;
+  return (
+    <Widget
+      Title={t('Failure Rate')}
+      Actions={
+        <Widget.WidgetToolbar>
+          <Widget.WidgetDescription
+            title={t('Failure Rate')}
+            description={getTermHelp(organization, PerformanceTerm.FAILURE_RATE)}
+          />
+        </Widget.WidgetToolbar>
+      }
+    />
+  );
+}
