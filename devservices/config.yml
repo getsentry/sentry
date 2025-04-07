@@ -166,8 +166,8 @@ services:
   spotlight:
     image: ghcr.io/getsentry/spotlight:latest
     healthcheck:
-      interval: 5s
-      timeout: 5s
+      interval: 1s
+      timeout: 1s
       retries: 3
     restart: unless-stopped
     ports:
