@@ -48,9 +48,7 @@ def _update_project_configs(
             for org_id in (
                 Organization.objects.values_list("id", flat=True).all().iterator(chunk_size=50_000)
             ):
-                schedule_invalidate_project_config(
-                    trigger="invalidate-all", organization_id=org_id, countdown=0
-                )
+                schedule_invalidate_project_config(trigger="invalidate-all", organization_id=org_id)
                 bar.update(1)
     else:
         with click.progressbar(changed_project_ids) as ids:
