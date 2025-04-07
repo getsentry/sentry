@@ -16,7 +16,6 @@ import {
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
-import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -114,6 +113,7 @@ export function ReleasesDrawerList({
       end: endTs ? new Date(endTs).toISOString() : null,
     },
   });
+
   const handleSelectRelease = useCallback(
     (nextSelectedRelease: string, projectId: string) => {
       navigate({

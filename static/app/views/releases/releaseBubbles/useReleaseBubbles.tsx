@@ -1,4 +1,4 @@
-import {type ReactElement, useMemo, useRef} from 'react';
+import {type ReactElement, useCallback, useMemo, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import type {
   CustomSeriesOption,
@@ -10,10 +10,12 @@ import type {
 } from 'echarts';
 import type {EChartsInstance} from 'echarts-for-react';
 import debounce from 'lodash/debounce';
+import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
+import useDrawer from 'sentry/components/globalDrawer';
 import type {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tn} from 'sentry/locale';
 import type {
@@ -27,17 +29,35 @@ import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat} from 'sentry/utils/dates';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
+import {ReleasesDrawerList} from 'sentry/views/releases/drawer/releasesDrawerList';
 import {
   BUBBLE_AREA_SERIES_ID,
   BUBBLE_SERIES_ID,
 } from 'sentry/views/releases/releaseBubbles/constants';
-import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
+import type {
+  Bucket,
+  ChartRendererProps,
+} from 'sentry/views/releases/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/releases/releaseBubbles/utils/createReleaseBuckets';
+
+interface ReleaseBubbleSeriesProps {
+  alignInMiddle: boolean;
+  bubblePadding: number;
+  bubbleSize: number;
+  buckets: Bucket[];
+  chartRef: React.RefObject<ReactEchartsRef | null>;
+  dateFormatOptions: {
+    timezone: string;
+  };
+  releases: ReleaseMetaBasic[];
+  theme: Theme;
+}
 
 interface LegendSelectChangedParams {
   name: string;
@@ -53,18 +73,19 @@ const trackLegend = debounce((params: LegendSelectChangedParams) => {
     selected: Boolean(params.selected.Releases),
   });
 });
+const RELEASES_DRAWER_FIELD_MAP = {
+  showReleasesDrawer: decodeScalar,
+  rdEnd: decodeScalar,
+  rdStart: decodeScalar,
+  rdEnv: decodeList,
+  rdProject: decodeList,
+  release: decodeScalar,
+  releaseProjectId: decodeScalar,
+};
+const RELEASES_DRAWER_FIELDS = Object.keys(RELEASES_DRAWER_FIELD_MAP);
 
-interface ReleaseBubbleSeriesProps {
-  alignInMiddle: boolean;
-  bubblePadding: number;
-  bubbleSize: number;
-  buckets: Bucket[];
-  chartRef: React.RefObject<ReactEchartsRef | null>;
-  dateFormatOptions: {
-    timezone: string;
-  };
-  releases: ReleaseMetaBasic[];
-  theme: Theme;
+function cleanLocationQuery(query: Record<string, string[] | string | null | undefined>) {
+  return omit(query, RELEASES_DRAWER_FIELDS);
 }
 
 /**
@@ -303,6 +324,7 @@ export function useReleaseBubbles({
   const location = useLocation();
   const theme = useTheme();
   const {options} = useUser();
+  const {openDrawer} = useDrawer();
   const {selection} = usePageFilters();
   // `maxTime` refers to the max time on x-axis for charts.
   // There may be the need to include releases that are > maxTime (e.g. in the
@@ -437,10 +459,35 @@ export function useReleaseBubbles({
         // drawer.
         closeModal();
 
+        openDrawer(
+          () => (
+            <ReleasesDrawerList
+              chartRenderer={chartRenderer}
+              environments={environments ?? selection.environments}
+              projects={projects ?? selection.projects}
+              startTs={data.start}
+              endTs={data.end}
+            />
+          ),
+          {
+            shouldCloseOnLocationChange: () => {
+              return false;
+            },
+            ariaLabel: t('Releases drawer'),
+            transitionProps: {stiffness: 1000},
+            onClose: () => {
+              navigate({
+                query: cleanLocationQuery(location.query),
+              });
+            },
+          }
+        );
+
         navigate({
           query: {
             ...location.query,
             showReleasesDrawer: 1,
+            rdChart: 1,
             rdStart: data.start,
             rdEnd: data.end,
             rdProject: projects ?? selection.projects,
@@ -569,6 +616,8 @@ export function useReleaseBubbles({
       };
     },
     [
+      chartRenderer,
+      openDrawer,
       location.query,
       navigate,
       alignInMiddle,
@@ -598,9 +647,9 @@ export function useReleaseBubbles({
   return {
     connectReleaseBubbleChartRef: handleChartRef,
 
-    //
-    // Series to append to a chart's existing `series`
-    //
+    /**
+     * Series to append to a chart's existing `series`
+     */
     releaseBubbleSeries: ReleaseBubbleSeries({
       alignInMiddle,
       buckets,
