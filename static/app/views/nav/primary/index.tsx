@@ -15,6 +15,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
+import {CODECOV_BASE_URL, COVERAGE_BASE_URL} from 'sentry/views/codecov/settings';
 import {useNavContext} from 'sentry/views/nav/context';
 import {SeparatorItem, SidebarLink} from 'sentry/views/nav/primary/components';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
@@ -127,8 +128,8 @@ export function PrimaryNavigationItems() {
 
         <Feature features={['codecov-ui']}>
           <SidebarLink
-            to={`/${prefix}/codecov/coverage/`}
-            activeTo={`/${prefix}/codecov/`}
+            to={`/${prefix}/${CODECOV_BASE_URL}/${COVERAGE_BASE_URL}/commits/`}
+            activeTo={`/${prefix}/${CODECOV_BASE_URL}/`}
             analyticsKey="codecov"
             label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.CODECOV].label}
           >
