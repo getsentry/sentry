@@ -14,7 +14,7 @@ export interface ChartRendererProps {
   /**
    * The list of releases in the current release group to render
    */
-  releases: ReleaseMetaBasic[];
+  releases: ReleaseMetaBasic[] | undefined;
   /**
    * The starting Date object of the release group to render
    */
