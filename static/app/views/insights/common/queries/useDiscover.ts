@@ -38,8 +38,7 @@ export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
-  const location = useLocation();
-  const useEap = location.query?.useEap === '1';
+  const useEap = useInsightsEap();
   // Indexed spans dataset always returns an `id`
   return useDiscover<Fields | [SpanIndexedField.ID], SpanIndexedResponse>(
     options,

@@ -78,12 +78,17 @@ export function ExploreContent() {
                   </Button>
                 </Feature>
                 {!prefersStackedNav && (
-                  <LinkButton
-                    to={`/organizations/${organization.slug}/explore/saved-queries/`}
-                    size="sm"
+                  <Feature
+                    organization={organization}
+                    features="performance-saved-queries"
                   >
-                    {t('Saved Queries')}
-                  </LinkButton>
+                    <LinkButton
+                      to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                      size="sm"
+                    >
+                      {t('Saved Queries')}
+                    </LinkButton>
+                  </Feature>
                 )}
                 <FeedbackWidgetButton />
               </ButtonBar>
