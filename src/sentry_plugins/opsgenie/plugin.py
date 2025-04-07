@@ -87,6 +87,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
                 "Logger": group.logger,
                 "Level": group.get_level_display(),
                 "URL": group.get_absolute_url(),
+                # TODO(ecosystem): We need to eventually change the key on this
                 "Triggering Rules": json.dumps(triggering_rules),
             },
             "entity": group.culprit,
