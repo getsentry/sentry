@@ -15,8 +15,9 @@ export enum OurLogKnownFieldKey {
   TRACE_ID = 'trace',
   // From the EAP dataset directly not using a column alias.
   ID = 'sentry.item_id',
-  // Also aliased to 'message'
-  BODY = 'log.body',
+  // Also aliased to 'body'
+  MESSAGE = 'message',
+  BODY = 'log.body', // Used to hide the body column in attribute tree.
   SEVERITY_NUMBER = 'log.severity_number',
   SEVERITY_TEXT = 'log.severity_text',
   ORGANIZATION_ID = 'organization.id',
@@ -32,7 +33,7 @@ export enum OurLogKnownFieldKey {
 export type OurLogFieldKey = OurLogCustomFieldKey | OurLogKnownFieldKey;
 
 export type OurLogsKnownFieldResponseMap = {
-  [OurLogKnownFieldKey.BODY]: string;
+  [OurLogKnownFieldKey.MESSAGE]: string;
   [OurLogKnownFieldKey.SEVERITY_NUMBER]: number;
   [OurLogKnownFieldKey.SEVERITY_TEXT]: string;
   [OurLogKnownFieldKey.ORGANIZATION_ID]: number;

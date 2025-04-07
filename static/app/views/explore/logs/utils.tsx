@@ -134,7 +134,7 @@ export function logsFieldAlignment(...args: Parameters<typeof fieldAlignment>) {
 }
 
 function removePrefixes(key: string) {
-  return key.replace('log.', '').replace('sentry.', '');
+  return key.replace('sentry.', '');
 }
 
 export function prettifyAttributeName(name: string) {
