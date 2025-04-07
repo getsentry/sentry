@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
@@ -239,8 +240,8 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         ) : (
           <Fragment>
             <SeerNotices
+              groupId={group.id}
               hasGithubIntegration={aiConfig.hasGithubIntegration}
-              autofixRepositories={autofixData?.repositories ?? []}
             />
             {aiConfig.hasSummary && (
               <StyledCard>
@@ -282,6 +283,11 @@ export const useOpenSeerDrawer = (
 
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
+      drawerKey: 'seer-autofix-drawer',
+      drawerCss: css`
+        height: fit-content;
+        max-height: 100%;
+      `,
       shouldCloseOnInteractOutside: element => {
         const viewAllButton = buttonRef?.current;
 

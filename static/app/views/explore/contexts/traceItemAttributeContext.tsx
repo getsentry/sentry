@@ -94,9 +94,9 @@ export function TraceItemAttributeProvider({
   ]);
 
   return (
-    <TraceItemAttributeContext.Provider value={attributesResult}>
+    <TraceItemAttributeContext value={attributesResult}>
       {children}
-    </TraceItemAttributeContext.Provider>
+    </TraceItemAttributeContext>
   );
 }
 

@@ -5,7 +5,6 @@ import sentry_sdk
 from django.apps import apps
 from django.conf import settings
 
-from sentry.db import models
 from sentry.tasks.base import instrumented_task
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.lock import Lock
@@ -57,7 +56,6 @@ def process_pending_batch() -> None:
 
 @instrumented_task(name="sentry.tasks.process_buffer.process_incr", queue="counters-0")
 def process_incr(
-    model: type[models.Model] | None = None,
     columns: dict[str, int] | None = None,
     filters: dict[str, Any] | None = None,
     extra: dict[str, Any] | None = None,
@@ -70,20 +68,7 @@ def process_incr(
     """
     from sentry import buffer
 
-    if model:
-        # Using model parameter in the celery task is deprecated
-        # as we're trying to eliminate parameters that require pickle
-        logger.info(
-            "process_incr.model_kwarg",
-            extra={
-                "model": model,
-                "columns": columns,
-                "filters": filters,
-                "extra": extra,
-                "signal_only": signal_only,
-            },
-        )
-
+    model = None
     if model_name:
         assert "." in model_name, "model_name must be in form `sentry.Group`"
         model = apps.get_model(model_name)
@@ -117,7 +102,7 @@ def buffer_incr(model, *args, **kwargs):
     name="sentry.tasks.process_buffer.buffer_incr_task",
     queue="buffers.incr",
 )
-def buffer_incr_task(app_label, model_name, args, kwargs):
+def buffer_incr_task(app_label: str, model_name: str, args: Any, kwargs: Any):
     """
     Call `buffer.incr`, resolving the model first.
 

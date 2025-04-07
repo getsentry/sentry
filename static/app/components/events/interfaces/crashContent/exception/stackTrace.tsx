@@ -18,6 +18,7 @@ type Props = {
   chainedException: boolean;
   data: ExceptionValue['stacktrace'];
   event: Event;
+  newestFirst: boolean;
   platform: PlatformKey;
   stackType: StackType;
   stacktrace: ExceptionValue['stacktrace'];
@@ -25,7 +26,6 @@ type Props = {
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: Record<any, any>;
-  newestFirst?: boolean;
   stackView?: StackView;
   threadId?: number;
 };

@@ -59,7 +59,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorStatus,
-    MonitorType,
 )
 from sentry.services.organization import organization_provisioning_service
 from sentry.signals import mocks_loaded
@@ -432,7 +431,6 @@ def create_monitor(project: Project, environment: Environment) -> None:
         name=next(MONITOR_NAMES),
         project_id=project.id,
         organization_id=project.organization_id,
-        type=MonitorType.CRON_JOB,
         defaults={
             "status": ObjectStatus.DISABLED,
             "config": {"schedule": next(MONITOR_SCHEDULES)},
@@ -938,7 +936,6 @@ def create_mock_transactions(
             }
 
             def make_repeating_span(duration):
-                nonlocal timestamp
                 nonlocal n_plus_one_db_current_offset
                 nonlocal n_plus_one_db_duration
                 n_plus_one_db_duration += timedelta(milliseconds=duration) + timedelta(
@@ -1185,8 +1182,6 @@ def create_mock_transactions(
             duration = 200
 
             def make_repeating_span(i):
-                nonlocal timestamp
-                nonlocal duration
                 start_timestamp = timestamp + timedelta(milliseconds=i * (duration + 1))
                 end_timestamp = start_timestamp + timedelta(milliseconds=duration)
                 op = "http" if i % 2 == 0 else "db"

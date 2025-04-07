@@ -13,6 +13,7 @@ import * as rtl from '@testing-library/react'; // eslint-disable-line no-restric
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
@@ -20,13 +21,13 @@ import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {
   DANGEROUS_SET_REACT_ROUTER_6_HISTORY,
   DANGEROUS_SET_TEST_HISTORY,
 } from 'sentry/utils/browserHistory';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {TestRouteContext} from 'sentry/views/routeContext';
 
@@ -41,7 +42,7 @@ interface ProviderOptions {
    *
    * When enabling this passing a `router` object *will do nothing*!
    */
-  disableRouterMocks?: boolean;
+  enableRouterMocks?: boolean;
   /**
    * Sets the history for the router.
    */
@@ -57,9 +58,9 @@ interface ProviderOptions {
 }
 
 interface BaseRenderOptions<T extends boolean = boolean>
-  extends Omit<ProviderOptions, 'history' | 'disableRouterMocks'>,
+  extends Omit<ProviderOptions, 'history' | 'enableRouterMocks' | 'router'>,
     rtl.RenderOptions {
-  disableRouterMocks?: T;
+  enableRouterMocks?: T;
 }
 
 type LocationConfig =
@@ -92,11 +93,11 @@ type RouterConfig = {
   routes?: string[];
 };
 
-type RenderOptions<T extends boolean = false> = T extends true
-  ? BaseRenderOptions<T> & {initialRouterConfig?: RouterConfig}
-  : BaseRenderOptions<T>;
+type RenderOptions<T extends boolean = true> = T extends true
+  ? BaseRenderOptions<T> & {router?: Partial<InjectedRouter>}
+  : BaseRenderOptions<T> & {initialRouterConfig?: RouterConfig};
 
-type RenderReturn<T extends boolean = boolean> = T extends true
+type RenderReturn<T extends boolean = true> = T extends false
   ? rtl.RenderResult & {router: TestRouter}
   : rtl.RenderResult;
 
@@ -137,6 +138,7 @@ function patchBrowserHistoryMocksEnabled(history: MemoryHistory, router: Injecte
 }
 
 function makeAllTheProviders(options: ProviderOptions) {
+  const enableRouterMocks = options.enableRouterMocks ?? true;
   const {organization, router} = initializeOrg({
     organization: options.organization === null ? undefined : options.organization,
     router: options.router,
@@ -147,15 +149,13 @@ function makeAllTheProviders(options: ProviderOptions) {
 
   return function ({children}: {children?: React.ReactNode}) {
     const content = (
-      <OrganizationContext.Provider value={optionalOrganization}>
+      <OrganizationContext value={optionalOrganization}>
         <GlobalDrawer>{children}</GlobalDrawer>
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     );
 
-    const wrappedContent = options.disableRouterMocks ? (
-      content
-    ) : (
-      <TestRouteContext.Provider
+    const wrappedContent = enableRouterMocks ? (
+      <TestRouteContext
         value={{
           router,
           location: router.location,
@@ -165,16 +165,18 @@ function makeAllTheProviders(options: ProviderOptions) {
       >
         {/* ProvideAriaRouter may not be necessary in tests but matches routes.tsx */}
         <ProvideAriaRouter>{content}</ProvideAriaRouter>
-      </TestRouteContext.Provider>
+      </TestRouteContext>
+    ) : (
+      content
     );
 
-    if (!options.disableRouterMocks) {
+    if (enableRouterMocks) {
       patchBrowserHistoryMocksEnabled(options.history ?? createMemoryHistory(), router);
     }
 
     return (
       <CacheProvider value={{...cache, compat: true}}>
-        <ThemeProvider theme={lightTheme}>
+        <ThemeProvider theme={ThemeFixture()}>
           <QueryClientProvider client={makeTestQueryClient()}>
             {wrappedContent}
           </QueryClientProvider>
@@ -229,7 +231,10 @@ function makeRouter({
   const routes = createRoutesFromConfig(children, config);
 
   const router = createRouter({
-    future: {v7_prependBasename: true},
+    future: {
+      v7_prependBasename: true,
+      v7_relativeSplatPath: true,
+    },
     history,
     routes,
   }).initialize();
@@ -285,6 +290,33 @@ function parseLocationConfig(location: LocationConfig | undefined): InitialEntry
   return location.pathname;
 }
 
+function getInitialRouterConfig<T extends boolean = true>(
+  options: RenderOptions<T>
+): {
+  config: RouterConfig | undefined;
+  initialEntry: InitialEntry;
+  legacyRouterConfig?: Partial<InjectedRouter>;
+} {
+  if (options.enableRouterMocks === true || !defined(options.enableRouterMocks)) {
+    // Need to assert here because we want `enableRouterMocks` to default to true
+    const routerOptions = options as RenderOptions<true>;
+
+    return {
+      initialEntry:
+        routerOptions.router?.location?.pathname ?? LocationFixture().pathname,
+      legacyRouterConfig: routerOptions.router,
+      config: undefined,
+    };
+  }
+
+  const opts = options as RenderOptions<false>;
+  return {
+    initialEntry: parseLocationConfig(opts.initialRouterConfig?.location),
+    legacyRouterConfig: undefined,
+    config: opts.initialRouterConfig,
+  };
+}
+
 /**
  * Try avoiding unnecessary context and just mount your component. If it works,
  * then you dont need anything else.
@@ -299,14 +331,13 @@ function parseLocationConfig(location: LocationConfig | undefined): InitialEntry
  * navigate to a route. To set the initial location with mocks disabled,
  * pass an `initialRouterConfig`.
  */
-function render<T extends boolean = false>(
+function render<T extends boolean = true>(
   ui: React.ReactElement,
   options: RenderOptions<T> = {} as RenderOptions<T>
 ): RenderReturn<T> {
-  const initialEntry =
-    (options.disableRouterMocks
-      ? parseLocationConfig(options.initialRouterConfig?.location)
-      : options.router?.location?.pathname) ?? LocationFixture().pathname;
+  const {initialEntry, config, legacyRouterConfig} = getInitialRouterConfig(options);
+
+  const enableRouterMocks = options.enableRouterMocks ?? true;
 
   const history = createMemoryHistory({
     initialEntries: [initialEntry],
@@ -314,31 +345,38 @@ function render<T extends boolean = false>(
 
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
-    router: options.router,
-    disableRouterMocks: options.disableRouterMocks,
+    router: legacyRouterConfig,
+    enableRouterMocks,
     history,
   });
 
   const memoryRouter = makeRouter({
     children: <AllTheProviders>{ui}</AllTheProviders>,
     history,
-    config: options.disableRouterMocks ? options.initialRouterConfig : undefined,
+    config,
   });
 
-  if (options.disableRouterMocks) {
+  if (!enableRouterMocks) {
     DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
   }
 
-  const renderResult = rtl.render(<RouterProvider router={memoryRouter} />, options);
+  const renderResult = rtl.render(
+    <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />,
+    options
+  );
 
   const rerender = (newUi: React.ReactElement) => {
     const newRouter = makeRouter({
       children: <AllTheProviders>{newUi}</AllTheProviders>,
       history,
-      config: options.disableRouterMocks ? options.initialRouterConfig : undefined,
+      config,
     });
 
-    renderResult.rerender(<RouterProvider router={newRouter} />);
+    renderResult.rerender(
+      <RouterProvider router={newRouter} future={{v7_startTransition: true}} />
+    );
+    // Force the router to update children
+    rtl.act(() => newRouter.revalidate());
   };
 
   const testRouter = new TestRouter(memoryRouter);
@@ -346,7 +384,7 @@ function render<T extends boolean = false>(
   return {
     ...renderResult,
     rerender,
-    ...(options.disableRouterMocks ? {router: testRouter} : {}),
+    ...(enableRouterMocks ? {} : {router: testRouter}),
   } as RenderReturn<T>;
 }
 
@@ -357,7 +395,7 @@ function render<T extends boolean = false>(
  */
 const fireEvent = rtl.fireEvent;
 
-function renderGlobalModal(options?: BaseRenderOptions) {
+function renderGlobalModal<T extends boolean = true>(options?: RenderOptions<T>) {
   const result = render(<GlobalModal />, options);
 
   /**

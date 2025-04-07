@@ -7,17 +7,12 @@ import PanelProvider from 'sentry/utils/panelProvider';
 interface PanelProps extends React.HTMLAttributes<HTMLDivElement> {
   dashedBorder?: boolean;
   'data-test-id'?: string;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
 const Panel = styled(
-  ({
-    ref: forwardedRef,
-    children,
-    ...props
-  }: PanelProps & {
-    ref?: React.Ref<HTMLDivElement>;
-  }) => (
-    <div ref={forwardedRef} {...props}>
+  ({children, ...props}: PanelProps) => (
+    <div {...props}>
       <PanelProvider>{children}</PanelProvider>
     </div>
   ),

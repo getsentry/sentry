@@ -189,11 +189,13 @@ class AuthLoginView(BaseView):
         context = self.get_default_context(request=request)
 
         register_form = self.initialize_register_form(request=request)
+        login_form = AuthenticationForm(request=request)
         context.update(
             {
                 "op": "register",
                 "CAN_REGISTER": True,
                 "register_form": register_form,
+                "login_form": login_form,
             }
         )
         return self.respond_login(request=request, context=context, **kwargs)
@@ -366,7 +368,7 @@ class AuthLoginView(BaseView):
         """
         Accepts an invite on behalf of a user and redirects them to their org login
         """
-        invite_helper.accept_invite()
+        invite_helper.accept_invite(request.user)
         org_slug = invite_helper.invite_context.organization.slug
         self.active_organization = determine_active_organization(
             request=request, organization_slug=org_slug
@@ -638,7 +640,7 @@ class AuthLoginView(BaseView):
                 )
 
             if invite_helper and invite_helper.valid_request:
-                invite_helper.accept_invite()
+                invite_helper.accept_invite(user)
                 organization_slug = invite_helper.invite_context.organization.slug
                 self.active_organization = determine_active_organization(request, organization_slug)
                 response = self.redirect_to_org(request)

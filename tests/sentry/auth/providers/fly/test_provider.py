@@ -11,13 +11,13 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class FlyOAuth2ProviderTest(TestCase):
     def setUp(self):
-        self.auth_provider: AuthProvider = AuthProvider.objects.create(
+        self.auth_provider = AuthProvider.objects.create(
             provider=ChannelName.FLY_IO.value, organization_id=self.organization.id
         )
         super().setUp()
 
     def test_refresh_identity_without_refresh_token(self):
-        auth_identity: AuthIdentity = AuthIdentity.objects.create(
+        auth_identity = AuthIdentity.objects.create(
             auth_provider=self.auth_provider, user=self.user, data={"access_token": "access_token"}
         )
 
@@ -81,6 +81,6 @@ class FlyOAuth2ProviderTest(TestCase):
 @control_silo_test
 class NonPartnerFlyOAuth2ProviderTest(FlyOAuth2ProviderTest):
     def setUp(self):
-        self.auth_provider: AuthProvider = AuthProvider.objects.create(
+        self.auth_provider = AuthProvider.objects.create(
             provider=ChannelName.FLY_NON_PARTNER.value, organization_id=self.organization.id
         )

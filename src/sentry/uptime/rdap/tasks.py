@@ -2,6 +2,9 @@ import logging
 from urllib.parse import urlparse
 
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import uptime_tasks
+from sentry.taskworker.retry import Retry
 from sentry.uptime.models import UptimeSubscription
 from sentry.uptime.rdap.query import resolve_rdap_network_details
 
@@ -13,6 +16,13 @@ logger = logging.getLogger(__name__)
     queue="uptime",
     autoretry_for=(Exception,),
     max_retries=5,
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+        retry=Retry(
+            times=5,
+            on=(Exception,),
+        ),
+    ),
 )
 def fetch_subscription_rdap_info(subscription_id: int):
     """

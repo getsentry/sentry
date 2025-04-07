@@ -173,7 +173,7 @@ function IssueViewsIssueListHeaderTabsContent({
       statsPeriod,
       utc,
     } = router.location.query;
-    const {queryEnvs, queryProjects} = normalizeProjectsEnvironments(project, env);
+    const {queryProjects, queryEnvs} = normalizeProjectsEnvironments(project, env);
     const queryTimeFilters =
       start || end || statsPeriod || utc
         ? {
@@ -251,12 +251,12 @@ function IssueViewsIssueListHeaderTabsContent({
         const newUnsavedChanges: Partial<IssueViewParams> = {
           query: query === originalQuery ? undefined : query,
           querySort: sort === originalSort ? undefined : issueSortOption,
-          projects: isEqual(queryProjects?.sort(), originalProjects.sort())
+          projects: isEqual((queryProjects ?? []).sort(), originalProjects.sort())
             ? undefined
-            : queryProjects,
-          environments: isEqual(queryEnvs?.sort(), originalEnvironments.sort())
+            : (queryProjects ?? []),
+          environments: isEqual((queryEnvs ?? []).sort(), originalEnvironments.sort())
             ? undefined
-            : queryEnvs,
+            : (queryEnvs ?? []),
           timeFilters:
             queryTimeFilters &&
             isEqual(

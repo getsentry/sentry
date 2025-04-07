@@ -1,17 +1,17 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
-import {
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-} from 'sentry/components/nav/primary/components';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {
+  SidebarButton,
+  SidebarItemUnreadIndicator,
+} from 'sentry/views/nav/primary/components';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import TrialStartedSidebarItem from 'getsentry/components/trialStartedSidebarItem';
@@ -21,7 +21,7 @@ import {hasPerformance, isBizPlanFamily} from 'getsentry/utils/billing';
 
 const AUTO_OPEN_HASH = '#try-business';
 
-type Props = Parameters<Hooks['sidebar:bottom-items']>[0] & {
+type Props = Parameters<Hooks['sidebar:try-business']>[0] & {
   organization: Organization;
   subscription: Subscription;
 };

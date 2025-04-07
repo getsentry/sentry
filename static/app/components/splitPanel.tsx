@@ -152,7 +152,7 @@ function SplitPanel(props: SplitPanelProps) {
     const {left: a, right: b} = props;
 
     return (
-      <SplitPanelContext.Provider value={contextValue}>
+      <SplitPanelContext value={contextValue}>
         <SplitPanelContainer
           className={isHeld ? 'disable-iframe-pointer' : undefined}
           orientation="columns"
@@ -167,13 +167,13 @@ function SplitPanel(props: SplitPanelProps) {
           />
           <Panel>{b}</Panel>
         </SplitPanelContainer>
-      </SplitPanelContext.Provider>
+      </SplitPanelContext>
     );
   }
 
   const {top: a, bottom: b} = props;
   return (
-    <SplitPanelContext.Provider value={contextValue}>
+    <SplitPanelContext value={contextValue}>
       <SplitPanelContainer
         orientation="rows"
         size={sizePct}
@@ -188,7 +188,7 @@ function SplitPanel(props: SplitPanelProps) {
         />
         <Panel>{b}</Panel>
       </SplitPanelContainer>
-    </SplitPanelContext.Provider>
+    </SplitPanelContext>
   );
 }
 

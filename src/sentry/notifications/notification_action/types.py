@@ -2,16 +2,18 @@ import logging
 import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection, Sequence
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
     NotificationContext,
+    OpenPeriodContext,
 )
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.organization import Organization
@@ -19,7 +21,7 @@ from sentry.models.rule import Rule, RuleSource
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.types.rules import RuleFuture
 from sentry.utils.safe import safe_execute
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
@@ -29,6 +31,11 @@ from sentry.workflow_engine.typings.notification_action import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class RuleData(TypedDict):
+    actions: list[dict[str, Any]]
+    legacy_rule_id: NotRequired[int]
 
 
 class LegacyRegistryHandler(ABC):
@@ -120,18 +127,36 @@ class BaseIssueAlertHandler(ABC):
         """
         environment_id = job.workflow_env.id if job.workflow_env else None
 
-        # TODO(iamrajjoshi): Remove the project null check once https://github.com/getsentry/sentry/pull/85240/files is merged
-        if detector.project is None:
-            raise ValueError(f"No project found for action type: {action.type}")
+        data: RuleData = {
+            "actions": [cls.build_rule_action_blob(action, detector.project.organization.id)],
+        }
+
+        # We need to pass the legacy rule id when the workflow-engine-ui-links feature flag is disabled
+        # This is so we can build the old link to the rule
+        if not features.has(
+            "organizations:workflow-engine-ui-links", detector.project.organization
+        ):
+            if job.workflow_id is None:
+                raise ValueError("Workflow ID is required when triggering an action")
+
+            alert_rule_workflow = AlertRuleWorkflow.objects.get(
+                workflow_id=job.workflow_id,
+            )
+
+            if alert_rule_workflow.rule_id is None:
+                raise ValueError("Rule not found when querying for AlertRuleWorkflow")
+
+            data["actions"][0]["legacy_rule_id"] = alert_rule_workflow.rule_id
+        # In the new UI, we need this for to build the link to the new rule in the notification action
+        else:
+            data["actions"][0]["workflow_id"] = job.workflow_id
 
         rule = Rule(
             id=action.id,
             project=detector.project,
             environment_id=environment_id,
             label=detector.name,
-            data={
-                "actions": [cls.build_rule_action_blob(action, detector.project.organization.id)]
-            },
+            data=dict(data),
             status=ObjectStatus.ACTIVE,
             source=RuleSource.ISSUE,
         )
@@ -243,11 +268,16 @@ class BaseMetricAlertHandler(ABC):
         return MetricIssueContext.from_group_event(event)
 
     @classmethod
+    def build_open_period_context(cls, event: GroupEvent) -> OpenPeriodContext:
+        return OpenPeriodContext.from_group(event.group)
+
+    @classmethod
     def send_alert(
         cls,
         notification_context: NotificationContext,
         alert_context: AlertContext,
         metric_issue_context: MetricIssueContext,
+        open_period_context: OpenPeriodContext,
         organization: Organization,
         notification_uuid: str,
     ) -> None:
@@ -270,13 +300,14 @@ class BaseMetricAlertHandler(ABC):
             notification_context = cls.build_notification_context(action)
             alert_context = cls.build_alert_context(detector, event.occurrence)
             metric_issue_context = cls.build_metric_issue_context(event)
-
+            open_period_context = cls.build_open_period_context(event)
             notification_uuid = str(uuid.uuid4())
 
             cls.send_alert(
                 notification_context=notification_context,
                 alert_context=alert_context,
                 metric_issue_context=metric_issue_context,
+                open_period_context=open_period_context,
                 organization=detector.project.organization,
                 notification_uuid=notification_uuid,
             )

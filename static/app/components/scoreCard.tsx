@@ -11,6 +11,7 @@ export type ScoreCardProps = {
   title: React.ReactNode;
   className?: string;
   help?: React.ReactNode;
+  isEstimate?: boolean;
   isTooltipHoverable?: boolean;
   renderOpenButton?: () => React.ReactNode;
   score?: React.ReactNode;
@@ -27,7 +28,11 @@ function ScoreCard({
   className,
   renderOpenButton,
   isTooltipHoverable,
+  isEstimate,
 }: ScoreCardProps) {
+  const value = score ?? '\u2014';
+  const displayScore = isEstimate && value !== '0' ? `~${value}` : value;
+
   return (
     <ScorePanel className={className}>
       <HeaderWrapper>
@@ -46,7 +51,8 @@ function ScoreCard({
       </HeaderWrapper>
 
       <ScoreWrapper>
-        <Score>{score ?? '\u2014'}</Score>
+        <Score>{displayScore}</Score>
+        {isEstimate && <Asterisk>*</Asterisk>}
         {defined(trend) && (
           <Trend trendStatus={trendStatus}>
             <TextOverflow>{trend}</TextOverflow>
@@ -120,6 +126,17 @@ export const Trend = styled('div')<TrendProps>`
   margin-left: ${space(1)};
   line-height: 1;
   overflow: hidden;
+`;
+
+const Asterisk = styled('div')`
+  color: grey;
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  display: inline-block;
+  width: 10pt;
+  height: 10pt;
+  position: relative;
+  top: -10pt;
+  margin-left: ${space(0.25)};
 `;
 
 export default ScoreCard;

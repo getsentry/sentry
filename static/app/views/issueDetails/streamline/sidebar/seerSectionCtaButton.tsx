@@ -2,7 +2,6 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Chevron} from 'sentry/components/chevron';
 import {Button} from 'sentry/components/core/button';
 import {
   AutofixStatus,
@@ -12,6 +11,7 @@ import {
 import {useAiAutofix, useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -194,14 +194,18 @@ export function SeerSectionCtaButton({
       onClick={handleOpenDrawer}
       analyticsEventKey="issue_details.seer_opened"
       analyticsEventName="Issue Details: Seer Opened"
-      analyticsParams={{has_streamlined_ui: hasStreamlinedUI}}
+      analyticsParams={{
+        has_streamlined_ui: hasStreamlinedUI,
+        autofix_exists: Boolean(autofixData?.steps?.length),
+        autofix_step_type: lastStep?.type ?? null,
+      }}
     >
       {getButtonText()}
       <ChevronContainer>
         {isAutofixInProgress ? (
-          <StyledLoadingIndicator mini size={14} hideMessage />
+          <StyledLoadingIndicator mini size={14} />
         ) : (
-          <Chevron direction="right" size="large" />
+          <IconChevron direction="right" size="xs" />
         )}
       </ChevronContainer>
     </StyledButton>

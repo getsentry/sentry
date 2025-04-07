@@ -106,8 +106,6 @@ export function EventTagsDataSection({
   );
 }
 
-export default EventTagsDataSection;
-
 const StyledEventDataSection = styled(InterimSection)`
   padding: ${space(0.5)} ${space(2)} ${space(1)};
 

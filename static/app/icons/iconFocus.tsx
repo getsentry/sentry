@@ -8,10 +8,10 @@ interface Props extends SVGIconProps {
   isFocused?: boolean;
 }
 
-function IconFocus({ref, isFocused = true, ...props}: Props) {
+function IconFocus({isFocused = true, ...props}: Props) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <path d="m3.25,6.25v-2c0-.55.45-1,1-1h2" />

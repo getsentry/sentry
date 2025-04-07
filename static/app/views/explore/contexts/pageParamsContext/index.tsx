@@ -52,7 +52,7 @@ interface ReadablePageParams {
   title?: string;
 }
 
-interface WritablePageParams {
+export interface WritablePageParams {
   dataset?: DiscoverDatasets | null;
   fields?: string[] | null;
   groupBys?: string[] | null;
@@ -136,9 +136,7 @@ export function PageParamsProvider({children}: PageParamsProviderProps) {
     };
   }, [location, organization]);
 
-  return (
-    <PageParamsContext.Provider value={pageParams}>{children}</PageParamsContext.Provider>
-  );
+  return <PageParamsContext value={pageParams}>{children}</PageParamsContext>;
 }
 
 export function useExplorePageParams(): ReadablePageParams {
@@ -146,16 +144,13 @@ export function useExplorePageParams(): ReadablePageParams {
 }
 
 export function useExploreDataset(): DiscoverDatasets {
-  const organization = useOrganization();
   const pageParams = useExplorePageParams();
 
   if (defined(pageParams.dataset)) {
     return pageParams.dataset;
   }
 
-  return organization.features.includes('visibility-explore-rpc')
-    ? DiscoverDatasets.SPANS_EAP_RPC
-    : DiscoverDatasets.SPANS_EAP;
+  return DiscoverDatasets.SPANS_EAP_RPC;
 }
 
 export function useExploreFields(): string[] {

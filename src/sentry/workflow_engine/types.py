@@ -40,6 +40,7 @@ class WorkflowEventData:
     group_state: GroupState | None = None
     has_reappeared: bool | None = None
     has_escalated: bool | None = None
+    workflow_id: int | None = None
     workflow_env: Environment | None = None
 
 
@@ -55,7 +56,7 @@ class ActionHandler:
     group: ClassVar[Group]
 
     @staticmethod
-    def execute(job: WorkflowEventData, action: Action, detector: Detector) -> None:
+    def execute(event_data: WorkflowEventData, action: Action, detector: Detector) -> None:
         raise NotImplementedError
 
 
@@ -83,6 +84,7 @@ class DataConditionHandler(Generic[T]):
     group: ClassVar[Group]
     subgroup: ClassVar[Subgroup]
     comparison_json_schema: ClassVar[dict[str, Any]] = {}
+    condition_result_schema: ClassVar[dict[str, Any]] = {}
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:

@@ -6,6 +6,7 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   EAPSpanProperty,
   EAPSpanResponse,
@@ -37,10 +38,11 @@ export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
+  const useEap = useInsightsEap();
   // Indexed spans dataset always returns an `id`
   return useDiscover<Fields | [SpanIndexedField.ID], SpanIndexedResponse>(
     options,
-    DiscoverDatasets.SPANS_INDEXED,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_INDEXED,
     referrer
   );
 };
@@ -74,9 +76,10 @@ export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
+  const useEap = useInsightsEap();
   return useDiscover<Fields, SpanMetricsResponse>(
     options,
-    DiscoverDatasets.SPANS_METRICS,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
     referrer
   );
 };
@@ -85,9 +88,10 @@ export const useMetrics = <Fields extends MetricsProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
+  const useEap = useInsightsEap();
   return useDiscover<Fields, MetricsResponse>(
     options,
-    DiscoverDatasets.METRICS,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
     referrer
   );
 };

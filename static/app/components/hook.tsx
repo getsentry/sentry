@@ -1,9 +1,14 @@
-import {Component} from 'react';
+import {Component, type ComponentType} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName, Hooks} from 'sentry/types/hooks';
 
-type Props<H extends HookName> = {
+// Only allow hooks that return a React component
+type ComponentHookName = {
+  [K in HookName]: Hooks[K] extends ComponentType<any> ? K : never;
+}[HookName];
+
+type Props<H extends ComponentHookName> = {
   /**
    * The name of the hook as listed in hookstore.add(hookName, callback)
    */
@@ -33,12 +38,14 @@ type HookState<H extends HookName> = {
  *     ))}
  *   </Hook>
  */
-function Hook<H extends HookName>({name, ...props}: Props<H>) {
+function Hook<H extends ComponentHookName>({name, ...props}: Props<H>) {
   class HookComponent extends Component<Record<string, unknown>, HookState<H>> {
     static displayName = `Hook(${name})`;
 
     state = {
-      hooks: HookStore.get(name).map(cb => cb(props)),
+      hooks: HookStore.get(name).map((HookComp, index) => (
+        <HookComp key={index} {...props} />
+      )),
     };
 
     componentWillUnmount() {
@@ -51,7 +58,9 @@ function Hook<H extends HookName>({name, ...props}: Props<H>) {
         return;
       }
 
-      this.setState({hooks: hooks.map(cb => cb(props))});
+      this.setState({
+        hooks: hooks.map((HookComp, index) => <HookComp key={index} {...props} />),
+      });
     }
 
     unsubscribe = HookStore.listen(

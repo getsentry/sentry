@@ -7,6 +7,7 @@ import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import {getStylingSliceName} from '../../../traces/utils';
 import {
   isAutogroupedNode,
+  isEAPErrorNode,
   isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
@@ -26,11 +27,12 @@ export function makeTraceNodeBarColor(
   if (isTransactionNode(node)) {
     return pickBarColor(
       getStylingSliceName(node.value.project_slug, node.value.sdk_name) ??
-        node.value['transaction.op']
+        node.value['transaction.op'],
+      theme
     );
   }
   if (isSpanNode(node) || isEAPSpanNode(node)) {
-    return pickBarColor(node.value.op);
+    return pickBarColor(node.value.op, theme);
   }
   if (isAutogroupedNode(node)) {
     if (node.errors.size > 0) {
@@ -42,7 +44,7 @@ export function makeTraceNodeBarColor(
     return theme.gray300;
   }
 
-  if (isTraceErrorNode(node)) {
+  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
     // Theme defines this as orange, yet everywhere in our product we show red for errors
     if (node.value.level === 'error' || node.value.level === 'fatal') {
       return theme.red300;
@@ -52,7 +54,7 @@ export function makeTraceNodeBarColor(
     }
     return theme.red300;
   }
-  return pickBarColor('default');
+  return pickBarColor('default', theme);
 }
 
 interface InvisibleTraceBarProps {

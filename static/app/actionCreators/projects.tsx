@@ -10,7 +10,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
-import LatestContextStore from 'sentry/stores/latestContextStore';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Team} from 'sentry/types/organization';
@@ -22,7 +21,7 @@ import useApi from 'sentry/utils/useApi';
 type UpdateParams = {
   orgId: string;
   projectId: string;
-  data?: {[key: string]: any};
+  data?: Record<string, any>;
   query?: Query;
 };
 
@@ -87,7 +86,7 @@ const _queryForStats = (
 
 export const _debouncedLoadStats = debounce(
   (api: Client, projectSet: Set<string>, params: UpdateParams) => {
-    const storedProjects: {[key: string]: Project} = ProjectsStatsStore.getAll();
+    const storedProjects: Record<string, Project> = ProjectsStatsStore.getAll();
     const existingProjectStats = Object.values(storedProjects).map(({id}) => id);
     const projects = Array.from(projectSet).filter(
       project => !existingProjectStats.includes(project)
@@ -125,10 +124,6 @@ export function loadStatsForProject(api: Client, project: string, params: Update
   // and call a debounced function to fetch stats for list of projects
   _projectStatsToFetch.add(project);
   _debouncedLoadStats(api, _projectStatsToFetch, params);
-}
-
-export function setActiveProject(project: Project | null) {
-  LatestContextStore.onSetActiveProject(project);
 }
 
 export function transferProject(

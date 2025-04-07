@@ -24,6 +24,7 @@ interface DropdownBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
    * If true, the menu will be visually detached from actor.
    */
   detached?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * The width of the menu
    */
@@ -64,14 +65,8 @@ const getMenuBorderRadius = ({
 };
 
 const DropdownBubble = styled(
-  ({
-    ref: forwardedRef,
-    children,
-    ...props
-  }: DropdownBubbleProps & {
-    ref?: React.Ref<HTMLDivElement>;
-  }) => (
-    <div ref={forwardedRef} {...props}>
+  ({children, ...props}: DropdownBubbleProps) => (
+    <div {...props}>
       <PanelProvider>{children}</PanelProvider>
     </div>
   ),

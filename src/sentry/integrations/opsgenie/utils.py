@@ -126,7 +126,7 @@ def send_incident_alert_notification(
     )
 
     try:
-        resp = client.send_notification(attachment)
+        resp = client.send_metric_alert_notification(attachment)
         logger.info(
             "rule.success.opsgenie_incident_alert",
             extra={

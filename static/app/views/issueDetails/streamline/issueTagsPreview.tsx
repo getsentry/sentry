@@ -1,6 +1,6 @@
 import type React from 'react';
 import {Fragment, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
@@ -10,9 +10,8 @@ import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {backend, frontend} from 'sentry/data/platformCategories';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
@@ -50,12 +49,13 @@ type Segment = {
   color?: string;
 };
 
-const bgColor = (index: number) =>
-  Color(CHART_PALETTE[4].at(index)).alpha(0.8).toString();
+const bgColor = (index: number, theme: Theme) =>
+  Color(theme.chart.colors[4].at(index)).alpha(0.8).toString();
 const getRoundedPercentage = (percentage: number) =>
   percentage < 0.5 ? '<1%' : `${Math.round(percentage)}%`;
 
 function SegmentedBar({segments}: {segments: Segment[]}) {
+  const theme = useTheme();
   return (
     <TagBarPlaceholder>
       {segments.map((segment, idx) => (
@@ -64,7 +64,7 @@ function SegmentedBar({segments}: {segments: Segment[]}) {
           style={{
             left: `${segments.slice(0, idx).reduce((sum, s) => sum + s.percentage, 0)}%`,
             width: `${segment.percentage}%`,
-            backgroundColor: bgColor(idx),
+            backgroundColor: bgColor(idx, theme),
           }}
         />
       ))}
@@ -114,7 +114,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
       <LegendGrid>
         {segments.map((segment, idx) => (
           <Fragment key={idx}>
-            <LegendColor style={{backgroundColor: bgColor(idx)}} />
+            <LegendColor style={{backgroundColor: bgColor(idx, theme)}} />
             <LegendText ellipsisDirection={RTL_TAGS.includes(tag.key) ? 'left' : 'right'}>
               {segment.name}
             </LegendText>
@@ -138,7 +138,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
     <Tooltip title={tooltipContent} skipWrapper maxWidth={420}>
       <TagPreviewGrid
         to={{
-          pathname: `${baseUrl}${TabPaths[Tab.TAGS]}${tag.key}/`,
+          pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${tag.key}/`,
           query: location.query,
         }}
         onMouseEnter={() => {
@@ -181,13 +181,19 @@ function IssueTagButton({
         aria-label={t('View issue tag distributions')}
         size="xs"
         to={{
-          pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+          pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
           query: location.query,
         }}
         replace
         disabled={tags.length === 0}
       >
-        {hasFlagsDistributions ? t('View All Tags And Flags') : t('View All Tags')}
+        {hasFlagsDistributions
+          ? tct('View[nbsp]All Tags[nbsp]&[nbsp]Flags', {
+              nbsp: '\u00A0', // non-breaking space unicode character.
+            })
+          : tct('View All[nbsp]Tags', {
+              nbsp: '\u00A0', // non-breaking space unicode character.
+            })}
       </VerticalIssueTagsButton>
     );
   }
@@ -195,7 +201,7 @@ function IssueTagButton({
   return (
     <IssueTagsLink
       to={{
-        pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
         query: location.query,
       }}
       onClick={() => {
@@ -431,8 +437,8 @@ const VerticalIssueTagsButton = styled(LinkButton)`
   margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
   padding: ${space(1)} ${space(1.5)};
   text-align: center;
-  width: 58px;
   height: unset;
+  align-self: center;
   span {
     white-space: unset;
   }

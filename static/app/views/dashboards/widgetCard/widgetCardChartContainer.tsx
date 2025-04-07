@@ -178,8 +178,6 @@ export function WidgetCardChartContainer({
   );
 }
 
-export default WidgetCardChartContainer;
-
 const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
 ))`

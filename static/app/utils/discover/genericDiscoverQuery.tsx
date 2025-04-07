@@ -462,5 +462,3 @@ export const parseError = (error: any): QueryError | null => {
 
   return new QueryError(t('An unknown error occurred.'), error);
 };
-
-export default GenericDiscoverQuery;

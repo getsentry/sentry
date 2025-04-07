@@ -1,4 +1,5 @@
 import {Component, Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
@@ -67,8 +68,9 @@ type Props = {
   organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
-
   summaryConditions: string;
+
+  theme: Theme;
 };
 
 type State = {
@@ -112,7 +114,8 @@ class Table extends Component<Props, State> {
     dataRow: TableDataRow,
     vitalName: WebVital
   ): React.ReactNode {
-    const {eventView, organization, projects, location, summaryConditions} = this.props;
+    const {eventView, organization, projects, location, summaryConditions, theme} =
+      this.props;
 
     if (!tableData || !tableData.meta?.fields) {
       return dataRow[column.key];
@@ -144,7 +147,7 @@ class Table extends Component<Props, State> {
     }
 
     const fieldRenderer = getFieldRenderer(field, tableMeta, false);
-    const rendered = fieldRenderer(dataRow, {organization, location});
+    const rendered = fieldRenderer(dataRow, {organization, location, theme});
 
     const allowActions = [
       Actions.ADD,

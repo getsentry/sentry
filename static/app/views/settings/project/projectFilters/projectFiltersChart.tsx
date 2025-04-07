@@ -9,7 +9,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -37,9 +36,9 @@ const known_categories = [
   'chunk-load-error',
 ];
 
-function makeStatOPColors(fallbackColor: string): Record<string, string> {
+function makeStatOPColors(fallbackColor: string, theme: Theme): Record<string, string> {
   const result: Record<string, string> = {};
-  const colors = CHART_PALETTE[known_categories.length - 1];
+  const colors = theme.chart.colors[known_categories.length - 1];
 
   known_categories.forEach((category, index) => {
     const color = colors?.[index % colors.length] ?? fallbackColor;
@@ -57,7 +56,7 @@ function formatData(rawData: UsageSeries | undefined, theme: Theme) {
   }
 
   const fallbackColor = theme.gray200;
-  const statOpsColors = makeStatOPColors(fallbackColor);
+  const statOpsColors = makeStatOPColors(fallbackColor, theme);
 
   const formattedData = rawData.groups.map(group => {
     const reason = String(group.by.reason!);
@@ -134,5 +133,3 @@ export function ProjectFiltersChart({project}: Props) {
     </Panel>
   );
 }
-
-export default ProjectFiltersChart;

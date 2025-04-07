@@ -259,14 +259,24 @@ export function EventGraph({
     releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : releases,
   });
 
+  // Do some manipulation to make sure the release buckets match up to `eventSeries`
+  const lastEventSeries = eventSeries.at(-1);
+  const penultEventSeries = eventSeries.at(-2);
+  const lastEventSeriesTimestamp = lastEventSeries && (lastEventSeries.name as number);
+  const penultEventSeriesTimestamp =
+    penultEventSeries && (penultEventSeries.name as number);
+  const eventSeriesInterval =
+    lastEventSeriesTimestamp &&
+    penultEventSeriesTimestamp &&
+    lastEventSeriesTimestamp - penultEventSeriesTimestamp;
+
   const {
     connectReleaseBubbleChartRef,
-    releaseBubbleEventHandlers,
     releaseBubbleSeries,
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRenderer: ({chartRef}) => {
+    chartRenderer: ({ref: chartRef}) => {
       return (
         <EventGraph
           ref={chartRef}
@@ -279,10 +289,14 @@ export function EventGraph({
         />
       );
     },
+    alignInMiddle: true,
     legendSelected: legendSelected.Releases,
     desiredBuckets: eventSeries.length,
     minTime: eventSeries.length && (eventSeries.at(0)?.name as number),
-    maxTime: eventSeries.length && (eventSeries.at(-1)?.name as number),
+    maxTime:
+      lastEventSeriesTimestamp && eventSeriesInterval
+        ? lastEventSeriesTimestamp + eventSeriesInterval
+        : undefined,
     releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? releases : [],
     projects: eventView.project,
     environments: eventView.environment,
@@ -481,7 +495,6 @@ export function EventGraph({
       )}
       <ChartContainer role="figure" ref={chartContainerRef}>
         <BarChart
-          {...releaseBubbleEventHandlers}
           ref={mergeRefs(ref, handleConnectRef)}
           height={100}
           series={series}
@@ -497,6 +510,7 @@ export function EventGraph({
             ...releaseBubbleGrid,
           }}
           tooltip={{
+            appendToBody: true,
             formatAxisLabel: (
               value,
               isTimestamp,

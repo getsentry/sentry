@@ -5,9 +5,6 @@ import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFl
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Footer from 'sentry/components/footer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import Nav from 'sentry/components/nav';
-import {NavContextProvider} from 'sentry/components/nav/context';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboarding/sidebar';
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
@@ -20,6 +17,9 @@ import useDevToolbar from 'sentry/utils/useDevToolbar';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
+import Nav from 'sentry/views/nav';
+import {NavContextProvider} from 'sentry/views/nav/context';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 
 import OrganizationDetailsBody from './body';

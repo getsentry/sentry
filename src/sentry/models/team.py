@@ -52,7 +52,7 @@ class TeamManager(BaseManager["Team"]):
 
         base_team_qs = self.filter(organization=organization, status=TeamStatus.ACTIVE)
 
-        if env.request and is_active_superuser(env.request) or settings.SENTRY_PUBLIC:
+        if env.request and is_active_superuser(env.request):
             team_list = list(base_team_qs)
         else:
             try:

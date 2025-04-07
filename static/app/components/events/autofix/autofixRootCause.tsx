@@ -8,10 +8,10 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
   type AutofixFeedback,
-  type AutofixRepository,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
   AutofixStatus,
@@ -33,16 +33,15 @@ import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
-import {useTextSelection} from './useTextSelection';
 
 type AutofixRootCauseProps = {
   causes: AutofixRootCauseData[];
   groupId: string;
-  repos: AutofixRepository[];
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
   agentCommentThread?: CommentThread;
   feedback?: AutofixFeedback;
+  isRootCauseFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   terminationReason?: string;
@@ -140,7 +139,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
           };
         }
       );
-      addSuccessMessage("Great, let's move forward with this root cause.");
+      addSuccessMessage('On it.');
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when selecting the root cause.'));
@@ -170,37 +169,37 @@ function RootCauseDescription({
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const selection = useTextSelection(containerRef);
-
   return (
     <CauseDescription>
-      <AnimatePresence>
-        {selection && (
-          <AutofixHighlightPopup
-            selectedText={selection.selectedText}
-            referenceElement={selection.referenceElement}
-            groupId={groupId}
-            runId={runId}
-            stepIndex={previousDefaultStepIndex ?? 0}
-            retainInsightCardIndex={
-              previousInsightCount !== undefined && previousInsightCount >= 0
-                ? previousInsightCount
-                : null
-            }
-          />
-        )}
-      </AnimatePresence>
-      <div ref={containerRef}>
-        {cause.description && (
+      {cause.description && (
+        <AutofixHighlightWrapper
+          groupId={groupId}
+          runId={runId}
+          stepIndex={previousDefaultStepIndex ?? 0}
+          retainInsightCardIndex={
+            previousInsightCount !== undefined && previousInsightCount >= 0
+              ? previousInsightCount
+              : null
+          }
+        >
           <Description
             dangerouslySetInnerHTML={{__html: singleLineRenderer(cause.description)}}
           />
-        )}
-        {cause.root_cause_reproduction && (
-          <AutofixTimeline events={cause.root_cause_reproduction} />
-        )}
-      </div>
+        </AutofixHighlightWrapper>
+      )}
+      {cause.root_cause_reproduction && (
+        <AutofixTimeline
+          events={cause.root_cause_reproduction}
+          groupId={groupId}
+          runId={runId}
+          stepIndex={previousDefaultStepIndex ?? 0}
+          retainInsightCardIndex={
+            previousInsightCount !== undefined && previousInsightCount >= 0
+              ? previousInsightCount
+              : null
+          }
+        />
+      )}
     </CauseDescription>
   );
 }
@@ -424,7 +423,7 @@ function AutofixRootCauseDisplay({
 export function AutofixRootCause(props: AutofixRootCauseProps) {
   if (props.causes.length === 0) {
     return (
-      <AnimatePresence initial>
+      <AnimatePresence initial={props.isRootCauseFirstAppearance}>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoCausesPadding>
             <Alert.Container>
@@ -439,7 +438,7 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
   }
 
   return (
-    <AnimatePresence initial>
+    <AnimatePresence initial={props.isRootCauseFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <AutofixRootCauseDisplay {...props} />
       </AnimationWrapper>

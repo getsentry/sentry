@@ -27,9 +27,16 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
 )
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
-from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
+from sentry.search.eap.spans.utils import (
+    WEB_VITALS_MEASUREMENTS,
+    operate_multiple_columns,
+    transform_vital_score_to_ratio,
+)
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.utils import literal_validator
 from sentry.search.events.constants import WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS
+from sentry.snuba import spans_rpc
+from sentry.snuba.referrer import Referrer
 
 
 def get_total_span_count(settings: ResolverSettings) -> Column:
@@ -145,11 +152,39 @@ def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bin
     )
 
 
+def get_count_of_vital(vital: str, settings: ResolverSettings) -> float:
+
+    snuba_params = settings["snuba_params"]
+    query_string = snuba_params.query_string
+
+    rpc_res = spans_rpc.run_table_query(
+        snuba_params,
+        query_string=query_string if query_string is not None else "",
+        referrer="totalvitalcount",
+        selected_columns=[f"count_scores(measurements.score.{vital}) as count"],
+        orderby=None,
+        offset=0,
+        limit=1,
+        sampling_mode=None,
+        config=SearchResolverConfig(
+            auto_fields=True,
+        ),
+    )
+
+    if len(rpc_res["data"]) > 0 and rpc_res["data"][0]["count"] is not None:
+        return rpc_res["data"][0]["count"]
+
+    return 0
+
+
 def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
     score_attribute = cast(AttributeKey, args[0])
     ratio_attribute = transform_vital_score_to_ratio([score_attribute])
+
+    if ratio_attribute.name == "score.total":
+        return total_opportunity_score(args, settings)
 
     score_ratio = Column.BinaryFormula(
         left=Column(
@@ -160,7 +195,7 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
                 ),
                 key=ratio_attribute,
                 extrapolation_mode=extrapolation_mode,
-            )
+            ),
         ),
         op=Column.BinaryFormula.OP_SUBTRACT,
         right=Column(
@@ -179,13 +214,36 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
     if web_vital == "total":
         return score_ratio
 
-    weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[web_vital]
+    vital_count = get_count_of_vital(web_vital, settings)
 
     return Column.BinaryFormula(
         left=Column(formula=score_ratio),
-        op=Column.BinaryFormula.OP_MULTIPLY,
-        right=Column(literal=LiteralValue(val_double=weight)),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            literal=LiteralValue(val_double=vital_count),
+        ),
     )
+
+
+def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
+    vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
+    vital_score_columns: list[Column] = []
+
+    for vital in vitals:
+        vital_score = f"score.{vital}"
+        vital_score_key = AttributeKey(name=vital_score, type=AttributeKey.TYPE_DOUBLE)
+        weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital]
+        vital_score_columns.append(
+            Column(
+                formula=Column.BinaryFormula(
+                    left=Column(formula=opportunity_score([vital_score_key], settings)),
+                    op=Column.BinaryFormula.OP_MULTIPLY,
+                    right=Column(literal=LiteralValue(val_double=weight)),
+                )
+            )
+        )
+
+    return operate_multiple_columns(vital_score_columns, Column.BinaryFormula.OP_ADD)
 
 
 def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
@@ -366,10 +424,29 @@ def ttid_contribution_rate(
 def time_spent_percentage(
     args: ResolvedArguments, settings: ResolverSettings
 ) -> Column.BinaryFormula:
+    """Note this won't work for timeseries requests because we have to divide each bucket by it's own total time."""
     extrapolation_mode = settings["extrapolation_mode"]
+    snuba_params = settings["snuba_params"]
 
     attribute = cast(AttributeKey, args[0])
-    """TODO: This function isn't fully implemented, when https://github.com/getsentry/eap-planning/issues/202 is merged we can properly divide by the total time"""
+    column = "span.self_time" if attribute.name == "sentry.exclusive_time_ms" else "span.duration"
+
+    if snuba_params.organization_id is None:
+        raise Exception("An organization is required to resolve queries")
+
+    rpc_res = spans_rpc.run_table_query(
+        snuba_params,
+        query_string="",
+        referrer=Referrer.INSIGHTS_TIME_SPENT_TOTAL_TIME.value,
+        selected_columns=[f"sum({column})"],
+        orderby=None,
+        offset=0,
+        limit=1,
+        sampling_mode=None,
+        config=SearchResolverConfig(),
+    )
+
+    total_time = rpc_res["data"][0][f"sum({column})"]
 
     return Column.BinaryFormula(
         left=Column(
@@ -381,11 +458,7 @@ def time_spent_percentage(
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(
-            aggregation=AttributeAggregation(
-                aggregate=Function.FUNCTION_SUM,
-                key=attribute,
-                extrapolation_mode=extrapolation_mode,
-            )
+            literal=LiteralValue(val_double=total_time),
         ),
     )
 
@@ -406,7 +479,7 @@ def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
                 aggregate=Function.FUNCTION_COUNT,
                 key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
                 extrapolation_mode=extrapolation_mode,
-            )
+            ),
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(
@@ -536,8 +609,9 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=time_spent_percentage,
         is_aggregate=True,
+        private=True,
     ),
     "epm": FormulaDefinition(
-        default_search_type="number", arguments=[], formula_resolver=epm, is_aggregate=True
+        default_search_type="rate", arguments=[], formula_resolver=epm, is_aggregate=True
     ),
 }

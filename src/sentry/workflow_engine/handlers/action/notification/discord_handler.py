@@ -1,3 +1,4 @@
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.workflow_engine.handlers.action.notification.base import IntegrationActionHandler
@@ -10,9 +11,9 @@ from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 @action_handler_registry.register(Action.Type.DISCORD)
 class DiscordActionHandler(IntegrationActionHandler):
     group = ActionHandler.Group.NOTIFICATION
-    provider_slug = "discord"
+    provider_slug = IntegrationProviderSlug.DISCORD
 
-    # Main difference between the discord and slack action config schemas is that the target_display is null
+    # Main difference between the discord and slack action config schemas is that the target_display is possibly null
     config_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "description": "The configuration schema for a Discord Action",
@@ -20,7 +21,7 @@ class DiscordActionHandler(IntegrationActionHandler):
         "properties": {
             "target_identifier": {"type": "string"},
             "target_display": {
-                "type": ["null"],
+                "type": ["string", "null"],
             },
             "target_type": {
                 "type": ["integer"],
