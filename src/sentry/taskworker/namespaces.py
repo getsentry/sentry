@@ -32,6 +32,10 @@ notifications_tasks = taskregistry.create_namespace("notifications")
 
 notifications_control_tasks = taskregistry.create_namespace("notifications.control")
 
+integrations_tasks = taskregistry.create_namespace("integrations")
+
+integrations_control_tasks = taskregistry.create_namespace("integrations.control")
+
 options_tasks = taskregistry.create_namespace("options")
 
 options_control_tasks = taskregistry.create_namespace("options.control")
@@ -43,6 +47,8 @@ sdk_control_tasks = taskregistry.create_namespace("sdk.control")
 selfhosted_tasks = taskregistry.create_namespace("selfhosted")
 
 tempest_tasks = taskregistry.create_namespace("tempest")
+
+uptime_tasks = taskregistry.create_namespace("uptime")
 
 
 # Namespaces for testing taskworker tasks

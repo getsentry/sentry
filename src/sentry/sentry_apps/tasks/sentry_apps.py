@@ -42,7 +42,9 @@ from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.retry import retry_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_tasks
+from sentry.taskworker.retry import Retry, retry_task
 from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -609,6 +611,10 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
 @instrumented_task(
     "sentry.sentry_apps.tasks.sentry_apps.create_or_update_service_hooks_for_sentry_app",
     **CONTROL_TASK_OPTIONS,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+        retry=Retry(times=3),
+    ),
 )
 def create_or_update_service_hooks_for_sentry_app(
     sentry_app_id: int, webhook_url: str, events: list[str], **kwargs: dict

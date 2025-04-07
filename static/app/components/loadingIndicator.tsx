@@ -5,6 +5,9 @@ interface LoadingIndicatorProps {
   children?: NonNullable<React.ReactNode>;
   className?: string;
   ['data-test-id']?: string;
+  /**
+   * @deprecated Use `size` instead.
+   */
   mini?: boolean;
   overlay?: boolean;
   relative?: boolean;
@@ -26,11 +29,30 @@ function LoadingIndicator(props: LoadingIndicatorProps) {
         className={classNames('loading-indicator', {
           relative: props.relative,
         })}
-        style={props.size ? {width: props.size, height: props.size} : undefined}
+        style={
+          props.size
+            ? {
+                width: props.size,
+                height: props.size,
+                borderWidth: getLoadingIndicatorBorderWidth(props.size),
+              }
+            : undefined
+        }
       />
       {props.children && <div className="loading-message">{props.children}</div>}
     </div>
   );
+}
+
+function getLoadingIndicatorBorderWidth(size: number | undefined): number | undefined {
+  if (!size) {
+    return undefined;
+  }
+  if (size > 64) {
+    return 6;
+  }
+
+  return 2 + ((size - 24) / 40) * (6 - 2);
 }
 
 export default withProfiler(LoadingIndicator, {
