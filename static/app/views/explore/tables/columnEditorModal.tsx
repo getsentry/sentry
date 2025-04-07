@@ -28,6 +28,7 @@ interface ColumnEditorModalProps extends ModalRenderProps {
   numberTags: TagCollection;
   onColumnsChange: (fields: string[]) => void;
   stringTags: TagCollection;
+  handleReset?: () => void;
   hiddenKeys?: string[];
   isDocsButtonHidden?: boolean;
 }
@@ -43,6 +44,7 @@ export function ColumnEditorModal({
   stringTags,
   hiddenKeys,
   isDocsButtonHidden = false,
+  handleReset,
 }: ColumnEditorModalProps) {
   const tags: Array<SelectOption<string>> = useMemo(() => {
     let allTags = [
@@ -144,6 +146,17 @@ export function ColumnEditorModal({
                   {t('Read the Docs')}
                 </LinkButton>
               )}
+              {handleReset ? (
+                <Button
+                  aria-label={t('Reset')}
+                  onClick={() => {
+                    handleReset();
+                    closeModal();
+                  }}
+                >
+                  {t('Reset')}
+                </Button>
+              ) : null}
               <Button aria-label={t('Apply')} priority="primary" onClick={handleApply}>
                 {t('Apply')}
               </Button>

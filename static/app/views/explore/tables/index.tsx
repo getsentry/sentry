@@ -62,6 +62,7 @@ interface SamplesExploreTablesProps extends BaseExploreTablesProps {
   isProgressivelyLoading: boolean;
   spansTableResult: SpansTableResult;
   tracesTableResult: TracesTableResult;
+  useResetButtons?: boolean;
 }
 
 function ExploreSamplesTable(props: SamplesExploreTablesProps) {
