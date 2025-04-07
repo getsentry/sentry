@@ -1,4 +1,3 @@
-import {withProfiler} from '@sentry/react';
 import classNames from 'classnames';
 
 interface LoadingIndicatorProps {
@@ -55,6 +54,4 @@ function getLoadingIndicatorBorderWidth(size: number | undefined): number | unde
   return 2 + ((size - 24) / 40) * (6 - 2);
 }
 
-export default withProfiler(LoadingIndicator, {
-  includeUpdates: false,
-});
+export default LoadingIndicator;
