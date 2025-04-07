@@ -64,7 +64,7 @@ type Row = {
   'project.id': number;
   'sentry.normalized_description': string;
   'span.group': string;
-  'span.op': `resource.${'script' | 'img' | 'css' | 'iframe' | string}`;
+  'span.op': string;
   'sum(span.self_time)': number;
   'time_spent_percentage()': number;
 };
