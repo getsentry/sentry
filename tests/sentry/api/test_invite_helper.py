@@ -42,7 +42,7 @@ class ApiInviteHelperTest(TestCase):
 
         helper = ApiInviteHelper(self.request, invite_context, None)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            helper.accept_invite()
+            helper.accept_invite(self.user)
 
         om.refresh_from_db()
         return om
@@ -67,7 +67,7 @@ class ApiInviteHelperTest(TestCase):
         invite_context.invite_organization_member_id = None
         helper = ApiInviteHelper(self.request, invite_context, None)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            helper.accept_invite()
+            helper.accept_invite(self.user)
         om.refresh_from_db()
         assert om.email is None
         assert om.user_id == self.user.id
@@ -76,7 +76,7 @@ class ApiInviteHelperTest(TestCase):
         invite_context.invite_organization_member_id = member_id
         helper = ApiInviteHelper(self.request, invite_context, None)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            helper.accept_invite()
+            helper.accept_invite(self.user)
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(id=self.member.id)
 
