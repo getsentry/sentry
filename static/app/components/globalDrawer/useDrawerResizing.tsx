@@ -1,5 +1,7 @@
 import {useCallback, useLayoutEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 
+import useMedia from 'sentry/utils/useMedia';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 const MIN_WIDTH_PERCENT = 30;
@@ -13,9 +15,11 @@ function getDrawerWidthKey(drawerKey: string) {
 interface UseDrawerResizingOptions {
   drawerKey?: string;
   drawerWidth?: string;
+  enabled?: boolean;
 }
 
 interface UseDrawerResizingResult {
+  enabled: boolean;
   handleResizeStart: (e: React.MouseEvent) => void;
   panelRef: React.RefObject<HTMLDivElement>;
   persistedWidthPercent: number;
@@ -25,7 +29,10 @@ interface UseDrawerResizingResult {
 export function useDrawerResizing({
   drawerKey,
   drawerWidth,
+  enabled = true,
 }: UseDrawerResizingOptions): UseDrawerResizingResult {
+  const theme = useTheme();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
   const resizeHandleRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const panelRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const rafIdRef = useRef<number | null>(null);
@@ -65,11 +72,28 @@ export function useDrawerResizing({
     );
 
   useLayoutEffect(() => {
-    panelRef.current?.style.setProperty('--drawer-width', `${persistedWidthPercent}%`);
-  }, [persistedWidthPercent]);
+    if (isSmallScreen) {
+      panelRef.current?.style.setProperty('--drawer-width', '100%');
+      panelRef.current?.style.setProperty('--drawer-min-width', '100%');
+      panelRef.current?.style.setProperty('--drawer-max-width', '100%');
+    } else if (!enabled && drawerWidth) {
+      panelRef.current?.style.setProperty('--drawer-width', `${drawerWidth}`);
+      panelRef.current?.style.setProperty('--drawer-min-width', `${drawerWidth}`);
+      panelRef.current?.style.setProperty('--drawer-max-width', `${drawerWidth}`);
+    } else {
+      panelRef.current?.style.setProperty('--drawer-width', `${persistedWidthPercent}%`);
+      panelRef.current?.style.setProperty('--drawer-min-width', `${MIN_WIDTH_PERCENT}%`);
+      panelRef.current?.style.setProperty('--drawer-max-width', `${MAX_WIDTH_PERCENT}%`);
+    }
+  }, [persistedWidthPercent, isSmallScreen, drawerWidth, enabled]);
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {
+      // Don't allow resizing on small screens
+      if (isSmallScreen || !enabled) {
+        return;
+      }
+
       e.preventDefault();
 
       const handle = resizeHandleRef.current;
@@ -139,7 +163,7 @@ export function useDrawerResizing({
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
     },
-    [setPersistedWidthPercent]
+    [isSmallScreen, enabled, setPersistedWidthPercent]
   );
 
   useLayoutEffect(() => {
@@ -155,6 +179,7 @@ export function useDrawerResizing({
     resizeHandleRef,
     handleResizeStart,
     persistedWidthPercent,
+    enabled: !isSmallScreen && !!drawerKey && enabled,
   };
 }
 

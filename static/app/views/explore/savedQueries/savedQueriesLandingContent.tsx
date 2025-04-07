@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -44,16 +44,14 @@ export function SavedQueriesLandingContent() {
         />
       </FilterContainer>
       {searchQuery.length > 0 ? (
-        <span>
-          <SavedQueriesTable
-            mode="all"
-            perPage={15}
-            sort={sort}
-            searchQuery={searchQuery}
-          />
-        </span>
+        <SavedQueriesTable
+          mode="all"
+          perPage={15}
+          sort={sort}
+          searchQuery={searchQuery}
+        />
       ) : (
-        <span>
+        <Fragment>
           <h4>{t('Created by Me')}</h4>
           <SavedQueriesTable
             mode="owned"
@@ -68,7 +66,7 @@ export function SavedQueriesLandingContent() {
             cursorKey="sharedCursor"
             sort={sort}
           />
-        </span>
+        </Fragment>
       )}
     </div>
   );

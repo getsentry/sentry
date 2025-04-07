@@ -21,10 +21,9 @@ from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
-from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     PRIORITY_MAP,
@@ -69,8 +68,8 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 def assert_alert_rule_migrated(alert_rule, project_id):
-    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
-    alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
+    alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id)
 
     workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
     assert workflow.name == get_workflow_name(alert_rule)
@@ -115,13 +114,13 @@ def assert_alert_rule_resolve_trigger_migrated(alert_rule):
         condition_result=DetectorPriorityLevel.OK,
         type=Condition.LESS_OR_EQUAL,
     )
-    detector = AlertRuleDetector.objects.get(alert_rule=alert_rule).detector
+    detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector
 
     assert detector_trigger.type == Condition.LESS_OR_EQUAL
     assert detector_trigger.condition_result == DetectorPriorityLevel.OK
     assert detector_trigger.condition_group == detector.workflow_condition_group
 
-    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
     workflow = alert_rule_workflow.workflow
     workflow_dcgs = DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow=workflow)
 
@@ -169,7 +168,7 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
     assert detector_trigger.condition_result == condition_result
 
     alert_rule = alert_rule_trigger.alert_rule
-    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
     workflow = alert_rule_workflow.workflow
     workflow_dcgs = DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow=workflow)
 
@@ -250,7 +249,7 @@ def assert_action_migrated(action: Action, alert_rule_trigger_action: AlertRuleT
 
 def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_type):
     aarta = ActionAlertRuleTriggerAction.objects.get(
-        alert_rule_trigger_action=alert_rule_trigger_action
+        alert_rule_trigger_action_id=alert_rule_trigger_action.id
     )
     action = Action.objects.get(id=aarta.action_id, type=action_type)
     assert DataConditionGroupAction.objects.filter(
@@ -268,8 +267,12 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
     def create_metric_alert_lookup_tables(
         self, alert_rule: AlertRule, detector: Detector, workflow: Workflow
     ) -> tuple[AlertRuleDetector, AlertRuleWorkflow]:
-        alert_rule_detector = self.create_alert_rule_detector(alert_rule, detector)
-        alert_rule_workflow = self.create_alert_rule_workflow(alert_rule, workflow)
+        alert_rule_detector = self.create_alert_rule_detector(
+            alert_rule_id=alert_rule.id, detector=detector
+        )
+        alert_rule_workflow = self.create_alert_rule_workflow(
+            alert_rule_id=alert_rule.id, workflow=workflow
+        )
         return (
             alert_rule_detector,
             alert_rule_workflow,
@@ -342,10 +345,10 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         """
         # look up the necessary migrated alert rule objects first
         alert_rule = alert_rule_trigger.alert_rule
-        detector = AlertRuleDetector.objects.get(alert_rule=alert_rule).detector
+        detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector
         detector_dcg = detector.workflow_condition_group
         assert detector_dcg  # to appease mypy
-        workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule).workflow
+        workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id).workflow
 
         detector_trigger = self.create_data_condition(
             comparison=alert_rule_trigger.alert_threshold,
@@ -372,10 +375,10 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         """
         Set up all the necessary ACI objects for a dual written metric alert resolution threshold.
         """
-        detector = AlertRuleDetector.objects.get(alert_rule=alert_rule).detector
+        detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector
         detector_dcg = detector.workflow_condition_group
         assert detector_dcg  # to appease mypy
-        workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule).workflow
+        workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id).workflow
 
         detector_trigger = self.create_data_condition(
             comparison=resolve_threshold,
@@ -411,30 +414,11 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         data_condition_group_action = self.create_data_condition_group_action(
             action, action_filter.condition_group
         )
-        action_alert_rule_trigger_action = ActionAlertRuleTriggerAction.objects.create(
-            action_id=action.id,
+        action_alert_rule_trigger_action = self.create_action_alert_rule_trigger_action(
+            action=action,
             alert_rule_trigger_action_id=alert_rule_trigger_action.id,
         )
         return action, data_condition_group_action, action_alert_rule_trigger_action
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_alert_rule_detector(alert_rule: AlertRule, detector: Detector) -> AlertRuleDetector:
-        return AlertRuleDetector.objects.create(alert_rule=alert_rule, detector=detector)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_alert_rule_workflow(alert_rule: AlertRule, workflow: Workflow) -> AlertRuleWorkflow:
-        return AlertRuleWorkflow.objects.create(alert_rule=alert_rule, workflow=workflow)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_action_alert_rule_trigger_action(
-        action: Action, alert_rule_trigger_action: AlertRuleTriggerAction
-    ) -> ActionAlertRuleTriggerAction:
-        return ActionAlertRuleTriggerAction.objects.create(
-            action=action, alert_rule_trigger_action=alert_rule_trigger_action
-        )
 
 
 class DualWriteAlertRuleTest(APITestCase):
@@ -700,7 +684,9 @@ class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         migrate_metric_data_conditions(critical_trigger)
         migrate_resolve_threshold_data_conditions(self.metric_alert_no_resolve)
 
-        detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert_no_resolve).detector
+        detector = AlertRuleDetector.objects.get(
+            alert_rule_id=self.metric_alert_no_resolve.id
+        ).detector
 
         resolve_detector_trigger = DataCondition.objects.get(
             condition_result=DetectorPriorityLevel.OK
@@ -732,7 +718,9 @@ class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         migrate_metric_data_conditions(critical_trigger)
         migrate_resolve_threshold_data_conditions(self.metric_alert_no_resolve)
 
-        detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert_no_resolve).detector
+        detector = AlertRuleDetector.objects.get(
+            alert_rule_id=self.metric_alert_no_resolve.id
+        ).detector
 
         resolve_detector_trigger = DataCondition.objects.get(
             condition_result=DetectorPriorityLevel.OK
@@ -1237,7 +1225,7 @@ class CalculateResolveThresholdHelperTest(BaseMetricAlertMigrationTest):
         )
 
     def test_calculate_resolve_threshold_critical_only(self):
-        detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert).detector
+        detector = AlertRuleDetector.objects.get(alert_rule_id=self.metric_alert.id).detector
         detector_dcg = detector.workflow_condition_group
         assert detector_dcg  # to appease mypy
 
@@ -1252,7 +1240,7 @@ class CalculateResolveThresholdHelperTest(BaseMetricAlertMigrationTest):
             warning_trigger, DetectorPriorityLevel.MEDIUM, Condition.GREATER
         )
 
-        detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert).detector
+        detector = AlertRuleDetector.objects.get(alert_rule_id=self.metric_alert.id).detector
         detector_dcg = detector.workflow_condition_group
         assert detector_dcg  # to appease mypy
         resolve_threshold = get_resolve_threshold(detector_dcg)
@@ -1290,7 +1278,7 @@ class DataConditionLookupHelpersTest(BaseMetricAlertMigrationTest):
         Test that we raise an exception if the corresponding detector for an
         alert rule trigger is missing its workflow condition group.
         """
-        detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert).detector
+        detector = AlertRuleDetector.objects.get(alert_rule_id=self.metric_alert.id).detector
         detector.update(workflow_condition_group=None)
 
         with pytest.raises(MissingDataConditionGroup):
@@ -1310,7 +1298,7 @@ class DataConditionLookupHelpersTest(BaseMetricAlertMigrationTest):
         Test that we raise an exception if the corresponding workflow for an
         alert rule trigger action does not exist.
         """
-        workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert).workflow
+        workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.metric_alert.id).workflow
         workflow.delete()
 
         with pytest.raises(AlertRuleWorkflow.DoesNotExist):
@@ -1381,7 +1369,7 @@ class SinglePointOfEntryTest(BaseMetricAlertMigrationTest):
         self.dual_written_trigger_action.update(target_identifier=user_2.id)
 
         dual_update_alert_rule(self.dual_written_alert)
-        detector = AlertRuleDetector.objects.get(alert_rule=self.dual_written_alert).detector
+        detector = AlertRuleDetector.objects.get(alert_rule_id=self.dual_written_alert.id).detector
         self.detector_trigger.refresh_from_db()
         self.action.refresh_from_db()
 

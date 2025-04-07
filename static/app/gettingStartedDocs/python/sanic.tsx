@@ -120,7 +120,6 @@ async def hello_world(request):
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,

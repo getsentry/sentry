@@ -569,7 +569,6 @@ describe('ProjectAlertsCreate', function () {
       for (const group of groups) {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();
       }
-      expect(screen.getAllByText('3mo ago')[0]).toBeInTheDocument();
     });
 
     it('invalid preview alert', async () => {

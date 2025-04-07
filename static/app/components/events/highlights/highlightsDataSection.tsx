@@ -228,7 +228,7 @@ function HighlightsData({
     <HighlightContainer columnCount={columnCount} ref={containerRef}>
       {isPending ? (
         <EmptyHighlights>
-          <HighlightsLoadingIndicator hideMessage size={50} />
+          <HighlightsLoadingIndicator size={50} />
         </EmptyHighlights>
       ) : hasDisabledHighlights ? (
         <EmptyHighlights>

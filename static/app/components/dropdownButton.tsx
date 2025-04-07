@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Chevron} from 'sentry/components/chevron';
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
 export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'> {
@@ -49,13 +49,10 @@ function DropdownButton({
       {children}
       {showChevron && (
         <ChevronWrap>
-          <Chevron
-            light
+          <IconChevron
             color="subText"
-            size={size === 'xs' ? 'small' : 'medium'}
-            weight="medium"
             direction={isOpen ? 'up' : 'down'}
-            aria-hidden="true"
+            size={size === 'zero' || size === 'xs' ? 'xs' : 'sm'}
           />
         </ChevronWrap>
       )}

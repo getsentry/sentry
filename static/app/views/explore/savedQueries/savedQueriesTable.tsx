@@ -1,7 +1,11 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Avatar from 'sentry/components/core/avatar';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
@@ -179,8 +183,12 @@ export function SavedQueriesTable({
                   label: t('Delete'),
                   onAction: () => {
                     addLoadingMessage(t('Deleting query...'));
-                    deleteQuery(row.id);
-                    addSuccessMessage(t('Query deleted'));
+                    try {
+                      deleteQuery(row.id);
+                      addSuccessMessage(t('Query deleted'));
+                    } catch (error) {
+                      addErrorMessage(t('Unable to delete query'));
+                    }
                   },
                   priority: 'danger',
                 },

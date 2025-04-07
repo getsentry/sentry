@@ -10,8 +10,8 @@ export interface TourStep<T extends TourEnumType> {
 }
 
 type TourStartAction<T extends TourEnumType> = {
+  stepId: T;
   type: 'START_TOUR';
-  stepId?: T;
 };
 type TourNextStepAction = {
   type: 'NEXT_STEP';
@@ -76,6 +76,17 @@ type TourOptions<T extends TourEnumType> = Partial<{
   requireAllStepsRegistered: boolean;
 }>;
 
+function computeStartTourStep<T extends TourEnumType>(
+  state: TourState<T>,
+  stepId?: T
+): T | null {
+  if (stepId && state.orderedStepIds.includes(stepId)) {
+    return stepId;
+  }
+
+  return state.orderedStepIds[0] ?? null;
+}
+
 function computeNextStep<T extends TourEnumType>(state: TourState<T>): T | null {
   if (!state.currentStepId) {
     return null;
@@ -110,26 +121,11 @@ function tourReducer<T extends TourEnumType>(
 
   switch (action.type) {
     case 'START_TOUR': {
-      // If the stepId is provided, set the current step to the stepId
-      const startStepIndex = action.stepId
-        ? state.orderedStepIds.indexOf(action.stepId)
-        : -1;
-      if (action.stepId && startStepIndex !== -1) {
-        return {
-          ...state,
-          isCompleted: false,
-          currentStepId: action.stepId ?? null,
-        };
-      }
-      // If no stepId is provided, set the current step to the first step
-      if (state.orderedStepIds[0]) {
-        return {
-          ...state,
-          isCompleted: false,
-          currentStepId: state.orderedStepIds[0] ?? null,
-        };
-      }
-      return state;
+      return {
+        ...state,
+        isCompleted: false,
+        currentStepId: action.stepId,
+      };
     }
     case 'NEXT_STEP': {
       if (!state.currentStepId) {
@@ -205,14 +201,20 @@ export function useTourReducer<T extends TourEnumType>(
   );
 
   const startTour = useCallback(
-    (stepId?: T) => {
+    (incomingStepId?: T) => {
       if (options?.requireAllStepsRegistered !== false && !state.isRegistered) {
         return;
       }
-      dispatch({type: 'START_TOUR', stepId});
-      options?.onStartTour?.(stepId);
+
+      const stepId = computeStartTourStep(state, incomingStepId);
+
+      if (stepId) {
+        dispatch({type: 'START_TOUR', stepId});
+        options?.onStartTour?.(stepId);
+        options?.onStepChange?.(stepId);
+      }
     },
-    [options, state.isRegistered]
+    [options, state]
   );
 
   const endTour = useCallback(() => {

@@ -15,6 +15,7 @@ from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.web.frontend.auth_login import AuthLoginView
 
 logger = logging.getLogger("sentry.api.oauth_authorize")
@@ -330,6 +331,7 @@ class OAuthAuthorizeView(AuthLoginView):
                     organization_id=selected_organization_id,
                 )
         except IntegrityError:
+            incr_rollback_metrics(ApiAuthorization)
             if params["scopes"]:
                 auth = ApiAuthorization.objects.get(
                     application=application,

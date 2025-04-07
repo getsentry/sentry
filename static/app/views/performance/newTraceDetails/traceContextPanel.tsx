@@ -12,6 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
+import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
 import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceViewLogsSection} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
@@ -56,11 +57,14 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
         </TraceLinksNavigationContainer>
       )}
 
-      <VitalMetersContainer>
+      <VitalMetersContainer id={TraceContextSectionKeys.WEB_VITALS}>
         <TraceContextVitals tree={tree} />
       </VitalMetersContainer>
       <TraceTagsContainer>
-        <FoldSection sectionKey={'trace_tags' as SectionKey} title={t('Trace Tags')}>
+        <FoldSection
+          sectionKey={TraceContextSectionKeys.TAGS as string as SectionKey}
+          title={t('Trace Tags')}
+        >
           {renderTags()}
         </FoldSection>
       </TraceTagsContainer>
