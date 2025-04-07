@@ -9,6 +9,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
+import {eapSeriesDataToTimeSeries} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 type Props = {
   hasWebVitals: boolean;
@@ -59,6 +60,8 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
       />
     );
   }
+
+  const timeSeries = eapSeriesDataToTimeSeries(failureRateData);
 
   return (
     <Widget
