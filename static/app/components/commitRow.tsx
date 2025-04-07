@@ -112,7 +112,7 @@ function CommitRow({
                 inviteUser: <StyledLink to="" onClick={handleInviteClick} />,
               }
             )}
-            // disabled={!commit.author || false||  commit.author.id !== undefined}
+            disabled={!commit.author || commit.author.id !== undefined}
             overlayStyle={{maxWidth: '350px'}}
             skipWrapper
             isHoverable
