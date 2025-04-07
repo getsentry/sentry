@@ -105,8 +105,19 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                   {t('Try New Navigation')} <Badge type="alpha">Alpha</Badge>
                 </SidebarMenuItem>
               )}
-              {organization?.features?.includes('chonk-ui') &&
-                !user.options.prefersChonkUI && (
+              {organization?.features?.includes('chonk-ui') ? (
+                user.options.prefersChonkUI ? (
+                  <SidebarMenuItem
+                    onClick={() => {
+                      mutateUserOptions({prefersChonkUI: false});
+                      trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
+                        organization,
+                      });
+                    }}
+                  >
+                    {t('Switch to old UI theme')}
+                  </SidebarMenuItem>
+                ) : (
                   <SidebarMenuItem
                     onClick={() => {
                       mutateUserOptions({prefersChonkUI: true});
@@ -117,7 +128,8 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                   >
                     {t('Try New UI2 Theme')} <Badge type="internal">Internal</Badge>
                   </SidebarMenuItem>
-                )}
+                )
+              ) : null}
             </HelpMenu>
           )}
         </HelpRoot>

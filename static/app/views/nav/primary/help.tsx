@@ -135,17 +135,29 @@ export function PrimaryNavigationHelp() {
                   );
                 },
               },
-              organization?.features?.includes('chonk-ui') &&
-                user.options.prefersChonkUI && {
-                  key: 'new-chonk-ui',
-                  label: t('Switch to old UI theme'),
-                  onAction() {
-                    mutateUserOptions({prefersChonkUI: false});
-                    trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
-                      organization,
-                    });
-                  },
-                },
+              organization?.features?.includes('chonk-ui')
+                ? user.options.prefersChonkUI
+                  ? {
+                      key: 'new-chonk-ui',
+                      label: t('Switch to old UI theme'),
+                      onAction() {
+                        mutateUserOptions({prefersChonkUI: false});
+                        trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
+                          organization,
+                        });
+                      },
+                    }
+                  : {
+                      key: 'new-chonk-ui',
+                      label: t('Try New UI2 Theme'),
+                      onAction() {
+                        mutateUserOptions({prefersChonkUI: true});
+                        trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {
+                          organization,
+                        });
+                      },
+                    }
+                : null,
             ].filter(n => !!n),
           },
         ]}
