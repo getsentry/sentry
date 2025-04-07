@@ -11,6 +11,7 @@ import {
   type Configuration,
   type StepProps,
   StepTitles,
+  StepType,
   TabbedCodeSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -194,7 +195,7 @@ function OnboardingPanel({
               <Preview>
                 <BodyTitle>{t('Preview a Sentry Profile')}</BodyTitle>
                 <Arcade
-                  src="https://demo.arcade.software/eAXR59QVjx1gtFBdkUDw?embed"
+                  src="https://demo.arcade.software/BSKubAMPPaF4N5hujNbi?embed"
                   loading="lazy"
                   allowFullScreen
                 />
@@ -315,6 +316,13 @@ export function Onboarding() {
   const steps = [
     ...profilingDocs.install(docParams),
     ...profilingDocs.configure(docParams),
+    // TODO(aknaus): Move into snippets once all have profiling docs
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that profiling is working correctly by simply using your application.'
+      ),
+    },
   ];
 
   return (
