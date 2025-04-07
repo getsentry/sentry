@@ -73,29 +73,36 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     true
   );
 
+  const getFailureRateBadge = () => {
+    if (isFailureRateValuePending || isFailureRateValueError) {
+      return null;
+    }
+
+    const failureRateText = toPercent(failureRateValue[0]?.['failure_rate()'] ?? 0);
+    return (
+      <Tag key="failure-rate-value" type="error">
+        {failureRateText}
+      </Tag>
+    );
+  };
+
   if (isFailureRateSeriesPending || isFailureRateSeriesError) {
     return (
       <Widget
         Title={t('Failure Rate')}
+        TitleBadges={getFailureRateBadge()}
         Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
       />
     );
   }
 
-  const failureRateText = toPercent(failureRateValue[0]?.['failure_rate()'] ?? 0);
-
   const timeSeries = eapSeriesDataToTimeSeries(failureRateSeriesData);
   const plottables = timeSeries.map(series => new Line(series, {color: theme.red300}));
+
   return (
     <Widget
       Title={t('Failure Rate')}
-      TitleBadges={
-        (!isFailureRateValuePending || !isFailureRateValueError) && (
-          <Tag key="failure-rate-value" type="error">
-            {failureRateText}
-          </Tag>
-        )
-      }
+      TitleBadges={getFailureRateBadge()}
       Actions={
         <Widget.WidgetToolbar>
           <Widget.WidgetDescription
