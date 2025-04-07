@@ -67,9 +67,13 @@ export default function FlagDrawerContent({
     return searchedTags;
   }, [data, search, tagValues]);
 
-  // Suspect flag scoring
+  // Suspect flag scoring. This a rudimentary INTERNAL-ONLY display for testing our scoring algorithms.
   const organization = useOrganization();
   const {selection} = usePageFilters();
+
+  const showScores = organization.features.includes(
+    'organizations:suspect-scores-sandbox-ui'
+  );
 
   const {data: suspectScores} = useSuspectFlagScores({
     organization,
@@ -77,6 +81,7 @@ export default function FlagDrawerContent({
     environment: environments.length ? environments : undefined,
     start: selection.datetime.start?.toString(),
     end: selection.datetime.end?.toString(),
+    enabled: showScores,
   });
 
   const suspectScoresMap = useMemo(() => {
@@ -117,7 +122,9 @@ export default function FlagDrawerContent({
           <FlagDetailsLink tag={tag} key={tag.key}>
             <TagDistribution tag={tag} key={tag.key} />
           </FlagDetailsLink>
-          {`Suspicion Score: ${suspectScoresMap[tag.key] ?? 'unknown'}`}
+          {showScores && (
+            <div>{`Suspicion Score: ${suspectScoresMap[tag.key] ?? 'unknown'}`}</div>
+          )}
         </div>
       ))}
     </Container>

@@ -9,9 +9,11 @@ export function useSuspectFlagScores({
   statsPeriod,
   start,
   end,
+  enabled = true,
 }: {
   issue_id: string;
   organization: Organization;
+  enabled?: boolean;
   end?: string;
   environment?: string[] | string;
   start?: string;
@@ -27,7 +29,8 @@ export function useSuspectFlagScores({
   return useApiQuery<SuspectFlagScoresResponse>(
     [`/organizations/${organization.slug}/issues/${issue_id}/suspect/flags/`, {query}],
     {
-      staleTime: 0,
+      staleTime: 30000,
+      enabled,
     }
   );
 }
