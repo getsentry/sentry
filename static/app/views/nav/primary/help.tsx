@@ -133,7 +133,17 @@ export function PrimaryNavigationHelp() {
                   );
                 },
               },
-            ],
+              organization?.features?.includes('chonk-ui') && {
+                key: 'new-chonk-ui',
+                label: t('Switch to old UI theme'),
+                onAction() {
+                  mutateUserOptions({prefersChonkUI: false});
+                  trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
+                    organization,
+                  });
+                },
+              },
+            ].filter(n => !!n),
           },
         ]}
         analyticsKey="help"
