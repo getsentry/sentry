@@ -1,4 +1,9 @@
+import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+
+// Bypass the preflight request if the time range is less than 7 days
+const SMALL_TIME_RANGE_THRESHOLD = getDiffInMinutes({period: '7d'});
 
 export const SAMPLING_MODE = {
   PREFLIGHT: 'PREFLIGHT',
@@ -58,9 +63,13 @@ export function useProgressiveQuery<
   samplingMode?: SamplingMode;
 } {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const canUseProgressiveLoading = organization.features.includes(
     'visibility-explore-progressive-loading'
   );
+
+  // If the time range is small enough, just go directly to the best effort request
+  const isSmallRange = getDiffInMinutes(selection.datetime) < SMALL_TIME_RANGE_THRESHOLD;
 
   const singleQueryResult = queryHookImplementation({
     ...queryHookArgs,
@@ -70,7 +79,7 @@ export function useProgressiveQuery<
   const preflightRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: LOW_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled: queryHookArgs.enabled && canUseProgressiveLoading,
+    enabled: queryHookArgs.enabled && canUseProgressiveLoading && !isSmallRange,
   });
 
   const bestEffortRequest = queryHookImplementation({
@@ -79,7 +88,9 @@ export function useProgressiveQuery<
     enabled:
       queryHookArgs.enabled &&
       canUseProgressiveLoading &&
-      (queryMode === QUERY_MODE.PARALLEL || preflightRequest.result.isFetched),
+      (queryMode === QUERY_MODE.PARALLEL ||
+        preflightRequest.result.isFetched ||
+        isSmallRange),
   });
 
   if (!canUseProgressiveLoading) {
