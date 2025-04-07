@@ -13,6 +13,16 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
+    """
+    Endpoint for querying data for Next.js Insights. The goal here, feature-wise is to render a tree of files and
+    components for Next.js. The information about this is currently stored in the span.description field, and will
+    later be added to attributes via the Next.js SDK, where the path will be transmitted as an array. EAP will also
+    add a feature to store and query array data, which will enable us to more flexible query the data and "paginate"
+    per level of the tree. For now, we have to make due with the regex logic in this endpoint to enable the
+    functionality. As soon as we have the features in other parts of the system, this endpoint will be replaced by the
+     original /events/ endpoint and this endpoint will be deleted.
+    """
+
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
