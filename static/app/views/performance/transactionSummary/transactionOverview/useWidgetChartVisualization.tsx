@@ -1,11 +1,9 @@
 import {useTheme} from '@emotion/react';
 
-import type {DataUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -17,6 +15,7 @@ import {
 } from 'sentry/views/performance/transactionSummary/filter';
 import {transformData} from 'sentry/views/performance/transactionSummary/transactionOverview/durationPercentileChart/utils';
 import {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
+import {eapSeriesDataToTimeSeries} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import DurationPercentileChart from './durationPercentileChart/chart';
 
@@ -112,21 +111,7 @@ function useDurationBreakdownVisualization({
     return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
   }
 
-  const timeSeries: TimeSeries[] = [];
-  Object.entries(spanSeriesData).forEach(([key, value]) => {
-    timeSeries.push({
-      field: key,
-      meta: {
-        type: value.meta?.fields?.[key] ?? null,
-        unit: value.meta?.units?.[key] as DataUnit,
-      },
-      data:
-        value.data.map(item => ({
-          timestamp: item.name.toString(),
-          value: item.value,
-        })) ?? [],
-    });
-  });
+  const timeSeries = eapSeriesDataToTimeSeries(spanSeriesData);
 
   const plottables = timeSeries.map(series => new Area(series));
 
