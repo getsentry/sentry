@@ -44,6 +44,7 @@ import {SpanIndexedField} from 'sentry/views/insights/types';
 import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
 import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
 import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
+import {EAPSidebarCharts} from 'sentry/views/performance/transactionSummary/transactionOverview/eapSidebarCharts';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   makeVitalGroups,
@@ -333,14 +334,7 @@ function OTelSummaryContentInner({
           />
         )}
         <SidebarSpacer />
-        <SidebarCharts
-          organization={organization}
-          isLoading={isLoading}
-          error={error}
-          totals={totalValues}
-          eventView={eventView}
-          transactionName={transactionName}
-        />
+        <EAPSidebarCharts transactionName={transactionName} />
         <SidebarSpacer />
         <Tags
           generateUrl={generateTagUrl}
