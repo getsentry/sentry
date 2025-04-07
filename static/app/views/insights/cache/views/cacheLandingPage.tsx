@@ -192,7 +192,6 @@ export function CacheLandingPage() {
     })) || [];
 
   const meta = combineMeta(transactionsListMeta, transactionDurationMeta);
-
   addCustomMeta(meta);
 
   return (
@@ -280,8 +279,8 @@ const combineMeta = (
 const addCustomMeta = (meta?: EventsMetaType) => {
   if (meta?.fields) {
     meta.fields[`avg(${CACHE_ITEM_SIZE})`] = 'size';
+    meta.fields[`avg(span.duration)`] = 'duration';
     meta.units[`avg(${CACHE_ITEM_SIZE})`] = 'byte';
-    meta.units[`avg(span.duration)`] = 'duration';
   }
 
   if (meta?.units) {
