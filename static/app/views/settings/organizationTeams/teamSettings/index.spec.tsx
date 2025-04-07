@@ -19,11 +19,6 @@ describe('TeamSettings', function () {
   beforeEach(function () {
     TeamStore.reset();
     MockApiClient.clearMockResponses();
-    jest.spyOn(window.location, 'assign');
-  });
-
-  afterEach(function () {
-    jest.mocked(window.location.assign).mockRestore();
   });
 
   it('can change slug', async function () {

@@ -50,8 +50,6 @@ describe('IntegrationOrganizationLink', () => {
   });
 
   beforeEach(() => {
-    window.location.assign = jest.fn();
-
     MockApiClient.clearMockResponses();
     const org1Lite = pick(org1, ['slug', 'name', 'id']);
     const org2Lite = pick(org2, ['slug', 'name', 'id']);

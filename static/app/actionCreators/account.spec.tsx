@@ -4,7 +4,6 @@ import {logout} from './account';
 
 describe('logout', () => {
   it('has can logout', async function () {
-    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
     const mockApi = new MockApiClient();
     const mockApiDelete = MockApiClient.addMockResponse({
       url: '/auth/',

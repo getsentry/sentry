@@ -28,7 +28,6 @@ describe('OrganizationCrumb', function () {
     OrganizationsStore.load(organizations);
 
     initialData = ConfigStore.getState();
-    jest.mocked(window.location.assign).mockReset();
   });
 
   const switchOrganization = async () => {
