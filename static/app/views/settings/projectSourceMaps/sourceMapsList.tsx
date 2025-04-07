@@ -168,7 +168,6 @@ export function SourceMapsList({location, router, project}: Props) {
   return (
     <Fragment>
       <SettingsPageHeader title={t('Source Map Uploads')} />
-
       <TextBlock>
         {tct(
           `These source map archives help Sentry identify where to look when code is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].`,
@@ -179,7 +178,6 @@ export function SourceMapsList({location, router, project}: Props) {
           }
         )}
       </TextBlock>
-
       <SearchBarWithMarginBottom
         placeholder={t('Filter by Debug ID or Upload ID')}
         onSearch={handleSearch}
@@ -194,7 +192,6 @@ export function SourceMapsList({location, router, project}: Props) {
           deleteSourceMaps({bundleId: id, projectSlug: project.slug});
         }}
       />
-
       <Pagination pageLinks={headers?.('Link') ?? ''} />
     </Fragment>
   );

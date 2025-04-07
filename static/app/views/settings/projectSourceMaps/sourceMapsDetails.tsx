@@ -182,13 +182,6 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
     [router, location]
   );
 
-  // const tour = useMyTour();
-  // useContinueTour({
-  //   tour,
-  //   stepId: MyTour.PASSWORD,
-  //   isLoadingComplete: !debugIdBundlesArtifactsLoading,
-  // });
-
   return (
     <Fragment>
       <SettingsPageHeader
@@ -207,13 +200,11 @@ export function SourceMapsDetails({params, location, router, project}: Props) {
           <DebugIdBundleDetails debugIdBundle={debugIdBundlesArtifactsData} />
         </DetailsPanel>
       )}
-
       <SearchBarWithMarginBottom
         placeholder={isDebugIdBundle ? t('Filter by Path or ID') : t('Filter by Path')}
         onSearch={handleSearch}
         query={query}
       />
-
       <StyledPanelTable
         hasTypeColumn={isDebugIdBundle}
         headers={[
