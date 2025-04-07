@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.utils import metrics
@@ -19,7 +18,7 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
 
     if issue_occurrence is None:
         # TODO - @saponifi3d - check to see if there's a way to confirm these are for the error detector
-        detector = Detector.objects.get(project_id=evt.project_id, type=ErrorGroupType.slug)
+        detector = Detector.objects.get(project_id=evt.project_id, type=evt.group.issue_type.slug)
     else:
         detector = Detector.objects.get(id=issue_occurrence.evidence_data.get("detector_id", None))
 
