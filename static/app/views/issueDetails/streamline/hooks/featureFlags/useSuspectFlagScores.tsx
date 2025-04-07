@@ -10,10 +10,10 @@ export function useSuspectFlagScores({
   start,
   end,
 }: {
-  issue_id: number;
+  issue_id: string;
   organization: Organization;
   end?: string;
-  environment?: string;
+  environment?: string[] | string;
   start?: string;
   statsPeriod?: string;
 }) {

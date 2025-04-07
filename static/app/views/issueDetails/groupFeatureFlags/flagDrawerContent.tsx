@@ -5,6 +5,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
 import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
@@ -15,6 +17,7 @@ import {
   StyledEmptyStateWarning,
 } from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {useSuspectFlagScores} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useSuspectFlagScores';
 
 /**
  * Ordering for flags in the drawer.
@@ -64,6 +67,25 @@ export default function FlagDrawerContent({
     return searchedTags;
   }, [data, search, tagValues]);
 
+  // Suspect flag scoring
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
+  const {data: suspectScores} = useSuspectFlagScores({
+    organization,
+    issue_id: group.id,
+    environment: environments.length ? environments : undefined,
+    start: selection.datetime.start?.toString(),
+    end: selection.datetime.end?.toString(),
+  });
+
+  const suspectScoresMap = useMemo(() => {
+    return Object.fromEntries(
+      suspectScores?.data?.map(score => [score.flag, score.score]) ?? []
+    );
+  }, [suspectScores]);
+
+  // CTA logic
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === group.project.slug)!;
 
@@ -91,10 +113,11 @@ export default function FlagDrawerContent({
   ) : (
     <Container>
       {displayTags.map(tag => (
-        <div key={tag.name}>
-          <FlagDetailsLink tag={tag} key={tag.name}>
-            <TagDistribution tag={tag} key={tag.name} />
+        <div key={tag.key}>
+          <FlagDetailsLink tag={tag} key={tag.key}>
+            <TagDistribution tag={tag} key={tag.key} />
           </FlagDetailsLink>
+          {`Suspicion Score: ${suspectScoresMap[tag.key] ?? 'unknown'}`}
         </div>
       ))}
     </Container>
