@@ -41,6 +41,8 @@ invariant(react.configs.flat['jsx-runtime'], 'For typescript');
 export const typeAwareLintRules = {
   name: 'plugin/typescript-eslint/type-aware-linting',
   rules: {
+    '@typescript-eslint/await-thenable': 'error',
+    '@typescript-eslint/no-array-delete': 'error',
     '@typescript-eslint/no-unnecessary-type-assertion': 'error',
   },
 };
@@ -304,6 +306,12 @@ export default typescript.config([
             "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useProjects']",
           message:
             'Please do not mock useProjects. Use `ProjectsStore.loadInitialData([ProjectFixture()])` instead. It can be used before the component is mounted or in a beforeEach hook.',
+        },
+        {
+          selector:
+            "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useOrganization']",
+          message:
+            'Please do not mock useOrganization. Pass organization to the render options. `render(<Component />, {organization: OrganizationFixture({isSuperuser: true})})`',
         },
       ],
       'no-return-assign': 'error',

@@ -250,7 +250,7 @@ def query_error_counts(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.suspect.determine_cohort_size",
+        referrer="issues.suspect_flags.query_error_counts",
         use_cache=True,
     )
 

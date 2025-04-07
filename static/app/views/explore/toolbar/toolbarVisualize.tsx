@@ -47,7 +47,7 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
 
   const addChart = useCallback(() => {
     setVisualizes(
-      [...visualizes, {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE}],
+      [...visualizes, {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.BAR}],
       [DEFAULT_VISUALIZATION_FIELD]
     );
   }, [setVisualizes, visualizes]);
