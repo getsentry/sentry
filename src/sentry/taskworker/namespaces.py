@@ -28,6 +28,10 @@ hybridcloud_tasks = taskregistry.create_namespace("hybridcloud")
 
 hybridcloud_control_tasks = taskregistry.create_namespace("hybridcloud.control")
 
+notifications_tasks = taskregistry.create_namespace("notifications")
+
+notifications_control_tasks = taskregistry.create_namespace("notifications.control")
+
 integrations_tasks = taskregistry.create_namespace("integrations")
 
 integrations_control_tasks = taskregistry.create_namespace("integrations.control")
