@@ -329,6 +329,8 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 is_api_token=request.auth is not None,
             )
 
+            return Response(serialize(updated_rule, request.user))
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
