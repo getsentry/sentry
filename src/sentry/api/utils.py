@@ -9,7 +9,6 @@ from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Literal, overload
 
-import psycopg2.errorcodes
 import sentry_sdk
 from django.conf import settings
 from django.db.utils import OperationalError
@@ -426,15 +425,14 @@ def handle_query_errors() -> Generator[None]:
             sentry_sdk.capture_exception(error)
         raise APIException(detail=message)
     except OperationalError as error:
-        if hasattr(error, "pgcode") and error.pgcode == psycopg2.errorcodes.QUERY_CANCELED:
-            error_message = str(error)
-            is_timeout = "canceling statement due to statement timeout" in error_message
-            if is_timeout and options.get("api.postgres-query-timeout-error-handling.enabled"):
-                sentry_sdk.set_tag("query.error_reason", "Postgres statement timeout")
-                sentry_sdk.capture_exception(error, level="warning")
-                raise Throttled(
-                    detail="Query timeout. Please try with a smaller date range or fewer conditions."
-                )
+        error_message = str(error)
+        is_timeout = "canceling statement due to statement timeout" in error_message
+        if is_timeout and options.get("api.postgres-query-timeout-error-handling.enabled"):
+            sentry_sdk.set_tag("query.error_reason", "Postgres statement timeout")
+            sentry_sdk.capture_exception(error, level="warning")
+            raise Throttled(
+                detail="Query timeout. Please try with a smaller date range or fewer conditions."
+            )
         # Let other OperationalErrors propagate as normal
         raise
 

@@ -84,6 +84,9 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization", related_name="invite_set")
+    # SCIM provisioning requires that the OrganizationMember object exist. Until the user
+    # accepts their invite, the OrganizationMember is a placeholder and will not be surfaced via API.
+    organization_member = FlexibleForeignKey("sentry.OrganizationMember")
     inviter_id = HybridCloudForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -96,7 +99,7 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     )
     email = models.EmailField(max_length=75)
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
-    organization_member_team_data = models.JSONField(default=dict)
+    organization_member_team_data = models.JSONField(default=list)
     token = models.CharField(max_length=64, unique=True, default=generate_token)
     token_expires_at = models.DateTimeField(default=default_expiration)
 

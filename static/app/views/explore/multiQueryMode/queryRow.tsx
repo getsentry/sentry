@@ -77,6 +77,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     timeseriesResult,
     queryType: mode === Mode.AGGREGATE ? 'aggregate' : 'samples',
     interval,
+    isTopN: mode === Mode.AGGREGATE,
   });
 
   const tableIsProgressivelyLoading =

@@ -17,7 +17,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {DrawerTab} from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
+import {DrawerTab} from 'sentry/views/issueDetails/groupDistributionsDrawer';
 import {
   getFlagActionLabel,
   type RawFlag,

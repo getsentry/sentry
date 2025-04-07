@@ -64,4 +64,13 @@ describe('formatTooltipValue', () => {
       expect(formatTooltipValue(value, 'rate', unit)).toEqual(formattedValue);
     });
   });
+
+  describe('score', () => {
+    it.each([
+      [0, undefined, '0'],
+      [17.231, undefined, '17'],
+    ])('Formats %s as %s', (value, unit, formattedValue) => {
+      expect(formatTooltipValue(value, 'score', unit)).toEqual(formattedValue);
+    });
+  });
 });

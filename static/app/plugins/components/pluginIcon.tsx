@@ -76,7 +76,7 @@ export interface PluginIconProps extends React.RefAttributes<HTMLDivElement> {
   size?: number;
 }
 
-export default function PluginIcon({pluginId, size = 20, ref}: PluginIconProps) {
+export function PluginIcon({pluginId, size = 20, ref}: PluginIconProps) {
   return (
     <StyledPluginIcon size={size} pluginSrc={getPluginIconSource(pluginId)} ref={ref} />
   );

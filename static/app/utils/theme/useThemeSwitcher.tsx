@@ -1,6 +1,7 @@
 import {useLayoutEffect, useMemo} from 'react';
 import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 
+import {addMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -49,23 +50,19 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
   }, [config.theme, organization, previousTheme, setChonkTheme]);
 
   // Hotkey definition for toggling the current theme
-  const currentThemeHotkey = useMemo(
+  const darkModeHotkey = useMemo(
     () => ({
       match: ['command+shift+1', 'ctrl+shift+1'],
       includeInputs: true,
       callback: () => {
         removeBodyTheme();
-        ConfigStore.set(
-          'theme',
-          chonkTheme.theme === null
-            ? config.theme === 'dark'
-              ? 'light'
-              : 'dark'
-            : chonkTheme.theme === 'dark'
-              ? 'dark'
-              : 'light'
-        );
-        setChonkTheme({theme: null});
+        if (chonkTheme.theme) {
+          setChonkTheme({
+            theme: chonkTheme.theme === 'dark' ? 'light' : 'dark',
+          });
+        } else {
+          ConfigStore.set('theme', config.theme === 'dark' ? 'light' : 'dark');
+        }
       },
     }),
     [chonkTheme.theme, config.theme, setChonkTheme]
@@ -77,20 +74,18 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
       match: ['command+shift+2', 'ctrl+shift+2'],
       includeInputs: true,
       callback: () => {
-        removeBodyTheme();
-        setChonkTheme({
-          theme:
-            // A bit of extra logic to ensure that toggling from chonk to legacy and
-            // vice versa persists the current theme. This makes it easier to look for UI
-            // changes as we can quickly swap between light or dark themes.
-            chonkTheme.theme === null
-              ? config.theme === 'dark'
-                ? 'dark'
-                : 'light'
-              : chonkTheme.theme === 'dark'
-                ? 'light'
-                : 'dark',
-        });
+        if (chonkTheme.theme) {
+          addMessage(`Using default theme`, 'success');
+          ConfigStore.set('theme', chonkTheme.theme);
+          setChonkTheme({
+            theme: null,
+          });
+        } else {
+          addMessage(`Previewing new theme`, 'success');
+          setChonkTheme({
+            theme: config.theme,
+          });
+        }
       },
     }),
     [chonkTheme.theme, config.theme, setChonkTheme]
@@ -98,9 +93,9 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
 
   const themeToggleHotkeys = useMemo(() => {
     return organization?.features?.includes('chonk-ui')
-      ? [currentThemeHotkey, chonkThemeHotkey]
-      : [currentThemeHotkey];
-  }, [organization, chonkThemeHotkey, currentThemeHotkey]);
+      ? [darkModeHotkey, chonkThemeHotkey]
+      : [darkModeHotkey];
+  }, [organization, chonkThemeHotkey, darkModeHotkey]);
 
   useHotkeys(themeToggleHotkeys);
   return theme;

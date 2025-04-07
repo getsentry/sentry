@@ -28,6 +28,7 @@ from sentry.relocation.tasks.process import fulfill_cross_region_export_request,
 from sentry.relocation.tasks.transfer import process_relocation_transfer_control
 from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 from sentry.utils.db import atomic_transaction
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger("sentry.relocation")
 
@@ -123,6 +124,7 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
                     kind=RelocationFile.Kind.RAW_USER_DATA.value,
                 )
             except IntegrityError:
+                incr_rollback_metrics(RelocationFile)
                 # We already have the file, we can proceed.
                 pass
 

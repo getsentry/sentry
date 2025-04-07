@@ -14,6 +14,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
+import {featureFlagDrawerPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
@@ -52,7 +53,6 @@ import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
@@ -68,6 +68,7 @@ import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks
 import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/useGroupDistributionsDrawer';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   getGroupReprocessingStatus,
@@ -644,12 +645,12 @@ function GroupDetailsContent({
   event,
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
-  const hasFlagsDistributions = organization.features.includes(
-    'feature-flag-distribution-flyout'
-  );
-  const {openTagsDrawer} = useGroupTagsDrawer({
+  const includeFlagDistributions =
+    featureFlagDrawerPlatforms.includes(project.platform ?? 'other') &&
+    organization.features.includes('feature-flag-distribution-flyout');
+  const {openDistributionsDrawer} = useGroupDistributionsDrawer({
     group,
-    includeFeatureFlagsTab: hasFlagsDistributions,
+    includeFeatureFlagsTab: includeFlagDistributions,
   });
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
@@ -666,7 +667,8 @@ function GroupDetailsContent({
     }
 
     if (currentTab === Tab.DISTRIBUTIONS) {
-      openTagsDrawer();
+      // Tag and feature flag distributions.
+      openDistributionsDrawer();
     } else if (currentTab === Tab.SIMILAR_ISSUES) {
       openSimilarIssuesDrawer();
     } else if (currentTab === Tab.MERGED) {
@@ -678,7 +680,7 @@ function GroupDetailsContent({
     currentTab,
     hasStreamlinedUI,
     isDrawerOpen,
-    openTagsDrawer,
+    openDistributionsDrawer,
     openSimilarIssuesDrawer,
     openMergedIssuesDrawer,
     openIssueActivityDrawer,

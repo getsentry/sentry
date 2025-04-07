@@ -26,27 +26,30 @@ import {ModuleName} from 'sentry/views/insights/types';
 type Row = Pick<
   SpanMetricsResponse,
   | 'project.id'
-  | 'span.description'
+  | 'sentry.normalized_description'
   | 'span.group'
   | 'span.action'
-  | 'spm()'
+  | 'epm()'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
   | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
-  'span.description' | 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
+  | 'sentry.normalized_description'
+  | 'epm()'
+  | 'avg(span.self_time)'
+  | 'time_spent_percentage()'
 >;
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: 'span.description',
+    key: 'sentry.normalized_description',
     name: t('Query Description'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
+    key: 'epm()',
     name: `${t('Queries')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -62,10 +65,10 @@ const COLUMN_ORDER: Column[] = [
   },
 ];
 
-const SORTABLE_FIELDS = ['avg(span.self_time)', 'spm()', 'time_spent_percentage()'];
+const SORTABLE_FIELDS = ['avg(span.self_time)', 'epm()', 'time_spent_percentage()'];
 
 type ValidSort = Sort & {
-  field: 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()';
+  field: 'epm()' | 'avg(span.self_time)' | 'time_spent_percentage()';
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
@@ -151,11 +154,11 @@ function renderBodyCell(
   theme: Theme,
   system?: string
 ) {
-  if (column.key === 'span.description') {
+  if (column.key === 'sentry.normalized_description') {
     return (
       <SpanDescriptionCell
         moduleName={ModuleName.DB}
-        description={row['span.description']}
+        description={row['sentry.normalized_description']}
         group={row['span.group']}
         projectId={row['project.id']}
         system={system}
