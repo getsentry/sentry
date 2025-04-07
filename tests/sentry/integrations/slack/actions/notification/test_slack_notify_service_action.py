@@ -313,12 +313,15 @@ class TestInit(RuleTestCase):
             "status": 200,
         }
 
-        # Create a rule with a numeric ID for the test
-        rule = self.get_rule(data=self.action_data)
+        action_data = self.action_data.copy()
+        action_data["legacy_rule_id"] = "123"
+        rule = self.create_project_rule(project=self.project, action_data=[action_data])
         rule.id = self.action.id
         rule.environment_id = None
 
-        results = list(rule.after(event=self.event))
+        rule_cls_instance = self.get_rule(data=action_data)
+
+        results = list(rule_cls_instance.after(event=self.event))
         assert len(results) == 1
 
         results[0].callback(self.event, futures=[RuleFuture(rule=rule, kwargs={})])
@@ -352,11 +355,17 @@ class TestInit(RuleTestCase):
             "status": 200,
         }
 
-        rule = self.get_rule(data=self.action_data)
+        action_data = self.action_data.copy()
+        action_data["legacy_rule_id"] = "123"
+
+        rule_cls_instance = self.get_rule(data=action_data)
+
+        results = list(rule_cls_instance.after(event=self.event))
+        assert len(results) == 1
+
+        rule = self.create_project_rule(project=self.project, action_data=[action_data])
         rule.id = self.action.id
         rule.environment_id = None
-        results = list(rule.after(event=self.event))
-        assert len(results) == 1
 
         results[0].callback(self.event, futures=[RuleFuture(rule=rule, kwargs={})])
         blocks = mock_post.call_args.kwargs["blocks"]
@@ -364,7 +373,7 @@ class TestInit(RuleTestCase):
 
         assert (
             blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={self.action.id}&alert_type=issue|*Hello world*>"
+            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
         )
 
         assert NotificationMessage.objects.all().count() == 1
@@ -405,11 +414,17 @@ class TestInit(RuleTestCase):
             project_id=self.project.id,
         )
 
-        rule = self.get_rule(data=self.action_data)
+        action_data = self.action_data.copy()
+        action_data["legacy_rule_id"] = "123"
+
+        rule_cls_instance = self.get_rule(data=action_data)
+
+        results = list(rule_cls_instance.after(event=event))
+        assert len(results) == 1
+
+        rule = self.create_project_rule(project=self.project, action_data=[action_data])
         rule.id = self.action.id
         rule.environment_id = None
-        results = list(rule.after(event=event))
-        assert len(results) == 1
 
         results[0].callback(self.event, futures=[RuleFuture(rule=rule, kwargs={})])
         blocks = mock_post.call_args.kwargs["blocks"]
@@ -417,7 +432,7 @@ class TestInit(RuleTestCase):
 
         assert (
             blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={self.action.id}&alert_type=issue|*Hello world*>"
+            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
         )
 
         assert NotificationMessage.objects.all().count() == 2

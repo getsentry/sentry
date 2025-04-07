@@ -314,6 +314,7 @@ export const profiling: PlatformKey[] = [
   'javascript-tanstackstart-react',
   'javascript-vue',
   'node',
+  'node-awslambda',
   'node-azurefunctions',
   'node-connect',
   'node-express',
