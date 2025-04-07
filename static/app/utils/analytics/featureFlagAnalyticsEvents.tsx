@@ -15,8 +15,8 @@ export type FeatureFlagEventParameters = {
     direction: 'next' | 'prev';
   };
   'flags.setup_sidebar_provider_selected': {
-    platform: string;
     provider: string;
+    platform?: string;
   };
   'flags.sort_flags': {sortMethod: string};
   'flags.table_rendered': {

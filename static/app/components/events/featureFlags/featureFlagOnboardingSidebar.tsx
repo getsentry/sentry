@@ -249,7 +249,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                       setsdkProvider(value);
                       trackAnalytics('flags.setup_sidebar_provider_selected', {
                         organization,
-                        platform: currentProject.platform ?? 'unknown',
+                        platform: currentProject.platform,
                         provider: value.value,
                       });
                     }}
@@ -275,7 +275,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           if (value === 'generic') {
             trackAnalytics('flags.setup_sidebar_provider_selected', {
               organization,
-              platform: currentProject.platform ?? 'unknown',
+              platform: currentProject.platform,
               provider: sdkProvider.value,
             });
           }
