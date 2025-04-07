@@ -68,6 +68,7 @@ class _UserOptions(TypedDict):
     prefersIssueDetailsStreamlinedUI: bool | None
     prefersSpecializedProjectOverview: dict[str, bool]
     prefersStackedNavigation: bool
+    prefersChonkUI: bool
     quickStartDisplay: dict[str, int]
 
 
@@ -205,6 +206,7 @@ class UserSerializer(Serializer):
                     "prefers_specialized_project_overview", {}
                 ),
                 "prefersStackedNavigation": options.get("prefers_stacked_navigation", False),
+                "prefersChonkUI": options.get("prefers_chonk_ui", False),
                 "quickStartDisplay": options.get("quick_start_display") or {},
             }
 
