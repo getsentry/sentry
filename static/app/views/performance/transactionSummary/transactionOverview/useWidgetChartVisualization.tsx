@@ -1,7 +1,6 @@
 import {useTheme} from '@emotion/react';
 
 import type {DataUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -10,7 +9,7 @@ import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {
   filterToColor,
@@ -87,7 +86,7 @@ function useDurationBreakdownVisualization({
     data: spanSeriesData,
     isPending: isSpanSeriesPending,
     isError: isSpanSeriesError,
-  } = useSpanIndexedSeries(
+  } = useEAPSeries(
     {
       yAxis: [
         'avg(span.duration)',
@@ -102,9 +101,7 @@ function useDurationBreakdownVisualization({
       transformAliasToInputFormat: true,
       enabled,
     },
-
-    REFERRER,
-    DiscoverDatasets.SPANS_EAP
+    REFERRER
   );
 
   if (!enabled) {
