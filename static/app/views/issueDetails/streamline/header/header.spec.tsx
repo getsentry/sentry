@@ -25,7 +25,7 @@ jest.mock('sentry/views/issueDetails/utils', () => ({
 
 describe('StreamlinedGroupHeader', () => {
   const baseUrl = 'BASE_URL/';
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({streamlineOnly: null});
   const project = ProjectFixture({
     platform: 'javascript',
     teams: [TeamFixture()],
