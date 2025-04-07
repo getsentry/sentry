@@ -11,6 +11,8 @@ from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import uptime_tasks
 from sentry.uptime.detectors.ranking import (
     _get_cluster,
     delete_candidate_projects_for_org,
@@ -53,6 +55,10 @@ logger = logging.getLogger("sentry.uptime-url-autodetection")
     queue="uptime",
     time_limit=60,
     soft_time_limit=55,
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+        processing_deadline_duration=60,
+    ),
 )
 def schedule_detections():
     """
@@ -93,6 +99,9 @@ def schedule_detections():
 @instrumented_task(
     name="sentry.uptime.detectors.tasks.process_detection_bucket",
     queue="uptime",
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+    ),
 )
 def process_detection_bucket(bucket: datetime.datetime):
     """
