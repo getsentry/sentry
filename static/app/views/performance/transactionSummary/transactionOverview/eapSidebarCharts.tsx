@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
@@ -5,6 +6,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
@@ -39,6 +41,7 @@ type FailureRateWidgetProps = {
 
 function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
   const organization = useOrganization();
+  const theme = useTheme();
 
   const {
     data: failureRateData,
@@ -62,7 +65,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
   }
 
   const timeSeries = eapSeriesDataToTimeSeries(failureRateData);
-
+  const plottables = timeSeries.map(series => new Line(series, {color: theme.red300}));
   return (
     <Widget
       Title={t('Failure Rate')}
@@ -74,6 +77,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
           />
         </Widget.WidgetToolbar>
       }
+      Visualization={<TimeSeriesWidgetVisualization plottables={plottables} />}
     />
   );
 }
