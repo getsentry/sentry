@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -219,6 +220,10 @@ function SchemaHintsList({
             {
               ariaLabel: t('Schema Hints Drawer'),
               drawerWidth: SCHEMA_HINTS_DRAWER_WIDTH,
+              resizable: false,
+              drawerCss: css`
+                height: calc(100% - ${space(4)});
+              `,
               transitionProps: {
                 key: 'schema-hints-drawer',
                 type: 'tween',
@@ -394,7 +399,7 @@ const SchemaHintOption = styled(Button)`
   }
 `;
 
-export const SchemaHintsSection = styled('div')<{withSchemaHintsDrawer: boolean}>`
+export const SchemaHintsSection = styled('div')`
   display: grid;
   /* This is to ensure the hints section spans all the columns */
   grid-column: 1/-1;
@@ -403,8 +408,7 @@ export const SchemaHintsSection = styled('div')<{withSchemaHintsDrawer: boolean}
   height: fit-content;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 1fr ${p =>
-        p.withSchemaHintsDrawer ? SCHEMA_HINTS_DRAWER_WIDTH : '0px'};
+    grid-template-columns: 1fr;
     margin-bottom: 0;
     margin-top: 0;
   }

@@ -24,9 +24,23 @@ demomode_tasks = taskregistry.create_namespace("demomode")
 
 digests_tasks = taskregistry.create_namespace("digests")
 
+hybridcloud_tasks = taskregistry.create_namespace("hybridcloud")
+
+hybridcloud_control_tasks = taskregistry.create_namespace("hybridcloud.control")
+
+notifications_tasks = taskregistry.create_namespace("notifications")
+
+notifications_control_tasks = taskregistry.create_namespace("notifications.control")
+
+integrations_tasks = taskregistry.create_namespace("integrations")
+
+integrations_control_tasks = taskregistry.create_namespace("integrations.control")
+
 options_tasks = taskregistry.create_namespace("options")
 
 options_control_tasks = taskregistry.create_namespace("options.control")
+
+replays_tasks = taskregistry.create_namespace("replays")
 
 sdk_tasks = taskregistry.create_namespace("sdk")
 
@@ -35,6 +49,8 @@ sdk_control_tasks = taskregistry.create_namespace("sdk.control")
 selfhosted_tasks = taskregistry.create_namespace("selfhosted")
 
 tempest_tasks = taskregistry.create_namespace("tempest")
+
+uptime_tasks = taskregistry.create_namespace("uptime")
 
 
 # Namespaces for testing taskworker tasks

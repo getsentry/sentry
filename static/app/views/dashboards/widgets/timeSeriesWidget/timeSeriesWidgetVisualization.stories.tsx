@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
@@ -564,14 +564,44 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
+  story('Click Events', () => {
+    const [sampleId, setSampleId] = useState<string>();
+
+    const samplesPlottable = useMemo(() => {
+      return new Samples(shiftedSpanSamples, {
+        alias: 'Span Samples',
+        attributeName: 'p99(span.duration)',
+        baselineValue: 175,
+        baselineLabel: 'Average',
+        onClick: row => {
+          setSampleId(row.id);
+        },
+      });
+    }, []);
+
+    return (
+      <Fragment>
+        <p>
+          You can respond to chart click events by passing the <code>onClick</code>{' '}
+          configuration option, if it's supported by the relevant plottable. Right now,
+          only the <code>Samples</code> plottable supports this configuration option.
+        </p>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization plottables={[samplesPlottable]} />
+
+          <p>Clicked sample ID: {sampleId}</p>
+        </MediumWidget>
+      </Fragment>
+    );
+  });
+
   story('Highlighting', () => {
     const [sampleId, setSampleId] = useState<string>();
 
-    const aggregatePlottable = useMemo(() => {
-      return new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
-        delay: 1800,
-      });
-    }, []);
+    const aggregatePlottable = new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
+      delay: 1800,
+    });
 
     const samplesPlottable = useMemo(() => {
       return new Samples(shiftedSpanSamples, {
@@ -585,9 +615,18 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       });
     }, []);
 
-    const plottables = useMemo(() => {
-      return [aggregatePlottable, samplesPlottable];
-    }, [aggregatePlottable, samplesPlottable]);
+    // Synchronize the highlighted sample ID state with ECharts by dispatching a
+    // "highlight" event whenever the highlighted ID changes. Storing the highlighted
+    // ID in the state prevents the highlight from getting cleared on re-render.
+    useEffect(() => {
+      samplesPlottable.highlight(undefined);
+
+      const sample = shiftedSpanSamples.data.find(datum => datum.id === sampleId);
+
+      if (sample) {
+        samplesPlottable.highlight(sample);
+      }
+    }, [sampleId, samplesPlottable]);
 
     return (
       <Fragment>
@@ -611,21 +650,21 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         <Button
           size="sm"
           onClick={() => {
-            samplesPlottable.highlight(undefined);
-
             const sample = shuffle(shiftedSpanSamples.data).at(0) as {
               id: string;
               timestamp: string;
             };
 
-            samplesPlottable.highlight(sample);
+            setSampleId(sample.id);
           }}
         >
           Highlight Random Sample
         </Button>
 
         <MediumWidget>
-          <TimeSeriesWidgetVisualization plottables={plottables} />
+          <TimeSeriesWidgetVisualization
+            plottables={[aggregatePlottable, samplesPlottable]}
+          />
 
           <p>Highlighted sample ID: {sampleId}</p>
         </MediumWidget>

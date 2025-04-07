@@ -1,6 +1,3 @@
-from functools import reduce
-from operator import or_
-
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from rest_framework import serializers, status
@@ -12,7 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.paginator import OffsetPaginator, SequencePaginator
+from sentry.api.paginator import ChainPaginator, OffsetPaginator, SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer
 from sentry.api.serializers.rest_framework.groupsearchview import (
@@ -37,8 +34,8 @@ class MemberPermission(OrganizationPermission):
 
 
 class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
-    visibility = serializers.MultipleChoiceField(
-        choices=GroupSearchViewVisibility.as_choices(),
+    createdBy = serializers.ChoiceField(
+        choices=("me", "others"),
         required=False,
     )
 
@@ -69,7 +66,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         serializer = OrganizationGroupSearchViewGetSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         query = GroupSearchView.objects.filter(
             organization=organization, user_id=request.user.id
@@ -91,6 +88,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                                     if has_global_views
                                     else [pick_default_project(organization, request.user)]
                                 ),
+                                "starred": False,
                             },
                         )
                         for idx, view in enumerate(DEFAULT_VIEWS)
@@ -98,6 +96,10 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 ),
                 on_results=lambda results: serialize(results, request.user),
             )
+
+        starred_view_ids = GroupSearchViewStarred.objects.filter(
+            organization=organization, user_id=request.user.id
+        ).values_list("group_search_view_id", flat=True)
 
         default_project = None
         if not has_global_views:
@@ -108,31 +110,54 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     data={"detail": "You do not have access to any projects."},
                 )
 
-        visibility = serializer.validated_data.get("visibility")
-        if visibility:
-            org_query = GroupSearchView.objects.filter(
-                organization=organization,
-                visibility=GroupSearchViewVisibility.ORGANIZATION,
-            ).prefetch_related("projects")
-
-            owner_query = GroupSearchView.objects.filter(
-                organization=organization,
-                user_id=request.user.id,
-                visibility=GroupSearchViewVisibility.OWNER,
-            ).prefetch_related("projects")
-
-            param_query_map = {
-                GroupSearchViewVisibility.ORGANIZATION: org_query,
-                GroupSearchViewVisibility.OWNER: owner_query,
-            }
-
-            query_list = [param_query_map[v] for v in visibility]
-            query = reduce(or_, query_list)
+        createdBy = serializer.validated_data.get("createdBy")
+        if createdBy:
+            # TODO(msun): add support for different sorting
+            if createdBy == "me":
+                starred_query = (
+                    GroupSearchView.objects.filter(
+                        organization=organization,
+                        user_id=request.user.id,
+                        id__in=starred_view_ids,
+                    )
+                    .prefetch_related("projects")
+                    .order_by("name")
+                )
+                non_starred_query = (
+                    GroupSearchView.objects.filter(
+                        organization=organization,
+                        user_id=request.user.id,
+                    )
+                    .exclude(id__in=starred_view_ids)
+                    .prefetch_related("projects")
+                    .order_by("name")
+                )
+            elif createdBy == "others":
+                starred_query = (
+                    GroupSearchView.objects.filter(
+                        organization=organization,
+                        visibility=GroupSearchViewVisibility.ORGANIZATION,
+                        id__in=starred_view_ids,
+                    )
+                    .exclude(user_id=request.user.id)
+                    .prefetch_related("projects")
+                    .order_by("name")
+                )
+                non_starred_query = (
+                    GroupSearchView.objects.filter(
+                        organization=organization,
+                        visibility=GroupSearchViewVisibility.ORGANIZATION,
+                    )
+                    .exclude(user_id=request.user.id)
+                    .exclude(id__in=starred_view_ids)
+                    .prefetch_related("projects")
+                    .order_by("name")
+                )
 
             return self.paginate(
                 request=request,
-                queryset=query,
-                order_by="id",
+                sources=[starred_query, non_starred_query],
+                paginator_cls=ChainPaginator,
                 on_results=lambda x: serialize(
                     x,
                     request.user,
@@ -143,10 +168,6 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     ),
                 ),
             )
-
-        starred_view_ids = GroupSearchViewStarred.objects.filter(
-            organization=organization, user_id=request.user.id
-        ).values_list("group_search_view_id", flat=True)
 
         user_starred_views = (
             GroupSearchView.objects.filter(id__in=starred_view_ids)

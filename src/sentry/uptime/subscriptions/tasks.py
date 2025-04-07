@@ -9,6 +9,9 @@ from sentry_kafka_schemas.schema_types.uptime_configs_v1 import CheckConfig
 
 from sentry.snuba.models import QuerySubscription
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import uptime_tasks
+from sentry.taskworker.retry import Retry
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
@@ -33,6 +36,12 @@ BROKEN_MONITOR_AGE_LIMIT = timedelta(days=7)
     queue="uptime",
     default_retry_delay=5,
     max_retries=5,
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     try:
@@ -59,6 +68,12 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     queue="uptime",
     default_retry_delay=5,
     max_retries=5,
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     """
@@ -86,6 +101,12 @@ def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     queue="uptime",
     default_retry_delay=5,
     max_retries=5,
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 def delete_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     try:
@@ -157,6 +178,9 @@ def send_uptime_config_deletion(destination_region_slug: str, subscription_id: s
 @instrumented_task(
     name="sentry.uptime.tasks.subscription_checker",
     queue="uptime",
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+    ),
 )
 def subscription_checker(**kwargs):
     """
