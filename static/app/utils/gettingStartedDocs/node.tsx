@@ -249,6 +249,8 @@ export const getNodeProfilingOnboarding = ({
               value: 'javascript',
               language: 'javascript',
               code: `
+const { nodeProfilingIntegration } = require("@sentry/profiling-node");
+
 Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
