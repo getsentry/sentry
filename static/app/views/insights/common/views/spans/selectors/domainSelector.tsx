@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useState} from 'react';
-import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
@@ -7,8 +6,6 @@ import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSe
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
-import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -54,13 +51,20 @@ export function DomainSelector({
     []
   );
 
-  const eventView = getEventView(
-    location,
-    moduleName,
-    spanCategory,
-    searchQuery,
-    additionalQuery
-  );
+  const query = [
+    ...buildEventViewQuery({
+      moduleName,
+      location: {
+        ...location,
+        query: omit(location.query, ['span.action', 'span.domain']),
+      },
+      spanCategory,
+    }),
+    ...(searchQuery && searchQuery.length > 0
+      ? [`${SpanMetricsField.SPAN_DOMAIN}:*${[searchQuery]}*`]
+      : []),
+    ...(additionalQuery || []),
+  ].join(' ');
 
   const {
     data: domainData,
@@ -69,7 +73,7 @@ export function DomainSelector({
   } = useSpanMetrics(
     {
       limit: LIMIT,
-      search: eventView.query,
+      search: query,
       sorts: [{field: 'count()', kind: 'desc'}],
       fields: [SpanMetricsField.SPAN_DOMAIN, 'count()'],
     },
@@ -164,37 +168,3 @@ export function DomainSelector({
 }
 
 const LIMIT = 100;
-
-function getEventView(
-  location: Location,
-  moduleName: ModuleName,
-  spanCategory?: string,
-  search?: string,
-  additionalQuery?: string[]
-) {
-  const query = [
-    ...buildEventViewQuery({
-      moduleName,
-      location: {
-        ...location,
-        query: omit(location.query, ['span.action', 'span.domain']),
-      },
-      spanCategory,
-    }),
-    ...(search && search.length > 0
-      ? [`${SpanMetricsField.SPAN_DOMAIN}:*${[search]}*`]
-      : []),
-    ...(additionalQuery || []),
-  ].join(' ');
-  return EventView.fromNewQueryWithLocation(
-    {
-      name: '',
-      fields: [SpanMetricsField.SPAN_DOMAIN, 'count()'],
-      orderby: '-count',
-      query,
-      dataset: DiscoverDatasets.SPANS_METRICS,
-      version: 2,
-    },
-    location
-  );
-}
