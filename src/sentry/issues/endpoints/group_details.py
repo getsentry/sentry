@@ -55,7 +55,7 @@ OPEN_PERIOD_LIMIT = 50
 
 def get_group_global_count(group: Group) -> str:
     fetch_buffered_group_stats(group)
-    return str(group.times_seen_with_pending)
+    return group.times_seen_with_pending
 
 
 @region_silo_endpoint
@@ -270,7 +270,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
-                    "count": get_group_global_count(group),
+                    "totalCount": get_group_global_count(group),
                 }
             )
 
