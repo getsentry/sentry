@@ -1,4 +1,5 @@
 import {Fragment, type ReactElement, useCallback, useContext, useRef} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
@@ -16,20 +17,16 @@ import {
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import type {ChartRendererProps} from 'sentry/views/releases/releaseBubbles/types';
-
-type ChartRenderer = (props: ChartRendererProps) => ReactElement;
 import {ReleasesDrawerContext} from 'sentry/views/releases/drawer/releasesDrawerContext';
+import type {ChartRendererProps} from 'sentry/views/releases/releaseBubbles/types';
 
 import {ReleaseDrawerTable} from './releasesDrawerTable';
 
 interface ReleasesDrawerListProps {
-  charts: Record<string, ChartRenderer>;
   endTs: number;
   environments: readonly string[];
   projects: readonly number[];
@@ -102,9 +99,9 @@ export function ReleasesDrawerList({
   endTs,
   projects,
   environments,
-  charts,
 }: ReleasesDrawerListProps) {
-  const location = useLocation();
+  const [params] = useSearchParams();
+
   const start = new Date(startTs);
   const end = new Date(endTs);
   const pageFilters = usePageFilters();
@@ -148,8 +145,7 @@ export function ReleasesDrawerList({
       label: t('Releases'),
     },
   ];
-  // const chartRenderer = charts.get(String(location.query.rdChartId));
-  const chartRenderer = getChart(String(location.query.rdChartId));
+  const chartRenderer = getChart(String(params.get('rdChartId')));
 
   return (
     <EventDrawerContainer>
