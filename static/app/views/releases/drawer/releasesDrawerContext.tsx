@@ -17,7 +17,6 @@ export function ReleasesDrawerProvider({children}: {children: ReactElement}) {
 
   const registerChart = useCallback(
     (id: string, chartRenderer: ChartRenderer) => {
-      console.log('registering chart in provider: ', id);
       chartMapRef.current.set(id, chartRenderer);
     },
     [chartMapRef]
