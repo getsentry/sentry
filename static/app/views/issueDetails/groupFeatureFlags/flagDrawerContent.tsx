@@ -10,13 +10,13 @@ import useProjects from 'sentry/utils/useProjects';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
 import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
+import {useGroupSuspectFlagScores} from 'sentry/views/issueDetails/groupFeatureFlags/useGroupSuspectFlagScores';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {
   Container,
   StyledEmptyStateWarning,
 } from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {useSuspectFlagScores} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useSuspectFlagScores';
 
 /**
  * Ordering for flags in the drawer.
@@ -72,8 +72,8 @@ export default function FlagDrawerContent({
     'organizations:suspect-scores-sandbox-ui'
   );
 
-  const {data: suspectScores} = useSuspectFlagScores({
-    group,
+  const {data: suspectScores} = useGroupSuspectFlagScores({
+    groupId: group.id,
     environment: environments.length ? environments : undefined,
     enabled: showScores,
   });

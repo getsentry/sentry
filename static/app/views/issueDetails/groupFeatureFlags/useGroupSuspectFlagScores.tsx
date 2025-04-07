@@ -1,26 +1,27 @@
-import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {SuspectFlagScore} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
 
 /**
  * Query all feature flags and their scores for a given issue. Defaults to page filters for datetime and environment params.
  */
-export function useSuspectFlagScores({
-  group,
+export function useGroupSuspectFlagScores({
+  groupId,
   environment,
   statsPeriod,
   start,
   end,
   enabled = true,
 }: {
-  group: Group;
+  groupId: string;
   enabled?: boolean;
   end?: string;
   environment?: string[] | string;
   start?: string;
   statsPeriod?: string;
 }) {
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const query = {
     environment: environment ?? selection.environments,
@@ -30,10 +31,7 @@ export function useSuspectFlagScores({
   };
 
   return useApiQuery<SuspectFlagScoresResponse>(
-    [
-      `/organizations/${group.project.organization.slug}/issues/${group.id}/suspect/flags/`,
-      {query},
-    ],
+    [`/organizations/${organization.slug}/issues/${groupId}/suspect/flags/`, {query}],
     {
       staleTime: 30000,
       enabled,
