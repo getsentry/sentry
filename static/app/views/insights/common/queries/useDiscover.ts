@@ -3,10 +3,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   EAPSpanProperty,
   EAPSpanResponse,
@@ -77,8 +77,7 @@ export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
-  const location = useLocation();
-  const useEap = location.query?.useEap === '1';
+  const useEap = useInsightsEap();
   return useDiscover<Fields, SpanMetricsResponse>(
     options,
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
@@ -90,8 +89,7 @@ export const useMetrics = <Fields extends MetricsProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
-  const location = useLocation();
-  const useEap = location.query?.useEap === '1';
+  const useEap = useInsightsEap();
   return useDiscover<Fields, MetricsResponse>(
     options,
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
