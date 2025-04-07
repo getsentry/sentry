@@ -242,6 +242,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-issues-dev", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Temporary flag to test search performance that's running slow in S4S
     manager.add("organizations:performance-issues-search", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
+    # Detect performance issues in the new standalone spans pipeline instead of on transactions
+    manager.add("organizations:performance-issues-spans", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=False)
     # Enable consecutive http performance issue type
     manager.add("organizations:performance-large-http-payload-detector", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable internal view for bannerless MEP view
