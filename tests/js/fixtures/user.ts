@@ -15,7 +15,7 @@ export function UserFixture(params: Partial<User> = {}): User {
       defaultIssueEvent: 'recommended',
       avatarType: 'letter_avatar',
       stacktraceOrder: -1,
-      prefersIssueDetailsStreamlinedUI: false,
+      prefersIssueDetailsStreamlinedUI: true,
       prefersSpecializedProjectOverview: {},
       prefersStackedNavigation: false,
       prefersChonkUI: false,
