@@ -41,7 +41,7 @@ import {
 
 import {
   DetailsBody,
-  DetailsGrid,
+  DetailsContent,
   DetailsWrapper,
   getLogColors,
   LogDetailPanelItem,
@@ -258,8 +258,8 @@ function LogRowDetails({
           {isPending && <LoadingIndicator />}
           {!isPending && data && (
             <Fragment>
-              <DetailsGrid>
-                <DetailsBody logColors={logColors}>
+              <DetailsContent>
+                <DetailsBody>
                   {LogBodyRenderer({
                     item: getLogRowItem(OurLogKnownFieldKey.BODY, dataRow, meta),
                     extra: {
@@ -284,7 +284,7 @@ function LogRowDetails({
                     }}
                   />
                 </LogDetailPanelItem>
-              </DetailsGrid>
+              </DetailsContent>
             </Fragment>
           )}
         </LogDetailTableBodyCell>

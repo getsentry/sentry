@@ -108,11 +108,10 @@ export const DetailsWrapper = styled('div')`
   z-index: ${2 /* place above the grid resizing lines */};
 `;
 
-export const DetailsGrid = styled(StyledPanel)`
-  display: grid;
-  grid-template-columns: 1fr;
+export const DetailsContent = styled(StyledPanel)`
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  gap: ${space(1)} ${space(2)};
   padding: ${space(1)} ${space(2)};
 `;
 
@@ -127,9 +126,7 @@ export const LogFirstCellContent = styled('div')`
   align-items: center;
 `;
 
-export const DetailsBody = styled(LogDetailPanelItem)<{
-  logColors: ReturnType<typeof getLogColors>;
-}>`
+export const DetailsBody = styled(LogDetailPanelItem)`
   padding: ${space(1)} 0;
   font-family: ${p => p.theme.text.familyMono};
 `;
