@@ -4,7 +4,6 @@ from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.notifications.notification_action.exceptions import NotificationHandlerException
 from sentry.notifications.notification_action.registry import (
     group_type_notification_registry,
     metric_alert_handler_registry,
@@ -31,12 +30,12 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
                 extra={"action_id": action.id},
             )
             raise
-        except Exception as e:
+        except Exception:
             logger.exception(
                 "Error invoking metric alert handler",
                 extra={"action_id": action.id},
             )
-            raise NotificationHandlerException(e)
+            raise
 
     @staticmethod
     def target(action: Action) -> OrganizationMember | Team | str | None:
