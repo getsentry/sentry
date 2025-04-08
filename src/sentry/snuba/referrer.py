@@ -638,6 +638,18 @@ class Referrer(StrEnum):
         "api.performance.span-summary-transaction-throughput-chart"
     )
 
+    # Performance Backend Laravel Overview Page
+    API_PERFORMANCE_BACKEND_LARAVEL_REQUESTS_CHART = (
+        "api.performance.backend.laravel.requests-chart"
+    )
+    API_PERFORMANCE_BACKEND_LARAVEL_DURATION_CHART = (
+        "api.performance.backend.laravel.duration-chart"
+    )
+    API_PERFORMANCE_BACKEND_LARAVEL_JOBS_CHART = "api.performance.backend.laravel.jobs-chart"
+    API_PERFORMANCE_BACKEND_LARAVEL_QUERIES_CHART = "api.performance.backend.laravel.queries-chart"
+    API_PERFORMANCE_BACKEND_LARAVEL_CACHE_CHART = "api.performance.backend.laravel.cache-chart"
+    API_PERFORMANCE_BACKEND_LARAVEL_PATHS_TABLE = "api.performance.backend.laravel.paths-table"
+
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
