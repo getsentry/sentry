@@ -2,13 +2,7 @@ import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
-import {
-  cleanup,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ModalBody} from 'sentry/components/globalModal/components';
 
@@ -65,8 +59,6 @@ describe('InvoiceDetails > Payment Form', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, {});
-    // This should happen automatically, but isn't.
-    cleanup();
   });
 
   const modalDummy = ({children}: {children?: ReactNode}) => <div>{children}</div>;

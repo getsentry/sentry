@@ -7,7 +7,6 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  cleanup,
   render,
   renderGlobalModal,
   screen,
@@ -731,8 +730,7 @@ describe('OrganizationMemberDetail', function () {
           organization,
           router: {params: {memberId: testMember.id}},
         });
-        cleanup();
-        render(<OrganizationMemberDetail />, {
+        const {unmount} = render(<OrganizationMemberDetail />, {
           router,
           organization,
         });
@@ -750,6 +748,7 @@ describe('OrganizationMemberDetail', function () {
         // Dropdown cannot be opened
         await selectEvent.openMenu(teamRoleSelect);
         expect(screen.queryAllByText('...')).toHaveLength(0);
+        unmount();
       }
 
       for (const role of [admin, manager, owner]) {

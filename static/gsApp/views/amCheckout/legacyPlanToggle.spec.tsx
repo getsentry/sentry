@@ -2,12 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {PlanMigrationFixture} from 'getsentry-test/fixtures/planMigration';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {
-  cleanup,
-  render,
-  screen,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {CohortId} from 'getsentry/types';
@@ -17,16 +12,12 @@ describe('LegacyPlanToggle', function () {
   const organization = OrganizationFixture();
 
   beforeEach(function () {
+    SubscriptionStore.set(organization.slug, {});
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
       body: [],
     });
-  });
-
-  afterEach(function () {
-    cleanup();
-    SubscriptionStore.set(organization.slug, {});
-    MockApiClient.clearMockResponses();
   });
 
   describe('AMCheckout', function () {
