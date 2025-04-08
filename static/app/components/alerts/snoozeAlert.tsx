@@ -152,7 +152,7 @@ function SnoozeAlert({
     },
   ];
 
-  const hasDropdown = dropdownItems.filter(item => !item.hidden).length > 0;
+  const hasDropdown = dropdownItems.some(item => !item.hidden);
 
   if (isSnoozed) {
     return (

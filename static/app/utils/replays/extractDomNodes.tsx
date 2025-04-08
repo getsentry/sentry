@@ -14,7 +14,7 @@ export type Extraction = {
 const extractDomNodes = {
   shouldVisitFrame: (frame: any) => {
     const nodeIds = getNodeIds(frame);
-    return nodeIds.filter((nodeId: any) => nodeId !== -1).length > 0;
+    return nodeIds.some((nodeId: any) => nodeId !== -1);
   },
   onVisitFrame: (frame: any, collection: any, replayer: any) => {
     const mirror = replayer.getMirror();

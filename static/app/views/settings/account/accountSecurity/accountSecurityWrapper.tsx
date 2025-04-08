@@ -96,7 +96,7 @@ function AccountSecurityWrapper({children}: Props) {
   const countEnrolled = enrolled.length;
   const orgsRequire2fa = organizations.filter(org => org.require2FA) || [];
   const deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
-  const hasVerifiedEmail = !!emails.find(({isVerified}) => isVerified);
+  const hasVerifiedEmail = emails.some(({isVerified}) => isVerified);
 
   // This happens when you switch between children views and the next child
   // view is lazy loaded, it can potentially be `null` while the code split

@@ -43,7 +43,7 @@ export function useSystemSelectorOptions() {
   });
 
   // Edge case: Invalid DB system was retrieved from localStorage
-  if (!options.find(option => selectedSystem === option.value) && options.length > 0) {
+  if (!options.some(option => selectedSystem === option.value) && options.length > 0) {
     setSelectedSystem(options[0]!.value);
   }
 

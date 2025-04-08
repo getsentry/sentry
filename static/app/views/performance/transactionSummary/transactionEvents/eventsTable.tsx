@@ -449,9 +449,9 @@ class EventsTable extends Component<Props, State> {
     totalEventsView.fields = [{field: 'count()', width: -1}];
 
     const {widths} = this.state;
-    const containsSpanOpsBreakdown = !!eventView
+    const containsSpanOpsBreakdown = eventView
       .getColumns()
-      .find(
+      .some(
         (col: TableColumn<string | number>) =>
           col.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
       );

@@ -264,9 +264,9 @@ export function getMetricAlertChartOption(
         const timeWindowMs = rule.timeWindow * 60 * 1000;
         const incidentColor =
           warningTrigger &&
-          !statusChanges.find(({value}) => Number(value) === IncidentStatus.CRITICAL)
-            ? theme.yellow300
-            : theme.red300;
+          statusChanges.some(({value}) => Number(value) === IncidentStatus.CRITICAL)
+            ? theme.red300
+            : theme.yellow300;
 
         const incidentStartDate = new Date(incident.dateStarted).getTime();
         const incidentCloseDate = incident.dateClosed

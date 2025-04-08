@@ -277,9 +277,9 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
   };
 
   if (
-    errorMessages.filter(
+    errorMessages.some(
       error => error.type === SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS
-    ).length > 0
+    )
   ) {
     return <SourceMapsWizard analyticsParams={analyticsParams} />;
   }

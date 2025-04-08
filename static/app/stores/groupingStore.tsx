@@ -19,11 +19,8 @@ import type {StrictStoreDefinition} from './types';
 // Between 0-100
 const MIN_SCORE = 0.6;
 
-// @param score: {[key: string]: number}
-const checkBelowThreshold = (scores = {}) => {
-  const scoreKeys = Object.keys(scores);
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return !scoreKeys.map(key => scores[key]).find(score => score >= MIN_SCORE);
+const checkBelowThreshold = (scores: ScoreMap = {}) => {
+  return !Object.values(scores).some(score => Number(score) >= MIN_SCORE);
 };
 
 type State = {
@@ -347,9 +344,8 @@ const storeConfig: GroupingStoreDefinition = {
         // List of scores indexed by interface (i.e., exception and message)
         // Note: for v2, the interface is always "similarity". When v2 is
         // rolled out we can get rid of this grouping entirely.
-        const scoresByInterface = Object.keys(scoreMap)
-          .map(scoreKey => [scoreKey, scoreMap[scoreKey]])
-          .reduce((acc, [scoreKey, score]) => {
+        const scoresByInterface = Object.entries(scoreMap).reduce(
+          (acc, [scoreKey, score]) => {
             // v1 layout: '<interface>:...'
             const [interfaceName] = String(scoreKey).split(':') as [string];
 
@@ -362,13 +358,13 @@ const storeConfig: GroupingStoreDefinition = {
             acc[interfaceName].push([scoreKey, score]);
 
             return acc;
-          }, {});
+          },
+          {}
+        );
 
         // Aggregate score by interface
-        const aggregate = Object.keys(scoresByInterface)
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          .map(interfaceName => [interfaceName, scoresByInterface[interfaceName]])
-          .reduce((acc, [interfaceName, allScores]) => {
+        const aggregate = Object.entries(scoresByInterface).reduce(
+          (acc, [interfaceName, allScores]) => {
             // `null` scores means feature was not present in both issues, do not
             // include in aggregate
             // @ts-expect-error TS(7031): Binding element 'score' implicitly has an 'any' ty... Remove this comment to see the full error message
@@ -379,7 +375,9 @@ const storeConfig: GroupingStoreDefinition = {
             // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             acc[interfaceName] = hasSimilarityEmbeddingsFeature ? scores[0][1] : avg;
             return acc;
-          }, {});
+          },
+          {}
+        );
 
         return {
           issue,
