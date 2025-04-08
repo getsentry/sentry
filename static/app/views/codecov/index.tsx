@@ -14,7 +14,7 @@ export default function CodecovPage({children}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
-  // Redirect to coverage page if the user lands on the pipeline page
+  // Redirect to coverage page if the user lands on the codecov page
   if (
     location.pathname === `/${CODECOV_BASE_URL}/` ||
     location.pathname === `/${CODECOV_BASE_URL}/coverage`
