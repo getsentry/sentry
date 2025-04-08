@@ -36,17 +36,9 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
    */
   isHeld: boolean;
   /**
-   * Apply this to include 'reset' functionality on the drag handle
-   */
-  onDoubleClick: React.MouseEventHandler<HTMLElement>;
-  /**
    * Apply to the drag handle element
    */
   onMouseDown: React.MouseEventHandler<HTMLElement>;
-  /**
-   * Call this function to manually set the size of the drawer.
-   */
-  setSize: (newSize: number, userEvent?: boolean) => void;
 } {
   const rafIdRef = useRef<number | null>(null);
   const currentMouseVectorRaf = useRef<[number, number] | null>(null);
@@ -139,9 +131,5 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     [onMouseMove, onMouseUp]
   );
 
-  const onDoubleClick = useCallback(() => {
-    updateSize(options.initialSize, true);
-  }, [updateSize, options.initialSize]);
-
-  return {isHeld, onMouseDown, onDoubleClick, setSize: updateSize};
+  return {isHeld, onMouseDown};
 }

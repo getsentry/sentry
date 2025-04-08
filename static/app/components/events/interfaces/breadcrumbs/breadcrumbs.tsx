@@ -157,12 +157,16 @@ function Breadcrumbs({
   }, []);
 
   const [size, setSize] = useState(PANEL_INITIAL_HEIGHT);
-  const {isHeld, onMouseDown, onDoubleClick} = useResizableDrawer({
+  const {isHeld, onMouseDown} = useResizableDrawer({
     direction: 'down',
     onResize: s => setSize(s),
     initialSize: PANEL_INITIAL_HEIGHT,
     min: PANEL_MIN_HEIGHT,
   });
+
+  const onDoubleClick = useCallback(() => {
+    setSize(PANEL_INITIAL_HEIGHT);
+  }, []);
 
   const panelHeaders: PanelTableProps['headers'] = useMemo(() => {
     return [

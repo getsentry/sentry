@@ -113,7 +113,11 @@ export function ProfileDetails(props: ProfileDetailsProps) {
     };
   }, [flamegraphPreferences.layout]);
 
-  const {onMouseDown, onDoubleClick} = useResizableDrawer(resizableOptions);
+  const {onMouseDown} = useResizableDrawer(resizableOptions);
+
+  const onDoubleClick = useCallback(() => {
+    resizableOptions.onResize?.(resizableOptions.initialSize, true);
+  }, [resizableOptions]);
 
   return (
     <ProfileDetailsBar ref={detailsBarRef} layout={flamegraphPreferences.layout}>
