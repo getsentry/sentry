@@ -1,5 +1,6 @@
 from django.urls import re_path
 
+from .organization_available_action_index import OrganizationAvailableActionIndexEndpoint
 from .organization_data_condition_index import OrganizationDataConditionIndexEndpoint
 from .organization_detector_types import OrganizationDetectorTypeIndexEndpoint
 from .organization_detector_workflow_index import OrganizationDetectorWorkflowIndexEndpoint
@@ -49,7 +50,7 @@ organization_urlpatterns = [
         name="sentry-api-0-organization-data-condition-index",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/detector_types/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/detector-types/$",
         OrganizationDetectorTypeIndexEndpoint.as_view(),
         name="sentry-api-0-organization-detector-type-index",
     ),
@@ -57,5 +58,10 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^\/]+)/detector-workflow/$",
         OrganizationDetectorWorkflowIndexEndpoint.as_view(),
         name="sentry-api-0-organization-detector-workflow-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/available-actions/$",
+        OrganizationAvailableActionIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-available-action-index",
     ),
 ]
