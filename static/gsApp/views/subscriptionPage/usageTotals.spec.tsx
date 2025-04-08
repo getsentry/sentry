@@ -468,7 +468,6 @@ describe('Subscription > UsageTotals', function () {
       organization,
       plan: 'am2_business',
     });
-    subscription.categories.transactions = MetricHistoryFixture({});
     render(
       <UsageTotals
         category="transactions"
