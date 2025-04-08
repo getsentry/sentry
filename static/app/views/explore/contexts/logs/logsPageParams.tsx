@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useLayoutEffect} from 'react';
 import type {Location} from 'history';
 
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -6,6 +6,7 @@ import {defined} from 'sentry/utils';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {decodeProjects} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
+import localStorage from 'sentry/utils/localStorage';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -23,6 +24,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
+const LOGS_PARAMS_VERSION = 1;
 const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.
 const LOGS_CURSOR_KEY = 'logsCursor';
 export const LOGS_FIELDS_KEY = 'logsFields';
@@ -230,7 +232,20 @@ export function useLogsProjectIds() {
 
 export function useSetLogsFields() {
   const setPageParams = useSetLogsPageParams();
-  const [_, setPersistentParams] = useLocalStorageState('logs-params-v0', {});
+
+  const [_, setPersistentParams] = useLocalStorageState(
+    getLogsParamsStorageKey(LOGS_PARAMS_VERSION),
+    {}
+  );
+  useLayoutEffect(() => {
+    const pastParams = localStorage.getItem(
+      getPastLogsParamsStorageKey(LOGS_PARAMS_VERSION)
+    );
+    if (pastParams) {
+      localStorage.removeItem(getPastLogsParamsStorageKey(LOGS_PARAMS_VERSION));
+    }
+  }, [setPersistentParams]);
+
   return useCallback(
     (fields: string[]) => {
       setPageParams({fields});
@@ -303,6 +318,13 @@ export function stripLogParamsFromLocation(location: Location): Location {
   return target;
 }
 
+function getLogsParamsStorageKey(version: number) {
+  return `logs-params-v${version}`;
+}
+
+function getPastLogsParamsStorageKey(version: number) {
+  return `logs-params-v${version - 1}`;
+}
 interface ToggleableSortBy {
   field: string;
   defaultDirection?: 'asc' | 'desc'; // Defaults to descending if not provided.
