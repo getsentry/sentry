@@ -75,6 +75,7 @@ class WorkflowEngineDataConditionSerializer(Serializer):
             resolve_comparison = critical_detector_trigger.comparison
 
         resolve_trigger_data_condition = DataCondition.objects.get(
+            condition_group=obj.condition_group,
             comparison=resolve_comparison,
             condition_result=DetectorPriorityLevel.OK,
             type=(
