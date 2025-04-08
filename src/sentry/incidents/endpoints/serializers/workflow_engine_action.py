@@ -1,117 +1,112 @@
 
-from collections import defaultdict
-from collections.abc import Mapping, Sequence
-from typing import Any, DefaultDict
+from collections.abc import Mapping
+from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Subquery
 
-from sentry.api.serializers import Serializer, serialize
-from sentry.incidents.endpoints.serializers.workflow_engine_action import (
-    WorkflowEngineActionSerializer,
+from sentry.api.serializers import Serializer
+from sentry.incidents.endpoints.serializers.alert_rule_trigger_action import (
+    get_identifier_from_action,
+    get_input_channel_id,
+    human_desc,
 )
-from sentry.incidents.endpoints.utils import translate_data_condition_type
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType
+from sentry.notifications.models.notificationaction import ActionService, ActionTarget
+from sentry.notifications.notification_action.group_type_notification_registry.handlers.metric_alert_registry_handler import (
+    MetricAlertRegistryHandler,
+)
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.workflow_engine.models import (
     Action,
-    AlertRuleDetector,
+    ActionAlertRuleTriggerAction,
     DataCondition,
     DataConditionAlertRuleTrigger,
-    DataConditionGroup,
     DataConditionGroupAction,
-    Detector,
+    DetectorWorkflow,
+    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-class WorkflowEngineDataConditionSerializer(Serializer):
-    def get_attrs(
-        self,
-        item_list: Sequence[DataCondition],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
-    ) -> defaultdict[DataCondition, dict[str, list[str]]]:
-        data_conditions = {item.id: item for item in item_list}
-        data_condition_groups = [
-            data_condition.condition_group for data_condition in data_conditions.values()
-        ]
-        data_condition_group_actions = DataConditionGroupAction.objects.filter(
-            condition_group_id__in=[dcg.id for dcg in data_condition_groups]
+class WorkflowEngineActionSerializer(Serializer):
+    def get_alert_rule_trigger_id(self, action: Action) -> int | None:
+        """
+        Fetches the alert rule trigger id for the detector trigger related to the given action
+        """
+        action_filter_data_condition = DataCondition.objects.filter(
+            condition_group__in=Subquery(
+                DataConditionGroupAction.objects.filter(action=action).values("condition_group")
+            ),
+            type=Condition.ISSUE_PRIORITY_EQUALS,
+            condition_result=True,
         )
-        actions = Action.objects.filter(
-            id__in=[dcga.action_id for dcga in data_condition_group_actions]
-        ).order_by("id")
-        serialized_actions = serialize(
-            list(actions), user, WorkflowEngineActionSerializer(), **kwargs
-        )
-
-        result: DefaultDict[DataCondition, dict[str, list[str]]] = defaultdict(dict)
-        for action, serialized in zip(actions, serialized_actions):
-            dcga = data_condition_group_actions.get(action_id=action.id)
-            data_condition_group = DataConditionGroup.objects.get(id=dcga.condition_group.id)
-            triggers_actions = result[data_conditions[data_condition_group.id]].setdefault(
-                "actions", []
+        detector_dcg = DetectorWorkflow.objects.filter(
+            workflow__in=Subquery(
+                WorkflowDataConditionGroup.objects.filter(
+                    condition_group__in=Subquery(
+                        action_filter_data_condition.values("condition_group")
+                    )
+                ).values("workflow")
             )
-            triggers_actions.append(serialized)
-        return result
+        ).values("detector__workflow_condition_group")
+        detector_trigger = DataCondition.objects.filter(
+            condition_result__in=Subquery(action_filter_data_condition.values("comparison")),
+            condition_group__in=detector_dcg,
+        )
+        return DataConditionAlertRuleTrigger.objects.values_list(
+            "alert_rule_trigger_id", flat=True
+        ).get(data_condition__in=detector_trigger)
 
     def serialize(
-        self,
-        obj: DataCondition,
-        attrs: Mapping[str, Any],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: Any,
+        self, obj: Action, attrs: Mapping[str, Any], user: User | RpcUser | AnonymousUser, **kwargs
     ) -> dict[str, Any]:
-        # XXX: we are assuming that the obj/DataCondition is a detector trigger
-        detector = Detector.objects.get(workflow_condition_group=obj.condition_group)
+        """
+        Temporary serializer to take an Action and serialize it for the old metric alert rule endpoints
+        """
+        from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 
-        if obj.condition_result == DetectorPriorityLevel.LOW:
-            resolve_comparison = obj.comparison
-        else:
-            critical_detector_trigger = DataCondition.objects.get(
-                condition_group=obj.condition_group, condition_result=DetectorPriorityLevel.HIGH
-            )
-            resolve_comparison = critical_detector_trigger.comparison
+        aarta = ActionAlertRuleTriggerAction.objects.get(action=obj.id)
+        priority = obj.data.get("priority")
+        type_value = ActionService.get_value(obj.type)
+        target = MetricAlertRegistryHandler.target(obj)
 
-        resolve_trigger_data_condition = DataCondition.objects.get(
-            condition_group=obj.condition_group,
-            comparison=resolve_comparison,
-            condition_result=DetectorPriorityLevel.OK,
-            type=(
-                Condition.GREATER_OR_EQUAL
-                if obj.type == Condition.LESS_OR_EQUAL
-                else Condition.LESS_OR_EQUAL
+        target_type = obj.config.get("target_type")
+        target_identifier = obj.config.get("target_identifier")
+        target_display = obj.config.get("target_display")
+
+        sentry_app_id = None
+        sentry_app_config = None
+        if obj.type == Action.Type.SENTRY_APP.value:
+            sentry_app_id = int(obj.config.get("target_identifier"))
+            sentry_app_config = obj.data.get("settings")
+
+        result = {
+            "id": str(aarta.alert_rule_trigger_action_id),
+            "alertRuleTriggerId": str(self.get_alert_rule_trigger_id(aarta.action)),
+            "type": obj.type,
+            "targetType": ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)],
+            "targetIdentifier": get_identifier_from_action(
+                type_value, str(target_identifier), target_display
             ),
-        )
-        alert_rule_trigger_id = DataConditionAlertRuleTrigger.objects.values_list(
-            "alert_rule_trigger_id", flat=True
-        ).get(data_condition=obj)
-        alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
-            detector=detector.id
-        )
-        return {
-            "id": str(alert_rule_trigger_id),
-            "alertRuleId": str(alert_rule_id),
-            "label": (
-                "critical" if obj.condition_result == DetectorPriorityLevel.HIGH else "warning"
-            ),
-            "thresholdType": (
-                AlertRuleThresholdType.ABOVE.value
-                if resolve_trigger_data_condition.type == Condition.LESS_OR_EQUAL
-                else AlertRuleThresholdType.BELOW.value
-            ),
-            "alertThreshold": translate_data_condition_type(
-                detector.config.get("comparison_delta"),
-                obj.type,
-                obj.comparison,
-            ),
-            "resolveThreshold": (
-                AlertRuleThresholdType.ABOVE
-                if resolve_trigger_data_condition.type == Condition.GREATER_OR_EQUAL
-                else AlertRuleThresholdType.BELOW
-            ),
+            "inputChannelId": get_input_channel_id(type_value, target_identifier),
+            "integrationId": obj.integration_id,
+            "sentryAppId": sentry_app_id,
             "dateCreated": obj.date_added,
-            "actions": attrs.get("actions", []),
+            "desc": human_desc(
+                type_value,
+                target_type,
+                target_identifier,
+                target,
+                target_display,
+                target_identifier,
+                priority,
+            ),
+            "priority": priority,
         }
+
+        # Check if action is a Sentry App that has Alert Rule UI Component settings
+        if sentry_app_id and sentry_app_config:
+            result["settings"] = sentry_app_config
+
+        return result
