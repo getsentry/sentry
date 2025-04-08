@@ -429,20 +429,27 @@ function:nextTick -app -group
 path:**/go/pkg/mod/** -app
 
 ## java
-module:jdk.* -app
-module:sun.* -app
-module:com.sun.* -app
-module:java.* -app
-module:scala.* -app
-module:akka.* -app
-module:javax.* -app
-module:org.apache.* -app
-module:org.springframework.* -app
-module:org.glassfish.* -app
-module:org.jboss.* -app
-module:feign.* -app
-module:io.opentelemetry.* -app
-module:io.sentry.* -app -group
+module:akka.* category=framework
+module:com.fasterxml.* category=framework
+module:com.microsoft.* category=framework
+module:com.sun.* category=framework
+module:feign.* category=framework
+module:io.opentelemetry.* category=framework
+module:io.sentry.* category=framework -group
+module:jdk.* category=framework
+module:oauth.* category=framework
+module:org.apache.* category=framework
+module:org.glassfish.* category=framework
+module:org.jboss.* category=framework
+module:org.jdesktop.* category=framework
+module:org.postgresql.* category=framework
+module:org.springframework.* category=framework
+module:org.web3j.* category=framework
+module:reactor.core.* category=framework
+module:scala.* category=framework
+module:sun.* category=framework
+
+category:framework -app
 
 ## kotlin
 module:kotlin.* -app
