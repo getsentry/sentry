@@ -256,7 +256,8 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         self.placeholder_om = self.approved_invite.organization_member
 
     def test_simple(self):
-        self.get_success_response(self.organization.slug, self.approved_invite.id)
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.approved_invite.id)
         assert not OrganizationMember.objects.filter(id=self.placeholder_om.id).exists()
         assert not OrganizationMemberInvite.objects.filter(id=self.approved_invite.id).exists()
         assert_org_audit_log_exists(
@@ -272,7 +273,8 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
         placeholder_om = invite_request.organization_member
-        self.get_success_response(self.organization.slug, invite_request.id)
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, invite_request.id)
         assert not OrganizationMember.objects.filter(id=placeholder_om.id).exists()
         assert not OrganizationMemberInvite.objects.filter(id=invite_request.id).exists()
         assert_org_audit_log_exists(
@@ -285,7 +287,8 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         Members can remove invites that they sent
         """
         self.login_as(self.regular_user)
-        self.get_success_response(self.organization.slug, self.approved_invite.id)
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.approved_invite.id)
         assert not OrganizationMember.objects.filter(id=self.placeholder_om.id).exists()
         assert not OrganizationMemberInvite.objects.filter(id=self.approved_invite.id).exists()
         assert_org_audit_log_exists(
@@ -305,7 +308,8 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
         placeholder_om = invite_request.organization_member
-        self.get_success_response(self.organization.slug, invite_request.id)
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, invite_request.id)
         assert not OrganizationMember.objects.filter(id=placeholder_om.id).exists()
         assert not OrganizationMemberInvite.objects.filter(id=invite_request.id).exists()
         assert_org_audit_log_exists(

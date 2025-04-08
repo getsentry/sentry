@@ -157,6 +157,7 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
             return Response({"detail": ERR_MEMBER_INVITE}, status=400)
 
         audit_data = invited_member.get_audit_log_data()
+        event_name = "INVITE_REMOVE" if invited_member.invite_approved else "INVITE_REQUEST_REMOVE"
         with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
             # also deletes the invite object via cascades
             invited_member.organization_member.delete()
@@ -165,7 +166,7 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
             request=request,
             organization=organization,
             target_object=invited_member.id,
-            event=audit_log.get_event_id("INVITE_REMOVE"),
+            event=audit_log.get_event_id(event_name),
             data=audit_data,
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
