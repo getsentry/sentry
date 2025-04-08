@@ -8,7 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanIndexedField} from 'sentry/views/insights/types';
-import {TRACE_FORMAT_PREFERENCE_KEY} from 'sentry/views/performance/newTraceDetails/traceHeader';
+import {TRACE_FORMAT_PREFERENCE_KEY} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 
 import type {ConnectedTraceConnection} from './traceLinkNavigationButton';
 
