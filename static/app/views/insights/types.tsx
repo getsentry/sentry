@@ -422,6 +422,7 @@ export const METRICS_FUNCTIONS = [
 
 export enum MetricsFields {
   TRANSACTION_DURATION = 'transaction.duration',
+  SPAN_DURATION = 'span.duration',
   TRANSACTION = 'transaction',
   PROJECT = 'project',
   LCP_SCORE = 'measurements.score.lcp',
@@ -452,6 +453,7 @@ export enum MetricsFields {
 
 export type MetricsNumberFields =
   | MetricsFields.TRANSACTION_DURATION
+  | MetricsFields.SPAN_DURATION
   | MetricsFields.LCP_SCORE
   | MetricsFields.FCP_SCORE
   | MetricsFields.INP_SCORE
