@@ -31,6 +31,7 @@ export function useSelectedGroupSearchView() {
     {
       enabled: defined(viewId),
       initialData: matchingView ? [matchingView, '200', undefined] : undefined,
+      retry: false,
     }
   );
 }

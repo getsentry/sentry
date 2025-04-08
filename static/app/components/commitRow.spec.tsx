@@ -61,8 +61,9 @@ describe('commitRow', () => {
     } as Commit;
 
     render(<CommitRow commit={commit} />);
+    await userEvent.hover(screen.getByText('Author'));
     expect(
-      screen.getByText(
+      await screen.findByText(
         textWithMarkupMatcher(
           /The email author@commit.com is not a member of your organization./
         )
@@ -118,14 +119,11 @@ describe('commitRow', () => {
     const handlePullRequestClick = jest.fn();
     render(<CommitRow commit={commit} onPullRequestClick={handlePullRequestClick} />);
 
-    const pullRequestButton = screen.getByRole('button', {name: 'View Pull Request'});
-    expect(pullRequestButton).toBeInTheDocument();
-    expect(pullRequestButton).toHaveAttribute(
-      'href',
-      'https://github.com/getsentry/sentry/pull/1'
-    );
+    const prLink = screen.getByRole('link', {name: /ref\(commitRow\):/i});
+    expect(prLink).toHaveAttribute('href', 'https://github.com/getsentry/sentry/pull/1');
+    await userEvent.click(prLink);
 
-    await userEvent.click(pullRequestButton);
-    expect(handlePullRequestClick).toHaveBeenCalledTimes(1);
+    // XXX: Does not get called in Streamline UI, it's just a link
+    expect(handlePullRequestClick).not.toHaveBeenCalled();
   });
 });
