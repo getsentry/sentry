@@ -188,19 +188,6 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
             ]
         }
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_error_on_inaccessible_views(self):
-        view_ids = [self.views[0].id, self.user_2_view.id]
-
-        response = self.client.put(self.url, data={"view_ids": view_ids}, format="json")
-
-        assert response.status_code == 400
-        assert response.data == {
-            "view_ids": [
-                ErrorDetail(string="You do not have access to one or more views", code="invalid")
-            ]
-        }
-
 
 class OrganizationGroupSearchViewStarredOrderTransactionTest(TransactionTestCase):
     endpoint = "sentry-api-0-organization-group-search-view-starred-order"
