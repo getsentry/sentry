@@ -303,7 +303,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             if merged_frame.get("in_app"):
                 has_in_app_frames = True
                 frame_data = merged_frame.get("data", {})
-                if not frame_data.get("symbolicated", False):
+                if frame_data and not frame_data.get("symbolicated", False):
                     all_in_app_frames_symbolicated = False
 
             new_frames.append(merged_frame)
