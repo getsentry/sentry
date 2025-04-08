@@ -12,18 +12,17 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {NewQuery} from 'sentry/types/organization';
-import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import {
+  useMetrics,
+  useSpanMetrics,
+} from 'sentry/views/insights/common/queries/useDiscover';
 import {useMobileVitalsDrawer} from 'sentry/views/insights/common/utils/useMobileVitalsDrawer';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
@@ -38,6 +37,7 @@ import {
   MODULE_TITLE,
 } from 'sentry/views/insights/mobile/screens/settings';
 import {
+  type GenericVitalItem,
   getColdAppStartPerformance,
   getDefaultMetricPerformance,
   getWarmAppStartPerformance,
@@ -47,13 +47,16 @@ import {
   type VitalStatus,
 } from 'sentry/views/insights/mobile/screens/utils';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {ModuleName} from 'sentry/views/insights/types';
+import {
+  type MetricsProperty,
+  ModuleName,
+  type SpanMetricsProperty,
+} from 'sentry/views/insights/types';
 
 function ScreensLandingPage() {
   const moduleName = ModuleName.MOBILE_VITALS;
   const navigate = useNavigate();
   const location = useLocation();
-  const organization = useOrganization();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const handleProjectChange = useCallback(() => {
@@ -67,7 +70,6 @@ function ScreensLandingPage() {
       {replace: true}
     );
   }, [location, navigate]);
-  const {selection} = usePageFilters();
 
   const vitalItems: VitalItem[] = [
     {
@@ -200,9 +202,8 @@ function ScreensLandingPage() {
       getStatus: getDefaultMetricPerformance,
     },
   ];
-
-  const metricsFields: string[] = [];
-  const spanMetricsFields: string[] = [];
+  const metricsFields: MetricsProperty[] = [];
+  const spanMetricsFields: SpanMetricsProperty[] = [];
   const [state, setState] = useState<{
     status: VitalStatus | undefined;
     vital: VitalItem | undefined;
@@ -220,72 +221,63 @@ function ScreensLandingPage() {
   if (isProjectCrossPlatform) {
     query.addFilterValue('os.name', selectedPlatform);
   }
-  const metricsQuery: NewQuery = {
-    name: '',
-    fields: metricsFields,
-    query: query.formatString(),
-    dataset: DiscoverDatasets.METRICS,
-    version: 2,
-    projects: selection.projects,
-  };
-  const metricsQueryView: EventView = EventView.fromNewQueryWithLocation(
-    metricsQuery,
-    location
+
+  const metricsResult = useMetrics(
+    {
+      search: query,
+      limit: 25,
+      fields: metricsFields,
+    },
+    Referrer.SCREENS_METRICS
   );
 
-  const metricsResult = useDiscoverQuery({
-    eventView: metricsQueryView,
-    location,
-    cursor: '',
-    orgSlug: organization.slug,
-    limit: 25,
-    referrer: Referrer.SCREENS_METRICS,
-  });
-
-  const spanMetricsQuery: NewQuery = {
-    name: '',
-    fields: spanMetricsFields,
-    query: query.formatString(),
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    version: 2,
-    projects: selection.projects,
-  };
-
-  const spanMetricsQueryView = EventView.fromNewQueryWithLocation(
-    spanMetricsQuery,
-    location
+  const spanMetricsResult = useSpanMetrics(
+    {
+      search: query,
+      limit: 25,
+      fields: spanMetricsFields,
+    },
+    Referrer.SCREENS_METRICS
   );
 
-  const spanMetricsResult = useDiscoverQuery({
-    eventView: spanMetricsQueryView,
-    location,
-    cursor: '',
-    orgSlug: organization.slug,
-    limit: 25,
-    referrer: Referrer.SCREENS_METRICS,
-  });
+  const isMetricsItem = (
+    item: VitalItem
+  ): item is GenericVitalItem<DiscoverDatasets.METRICS> => {
+    return item.dataset === DiscoverDatasets.METRICS;
+  };
 
   const metricValueFor = (item: VitalItem): MetricValue | undefined => {
-    const dataset =
-      item.dataset === DiscoverDatasets.METRICS ? metricsResult : spanMetricsResult;
+    // We have to have seperate if statements for metrics and spans because typescript is not smart enough to infer the type of the row
+    if (isMetricsItem(item)) {
+      const row = metricsResult.data[0];
+      const units = metricsResult.meta?.units;
+      const fieldTypes = metricsResult.meta?.fields;
 
-    if (dataset.data) {
-      const row = dataset.data.data[0]!;
-      const units = dataset.data.meta?.units;
-      const fieldTypes = dataset.data.meta?.fields;
-
+      const fieldType = fieldTypes?.[item.field];
       const value = row?.[item.field];
       const unit = units?.[item.field];
-      const fieldType = fieldTypes?.[item.field];
 
       return {
         type: fieldType,
         unit,
-        value,
+        // typescript is not smart enough to infer the type because the useSpanMetrics fields are dynamic
+        value: value as string | number | undefined,
       };
     }
+    const row = spanMetricsResult.data[0];
+    const units = spanMetricsResult.meta?.units;
+    const fieldTypes = spanMetricsResult.meta?.fields;
 
-    return undefined;
+    const fieldType = fieldTypes?.[item.field];
+    const unit = units?.[item.field];
+    const value = row?.[item.field];
+
+    return {
+      type: fieldType,
+      unit,
+      // typescript is not smart enough to infer the type because the useSpanMetrics fields are dynamic
+      value: value as string | number | undefined,
+    };
   };
 
   const {openVitalsDrawer} = useMobileVitalsDrawer({
