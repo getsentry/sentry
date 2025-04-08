@@ -136,6 +136,9 @@ function PrimaryNavigationQuotaExceeded({
     features: promptsToCheck,
     organization,
     daysToSnooze: -1 * getDaysSinceDate(subscription.onDemandPeriodEnd),
+    options: {
+      enabled: promptsToCheck.length > 0,
+    },
   });
 
   const {
