@@ -35,6 +35,7 @@ import {convertSeriesToTimeseries} from '../utils/convertSeriesToTimeseries';
 
 export interface InsightsTimeSeriesWidgetProps extends WidgetTitleProps {
   error: Error | null;
+  id: string;
   isLoading: boolean;
   series: DiscoverSeries[];
   visualizationType: 'line' | 'area' | 'bar';
