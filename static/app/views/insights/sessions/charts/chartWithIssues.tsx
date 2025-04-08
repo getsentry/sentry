@@ -147,6 +147,7 @@ const FooterIssues = styled('div')`
 const GroupWrapper = styled(GroupSummary)`
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(0.5)} ${space(1.5)} ${space(0.5)};
+  margin-inline: ${space(1)};
 
   &:first-child {
     border-top: none;
