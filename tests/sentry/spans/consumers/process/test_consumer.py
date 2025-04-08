@@ -76,6 +76,9 @@ def test_basic(monkeypatch, request):
     assert rapidjson.loads(msg.value) == {
         "spans": [
             {
+                "data": {
+                    "__sentry_internal_span_buffer_outcome": "different",
+                },
                 "is_segment": True,
                 "project_id": 12,
                 "segment_id": "aaaaaaaaaaaaaaaa",
