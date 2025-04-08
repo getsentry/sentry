@@ -81,6 +81,7 @@ export default function BreadcrumbsTimeline({
       <Timestamp>
         <Tooltip
           title={<DateTime date={timeDate} format={`ll - ${absoluteFormat} (z)`} />}
+          isHoverable
         >
           {isValidDate(startTimeDate) ? (
             <Duration

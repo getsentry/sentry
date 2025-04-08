@@ -10,7 +10,7 @@ import ResultGrid from 'admin/components/resultGrid';
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
 type Props = {
-  onUpdate: (data: {[key: string]: any}, version: PolicyRevision['version']) => void;
+  onUpdate: (data: Record<string, any>, version: PolicyRevision['version']) => void;
   policy: Policy;
 };
 

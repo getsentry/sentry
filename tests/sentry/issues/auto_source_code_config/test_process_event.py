@@ -84,7 +84,7 @@ class BaseDeriveCodeMappings(TestCase):
         self,
         *,  # Force keyword arguments
         repo_trees: Mapping[str, Sequence[str]],
-        frames: Sequence[Mapping[str, str | bool]],
+        frames: Sequence[Mapping[str, str | bool | Any]],
         platform: str,
         expected_new_code_mappings: Sequence[ExpectedCodeMapping] | None = None,
         expected_new_in_app_stack_trace_rules: list[str] | None = None,
@@ -185,8 +185,9 @@ class BaseDeriveCodeMappings(TestCase):
         in_app: bool | None = True,
         module: str | None = None,
         abs_path: str | None = None,
-    ) -> dict[str, str | bool]:
-        frame: dict[str, str | bool] = {}
+        category: str | None = None,
+    ) -> dict[str, str | bool | Any]:
+        frame: dict[str, str | bool | Any] = {}
         if filename:
             frame["filename"] = filename
         if module:
@@ -195,6 +196,8 @@ class BaseDeriveCodeMappings(TestCase):
             frame["abs_path"] = abs_path
         if in_app and in_app is not None:
             frame["in_app"] = in_app
+        if category:
+            frame["data"] = {"category": category}
         return frame
 
     def code_mapping(
@@ -784,3 +787,47 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         # The enhancements now contain the automatic rule (+app) and the developer's rule (-app)
         assert event.data["grouping_config"]["enhancements"] != first_enhancements_base64_string
         assert event.data["grouping_config"]["enhancements"] != second_enhancements_hash
+
+    def test_categorized_frames_are_not_processed(self) -> None:
+        # Even though the file is in the repo, it's not processed because it's categorized as internals
+        repo_trees = {REPO1: ["src/android/app/Activity.java"]}
+        frame = self.frame(module="android.app.Activity", abs_path="Activity.java", in_app=False)
+        with (
+            patch(f"{CLIENT}.get_tree", side_effect=create_mock_get_tree(repo_trees)),
+            patch(f"{CLIENT}.get_remaining_api_requests", return_value=500),
+            patch(
+                f"{REPO_TREES_INTEGRATION}._populate_repositories",
+                return_value=mock_populate_repositories(),
+            ),
+        ):
+            event = self.create_event([frame], self.platform)
+            dry_run_code_mappings, in_app_stack_trace_rules = process_event(
+                self.project.id, event.group_id, event.event_id
+            )
+            assert dry_run_code_mappings == []
+            assert in_app_stack_trace_rules == []
+
+            # If we remove the category, it will be processed
+            with patch(f"{CODE_ROOT}.stacktraces._check_not_categorized", return_value=True):
+                event = self.create_event([frame], self.platform)
+                dry_run_code_mappings, in_app_stack_trace_rules = process_event(
+                    self.project.id, event.group_id, event.event_id
+                )
+                assert dry_run_code_mappings != []
+                assert in_app_stack_trace_rules != []
+
+    @with_feature({"organizations:auto-source-code-config-java-enabled": True})
+    def test_unintended_rules_are_removed(self) -> None:
+        """Test that unintended rules will be removed without affecting other rules"""
+        key = "sentry:automatic_grouping_enhancements"
+        # Let's assume that the package was not categorized, thus, we created a rule for it
+        self.project.update_option(key, "stack.module:akka.** +app\nstack.module:foo.bar.** +app")
+        # This module is categorized, thus, we won't attempt derivation for it
+        frame = self.frame(module="com.sun.Activity", abs_path="Activity.java", in_app=False)
+        event = self.create_event([frame], self.platform)
+
+        # The rule will be removed after calling this
+        process_event(self.project.id, event.group_id, event.event_id)
+        rules = self.project.get_option(key)
+        # Other rules are not affected
+        assert rules.split("\n") == ["stack.module:foo.bar.** +app"]

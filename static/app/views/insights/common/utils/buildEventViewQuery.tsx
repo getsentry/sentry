@@ -7,7 +7,7 @@ import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 const NULL_SPAN_CATEGORY = t('custom');
 
-const {SPAN_DESCRIPTION, SPAN_OP, SPAN_DOMAIN, SPAN_ACTION, SPAN_MODULE} =
+const {NORMALIZED_DESCRIPTION, SPAN_OP, SPAN_DOMAIN, SPAN_ACTION, SPAN_MODULE} =
   SpanMetricsField;
 
 const SPAN_FILTER_KEYS = [
@@ -55,7 +55,7 @@ export function buildEventViewQuery({
       return `${key}:${isArray ? `[${value}]` : value}`;
     });
 
-  result.push(`has:${SPAN_DESCRIPTION}`);
+  result.push(`has:${NORMALIZED_DESCRIPTION}`);
   result.push(`${SPAN_MODULE}:${moduleName}`);
 
   if (defined(spanCategory)) {

@@ -15,6 +15,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
+import {Referrer} from 'sentry/views/insights/pages/backend/laravel/referrers';
 import {
   ModalChartContainer,
   ModalTableWrapper,
@@ -47,6 +48,7 @@ export function JobsWidget({query}: {query?: string}) {
           transformAliasToInputFormat: 1,
           query: fullQuery,
           useRpc: 1,
+          referrer: Referrer.JOBS_CHART,
         },
       },
     ],
@@ -106,6 +108,7 @@ export function JobsWidget({query}: {query?: string}) {
       emptyMessage={<QueuesWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
+        showLegend: 'never',
         plottables,
       }}
     />

@@ -3,19 +3,13 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
-import type {DataUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
-import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {SpanIndexedField} from 'sentry/views/insights/types';
+import {useWidgetChartVisualization} from 'sentry/views/performance/transactionSummary/transactionOverview/useWidgetChartVisualization';
 
-enum EAPWidgetType {
+export enum EAPWidgetType {
   DURATION_BREAKDOWN = 'duration_breakdown',
   DURATION_PERCENTILES = 'duration_percentiles',
   DURATION_DISTRIBUTION = 'duration_distribution',
@@ -23,21 +17,27 @@ enum EAPWidgetType {
   WEB_VITALS = 'web_vitals',
 }
 
-const WIDGET_OPTIONS: Record<EAPWidgetType, {description: string; title: string}> = {
+const WIDGET_OPTIONS: Record<
+  EAPWidgetType,
+  {description: string; title: string; spanCategoryTitle?: string}
+> = {
   [EAPWidgetType.DURATION_BREAKDOWN]: {
     title: t('Duration Breakdown'),
+    spanCategoryTitle: t('Span Category Breakdown'),
     description: t(
       'Duration Breakdown reflects transaction durations by percentile over time.'
     ),
   },
   [EAPWidgetType.DURATION_PERCENTILES]: {
     title: t('Duration Percentiles'),
+    spanCategoryTitle: t('Span Category Percentiles'),
     description: t(
       `Compare the duration at each percentile. Compare with Latency Histogram to see transaction volume at duration intervals.`
     ),
   },
   [EAPWidgetType.DURATION_DISTRIBUTION]: {
     title: t('Duration Distribution'),
+    spanCategoryTitle: t('Span Category Distribution'),
     description: t(
       'Duration Distribution reflects the volume of transactions per median duration.'
     ),
@@ -54,33 +54,16 @@ const WIDGET_OPTIONS: Record<EAPWidgetType, {description: string; title: string}
   },
 };
 
-function getWidgetContents(widgetType: EAPWidgetType) {
-  const widget = WIDGET_OPTIONS[widgetType];
-  const {title, description} = widget;
+function getWidgetContents(widgetType: EAPWidgetType, spanCategory?: string) {
+  const {title, description, spanCategoryTitle} = WIDGET_OPTIONS[widgetType];
 
-  let visualization: React.ReactNode | null = null;
+  const content = {title, description};
 
-  switch (widgetType) {
-    case EAPWidgetType.DURATION_BREAKDOWN:
-      visualization = null;
-      break;
-    case EAPWidgetType.DURATION_PERCENTILES:
-      visualization = null;
-      break;
-    case EAPWidgetType.DURATION_DISTRIBUTION:
-      visualization = null;
-      break;
-    case EAPWidgetType.TRENDS:
-      visualization = null;
-      break;
-    case EAPWidgetType.WEB_VITALS:
-      visualization = null;
-      break;
-    default:
-      visualization = null;
+  if (spanCategory && spanCategoryTitle) {
+    content.title = `${spanCategoryTitle} — ${spanCategory}`;
   }
 
-  return {title, description, visualization};
+  return content;
 }
 
 type EAPChartsWidgetProps = {
@@ -103,51 +86,11 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
     }));
   }, []);
 
-  const {title, description} = getWidgetContents(selectedWidget);
+  const {title, description} = getWidgetContents(selectedWidget, spanCategoryUrlParam);
 
-  const query = new MutableSearch('');
-  query.addFilterValue('transaction', transactionName);
-  if (spanCategoryUrlParam) {
-    query.addFilterValue('span.category', spanCategoryUrlParam);
-  }
-
-  const {
-    data: spanSeriesData,
-    isPending,
-    error,
-  } = useSpanIndexedSeries(
-    {
-      yAxis: [
-        'avg(span.duration)',
-        'p100(span.duration)',
-        'p99(span.duration)',
-        'p95(span.duration)',
-        'p90(span.duration)',
-        'p75(span.duration)',
-        'p50(span.duration)',
-      ],
-      search: query,
-      transformAliasToInputFormat: true,
-    },
-
-    'transaction-summary-charts-widget',
-    DiscoverDatasets.SPANS_EAP
-  );
-
-  const timeSeries: TimeSeries[] = [];
-  Object.entries(spanSeriesData).forEach(([key, value]) => {
-    timeSeries.push({
-      field: key,
-      meta: {
-        type: value?.meta?.fields?.[key] ?? null,
-        unit: value?.meta?.units?.[key] as DataUnit,
-      },
-      data:
-        value?.data.map(item => ({
-          timestamp: item.name.toString(),
-          value: item.value,
-        })) ?? [],
-    });
+  const visualization = useWidgetChartVisualization({
+    selectedWidget,
+    transactionName,
   });
 
   return (
@@ -158,15 +101,7 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
           <Widget.WidgetDescription title={title} description={description} />
         </Widget.WidgetToolbar>
       }
-      Visualization={
-        isPending || error ? (
-          <TimeSeriesWidgetVisualization.LoadingPlaceholder />
-        ) : (
-          <TimeSeriesWidgetVisualization
-            plottables={timeSeries.map(series => new Area(series))}
-          />
-        )
-      }
+      Visualization={visualization}
       Footer={
         <FooterContainer>
           <CompactSelect

@@ -27,7 +27,6 @@ from sentry.integrations.slack.message_builder.types import (
     ACTION_EMOJI,
     ACTIONED_CATEGORY_TO_EMOJI,
     CATEGORY_TO_EMOJI,
-    ISSUE_SUMMARY_TO_EMOJI,
     LEVEL_TO_EMOJI,
     SLACK_URL_FORMAT,
     SlackBlock,
@@ -401,7 +400,6 @@ def build_actions(
             label="Select Assignee...",
             type="select",
             selected_options=format_actor_options_slack([assignee]) if assignee else [],
-            option_groups=get_option_groups(group),
         )
         return assign_button
 
@@ -576,10 +574,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 footer_text = footer_text[:-4]  # chop off the empty space
 
             if self.issue_summary:
-                footer_text += f"    {ISSUE_SUMMARY_TO_EMOJI.get('seer')} Powered by Seer"
+                footer_text += "    Powered by Seer"
 
             return self.get_context_block(text=footer_text)
         else:
+            if self.issue_summary:
+                footer += " | Powered by Seer"
             return self.get_context_block(text=footer, timestamp=timestamp)
 
     def build(self, notification_uuid: str | None = None) -> SlackBlock:
@@ -635,13 +635,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if summary_text := self.get_issue_summary_text():
             original_title = build_attachment_title(event_or_group)
             original_message = text.lstrip(" ")
+            if "\n" in original_message:
+                original_message = original_message.strip().split("\n")[0] + "..."
 
-            blocks.append(self.get_divider())
-            blocks.append(
-                self.get_text_block(f"*{original_title}*: `{original_message}`", small=True)
-            )
+            original_text = f"*{original_title}*"
+            if original_message:
+                original_text += f": `{original_message}`"
+
+            blocks.append(self.get_text_block(original_text, small=True))
             blocks.append(self.get_text_block(summary_text, small=True))
-            blocks.append(self.get_divider())
         else:
             text = text.lstrip(" ")
             # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")

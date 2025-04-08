@@ -5,11 +5,6 @@ import debounce from 'lodash/debounce';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import AutoComplete from 'sentry/components/autoComplete';
-import SearchSources from 'sentry/components/search/sources';
-import ApiSource from 'sentry/components/search/sources/apiSource';
-import CommandSource from 'sentry/components/search/sources/commandSource';
-import FormSource from 'sentry/components/search/sources/formSource';
-import RouteSource from 'sentry/components/search/sources/routeSource';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
@@ -17,8 +12,14 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
 
+import ApiSource from './sources/apiSource';
+import CommandSource from './sources/commandSource';
+import FormSource from './sources/formSource';
+import OrganizationsSource from './sources/organizationsSource';
+import RouteSource from './sources/routeSource';
 import type {Result} from './sources/types';
 import List from './list';
+import SearchSources from './sources';
 
 type AutoCompleteOpts = Parameters<AutoComplete<Result['item']>['props']['children']>[0];
 
@@ -185,7 +186,15 @@ function Search({
                 searchOptions={searchOptions}
                 query={searchQuery}
                 params={params}
-                sources={sources ?? [ApiSource, FormSource, RouteSource, CommandSource]}
+                sources={
+                  sources ?? [
+                    ApiSource,
+                    FormSource,
+                    RouteSource,
+                    OrganizationsSource,
+                    CommandSource,
+                  ]
+                }
               >
                 {({allLoaded, results}) => (
                   <List

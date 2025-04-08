@@ -10,8 +10,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {useDefaultWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/utils/useDefaultQuery';
 import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
@@ -42,6 +42,8 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
+  const defaultQuery = useDefaultWebVitalsQuery();
+
   const search = new MutableSearch([
     'has:measurements.score.total',
     ...(tag ? [`${tag.key}:"${tag.name}"`] : []),
@@ -66,7 +68,7 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
         'count()',
       ],
       name: 'Web Vitals',
-      query: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
+      query: [defaultQuery, search.formatString()].join(' ').trim(),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),

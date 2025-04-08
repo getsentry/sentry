@@ -36,6 +36,7 @@ import {
   formatUsageWithUnits,
   getActiveProductTrial,
   getPotentialProductTrial,
+  isAm2Plan,
   isUnlimitedReserved,
   MILLISECONDS_IN_HOUR,
 } from 'getsentry/utils/billing';
@@ -92,7 +93,7 @@ type UsageProps = {
   /**
    * All category totals when needed for reserved budgets.
    */
-  allTotalsByCategory?: {[key: string]: BillingStatTotal};
+  allTotalsByCategory?: Record<string, BillingStatTotal>;
   /**
    * Do not allow the table to be expansded
    */
@@ -100,7 +101,7 @@ type UsageProps = {
   /**
    * Event breakdown totals used by Performance Units
    */
-  eventTotals?: {[key: string]: BillingStatTotal};
+  eventTotals?: Record<string, BillingStatTotal>;
   /**
    * Gifted budget for the current billing period.
    */
@@ -500,12 +501,15 @@ function UsageTotals({
   );
 
   // use dropped profile chunks to estimate dropped continuous profiling
+  // for AM3 plans, include profiles category to estimate dropped continuous profile hours
   const total = isContinuousProfiling(category)
     ? {
-        ...addBillingStatTotals(
-          totals,
-          eventTotals[getChunkCategoryFromDuration(category)]
-        ),
+        ...addBillingStatTotals(totals, [
+          eventTotals[getChunkCategoryFromDuration(category)] ?? EMPTY_STAT_TOTAL,
+          !isAm2Plan(subscription.plan) && category === DataCategory.PROFILE_DURATION
+            ? (eventTotals[DataCategory.PROFILES] ?? EMPTY_STAT_TOTAL)
+            : EMPTY_STAT_TOTAL,
+        ]),
         accepted: totals.accepted,
       }
     : totals;

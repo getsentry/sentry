@@ -115,6 +115,9 @@ ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_TRANSACTION_THROUGHPUT_CHART.value,
     Referrer.API_EXPLORE_COMPARE_SERIES.value,
     Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TIMESERIES_SCORES.value,
+    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_REQUESTS_CHART.value,
+    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_DURATION_CHART.value,
+    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_JOBS_CHART.value,
 }
 
 
@@ -277,6 +280,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
         use_rpc = request.GET.get("useRpc", "0") == "1" and dataset == spans_eap
+        sampling_mode = request.GET.get("sampling")
         transform_alias_to_input_format = (
             request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
         )
@@ -305,6 +309,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             auto_fields=False,
                             use_aggregate_conditions=True,
                         ),
+                        sampling_mode=sampling_mode,
                     )
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
@@ -341,6 +346,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         auto_fields=False,
                         use_aggregate_conditions=True,
                     ),
+                    sampling_mode=sampling_mode,
                     comparison_delta=comparison_delta,
                 )
 

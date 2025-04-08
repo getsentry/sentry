@@ -33,6 +33,7 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'performance-trace-explorer',
   'profiling',
+  'chonk-ui',
 ];
 
 const mockUsingCustomerDomain = jest.fn();
@@ -92,7 +93,7 @@ describe('Nav', function () {
       </NavContextProvider>,
       {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-        disableRouterMocks: true,
+        enableRouterMocks: false,
         initialRouterConfig: {
           route,
           location: {
@@ -374,6 +375,44 @@ describe('Nav', function () {
 
       // Shows the reminder on help menu
       await screen.findByText('Come back anytime');
+    });
+  });
+
+  describe('chonk-ui', function () {
+    describe('enabled', function () {
+      it('shows the chonk-ui toggle in the help menu', async function () {
+        renderNav();
+        const helpMenu = screen.getByRole('button', {name: 'Help'});
+        await userEvent.click(helpMenu);
+
+        expect(screen.getByText('Try New UI2 Theme')).toBeInTheDocument();
+      });
+
+      it('shows the chonk-ui toggle to old theme', async function () {
+        ConfigStore.set('user', {
+          ...ConfigStore.get('user'),
+          options: {
+            ...ConfigStore.get('user').options,
+            prefersChonkUI: true,
+          },
+        });
+
+        renderNav();
+        const helpMenu = screen.getByRole('button', {name: 'Help'});
+        await userEvent.click(helpMenu);
+
+        expect(screen.getByText('Switch to old UI theme')).toBeInTheDocument();
+      });
+    });
+
+    describe('disabled', function () {
+      it('does not show the chonk-ui toggle in the help menu', async function () {
+        renderNav();
+        const helpMenu = screen.getByRole('button', {name: 'Help'});
+        await userEvent.click(helpMenu);
+
+        expect(screen.queryByText('Try New UI2 Theme')).not.toBeInTheDocument();
+      });
     });
   });
 });

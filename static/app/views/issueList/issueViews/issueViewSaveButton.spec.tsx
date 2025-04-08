@@ -1,0 +1,200 @@
+import {Fragment} from 'react';
+import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
+
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+
+import GlobalModal from 'sentry/components/globalModal';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+const defaultProps = {
+  query: 'is:unresolved',
+  sort: IssueSortOptions.DATE,
+};
+
+const mockGroupSearchView = GroupSearchViewFixture({id: '100'});
+const defaultPageFilters = {
+  projects: [1],
+  environments: ['prod'],
+  datetime: {
+    period: '7d',
+    utc: null,
+    start: null,
+    end: null,
+  },
+};
+
+const initialRouterConfigFeed = {
+  location: {
+    pathname: '/organizations/org-slug/issues/',
+  },
+  route: '/organizations/:orgId/issues/',
+};
+
+const initialRouterConfigView = {
+  location: {
+    pathname: '/organizations/org-slug/issues/views/100/',
+  },
+  route: '/organizations/:orgId/issues/views/:viewId/',
+};
+
+describe('IssueViewSaveButton', function () {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/100/',
+      body: mockGroupSearchView,
+    });
+  });
+
+  it('can create a new view when no view is selected', async function () {
+    const mockCreateIssueView = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/',
+      method: 'POST',
+      body: mockGroupSearchView,
+    });
+
+    PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
+
+    const {router} = render(
+      <Fragment>
+        <IssueViewSaveButton {...defaultProps} />
+        <GlobalModal />
+      </Fragment>,
+      {
+        enableRouterMocks: false,
+        initialRouterConfig: initialRouterConfigFeed,
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Save As'}));
+
+    const modal = screen.getByRole('dialog');
+
+    expect(modal).toBeInTheDocument();
+
+    const nameInput = within(modal).getByRole('textbox', {name: 'Name'});
+
+    await userEvent.type(nameInput, 'My View');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create View'}));
+
+    await waitFor(() => {
+      expect(router.location.pathname).toBe('/organizations/org-slug/issues/views/100/');
+    });
+
+    expect(mockCreateIssueView).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {
+          name: 'My View',
+          query: 'is:unresolved',
+          querySort: IssueSortOptions.DATE,
+          projects: [1],
+          environments: ['prod'],
+          timeFilters: {period: '7d', utc: null, start: null, end: null},
+        },
+      })
+    );
+  });
+
+  it('can save as from an existing view', async function () {
+    const mockCreateIssueView = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/',
+      method: 'POST',
+      body: mockGroupSearchView,
+    });
+
+    PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
+
+    const {router} = render(
+      <Fragment>
+        <IssueViewSaveButton {...defaultProps} />
+        <GlobalModal />
+      </Fragment>,
+      {
+        enableRouterMocks: false,
+        initialRouterConfig: initialRouterConfigView,
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'More save options'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Save as new view'}));
+
+    const modal = screen.getByRole('dialog');
+
+    expect(modal).toBeInTheDocument();
+
+    const nameInput = within(modal).getByRole('textbox', {name: 'Name'});
+
+    await userEvent.type(nameInput, 'My View');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create View'}));
+
+    await waitFor(() => {
+      expect(router.location.pathname).toBe('/organizations/org-slug/issues/views/100/');
+    });
+
+    expect(mockCreateIssueView).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {
+          name: 'My View',
+          query: 'is:unresolved',
+          querySort: IssueSortOptions.DATE,
+          projects: [1],
+          environments: ['prod'],
+          timeFilters: {period: '7d', utc: null, start: null, end: null},
+        },
+      })
+    );
+  });
+
+  it('can discard unsaved changes', async function () {
+    PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
+
+    const {router} = render(<IssueViewSaveButton {...defaultProps} />, {
+      enableRouterMocks: false,
+      initialRouterConfig: {
+        ...initialRouterConfigView,
+        location: {
+          pathname: '/organizations/org-slug/issues/views/100/',
+          query: {
+            project: '1',
+            environments: 'dev', // different from default of 'prod'
+            statsPeriod: '7d',
+          },
+        },
+      },
+    });
+
+    await screen.findByTestId('save-button-unsaved');
+
+    await userEvent.click(screen.getByRole('button', {name: 'More save options'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Discard unsaved changes'})
+    );
+
+    // Discarding unsaved changes should reset URL query params
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        project: '1',
+        environment: 'prod',
+        statsPeriod: '7d',
+        query: 'is:unresolved',
+        sort: IssueSortOptions.DATE,
+      });
+    });
+
+    expect(router.location.pathname).toBe('/organizations/org-slug/issues/views/100/');
+
+    // The save button should no longer show unsaved changes
+    expect(screen.getByTestId('save-button')).toBeInTheDocument();
+  });
+});

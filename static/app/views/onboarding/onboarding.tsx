@@ -95,7 +95,8 @@ function Onboarding(props: Props) {
 
   useEffect(() => {
     if (
-      props.location.pathname === `/onboarding/${onboardingSteps[2]!.id}/` &&
+      normalizeUrl(props.location.pathname, {forceCustomerDomain: true}) ===
+        `/onboarding/${onboardingSteps[2]!.id}/` &&
       props.location.query?.platform &&
       onboardingContext.selectedPlatform === undefined
     ) {
