@@ -36,6 +36,7 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   end?: boolean;
   isActive?: boolean;
   leadingItems?: ReactNode;
+  showInteractionStateLayer?: boolean;
   trailingItems?: ReactNode;
 }
 
@@ -104,6 +105,7 @@ SecondaryNav.Item = function SecondaryNavItem({
   isActive: incomingIsActive,
   end = false,
   leadingItems,
+  showInteractionStateLayer = true,
   trailingItems,
   ...linkProps
 }: SecondaryNavItemProps) {
@@ -130,7 +132,9 @@ SecondaryNav.Item = function SecondaryNavItem({
       }}
     >
       {leadingItems}
-      <InteractionStateLayer data-isl hasSelectedBackground={isActive} />
+      {showInteractionStateLayer && (
+        <InteractionStateLayer data-isl hasSelectedBackground={isActive} />
+      )}
       <ItemText>{children}</ItemText>
       {trailingItems}
     </Item>
