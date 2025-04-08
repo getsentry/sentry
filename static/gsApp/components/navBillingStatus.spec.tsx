@@ -5,6 +5,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {setMockDate} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 
@@ -14,13 +15,8 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 // Jun 06 2022
 const MOCK_TODAY = 1654492173000;
 
-jest.mock('moment-timezone', () => {
-  const moment = jest.requireActual('moment-timezone');
-  moment.now = jest.fn().mockReturnValue(1654492173000); // jest didn't like me using the constant
-  return moment;
-});
-
 describe('PrimaryNavigationQuotaExceeded', function () {
+  setMockDate(MOCK_TODAY);
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     organization,
