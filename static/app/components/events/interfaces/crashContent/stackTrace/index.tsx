@@ -16,13 +16,13 @@ type Props = {
   event: Event;
   newestFirst: boolean;
   platform: PlatformKey;
+  stackView: StackView;
   stacktrace: StacktraceType;
   groupingCurrentLevel?: number;
   inlined?: boolean;
   lockAddress?: string;
   maxDepth?: number;
   meta?: Record<any, any>;
-  stackView?: StackView;
   threadId?: number;
 };
 

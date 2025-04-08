@@ -211,10 +211,8 @@ type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
   ...infer Rest,
 ]
   ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
-    {[K in A['length']]: Rest extends [] ? never : Rest[0]} & NextTuple<
-      Rest,
-      [...A, unknown]
-    >
+    Record<A['length'], Rest extends [] ? never : Rest[0]> &
+      NextTuple<Rest, [...A, unknown]>
   : Record<number, unknown>;
 
 type NextMap = NextTuple<TupleOf<ColorLength>>;
@@ -798,7 +796,7 @@ const generateAliases = (
    * Color of lines that flow across the background of the chart to indicate axes levels
    * (This should only be used for yAxis)
    */
-  chartLineColor: colors.gray100,
+  chartLineColor: colors.gray300,
 
   /**
    * Color for chart label text
@@ -808,7 +806,7 @@ const generateAliases = (
   /**
    * Color for the 'others' series in topEvent charts
    */
-  chartOther: colors.gray200,
+  chartOther: tokens.content.muted,
 
   /**
    * Color of the divider used in the content slider diff
@@ -824,11 +822,6 @@ const generateAliases = (
    * Default Progressbar color
    */
   progressBackground: colors.gray100,
-
-  /**
-   * Overlay for partial opacity
-   */
-  overlayBackgroundAlpha: colors.gray100,
 
   /**
    * Tag progress bars
@@ -858,16 +851,6 @@ const generateAliases = (
     warning: colors.yellow200,
     warningActive: color(colors.yellow200).opaquer(1).string(),
   },
-
-  /**
-   * Count on button when active
-   */
-  buttonCountActive: colors.white,
-
-  /**
-   * Count on button
-   */
-  buttonCount: tokens.content.primary,
 
   /**
    * Background of alert banners at the top
@@ -1078,8 +1061,12 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   },
 
   sidebar: {
-    // @TODO: these colors need to be ported
-    ...lightTheme.sidebar,
+    background: lightAliases.background,
+    scrollbarThumbColor: '#A0A0A0',
+    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
+    gradient: lightAliases.background,
+    border: 'transparent',
+    superuser: '#880808',
   },
 };
 
@@ -1146,8 +1133,12 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   },
 
   sidebar: {
-    // @TODO: these colors need to be ported
-    ...darkTheme.sidebar,
+    background: lightAliases.background,
+    scrollbarThumbColor: '#A0A0A0',
+    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
+    gradient: `none`,
+    border: 'transparent',
+    superuser: '#880808',
   },
 };
 

@@ -23,7 +23,7 @@ import {
   transformToSeriesMap,
 } from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
-import {type DashboardFilters, DisplayType, type Widget} from '../types';
+import type {DashboardFilters, Widget} from '../types';
 import {isEventsStats} from '../utils/isEventsStats';
 
 import type {
@@ -100,12 +100,7 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
     [props.widget.queries]
   );
 
-  // TODO: Remove the check for the display type when we support progressive loading
-  // for the table request as well.
-  if (
-    organization.features.includes('visibility-explore-progressive-loading') &&
-    ![DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(props.widget.displayType)
-  ) {
+  if (organization.features.includes('visibility-explore-progressive-loading')) {
     return (
       <SpansWidgetQueriesProgressiveLoadingImpl
         {...props}
@@ -136,6 +131,10 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
   const config = SpansConfig;
   const organization = useOrganization();
 
+  // The best effort response props are stored to render after the preflight
+  const [bestEffortChildrenProps, setBestEffortChildrenProps] =
+    useState<GenericWidgetQueriesChildrenProps | null>(null);
+
   const afterFetchSeriesData = (result: SeriesResult) => {
     const {seriesConfidence, seriesSampleCount, seriesIsSampled} =
       getConfidenceInformation(result);
@@ -160,17 +159,18 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
         dashboardFilters={dashboardFilters}
         afterFetchSeriesData={afterFetchSeriesData}
         samplingMode={SAMPLING_MODE.PREFLIGHT}
+        onDataFetched={() => {
+          setBestEffortChildrenProps(null);
+        }}
       >
-        {lowFidelityProps => (
+        {preflightProps => (
           <Fragment>
-            {/** TODO(nar): There is currently a bug where subsequent rerenders (i.e. changes in the widget
-             * params or dashboard filters) will cause this to refetch both the preflight and best effort data
-             * at the same time
-            ) */}
-            {lowFidelityProps.loading ? (
+            {preflightProps.loading || defined(bestEffortChildrenProps) ? (
+              // This state is returned when the preflight query is running, or when
+              // the best effort query has completed.
               children({
-                ...lowFidelityProps,
-                isProgressivelyLoading: lowFidelityProps.loading,
+                ...(bestEffortChildrenProps ?? preflightProps),
+                loading: preflightProps.loading,
               })
             ) : (
               <GenericWidgetQueries<SeriesResult, TableResult>
@@ -184,24 +184,26 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
                 dashboardFilters={dashboardFilters}
                 afterFetchSeriesData={afterFetchSeriesData}
                 samplingMode={SAMPLING_MODE.BEST_EFFORT}
+                onDataFetched={results => {
+                  setBestEffortChildrenProps({
+                    ...results,
+                    loading: false,
+                    isProgressivelyLoading: false,
+                  });
+                  onDataFetched?.(results);
+                }}
               >
-                {highFidelityProps =>
-                  children({
-                    ...highFidelityProps,
-                    ...(highFidelityProps.loading
-                      ? {
-                          ...lowFidelityProps,
-                          loading: true,
-                        }
-                      : {
-                          ...highFidelityProps,
-                        }),
-                    isProgressivelyLoading:
-                      highFidelityProps.loading &&
-                      !lowFidelityProps.errorMessage &&
-                      !highFidelityProps.errorMessage,
-                  })
-                }
+                {bestEffortProps => {
+                  if (bestEffortProps.loading) {
+                    return children({
+                      ...preflightProps,
+                      loading: true,
+                      isProgressivelyLoading:
+                        !preflightProps.errorMessage && !bestEffortProps.errorMessage,
+                    });
+                  }
+                  return children(bestEffortProps);
+                }}
               </GenericWidgetQueries>
             )}
           </Fragment>

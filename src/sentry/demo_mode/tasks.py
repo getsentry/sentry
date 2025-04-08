@@ -26,7 +26,7 @@ from sentry.utils.rollback_metrics import incr_rollback_metrics
 @instrumented_task(
     name="sentry.demo_mode.tasks.sync_artifact_bundles",
     queue="demo_mode",
-    taskworker=TaskworkerConfig(namespace=demomode_tasks),
+    taskworker_config=TaskworkerConfig(namespace=demomode_tasks),
 )
 def sync_artifact_bundles():
 

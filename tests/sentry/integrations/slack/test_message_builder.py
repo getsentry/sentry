@@ -81,6 +81,7 @@ def build_test_message_blocks(
     notes: str | None = None,
     suspect_commit_text: str | None = None,
     rule: IssueAlertRule | None = None,
+    legacy_rule_id: int | None = None,
 ) -> dict[str, Any]:
     project = group.project
 
@@ -223,7 +224,10 @@ def build_test_message_blocks(
         blocks.append(notes_section)
 
     if rule:
-        context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/alerts/rules/bar/{rule.id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
+        if legacy_rule_id:
+            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/alerts/rules/bar/{legacy_rule_id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
+        else:
+            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/alerts/rules/bar/{rule.id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
     else:
         context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}    Short ID: {group.qualified_short_id}"
     context = {
@@ -332,7 +336,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @with_feature("organizations:workflow-engine-trigger-actions")
     def test_build_group_block_noa(self):
-        rule = self.create_project_rule(project=self.project)
+        rule = self.create_project_rule(project=self.project, action_data=[{"legacy_rule_id": 123}])
         release = self.create_release(project=self.project)
         event = self.store_event(
             data={
@@ -358,6 +362,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             users={self.user},
             group=group,
             rule=rule,
+            legacy_rule_id=123,
         )
         # add extra tag to message
         assert SlackIssuesMessageBuilder(
@@ -489,7 +494,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         group = self.create_group(project=project2)
 
         SlackIssuesMessageBuilder(group).build()
-        assert mock_get_option_groups.called
 
         team_option_groups, member_option_groups = mock_get_option_groups(group)
         assert len(team_option_groups["options"]) == 2

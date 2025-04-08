@@ -55,7 +55,7 @@ describe('queuesTable', () => {
   it('renders', async () => {
     render(
       <QueuesTable
-        sort={{field: 'time_spent_percentage(app,span.duration)', kind: 'desc'}}
+        sort={{field: 'time_spent_percentage(span.duration)', kind: 'desc'}}
       />,
       {organization}
     );
