@@ -40,11 +40,11 @@ import {
 } from 'sentry/views/explore/logs/useLogsQuery';
 
 import {
-  DetailsFooter,
-  DetailsGrid,
+  DetailsBody,
+  DetailsContent,
   DetailsWrapper,
   getLogColors,
-  LogDetailsTitle,
+  LogDetailPanelItem,
   LogDetailTableBodyCell,
   LogFirstCellContent,
   LogsTableBodyFirstCell,
@@ -258,32 +258,33 @@ function LogRowDetails({
           {isPending && <LoadingIndicator />}
           {!isPending && data && (
             <Fragment>
-              <DetailsGrid>
-                <LogDetailsTitle>{t('Log')}</LogDetailsTitle>
-                <LogFieldsTree
-                  attributes={data.attributes}
-                  hiddenAttributes={HiddenLogDetailFields}
-                  renderers={LogAttributesRendererMap}
-                  renderExtra={{
-                    highlightTerms,
-                    logColors,
-                    location,
-                    organization,
-                  }}
-                />
-              </DetailsGrid>
-              <DetailsFooter logColors={logColors}>
-                {LogBodyRenderer({
-                  item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
-                  extra: {
-                    highlightTerms,
-                    logColors,
-                    wrapBody: true,
-                    location,
-                    organization,
-                  },
-                })}
-              </DetailsFooter>
+              <DetailsContent>
+                <DetailsBody>
+                  {LogBodyRenderer({
+                    item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
+                    extra: {
+                      highlightTerms,
+                      logColors,
+                      wrapBody: true,
+                      location,
+                      organization,
+                    },
+                  })}
+                </DetailsBody>
+                <LogDetailPanelItem>
+                  <LogFieldsTree
+                    attributes={data.attributes}
+                    hiddenAttributes={HiddenLogDetailFields}
+                    renderers={LogAttributesRendererMap}
+                    renderExtra={{
+                      highlightTerms,
+                      logColors,
+                      location,
+                      organization,
+                    }}
+                  />
+                </LogDetailPanelItem>
+              </DetailsContent>
             </Fragment>
           )}
         </LogDetailTableBodyCell>
