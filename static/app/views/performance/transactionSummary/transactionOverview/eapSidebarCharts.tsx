@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import toPercent from 'sentry/utils/number/toPercent';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -78,10 +78,9 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
       return null;
     }
 
-    const failureRateText = toPercent(failureRateValue[0]?.['failure_rate()'] ?? 0);
     return (
       <Tag key="failure-rate-value" type="error">
-        {failureRateText}
+        {formatPercentage(failureRateValue[0]?.['failure_rate()'] ?? 0)}
       </Tag>
     );
   };
@@ -101,7 +100,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
 
   return (
     <Widget
-      Title={t('Failure Rate')}
+      Title={<SideBarWidgetTitle>{t('Failure Rate')}</SideBarWidgetTitle>}
       TitleBadges={getFailureRateBadge()}
       Actions={
         <Widget.WidgetToolbar>
@@ -112,6 +111,11 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
         </Widget.WidgetToolbar>
       }
       Visualization={<TimeSeriesWidgetVisualization plottables={plottables} />}
+      height={200}
     />
   );
 }
+
+const SideBarWidgetTitle = styled('div')`
+  font-weight: ${p => p.theme.fontWeightBold};
+`;
