@@ -19,6 +19,7 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
+import {getDotnetProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/dotnet';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 type Params = DocsParams;
@@ -310,11 +311,17 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding = getDotnetProfilingOnboarding({
+  getInstallSnippetPackageManager,
+  getInstallSnippetCoreCli,
+});
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
+  profilingOnboarding,
 };
 
 export default docs;
