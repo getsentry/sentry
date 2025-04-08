@@ -17,7 +17,7 @@ import {
 import {useHasTraceNewUi} from '../useHasTraceNewUi';
 
 const NO_ERRORS = new Set<TraceTree.TraceError>();
-const NO_PERFORMANCE_ISSUES = new Set<TraceTree.TracePerformanceIssue>();
+const NO_OCCURENCES = new Set<TraceTree.TraceOccurence>();
 const NO_PROFILES: any = [];
 
 export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>>) {
@@ -89,7 +89,7 @@ export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>
               color={makeTraceNodeBarColor(props.theme, props.node)}
               node_space={props.node.space}
               errors={NO_ERRORS}
-              performance_issues={NO_PERFORMANCE_ISSUES}
+              occurences={NO_OCCURENCES}
               profiles={NO_PROFILES}
             />
             <button
