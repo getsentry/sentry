@@ -5,7 +5,6 @@ import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/i
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import useCrashFreeSessions from 'sentry/views/insights/sessions/queries/useCrashFreeSessions';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
-import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function CrashFreeSessionsChart() {
   const {series, releases, isPending, error} = useCrashFreeSessions();
@@ -23,7 +22,6 @@ export default function CrashFreeSessionsChart() {
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.CrashFreeSessionsChart} />
       )}
-      height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
         'The percent of sessions terminating without a crash. See [link:session status].',
         {
@@ -32,6 +30,7 @@ export default function CrashFreeSessionsChart() {
           ),
         }
       )}
+      height="100%"
       aliases={aliases}
       series={series}
       isLoading={isPending}

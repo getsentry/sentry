@@ -4,7 +4,6 @@ import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/i
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import useReleaseSessionCounts from 'sentry/views/insights/sessions/queries/useReleaseSessionCounts';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
-import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function ReleaseSessionCountChart() {
   const {series, releases, isPending, error} = useReleaseSessionCounts();
@@ -20,10 +19,10 @@ export default function ReleaseSessionCountChart() {
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.ReleaseSessionCountChart} />
       )}
-      height={SESSION_HEALTH_CHART_HEIGHT}
       description={t(
         'The total number of sessions per release. The 5 most recent releases are shown.'
       )}
+      height="100%"
       aliases={aliases}
       series={series}
       isLoading={isPending}
