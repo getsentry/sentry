@@ -47,7 +47,7 @@ def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, aut
             logger.warning("_trigger_autofix_task.group_not_found", extra={"group_id": group_id})
             return
 
-        user: User | AnonymousUser | None = None
+        user: User | AnonymousUser | RpcUser | None = None
         if user_id:
             user = user_service.get_user(user_id=user_id)
             if user is None:
