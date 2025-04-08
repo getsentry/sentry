@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useRef} from 'react';
 
 import {
   ContentSliderDiff,
@@ -8,14 +8,27 @@ import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareC
 import {After, Before} from 'sentry/components/replays/diff/utils';
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export function ReplaySliderDiff({
   minHeight,
 }: Pick<ContentSliderDiffBodyProps, 'minHeight'>) {
   const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();
+  const organization = useOrganization();
+  const dividerClickedRef = useRef(false); // once set, never flips back to false
+
+  const onDividerMouseDownWithAnalytics = useCallback(() => {
+    // tracks only the first mouseDown since the last render
+    if (organization && !dividerClickedRef.current) {
+      trackAnalytics('replay.hydration-modal.slider-interaction', {organization});
+      dividerClickedRef.current = true;
+    }
+  }, [organization]);
+
   return (
     <Fragment>
       <ContentSliderDiff.Header>
@@ -25,6 +38,7 @@ export function ReplaySliderDiff({
       <ReplayPlayerPluginsContextProvider>
         <ReplayReaderProvider replay={replay}>
           <ContentSliderDiff.Body
+            onDividerMouseDown={onDividerMouseDownWithAnalytics}
             minHeight={minHeight}
             before={
               <ReplayPlayerStateContextProvider>
