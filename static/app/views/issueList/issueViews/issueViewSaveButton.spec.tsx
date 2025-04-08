@@ -46,6 +46,8 @@ const initialRouterConfigView = {
 };
 
 describe('IssueViewSaveButton', function () {
+  PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
+
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/100/',
@@ -156,6 +158,51 @@ describe('IssueViewSaveButton', function () {
     );
   });
 
+  it('can save changes to a view', async function () {
+    const mockUpdateIssueView = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/100/',
+      method: 'PUT',
+      body: {...mockGroupSearchView, environments: ['dev']},
+    });
+
+    render(<IssueViewSaveButton {...defaultProps} />, {
+      enableRouterMocks: false,
+      initialRouterConfig: {
+        ...initialRouterConfigView,
+        location: {
+          pathname: '/organizations/org-slug/issues/views/100/',
+          query: {
+            project: '1',
+            environment: 'dev', // different from default of 'prod'
+            statsPeriod: '7d',
+            query: 'is:unresolved',
+            sort: IssueSortOptions.DATE,
+          },
+        },
+      },
+    });
+
+    // Should show unsaved changes
+    await screen.findByTestId('save-button-unsaved');
+
+    // Clicking save should update the view and clear unsaved changes
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+    await waitFor(() => {
+      // The save button should no longer show unsaved changes
+      expect(screen.queryByTestId('save-button-unsaved')).not.toBeInTheDocument();
+    });
+
+    expect(mockUpdateIssueView).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          environments: ['dev'],
+        }),
+      })
+    );
+  });
+
   it('can discard unsaved changes', async function () {
     PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
 
@@ -167,8 +214,10 @@ describe('IssueViewSaveButton', function () {
           pathname: '/organizations/org-slug/issues/views/100/',
           query: {
             project: '1',
-            environments: 'dev', // different from default of 'prod'
+            environment: 'dev', // different from default of 'prod'
             statsPeriod: '7d',
+            query: 'is:unresolved',
+            sort: IssueSortOptions.DATE,
           },
         },
       },
