@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
@@ -298,7 +298,7 @@ function RuleListRow({
                 options={dropdownTeams}
                 value={assignee}
                 searchable
-                triggerLabel={<Fragment>{avatarElement}</Fragment>}
+                triggerLabel={avatarElement}
                 triggerProps={{
                   size: 'zero',
                   borderless: true,
