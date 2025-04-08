@@ -1,6 +1,5 @@
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import type {
   RowWithScoreAndOpportunity,
@@ -10,6 +9,7 @@ import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/qu
 import {useDefaultWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/utils/useDefaultQuery';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {useMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {
   type MetricsProperty,
   SpanIndexedField,
@@ -41,11 +41,10 @@ export const useTransactionWebVitalsScoresQuery = ({
   browserTypes,
   subregions,
 }: Props) => {
-  const location = useLocation();
   const sort = useWebVitalsSort({sortName, defaultSort});
   const defaultQuery = useDefaultWebVitalsQuery();
 
-  const useEap = location.query?.useEap === '1';
+  const useEap = useInsightsEap();
 
   const totalOpportunityScoreField: MetricsProperty = useEap
     ? 'opportunity_score(measurements.score.total)'

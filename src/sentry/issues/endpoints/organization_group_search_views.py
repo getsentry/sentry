@@ -66,7 +66,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         serializer = OrganizationGroupSearchViewGetSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         query = GroupSearchView.objects.filter(
             organization=organization, user_id=request.user.id

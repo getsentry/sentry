@@ -19,6 +19,11 @@ describe('GroupFeatureFlagsDrawerContent', function () {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/suspect/flags/`,
+      body: [],
+    });
+
     ProjectsStore.init();
     ProjectsStore.loadInitialData([
       ProjectFixture({platform: 'javascript', hasFlags: false}),

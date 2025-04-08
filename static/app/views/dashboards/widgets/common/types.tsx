@@ -60,9 +60,12 @@ export type TabularData<TFields extends string = string> = {
 };
 
 export type ErrorProp = Error | string;
+export interface ErrorPropWithResponseJSON extends Error {
+  responseJSON?: {detail: string};
+}
 
 export interface StateProps {
-  error?: ErrorProp;
+  error?: ErrorProp | ErrorPropWithResponseJSON;
   isLoading?: boolean;
   onRetry?: () => void;
 }
@@ -74,4 +77,4 @@ export type Release = {
   version: string;
 };
 
-export type LegendSelection = {[key: string]: boolean};
+export type LegendSelection = Record<string, boolean>;

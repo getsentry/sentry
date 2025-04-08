@@ -151,7 +151,7 @@ describe('EventTagsAndScreenshot', function () {
 
   async function assertTagsView() {
     expect(screen.getByText('Tags')).toBeInTheDocument();
-    const tagsContainer = within(screen.getByTestId('event-tags'));
+    const tagsContainer = within(screen.getByRole('region', {name: 'tags'}));
     expect(tagsContainer.getAllByRole('radio')).toHaveLength(
       Object.keys(TagFilter).length
     );
@@ -305,24 +305,12 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.queryByText('Tags')).not.toBeInTheDocument();
 
       // Screenshot Container
-      expect(
-        (await screen.findByTestId('screenshot-data-section'))?.textContent
-      ).toContain('Screenshot');
+      expect(await screen.findByRole('region', {name: 'Screenshot'})).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1]!.id}/?download`
       );
-
-      // Display help text when hovering question element
-      await userEvent.hover(screen.getByTestId('more-information'));
-
-      expect(
-        await screen.findByText(
-          'This image was captured around the time that the event occurred.'
-        )
-      ).toBeInTheDocument();
-
       // Screenshot is clickable
       await userEvent.click(screen.getByTestId('image-viewer'));
 
@@ -357,9 +345,8 @@ describe('EventTagsAndScreenshot', function () {
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1]!.id}/?download`
       );
 
-      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
-        'Screenshot'
-      );
+      expect(screen.getByRole('region', {name: 'Screenshot'})).toBeInTheDocument();
+
       expect(
         screen.queryByRole('button', {name: 'Previous Screenshot'})
       ).not.toBeInTheDocument();
@@ -396,9 +383,8 @@ describe('EventTagsAndScreenshot', function () {
         {organization}
       );
 
-      expect(
-        (await screen.findByTestId('screenshot-data-section'))?.textContent
-      ).toContain('1 of 2');
+      const screenShotSection = await screen.findByRole('region', {name: 'Screenshots'});
+      expect(screenShotSection).toHaveTextContent('1 of 2');
 
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
@@ -408,9 +394,7 @@ describe('EventTagsAndScreenshot', function () {
 
       await userEvent.click(screen.getByRole('button', {name: 'Next Screenshot'}));
 
-      expect(await screen.findByTestId('screenshot-data-section')).toHaveTextContent(
-        '2 of 2'
-      );
+      expect(screenShotSection).toHaveTextContent('2 of 2');
 
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
@@ -467,9 +451,7 @@ describe('EventTagsAndScreenshot', function () {
       await assertTagsView();
 
       // Screenshot Container
-      expect(
-        (await screen.findByTestId('screenshot-data-section'))?.textContent
-      ).toContain('Screenshot');
+      expect(await screen.findByRole('region', {name: 'Screenshot'})).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
