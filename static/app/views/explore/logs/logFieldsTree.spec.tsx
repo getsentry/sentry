@@ -60,7 +60,6 @@ describe('logFieldsTree', () => {
               color: '#000',
             },
             useFullSeverityText: false,
-            renderSeverityCircle: false,
             organization,
             location: LocationFixture(),
           }}
