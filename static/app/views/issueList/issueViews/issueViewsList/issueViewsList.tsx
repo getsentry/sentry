@@ -7,12 +7,20 @@ import Redirect from 'sentry/components/redirect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
-import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import {GroupSearchViewCreatedBy} from 'sentry/views/issueList/types';
+import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
+import {
+  makeFetchGroupSearchViewsKey,
+  useFetchGroupSearchViews,
+} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import {
+  type GroupSearchView,
+  GroupSearchViewCreatedBy,
+} from 'sentry/views/issueList/types';
 
 type IssueViewSectionProps = {
   createdBy: GroupSearchViewCreatedBy;
@@ -28,6 +36,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
     typeof location.query[cursorQueryParam] === 'string'
       ? location.query[cursorQueryParam]
       : undefined;
+  const queryClient = useQueryClient();
 
   const {
     data: views = [],
@@ -41,11 +50,49 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
     cursor,
   });
 
+  const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
+    onMutate: variables => {
+      setApiQueryData<GroupSearchView[]>(
+        queryClient,
+        makeFetchGroupSearchViewsKey({
+          orgSlug: organization.slug,
+          createdBy,
+          limit,
+          cursor,
+        }),
+        data => {
+          return data?.map(view =>
+            view.id === variables.id ? {...view, starred: variables.starred} : view
+          );
+        }
+      );
+    },
+    onError: (_error, variables) => {
+      setApiQueryData<GroupSearchView[]>(
+        queryClient,
+        makeFetchGroupSearchViewsKey({orgSlug: organization.slug}),
+        data => {
+          return data?.map(view =>
+            view.id === variables.id ? {...view, starred: !variables.starred} : view
+          );
+        }
+      );
+    },
+  });
+
   const pageLinks = getResponseHeader?.('Link');
 
   return (
     <Fragment>
-      <IssueViewsTable views={views} isPending={isPending} isError={isError} />
+      <IssueViewsTable
+        type={createdBy}
+        views={views}
+        isPending={isPending}
+        isError={isError}
+        handleStarView={view => {
+          mutateViewStarred({id: view.id, starred: !view.starred, view});
+        }}
+      />
       <Pagination
         pageLinks={pageLinks}
         onCursor={newCursor => {
