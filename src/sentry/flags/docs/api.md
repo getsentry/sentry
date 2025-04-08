@@ -223,24 +223,26 @@ Retrieve a collection of confidence scores for all feature flags associated with
 
 **Attributes**
 
-| Column                | Type   | Description                                                           |
-| --------------------- | ------ | --------------------------------------------------------------------- |
-| flag                  | object | Object containing score data for a flag. Key is the name of the flag. |
-| flag.score            | number | A suspicion score from 0 to infinity.                                 |
-| flag.baseline_percent | number | Percentage of events in the same project with the flag enabled.       |
+| Column           | Type   | Description                                                     |
+| ---------------- | ------ | --------------------------------------------------------------- |
+| flag             | string | The name of the flag.                                           |
+| score            | number | A suspicion score from 0 to infinity.                           |
+| baseline_percent | number | Percentage of events in the same project with the flag enabled. |
 
 - Response 200
 
   ```json
   {
     "data": [
-      "hello": {
+      {
+        "flag": "hello",
         "score": 5.83,
-        "baseline_percent": 0.33,
+        "baseline_percent": 0.33
       },
-      "world": {
+      {
+        "flag": "world",
         "score": 0.0021,
-        "baseline_percent": 0.491,
+        "baseline_percent": 0.491
       }
     ]
   }
