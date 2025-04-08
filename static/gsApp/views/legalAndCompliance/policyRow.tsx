@@ -45,7 +45,7 @@ export function PolicyRow({
   const user = ConfigStore.get('user');
   const companyName = subscription?.companyName ?? organization.name;
   const activeSuperUser = isActiveSuperuser();
-  const canAcceptPolicies = organization.access.includes('org:write');
+  const hasBillingAccess = organization.access.includes('org:billing');
 
   const policyUrl = policy.url ? safeURL(policy.url) : null;
   // userCurrentVersion filters version select dropdown to only the current version + latest version
@@ -208,16 +208,16 @@ export function PolicyRow({
           ) : policy.hasSignature &&
             policy.slug !== 'privacy' &&
             policy.slug !== 'terms' &&
-            canAcceptPolicies ? (
+            hasBillingAccess ? (
             <Button
               size="sm"
               priority="primary"
               onClick={showModal}
-              disabled={activeSuperUser || !canAcceptPolicies}
+              disabled={activeSuperUser || !hasBillingAccess}
               title={
                 activeSuperUser
                   ? t("Superusers can't consent to policies")
-                  : canAcceptPolicies
+                  : hasBillingAccess
                     ? undefined
                     : t("You don't have access to accept policies.")
               }

@@ -98,7 +98,7 @@ describe('PolicyRow', function () {
   it('allows those with org write to accept policies', function () {
     const policy = policies['soc-2-bridge-letter']!;
     const modifiedOrganization = OrganizationFixture({
-      access: ['org:write'],
+      access: ['org:billing'],
     });
 
     render(
