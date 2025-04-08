@@ -1056,7 +1056,7 @@ class JiraIntegration(IssueSyncIntegration):
 
         try:
             client.transition_issue(external_issue.key, transition["id"])
-        except (ApiError, ApiInvalidRequestError) as e:
+        except ApiInvalidRequestError as e:
             raise IntegrationFormError("Unable to sync status with Jira") from e
 
     def _get_done_statuses(self):
