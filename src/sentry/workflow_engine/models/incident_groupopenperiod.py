@@ -17,8 +17,8 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    incident_id = BoundedBigIntegerField(null=True)
-    group_open_period = FlexibleForeignKey("sentry.GroupOpenPeriod")
+    incident_id = BoundedBigIntegerField(null=True, unique=True)
+    group_open_period = FlexibleForeignKey("sentry.GroupOpenPeriod", unique=True)
 
     class Meta:
         db_table = "workflow_engine_incidentgroupopenperiod"

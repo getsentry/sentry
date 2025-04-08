@@ -832,6 +832,7 @@ class ExhaustiveFixtures(Fixtures):
         every model. The end result is two users, in one organization, with one full set of
         extensions, and all global flags set.
         """
+
         superadmin = self.create_exhaustive_user(
             "superadmin", is_admin=is_superadmin, is_superuser=is_superadmin, is_staff=is_superadmin
         )
