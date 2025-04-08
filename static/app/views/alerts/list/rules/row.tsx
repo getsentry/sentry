@@ -173,7 +173,7 @@ function RuleListRow({
       value: `team:${team.id}`,
       textValue: team.slug,
       label: (
-        <MenuItemWrapper data-test-id="assignee-option" key={idx}>
+        <MenuItemWrapper key={idx}>
           <IconContainer>
             <TeamAvatar team={team} />
           </IconContainer>
@@ -300,6 +300,9 @@ function RuleListRow({
                 searchable
                 triggerLabel={avatarElement}
                 triggerProps={{
+                  'aria-label': assignee
+                    ? `Assigned to #${teamName?.name}`
+                    : t('Unassigned'),
                   size: 'zero',
                   borderless: true,
                 }}
