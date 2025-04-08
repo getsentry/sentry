@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 import clamp from 'lodash/clamp';
 import {PlatformIcon} from 'platformicons';
 
+import {isEAPError} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 import {TraceIcons} from '../traceIcons';
@@ -27,11 +28,11 @@ export function TraceErrorIcons(props: ErrorIconsProps) {
   return (
     <Fragment>
       {errors.map((error, i) => {
-        const timestamp = error.timestamp ? error.timestamp * 1e3 : props.node_space![0];
+        const timestamp = isEAPError(error) ? error.start_timestamp : error.timestamp;
         // Clamp the error timestamp to the span's timestamp
         const left = props.manager.computeRelativeLeftPositionFromOrigin(
           clamp(
-            timestamp,
+            timestamp ? timestamp * 1e3 : props.node_space![0],
             props.node_space![0],
             props.node_space![0] + props.node_space![1]
           ),
@@ -52,28 +53,28 @@ export function TraceErrorIcons(props: ErrorIconsProps) {
   );
 }
 
-interface TracePerformanceIssueIconsProps {
+interface TraceOccurenceIconsProps {
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
-  performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
+  occurences: TraceTreeNode<TraceTree.Transaction>['occurences'];
 }
 
-export function TracePerformanceIssueIcons(props: TracePerformanceIssueIconsProps) {
-  const performance_issues = useMemo(() => {
-    return [...props.performance_issues];
-  }, [props.performance_issues]);
+export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
+  const occurences = useMemo(() => {
+    return [...props.occurences];
+  }, [props.occurences]);
 
-  if (!props.performance_issues.size) {
+  if (!props.occurences.size) {
     return null;
   }
 
   return (
     <Fragment>
-      {performance_issues.map((issue, i) => {
-        const timestamp = issue.timestamp
-          ? issue.timestamp * 1e3
-          : issue.start
-            ? issue.start * 1e3
+      {occurences.map((occurence, i) => {
+        const timestamp = occurence.timestamp
+          ? occurence.timestamp * 1e3
+          : occurence.start
+            ? occurence.start * 1e3
             : props.node_space![0];
         // Clamp the issue timestamp to the span's timestamp
         const left = props.manager.computeRelativeLeftPositionFromOrigin(
@@ -86,12 +87,8 @@ export function TracePerformanceIssueIcons(props: TracePerformanceIssueIconsProp
         );
 
         return (
-          <div
-            key={i}
-            className={`TraceIcon performance_issue`}
-            style={{left: left * 100 + '%'}}
-          >
-            <TraceIcons.Icon event={issue} />
+          <div key={i} className={`TraceIcon occurence`} style={{left: left * 100 + '%'}}>
+            <TraceIcons.Icon event={occurence} />
           </div>
         );
       })}

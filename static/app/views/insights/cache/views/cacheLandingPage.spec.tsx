@@ -8,19 +8,15 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {CacheLandingPage} from 'sentry/views/insights/cache/views/cacheLandingPage';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-
 jest.mock('sentry/utils/useReleaseStats');
 
 const requestMocks = {
@@ -62,25 +58,16 @@ describe('CacheLandingPage', function () {
     key: '',
   });
 
-  jest.mocked(useProjects).mockReturnValue({
-    projects: [
-      ProjectFixture({
-        id: '1',
-        name: 'Backend',
-        slug: 'backend',
-        firstTransactionEvent: true,
-        hasInsightsCaches: true,
-        platform: 'javascript',
-      }),
-    ],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-    fetching: false,
-    hasMore: null,
-    fetchError: null,
-    initiallyLoaded: false,
-  });
+  ProjectsStore.loadInitialData([
+    ProjectFixture({
+      id: '1',
+      name: 'Backend',
+      slug: 'backend',
+      firstTransactionEvent: true,
+      hasInsightsCaches: true,
+      platform: 'javascript',
+    }),
+  ]);
 
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
@@ -123,7 +110,7 @@ describe('CacheLandingPage', function () {
           referrer: 'api.performance.cache.landing-cache-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
-          yAxis: 'spm()',
+          yAxis: 'epm()',
           transformAliasToInputFormat: '1',
         },
       })
@@ -139,7 +126,7 @@ describe('CacheLandingPage', function () {
             'project',
             'project.id',
             'transaction',
-            'spm()',
+            'epm()',
             'cache_miss_rate()',
             'sum(span.self_time)',
             'time_spent_percentage()',
@@ -190,7 +177,7 @@ describe('CacheLandingPage', function () {
             project: 'backend',
             'project.id': 123,
             'avg(cache.item_size)': 123,
-            'spm()': 123,
+            'epm()': 123,
             'sum(span.self_time)': 123,
             'cache_miss_rate()': 0.123,
             'time_spent_percentage()': 0.123,
@@ -202,7 +189,7 @@ describe('CacheLandingPage', function () {
             project: 'string',
             'project.id': 'integer',
             'avg(cache.item_size)': 'number',
-            'spm()': 'rate',
+            'epm()': 'rate',
             'sum(span.self_time)': 'duration',
             'cache_miss_rate()': 'percentage',
             'time_spent_percentage()': 'percentage',
@@ -281,26 +268,16 @@ describe('CacheLandingPage', function () {
   });
 
   it('shows module onboarding', async function () {
-    jest.mocked(useOnboardingProject).mockReturnValue(undefined);
-    jest.mocked(useProjects).mockReturnValue({
-      projects: [
-        ProjectFixture({
-          id: '1',
-          name: 'Backend',
-          slug: 'backend',
-          firstTransactionEvent: true,
-          hasInsightsCaches: false,
-          platform: 'javascript',
-        }),
-      ],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        id: '1',
+        name: 'Backend',
+        slug: 'backend',
+        firstTransactionEvent: true,
+        hasInsightsCaches: false,
+        platform: 'javascript',
+      }),
+    ]);
 
     render(<CacheLandingPage />, {organization});
 
@@ -380,7 +357,7 @@ const setRequestMocks = (organization: Organization) => {
       meta: {
         fields: {
           time: 'date',
-          spm_14400: 'rate',
+          epm_14400: 'rate',
         },
         units: {},
       },
@@ -402,7 +379,7 @@ const setRequestMocks = (organization: Organization) => {
           project: 'backend',
           'project.id': 123,
           'avg(cache.item_size)': 123,
-          'spm()': 123,
+          'epm()': 123,
           'sum(span.self_time)': 123,
           'cache_miss_rate()': 0.123,
           'time_spent_percentage()': 0.123,
@@ -414,7 +391,7 @@ const setRequestMocks = (organization: Organization) => {
           project: 'string',
           'project.id': 'integer',
           'avg(cache.item_size)': 'number',
-          'spm()': 'rate',
+          'epm()': 'rate',
           'sum(span.self_time)': 'duration',
           'cache_miss_rate()': 'percentage',
           'time_spent_percentage()': 'percentage',

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import * as qs from 'query-string';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -74,6 +75,8 @@ export function SpanOperationTable({
 
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
+
   const {selection} = usePageFilters();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
@@ -90,6 +93,8 @@ export function SpanOperationTable({
     // Exclude root level spans because they're comprised of nested operations
     '!span.description:"Cold Start"',
     '!span.description:"Warm Start"',
+    '!span.description:"Cold App Start"',
+    '!span.description:"Warm App Start"',
     // Exclude this span because we can get TTID contributing spans instead
     '!span.description:"Initial Frame Render"',
     'has:span.description',
@@ -204,6 +209,7 @@ export function SpanOperationTable({
       location,
       organization,
       unit: data?.meta.units?.[column.key],
+      theme,
     });
     return rendered;
   }

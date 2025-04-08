@@ -30,7 +30,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
-import WidgetCardChartContainer from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
+import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 
 import type {DashboardFilters, Widget} from '../types';
 import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
@@ -355,5 +355,5 @@ export const WidgetTitleRow = styled('span')`
 
 export const WidgetDescription = styled('small')`
   ${p => p.theme.overflowEllipsis}
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

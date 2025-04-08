@@ -9,7 +9,7 @@ type Props = {
   enabled?: boolean;
 };
 
-const yAxis: SpanMetricsProperty[] = ['avg(span.duration)', 'spm()'];
+const yAxis: SpanMetricsProperty[] = ['avg(span.duration)', 'epm()'];
 
 export function usePublishQueuesTimeSeriesQuery({enabled, destination, referrer}: Props) {
   const search = new MutableSearch('span.op:queue.publish');

@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {
   type AutofixData,
@@ -49,7 +49,10 @@ const makeInitialAutofixData = (): AutofixResponse => ({
       },
     ],
     created_at: new Date().toISOString(),
-    repositories: [],
+    request: {
+      repos: [],
+    },
+    codebases: {},
   },
 });
 
@@ -76,12 +79,23 @@ const makeErrorAutofixData = (errorMessage: string): AutofixResponse => {
 };
 
 /** Will not poll when the autofix is in an error state or has completed */
-const isPolling = (autofixData: AutofixData | null, runStarted: boolean) => {
+const isPolling = (
+  autofixData: AutofixData | null,
+  runStarted: boolean,
+  isSidebar?: boolean
+) => {
   if (!autofixData && !runStarted) {
     return false;
   }
 
   if (!autofixData?.steps) {
+    return true;
+  }
+
+  if (
+    autofixData.status === AutofixStatus.PROCESSING ||
+    autofixData?.steps.some(step => step.status === AutofixStatus.PROCESSING)
+  ) {
     return true;
   }
 
@@ -106,7 +120,7 @@ const isPolling = (autofixData: AutofixData | null, runStarted: boolean) => {
   }
 
   // Continue polling if there's an active comment thread, even if the run is completed
-  if (hasActiveCommentThread) {
+  if (!isSidebar && hasActiveCommentThread) {
     return true;
   }
 
@@ -121,6 +135,24 @@ const isPolling = (autofixData: AutofixData | null, runStarted: boolean) => {
   );
 };
 
+export const useAutofixRepos = (groupId: string) => {
+  const {data} = useAutofixData({groupId});
+
+  return useMemo(() => {
+    const repos = data?.request?.repos ?? [];
+    const codebases = data?.codebases ?? {};
+
+    return {
+      repos: repos.map(repo => ({
+        ...repo,
+        is_readable: codebases[repo.external_id]?.is_readable,
+        is_writeable: codebases[repo.external_id]?.is_writeable,
+      })),
+      codebases,
+    };
+  }, [data]);
+};
+
 export const useAutofixData = ({groupId}: {groupId: string}) => {
   const {data, isPending} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(groupId), {
     staleTime: Infinity,
@@ -131,7 +163,14 @@ export const useAutofixData = ({groupId}: {groupId: string}) => {
   return {data: data?.autofix ?? null, isPending};
 };
 
-export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
+export const useAiAutofix = (
+  group: GroupWithAutofix,
+  event: Event,
+  options: {
+    isSidebar?: boolean;
+    pollInterval?: number;
+  } = {}
+) => {
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -146,10 +185,11 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
       if (
         isPolling(
           query.state.data?.[0]?.autofix || null,
-          !!currentRunId || waitingForNextRun
+          !!currentRunId || waitingForNextRun,
+          options.isSidebar
         )
       ) {
-        return POLL_INTERVAL;
+        return options.pollInterval ?? POLL_INTERVAL;
       }
       return false;
     },

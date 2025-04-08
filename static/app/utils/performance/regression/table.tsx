@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
@@ -29,6 +30,7 @@ export function NumericChange({
   beforeRawValue: number;
   columnKey: string;
 }) {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const percentChange = getPercentChange(beforeRawValue, afterRawValue);
@@ -42,7 +44,7 @@ export function NumericChange({
         spm: 'rate',
       },
       false
-    )({[columnKey]: value}, {organization, location, unit});
+    )({[columnKey]: value}, {organization, location, unit, theme});
 
   if (Math.round(percentChange) !== 0) {
     let percentChangeLabel = `${percentChange > 0 ? '+' : ''}${Math.round(
@@ -79,7 +81,7 @@ export const NumericColumnLabel = styled('div')`
 const ChangeLabel = styled('div')<{isNeutral: boolean; isPositive: boolean}>`
   color: ${p => {
     if (p.isNeutral) {
-      return p.theme.gray300;
+      return p.theme.subText;
     }
     if (p.isPositive) {
       return p.theme.red300;
@@ -97,7 +99,7 @@ const Change = styled('span')`
 `;
 
 const ChangeDescription = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   white-space: nowrap;
   grid-column: span 3;
   text-align: right;

@@ -119,7 +119,7 @@ function MemberInviteModalCustomization({
       if (trialStarting) {
         return (
           <TrialInfo>
-            <LoadingIndicator mini relative hideMessage size={16} />
+            <LoadingIndicator mini relative size={16} />
             {trialStartText}
           </TrialInfo>
         );
@@ -198,9 +198,9 @@ const TrialInfo = styled('div')<{status?: string}>`
 // wraps the component to add the organization context
 function MemberInviteModalCustomizationWrapper(props: MemberInviteProps) {
   return (
-    <OrganizationContext.Provider value={props.organization}>
+    <OrganizationContext value={props.organization}>
       <MemberInviteModalCustomization {...props} />
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 

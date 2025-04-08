@@ -43,6 +43,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.test import APITestCase as BaseAPITestCase
 from rest_framework.test import APITransactionTestCase as BaseAPITransactionTestCase
+from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUSREASONTYPE_TIMEOUT,
@@ -105,7 +106,7 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import RuleSource
-from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
+from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.new_migrations.monkey.state import SentryProjectState
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
@@ -149,7 +150,6 @@ from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
-from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
@@ -279,6 +279,7 @@ class BaseTestCase(Fixtures):
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
         if secure_scheme:
+            assert settings.SECURE_PROXY_SSL_HEADER is not None
             secure_header = settings.SECURE_PROXY_SSL_HEADER
             request.META[secure_header[0]] = secure_header[1]
 
@@ -300,7 +301,6 @@ class BaseTestCase(Fixtures):
 
     # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
     # a lot of tests changing
-    @TimedRetryPolicy.wrap(timeout=5)
     def login_as(
         self,
         user,
@@ -1366,7 +1366,7 @@ class BaseSpansTestCase(SnubaTestCase):
         transaction: str | None = None,
         duration: int = 10,
         exclusive_time: int = 5,
-        tags: Mapping[str, Any] | None = None,
+        tags: dict[str, str] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
         sdk_name: str | None = None,
@@ -1380,7 +1380,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if timestamp is None:
             timestamp = timezone.now()
 
-        payload = {
+        payload: SpanEvent = {
             "project_id": project_id,
             "organization_id": organization_id,
             "span_id": span_id,
@@ -1389,6 +1389,7 @@ class BaseSpansTestCase(SnubaTestCase):
             "start_timestamp_precise": timestamp.timestamp(),
             "end_timestamp_precise": timestamp.timestamp() + duration / 1000,
             "exclusive_time_ms": int(exclusive_time),
+            "description": transaction or "",
             "is_segment": True,
             "received": timezone.now().timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
@@ -1410,7 +1411,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if sdk_name is not None:
-            payload["sentry_tags"]["sdk.name"] = sdk_name
+            payload["sentry_tags"]["sdk.name"] = sdk_name  # type: ignore[typeddict-unknown-key]  # needs extra_items support
         if op is not None:
             payload["sentry_tags"]["op"] = op
         if status is not None:
@@ -1430,7 +1431,7 @@ class BaseSpansTestCase(SnubaTestCase):
         op: str | None = None,
         duration: int = 10,
         exclusive_time: int = 5,
-        tags: Mapping[str, Any] | None = None,
+        tags: dict[str, str] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
         store_only_summary: bool = False,
@@ -1444,7 +1445,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if timestamp is None:
             timestamp = timezone.now()
 
-        payload = {
+        payload: SpanEvent = {
             "project_id": project_id,
             "organization_id": organization_id,
             "span_id": span_id,
@@ -1478,7 +1479,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if category is not None:
-            payload["sentry_tags"]["category"] = category
+            payload["sentry_tags"]["category"] = category  # type: ignore[typeddict-unknown-key]  # needs extra_items support
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
@@ -3117,7 +3118,6 @@ class MonitorTestCase(APITestCase):
         return Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule": "* * * * *",
                 "schedule_type": ScheduleType.CRONTAB,

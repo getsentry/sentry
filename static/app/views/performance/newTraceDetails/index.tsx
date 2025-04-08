@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {TraceContextPanel} from 'sentry/views/performance/newTraceDetails/traceContextPanel';
 import {TraceViewLogsDataProvider} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
@@ -40,12 +41,23 @@ function decodeTraceSlug(maybeSlug: string | undefined): string {
 }
 
 export function TraceView() {
-  const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
   const traceSlug = useMemo(() => decodeTraceSlug(params.traceSlug), [params.traceSlug]);
+
+  return (
+    <TraceViewLogsDataProvider traceSlug={traceSlug}>
+      <InnerTraceView traceSlug={traceSlug} />
+    </TraceViewLogsDataProvider>
+  );
+}
+
+function InnerTraceView({traceSlug}: {traceSlug: string}) {
+  const organization = useOrganization();
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
   const hasTraceNewUi = useHasTraceNewUi();
+  const logsTableData = useLogsPageData();
+  const hideTraceWaterfallIfEmpty = logsTableData?.logsData?.data?.length > 0;
 
   const preferences = useMemo(
     () =>
@@ -78,6 +90,7 @@ export function TraceView() {
                 organization={organization}
                 traceSlug={traceSlug}
                 traceEventView={traceEventView}
+                logs={logsTableData.logsData?.data}
               />
               <TraceInnerLayout>
                 <TraceWaterfall
@@ -90,6 +103,7 @@ export function TraceView() {
                   traceSlug={traceSlug}
                   traceEventView={traceEventView}
                   organization={organization}
+                  hideIfNoData={hideTraceWaterfallIfEmpty}
                 />
                 {hasTraceNewUi && <TraceContextPanel tree={tree} rootEvent={rootEvent} />}
               </TraceInnerLayout>
@@ -119,5 +133,5 @@ const TraceInnerLayout = styled('div')`
   overflow-y: scroll;
   margin-bottom: ${space(1)};
 
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.background};
 `;

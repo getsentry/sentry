@@ -17,10 +17,21 @@ describe('UsageCard', () => {
       planTier: 'am2',
       plan: 'am2_team',
     });
+
+    subscription.planDetails.categories = ['errors'];
+
     const prepaid = 100_000;
+    subscription.planDetails.planCategories = {
+      errors: [{events: prepaid, price: 1500, unitPrice: 0.015, onDemandPrice: 0.02}],
+    };
+
     subscription.categories.errors = MetricHistoryFixture({
       prepaid,
       reserved: prepaid,
+      usage: 0, // 0% usage
+      free: 0,
+      onDemandQuantity: 0,
+      onDemandSpendUsed: 0,
     });
 
     render(<UsageCard organization={organization} subscription={subscription} />);
@@ -38,10 +49,21 @@ describe('UsageCard', () => {
       plan: 'am2_team',
       onDemandMaxSpend: 1000,
     });
+
+    subscription.planDetails.categories = ['errors'];
+
     const prepaid = 100_000;
+    subscription.planDetails.planCategories = {
+      errors: [{events: prepaid, price: 1500, unitPrice: 0.015, onDemandPrice: 0.02}],
+    };
+
     subscription.categories.errors = MetricHistoryFixture({
       prepaid,
       reserved: prepaid,
+      usage: 0, // 0% usage
+      free: 0,
+      onDemandQuantity: 0,
+      onDemandSpendUsed: 0,
     });
 
     render(<UsageCard organization={organization} subscription={subscription} />);

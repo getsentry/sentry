@@ -94,6 +94,7 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
         help_text="Tracks whether the user prefers the new specialized project overview experience (dict of project ids to booleans)",
     )
     prefersStackedNavigation = serializers.BooleanField(required=False)
+    prefersChonkUI = serializers.BooleanField(required=False)
 
     quickStartDisplay = serializers.JSONField(
         required=False,
@@ -271,6 +272,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
             "prefersSpecializedProjectOverview": "prefers_specialized_project_overview",
             "prefersStackedNavigation": "prefers_stacked_navigation",
+            "prefersChonkUI": "prefers_chonk_ui",
             "quickStartDisplay": "quick_start_display",
         }
 

@@ -1,7 +1,6 @@
-import 'intersection-observer'; // this is a polyfill
-
 import {Component, createRef, Fragment} from 'react';
 import type {CellMeasurerCache, List as ReactVirtualizedList} from 'react-virtualized';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 
@@ -107,7 +106,6 @@ import {
   spanTargetHash,
   unwrapTreeDepth,
 } from './utils';
-
 // TODO: maybe use babel-plugin-preval
 // for (let i = 0; i <= 1.0; i += 0.01) {
 //   INTERSECTION_THRESHOLDS.push(i);
@@ -150,6 +148,7 @@ export type SpanBarProps = ScrollbarManagerChildrenProps & {
   span: ProcessedSpanType | AggregateSpanType;
   spanNumber: number;
   storeSpanBar: (spanBar: SpanBar | NewTraceDetailsSpanBar) => void;
+  theme: Theme;
   toggleEmbeddedChildren:
     | (((orgSlug: string, eventSlugs: string[]) => void) | undefined)
     | undefined;
@@ -863,7 +862,6 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     return (
       <DividerLine
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={addDividerLineRef()}
         style={{
           position: 'absolute',
@@ -907,8 +905,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     const performanceIssues = currentEvent.performance_issues.filter(
       issue =>
-        issue.span.some(id => id === span.span_id) ||
-        issue.suspect_spans.some(suspectSpanId => suspectSpanId === span.span_id)
+        issue.span.includes(span.span_id) || issue.suspect_spans.includes(span.span_id)
     );
 
     return [
@@ -1086,7 +1083,6 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             }}
           >
             <DividerLine
-              // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
               ref={addGhostDividerLineRef()}
               style={{
                 right: 0,
@@ -1106,7 +1102,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
   }
 
   renderSpanBarRectangles() {
-    const {span, spanBarColor, spanBarType, generateBounds} = this.props;
+    const {span, spanBarColor, spanBarType, generateBounds, theme} = this.props;
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
     const duration = Math.abs(endTimestamp - startTimestamp);
@@ -1117,7 +1113,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const subTimings = getSpanSubTimings(span);
+    const subTimings = getSpanSubTimings(span, theme);
     const hasSubTimings = !!subTimings;
 
     const subSpans = hasSubTimings
@@ -1132,7 +1128,8 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
               style={{
                 backgroundColor: lightenBarColor(
                   getSpanOperation(span),
-                  timing.colorLighten
+                  timing.colorLighten,
+                  theme
                 ),
                 left: `min(${toPercent(timingBounds.left || 0)}, calc(100% - 1px))`,
                 width: toPercent(timingBounds.width || 0),

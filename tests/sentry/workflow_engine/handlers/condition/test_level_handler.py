@@ -5,7 +5,7 @@ from sentry.rules.conditions.level import LevelCondition
 from sentry.rules.filters.level import LevelFilter
 from sentry.rules.match import MatchType
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -19,12 +19,7 @@ class TestLevelCondition(ConditionTestCase):
 
     def setup_group_event_and_job(self):
         self.group_event = self.event.for_group(self.group)
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-                "has_reappeared": True,
-            }
-        )
+        self.event_data = WorkflowEventData(event=self.group_event)
 
     def setUp(self):
         super().setUp()
@@ -88,36 +83,36 @@ class TestLevelCondition(ConditionTestCase):
 
     def test_equals(self):
         self.dc.comparison.update({"match": MatchType.EQUAL, "level": 20})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update({"match": MatchType.EQUAL, "level": 30})
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_greater_than(self):
         self.dc.comparison.update({"match": MatchType.GREATER_OR_EQUAL, "level": 40})
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update({"match": MatchType.GREATER_OR_EQUAL, "level": 20})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update({"match": MatchType.GREATER_OR_EQUAL, "level": 10})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_less_than(self):
         self.dc.comparison.update({"match": MatchType.LESS_OR_EQUAL, "level": 40})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update({"match": MatchType.LESS_OR_EQUAL, "level": 20})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update({"match": MatchType.LESS_OR_EQUAL, "level": 10})
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_without_tag(self):
         self.event = self.store_event(data={}, project_id=self.project.id)
         self.setup_group_event_and_job()
         self.dc.comparison.update({"match": MatchType.EQUAL, "level": 20})
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     # This simulates the following case:
     # - Rule is setup to accept >= error
@@ -139,8 +134,8 @@ class TestLevelCondition(ConditionTestCase):
 
         self.event = wevent
         self.setup_group_event_and_job()
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.event = eevent
         self.setup_group_event_and_job()
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)

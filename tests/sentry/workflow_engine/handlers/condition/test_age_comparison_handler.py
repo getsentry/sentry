@@ -7,7 +7,7 @@ from sentry.rules.age import AgeComparisonType
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -17,19 +17,11 @@ class TestAgeComparisonCondition(ConditionTestCase):
 
     def setup_group_event_and_job(self):
         self.group_event = self.event.for_group(self.group)
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-            }
-        )
+        self.event_data = WorkflowEventData(event=self.group_event)
 
     def setUp(self):
         super().setUp()
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-            }
-        )
+        self.event_data = WorkflowEventData(event=self.group_event)
         self.payload = {
             "id": AgeComparisonFilter.id,
             "comparison_type": AgeComparisonType.OLDER,
@@ -92,12 +84,12 @@ class TestAgeComparisonCondition(ConditionTestCase):
         self.dc.save()
 
         self.group.update(first_seen=datetime.now(timezone.utc) - timedelta(hours=3))
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.group.update(
             first_seen=datetime.now(timezone.utc) - timedelta(hours=10, milliseconds=1)
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_newer_applies_correctly(self):
         self.dc.comparison.update(
@@ -106,7 +98,7 @@ class TestAgeComparisonCondition(ConditionTestCase):
         self.dc.save()
 
         self.group.update(first_seen=datetime.now(timezone.utc) - timedelta(hours=3))
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.group.update(first_seen=datetime.now(timezone.utc) - timedelta(hours=10))
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)

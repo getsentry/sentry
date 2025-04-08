@@ -64,7 +64,7 @@ class Topic(Enum):
     SNUBA_OURLOGS = "snuba-ourlogs"
     BUFFERED_SEGMENTS = "buffered-segments"
     BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
-    TASK_WORKER = "task-worker"
+    TASKWORKER = "taskworker"
 
 
 class ConsumerDefinition(TypedDict, total=False):

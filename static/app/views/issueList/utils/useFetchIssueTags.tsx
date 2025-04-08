@@ -191,8 +191,8 @@ export const useFetchIssueTags = ({
       // Wrap with flags[""]. flags[] is required for the search endpoint and "" is used to escape special characters.
       const key = `flags["${tag.key}"]`;
       if (allTagsCollection[key]) {
-        allTagsCollection[key]!.totalValues =
-          (allTagsCollection[key]!.totalValues ?? 0) + (tag.totalValues ?? 0);
+        allTagsCollection[key].totalValues =
+          (allTagsCollection[key].totalValues ?? 0) + (tag.totalValues ?? 0);
       } else {
         allTagsCollection[key] = {
           ...tag,

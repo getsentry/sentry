@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
+import random
 from datetime import datetime, timedelta
 
-import sentry_sdk
 from django.db import IntegrityError, router
 from django.utils import timezone
 
@@ -23,6 +23,7 @@ from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.eventuser import EventUser
 from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,7 @@ def save_userreport(
             # something wrong with the SDK, but this behavior is
             # more reasonable than just hard erroring and is more
             # expected.
-
+            incr_rollback_metrics(UserReport)
             existing_report = UserReport.objects.get(
                 project_id=report["project_id"], event_id=report["event_id"]
             )
@@ -135,7 +136,7 @@ def save_userreport(
             if report_instance.group_id:
                 report_instance.notify()
 
-        user_feedback_received.send(project=project, sender=save_userreport)
+        user_feedback_received.send_robust(project=project, sender=save_userreport)
 
         logger.info(
             "ingest.user_report",
@@ -200,16 +201,17 @@ def should_filter_user_report(
                 "referrer": source.value,
             },
         )
-        logger.info(
-            "Feedback message exceeds max size.",
-            extra={
-                "project_id": project_id,
-                "entrypoint": "save_userreport",
-                "referrer": source.value,
-            },
-        )
-        # For Sentry employee debugging. Sentry will capture a truncated `feedback_message` in local variables.
-        sentry_sdk.capture_message("Feedback message exceeds max size.", "warning")
+        if random.random() < 0.1:
+            logger.info(
+                "Feedback message exceeds max size.",
+                extra={
+                    "project_id": project_id,
+                    "entrypoint": "save_userreport",
+                    "referrer": source.value,
+                    "length": len(comments),
+                    "feedback_message": comments[:100],
+                },
+            )
         return True, "Too Large"
 
     return False, None

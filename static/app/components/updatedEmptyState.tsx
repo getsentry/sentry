@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
@@ -18,13 +18,18 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
 
 export default function UpdatedEmptyState({project}: {project?: Project}) {
   const api = useApi();
   const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -123,7 +128,18 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
         <Body>
           <Setup>
             <BodyTitle>{t('Set up the Sentry SDK')}</BodyTitle>
-            <GuidedSteps>
+            <GuidedSteps
+              initialStep={decodeInteger(location.query.guidedStep)}
+              onStepChange={step => {
+                navigate({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    guidedStep: step,
+                  },
+                });
+              }}
+            >
               <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
                 <div>
                   <div>

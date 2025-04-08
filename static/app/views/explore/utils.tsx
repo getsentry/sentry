@@ -6,11 +6,16 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {encodeSort} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 import type {TimeSeries} from '../dashboards/widgets/common/types';
@@ -25,6 +30,8 @@ export function getExploreUrl({
   groupBy,
   sort,
   field,
+  id,
+  title,
 }: {
   interval: string;
   organization: Organization;
@@ -32,9 +39,11 @@ export function getExploreUrl({
   visualize: Array<Omit<Visualize, 'label'>>;
   field?: string[];
   groupBy?: string[];
+  id?: number;
   mode?: Mode;
   query?: string;
   sort?: string;
+  title?: string;
 }) {
   const {start, end, period: statsPeriod, utc} = selection.datetime;
   const {environments, projects} = selection;
@@ -53,6 +62,8 @@ export function getExploreUrl({
     sort,
     field,
     utc,
+    id,
+    title,
   };
 
   return (
@@ -61,6 +72,102 @@ export function getExploreUrl({
       path: '/',
     }) + `?${qs.stringify(queryParams, {skipNull: true})}`
   );
+}
+
+export function getExploreUrlFromSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
+  if (savedQuery.query.length > 1) {
+    return getExploreMultiQueryUrl({
+      organization,
+      ...savedQuery,
+      queries: savedQuery.query.map(q => ({
+        ...q,
+        chartType: q.visualize[0]?.chartType as ChartType, // Multi Query View only supports a single visualize per query
+        yAxes: q.visualize[0]?.yAxes ?? [],
+        groupBys: q.groupby,
+        sortBys: decodeSorts(q.orderby),
+      })),
+      title: savedQuery.name,
+      selection: {
+        datetime: {
+          end: savedQuery.end,
+          period: savedQuery.range,
+          start: savedQuery.start,
+          utc: null,
+        },
+        environments: savedQuery.environment,
+        projects: savedQuery.projects,
+      },
+    });
+  }
+  return getExploreUrl({
+    organization,
+    ...savedQuery,
+    ...savedQuery.query[0],
+    groupBy:
+      savedQuery.query[0].groupby.length === 0 ? [''] : savedQuery.query[0].groupby,
+    query: savedQuery.query[0].query,
+    title: savedQuery.name,
+    mode: savedQuery.query[0].mode as Mode,
+    selection: {
+      datetime: {
+        end: savedQuery.end,
+        period: savedQuery.range,
+        start: savedQuery.start,
+        utc: null,
+      },
+      environments: savedQuery.environment,
+      projects: savedQuery.projects,
+    },
+  });
+}
+
+export function getExploreMultiQueryUrl({
+  organization,
+  selection,
+  interval,
+  queries,
+  title,
+  id,
+}: {
+  interval: string;
+  organization: Organization;
+  queries: ReadableExploreQueryParts[];
+  selection: PageFilters;
+  id?: number;
+  title?: string;
+}) {
+  const {start, end, period: statsPeriod, utc} = selection.datetime;
+  const {environments, projects} = selection;
+  const queryParams = {
+    dataset: DiscoverDatasets.SPANS_EAP_RPC,
+    project: projects,
+    environment: environments,
+    statsPeriod,
+    start,
+    end,
+    interval,
+    queries: queries.map(({chartType, fields, groupBys, query, sortBys, yAxes}) =>
+      JSON.stringify({
+        chartType,
+        fields,
+        groupBys,
+        query,
+        sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
+        yAxes,
+      })
+    ),
+    title,
+    id,
+    utc,
+  };
+
+  return `/organizations/${organization.slug}/explore/traces/compare/?${qs.stringify(queryParams, {skipNull: true})}`;
 }
 
 export function combineConfidenceForSeries(

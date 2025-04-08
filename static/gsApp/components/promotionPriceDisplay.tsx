@@ -46,7 +46,7 @@ const Amount = styled('div')<{promo?: boolean}>`
   font-size: 30px;
   font-weight: ${p => (p.promo ? 'bold' : 'none')};
   text-decoration: ${p => (p.promo ? 'none' : 'line-through')};
-  color: ${p => (p.promo ? p.theme.headingColor : p.theme.gray300)};
+  color: ${p => (p.promo ? p.theme.headingColor : p.theme.subText)};
 `;
 
 const BillingInterval = styled('div')`

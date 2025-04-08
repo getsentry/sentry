@@ -306,12 +306,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
   get selectControlStyles() {
     return {
-      control: (provided: {[x: string]: string | number | boolean}) => ({
+      control: (provided: Record<string, string | number | boolean>) => ({
         ...provided,
         minWidth: 200,
         maxWidth: 300,
       }),
-      container: (provided: {[x: string]: string | number | boolean}) => ({
+      container: (provided: Record<string, string | number | boolean>) => ({
         ...provided,
         margin: `${space(0.5)}`,
       }),
@@ -454,8 +454,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   ?.split(':')[1];
                 if (
                   ownerId &&
-                  nextSelectedProject.teams.find(({id}) => id === ownerId) ===
-                    undefined &&
+                  !nextSelectedProject.teams.some(({id}) => id === ownerId) &&
                   nextSelectedProject.teams.length
                 ) {
                   model.setValue('owner', `team:${nextSelectedProject.teams[0]!.id}`);

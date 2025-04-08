@@ -186,7 +186,7 @@ type VitalCardDetail = {
 
 export const vitalCardDetails = (
   organization: Organization
-): {[key: string]: VitalCardDetail | undefined} => {
+): Record<string, VitalCardDetail | undefined> => {
   return {
     'p75(transaction.duration)': {
       title: t('Duration (p75)'),
@@ -253,7 +253,7 @@ export function getDisplayAxes(options: AxisOption[], location: Location) {
 
 export function checkIsReactNative(eventView: EventView) {
   // only react native should contain the stall percentage column
-  return Boolean(
-    eventView.getFields().find(field => field.includes('measurements.stall_percentage'))
-  );
+  return eventView
+    .getFields()
+    .some(field => field.includes('measurements.stall_percentage'));
 }

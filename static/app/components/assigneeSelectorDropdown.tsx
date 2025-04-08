@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {Button} from 'sentry/components/core/button';
 import {
   CompactSelect,
   type SelectOption,
   type SelectOptionOrSection,
-} from 'sentry/components/compactSelect';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Button} from 'sentry/components/core/button';
+} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -475,11 +475,11 @@ export default function AssigneeSelectorDropdown({
 
     // Remove suggested assignees from the member list and team list to avoid duplicates
     memList = memList.filter(
-      user => !suggestedUsers.find(suggested => suggested.id === user.id)
+      user => !suggestedUsers.some(suggested => suggested.id === user.id)
     );
     assignableTeamList = assignableTeamList.filter(
       assignableTeam =>
-        !suggestedTeams.find(suggested => suggested.id === assignableTeam.team.id)
+        !suggestedTeams.some(suggested => suggested.id === assignableTeam.team.id)
     );
 
     const memberOptions = {

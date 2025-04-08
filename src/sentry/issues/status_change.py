@@ -165,7 +165,7 @@ def handle_status_update(
             )
 
         if not options.get("groups.enable-post-update-signal"):
-            post_save.send(
+            post_save.send_robust(
                 sender=Group,
                 instance=group,
                 created=False,

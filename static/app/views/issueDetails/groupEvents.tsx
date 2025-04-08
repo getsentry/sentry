@@ -85,7 +85,7 @@ const AllEventsFilters = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-// TODO(streamlined-ui): Remove this file completely and change rotue to new events list
+// TODO(streamlined-ui): Remove this file completely and change route to new events list
 function IssueEventsList() {
   const hasStreamlinedUI = useHasStreamlinedUI();
   const params = useParams<{groupId: string}>();

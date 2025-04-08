@@ -1,4 +1,10 @@
+from contextlib import contextmanager
+from unittest.mock import patch
+
 import pytest
+from django.apps import AppConfig, apps
+from django.conf import settings
+from django.contrib.postgres.operations import BtreeGistExtension
 from django.db import migrations, models
 
 from sentry.new_migrations.monkey.executor import (
@@ -9,7 +15,35 @@ from sentry.new_migrations.monkey.executor import (
 from sentry.testutils.cases import TestCase
 
 
+class DummyGetsentryAppConfig(AppConfig):
+    name = "getsentry"
+    label = "getsentry"
+    verbose_name = "Dummy Getsentry App"
+    path = "/tmp/dummy_getsentry"
+
+
+@contextmanager
+def mock_getsentry_if_not_registered():
+    if "getsentry" in settings.INSTALLED_APPS:
+        yield
+        return
+
+    with (
+        patch.dict(apps.app_configs, {"getsentry": DummyGetsentryAppConfig("getsentry", None)}),
+        patch.object(settings, "INSTALLED_APPS", new=settings.INSTALLED_APPS + ("getsentry",)),
+    ):
+        yield
+
+
 class SentryMigrationExecutorTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.mock_getsentry_if_not_registered = mock_getsentry_if_not_registered()
+        self.mock_getsentry_if_not_registered.__enter__()
+
+    def tearDown(self):
+        self.mock_getsentry_if_not_registered.__exit__(None, None, None)
+
     def test_check_db_routing_pass(self):
         class TestMigration(migrations.Migration):
             operations = [
@@ -51,6 +85,7 @@ class SentryMigrationExecutorTest(TestCase):
             ]
 
         SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="sentry"))
+        SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="uptime"))
 
     def test_check_db_routing_pass_2(self):
         class TestMigration(migrations.Migration):
@@ -100,6 +135,7 @@ class SentryMigrationExecutorTest(TestCase):
             ]
 
         SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="sentry"))
+        SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="uptime"))
 
     def test_check_db_routing_missing_hints(self):
         class TestMigration(migrations.Migration):
@@ -131,6 +167,10 @@ class SentryMigrationExecutorTest(TestCase):
             SentryMigrationExecutor._check_db_routing(
                 TestMigration(name="test", app_label="sentry")
             )
+        with pytest.raises(MissingDatabaseRoutingInfo):
+            SentryMigrationExecutor._check_db_routing(
+                TestMigration(name="test", app_label="uptime")
+            )
 
     def test_check_db_routing_missing_hints_2(self):
         class TestMigration(migrations.Migration):
@@ -141,6 +181,10 @@ class SentryMigrationExecutorTest(TestCase):
         with pytest.raises(MissingDatabaseRoutingInfo):
             SentryMigrationExecutor._check_db_routing(
                 TestMigration(name="test", app_label="getsentry")
+            )
+        with pytest.raises(MissingDatabaseRoutingInfo):
+            SentryMigrationExecutor._check_db_routing(
+                TestMigration(name="test", app_label="uptime")
             )
 
     def test_check_db_routing_missing_hints_3(self):
@@ -157,6 +201,11 @@ class SentryMigrationExecutorTest(TestCase):
                 TestMigration(name="test", app_label="getsentry")
             )
 
+        with pytest.raises(MissingDatabaseRoutingInfo):
+            SentryMigrationExecutor._check_db_routing(
+                TestMigration(name="test", app_label="uptime")
+            )
+
     def test_check_db_routing_dont_run_for_3rd_party(self):
         class TestMigration(migrations.Migration):
             operations = [
@@ -164,6 +213,13 @@ class SentryMigrationExecutorTest(TestCase):
             ]
 
         SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="auth"))
+
+    def test_check_db_routing_extensions(self):
+        class TestMigration(migrations.Migration):
+            operations = [BtreeGistExtension()]
+
+        SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="sentry"))
+        SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="uptime"))
 
 
 @pytest.mark.parametrize(

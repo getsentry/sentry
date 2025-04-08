@@ -12,7 +12,6 @@ import styled from '@emotion/styled';
 import type {TabListState} from '@react-stately/tabs';
 import type {Orientation} from '@react-types/shared';
 import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
 
 import type {TabContext, TabsProps} from 'sentry/components/tabs';
 import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
@@ -445,7 +444,7 @@ export function IssueViewsStateProvider({
   // generated temporary view ids with the permanent view ids from the backend
   const replaceWithPersistentViewIds = (views: GroupSearchView[]) => {
     const newlyCreatedViews = views.filter(
-      view => !state.views.find(tab => tab.id === view.id)
+      view => !state.views.some(tab => tab.id === view.id)
     );
     if (newlyCreatedViews.length > 0) {
       dispatch({type: 'UPDATE_VIEW_IDS', newViews: newlyCreatedViews});
@@ -496,8 +495,7 @@ export function IssueViewsStateProvider({
                 name: tab.label,
                 query: tab.query,
                 querySort: tab.querySort,
-                projects: isEqual(tab.projects, [-1]) ? [] : tab.projects,
-                isAllProjects: isEqual(tab.projects, [-1]),
+                projects: tab.projects,
                 environments: tab.environments,
                 timeFilters: tab.timeFilters,
               })),
@@ -554,7 +552,7 @@ export function IssueViewsStateProvider({
       : IssueSortOptions.DATE;
 
   const initialTempView: IssueView | undefined =
-    query && (!viewId || !initialViews.find(tab => tab.id === viewId))
+    query && (!viewId || !initialViews.some(tab => tab.id === viewId))
       ? {
           id: TEMPORARY_TAB_KEY,
           key: TEMPORARY_TAB_KEY,
@@ -674,7 +672,7 @@ export function IssueViewsStateProvider({
   }, [setOnNewViewsSaved, handleNewViewsSaved]);
 
   return (
-    <IssueViewsContext.Provider
+    <IssueViewsContext
       value={{
         rootProps: {...restProps, orientation: 'horizontal'},
         tabListState,
@@ -685,7 +683,7 @@ export function IssueViewsStateProvider({
       }}
     >
       {children}
-    </IssueViewsContext.Provider>
+    </IssueViewsContext>
   );
 }
 

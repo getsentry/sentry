@@ -17,7 +17,7 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             self.create_project(organization=self.org).id,
             self.create_project(organization=self.org).id,
         ]
-        query = {"fields": ["span.op"], "mode": "samples"}
+        query = {"query": [{"fields": ["span.op"], "mode": "samples"}]}
 
         model = ExploreSavedQuery.objects.create(
             organization=self.org, created_by_id=self.user.id, name="Test query", query=query
@@ -48,7 +48,7 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.query_id)
         assert set(response.data["projects"]) == set(self.project_ids)
-        assert response.data["fields"] == ["span.op"]
+        assert response.data["query"] == [{"fields": ["span.op"], "mode": "samples"}]
 
     def test_get_explore_query_flag(self):
         with self.feature(self.feature_name):
@@ -60,7 +60,7 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.query_id)
         assert set(response.data["projects"]) == set(self.project_ids)
-        assert response.data["fields"] == ["span.op"]
+        assert response.data["query"] == [{"fields": ["span.op"], "mode": "samples"}]
 
     def test_get_org_without_access(self):
         with self.feature(self.feature_name):
@@ -83,17 +83,16 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
                 {
                     "name": "New query",
                     "projects": self.project_ids,
-                    "fields": [],
+                    "query": [{"fields": [], "mode": "samples"}],
                     "range": "24h",
                     "orderby": "-timestamp",
-                    "mode": "samples",
                 },
             )
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.query_id)
         assert set(response.data["projects"]) == set(self.project_ids)
-        assert response.data["fields"] == []
+        assert response.data["query"] == [{"fields": [], "mode": "samples"}]
 
     def test_put_with_interval(self):
         with self.feature(self.feature_name):
@@ -106,17 +105,18 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
                 {
                     "name": "New query",
                     "projects": self.project_ids,
-                    "fields": ["span.op", "count(span.duration)"],
                     "range": "24h",
                     "interval": "10m",
                     "orderby": "-count(span.duration)",
-                    "mode": "samples",
+                    "query": [{"fields": ["span.op", "count(span.duration)"], "mode": "samples"}],
                 },
             )
 
         assert response.status_code == 200, response.content
-        assert response.data["fields"] == ["span.op", "count(span.duration)"]
         assert response.data["interval"] == "10m"
+        assert response.data["query"] == [
+            {"fields": ["span.op", "count(span.duration)"], "mode": "samples"}
+        ]
 
     def test_put_query_without_access(self):
         with self.feature(self.feature_name):

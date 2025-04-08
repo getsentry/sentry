@@ -17,12 +17,16 @@ from sentry.models.files import FileBlobOwner
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import demomode_tasks
 from sentry.utils.db import atomic_transaction
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 @instrumented_task(
     name="sentry.demo_mode.tasks.sync_artifact_bundles",
     queue="demo_mode",
+    taskworker_config=TaskworkerConfig(namespace=demomode_tasks),
 )
 def sync_artifact_bundles():
 
@@ -94,6 +98,7 @@ def _sync_artifact_bundle(source_artifact_bundle: ArtifactBundle, target_org: Or
             _sync_project_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
             _sync_release_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
     except IntegrityError as e:
+        incr_rollback_metrics(name="sync_artifact_bundle")
         sentry_sdk.capture_exception(e)
 
 
@@ -142,9 +147,14 @@ def _sync_release_artifact_bundle(
 
 
 def _find_matching_project(project_id, organization_id):
-    source_project = Project.objects.get(id=project_id)
+    try:
+        source_project = Project.objects.get(id=project_id)
 
-    return Project.objects.get(
-        organization_id=organization_id,
-        slug=source_project.slug,
-    )
+        return Project.objects.get(
+            organization_id=organization_id,
+            slug=source_project.slug,
+        )
+    except Project.DoesNotExist:
+        sentry_sdk.set_context("project_id", project_id)
+        sentry_sdk.set_context("organization_id", organization_id)
+        raise

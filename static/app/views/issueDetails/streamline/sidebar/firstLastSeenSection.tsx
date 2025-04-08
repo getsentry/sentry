@@ -112,7 +112,7 @@ function ReleaseText({project, release}: {project: Project; release?: Release}) 
 
 const ReleaseWrapper = styled('span')`
   a {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
     text-decoration: underline;
     text-decoration-style: dotted;
   }

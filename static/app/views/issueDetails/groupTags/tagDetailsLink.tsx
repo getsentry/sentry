@@ -17,7 +17,7 @@ export default function TagDetailsLink({
 }) {
   const location = useLocation();
   const [prefetchEnabled, setPrefetchEnabled] = useState(false);
-  const hoverTimeoutRef = useRef<number | undefined>();
+  const hoverTimeoutRef = useRef<number | undefined>(undefined);
 
   usePrefetchTagValues(tag.key, groupId, prefetchEnabled);
 

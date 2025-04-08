@@ -1,0 +1,338 @@
+import {useCallback} from 'react';
+import styled from '@emotion/styled';
+
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
+import {openSaveQueryModal} from 'sentry/actionCreators/modal';
+import Avatar from 'sentry/components/core/avatar';
+import {Button} from 'sentry/components/core/button';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  type GridColumnHeader,
+  type GridColumnOrder,
+} from 'sentry/components/gridEditable';
+import {GridHeadCellStatic} from 'sentry/components/gridEditable/styles';
+import Link from 'sentry/components/links/link';
+import Pagination, {type CursorHandler} from 'sentry/components/pagination';
+import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconEllipsis, IconGlobe, IconStar} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
+import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
+import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
+import {StreamlineGridEditable} from 'sentry/views/issueDetails/streamline/eventListTable';
+import ProjectIcon from 'sentry/views/nav/projectIcon';
+
+import {useDeleteQuery} from '../hooks/useDeleteQuery';
+import {
+  type SavedQuery,
+  type SortOption,
+  useGetSavedQueries,
+} from '../hooks/useGetSavedQueries';
+
+const NO_VALUE = ' \u2014 ';
+
+const ORDER: Array<GridColumnOrder<keyof SavedQuery | 'access'>> = [
+  {key: 'name', width: COL_WIDTH_UNDEFINED, name: t('Name')},
+  {key: 'projects', width: 80, name: t('Projects')},
+  {key: 'query', width: COL_WIDTH_UNDEFINED, name: t('Query')},
+  {key: 'createdBy', width: 80, name: t('Owner')},
+  {key: 'access', width: 80, name: t('Access')},
+  {key: 'lastVisited', width: 120, name: t('Last Viewed')},
+];
+
+type Column = GridColumnHeader<keyof SavedQuery | 'access'>;
+
+type Props = {
+  cursorKey?: string;
+  mode?: 'owned' | 'shared' | 'all';
+  perPage?: number;
+  searchQuery?: string;
+  sort?: SortOption;
+};
+
+export function SavedQueriesTable({
+  mode = 'all',
+  perPage,
+  cursorKey = 'cursor',
+  searchQuery,
+  sort = 'recentlyViewed',
+}: Props) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const cursor = decodeScalar(location.query[cursorKey]);
+  const {data, isLoading, pageLinks} = useGetSavedQueries({
+    sortBy: sort,
+    exclude: mode === 'owned' ? 'shared' : mode === 'shared' ? 'owned' : undefined, // Inverse because this is an exclusion
+    perPage,
+    cursor,
+    query: searchQuery,
+  });
+  const filteredData = data?.filter(row => row.query?.length > 0) ?? [];
+  const {deleteQuery} = useDeleteQuery();
+  const {starQuery} = useStarQuery();
+  const {updateQueryFromSavedQuery} = useSaveQuery();
+
+  const getHandleUpdateFromSavedQuery = useCallback(
+    (savedQuery: SavedQuery) => {
+      return (name: string) => {
+        return updateQueryFromSavedQuery({...savedQuery, name});
+      };
+    },
+    [updateQueryFromSavedQuery]
+  );
+
+  const handleCursor: CursorHandler = (_cursor, pathname, query) => {
+    navigate({
+      pathname,
+      query: {...query, [cursorKey]: _cursor},
+    });
+  };
+
+  const renderBodyCell = (col: Column, row: SavedQuery) => {
+    if (col.key === 'name') {
+      const link = getExploreUrlFromSavedQueryUrl({savedQuery: row, organization});
+      return (
+        <NoOverflow>
+          <Link to={link}>{row.name}</Link>
+        </NoOverflow>
+      );
+    }
+    if (col.key === 'query') {
+      return (
+        <FormattedQueryWrapper>
+          <FormattedQuery query={row.query[0].query} />
+        </FormattedQueryWrapper>
+      );
+    }
+    if (col.key === 'createdBy') {
+      return (
+        <Center>
+          <Avatar user={row.createdBy} tooltip={row.createdBy.name} hasTooltip />
+        </Center>
+      );
+    }
+    if (col.key === 'projects') {
+      return (
+        <Center>
+          <ProjectIcon
+            projectPlatforms={projects
+              .filter(p => row.projects.map(String).includes(p.id))
+              .map(p => p.platform)
+              .filter(defined)}
+          />
+        </Center>
+      );
+    }
+    if (col.key === 'lastVisited') {
+      return (
+        <LastColumnWrapper>
+          <span>
+            {row.lastVisited ? new Date(row.lastVisited).toDateString() : NO_VALUE}
+          </span>
+          <span>
+            <DropdownMenu
+              items={[
+                {
+                  key: 'rename',
+                  label: t('Rename'),
+                  onAction: () => {
+                    openSaveQueryModal({
+                      organization,
+                      queries: row.query.map((query, queryIndex) => ({
+                        query: query.query,
+                        groupBys: query.groupby,
+                        visualizes: query.visualize.map((v, visualizationIndex) => ({
+                          ...v,
+                          label: `visualization-${queryIndex}-${visualizationIndex}`,
+                        })),
+                      })),
+                      saveQuery: getHandleUpdateFromSavedQuery(row),
+                      name: row.name,
+                    });
+                  },
+                },
+                {
+                  key: 'duplicate',
+                  label: t('Duplicate'),
+                },
+                {
+                  key: 'delete',
+                  label: t('Delete'),
+                  onAction: () => {
+                    addLoadingMessage(t('Deleting query...'));
+                    try {
+                      deleteQuery(row.id);
+                      addSuccessMessage(t('Query deleted'));
+                    } catch (error) {
+                      addErrorMessage(t('Unable to delete query'));
+                    }
+                  },
+                  priority: 'danger',
+                },
+              ]}
+              trigger={triggerProps => (
+                <OptionsButton
+                  {...triggerProps}
+                  aria-label={t('Query actions')}
+                  size="xs"
+                  borderless
+                  onClick={e => {
+                    e.stopPropagation();
+                    e.preventDefault();
+
+                    triggerProps.onClick?.(e);
+                  }}
+                  icon={<IconEllipsis direction="down" size="sm" />}
+                  data-test-id="menu-trigger"
+                />
+              )}
+            />
+          </span>
+        </LastColumnWrapper>
+      );
+    }
+    if (col.key === 'access') {
+      return (
+        <Center>
+          <Tooltip
+            title={
+              <span>
+                <div>
+                  {t('View')}: {t('Everyone')}
+                </div>
+                <div>
+                  {t('Edit')}: {t('Everyone')}
+                </div>
+              </span>
+            }
+          >
+            <span>
+              <IconGlobe size="sm" />
+            </span>
+          </Tooltip>
+        </Center>
+      );
+    }
+    return <div>{row[col.key]}</div>;
+  };
+
+  const renderHeadCell = (col: Column) => {
+    if (col.key === 'projects' || col.key === 'createdBy' || col.key === 'access') {
+      return <Center>{col.name}</Center>;
+    }
+    if (col.key === 'lastVisited') {
+      return <div>{col.name}</div>;
+    }
+    return <div>{col.name}</div>;
+  };
+
+  const renderPrependColumns = (isHeader: boolean, row?: SavedQuery) => {
+    if (isHeader) {
+      return [<span key="starred-header" />];
+    }
+    if (!row) {
+      return [null];
+    }
+    return [
+      <Center key={`starred-${row.id}`}>
+        <Button
+          aria-label={row.starred ? t('Unstar') : t('Star')}
+          size="zero"
+          borderless
+          icon={<IconStar size="sm" color="gray400" isSolid={row.starred} />}
+          onClick={() => {
+            if (row.starred) {
+              addLoadingMessage(t('Unstarring query...'));
+              starQuery(row.id, false);
+              addSuccessMessage(t('Query unstarred'));
+            } else {
+              addLoadingMessage(t('Starring query...'));
+              starQuery(row.id, true);
+              addSuccessMessage(t('Query starred'));
+            }
+          }}
+        />
+      </Center>,
+    ];
+  };
+  return (
+    <span>
+      <StyledStreamlineGridEditable>
+        <GridEditable
+          isLoading={isLoading}
+          data={filteredData}
+          grid={{
+            renderBodyCell,
+            renderHeadCell,
+            renderPrependColumns,
+            prependColumnWidths: ['max-content'],
+          }}
+          columnOrder={ORDER}
+          columnSortBy={[]}
+          bodyStyle={{overflow: 'visible', zIndex: 'unset'}}
+          minimumColWidth={30}
+        />
+      </StyledStreamlineGridEditable>
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+    </span>
+  );
+}
+
+const Center = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+`;
+
+const LastColumnWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: space-between;
+`;
+
+const FormattedQueryWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  > div {
+    flex-wrap: nowrap;
+  }
+`;
+
+const NoOverflow = styled('div')`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const StyledStreamlineGridEditable = styled(StreamlineGridEditable)`
+  ${GridHeadCellStatic}:first-child {
+    height: auto;
+    padding-left: ${space(1.5)};
+  }
+`;
+
+const OptionsButton = styled(Button)`
+  padding: 0;
+`;

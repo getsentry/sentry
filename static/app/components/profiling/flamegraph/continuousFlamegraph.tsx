@@ -1194,18 +1194,13 @@ export function ContinuousFlamegraph(): ReactElement {
     return [spansCanvasRef];
   }, [spansCanvasRef]);
 
-  const spansCanvasBounds = useResizeCanvasObserver(
-    spansCanvases,
-    canvasPoolManager,
-    spansCanvas,
-    spansView
-  );
+  useResizeCanvasObserver(spansCanvases, canvasPoolManager, spansCanvas, spansView);
 
   const uiFramesCanvases = useMemo(() => {
     return [uiFramesCanvasRef];
   }, [uiFramesCanvasRef]);
 
-  const uiFramesCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     uiFramesCanvases,
     canvasPoolManager,
     uiFramesCanvas,
@@ -1216,7 +1211,7 @@ export function ContinuousFlamegraph(): ReactElement {
     return [batteryChartCanvasRef];
   }, [batteryChartCanvasRef]);
 
-  const batteryChartCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     batteryChartCanvases,
     canvasPoolManager,
     batteryChartCanvas,
@@ -1227,7 +1222,7 @@ export function ContinuousFlamegraph(): ReactElement {
     return [cpuChartCanvasRef];
   }, [cpuChartCanvasRef]);
 
-  const cpuChartCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     cpuChartCanvases,
     canvasPoolManager,
     cpuChartCanvas,
@@ -1237,7 +1232,8 @@ export function ContinuousFlamegraph(): ReactElement {
   const memoryChartCanvases = useMemo(() => {
     return [memoryChartCanvasRef];
   }, [memoryChartCanvasRef]);
-  const memoryChartCanvasBounds = useResizeCanvasObserver(
+
+  useResizeCanvasObserver(
     memoryChartCanvases,
     canvasPoolManager,
     memoryChartCanvas,
@@ -1248,7 +1244,7 @@ export function ContinuousFlamegraph(): ReactElement {
     return [flamegraphCanvasRef, flamegraphOverlayCanvasRef];
   }, [flamegraphCanvasRef, flamegraphOverlayCanvasRef]);
 
-  const flamegraphCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     flamegraphCanvases,
     canvasPoolManager,
     flamegraphCanvas,
@@ -1451,7 +1447,6 @@ export function ContinuousFlamegraph(): ReactElement {
           hasUIFrames ? (
             <FlamegraphUIFrames
               status={profiles.type}
-              canvasBounds={uiFramesCanvasBounds}
               canvasPoolManager={canvasPoolManager}
               setUIFramesCanvasRef={setUIFramesCanvasRef}
               uiFramesCanvasRef={uiFramesCanvasRef}
@@ -1469,7 +1464,6 @@ export function ContinuousFlamegraph(): ReactElement {
               chartCanvasRef={batteryChartCanvasRef}
               chartCanvas={batteryChartCanvas}
               setChartCanvasRef={setBatteryChartCanvasRef}
-              canvasBounds={batteryChartCanvasBounds}
               chartView={batteryChartView}
               canvasPoolManager={canvasPoolManager}
               chart={batteryChart}
@@ -1491,7 +1485,6 @@ export function ContinuousFlamegraph(): ReactElement {
               chartCanvasRef={memoryChartCanvasRef}
               chartCanvas={memoryChartCanvas}
               setChartCanvasRef={setMemoryChartCanvasRef}
-              canvasBounds={memoryChartCanvasBounds}
               chartView={memoryChartView}
               canvasPoolManager={canvasPoolManager}
               chart={memoryChart}
@@ -1517,7 +1510,6 @@ export function ContinuousFlamegraph(): ReactElement {
               chartCanvasRef={cpuChartCanvasRef}
               chartCanvas={cpuChartCanvas}
               setChartCanvasRef={setCpuChartCanvasRef}
-              canvasBounds={cpuChartCanvasBounds}
               chartView={cpuChartView}
               canvasPoolManager={canvasPoolManager}
               chart={CPUChart}
@@ -1539,7 +1531,6 @@ export function ContinuousFlamegraph(): ReactElement {
         spans={
           spanChart ? (
             <FlamegraphSpans
-              canvasBounds={spansCanvasBounds}
               spanChart={spanChart}
               spansCanvas={spansCanvas}
               spansCanvasRef={spansCanvasRef}
@@ -1572,7 +1563,6 @@ export function ContinuousFlamegraph(): ReactElement {
             <FlamegraphZoomView
               scheduler={scheduler}
               profileGroup={profileGroup}
-              canvasBounds={flamegraphCanvasBounds}
               canvasPoolManager={canvasPoolManager}
               flamegraph={flamegraph}
               flamegraphRenderer={flamegraphRenderer}

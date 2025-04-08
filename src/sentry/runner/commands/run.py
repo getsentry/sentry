@@ -10,6 +10,7 @@ from typing import Any
 import click
 from django.utils import autoreload
 
+import sentry.taskworker.constants as taskworker_constants
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
@@ -274,27 +275,38 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
 
 @run.command()
-@click.option("--rpc-host", help="The hostname for the taskworker-rpc", default="127.0.0.1:50051")
+@click.option(
+    "--rpc-host",
+    help="The hostname for the taskworker-rpc. When using num-brokers the hostname will be appended with `-{i}` to connect to individual brokers.",
+    default="127.0.0.1:50051",
+)
 @click.option(
     "--num-brokers", help="Number of brokers available to connect to", default=None, type=int
 )
 @click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
 @click.option(
-    "--max-task-count", help="Number of tasks this worker should run before exiting", default=10000
+    "--max-child-task-count",
+    help="Number of tasks child processes execute before being restart",
+    default=taskworker_constants.DEFAULT_CHILD_TASK_COUNT,
 )
-@click.option("--concurrency", help="Number of child worker processes to create.", default=1)
+@click.option("--concurrency", help="Number of child processes to create.", default=1)
 @click.option(
-    "--namespace", help="The dedicated task namespace that taskworker operates on", default=None
+    "--namespace", help="The dedicated task namespace that this worker processes", default=None
 )
 @click.option(
     "--result-queue-maxsize",
     help="Size of multiprocessing queue for child process results",
-    default=5,
+    default=taskworker_constants.DEFAULT_WORKER_QUEUE_SIZE,
 )
 @click.option(
     "--child-tasks-queue-maxsize",
     help="Size of multiprocessing queue for pending tasks for child processes",
-    default=5,
+    default=taskworker_constants.DEFAULT_WORKER_QUEUE_SIZE,
+)
+@click.option(
+    "--rebalance-after",
+    help="The number of tasks to process before choosing a new broker instance. Requires num-brokers > 1",
+    default=taskworker_constants.DEFAULT_REBALANCE_AFTER,
 )
 @log_options()
 @configuration
@@ -311,11 +323,12 @@ def taskworker(**options: Any) -> None:
 def run_taskworker(
     rpc_host: str,
     num_brokers: int | None,
-    max_task_count: int,
+    max_child_task_count: int,
     namespace: str | None,
     concurrency: int,
     child_tasks_queue_maxsize: int,
     result_queue_maxsize: int,
+    rebalance_after: int,
     **options: Any,
 ) -> None:
     """
@@ -327,11 +340,12 @@ def run_taskworker(
         worker = TaskWorker(
             rpc_host=rpc_host,
             num_brokers=num_brokers,
-            max_task_count=max_task_count,
+            max_child_task_count=max_child_task_count,
             namespace=namespace,
             concurrency=concurrency,
             child_tasks_queue_maxsize=child_tasks_queue_maxsize,
             result_queue_maxsize=result_queue_maxsize,
+            rebalance_after=rebalance_after,
             **options,
         )
         exitcode = worker.start()
@@ -391,12 +405,13 @@ def taskbroker_send_tasks(
     kafka_topic: str,
     namespace: str,
 ) -> None:
-    from sentry.conf.server import KAFKA_CLUSTERS, TASKWORKER_ROUTES
+    from sentry import options
+    from sentry.conf.server import KAFKA_CLUSTERS
     from sentry.utils.imports import import_string
 
     KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
     if kafka_topic and namespace:
-        TASKWORKER_ROUTES[namespace] = kafka_topic
+        options.set("taskworker.route.overrides", {namespace: kafka_topic})
 
     try:
         func = import_string(task_function_path)
@@ -531,6 +546,11 @@ def cron(**options: Any) -> None:
         "This is useful in development, but not desirable in production since expired "
         "offsets mean data-loss.\n\n"
     ),
+)
+@click.option(
+    "--max-dlq-buffer-length",
+    type=int,
+    help="The maximum number of messages to buffer in the dlq before dropping messages. Defaults to unbounded.",
 )
 @configuration
 def basic_consumer(

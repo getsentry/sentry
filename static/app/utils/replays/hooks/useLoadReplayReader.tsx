@@ -3,7 +3,6 @@ import {useMemo} from 'react';
 import type {Group} from 'sentry/types/group';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   orgSlug: string;
@@ -54,19 +53,16 @@ export default function useLoadReplayReader({
     );
   }, [clipWindow, firstMatchingError]);
 
-  const featureFlags = useOrganization().features;
-
   const replay = useMemo(
     () =>
       ReplayReader.factory({
         attachments,
         clipWindow: memoizedClipWindow,
         errors,
-        featureFlags,
         fetching,
         replayRecord,
       }),
-    [attachments, memoizedClipWindow, errors, featureFlags, fetching, replayRecord]
+    [attachments, memoizedClipWindow, errors, fetching, replayRecord]
   );
 
   return {

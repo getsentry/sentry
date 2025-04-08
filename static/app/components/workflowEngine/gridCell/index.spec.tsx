@@ -18,9 +18,9 @@ describe('Action Cell Component', function () {
   it('renders tooltip', async function () {
     const container = document.createElement('div');
     render(
-      <TooltipContext.Provider value={{container}}>
+      <TooltipContext value={{container}}>
         <ActionCell actions={['slack', 'discord', 'email']} />
-      </TooltipContext.Provider>
+      </TooltipContext>
     );
 
     const span = screen.getByText('Slack, Discord, Email');

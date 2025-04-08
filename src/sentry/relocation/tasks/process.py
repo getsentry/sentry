@@ -1144,7 +1144,7 @@ def validating_start(uuid: UUID) -> None:
         cb_client = CloudBuildClient()
 
         def camel_to_snake_keep_underscores(value):
-            match = re.search(r"(_+)$", value)
+            match = re.search(r"(_++)$", value)
             converted = camel_to_snake_case(value)
             return converted + (match.group(0) if match else "")
 

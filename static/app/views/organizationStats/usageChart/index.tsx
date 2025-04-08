@@ -86,6 +86,24 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     disabled: false,
     yAxisMinInterval: 100,
   },
+  {
+    label: DATA_CATEGORY_INFO.profileDurationUI.titleName,
+    value: DATA_CATEGORY_INFO.profileDurationUI.plural,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
+  {
+    label: DATA_CATEGORY_INFO.logItem.titleName,
+    value: DATA_CATEGORY_INFO.logItem.plural,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
+  {
+    label: DATA_CATEGORY_INFO.logByte.titleName,
+    value: DATA_CATEGORY_INFO.logByte.plural,
+    disabled: false,
+    yAxisMinInterval: 0.5 * GIGABYTE,
+  },
 ];
 
 export enum ChartDataTransform {
@@ -446,7 +464,7 @@ function UsageChartBody({
             tooltip: {show: false},
             itemStyle: {
               decal: {
-                color: 'rgba(255, 255, 255, 0.2)',
+                color: theme.subText,
                 dashArrayX: [1, 0],
                 dashArrayY: [3, 5],
                 rotation: -Math.PI / 4,

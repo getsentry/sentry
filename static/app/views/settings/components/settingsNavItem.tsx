@@ -5,10 +5,10 @@ import styled from '@emotion/styled';
 import {Badge} from 'sentry/components/core/badge';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 
 type Props = {
   label: React.ReactNode;
@@ -48,6 +48,7 @@ function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
       to={to}
       end={index}
       trailingItems={badge ? <SettingsNavBadge badge={badge} /> : null}
+      analyticsItemName={id ? `settings_${id}` : undefined}
       {...props}
     >
       <LabelHook id={id}>{label}</LabelHook>

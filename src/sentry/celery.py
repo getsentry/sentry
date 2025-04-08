@@ -10,18 +10,8 @@ from django.db import models
 
 from sentry.utils import metrics
 
-LEGACY_PICKLE_TASKS = frozenset(
-    [
-        # basic tasks that must be passed models still
-        "sentry.tasks.process_buffer.process_incr",
-        "sentry.tasks.unmerge",
-        "src.sentry.notifications.utils.async_send_notification",
-        # basic tasks that can already deal with primary keys passed
-        "sentry.tasks.update_code_owners_schema",
-        # integration tasks that must be passed models still
-        "sentry.integrations.slack.link_users_identities",
-    ]
-)
+# XXX: Pickle parameters are not allowed going forward
+LEGACY_PICKLE_TASKS: frozenset[str] = frozenset([])
 
 
 def holds_bad_pickle_object(value, memo=None):
@@ -50,7 +40,8 @@ def holds_bad_pickle_object(value, memo=None):
             "django database models are large and likely to be stale when your task is run. "
             "Instead pass primary key values to the task and load records from the database within your task.",
         )
-    if type(value).__module__.startswith(("sentry.", "getsentry.")):
+    app_module = type(value).__module__
+    if app_module.startswith(("sentry.", "getsentry.")):
         return value, "do not pickle custom classes"
 
     return None

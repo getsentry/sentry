@@ -229,7 +229,7 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
             releaseMeta={releaseMeta}
             refetchData={this.fetchData}
           />
-          <ReleaseContext.Provider
+          <ReleaseContext
             value={{
               release,
               project,
@@ -242,7 +242,7 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
             }}
           >
             {this.props.children}
-          </ReleaseContext.Provider>
+          </ReleaseContext>
         </NoProjectMessage>
       </Layout.Page>
     );
@@ -319,9 +319,10 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
         }))}
         router={router}
         nextPath={{
-          pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
-            release!
-          )}/`,
+          pathname: makeReleasesPathname({
+            path: `/${encodeURIComponent(release)}/`,
+            organization,
+          }),
         }}
         noProjectRedirectPath={makeReleasesPathname({
           organization,

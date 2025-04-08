@@ -2,14 +2,7 @@ import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ModalBody} from 'sentry/components/globalModal/components';
 
@@ -66,8 +59,6 @@ describe('InvoiceDetails > Payment Form', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, {});
-    // This should happen automatically, but isn't.
-    cleanup();
   });
 
   const modalDummy = ({children}: {children?: ReactNode}) => <div>{children}</div>;
@@ -126,14 +117,8 @@ describe('InvoiceDetails > Payment Form', function () {
     expect(error).toBeInTheDocument();
 
     // Submit the form anyways
-    const postalCode = screen.getByRole('textbox', {name: 'Postal Code'});
-    act(() => {
-      fireEvent.change(postalCode, {target: {value: '90210'}});
-    });
     const button = screen.getByRole('button', {name: 'Pay Now'});
-    act(() => {
-      fireEvent.click(button);
-    });
+    await userEvent.click(button);
 
     // Should show an error as our intent never loaded.
     error = screen.getByText(/Cannot complete your payment/);
@@ -162,14 +147,8 @@ describe('InvoiceDetails > Payment Form', function () {
 
     expect(screen.getByText('Pay Invoice')).toBeInTheDocument();
 
-    const postalCode = screen.getByRole('textbox', {name: 'Postal Code'});
-    act(() => {
-      fireEvent.change(postalCode, {target: {value: '90210'}});
-    });
     const button = screen.getByRole('button', {name: 'Pay Now'});
-    act(() => {
-      fireEvent.click(button);
-    });
+    await userEvent.click(button);
     await waitFor(() => expect(reloadInvoice).toHaveBeenCalled());
     expect(reloadInvoice).toHaveBeenCalled();
   });

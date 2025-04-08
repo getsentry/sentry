@@ -166,6 +166,20 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 {"org_slug": "org1", "query": QueryDict("project=1&yAxis=count()")},
             ),
         ),
+        (
+            "https://sentry.io/organizations/org1/explore/discover/results/?project=1&yAxis=count()",
+            (
+                LinkType.DISCOVER,
+                {"org_slug": "org1", "query": QueryDict("project=1&yAxis=count()")},
+            ),
+        ),
+        (
+            "https://org1.sentry.io/explore/discover/results/?project=1&yAxis=count()",
+            (
+                LinkType.DISCOVER,
+                {"org_slug": "org1", "query": QueryDict("project=1&yAxis=count()")},
+            ),
+        ),
     ],
 )
 def test_match_link(url, expected):

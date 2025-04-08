@@ -1,4 +1,5 @@
 import {Fragment, memo, useEffect, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -156,6 +157,7 @@ function NewTraceView({
   onRowClick,
   ...props
 }: Props) {
+  const theme = useTheme();
   const [isTransactionBarScrolledTo, setIsTransactionBarScrolledTo] = useState(false);
 
   const sentrySpan = Sentry.startInactiveSpan({
@@ -264,7 +266,7 @@ function NewTraceView({
             isVisible={isVisible}
             hasGuideAnchor={hasGuideAnchor}
             renderedChildren={accumulated.renderedChildren}
-            barColor={pickBarColor(transaction['transaction.op'])}
+            barColor={pickBarColor(transaction['transaction.op'], theme)}
           />
         </Fragment>
       ),
@@ -428,12 +430,10 @@ function NewTraceView({
                               width: 0,
                               height: '1px',
                             }}
-                            // @ts-expect-error TODO(react19): Remove ts-ignore once we upgrade to React 19
                             ref={scrollBarAreaRef}
                           />
                           <VirtualScrollbar
                             data-type="virtual-scrollbar"
-                            // @ts-expect-error TODO(react19): Remove ts-ignore once we upgrade to React 19
                             ref={virtualScrollbarRef}
                             onMouseDown={onDragStart}
                           >
@@ -478,7 +478,7 @@ function NewTraceView({
                     isVisible
                     hasGuideAnchor={false}
                     renderedChildren={transactionGroups}
-                    barColor={pickBarColor('')}
+                    barColor={pickBarColor('', theme)}
                     onlyOrphanErrors={onlyOrphanErrors}
                     traceViewRef={traceViewRef}
                     numOfOrphanErrors={orphanErrors?.length}

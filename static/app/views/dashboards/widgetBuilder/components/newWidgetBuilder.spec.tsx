@@ -58,6 +58,11 @@ describe('NewWidgetBuiler', function () {
     });
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboard/1/',
       body: [],
     });

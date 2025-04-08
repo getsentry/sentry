@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry.constants import LOG_LEVELS_MAP
+from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
     FeedbackGroup,
@@ -19,6 +19,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.ingest import (
     _create_issue_kwargs,
+    hash_fingerprint,
     materialize_metadata,
     save_issue_from_occurrence,
     save_issue_occurrence,
@@ -28,6 +29,7 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
@@ -213,6 +215,21 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                 },
             )
 
+    def test_new_group_multiple_fingerprint(self) -> None:
+        fingerprint = ["hi", "bye"]
+        occurrence = self.build_occurrence(type=ErrorGroupType.type_id, fingerprint=fingerprint)
+        event = self.store_event(project_id=self.project.id, data={})
+
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        assert group_info.is_new
+        assert not group_info.is_regression
+
+        group = group_info.group
+        assert group.title == occurrence.issue_title
+        grouphashes = set(GroupHash.objects.filter(group=group).values_list("hash", flat=True))
+        assert set(hash_fingerprint(fingerprint)) == grouphashes
+
     def test_existing_group(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence(fingerprint=["some-fingerprint"])
@@ -236,6 +253,77 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert updated_group.location() == event.location
         assert updated_group.times_seen == 2
         assert updated_group.message == "<unlabeled event> new title new subtitle api/123"
+
+    def test_existing_group_multiple_fingerprints(self) -> None:
+        fingerprint = ["some-fingerprint"]
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(fingerprint=fingerprint)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        assert group_info.is_new
+        grouphashes = set(
+            GroupHash.objects.filter(group=group_info.group).values_list("hash", flat=True)
+        )
+        assert set(hash_fingerprint(fingerprint)) == grouphashes
+
+        fingerprint = ["some-fingerprint", "another-fingerprint"]
+        new_event = self.store_event(data={}, project_id=self.project.id)
+        new_occurrence = self.build_occurrence(fingerprint=fingerprint)
+        with self.tasks():
+            updated_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
+        assert updated_group_info is not None
+        assert group_info.group.id == updated_group_info.group.id
+        assert not updated_group_info.is_new
+        assert not updated_group_info.is_regression
+        grouphashes = set(
+            GroupHash.objects.filter(group=group_info.group).values_list("hash", flat=True)
+        )
+        assert set(hash_fingerprint(fingerprint)) == grouphashes
+
+    def test_existing_group_multiple_fingerprints_overlap(self) -> None:
+        fingerprint = ["some-fingerprint"]
+        group_info = save_issue_from_occurrence(
+            self.build_occurrence(fingerprint=fingerprint),
+            self.store_event(data={}, project_id=self.project.id),
+            None,
+        )
+        assert group_info is not None
+        assert group_info.is_new
+        grouphashes = set(
+            GroupHash.objects.filter(group=group_info.group).values_list("hash", flat=True)
+        )
+        assert set(hash_fingerprint(fingerprint)) == grouphashes
+        other_fingerprint = ["another-fingerprint"]
+        other_group_info = save_issue_from_occurrence(
+            self.build_occurrence(fingerprint=other_fingerprint),
+            self.store_event(data={}, project_id=self.project.id),
+            None,
+        )
+        assert other_group_info is not None
+        assert other_group_info.is_new
+        grouphashes = set(
+            GroupHash.objects.filter(group=other_group_info.group).values_list("hash", flat=True)
+        )
+        assert set(hash_fingerprint(other_fingerprint)) == grouphashes
+
+        # Should process the in order, and not join an already used fingerprint
+        overlapping_fingerprint = ["another-fingerprint", "some-fingerprint"]
+        new_event = self.store_event(data={}, project_id=self.project.id)
+        new_occurrence = self.build_occurrence(fingerprint=overlapping_fingerprint)
+        with self.tasks():
+            overlapping_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
+        assert overlapping_group_info is not None
+        assert other_group_info.group.id == overlapping_group_info.group.id
+        assert not overlapping_group_info.is_new
+        assert not overlapping_group_info.is_regression
+        grouphashes = set(
+            GroupHash.objects.filter(group=group_info.group).values_list("hash", flat=True)
+        )
+        assert set(hash_fingerprint(fingerprint)) == grouphashes
+        other_grouphashes = set(
+            GroupHash.objects.filter(group=other_group_info.group).values_list("hash", flat=True)
+        )
+        assert set(hash_fingerprint(other_fingerprint)) == other_grouphashes
 
     def test_existing_group_different_category(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
@@ -364,13 +452,14 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
-        occurrence = self.build_occurrence()
+        occurrence = self.build_occurrence(culprit="abcde" * 100)
         event = self.store_event(data={}, project_id=self.project.id)
         assert _create_issue_kwargs(occurrence, event, None) == {
             "platform": event.platform,
             "message": event.search_message,
             "level": LOG_LEVELS_MAP.get(occurrence.level),
-            "culprit": occurrence.culprit,
+            # Should truncate the culprit to max allowable length
+            "culprit": f"{occurrence.culprit[:MAX_CULPRIT_LENGTH-3]}...",
             "last_seen": event.datetime,
             "first_seen": event.datetime,
             "active_at": event.datetime,

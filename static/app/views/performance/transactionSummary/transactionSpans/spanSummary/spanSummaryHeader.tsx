@@ -106,7 +106,7 @@ export const SpanLabelContainer = styled('div')`
 `;
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const emptyValue = <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>;

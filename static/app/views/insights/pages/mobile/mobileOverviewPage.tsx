@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -27,7 +28,6 @@ import useProjects from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
@@ -36,6 +36,7 @@ import {
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
   generateGenericPerformanceEventView,
   generateMobilePerformanceEventView,
@@ -79,6 +80,9 @@ const REACT_NATIVE_COLUMN_TITLES = [
 ];
 
 function MobileOverviewPage() {
+  useOverviewPageTrackPageload();
+
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -210,10 +214,7 @@ function MobileOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <MobileHeader
-        headerTitle={MOBILE_LANDING_TITLE}
-        headerActions={<ViewTrendsButton />}
-      />
+      <MobileHeader headerTitle={MOBILE_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -261,6 +262,7 @@ function MobileOverviewPage() {
                       projects={projects}
                       columnTitles={columnTitles}
                       setError={setPageError}
+                      theme={theme}
                       {...sharedProps}
                     />
                   </TeamKeyTransactionManager.Provider>

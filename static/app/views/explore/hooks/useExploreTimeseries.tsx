@@ -14,22 +14,43 @@ import {
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {
+  QUERY_MODE,
+  type SpansRPCQueryExtras,
+  useProgressiveQuery,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface UseExploreTimeseriesOptions {
   enabled: boolean;
   query: string;
+  queryExtras?: SpansRPCQueryExtras;
 }
 
 interface UseExploreTimeseriesResults {
   canUsePreviousResults: boolean;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  result: ReturnType<typeof useSortedTimeSeries>;
 }
 
-export function useExploreTimeseries({
+export const useExploreTimeseries = ({
+  query,
+  enabled,
+}: {
+  enabled: boolean;
+  query: string;
+}) => {
+  return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
+    queryHookImplementation: useExploreTimeseriesImpl,
+    queryHookArgs: {query, enabled},
+    queryMode: QUERY_MODE.SERIAL,
+  });
+};
+
+function useExploreTimeseriesImpl({
   enabled,
   query,
+  queryExtras,
 }: UseExploreTimeseriesOptions): UseExploreTimeseriesResults {
   const dataset = useExploreDataset();
   const groupBys = useExploreGroupBys();
@@ -79,8 +100,9 @@ export function useExploreTimeseries({
       orderby,
       topEvents,
       enabled,
+      ...queryExtras,
     };
-  }, [query, yAxes, interval, fields, orderby, topEvents, enabled]);
+  }, [query, yAxes, interval, fields, orderby, topEvents, enabled, queryExtras]);
 
   const previousQuery = usePrevious(query);
   const previousOptions = usePrevious(options);
@@ -112,5 +134,8 @@ export function useExploreTimeseries({
 
   const timeseriesResult = useSortedTimeSeries(options, 'api.explorer.stats', dataset);
 
-  return {timeseriesResult, canUsePreviousResults};
+  return {
+    result: timeseriesResult,
+    canUsePreviousResults,
+  };
 }

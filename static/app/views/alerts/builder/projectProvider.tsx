@@ -82,7 +82,7 @@ function AlertBuilderProjectProvider(props: Props) {
       {children && isValidElement(children)
         ? cloneElement(children, {
             ...other,
-            ...children.props,
+            ...(children as any).props,
             project,
             projectId: useFirstProject ? project.slug : projectId,
             organization,

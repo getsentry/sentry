@@ -144,7 +144,7 @@ const Heading = styled('div')`
 `;
 
 const TokenPreview = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const LinkWrapper = styled('div')<{name: string}>`

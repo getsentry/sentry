@@ -14,6 +14,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   useIssueDetailsTour,
@@ -22,15 +23,16 @@ import {
   IssueDetailsTourModal,
   IssueDetailsTourModalCss,
 } from 'sentry/views/issueDetails/issueDetailsTourModal';
+import {useIssueDetailsTourAvailable} from 'sentry/views/issueDetails/useIssueDetailsTourAvailable';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function NewIssueExperienceButton() {
   const organization = useOrganization();
   const isSuperUser = isActiveSuperuser();
   const {
-    dispatch: tourDispatch,
+    endTour,
+    startTour,
     currentStepId,
-    isAvailable: isTourAvailable,
     isRegistered: isTourRegistered,
     isCompleted: isTourCompleted,
   } = useIssueDetailsTour();
@@ -42,18 +44,23 @@ export function NewIssueExperienceButton() {
   const [isReminderVisible, setIsReminderVisible] = useState(false);
   useEffect(() => {
     // If the tour becomes completed, and started off incomplete, show the reminder.
+    let timeout: NodeJS.Timeout | undefined;
     if (isTourCompleted && !isTourCompletedRef.current) {
       setIsReminderVisible(true);
+      // Auto-dismiss after 5 seconds
+      timeout = setTimeout(() => {
+        setIsReminderVisible(false);
+        trackAnalytics('issue_details.tour.reminder', {organization, method: 'timeout'});
+      }, 5000);
     }
     isTourCompletedRef.current = isTourCompleted;
-  }, [isTourCompleted]);
+    return () => clearTimeout(timeout);
+  }, [isTourCompleted, organization]);
 
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const hasStreamlinedUIFlag = organization.features.includes('issue-details-streamline');
-  const hasEnforceStreamlinedUIFlag = organization.features.includes(
-    'issue-details-streamline-enforce'
-  );
   const hasNewUIOnly = Boolean(organization.streamlineOnly);
+  const user = useUser();
+  const userStreamlinePreference = user?.options?.prefersIssueDetailsStreamlinedUI;
 
   const openForm = useFeedbackForm();
   const {mutate: mutateUserOptions} = useMutateUserOptions();
@@ -63,8 +70,13 @@ export function NewIssueExperienceButton() {
     trackAnalytics('issue_details.streamline_ui_toggle', {
       isEnabled: !hasStreamlinedUI,
       organization,
+      enforced_streamline_ui:
+        organization.features.includes('issue-details-streamline-enforce') &&
+        userStreamlinePreference === null,
     });
-  }, [mutateUserOptions, organization, hasStreamlinedUI]);
+  }, [mutateUserOptions, organization, hasStreamlinedUI, userStreamlinePreference]);
+
+  const isTourAvailable = useIssueDetailsTourAvailable();
 
   // The promotional modal should only appear if:
   //  - The tour is available to this user
@@ -84,22 +96,26 @@ export function NewIssueExperienceButton() {
       openModal(
         props => (
           <IssueDetailsTourModal
-            {...props}
             handleDismissTour={() => {
               mutateAssistant({guide: ISSUE_DETAILS_TOUR_GUIDE_KEY, status: 'dismissed'});
-              tourDispatch({type: 'SET_COMPLETION', isCompleted: true});
+              endTour();
+              trackAnalytics('issue_details.tour.skipped', {organization});
               props.closeModal();
             }}
             handleStartTour={() => {
               props.closeModal();
-              tourDispatch({type: 'START_TOUR'});
+              startTour();
+              trackAnalytics('issue_details.tour.started', {
+                organization,
+                method: 'modal',
+              });
             }}
           />
         ),
         {modalCss: IssueDetailsTourModalCss}
       );
     }
-  }, [isPromoVisible, tourDispatch, mutateAssistant]);
+  }, [isPromoVisible, mutateAssistant, organization, endTour, startTour]);
 
   if (!hasStreamlinedUI) {
     return (
@@ -110,12 +126,6 @@ export function NewIssueExperienceButton() {
         aria-label={t('Switch to the new issue experience')}
         onClick={() => {
           handleToggle();
-          tourDispatch({
-            type: 'SET_AVAILABILITY',
-            isAvailable:
-              location.hash === '#tour' ||
-              organization.features.includes('issue-details-streamline-tour'),
-          });
         }}
       >
         {t('Try New UI')}
@@ -128,7 +138,10 @@ export function NewIssueExperienceButton() {
       key: 'take-tour',
       label: t('Take a tour'),
       hidden: !isTourAvailable || !isTourRegistered,
-      onAction: () => tourDispatch({type: 'START_TOUR'}),
+      onAction: () => {
+        trackAnalytics('issue_details.tour.started', {organization, method: 'dropdown'});
+        startTour();
+      },
     },
     {
       key: 'give-feedback',
@@ -136,9 +149,7 @@ export function NewIssueExperienceButton() {
       hidden: !openForm,
       onAction: () => {
         openForm?.({
-          messagePlaceholder: t(
-            'Excluding bribes, what would make you excited to use the new UI?'
-          ),
+          messagePlaceholder: t('Tell us what you think about the new UI'),
           tags: {
             ['feedback.source']: 'streamlined_issue_details',
             ['feedback.owner']: 'issues',
@@ -151,14 +162,8 @@ export function NewIssueExperienceButton() {
       label: t('Switch to the old issue experience'),
       // Do not show the toggle out of the new UI if any of these are true:
       //  - The user is on the old UI
-      //  - The org does not have the opt-in flag
-      //  - The org has the enforce flag
       //  - The org has the new UI only option
-      hidden:
-        !hasStreamlinedUI ||
-        !hasStreamlinedUIFlag ||
-        hasEnforceStreamlinedUIFlag ||
-        hasNewUIOnly,
+      hidden: !hasStreamlinedUI || hasNewUIOnly,
       onAction: handleToggle,
     },
     {
@@ -180,7 +185,16 @@ export function NewIssueExperienceButton() {
       title={t('Come back anytime')}
       description={t('Click here to take the tour or share feedback with the team.')}
       actions={
-        <TourAction size="xs" onClick={() => setIsReminderVisible(false)}>
+        <TourAction
+          size="xs"
+          onClick={() => {
+            trackAnalytics('issue_details.tour.reminder', {
+              organization,
+              method: 'dismissed',
+            });
+            setIsReminderVisible(false);
+          }}
+        >
           {t('Got it')}
         </TourAction>
       }

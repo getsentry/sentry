@@ -13,7 +13,7 @@ describe('useTourReducer', () => {
     orderedStepIds: ORDERED_TEST_TOUR,
   };
   function registerAllSteps() {
-    const {result} = renderHook(() => useTourReducer<TestTour>(initialState));
+    const {result} = renderHook(() => useTourReducer<TestTour>(initialState, {}));
     const {handleStepRegistration} = result.current;
     act(() => {
       ORDERED_TEST_TOUR.forEach(stepId => handleStepRegistration({id: stepId}));
@@ -22,7 +22,7 @@ describe('useTourReducer', () => {
   }
 
   it('handles step registration correctly', () => {
-    const {result} = renderHook(() => useTourReducer<TestTour>(initialState));
+    const {result} = renderHook(() => useTourReducer<TestTour>(initialState, {}));
     const {handleStepRegistration} = result.current;
     let unregister = () => {};
     // Should be false before any steps are registered
@@ -44,52 +44,52 @@ describe('useTourReducer', () => {
   it('starts and ends the tour with the correctly', () => {
     const result = registerAllSteps();
     expect(result.current.currentStepId).toBeNull();
-    act(() => result.current.dispatch({type: 'START_TOUR'}));
+    act(() => result.current.startTour());
     expect(result.current.currentStepId).toBe(TestTour.NAME);
-    act(() => result.current.dispatch({type: 'START_TOUR', stepId: TestTour.EMAIL}));
+    act(() => result.current.startTour(TestTour.EMAIL));
     expect(result.current.currentStepId).toBe(TestTour.EMAIL);
-    act(() => result.current.dispatch({type: 'END_TOUR'}));
+    act(() => result.current.endTour());
     expect(result.current.currentStepId).toBeNull();
   });
 
   it('navigates to the next step correctly', () => {
     const result = registerAllSteps();
     expect(result.current.currentStepId).toBeNull();
-    act(() => result.current.dispatch({type: 'NEXT_STEP'}));
+    act(() => result.current.nextStep());
     expect(result.current.currentStepId).toBeNull();
-    act(() => result.current.dispatch({type: 'START_TOUR'}));
+    act(() => result.current.startTour());
     expect(result.current.currentStepId).toBe(TestTour.NAME);
-    act(() => result.current.dispatch({type: 'NEXT_STEP'}));
+    act(() => result.current.nextStep());
     expect(result.current.currentStepId).toBe(TestTour.EMAIL);
-    act(() => result.current.dispatch({type: 'NEXT_STEP'}));
+    act(() => result.current.nextStep());
     expect(result.current.currentStepId).toBe(TestTour.PASSWORD);
-    act(() => result.current.dispatch({type: 'NEXT_STEP'}));
+    act(() => result.current.nextStep());
     expect(result.current.currentStepId).toBeNull();
   });
 
   it('navigates to the previous step correctly', () => {
     const result = registerAllSteps();
     expect(result.current.currentStepId).toBeNull();
-    act(() => result.current.dispatch({type: 'PREVIOUS_STEP'}));
+    act(() => result.current.previousStep());
     expect(result.current.currentStepId).toBeNull();
-    act(() => result.current.dispatch({type: 'START_TOUR', stepId: TestTour.PASSWORD}));
+    act(() => result.current.startTour(TestTour.PASSWORD));
     expect(result.current.currentStepId).toBe(TestTour.PASSWORD);
-    act(() => result.current.dispatch({type: 'PREVIOUS_STEP'}));
+    act(() => result.current.previousStep());
     expect(result.current.currentStepId).toBe(TestTour.EMAIL);
-    act(() => result.current.dispatch({type: 'PREVIOUS_STEP'}));
+    act(() => result.current.previousStep());
     expect(result.current.currentStepId).toBe(TestTour.NAME);
-    act(() => result.current.dispatch({type: 'PREVIOUS_STEP'}));
+    act(() => result.current.previousStep());
     expect(result.current.currentStepId).toBe(TestTour.NAME);
   });
 
   it('sets the step correctly', () => {
     const result = registerAllSteps();
     expect(result.current.currentStepId).toBeNull();
-    act(() => result.current.dispatch({type: 'SET_STEP', stepId: TestTour.EMAIL}));
+    act(() => result.current.setStep(TestTour.EMAIL));
     expect(result.current.currentStepId).toBe(TestTour.EMAIL);
-    act(() => result.current.dispatch({type: 'SET_STEP', stepId: TestTour.PASSWORD}));
+    act(() => result.current.setStep(TestTour.PASSWORD));
     expect(result.current.currentStepId).toBe(TestTour.PASSWORD);
-    act(() => result.current.dispatch({type: 'SET_STEP', stepId: TestTour.NAME}));
+    act(() => result.current.setStep(TestTour.NAME));
     expect(result.current.currentStepId).toBe(TestTour.NAME);
   });
 });

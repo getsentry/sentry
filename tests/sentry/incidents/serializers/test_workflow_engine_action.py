@@ -10,6 +10,7 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction
+from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 @freeze_time("2018-12-11 03:21:34")
@@ -29,6 +30,10 @@ class TestActionSerializer(TestCase):
         ActionAlertRuleTriggerAction.objects.create(
             action_id=self.action.id,
             alert_rule_trigger_action_id=self.trigger_action.id,
+        )
+        self.data_condition_group = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition_group_action(
+            action=self.action, condition_group=self.data_condition_group
         )
 
     def test_simple(self) -> None:
@@ -73,10 +78,10 @@ class TestActionSerializer(TestCase):
                 "target_type": ActionTarget.SENTRY_APP,
                 "target_identifier": str(sentry_app.id),
                 "target_display": sentry_app.name,
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
             },
             data={
-                "sentry_app_config": self.sentry_app_trigger_action.sentry_app_config,
-                "sentry_app_id": sentry_app.id,
+                "settings": self.sentry_app_trigger_action.sentry_app_config,
             },
         )
         ActionAlertRuleTriggerAction.objects.create(
@@ -92,7 +97,7 @@ class TestActionSerializer(TestCase):
         assert serialized_action["targetType"] == "sentry_app"
         assert serialized_action["targetIdentifier"] == sentry_app.id
         assert serialized_action["sentryAppId"] == sentry_app.id
-        assert serialized_action["settings"] == self.sentry_app_action.data["sentry_app_config"]
+        assert serialized_action["settings"] == self.sentry_app_action.data["settings"]
 
         serialized_alert_rule_trigger_action = serialize(
             self.sentry_app_trigger_action, self.user, AlertRuleTriggerActionSerializer()

@@ -376,7 +376,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             """,
         )
         grouping_config: GroupingConfig = {
-            "enhancements": enhancement.dumps(),
+            "enhancements": enhancement.base64_string,
             "id": DEFAULT_GROUPING_CONFIG,
         }
 

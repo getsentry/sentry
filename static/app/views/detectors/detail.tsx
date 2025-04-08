@@ -35,7 +35,7 @@ export default function DetectorDetail() {
 
   return (
     <SentryDocumentTitle title={'/endpoint'} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Monitors'), to: '/monitors'}}>
+      <BreadcrumbsProvider crumb={{label: t('Monitors'), to: '/issues/monitors'}}>
         <ActionsProvider actions={<Actions />}>
           <DetailLayout project={{slug: 'project-slug', platform: 'javascript-astro'}}>
             <DetailLayout.Main>
@@ -103,7 +103,7 @@ function Actions() {
       <Button onClick={disable} size="sm">
         {t('Disable')}
       </Button>
-      <LinkButton to="/monitors/edit" priority="primary" icon={<IconEdit />} size="sm">
+      <LinkButton to="edit" priority="primary" icon={<IconEdit />} size="sm">
         {t('Edit')}
       </LinkButton>
     </Fragment>

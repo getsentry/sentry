@@ -57,7 +57,7 @@ describe('SuspectSpans', function () {
     it('renders basic UI elements', async function () {
       const initialData = initializeData();
       render(
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <MEPSettingProvider>
             <SuspectSpans
               organization={initialData.organization}
@@ -68,7 +68,7 @@ describe('SuspectSpans', function () {
               totals={{'count()': 1}}
             />
           </MEPSettingProvider>
-        </OrganizationContext.Provider>
+        </OrganizationContext>
       );
 
       expect(await screen.findByText('Suspect Spans')).toBeInTheDocument();

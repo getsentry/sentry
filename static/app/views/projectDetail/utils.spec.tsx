@@ -1,4 +1,9 @@
-import {isPlatformANRCompatible, isPlatformForegroundANRCompatible} from './utils';
+import {
+  getANRIssueQueryText,
+  getANRRateText,
+  isPlatformANRCompatible,
+  isPlatformForegroundANRCompatible,
+} from './utils';
 
 describe('ProjectDetail Utils', function () {
   describe('isPlatformANRCompatible', function () {
@@ -48,6 +53,41 @@ describe('ProjectDetail Utils', function () {
       expect(isPlatformForegroundANRCompatible('apple-macos')).toBe(false);
       expect(isPlatformForegroundANRCompatible('python')).toBe(false);
       expect(isPlatformForegroundANRCompatible(undefined)).toBe(false);
+    });
+  });
+
+  describe('getANRRateText', function () {
+    it('returns "App Hang Rate" for apple platforms', function () {
+      expect(getANRRateText('apple')).toBe('App Hang Rate');
+      expect(getANRRateText('apple-ios')).toBe('App Hang Rate');
+    });
+
+    it('returns "ANR Rate" for other platforms', function () {
+      expect(getANRRateText('apple-macos')).toBe('ANR Rate');
+      expect(getANRRateText('android')).toBe('ANR Rate');
+      expect(getANRRateText('javascript-electron')).toBe('ANR Rate');
+      expect(getANRRateText('python')).toBe('ANR Rate');
+      expect(getANRRateText(undefined)).toBe('ANR Rate');
+    });
+  });
+
+  describe('getANRIssueQueryText', () => {
+    it('returns correct query text for apple platforms', () => {
+      expect(getANRIssueQueryText('apple')).toBe(
+        'error.type:["Fatal App Hang Fully Blocked","Fatal App Hang Non Fully Blocked"]'
+      );
+      expect(getANRIssueQueryText('apple-ios')).toBe(
+        'error.type:["Fatal App Hang Fully Blocked","Fatal App Hang Non Fully Blocked"]'
+      );
+    });
+
+    it('returns correct query text for android platform', () => {
+      expect(getANRIssueQueryText('android')).toBe('mechanism:[ANR,AppExitInfo]');
+    });
+
+    it('returns correct query text for other platforms', () => {
+      expect(getANRIssueQueryText('other')).toBe('mechanism:[ANR,AppExitInfo]');
+      expect(getANRIssueQueryText()).toBe('mechanism:[ANR,AppExitInfo]');
     });
   });
 });

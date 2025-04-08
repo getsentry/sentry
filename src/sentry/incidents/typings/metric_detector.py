@@ -13,8 +13,8 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.models.group import Group, GroupStatus
-from sentry.snuba.models import SnubaQuery
+from sentry.models.group import Group, GroupStatus, get_open_periods_for_group
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action, Detector
 
@@ -60,6 +60,7 @@ class NotificationContext:
     NotificationContext is a dataclass that represents the context required send a notification.
     """
 
+    id: int
     integration_id: int | None = None
     target_identifier: str | None = None
     target_display: str | None = None
@@ -69,6 +70,7 @@ class NotificationContext:
     @classmethod
     def from_alert_rule_trigger_action(cls, action: AlertRuleTriggerAction) -> NotificationContext:
         return cls(
+            id=action.id,
             integration_id=action.integration_id,
             target_identifier=action.target_identifier,
             target_display=action.target_display,
@@ -79,6 +81,7 @@ class NotificationContext:
     def from_action_model(cls, action: Action) -> NotificationContext:
         if action.type == Action.Type.SENTRY_APP:
             return cls(
+                id=action.id,
                 integration_id=action.integration_id,
                 target_display=action.config.get("target_display"),
                 sentry_app_config=action.data.get("settings"),
@@ -87,6 +90,7 @@ class NotificationContext:
             )
         elif action.type == Action.Type.OPSGENIE or action.type == Action.Type.PAGERDUTY:
             return cls(
+                id=action.id,
                 integration_id=action.integration_id,
                 target_identifier=action.config.get("target_identifier"),
                 target_display=action.config.get("target_display"),
@@ -95,6 +99,7 @@ class NotificationContext:
         # TODO(iamrajjoshi): Add support for email here
 
         return cls(
+            id=action.id,
             integration_id=action.integration_id,
             target_identifier=action.config.get("target_identifier"),
             target_display=action.config.get("target_display"),
@@ -103,10 +108,13 @@ class NotificationContext:
 
 @dataclass
 class MetricIssueContext:
-    open_period_identifier: int
+    id: int
+    open_period_identifier: int  # Used for link building
     snuba_query: SnubaQuery
     new_status: IncidentStatus
+    subscription: QuerySubscription | None
     metric_value: float | None
+    group: Group | None
 
     @classmethod
     def _get_new_status(cls, group: Group, occurrence: IssueOccurrence) -> IncidentStatus:
@@ -129,6 +137,10 @@ class MetricIssueContext:
         return query
 
     @classmethod
+    def _get_subscription(cls, occurrence: IssueOccurrence) -> QuerySubscription | None:
+        return occurrence.evidence_data.get("subscription_id")
+
+    @classmethod
     def _get_metric_value(cls, occurrence: IssueOccurrence) -> float:
         if (metric_value := occurrence.evidence_data.get("metric_value")) is None:
             raise ValueError("Metric value is required for alert context")
@@ -144,10 +156,14 @@ class MetricIssueContext:
             # TODO(iamrajjoshi): Replace with something once we know how we want to build the link
             # If we store open periods in the database, we can use the id from that
             # Otherwise, we can use the issue id
+            id=group.id,
+            # TODO(iamrajjoshi): This should probably be the id of the latest open period
             open_period_identifier=group.id,
             snuba_query=cls._get_snuba_query(occurrence),
+            subscription=cls._get_subscription(occurrence),
             new_status=cls._get_new_status(group, occurrence),
             metric_value=cls._get_metric_value(occurrence),
+            group=group,
         )
 
     @classmethod
@@ -158,10 +174,13 @@ class MetricIssueContext:
         metric_value: float | None = None,
     ) -> MetricIssueContext:
         return cls(
+            id=incident.id,
             open_period_identifier=incident.identifier,
             snuba_query=incident.alert_rule.snuba_query,
+            subscription=incident.subscription,
             new_status=new_status,
             metric_value=metric_value,
+            group=None,
         )
 
 
@@ -180,4 +199,14 @@ class OpenPeriodContext:
         return cls(
             date_started=incident.date_added,
             date_closed=incident.date_closed,
+        )
+
+    @classmethod
+    def from_group(cls, group: Group) -> OpenPeriodContext:
+        open_periods = get_open_periods_for_group(group, limit=1)
+        if len(open_periods) == 0:
+            raise ValueError("No open periods found for group")
+        return cls(
+            date_started=open_periods[0].start,
+            date_closed=open_periods[0].end,
         )

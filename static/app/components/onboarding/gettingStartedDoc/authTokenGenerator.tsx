@@ -62,11 +62,11 @@ export function AuthTokenGeneratorProvider({
   });
 
   return (
-    <AuthTokenGeneratorContext.Provider
+    <AuthTokenGeneratorContext
       value={{authToken, isLoading: isPending, generateAuthToken}}
     >
       {children}
-    </AuthTokenGeneratorContext.Provider>
+    </AuthTokenGeneratorContext>
   );
 }
 

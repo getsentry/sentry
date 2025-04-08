@@ -25,7 +25,6 @@ describe('Discover > QueryList', function () {
   let organization: ReturnType<typeof OrganizationFixture>;
   let deleteMock: jest.Mock;
   let duplicateMock: jest.Mock;
-  let queryChangeMock: jest.Mock;
   let updateHomepageMock: jest.Mock;
   let eventsStatsMock: jest.Mock;
 
@@ -77,7 +76,6 @@ describe('Discover > QueryList', function () {
       pathname: '/organizations/org-slug/discover/queries/',
       query: {cursor: '0:1:1', statsPeriod: '14d'},
     });
-    queryChangeMock = jest.fn();
   });
 
   afterEach(() => {
@@ -93,7 +91,6 @@ describe('Discover > QueryList', function () {
         savedQuerySearchQuery="no matches"
         pageLinks=""
         renderPrebuilt={false}
-        onQueryChange={queryChangeMock}
         location={location}
       />
     );
@@ -110,7 +107,6 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries}
         renderPrebuilt
         pageLinks=""
-        onQueryChange={queryChangeMock}
         location={location}
       />
     );
@@ -153,7 +149,6 @@ describe('Discover > QueryList', function () {
         savedQueries={[]}
         renderPrebuilt
         pageLinks=""
-        onQueryChange={queryChangeMock}
         location={location}
       />,
       {router}
@@ -214,7 +209,6 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries}
         renderPrebuilt
         pageLinks=""
-        onQueryChange={queryChangeMock}
         location={location}
       />
     );
@@ -250,7 +244,6 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries}
         pageLinks=""
         renderPrebuilt={false}
-        onQueryChange={queryChangeMock}
         location={location}
       />,
       {router}
@@ -271,7 +264,6 @@ describe('Discover > QueryList', function () {
     });
 
     expect(duplicateMock).toHaveBeenCalled();
-    expect(queryChangeMock).toHaveBeenCalled();
   });
 
   it('can delete and trigger change callback', async function () {
@@ -283,7 +275,6 @@ describe('Discover > QueryList', function () {
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
-        onQueryChange={queryChangeMock}
         location={location}
       />
     );
@@ -293,10 +284,6 @@ describe('Discover > QueryList', function () {
 
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
     await userEvent.click(withinCard.getByText('Delete Query'));
-
-    await waitFor(() => {
-      expect(queryChangeMock).toHaveBeenCalled();
-    });
 
     expect(deleteMock).toHaveBeenCalled();
   });
@@ -310,7 +297,6 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries}
         pageLinks=""
         renderPrebuilt={false}
-        onQueryChange={queryChangeMock}
         location={location}
       />,
       {router}
@@ -332,7 +318,6 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries.slice(1)}
         renderPrebuilt={false}
         pageLinks=""
-        onQueryChange={queryChangeMock}
         location={location}
       />,
       {router}
@@ -345,7 +330,6 @@ describe('Discover > QueryList', function () {
     await userEvent.click(withinCard.getByText('Delete Query'));
 
     expect(deleteMock).toHaveBeenCalled();
-    expect(queryChangeMock).not.toHaveBeenCalled();
 
     await waitFor(() => {
       expect(router.push).toHaveBeenCalledWith({
@@ -367,7 +351,6 @@ describe('Discover > QueryList', function () {
         organization={featuredOrganization}
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
-        onQueryChange={queryChangeMock}
         renderPrebuilt={false}
         location={location}
       />
@@ -399,7 +382,6 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
         renderPrebuilt={false}
-        onQueryChange={queryChangeMock}
         location={location}
       />
     );
@@ -439,7 +421,6 @@ describe('Discover > QueryList', function () {
         savedQueries={[savedQueryWithMultiYAxis]}
         pageLinks=""
         renderPrebuilt={false}
-        onQueryChange={queryChangeMock}
         location={location}
       />
     );
@@ -465,7 +446,6 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries.slice(1)}
         renderPrebuilt={false}
         pageLinks=""
-        onQueryChange={queryChangeMock}
         location={location}
       />
     );
@@ -500,7 +480,6 @@ describe('Discover > QueryList', function () {
             }),
           ]}
           pageLinks=""
-          onQueryChange={queryChangeMock}
           location={location}
         />
       );
@@ -567,7 +546,6 @@ describe('Discover > QueryList', function () {
             }),
           ]}
           pageLinks=""
-          onQueryChange={queryChangeMock}
           location={location}
         />
       );
@@ -636,7 +614,6 @@ describe('Discover > QueryList', function () {
           }),
         ]}
         pageLinks=""
-        onQueryChange={queryChangeMock}
         location={location}
       />
     );

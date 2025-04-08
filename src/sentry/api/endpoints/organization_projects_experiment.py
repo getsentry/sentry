@@ -200,8 +200,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
                 event=audit_log.get_event_id("PROJECT_ADD"),
                 data={**project.get_audit_log_data()},
             )
-
-        project_created.send(
+        project_created.send_robust(
             project=project,
             user=request.user,
             default_rules=result.get("default_rules", True),

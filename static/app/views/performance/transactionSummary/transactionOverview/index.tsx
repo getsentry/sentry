@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
@@ -33,8 +34,8 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
+  makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
-  VITAL_GROUPS,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
 import {addRoutePerformanceContext} from '../../utils';
@@ -123,7 +124,6 @@ function OTelOverviewContentWrapper(props: ChildProps) {
   } = props;
 
   const navigate = useNavigate();
-
   const mepContext = useMEPDataContext();
 
   const queryData = useDiscoverQuery({
@@ -185,11 +185,9 @@ function OTelOverviewContentWrapper(props: ChildProps) {
   };
 
   let totals: TotalValues | null =
-    (tableData?.data?.[0] as {
-      [k: string]: number;
-    }) ?? null;
+    (tableData?.data?.[0] as Record<string, number>) ?? null;
   const totalCountData: TotalValues | null =
-    (totalCountTableData?.data?.[0] as {[k: string]: number}) ?? null;
+    (totalCountTableData?.data?.[0] as Record<string, number>) ?? null;
 
   // Count is always a count of indexed events,
   // while other fields could be either metrics or index based
@@ -221,7 +219,7 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThreshold,
     transactionThresholdMetric,
   } = props;
-
+  const theme = useTheme();
   const navigate = useNavigate();
 
   const mepContext = useMEPDataContext();
@@ -234,7 +232,7 @@ function OverviewContentWrapper(props: ChildProps) {
   );
 
   const queryData = useDiscoverQuery({
-    eventView: getTotalsEventView(organization, eventView),
+    eventView: getTotalsEventView(organization, eventView, theme),
     orgSlug: organization.slug,
     location,
     transactionThreshold,
@@ -293,11 +291,9 @@ function OverviewContentWrapper(props: ChildProps) {
   };
 
   let totals: TotalValues | null =
-    (tableData?.data?.[0] as {
-      [k: string]: number;
-    }) ?? null;
+    (tableData?.data?.[0] as Record<string, number>) ?? null;
   const totalCountData: TotalValues | null =
-    (totalCountTableData?.data?.[0] as {[k: string]: number}) ?? null;
+    (totalCountTableData?.data?.[0] as Record<string, number>) ?? null;
 
   // Count is always a count of indexed events,
   // while other fields could be either metrics or index based
@@ -405,12 +401,15 @@ function getTotalCountEventView(
 
 function getTotalsEventView(
   _organization: Organization,
-  eventView: EventView
+  eventView: EventView,
+  theme: Theme
 ): EventView {
-  const vitals = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce((keys: WebVital[], vs) => {
-    vs.forEach(vital => keys.push(vital));
-    return keys;
-  }, []);
+  const vitals = makeVitalGroups(theme)
+    .map(({vitals: vs}) => vs)
+    .reduce((keys: WebVital[], vs) => {
+      vs.forEach(vital => keys.push(vital));
+      return keys;
+    }, []);
 
   const totalsColumns: QueryFieldValue[] = [
     {

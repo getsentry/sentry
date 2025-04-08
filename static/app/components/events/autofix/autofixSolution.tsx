@@ -3,14 +3,16 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
+import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
+import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
-  type AutofixRepository,
+  type AutofixFeedback,
   type AutofixSolutionTimelineEvent,
   AutofixStatus,
   AutofixStepType,
@@ -19,6 +21,7 @@ import {
 import {
   type AutofixResponse,
   makeAutofixQueryKey,
+  useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
 import {Timeline} from 'sentry/components/timeline';
 import {
@@ -38,9 +41,9 @@ import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryCl
 import testableTransition from 'sentry/utils/testableTransition';
 import type {Color} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
+import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
-import {useTextSelection} from './useTextSelection';
 
 export function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
@@ -96,7 +99,7 @@ export function useSelectSolution({groupId, runId}: {groupId: string; runId: str
           };
         }
       );
-      addSuccessMessage("Great, let's move forward with this solution.");
+      addSuccessMessage('On it.');
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when selecting the solution.'));
@@ -106,7 +109,6 @@ export function useSelectSolution({groupId, runId}: {groupId: string; runId: str
 
 type AutofixSolutionProps = {
   groupId: string;
-  repos: AutofixRepository[];
   runId: string;
   solution: AutofixSolutionTimelineEvent[];
   solutionSelected: boolean;
@@ -114,6 +116,8 @@ type AutofixSolutionProps = {
   changesDisabled?: boolean;
   customSolution?: string;
   description?: string;
+  feedback?: AutofixFeedback;
+  isSolutionFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 };
@@ -158,39 +162,37 @@ function SolutionDescription({
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const selection = useTextSelection(containerRef);
-
   return (
     <SolutionDescriptionWrapper>
-      <AnimatePresence>
-        {selection && (
-          <AutofixHighlightPopup
-            selectedText={selection.selectedText}
-            referenceElement={selection.referenceElement}
-            groupId={groupId}
-            runId={runId}
-            stepIndex={previousDefaultStepIndex ?? 0}
-            retainInsightCardIndex={
-              previousInsightCount !== undefined && previousInsightCount >= 0
-                ? previousInsightCount
-                : null
-            }
-          />
-        )}
-      </AnimatePresence>
-      <div ref={containerRef}>
-        {description && (
+      {description && (
+        <AutofixHighlightWrapper
+          groupId={groupId}
+          runId={runId}
+          stepIndex={previousDefaultStepIndex ?? 0}
+          retainInsightCardIndex={
+            previousInsightCount !== undefined && previousInsightCount >= 0
+              ? previousInsightCount
+              : null
+          }
+        >
           <Description
             dangerouslySetInnerHTML={{__html: singleLineRenderer(description)}}
           />
-        )}
-        <SolutionEventList
-          events={solution}
-          onDeleteItem={onDeleteItem}
-          onToggleActive={onToggleActive}
-        />
-      </div>
+        </AutofixHighlightWrapper>
+      )}
+      <SolutionEventList
+        events={solution}
+        onDeleteItem={onDeleteItem}
+        onToggleActive={onToggleActive}
+        groupId={groupId}
+        runId={runId}
+        stepIndex={previousDefaultStepIndex ?? 0}
+        retainInsightCardIndex={
+          previousInsightCount !== undefined && previousInsightCount >= 0
+            ? previousInsightCount
+            : null
+        }
+      />
     </SolutionDescriptionWrapper>
   );
 }
@@ -203,33 +205,45 @@ const Description = styled('div')`
 
 type SolutionEventListProps = {
   events: AutofixSolutionTimelineEvent[];
+  groupId: string;
   onDeleteItem: (index: number) => void;
   onToggleActive: (index: number) => void;
+  runId: string;
+  retainInsightCardIndex?: number | null;
+  stepIndex?: number;
 };
 
 function SolutionEventList({
   events,
   onDeleteItem,
   onToggleActive,
+  groupId,
+  runId,
+  stepIndex = 0,
+  retainInsightCardIndex = null,
 }: SolutionEventListProps) {
   // Track which events are expanded
-  const [expandedItems, setExpandedItems] = useState<number[]>(() => {
-    if (!events?.length || events.length > 3) {
-      return [];
-    }
-
-    // For 3 or fewer items, find the first highlighted item or default to first item
-    const firstHighlightedIndex = events.findIndex(
-      event => event.is_most_important_event
-    );
-    return [firstHighlightedIndex === -1 ? 0 : firstHighlightedIndex];
-  });
+  const [expandedItems, setExpandedItems] = useState<number[]>([]);
 
   const toggleItem = useCallback((index: number) => {
     setExpandedItems(current =>
       current.includes(index) ? current.filter(i => i !== index) : [...current, index]
     );
   }, []);
+
+  // Wrap onToggleActive to also handle expanded state
+  const handleToggleActive = useCallback(
+    (index: number) => {
+      onToggleActive(index);
+      // If we're disabling an item (toggling from active to inactive),
+      // we need to remove it from expanded items
+      const event = events[index];
+      if (event && event.is_active !== false) {
+        setExpandedItems(current => current.filter(i => i !== index));
+      }
+    },
+    [events, onToggleActive]
+  );
 
   if (!events?.length) {
     return null;
@@ -243,23 +257,41 @@ function SolutionEventList({
         const isExpanded = expandedItems.includes(index);
         const isHumanAction = event.timeline_item_type === 'human_instruction';
 
+        const handleItemClick = () => {
+          if (!isSelected) {
+            // If item is disabled, re-enable it instead of toggling expansion
+            handleToggleActive(index);
+            return;
+          }
+          if (!isHumanAction && event.code_snippet_and_analysis) {
+            toggleItem(index);
+          }
+        };
+
         return (
           <Timeline.Item
             key={index}
             title={
               <StyledTimelineHeader
-                onClick={() => toggleItem(index)}
+                onClick={handleItemClick}
                 isActive={isActive}
                 isSelected={isSelected}
                 data-test-id={`autofix-solution-timeline-item-${index}`}
               >
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: singleLineRenderer(event.title),
-                  }}
-                />
+                <AutofixHighlightWrapper
+                  groupId={groupId}
+                  runId={runId}
+                  stepIndex={stepIndex}
+                  retainInsightCardIndex={retainInsightCardIndex}
+                >
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: singleLineRenderer(event.title),
+                    }}
+                  />
+                </AutofixHighlightWrapper>
                 <IconWrapper>
-                  {!isHumanAction && event.code_snippet_and_analysis && (
+                  {!isHumanAction && event.code_snippet_and_analysis && isSelected && (
                     <StyledIconChevron
                       direction={isExpanded ? 'down' : 'right'}
                       size="xs"
@@ -272,7 +304,7 @@ function SolutionEventList({
                         if (isHumanAction) {
                           onDeleteItem(index);
                         } else {
-                          onToggleActive(index);
+                          handleToggleActive(index);
                         }
                       }}
                       aria-label={isSelected ? t('Deselect item') : t('Select item')}
@@ -303,11 +335,18 @@ function SolutionEventList({
                     transition={{duration: 0.2}}
                   >
                     <Timeline.Text>
-                      <StyledSpan
-                        dangerouslySetInnerHTML={{
-                          __html: singleLineRenderer(event.code_snippet_and_analysis),
-                        }}
-                      />
+                      <AutofixHighlightWrapper
+                        groupId={groupId}
+                        runId={runId}
+                        stepIndex={stepIndex}
+                        retainInsightCardIndex={retainInsightCardIndex}
+                      >
+                        <StyledSpan
+                          dangerouslySetInnerHTML={{
+                            __html: singleLineRenderer(event.code_snippet_and_analysis),
+                          }}
+                        />
+                      </AutofixHighlightWrapper>
                     </Timeline.Text>
                   </AnimatedContent>
                 )}
@@ -353,7 +392,7 @@ function getEventColor(isActive?: boolean, isSelected?: boolean): ColorConfig {
   };
 }
 
-function formatSolutionText(
+export function formatSolutionText(
   solution: AutofixSolutionTimelineEvent[],
   customSolution?: string
 ) {
@@ -373,6 +412,7 @@ function formatSolutionText(
 
   parts.push(
     solution
+      .filter(event => event.is_active)
       .map(event => {
         const eventParts = [`### ${event.title}`];
 
@@ -405,7 +445,14 @@ function CopySolutionButton({
     return null;
   }
   const text = formatSolutionText(solution, customSolution);
-  return <CopyToClipboardButton size="sm" text={text} borderless />;
+  return (
+    <CopyToClipboardButton
+      size="sm"
+      text={text}
+      borderless
+      title="Copy solution as Markdown"
+    />
+  );
 }
 
 function AutofixSolutionDisplay({
@@ -417,9 +464,10 @@ function AutofixSolutionDisplay({
   previousInsightCount,
   customSolution,
   solutionSelected,
-  changesDisabled,
   agentCommentThread,
+  feedback,
 }: Omit<AutofixSolutionProps, 'repos'>) {
+  const {repos} = useAutofixRepos(groupId);
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
   const [isEditing, _setIsEditing] = useState(false);
   const [instructions, setInstructions] = useState('');
@@ -434,6 +482,9 @@ function AutofixSolutionDisplay({
   );
   const containerRef = useRef<HTMLDivElement>(null);
   const iconFixRef = useRef<HTMLDivElement>(null);
+
+  const hasNoRepos = repos.length === 0;
+  const cantReadRepos = repos.every(repo => repo.is_readable === false);
 
   const handleAddInstruction = () => {
     if (instructions.trim()) {
@@ -510,6 +561,15 @@ function AutofixSolutionDisplay({
             {t('Solution')}
           </HeaderText>
           <ButtonBar gap={1}>
+            <AutofixThumbsUpDownButtons
+              thumbsUpDownType="solution"
+              feedback={feedback}
+              groupId={groupId}
+              runId={runId}
+            />
+            <DividerWrapper>
+              <Divider />
+            </DividerWrapper>
             <ButtonBar>
               {!isEditing && (
                 <CopySolutionButton solution={solution} isEditing={isEditing} />
@@ -518,16 +578,20 @@ function AutofixSolutionDisplay({
             <ButtonBar merged>
               <Button
                 title={
-                  changesDisabled
+                  hasNoRepos
                     ? t(
-                        'You need to set up the GitHub integration for Autofix to write code for you.'
+                        'You need to set up the GitHub integration and configure repository access for Autofix to write code for you.'
                       )
-                    : undefined
+                    : cantReadRepos
+                      ? t(
+                          "We can't access any of your repos. Check your GitHub integration and configure repository access for Autofix to write code for you."
+                        )
+                      : undefined
                 }
                 size="sm"
                 priority={solutionSelected ? 'default' : 'primary'}
                 busy={isPending}
-                disabled={changesDisabled}
+                disabled={hasNoRepos || cantReadRepos}
                 onClick={() => {
                   handleContinue({
                     mode: 'fix',
@@ -600,7 +664,7 @@ function AutofixSolutionDisplay({
 export function AutofixSolution(props: AutofixSolutionProps) {
   if (props.solution.length === 0) {
     return (
-      <AnimatePresence initial>
+      <AnimatePresence initial={props.isSolutionFirstAppearance}>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoSolutionPadding>
             <Alert type="warning">{t('No solution found.')}</Alert>
@@ -610,12 +674,10 @@ export function AutofixSolution(props: AutofixSolutionProps) {
     );
   }
 
-  const changesDisabled = props.repos.every(repo => repo.is_readable === false);
-
   return (
-    <AnimatePresence initial>
+    <AnimatePresence initial={props.isSolutionFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
-        <AutofixSolutionDisplay {...props} changesDisabled={changesDisabled} />
+        <AutofixSolutionDisplay {...props} />
       </AnimationWrapper>
     </AnimatePresence>
   );
@@ -737,7 +799,7 @@ const SelectionButton = styled('button')`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   opacity: 0;
   transition:
     opacity 0.2s ease,
@@ -757,7 +819,7 @@ const SelectionButton = styled('button')`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   flex-shrink: 0;
   opacity: 1;
   transition: opacity 0.2s ease;
@@ -778,9 +840,10 @@ const InstructionsInputWrapper = styled('form')`
 
 const InstructionsInput = styled(Input)`
   flex-grow: 1;
+  padding-right: ${space(4)};
 
   &::placeholder {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 `;
 
@@ -796,4 +859,8 @@ const SubmitButton = styled(Button)`
 
 const AddInstructionWrapper = styled('div')`
   padding: ${space(1)} ${space(1)} 0 ${space(3)};
+`;
+
+const DividerWrapper = styled('div')`
+  margin: 0 ${space(0.5)};
 `;

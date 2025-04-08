@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -34,36 +33,43 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   type?: TagType | DeprecatedTagType;
 }
 
-export const Tag = forwardRef<HTMLDivElement, TagProps>(
-  ({type = 'default', icon, onDismiss, children, ...props}: TagProps, ref) => {
-    return (
-      <StyledTag type={type} data-test-id="tag-background" ref={ref} {...props}>
-        {icon && (
-          <IconWrapper>
-            <IconDefaultsProvider size="xs">{icon}</IconDefaultsProvider>
-          </IconWrapper>
-        )}
+export function Tag({
+  ref,
+  type = 'default',
+  icon,
+  onDismiss,
+  children,
+  ...props
+}: TagProps & {
+  ref?: React.Ref<HTMLDivElement>;
+}) {
+  return (
+    <StyledTag type={type} data-test-id="tag-background" ref={ref} {...props}>
+      {icon && (
+        <IconWrapper>
+          <IconDefaultsProvider size="xs">{icon}</IconDefaultsProvider>
+        </IconWrapper>
+      )}
 
-        {/* @TODO(jonasbadalic): Can, and should we make children required? */}
-        {children && <Text>{children}</Text>}
+      {/* @TODO(jonasbadalic): Can, and should we make children required? */}
+      {children && <Text>{children}</Text>}
 
-        {onDismiss && (
-          <DismissButton
-            onClick={event => {
-              event.preventDefault();
-              onDismiss?.();
-            }}
-            size="zero"
-            priority="link"
-            borderless
-            aria-label={t('Dismiss')}
-            icon={<IconClose isCircled size="xs" />}
-          />
-        )}
-      </StyledTag>
-    );
-  }
-);
+      {onDismiss && (
+        <DismissButton
+          onClick={event => {
+            event.preventDefault();
+            onDismiss?.();
+          }}
+          size="zero"
+          priority="link"
+          borderless
+          aria-label={t('Dismiss')}
+          icon={<IconClose isCircled size="xs" />}
+        />
+      )}
+    </StyledTag>
+  );
+}
 
 const TagPill = styled('div')<{
   type: NonNullable<TagProps['type']>;

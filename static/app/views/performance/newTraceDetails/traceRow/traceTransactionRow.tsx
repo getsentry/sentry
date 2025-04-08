@@ -1,3 +1,4 @@
+import React from 'react';
 import {PlatformIcon} from 'platformicons';
 
 import {TraceIcons} from '../traceIcons';
@@ -72,8 +73,12 @@ export function TraceTransactionRow(
           <PlatformIcon
             platform={props.projects[props.node.value.project_slug] ?? 'default'}
           />
-          <span className="TraceOperation">{props.node.value['transaction.op']}</span>
-          <strong className="TraceEmDash"> — </strong>
+          {props.node.value['transaction.op'] !== 'default' && (
+            <React.Fragment>
+              <span className="TraceOperation">{props.node.value['transaction.op']}</span>
+              <strong className="TraceEmDash"> — </strong>
+            </React.Fragment>
+          )}
           <span className="TraceDescription">{props.node.value.transaction}</span>
         </div>
       </div>
@@ -89,7 +94,7 @@ export function TraceTransactionRow(
           color={makeTraceNodeBarColor(props.theme, props.node)}
           node_space={props.node.space}
           errors={props.node.errors}
-          performance_issues={props.node.performance_issues}
+          occurences={props.node.occurences}
           profiles={props.node.profiles}
         />
         <button

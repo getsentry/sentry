@@ -1,13 +1,16 @@
-import {useCallback} from 'react';
+import {useCallback, useLayoutEffect} from 'react';
 import type {Location} from 'history';
 
 import type {CursorHandler} from 'sentry/components/pagination';
 import {defined} from 'sentry/utils';
+import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {decodeProjects} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
+import localStorage from 'sentry/utils/localStorage';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
@@ -21,11 +24,13 @@ import {
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
+const LOGS_PARAMS_VERSION = 1;
 const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.
 const LOGS_CURSOR_KEY = 'logsCursor';
 export const LOGS_FIELDS_KEY = 'logsFields';
 
 interface LogsPageParams {
+  readonly analyticsPageSource: LogsAnalyticsPageSource;
   readonly cursor: string;
   readonly fields: string[];
   readonly isTableEditingFrozen: boolean | undefined;
@@ -42,7 +47,7 @@ interface LogsPageParams {
   readonly projectIds?: number[];
 }
 
-type LogPageParamsUpdate = Partial<LogsPageParams>;
+export type LogPageParamsUpdate = Partial<LogsPageParams>;
 
 const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
   createDefinedContext<LogsPageParams>({
@@ -50,37 +55,49 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
   });
 
 export interface LogsPageParamsProviderProps {
+  analyticsPageSource: LogsAnalyticsPageSource;
   children: React.ReactNode;
   isOnEmbeddedView?: boolean;
+  limitToProjectIds?: number[];
+  limitToSpanId?: string;
   limitToTraceId?: string;
 }
 
 export function LogsPageParamsProvider({
   children,
   limitToTraceId,
+  limitToSpanId,
+  limitToProjectIds,
   isOnEmbeddedView,
+  analyticsPageSource,
 }: LogsPageParamsProviderProps) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
   const search = new MutableSearch(logsQuery);
-  const baseSearch = limitToTraceId
-    ? new MutableSearch('').addFilterValues(OurLogKnownFieldKey.TRACE_ID, [
-        limitToTraceId,
-      ])
-    : undefined;
+  let baseSearch: MutableSearch | undefined = undefined;
+  if (limitToSpanId && limitToTraceId) {
+    baseSearch = baseSearch ?? new MutableSearch('');
+    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
+    baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
+  } else if (limitToTraceId) {
+    baseSearch = baseSearch ?? new MutableSearch('');
+    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
+  }
   const isTableEditingFrozen = isOnEmbeddedView;
   const fields = isTableEditingFrozen
     ? defaultLogFields()
     : getLogFieldsFromLocation(location);
   const sortBys = isTableEditingFrozen
     ? [logsTimestampDescendingSortBy]
-    : getLogSortBysFromLocation(location, fields);
-  const projectIds = isOnEmbeddedView ? [-1] : decodeProjects(location);
+    : getLogSortBysFromLocation(location);
+  const projectIds = isOnEmbeddedView
+    ? (limitToProjectIds ?? [-1])
+    : decodeProjects(location);
 
   const cursor = getLogCursorFromLocation(location);
 
   return (
-    <LogsPageParamsContext.Provider
+    <LogsPageParamsContext
       value={{
         fields,
         search,
@@ -89,10 +106,11 @@ export function LogsPageParamsProvider({
         isTableEditingFrozen,
         baseSearch,
         projectIds,
+        analyticsPageSource,
       }}
     >
       {children}
-    </LogsPageParamsContext.Provider>
+    </LogsPageParamsContext>
   );
 }
 
@@ -195,7 +213,16 @@ export function useLogsSortBys() {
 
 export function useLogsFields() {
   const {fields} = useLogsPageParams();
-  return fields;
+  const [persistentFields, _] = useLocalStorageState('logs-params-v0', {
+    fields: defaultLogFields(),
+  });
+  if (fields?.length) {
+    return fields;
+  }
+  if (persistentFields?.fields?.length) {
+    return persistentFields?.fields;
+  }
+  return defaultLogFields();
 }
 
 export function useLogsProjectIds() {
@@ -205,11 +232,26 @@ export function useLogsProjectIds() {
 
 export function useSetLogsFields() {
   const setPageParams = useSetLogsPageParams();
+
+  const [_, setPersistentParams] = useLocalStorageState(
+    getLogsParamsStorageKey(LOGS_PARAMS_VERSION),
+    {}
+  );
+  useLayoutEffect(() => {
+    const pastParams = localStorage.getItem(
+      getPastLogsParamsStorageKey(LOGS_PARAMS_VERSION)
+    );
+    if (pastParams) {
+      localStorage.removeItem(getPastLogsParamsStorageKey(LOGS_PARAMS_VERSION));
+    }
+  }, [setPersistentParams]);
+
   return useCallback(
     (fields: string[]) => {
       setPageParams({fields});
+      setPersistentParams({fields});
     },
-    [setPageParams]
+    [setPageParams, setPersistentParams]
   );
 }
 
@@ -255,6 +297,11 @@ export function useSetLogsSortBys() {
   );
 }
 
+export function useLogsAnalyticsPageSource() {
+  const {analyticsPageSource} = useLogsPageParams();
+  return analyticsPageSource;
+}
+
 function getLogCursorFromLocation(location: Location): string {
   if (!location.query || !location.query[LOGS_CURSOR_KEY]) {
     return '';
@@ -263,6 +310,21 @@ function getLogCursorFromLocation(location: Location): string {
   return decodeScalar(location.query[LOGS_CURSOR_KEY], '');
 }
 
+export function stripLogParamsFromLocation(location: Location): Location {
+  const target: Location = {...location, query: {...location.query}};
+  delete target.query[LOGS_CURSOR_KEY];
+  delete target.query[LOGS_FIELDS_KEY];
+  delete target.query[LOGS_QUERY_KEY];
+  return target;
+}
+
+function getLogsParamsStorageKey(version: number) {
+  return `logs-params-v${version}`;
+}
+
+function getPastLogsParamsStorageKey(version: number) {
+  return `logs-params-v${version - 1}`;
+}
 interface ToggleableSortBy {
   field: string;
   defaultDirection?: 'asc' | 'desc'; // Defaults to descending if not provided.

@@ -14,10 +14,10 @@ import {
   promptsUpdate,
 } from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
@@ -33,6 +33,7 @@ import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import {
@@ -90,6 +91,7 @@ const ALERTS_OFF: Record<EventType, boolean> = {
   monitorSeat: false,
   span: false,
   profileDuration: false,
+  profileDurationUI: false,
   uptime: false,
 };
 
@@ -246,15 +248,12 @@ function NoticeModal({
           )
         : t('To ensure uninterrupted service, upgrade your subscription.');
     } else {
-      if (subscription.planTier === PlanTier.AM3) {
-        subText = t(
-          `To ensure uninterrupted service, upgrade your subscription or increase your pay-as-you-go spend limit.`
-        );
-      } else {
-        subText = t(
-          `To ensure uninterrupted service, upgrade your subscription or increase your on-demand spend limit.`
-        );
-      }
+      subText = tct(
+        `To ensure uninterrupted service, upgrade your subscription or increase your [budgetTerm] spend limit.`,
+        {
+          budgetTerm: subscription.planDetails.budgetTerm,
+        }
+      );
     }
   }
 
@@ -301,10 +300,10 @@ type Props = {
 
 type State = {
   deactivatedMemberDismissed: boolean;
-  overageAlertDismissed: {[key in EventType]: boolean};
+  overageAlertDismissed: Record<EventType, boolean>;
 
-  overageWarningDismissed: {[key in EventType]: boolean};
-  productTrialDismissed: {[key in EventType]: boolean};
+  overageWarningDismissed: Record<EventType, boolean>;
+  productTrialDismissed: Record<EventType, boolean>;
 };
 
 class GSBanner extends Component<Props, State> {
@@ -319,6 +318,7 @@ class GSBanner extends Component<Props, State> {
       monitorSeat: true,
       span: true,
       profileDuration: true,
+      profileDurationUI: true,
       uptime: true,
     },
     overageWarningDismissed: {
@@ -329,6 +329,7 @@ class GSBanner extends Component<Props, State> {
       monitorSeat: true,
       span: true,
       profileDuration: true,
+      profileDurationUI: true,
       uptime: true,
     },
     productTrialDismissed: {
@@ -339,6 +340,7 @@ class GSBanner extends Component<Props, State> {
       monitorSeat: true,
       span: true,
       profileDuration: true,
+      profileDurationUI: true,
       uptime: true,
     },
   };
@@ -669,6 +671,7 @@ class GSBanner extends Component<Props, State> {
           'monitor_seats_overage_alert',
           'spans_overage_alert',
           'profile_duration_overage_alert',
+          'profile_duration_ui_overage_alert',
           'uptime_overage_alert',
 
           // warning alerts
@@ -679,6 +682,7 @@ class GSBanner extends Component<Props, State> {
           'monitor_seats_warning_alert',
           'spans_warning_alert',
           'profile_duration_warning_alert',
+          'profile_duration_ui_warning_alert',
           'uptime_warning_alert',
 
           // product trial alerts
@@ -689,6 +693,7 @@ class GSBanner extends Component<Props, State> {
           'monitor_seats_product_trial_alert',
           'spans_product_trial_alert',
           'profile_duration_product_trial_alert',
+          'profile_duration_ui_product_trial_alert',
           'uptime_product_trial_alert',
         ],
         {
@@ -731,6 +736,9 @@ class GSBanner extends Component<Props, State> {
           profileDuration: promptIsDismissedForBillingPeriod(
             checkResults.profile_duration_overage_alert!
           ),
+          profileDurationUI: promptIsDismissedForBillingPeriod(
+            checkResults.profile_duration_ui_overage_alert!
+          ),
           uptime: promptIsDismissedForBillingPeriod(checkResults.uptime_overage_alert!),
         },
         overageWarningDismissed: {
@@ -748,6 +756,9 @@ class GSBanner extends Component<Props, State> {
           span: promptIsDismissedForBillingPeriod(checkResults.spans_warning_alert!),
           profileDuration: promptIsDismissedForBillingPeriod(
             checkResults.profile_duration_warning_alert!
+          ),
+          profileDurationUI: promptIsDismissedForBillingPeriod(
+            checkResults.profile_duration_ui_warning_alert!
           ),
           uptime: promptIsDismissedForBillingPeriod(checkResults.uptime_warning_alert!),
         },
@@ -781,6 +792,10 @@ class GSBanner extends Component<Props, State> {
             checkResults.profile_duration_product_trial_alert!,
             subscription
           ),
+          profileDurationUI: trialPromptIsDismissed(
+            checkResults.profile_duration_ui_product_trial_alert!,
+            subscription
+          ),
           uptime: trialPromptIsDismissed(
             checkResults.uptime_product_trial_alert!,
             subscription
@@ -793,7 +808,7 @@ class GSBanner extends Component<Props, State> {
     }
   }
 
-  get overageAlertActive(): {[key in EventType]: boolean} {
+  get overageAlertActive(): Record<EventType, boolean> {
     const {subscription} = this.props;
     if (subscription.hasOverageNotificationsDisabled) {
       return ALERTS_OFF;
@@ -820,13 +835,16 @@ class GSBanner extends Component<Props, State> {
       profileDuration:
         !this.state.overageAlertDismissed.profileDuration &&
         !!subscription.categories.profileDuration?.usageExceeded,
+      profileDurationUI:
+        !this.state.overageAlertDismissed.profileDurationUI &&
+        !!subscription.categories.profileDurationUI?.usageExceeded,
       uptime:
         !this.state.overageAlertDismissed.uptime &&
         !!subscription.categories.uptime?.usageExceeded,
     };
   }
 
-  get overageWarningActive(): {[key in EventType]: boolean} {
+  get overageWarningActive(): Record<EventType, boolean> {
     const {subscription} = this.props;
     // disable warnings if org has on-demand
     if (
@@ -857,6 +875,9 @@ class GSBanner extends Component<Props, State> {
       profileDuration:
         !this.state.overageWarningDismissed.profileDuration &&
         !!subscription.categories.profileDuration?.sentUsageWarning,
+      profileDurationUI:
+        !this.state.overageWarningDismissed.profileDurationUI &&
+        !!subscription.categories.profileDurationUI?.sentUsageWarning,
       uptime:
         !this.state.overageWarningDismissed.uptime &&
         !!subscription.categories.uptime?.sentUsageWarning,
@@ -905,7 +926,7 @@ class GSBanner extends Component<Props, State> {
 
   handleOverageSnooze(eventTypes: EventType[], isWarning: boolean) {
     const {organization, api} = this.props;
-    const dismissState: {[key in EventType]: boolean} = isWarning
+    const dismissState: Record<EventType, boolean> = isWarning
       ? this.state.overageWarningDismissed
       : this.state.overageAlertDismissed;
 
@@ -924,6 +945,7 @@ class GSBanner extends Component<Props, State> {
         monitorSeat: `monitor_seats_${key}_alert`,
         span: `spans_${key}_alert`,
         profileDuration: `profile_duration_${key}_alert`,
+        profileDurationUI: `profile_duration_ui_${key}_alert`,
         uptime: `uptime_${key}_alert`,
       };
 
@@ -934,7 +956,7 @@ class GSBanner extends Component<Props, State> {
       });
     }
 
-    const dismissedState: {[key in EventType]: boolean} = {
+    const dismissedState: Record<EventType, boolean> = {
       error: true,
       attachment: true,
       replay: true,
@@ -942,6 +964,7 @@ class GSBanner extends Component<Props, State> {
       monitorSeat: true,
       span: true,
       profileDuration: true,
+      profileDurationUI: true,
       uptime: true,
     };
     // Suppress all warnings and alerts
@@ -957,6 +980,11 @@ class GSBanner extends Component<Props, State> {
     let overquotaPrompt: React.ReactNode;
     let eventTypes: EventType[] = [];
 
+    if (prefersStackedNav()) {
+      // new nav uses sidebar quota alert (see quotaExceededNavItem.tsx)
+      return null;
+    }
+
     const eventTypeToElement = (eventType: EventType): React.JSX.Element => {
       const onClick = () => {
         trackGetsentryAnalytics('quota_alert.clicked_link', {
@@ -967,7 +995,6 @@ class GSBanner extends Component<Props, State> {
           clicked_event: eventType,
         });
       };
-      // @ts-expect-error TS(2339): Property 'profileDuration' does not exist on type ... Remove this comment to see the full error message
       return {
         error: (
           <ExternalLink
@@ -1060,21 +1087,33 @@ class GSBanner extends Component<Props, State> {
             })}
           </ExternalLink>
         ),
-        // TODO: Uncomment when we have a continuous profile doc link
-        // profile: (
-        //   <ExternalLink
-        //     key="profiles"
-        //     href={getDocsLinkForEventType(DataCategoryExact.PROFILE)}
-        //     onClick={onClick}
-        //   >
-        //     {getSingularCategoryName({
-        //       plan,
-        //       category: DataCategory.PROFILES,
-        //       capitalize: false,
-        //     })}
-        //   </ExternalLink>
-        // ),
-      }[eventType]!;
+        profileDuration: (
+          <ExternalLink
+            key="profiles"
+            href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)}
+            onClick={onClick}
+          >
+            {getSingularCategoryName({
+              plan,
+              category: DataCategory.PROFILE_DURATION,
+              capitalize: false,
+            })}
+          </ExternalLink>
+        ),
+        profileDurationUI: (
+          <ExternalLink
+            key="profiles-ui"
+            href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION_UI)}
+            onClick={onClick}
+          >
+            {getSingularCategoryName({
+              plan,
+              category: DataCategory.PROFILE_DURATION_UI,
+              capitalize: false,
+            })}
+          </ExternalLink>
+        ),
+      }[eventType];
     };
 
     let strictlyCronsOverage = false;
@@ -1126,8 +1165,7 @@ class GSBanner extends Component<Props, State> {
           {
             monitorTitle:
               eventTypes[0] === 'monitorSeat' ? 'Cron Monitors' : 'Uptime Monitors',
-            budgetType:
-              subscription.planTier === PlanTier.AM3 ? 'pay-as-you-go' : 'on-demand',
+            budgetType: subscription.planDetails.budgetTerm,
           }
         );
       } else {
@@ -1251,6 +1289,15 @@ class GSBanner extends Component<Props, State> {
     '/insights/backend/uptime/': {
       product: DataCategory.UPTIME,
       categories: [DataCategory.UPTIME],
+    },
+    // TODO(Continuous Profiling)
+    '/profile-duration/': {
+      product: DataCategory.PROFILE_DURATION,
+      categories: [DataCategory.PROFILE_DURATION],
+    },
+    '/profile-duration-ui/': {
+      product: DataCategory.PROFILE_DURATION_UI,
+      categories: [DataCategory.PROFILE_DURATION_UI],
     },
   };
 

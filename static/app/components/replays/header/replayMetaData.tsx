@@ -111,7 +111,7 @@ const KeyMetrics = styled('dl')`
   gap: 0 ${space(3)};
   align-items: center;
   align-self: end;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
@@ -137,7 +137,7 @@ const Count = styled('span')`
 `;
 
 const ClickCount = styled(Count)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   display: flex;
   gap: ${space(0.75)};
   align-items: center;

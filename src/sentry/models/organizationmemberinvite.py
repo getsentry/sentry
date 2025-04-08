@@ -1,6 +1,7 @@
 import secrets
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import TypedDict
 
 from django.conf import settings
 from django.db import models
@@ -50,6 +51,23 @@ def generate_token():
     return secrets.token_hex(nbytes=32)
 
 
+class OrganizationMemberInviteResponse(TypedDict):
+    id: str
+    email: str
+    orgRole: str
+    expired: bool
+    idpProvisioned: bool
+    idpRoleRestricted: bool
+    ssoLinked: bool
+    ssoInvalid: bool
+    memberLimitRestricted: bool
+    partnershipRestricted: bool
+    dateCreated: datetime
+    inviteStatus: str
+    inviterName: str | None
+    teams: list[dict]
+
+
 @region_silo_model
 class OrganizationMemberInvite(DefaultFieldsModel):
     """
@@ -59,6 +77,9 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization", related_name="invite_set")
+    # SCIM provisioning requires that the OrganizationMember object exist. Until the user
+    # accepts their invite, the OrganizationMember is a placeholder and will not be surfaced via API.
+    organization_member = FlexibleForeignKey("sentry.OrganizationMember")
     inviter_id = HybridCloudForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -71,7 +92,7 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     )
     email = models.EmailField(max_length=75)
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
-    organization_member_team_data = models.JSONField(default=dict)
+    organization_member_team_data = models.JSONField(default=list)
     token = models.CharField(max_length=64, unique=True, default=generate_token)
     token_expires_at = models.DateTimeField(default=default_expiration)
 
@@ -126,6 +147,10 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     def requested_to_be_invited(self):
         return self.invite_status == InviteStatus.REQUESTED_TO_BE_INVITED.value
 
+    @property
+    def token_expired(self):
+        return self.token_expires_at <= timezone.now()
+
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
     ) -> tuple[int, ImportKind] | None:
@@ -140,3 +165,13 @@ class OrganizationMemberInvite(DefaultFieldsModel):
             return (self.pk, ImportKind.Existing)
 
         return super().write_relocation_import(scope, flags)
+
+    def get_audit_log_data(self):
+        teams = self.organization_member_team_data
+        return {
+            "email": self.email,
+            "teams": [t["id"] for t in teams],
+            "teams_slugs": [t["slug"] for t in teams],
+            "role": self.role,
+            "invite_status": (invite_status_names[self.invite_status]),
+        }

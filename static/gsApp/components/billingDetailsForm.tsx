@@ -346,7 +346,6 @@ function BillingDetailsForm({
                   <Fragment>
                     <Input
                       id="addressLine1"
-                      required
                       name="addressLine1"
                       placeholder={t('Street address')}
                       maxLength={100}

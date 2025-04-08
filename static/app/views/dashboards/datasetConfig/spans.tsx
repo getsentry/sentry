@@ -2,7 +2,6 @@ import pickBy from 'lodash/pickBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
-import {getInterval} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
@@ -41,6 +40,7 @@ import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/fil
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
 
@@ -111,7 +111,8 @@ export const SpansConfig: DatasetConfig<
     limit?: number,
     cursor?: string,
     referrer?: string,
-    _mepSetting?: MEPState | null
+    _mepSetting?: MEPState | null,
+    samplingMode?: SamplingMode
   ) => {
     return getEventsRequest(
       api,
@@ -120,7 +121,10 @@ export const SpansConfig: DatasetConfig<
       pageFilters,
       limit,
       cursor,
-      referrer
+      referrer,
+      undefined,
+      undefined,
+      samplingMode
     );
   },
   getSeriesRequest,
@@ -202,7 +206,8 @@ function getEventsRequest(
   cursor?: string,
   referrer?: string,
   _mepSetting?: MEPState | null,
-  queryExtras?: DiscoverQueryExtras
+  queryExtras?: DiscoverQueryExtras,
+  samplingMode?: SamplingMode
 ) {
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
@@ -231,6 +236,7 @@ function getEventsRequest(
     {
       ...eventView.generateQueryStringObject(),
       ...params,
+      ...(samplingMode ? {sampling: samplingMode} : {}),
     },
     // Tries events request up to 3 times on rate limit
     {
@@ -270,7 +276,8 @@ function getSeriesRequest(
   pageFilters: PageFilters,
   _onDemandControlContext?: OnDemandControlContext,
   referrer?: string,
-  _mepSetting?: MEPState | null
+  _mepSetting?: MEPState | null,
+  samplingMode?: SamplingMode
 ) {
   const requestData = getSeriesRequestData(
     widget,
@@ -282,12 +289,15 @@ function getSeriesRequest(
   );
 
   requestData.useRpc = true;
-  requestData.interval = getInterval(pageFilters.datetime, 'spans');
 
   // Filtering out all spans with op like 'ui.interaction*' which aren't
   // embedded under transactions. The trace view does not support rendering
   // such spans yet.
   requestData.query = `${requestData.query} !transaction.span_id:00`;
+
+  if (samplingMode) {
+    requestData.sampling = samplingMode;
+  }
 
   return doEventsRequest<true>(api, requestData);
 }

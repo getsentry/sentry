@@ -125,8 +125,6 @@ export const vitalMap: Partial<Record<WebVital, string>> = {
   [WebVital.LCP]: t('Largest Contentful Paint'),
 };
 
-export const vitalChartTitleMap = vitalMap;
-
 export const vitalDescription: Partial<Record<WebVital, string>> = {
   [WebVital.FCP]: t(
     'First Contentful Paint (FCP) measures the amount of time the first content takes to render in the viewport. Like FP, this could also show up in any form from the document object model (DOM), such as images, SVGs, or text blocks. At the moment, there is support for FCP in the following browsers:'

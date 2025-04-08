@@ -12,11 +12,9 @@ import InviteMembersFooter from 'sentry/components/modals/inviteMembersModal/inv
 describe('InviteRowControlNew', function () {
   const renderComponent = (props: any) => {
     render(
-      <InviteMembersContext.Provider
-        value={{...defaultInviteProps, ...props, willInvite: true}}
-      >
+      <InviteMembersContext value={{...defaultInviteProps, ...props, willInvite: true}}>
         <InviteMembersFooter canSend />
-      </InviteMembersContext.Provider>,
+      </InviteMembersContext>,
       {organization: OrganizationFixture()}
     );
   };

@@ -1,5 +1,5 @@
 import type React from 'react';
-import {forwardRef, useCallback, useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import * as qs from 'query-string';
@@ -24,6 +24,7 @@ export interface BaseAvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
    */
   hasTooltip?: boolean;
   letterId?: string;
+  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
   /**
    * Should avatar be round instead of a square
    */
@@ -49,96 +50,89 @@ export interface BaseAvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
   uploadUrl?: string | null | undefined;
 }
 
-export const BaseAvatar = forwardRef<
-  HTMLSpanElement | SVGSVGElement | HTMLImageElement,
-  BaseAvatarProps
->(
-  (
-    {
-      backupAvatar,
-      className,
-      gravatarId,
-      letterId,
-      size,
-      style,
-      suggested,
-      title,
-      tooltip,
-      tooltipOptions,
-      uploadUrl,
-      hasTooltip = false,
-      round = false,
-      type = 'letter_avatar',
-      ...props
-    },
-    ref
-  ) => {
-    const [hasError, setError] = useState<boolean | null>(null);
+export function BaseAvatar({
+  backupAvatar,
+  className,
+  gravatarId,
+  letterId,
+  size,
+  style,
+  suggested,
+  title,
+  tooltip,
+  tooltipOptions,
+  uploadUrl,
+  hasTooltip = false,
+  round = false,
+  type = 'letter_avatar',
+  ref,
+  ...props
+}: BaseAvatarProps) {
+  const [hasError, setError] = useState<boolean | null>(null);
 
-    const handleError = useCallback(() => setError(true), []);
-    const handleLoad = useCallback(() => setError(false), []);
+  const handleError = useCallback(() => setError(true), []);
+  const handleLoad = useCallback(() => setError(false), []);
 
-    const imageAvatar =
-      type === 'upload' ? (
-        <ImageAvatar
-          ref={ref as React.Ref<HTMLImageElement>}
-          src={uploadUrl ? `${uploadUrl}?${qs.stringify({s: DEFAULT_REMOTE_SIZE})}` : ''}
-          round={round}
-          suggested={suggested}
-          onLoad={handleLoad}
-          onError={handleError}
-        />
-      ) : type === 'gravatar' ? (
-        <Gravatar
-          ref={ref as React.Ref<HTMLImageElement>}
-          gravatarId={gravatarId}
-          remoteSize={DEFAULT_REMOTE_SIZE}
-          round={round}
-          suggested={suggested}
-          onLoad={handleLoad}
-          onError={handleError}
-        />
-      ) : type === 'background' ? (
-        <BackgroundAvatar round={round} suggested={suggested} />
-      ) : (
-        <LetterAvatar
-          ref={ref as React.Ref<SVGSVGElement>}
-          round={round}
-          displayName={title === '[Filtered]' ? '?' : title}
-          identifier={letterId}
-          suggested={suggested}
-        />
-      );
-
-    return (
-      <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions}>
-        <AvatarContainer
-          ref={ref as React.Ref<HTMLSpanElement>}
-          data-test-id={`${type}-avatar`}
-          className={classNames('avatar', className)}
-          round={!!round}
-          suggested={!!suggested}
-          style={{...(size ? {height: size, width: size} : {}), ...style}}
-          title={title}
-          hasTooltip={hasTooltip}
-          {...props}
-        >
-          {hasError
-            ? (backupAvatar ?? (
-                <LetterAvatar
-                  ref={ref as React.Ref<SVGSVGElement>}
-                  round={round}
-                  displayName={title === '[Filtered]' ? '?' : title}
-                  identifier={letterId}
-                  suggested={suggested}
-                />
-              ))
-            : imageAvatar}
-        </AvatarContainer>
-      </Tooltip>
+  const imageAvatar =
+    type === 'upload' ? (
+      <ImageAvatar
+        ref={ref as React.Ref<HTMLImageElement>}
+        src={uploadUrl ? `${uploadUrl}?${qs.stringify({s: DEFAULT_REMOTE_SIZE})}` : ''}
+        round={round}
+        suggested={suggested}
+        onLoad={handleLoad}
+        onError={handleError}
+      />
+    ) : type === 'gravatar' ? (
+      <Gravatar
+        ref={ref as React.Ref<HTMLImageElement>}
+        gravatarId={gravatarId}
+        remoteSize={DEFAULT_REMOTE_SIZE}
+        round={round}
+        suggested={suggested}
+        onLoad={handleLoad}
+        onError={handleError}
+      />
+    ) : type === 'background' ? (
+      <BackgroundAvatar round={round} suggested={suggested} />
+    ) : (
+      <LetterAvatar
+        ref={ref as React.Ref<SVGSVGElement>}
+        round={round}
+        displayName={title === '[Filtered]' ? '?' : title}
+        identifier={letterId}
+        suggested={suggested}
+      />
     );
-  }
-);
+
+  return (
+    <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions}>
+      <AvatarContainer
+        ref={ref as React.Ref<HTMLSpanElement>}
+        data-test-id={`${type}-avatar`}
+        className={classNames('avatar', className)}
+        round={!!round}
+        suggested={!!suggested}
+        style={{...(size ? {height: size, width: size} : {}), ...style}}
+        title={title}
+        hasTooltip={hasTooltip}
+        {...props}
+      >
+        {hasError
+          ? (backupAvatar ?? (
+              <LetterAvatar
+                ref={ref as React.Ref<SVGSVGElement>}
+                round={round}
+                displayName={title === '[Filtered]' ? '?' : title}
+                identifier={letterId}
+                suggested={suggested}
+              />
+            ))
+          : imageAvatar}
+      </AvatarContainer>
+    </Tooltip>
+  );
+}
 
 // Note: Avatar will not always be a child of a flex layout, but this seems like a
 // sensible default.
@@ -157,6 +151,7 @@ const AvatarContainer = styled('span')<{
 `;
 
 interface BackgroundAvatarProps extends React.HTMLAttributes<SVGSVGElement> {
+  ref?: React.Ref<SVGSVGElement>;
   round?: boolean;
   suggested?: boolean;
 }
@@ -166,13 +161,13 @@ interface BackgroundAvatarProps extends React.HTMLAttributes<SVGSVGElement> {
  * suggested assignees
  */
 const BackgroundAvatar = styled(
-  forwardRef<SVGSVGElement, BackgroundAvatarProps>(({round: _round, ...props}, ref) => {
+  ({round: _round, ref, ...props}: BackgroundAvatarProps) => {
     return (
       <svg ref={ref} viewBox="0 0 120 120" {...props}>
         <rect x="0" y="0" width="120" height="120" rx="15" ry="15" />
       </svg>
     );
-  })
+  }
 )<BackgroundAvatarProps>`
   ${BaseAvatarComponentStyles};
 

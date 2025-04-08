@@ -1,3 +1,4 @@
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
@@ -40,7 +41,7 @@ type Row = Pick<
   | 'project.id'
   | 'span.description'
   | 'span.group'
-  | 'spm()'
+  | 'epm()'
   | 'avg(span.duration)'
   | 'sum(span.duration)'
   | 'sum(ai.total_tokens.used)'
@@ -49,7 +50,7 @@ type Row = Pick<
 
 type Column = GridColumnHeader<
   | 'span.description'
-  | 'spm()'
+  | 'epm()'
   | 'avg(span.duration)'
   | 'sum(ai.total_tokens.used)'
   | 'sum(ai.total_cost)'
@@ -77,16 +78,16 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
+    key: 'epm()',
     name: `${t('Pipeline runs')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-const SORTABLE_FIELDS = ['sum(ai.total_tokens.used)', 'avg(span.duration)', 'spm()'];
+const SORTABLE_FIELDS = ['sum(ai.total_tokens.used)', 'avg(span.duration)', 'epm()'];
 
 type ValidSort = Sort & {
-  field: 'spm()' | 'avg(span.duration)';
+  field: 'epm()' | 'avg(span.duration)';
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
@@ -94,6 +95,7 @@ export function isAValidSort(sort: Sort): sort is ValidSort {
 }
 
 export function EAPPipelinesTable() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const moduleURL = useModuleURL('ai');
@@ -103,9 +105,9 @@ export function EAPPipelinesTable() {
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
   const spanDescription = decodeScalar(location.query?.['span.description'], '');
 
-  let sort = decodeSorts(sortField).filter(isAValidSort)[0];
+  let sort = decodeSorts(sortField).find(isAValidSort);
   if (!sort) {
-    sort = {field: 'spm()', kind: 'desc'};
+    sort = {field: 'epm()', kind: 'desc'};
   }
 
   const {data, isPending, meta, pageLinks, error} = useEAPSpans(
@@ -119,7 +121,7 @@ export function EAPPipelinesTable() {
       fields: [
         SpanIndexedField.SPAN_GROUP,
         SpanIndexedField.SPAN_DESCRIPTION,
-        'spm()',
+        'epm()',
         'avg(span.duration)',
         'sum(span.duration)',
       ],
@@ -233,7 +235,7 @@ export function EAPPipelinesTable() {
                 sortParameterName: QueryParameterNames.SPANS_SORT,
               }),
             renderBodyCell: (column, row) =>
-              renderBodyCell(moduleURL, column, row, meta, location, organization),
+              renderBodyCell(moduleURL, column, row, meta, location, organization, theme),
           }}
         />
         <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
@@ -243,6 +245,7 @@ export function EAPPipelinesTable() {
 }
 
 export function PipelinesTable() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const moduleURL = useModuleURL('ai');
@@ -252,9 +255,9 @@ export function PipelinesTable() {
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
   const spanDescription = decodeScalar(location.query?.['span.description'], '');
 
-  let sort = decodeSorts(sortField).filter(isAValidSort)[0];
+  let sort = decodeSorts(sortField).find(isAValidSort);
   if (!sort) {
-    sort = {field: 'spm()', kind: 'desc'};
+    sort = {field: 'epm()', kind: 'desc'};
   }
 
   const {data, isPending, meta, pageLinks, error} = useSpanMetrics(
@@ -266,7 +269,7 @@ export function PipelinesTable() {
       fields: [
         'span.group',
         'span.description',
-        'spm()',
+        'epm()',
         'avg(span.duration)',
         'sum(span.duration)',
       ],
@@ -380,7 +383,7 @@ export function PipelinesTable() {
                 sortParameterName: QueryParameterNames.SPANS_SORT,
               }),
             renderBodyCell: (column, row) =>
-              renderBodyCell(moduleURL, column, row, meta, location, organization),
+              renderBodyCell(moduleURL, column, row, meta, location, organization, theme),
           }}
         />
         <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
@@ -395,7 +398,8 @@ function renderBodyCell(
   row: Row,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === 'span.description') {
     if (!row['span.description']) {
@@ -448,6 +452,7 @@ function renderBodyCell(
     location,
     organization,
     unit: meta.units?.[column.key],
+    theme,
   });
 
   return rendered;

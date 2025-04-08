@@ -5,7 +5,6 @@ import type {Organization} from 'sentry/types/organization';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
 import HookStore from './hookStore';
-import LatestContextStore from './latestContextStore';
 import type {StrictStoreDefinition} from './types';
 
 type State = {
@@ -64,7 +63,6 @@ const storeConfig: OrganizationStoreDefinition = {
     };
     this.trigger(this.get());
 
-    LatestContextStore.onUpdateOrganization(organization);
     HookStore.getCallback(
       'react-hook:route-activated',
       'setOrganization'

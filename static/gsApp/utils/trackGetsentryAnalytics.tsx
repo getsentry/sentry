@@ -85,7 +85,7 @@ type GetsentryEventParameters = {
   'checkout.ondemand_budget.turned_off': Record<PropertyKey, unknown>;
   'checkout.ondemand_budget.update': OnDemandBudgetUpdate;
   'checkout.ondemand_changed': {cents: number} & Checkout;
-  'checkout.payg_changed': {cents: number} & Checkout;
+  'checkout.payg_changed': {cents: number; method?: 'button' | 'textbox'} & Checkout;
   'checkout.transactions_upgrade': {
     previous_transactions: number;
     transactions: number;

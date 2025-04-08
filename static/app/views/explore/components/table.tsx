@@ -1,4 +1,5 @@
-import React, {useCallback, useEffect, useMemo, useRef} from 'react';
+import type React from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {COL_WIDTH_MINIMUM} from 'sentry/components/gridEditable';
@@ -22,15 +23,22 @@ import {Actions} from 'sentry/views/discover/table/cellAction';
 
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {}
 
-export const Table = React.forwardRef<HTMLTableElement, TableProps>(
-  ({children, styles, ...props}, ref) => (
+export function Table({
+  ref,
+  children,
+  styles,
+  ...props
+}: TableProps & {
+  ref?: React.Ref<HTMLTableElement>;
+}) {
+  return (
     <_TableWrapper {...props}>
       <_Table ref={ref} style={styles}>
         {children}
       </_Table>
     </_TableWrapper>
-  )
-);
+  );
+}
 
 interface TableStatusProps {
   children: React.ReactNode;
@@ -59,6 +67,7 @@ export function useTableStyles(
   options?: {
     minimumColumnWidth?: number;
     prefixColumnWidth?: 'min-content' | number;
+    staticColumnWidths?: Record<string, number | '1fr'>;
   }
 ) {
   const minimumColumnWidth = options?.minimumColumnWidth ?? MINIMUM_COLUMN_WIDTH;
@@ -77,14 +86,20 @@ export function useTableStyles(
   }, [fields]);
 
   const initialTableStyles = useMemo(() => {
-    const gridTemplateColumns = fields.map(() => `minmax(${minimumColumnWidth}px, auto)`);
+    const gridTemplateColumns = fields.map(field => {
+      const staticWidth = options?.staticColumnWidths?.[field];
+      if (staticWidth) {
+        return typeof staticWidth === 'number' ? `${staticWidth}px` : staticWidth;
+      }
+      return `minmax(${minimumColumnWidth}px, auto)`;
+    });
     if (defined(prefixColumnWidth)) {
       gridTemplateColumns.unshift(prefixColumnWidth);
     }
     return {
       gridTemplateColumns: gridTemplateColumns.join(' '),
     };
-  }, [fields, minimumColumnWidth, prefixColumnWidth]);
+  }, [fields, minimumColumnWidth, prefixColumnWidth, options?.staticColumnWidths]);
 
   const onResizeMouseDown = useCallback(
     (event: React.MouseEvent<HTMLDivElement>, index: number) => {

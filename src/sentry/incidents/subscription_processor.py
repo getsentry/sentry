@@ -215,11 +215,20 @@ class SubscriptionProcessor:
         return threshold
 
     def get_comparison_aggregation_value(
-        self, subscription_update: QuerySubscriptionUpdate
+        self, subscription_update: QuerySubscriptionUpdate, rule: AlertRule | None = None
     ) -> float | None:
         # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
         aggregation_value = get_aggregation_value_helper(subscription_update)
         if self.alert_rule.comparison_delta is None:
+            if rule:
+                logger.info(
+                    "Returning aggregation value",
+                    extra={
+                        "result": subscription_update,
+                        "aggregation_value": aggregation_value,
+                        "rule_id": rule.id,
+                    },
+                )
             return aggregation_value
 
         # For comparison alerts run a query over the comparison period and use it to calculate the
@@ -340,13 +349,15 @@ class SubscriptionProcessor:
             self.reset_trigger_counts()
         return aggregation_value
 
-    def get_aggregation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
+    def get_aggregation_value(
+        self, subscription_update: QuerySubscriptionUpdate, rule: AlertRule | None = None
+    ) -> float | None:
         if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
             aggregation_value = self.get_crash_rate_alert_metrics_aggregation_value(
                 subscription_update
             )
         else:
-            aggregation_value = self.get_comparison_aggregation_value(subscription_update)
+            aggregation_value = self.get_comparison_aggregation_value(subscription_update, rule)
 
         return aggregation_value
 
@@ -410,7 +421,7 @@ class SubscriptionProcessor:
                 },
             )
 
-        aggregation_value = self.get_aggregation_value(subscription_update)
+        aggregation_value = self.get_aggregation_value(subscription_update, self.alert_rule)
 
         has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", self.subscription.project.organization
@@ -423,6 +434,14 @@ class SubscriptionProcessor:
             has_anomaly_detection
             and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
         ):
+            logger.info(
+                "Raw subscription update",
+                extra={
+                    "result": subscription_update,
+                    "aggregation_value": aggregation_value,
+                    "rule_id": self.alert_rule.id,
+                },
+            )
             with metrics.timer(
                 "incidents.subscription_processor.process_update.get_anomaly_data_from_seer"
             ):
@@ -767,16 +786,13 @@ class SubscriptionProcessor:
 
         # Schedule the actions to be fired
         for action in actions_to_fire:
-            transaction.on_commit(
-                handle_trigger_action.s(
-                    action_id=action.id,
-                    incident_id=incident.id,
-                    project_id=self.subscription.project_id,
-                    method=method,
-                    new_status=new_status,
-                    metric_value=metric_value,
-                ).delay,
-                router.db_for_write(AlertRule),
+            self._schedule_trigger_action(
+                action_id=action.id,
+                incident_id=incident.id,
+                project_id=self.subscription.project_id,
+                method=method,
+                new_status=new_status,
+                metric_value=metric_value,
             )
 
         if features.has("organizations:metric-issue-poc", self.alert_rule.organization):
@@ -784,6 +800,27 @@ class SubscriptionProcessor:
                 incident=incident,
                 metric_value=metric_value,
             )
+
+    def _schedule_trigger_action(
+        self,
+        action_id: int,
+        incident_id: int,
+        project_id: int,
+        method: str,
+        new_status: int,
+        metric_value: float,
+    ) -> None:
+        transaction.on_commit(
+            lambda: handle_trigger_action.delay(
+                action_id=action_id,
+                incident_id=incident_id,
+                project_id=project_id,
+                method=method,
+                new_status=new_status,
+                metric_value=metric_value,
+            ),
+            using=router.db_for_write(AlertRule),
+        )
 
     def handle_incident_severity_update(self) -> None:
         if self.active_incident:

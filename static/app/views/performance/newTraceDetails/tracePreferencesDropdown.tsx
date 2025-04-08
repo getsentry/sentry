@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';

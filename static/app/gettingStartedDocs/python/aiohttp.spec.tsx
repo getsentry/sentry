@@ -42,17 +42,16 @@ describe('aiohttp onboarding docs', function () {
 
     // Does not render continuous profiling config
     expect(
-      screen.queryByText(
-        textWithMarkupMatcher(/"continuous_profiling_auto_start": True,/)
-      )
+      screen.queryByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
     ).not.toBeInTheDocument();
 
     // Does render transaction profiling config
-    const matches = screen.getAllByText(
-      textWithMarkupMatcher(/profiles_sample_rate=1\.0,/)
-    );
-    expect(matches.length).toBeGreaterThan(0);
-    matches.forEach(match => expect(match).toBeInTheDocument());
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
+    ).toBeInTheDocument();
   });
 
   it('renders continuous profiling', function () {
@@ -70,14 +69,15 @@ describe('aiohttp onboarding docs', function () {
 
     // Does not render transaction profiling config
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate: 1\.0,/))
+      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
     ).not.toBeInTheDocument();
 
     // Does render continuous profiling config
-    const matches = screen.getAllByText(
-      textWithMarkupMatcher(/"continuous_profiling_auto_start": True,/)
-    );
-    expect(matches.length).toBeGreaterThan(0);
-    matches.forEach(match => expect(match).toBeInTheDocument());
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
+    ).toBeInTheDocument();
   });
 });

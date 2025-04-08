@@ -11,8 +11,7 @@ import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constan
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
-import type {Dataset} from './types';
-import {AlertRuleComparisonType} from './types';
+import {AlertRuleComparisonType, Dataset} from './types';
 
 type Props = {
   alertType: MetricAlertType;
@@ -54,6 +53,12 @@ function ThresholdTypeForm({
     organization.features.includes('anomaly-detection-alerts') &&
     organization.features.includes('anomaly-detection-rollout');
 
+  let comparisonDeltaOptions = COMPARISON_DELTA_OPTIONS;
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    // Don't allow comparisons over a week for span alerts
+    comparisonDeltaOptions = comparisonDeltaOptions.filter(delta => delta.value <= 10080);
+  }
+
   const thresholdTypeChoices: RadioOption[] = [
     [AlertRuleComparisonType.COUNT, 'Static: above or below {x}'],
     [
@@ -65,27 +70,27 @@ function ThresholdTypeForm({
           <Select
             name="comparisonDelta"
             styles={{
-              container: (provided: {[x: string]: string | number | boolean}) => ({
+              container: (provided: Record<string, string | number | boolean>) => ({
                 ...provided,
                 marginLeft: space(1),
               }),
-              control: (provided: {[x: string]: string | number | boolean}) => ({
+              control: (provided: Record<string, string | number | boolean>) => ({
                 ...provided,
                 minHeight: 30,
                 minWidth: 500,
                 maxWidth: 1000,
               }),
-              valueContainer: (provided: {[x: string]: string | number | boolean}) => ({
+              valueContainer: (provided: Record<string, string | number | boolean>) => ({
                 ...provided,
                 padding: 0,
               }),
-              singleValue: (provided: {[x: string]: string | number | boolean}) => ({
+              singleValue: (provided: Record<string, string | number | boolean>) => ({
                 ...provided,
               }),
             }}
             value={comparisonDelta}
             onChange={({value}: any) => onComparisonDeltaChange(value)}
-            options={COMPARISON_DELTA_OPTIONS}
+            options={comparisonDeltaOptions}
             required={comparisonType === AlertRuleComparisonType.CHANGE}
           />
         </ComparisonContainer>

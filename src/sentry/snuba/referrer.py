@@ -529,6 +529,8 @@ class Referrer(StrEnum):
     )
     API_EXPLORE_COMPARE_SERIES = "api.explore.compare-series"
     API_EXPLORE_COMPARE_TABLE = "api.explore.compare-table"
+    API_LOGS_TAG_KEYS_RPC = "api.logs.tags-keys.rpc"
+    API_LOGS_TAG_VALUES_RPC = "api.logs.tags-values.rpc"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
     API_SPANS_TAG_VALUES = "api.spans.tags-values"
@@ -636,6 +638,20 @@ class Referrer(StrEnum):
         "api.performance.span-summary-transaction-throughput-chart"
     )
 
+    # Performance Backend Laravel Overview Page
+    API_PERFORMANCE_BACKEND_OVERVIEW_REQUESTS_CHART = (
+        "api.performance.backend.overview.requests-chart"
+    )
+    API_PERFORMANCE_BACKEND_OVERVIEW_DURATION_CHART = (
+        "api.performance.backend.overview.duration-chart"
+    )
+    API_PERFORMANCE_BACKEND_OVERVIEW_JOBS_CHART = "api.performance.backend.overview.jobs-chart"
+    API_PERFORMANCE_BACKEND_OVERVIEW_QUERIES_CHART = (
+        "api.performance.backend.overview.queries-chart"
+    )
+    API_PERFORMANCE_BACKEND_OVERVIEW_CACHE_CHART = "api.performance.backend.overview.cache-chart"
+    API_PERFORMANCE_BACKEND_OVERVIEW_PATHS_TABLE = "api.performance.backend.overview.paths-table"
+
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
@@ -735,6 +751,9 @@ class Referrer(StrEnum):
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
+
+    INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
+
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
     OUTCOMES_TOTALS = "outcomes.totals"
@@ -983,6 +1002,8 @@ class Referrer(StrEnum):
     TEST_QUERY_PRIMARY = "test_query.primary"
     TEST_QUERY = "test_query"
     METRIC_VALIDATION = "metric_validation"
+
+    JOB_COMPARE_TIMESERIES = "job-runner.compare-timeseries"
 
 
 VALUES = {referrer.value for referrer in Referrer}

@@ -78,6 +78,8 @@ function SystemApplicationBreakdown({additionalFilters}: any) {
     'span.op:[app.start.warm,app.start.cold,contentprovider.load,application.load,activity.load]',
     '!span.description:"Cold Start"',
     '!span.description:"Warm Start"',
+    '!span.description:"Cold App Start"',
+    '!span.description:"Warm App Start"',
     ...(additionalFilters ?? []),
   ]);
 

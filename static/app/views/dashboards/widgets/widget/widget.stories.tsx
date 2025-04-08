@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
@@ -31,6 +32,7 @@ export default storyBook('Widget', (story, APIReference) => {
         <SmallSizingWindow>
           <Widget
             Title={<Widget.WidgetTitle title="epm() : /insights/frontend/assets" />}
+            TitleBadges={[<Tag key="frontend">frontend</Tag>]}
             Actions={
               <Widget.WidgetToolbar>
                 <Button size="xs">Say More</Button>
@@ -67,9 +69,11 @@ export default storyBook('Widget', (story, APIReference) => {
           left, and are always visible. The title is truncated to fit. The contents of the{' '}
           <code>Actions</code> prop are shown in the top right, and only shown on hover.
           You can set the <code>revealActions</code> prop to <code>"always"</code> to
-          always show the actions. Actions are not truncated. The contents of{' '}
-          <code>Visualization</code> are always visible, shown below the title and
-          actions. The layout expands both horizontally and vertically to fit the parent.
+          always show the actions. Actions are not truncated. The <code>TitleBadges</code>{' '}
+          prop is shown to the immediate right of the title, and are always visible. The
+          contents of <code>Visualization</code> are always visible, shown below the title
+          and actions. The layout expands both horizontally and vertically to fit the
+          parent.
         </p>
 
         <p>
@@ -105,6 +109,7 @@ import {Widget} from './widget';
 
 <Widget
   Title={<Widget.WidgetTitle title="epm() : /insights/frontend/assets" />}
+  TitleBadges={[<Tag key="frontend">frontend</Tag>]}
   Actions={
     <Widget.WidgetToolbar>
       <Button size="xs">Say More</Button>
@@ -126,6 +131,44 @@ import {Widget} from './widget';
 
         `}
         </CodeSnippet>
+      </Fragment>
+    );
+  });
+
+  story('UI Behavior', () => {
+    return (
+      <Fragment>
+        <p>There are a few UI behaviors you should be aware of:</p>
+        <ul>
+          <li>
+            You can remove the padding within areas of the widget by passing the props{' '}
+            <code>noFooterPadding</code>, <code>noHeaderPadding</code>, and{' '}
+            <code>noVisualizationPadding</code>
+          </li>
+          <li>
+            The <code>revealActions</code> prop also controls the hover behavior. If you
+            set it to <code>"hover"</code>, the widget will have a grey hover state, to
+            create some contrast against the controls. If you set it to{' '}
+            <code>"always"</code>, the hover effect will be turned off
+          </li>
+          <li>
+            Avoid the <code>height</code> prop if you can. It's much easier and more
+            robust to place <code>Widget</code> components within a CSS grid or another
+            kind of layout, and size them that way
+          </li>
+        </ul>
+      </Fragment>
+    );
+  });
+
+  story('Connecting Widgets', () => {
+    return (
+      <Fragment>
+        <p>
+          Some widgets (e.g., <code>TimeSeriesWidgetVisualization</code> can be connected.
+          Connecting widgets together synchronizes their axes, and axes pointers. To do
+          this automatically, you can use <code>WidgetSyncContext</code>.
+        </p>
       </Fragment>
     );
   });

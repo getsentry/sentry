@@ -360,25 +360,6 @@ def enable_project_uptime_subscription(
         create_remote_uptime_subscription.delay(uptime_subscription.id)
 
 
-def delete_uptime_subscriptions_for_project(
-    project: Project,
-    uptime_subscription: UptimeSubscription,
-    modes: list[ProjectUptimeSubscriptionMode],
-):
-    """
-    Deletes the link from a project to an `UptimeSubscription`. Also checks to see if the subscription
-    has been orphaned, and if so removes it as well.
-    """
-    for uptime_project_subscription in ProjectUptimeSubscription.objects.filter(
-        project=project,
-        uptime_subscription=uptime_subscription,
-        mode__in=modes,
-    ):
-        uptime_project_subscription.delete()
-
-    remove_uptime_subscription_if_unused(uptime_subscription)
-
-
 def delete_project_uptime_subscription(subscription: ProjectUptimeSubscription):
     uptime_subscription = subscription.uptime_subscription
     quotas.backend.disable_seat(DataCategory.UPTIME, subscription)

@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -6,7 +7,6 @@ import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {CursorHandler} from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/performance/searchBar';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
@@ -54,6 +54,7 @@ type Props = {
 };
 
 export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const pageFilter = usePageFilters();
@@ -211,7 +212,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     yAxes,
     primaryRelease,
     secondaryRelease,
-    colorPalette: getChartColorPalette(TOP_SCREENS - 2),
+    colorPalette: theme.chart.getColorPalette(TOP_SCREENS - 2),
     releaseEvents,
     topTransactions,
   });

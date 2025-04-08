@@ -58,7 +58,7 @@ export default function ReplayPreviewPlayer({
     useReplayContext();
   const eventView = EventView.fromLocation(location);
 
-  const fullscreenRef = useRef(null);
+  const fullscreenRef = useRef<HTMLDivElement | null>(null);
   const {toggle: toggleFullscreen} = useFullscreen({
     elementRef: fullscreenRef,
   });

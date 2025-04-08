@@ -2,7 +2,7 @@ import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {User} from 'sentry/types/user';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
-import type {Monitor} from 'sentry/views/monitors/types';
+import type {Monitor} from 'sentry/views/insights/crons/types';
 
 type Data = Array<[number, Array<{count: number}>]>;
 
