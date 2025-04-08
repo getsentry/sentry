@@ -3,10 +3,10 @@ import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover'
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type Options = {
+  referrer: string;
   enabled?: boolean;
   limit?: number;
   queryConditions?: string[];
-  referrer?: string;
   sorts?: Sort[];
 };
 
@@ -29,7 +29,7 @@ export const useIndexedResourcesQuery = ({
       ],
       limit,
       sorts,
-      query: queryConditions.join(' '),
+      search: queryConditions.join(' '),
       enabled,
     },
     referrer
