@@ -143,9 +143,7 @@ def evaluate_workflows_action_filters(
             if evaluation:
                 filtered_action_groups.add(action_condition)
 
-    actions_to_fire = filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
-
-    return actions_to_fire
+    return filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
 
 
 def log_fired_workflows(

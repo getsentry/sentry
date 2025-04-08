@@ -71,10 +71,15 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
 
     def test_update_workflow_fire_histories(self):
         WorkflowFireHistory.objects.create(
-            workflow=self.workflow, group=self.group, event_id=self.group_event.event_id
+            workflow=self.workflow,
+            group=self.group,
+            event_id=self.group_event.event_id,
+            has_fired_actions=False,
         )
 
         actions = Action.objects.all()
+        assert actions.count() == 1
+
         update_workflow_fire_histories(actions, self.event_data)
         assert (
             WorkflowFireHistory.objects.filter(
