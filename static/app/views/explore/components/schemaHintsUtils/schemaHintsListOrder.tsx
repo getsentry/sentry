@@ -23,7 +23,7 @@ const COMMON_HINT_KEYS = [
 ];
 
 const LOGS_HINT_KEYS = [
-  OurLogKnownFieldKey.BODY,
+  OurLogKnownFieldKey.MESSAGE,
   OurLogKnownFieldKey.SEVERITY_TEXT,
   OurLogKnownFieldKey.SEVERITY_NUMBER,
   OurLogKnownFieldKey.ORGANIZATION_ID,
