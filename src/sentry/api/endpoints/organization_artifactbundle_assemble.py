@@ -64,13 +64,14 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                 jsonschema.validate(data, schema)
             except jsonschema.ValidationError as e:
                 # Get the field from the path if available
-                field = None
+                error_message = e.message
                 if e.path:
                     # Create a copy of the path to avoid modifying the original
                     path = list(e.path)
-                    field = path.pop(0) if path else None
+                    if path:
+                        error_message = error_messages.get(str(path.pop(0)), error_message)
 
-                return Response({"error": error_messages.get(field, e.message)}, status=400)
+                return Response({"error": error_message}, status=400)
             except Exception:
                 return Response({"error": "Invalid json body"}, status=400)
 
