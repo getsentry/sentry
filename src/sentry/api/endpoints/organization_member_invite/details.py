@@ -1,11 +1,9 @@
 from typing import Any
 
-from django.db import router, transaction
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features, ratelimits
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -18,10 +16,8 @@ from sentry.api.serializers.rest_framework.organizationmemberinvite import (
     ApproveInviteRequestValidator,
     OrganizationMemberInviteRequestValidator,
 )
-from sentry.auth.services.auth import auth_service
 from sentry.models.organization import Organization
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
-from sentry.utils import metrics
 from sentry.utils.audit import get_api_key_for_audit_log
 
 ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
@@ -64,53 +60,6 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
         return args, kwargs
 
-    def _reinvite(
-        self,
-        request: Request,
-        organization: Organization,
-        invited_member: OrganizationMemberInvite,
-        regenerate: bool,
-    ) -> Response:
-        if not invited_member.invite_approved:
-            return Response({"detail": ERR_INVITE_UNAPPROVED}, status=400)
-        if invited_member.is_scim_provisioned:
-            auth_provider = auth_service.get_auth_provider(organization_id=organization.id)
-            if auth_provider and not (invited_member.sso_linked):
-                invited_member.send_sso_linked_email(request.user.email, auth_provider)
-        else:
-            if ratelimits.for_organization_member_invite(
-                organization=organization,
-                email=invited_member.email,
-                user=request.user,
-                auth=request.auth,
-            ):
-                metrics.incr(
-                    "member-invite.attempt",
-                    instance="rate_limited",
-                    skip_internal=True,
-                    sample_rate=1.0,
-                )
-                return Response({"detail": ERR_RATE_LIMITED}, status=429)
-            if regenerate:
-                if request.access.has_scope("member:admin"):
-                    with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
-                        invited_member.regenerate_token()
-                        invited_member.save()
-                else:
-                    return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
-            if invited_member.token_expired:
-                return Response({"detail": ERR_EXPIRED}, status=400)
-            invited_member.send_invite_email()
-
-        self.create_audit_entry(
-            request=request,
-            organization=organization,
-            target_object=invited_member.id,
-            event=audit_log.get_event_id("MEMBER_REINVITE"),
-            data=invited_member.get_audit_log_data(),
-        )
-        return Response(serialize(invited_member, request.user), status=200)
-
     def get(
         self,
         request: Request,
@@ -149,8 +98,7 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
             "organizations:new-organization-member-invite", organization, actor=request.user
         ):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=403)
-        # if the requesting user doesn't have >= member:admin perms, then they cannot approve invite
-        # members can reinvite users they invited, but they cannot edit invite requests
+
         allowed_roles = get_allowed_org_roles(request, organization)
         validator = OrganizationMemberInviteRequestValidator(
             data=request.data,
@@ -166,31 +114,6 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
             return Response(validator.errors, status=400)
 
         result = validator.validated_data
-
-        is_member = not request.access.has_scope("member:admin") and (
-            request.access.has_scope("member:invite")
-        )
-        members_can_invite = not organization.flags.disable_member_invite
-        # Members can only resend invites
-        is_reinvite_request_only = (
-            set(result.keys()).issubset({"reinvite", "regenerate"})
-            and "approve" not in request.data
-        )
-
-        # Members can only resend invites that they sent
-        is_invite_from_user = invited_member.inviter_id == request.user.id
-
-        if is_member:
-            if not (members_can_invite and is_reinvite_request_only):
-                # this check blocks members from doing anything but reinviting
-                raise PermissionDenied
-            if not is_invite_from_user:
-                return Response({"detail": ERR_MEMBER_INVITE}, status=403)
-
-        if result.get("reinvite"):
-            if not is_reinvite_request_only:
-                return Response({"detail": ERR_EDIT_WHEN_REINVITING}, status=403)
-            return self._reinvite(request, organization, invited_member, result.get("regenerate"))
 
         if result.get("orgRole"):
             invited_member.set_org_role(result["orgRole"])
