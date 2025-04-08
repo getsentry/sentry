@@ -10,9 +10,9 @@ import type {
 import {
   AlternativeConfiguration,
   crashReportOnboardingPython,
-  getPythonProfilingOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {getPythonProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
