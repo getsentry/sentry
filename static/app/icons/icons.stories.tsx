@@ -1473,7 +1473,7 @@ const PLUGIN_ICON_KEYS: Array<PluginIconProps['pluginId']> = [
   'victorops',
 ];
 
-const PLUGIN_ICONS = Object.keys(PLUGIN_ICON_KEYS).map(key => ({
+const PLUGIN_ICONS = PLUGIN_ICON_KEYS.map(key => ({
   id: key,
   name: key,
   keywords: [key],
@@ -1539,7 +1539,7 @@ const IDENTITY_ICON_KEYS: Array<IdentityIconProps['providerId']> = [
   'vsts',
 ];
 
-const IDENTITY_ICONS = Object.keys(IDENTITY_ICON_KEYS).map(key => ({
+const IDENTITY_ICONS = IDENTITY_ICON_KEYS.map(key => ({
   id: key,
   name: key,
   keywords: [key],
