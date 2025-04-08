@@ -1,32 +1,45 @@
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {WebVitalsRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 
-function getWebVitalScore(data: TableDataRow, webVital: WebVitals): number {
-  return (data[`performance_score(measurements.score.${webVital})`] as number) * 100;
+type Data = Pick<
+  WebVitalsRow,
+  | 'performance_score(measurements.score.cls)'
+  | 'performance_score(measurements.score.fcp)'
+  | 'performance_score(measurements.score.inp)'
+  | 'performance_score(measurements.score.lcp)'
+  | 'performance_score(measurements.score.ttfb)'
+  | 'avg(measurements.score.total)'
+  | 'count_scores(measurements.score.cls)'
+  | 'count_scores(measurements.score.fcp)'
+  | 'count_scores(measurements.score.inp)'
+  | 'count_scores(measurements.score.lcp)'
+  | 'count_scores(measurements.score.ttfb)'
+  | 'count_scores(measurements.score.total)'
+>;
+
+function getWebVitalScore(data: Data, webVital: WebVitals): number {
+  return data[`performance_score(measurements.score.${webVital})`] * 100;
 }
 
-function getTotalScore(data: TableDataRow): number {
-  return (data[`avg(measurements.score.total)`] as number) * 100;
+function getTotalScore(data: Data): number {
+  return data[`avg(measurements.score.total)`] * 100;
 }
 
-function getWebVitalScoreCount(
-  data: TableDataRow,
-  webVital: WebVitals | 'total'
-): number {
-  return data[`count_scores(measurements.score.${webVital})`] as number;
+function getWebVitalScoreCount(data: Data, webVital: WebVitals | 'total'): number {
+  return data[`count_scores(measurements.score.${webVital})`];
 }
 
-function hasWebVitalScore(data: TableDataRow, webVital: WebVitals): boolean {
+function hasWebVitalScore(data: Data, webVital: WebVitals): boolean {
   if (data.hasOwnProperty(`count_scores(measurements.score.${webVital})`)) {
     return getWebVitalScoreCount(data, webVital) > 0;
   }
   return false;
 }
 
-export function getWebVitalScoresFromTableDataRow(data?: TableDataRow): ProjectScore {
+export function getWebVitalScoresFromTableDataRow(data?: WebVitalsRow): ProjectScore {
   if (!data) {
     return {};
   }

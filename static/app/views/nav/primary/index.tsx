@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import Hook from 'sentry/components/hook';
 import {
+  IconCodecov,
   IconDashboard,
   IconGraph,
   IconIssues,
@@ -14,6 +15,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
+import {CODECOV_BASE_URL, COVERAGE_BASE_URL} from 'sentry/views/codecov/settings';
 import {useNavContext} from 'sentry/views/nav/context';
 import {SeparatorItem, SidebarLink} from 'sentry/views/nav/primary/components';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
@@ -124,6 +126,17 @@ export function PrimaryNavigationItems() {
           </NavTourElement>
         </Feature>
 
+        <Feature features={['codecov-ui']}>
+          <SidebarLink
+            to={`/${prefix}/${CODECOV_BASE_URL}/${COVERAGE_BASE_URL}/commits/`}
+            activeTo={`/${prefix}/${CODECOV_BASE_URL}/`}
+            analyticsKey="codecov"
+            label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.CODECOV].label}
+          >
+            <IconCodecov />
+          </SidebarLink>
+        </Feature>
+
         <SeparatorItem />
 
         <NavTourElement
@@ -149,10 +162,11 @@ export function PrimaryNavigationItems() {
 
         <PrimaryNavigationWhatsNew />
         <Hook
-          name="sidebar:bottom-items"
+          name="sidebar:try-business"
           organization={organization}
           orientation="left"
         />
+        <Hook name="sidebar:billing-status" organization={organization} />
         <PrimaryNavigationServiceIncidents />
         <PrimaryNavigationOnboarding />
       </SidebarFooter>

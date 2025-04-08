@@ -1,7 +1,10 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import useSessionHealthBreakdown from 'sentry/views/insights/sessions/queries/useSessionHealthBreakdown';
+import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
+import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function SessionHealthCountChart() {
   const {series, isPending, error} = useSessionHealthBreakdown({type: 'count'});
@@ -15,7 +18,11 @@ export default function SessionHealthCountChart() {
 
   return (
     <InsightsLineChartWidget
-      title={t('Session Counts')}
+      title={CHART_TITLES.SessionHealthCountChart}
+      interactiveTitle={() => (
+        <ChartSelectionTitle title={CHART_TITLES.SessionHealthCountChart} />
+      )}
+      height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
         'The count of sessions with each health status. See [link:session status].',
         {
@@ -29,7 +36,7 @@ export default function SessionHealthCountChart() {
       isLoading={isPending}
       error={error}
       legendSelection={{
-        [aliases.healthy_session_count]: false,
+        healthy_session_count: false,
       }}
     />
   );

@@ -205,10 +205,8 @@ type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
   ...infer Rest,
 ]
   ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
-    {[K in A['length']]: Rest extends [] ? never : Rest[0]} & NextTuple<
-      Rest,
-      [...A, unknown]
-    >
+    Record<A['length'], Rest extends [] ? never : Rest[0]> &
+      NextTuple<Rest, [...A, unknown]>
   : Record<number, unknown>;
 
 type NextMap = NextTuple<TupleOf<ColorLength>>;
@@ -395,11 +393,6 @@ export const generateThemeAliases = (colors: Colors) => ({
   progressBackground: colors.gray100,
 
   /**
-   * Overlay for partial opacity
-   */
-  overlayBackgroundAlpha: color(colors.surface200).alpha(0.7).string(),
-
-  /**
    * Tag progress bars
    */
   tagBarHover: colors.purple200,
@@ -430,16 +423,6 @@ export const generateThemeAliases = (colors: Colors) => ({
   },
 
   /**
-   * Count on button when active
-   */
-  buttonCountActive: colors.white,
-
-  /**
-   * Count on button
-   */
-  buttonCount: colors.gray500,
-
-  /**
    * Background of alert banners at the top
    */
   bannerBackground: colors.gray500,
@@ -447,8 +430,9 @@ export const generateThemeAliases = (colors: Colors) => ({
 
 type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
 
-type AlertColors = {
-  [key in Alert]: {
+type AlertColors = Record<
+  Alert,
+  {
     background: string;
     backgroundLight: string;
     border: string;
@@ -456,8 +440,8 @@ type AlertColors = {
     color: string;
     // @TODO(jonasbadalic): Why is textLight optional and only set on error?
     textLight?: string;
-  };
-};
+  }
+>;
 
 export const generateThemeUtils = (colors: Colors, aliases: Aliases) => ({
   tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
@@ -918,24 +902,24 @@ type Tag =
   | 'white'
   | 'black';
 
-type TagColors = {
-  [key in Tag]: {
+type TagColors = Record<
+  Tag,
+  {
     background: string;
     border: string;
     color: string;
-  };
-};
+  }
+>;
 
 // @TODO: is this loose coupling enough?
 type Level = 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'unknown';
-type LevelColors = {
-  [key in Level]: string;
-};
+type LevelColors = Record<Level, string>;
 
 // @TODO(jonasbadalic): Disabled is not a button variant, it's a state
 type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled';
-type ButtonColors = {
-  [key in Button]: {
+type ButtonColors = Record<
+  Button,
+  {
     background: string;
     backgroundActive: string;
     border: string;
@@ -945,18 +929,19 @@ type ButtonColors = {
     colorActive: string;
     focusBorder: string;
     focusShadow: string;
-  };
-};
+  }
+>;
 
 type ButtonSize = 'md' | 'sm' | 'xs';
-type ButtonPaddingSizes = {
-  [key in ButtonSize]: {
+type ButtonPaddingSizes = Record<
+  ButtonSize,
+  {
     paddingBottom: number;
     paddingLeft: number;
     paddingRight: number;
     paddingTop: number;
-  };
-};
+  }
+>;
 const buttonPaddingSizes: ButtonPaddingSizes = {
   md: {
     paddingLeft: 16,
@@ -991,9 +976,7 @@ const breakpoints = {
 } as const satisfies Breakpoints;
 
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
-type Sizes = {
-  [key in Size]: string;
-};
+type Sizes = Record<Size, string>;
 const iconNumberSizes: Record<Size, number> = {
   xs: 12,
   sm: 14,
@@ -1015,30 +998,31 @@ const iconDirectionToAngle: Record<IconDirection, number> = {
 export type FormSize = 'xs' | 'sm' | 'md';
 
 export type FormTheme = {
-  form: {
-    [key in FormSize]: {
+  form: Record<
+    FormSize,
+    {
       fontSize: string;
       height: string;
       lineHeight: string;
       minHeight: string;
-    };
-  };
-  formPadding: {
-    [key in FormSize]: {
+    }
+  >;
+  formPadding: Record<
+    FormSize,
+    {
       paddingBottom: number;
       paddingLeft: number;
       paddingRight: number;
       paddingTop: number;
-    };
-  };
-  formRadius: {
-    [key in FormSize]: {
+    }
+  >;
+  formRadius: Record<
+    FormSize,
+    {
       borderRadius: string;
-    };
-  };
-  formSpacing: {
-    [key in FormSize]: string;
-  };
+    }
+  >;
+  formSpacing: Record<FormSize, string>;
 };
 
 const formTheme: FormTheme = {

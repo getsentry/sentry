@@ -23,6 +23,7 @@ import {
   NOTIFICATION_FEATURE_MAP,
   NOTIFICATION_SETTINGS_PATHNAMES,
   NOTIFICATION_SETTINGS_TYPES,
+  type NotificationSettingsType,
   SELF_NOTIFICATION_SETTINGS_TYPES,
 } from 'sentry/views/settings/account/notifications/constants';
 import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
@@ -48,9 +49,9 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
     return true;
   });
 
-  const renderOneSetting = (type: string) => {
+  const renderOneSetting = (type: NotificationSettingsType) => {
     // TODO(isabella): Once GA, remove this
-    const field = NOTIFICATION_SETTING_FIELDS[type]!;
+    const field = NOTIFICATION_SETTING_FIELDS[type];
     if (type === 'quota' && checkFeatureFlag('spend-visibility-notifications')) {
       field.label = t('Spend');
       field.help = t('Notifications that help avoid surprise invoices.');
@@ -68,7 +69,6 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
             borderless
             aria-label={t('Notification Settings')}
             data-test-id="fine-tuning"
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             to={`/settings/account/notifications/${NOTIFICATION_SETTINGS_PATHNAMES[type]}/`}
           />
         </IconWrapper>
@@ -87,7 +87,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
     isError,
     isSuccess,
     refetch,
-  } = useApiQuery<{[key: string]: string}>(['/users/me/notifications/'], {
+  } = useApiQuery<Record<string, string>>(['/users/me/notifications/'], {
     staleTime: 0,
   });
 

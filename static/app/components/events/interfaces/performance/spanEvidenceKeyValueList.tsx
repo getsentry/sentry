@@ -345,19 +345,17 @@ export function SpanEvidenceKeyValueList({
   const Component = PREVIEW_COMPONENTS[issueType] ?? DefaultSpanEvidence;
 
   return (
-    <ClippedBox clipHeight={300}>
-      <Component
-        theme={theme}
-        event={event}
-        issueType={issueType}
-        organization={organization}
-        location={location}
-        projectSlug={projectSlug}
-        parentSpan={spanInfo?.parentSpan ?? null}
-        offendingSpans={spanInfo?.offendingSpans ?? []}
-        causeSpans={spanInfo?.causeSpans ?? []}
-      />
-    </ClippedBox>
+    <Component
+      theme={theme}
+      event={event}
+      issueType={issueType}
+      organization={organization}
+      location={location}
+      projectSlug={projectSlug}
+      parentSpan={spanInfo?.parentSpan ?? null}
+      offendingSpans={spanInfo?.offendingSpans ?? []}
+      causeSpans={spanInfo?.causeSpans ?? []}
+    />
   );
 }
 
@@ -541,9 +539,11 @@ function getSpanEvidenceValue(span: Span | null) {
 
   if (span.op === 'db' && span.description) {
     return (
-      <StyledCodeSnippet language="sql">
-        {formatter.toString(span.description)}
-      </StyledCodeSnippet>
+      <NoPaddingClippedBox clipHeight={200}>
+        <StyledCodeSnippet language="sql">
+          {formatter.toString(span.description)}
+        </StyledCodeSnippet>
+      </NoPaddingClippedBox>
     );
   }
 
@@ -730,3 +730,7 @@ function formatBasePath(span: Span, baseURL?: string): string {
 
   return spanURL?.pathname ?? '';
 }
+
+const NoPaddingClippedBox = styled(ClippedBox)`
+  padding: 0;
+`;
