@@ -29,21 +29,25 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 
 class WorkflowEngineActionSerializer(Serializer):
-    def get_alert_rule_trigger_id(self, action: Action) -> int:
+    def get_alert_rule_trigger_id(self, action: Action) -> int | None:
         """
         Fetches the alert rule trigger id for the detector trigger related to the given action
         """
-        action_dcga = DataConditionGroupAction.objects.filter(action=action)
         action_filter_data_condition = DataCondition.objects.filter(
-            condition_group__in=Subquery(action_dcga.values("condition_group")),
+            condition_group__in=Subquery(
+                DataConditionGroupAction.objects.filter(action=action).values("condition_group")
+            ),
             type=Condition.ISSUE_PRIORITY_EQUALS,
             condition_result=True,
         )
-        workflow_dcg = WorkflowDataConditionGroup.objects.filter(
-            condition_group__in=Subquery(action_filter_data_condition.values("condition_group"))
-        )
         detector_workflow = DetectorWorkflow.objects.filter(
-            workflow__in=Subquery(workflow_dcg.values("workflow"))
+            workflow__in=Subquery(
+                WorkflowDataConditionGroup.objects.filter(
+                    condition_group__in=Subquery(
+                        action_filter_data_condition.values("condition_group")
+                    )
+                ).values("workflow")
+            )
         )
         detector_trigger = DataCondition.objects.filter(
             condition_result__in=Subquery(action_filter_data_condition.values("comparison")),
