@@ -21,7 +21,7 @@ export default function useRecentIssues({projectId}: {projectId: string}) {
   const {data: recentIssues, isPending} = useApiQuery<Group[]>(
     [
       `/projects/${organization.slug}/${projectId}/issues/`,
-      {query: {...locationQuery.query, statsPeriod: '14d', limit: 3}},
+      {query: {...locationQuery.query, statsPeriod: '14d', limit: 2}},
     ],
     {staleTime: 0}
   );
