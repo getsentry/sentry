@@ -8,7 +8,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Avatar from 'sentry/components/core/avatar';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import GridEditable, {
@@ -24,6 +23,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconGlobe, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -33,6 +33,7 @@ import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
 import {StreamlineGridEditable} from 'sentry/views/issueDetails/streamline/eventListTable';
+import ProjectIcon from 'sentry/views/nav/projectIcon';
 
 import {useDeleteQuery} from '../hooks/useDeleteQuery';
 import {
@@ -126,23 +127,14 @@ export function SavedQueriesTable({
       );
     }
     if (col.key === 'projects') {
-      const rowProjects = row.projects
-        .map(p => projects.find(project => Number(project.id) === p))
-        .filter(p => p !== undefined)
-        .slice(0, 3);
-
       return (
         <Center>
-          <StackedProjectBadges>
-            {rowProjects.map(project => (
-              <ProjectAvatar
-                key={project.slug}
-                project={project}
-                tooltip={project.name}
-                hasTooltip
-              />
-            ))}
-          </StackedProjectBadges>
+          <ProjectIcon
+            projectPlatforms={projects
+              .filter(p => row.projects.map(String).includes(p.id))
+              .map(p => p.platform)
+              .filter(defined)}
+          />
         </Center>
       );
     }
@@ -313,24 +305,6 @@ const LastColumnWrapper = styled('div')`
   align-items: center;
   width: 100%;
   justify-content: space-between;
-`;
-
-const StackedProjectBadges = styled('div')`
-  display: flex;
-  align-items: center;
-  & * {
-    margin-left: 0;
-    margin-right: 0;
-    cursor: pointer !important;
-  }
-
-  & *:hover {
-    z-index: unset;
-  }
-
-  & > :not(:first-child) {
-    margin-left: -${space(0.5)};
-  }
 `;
 
 const FormattedQueryWrapper = styled('div')`
