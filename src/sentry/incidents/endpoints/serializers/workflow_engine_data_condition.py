@@ -66,7 +66,7 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         # XXX: we are assuming that the obj/DataCondition is a detector trigger
         detector = Detector.objects.get(workflow_condition_group=obj.condition_group)
 
-        if obj.condition_result == DetectorPriorityLevel.HIGH:
+        if obj.condition_result == DetectorPriorityLevel.LOW:
             resolve_comparison = obj.comparison
         else:
             critical_detector_trigger = DataCondition.objects.get(
@@ -103,7 +103,7 @@ class WorkflowEngineDataConditionSerializer(Serializer):
             ),
             "alertThreshold": translate_data_condition_type(
                 detector.config.get("comparison_delta"),
-                resolve_trigger_data_condition.type,
+                obj.type,
                 obj.comparison,
             ),
             "resolveThreshold": (

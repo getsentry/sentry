@@ -24,10 +24,20 @@ class TestDataConditionSerializer(TestCase):
         self.critical_trigger_action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.critical_trigger
         )
-        migrate_alert_rule(self.alert_rule)
-        self.detector_trigger, _ = migrate_metric_data_conditions(self.critical_trigger)
-        migrate_resolve_threshold_data_conditions(self.alert_rule)
-        self.action, _, _ = migrate_metric_action(self.critical_trigger_action)
+        self.warning_trigger = self.create_alert_rule_trigger(
+            alert_rule=self.alert_rule, label="warning"
+        )
+        self.warning_trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.warning_trigger
+        )
+        _, _, _, self.detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
+        self.critical_detector_trigger, _ = migrate_metric_data_conditions(self.critical_trigger)
+        self.warning_detector_trigger, _ = migrate_metric_data_conditions(self.warning_trigger)
+        self.critical_action, _, _ = migrate_metric_action(self.critical_trigger_action)
+        self.warning_action, _, _ = migrate_metric_action(self.warning_trigger_action)
+        self.resolve_trigger_data_condition, _ = migrate_resolve_threshold_data_conditions(
+            self.alert_rule
+        )
 
         self.expected_actions = {
             "id": str(self.critical_trigger_action.id),
@@ -40,14 +50,14 @@ class TestDataConditionSerializer(TestCase):
             "sentryAppId": None,
             "dateCreated": self.critical_trigger_action.date_added,
             "desc": f"Send a notification to {self.user.email}",
-            "priority": self.action.data.get("priority"),
+            "priority": self.critical_action.data.get("priority"),
         }
         self.expected_trigger = {
             "id": str(self.critical_trigger.id),
             "alertRuleId": str(self.alert_rule.id),
             "label": "critical",
             "thresholdType": AlertRuleThresholdType.ABOVE.value,
-            "alertThreshold": self.detector_trigger.comparison,
+            "alertThreshold": self.critical_detector_trigger.comparison,
             "resolveThreshold": AlertRuleThresholdType.BELOW,
             "dateCreated": self.critical_trigger.date_added,
             # "actions": self.expected_actions, # use this after action serializer pr is merged
@@ -56,7 +66,7 @@ class TestDataConditionSerializer(TestCase):
 
     def test_simple(self) -> None:
         serialized_data_condition = serialize(
-            self.detector_trigger,
+            self.critical_detector_trigger,
             self.user,
             WorkflowEngineDataConditionSerializer(),
         )
@@ -90,9 +100,31 @@ class TestDataConditionSerializer(TestCase):
         # expected_trigger["actions"] = expected_actions  # use this after action serializer pr is merged
         expected_trigger["alertThreshold"] = translate_data_condition_type(
             detector.config.get("comparison_delta"),
-            resolve_trigger_data_condition.type,
+            comparison_detector_trigger.type,
             comparison_detector_trigger.comparison,
         )
         expected_trigger["id"] = str(comparison_delta_trigger.id)
         expected_trigger["alertRuleId"] = str(comparison_delta_rule.id)
+        assert serialized_data_condition == expected_trigger
+
+    def test_warning_trigger(self) -> None:
+        serialized_data_condition = serialize(
+            self.warning_detector_trigger,
+            self.user,
+            WorkflowEngineDataConditionSerializer(),
+        )
+        expected_actions = self.expected_actions.copy()
+        expected_actions["id"] = str(self.warning_trigger_action.id)
+        expected_actions["alertRuleTriggerId"] = str(self.warning_trigger.id)
+
+        expected_trigger = self.expected_trigger.copy()
+        # expected_trigger["actions"] = expected_actions  # use this after action serializer pr is merged
+        expected_trigger["alertThreshold"] = translate_data_condition_type(
+            self.detector.config.get("comparison_delta"),
+            self.resolve_trigger_data_condition.type,
+            self.warning_detector_trigger.comparison,
+        )
+        expected_trigger["id"] = str(self.warning_trigger.id)
+        expected_trigger["alertRuleId"] = str(self.alert_rule.id)
+        expected_trigger["label"] = "warning"
         assert serialized_data_condition == expected_trigger
