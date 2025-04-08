@@ -66,7 +66,7 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         self, data_packet: DataPacket[QuerySubscriptionUpdate]
     ) -> dict[DetectorGroupKey, int]:
         # This is for testing purposes, we'll need to update the values inspected.
-        return {None: data_packet.packet["values"]["foo"]}
+        return {None: 17}
 
 
 # Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something
