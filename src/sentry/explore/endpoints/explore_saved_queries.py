@@ -128,6 +128,15 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
                     queryset = queryset.annotate(starred_count=Count("exploresavedquerystarred"))
                     order_by.append("-starred_count")
 
+                elif sort_by == "starred":
+                    order_by.append(
+                        Case(
+                            When(exploresavedquerystarred__isnull=False, then=0),
+                            default=1,
+                            output_field=IntegerField(),
+                        ),
+                    )
+
         if len(order_by) == 0:
             order_by.append("lower_name")
 

@@ -386,7 +386,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         )
 
         with self.feature(self.feature_name):
-            response = self.client.get(self.url, data={"sortBy": ["mostStarred", "recentlyViewed"]})
+            response = self.client.get(self.url, data={"sortBy": ["starred", "recentlyViewed"]})
         assert response.status_code == 200, response.content
         assert len(response.data) == 4
         assert response.data[0]["name"] == "Query B"
