@@ -2,10 +2,10 @@ from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.age import AgeComparisonType
-from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
 from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
+from sentry.rules.conditions.tagged_event import TaggedEventCondition
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.testutils.cases import TestMigrations
 from sentry.testutils.helpers import install_slack
@@ -106,9 +106,10 @@ class TestMigrateIssueAlerts(TestMigrations):
         invalid_conditions = [
             {
                 "interval": "1h",
-                "id": EventUniqueUserFrequencyConditionWithConditions.id,
-                "value": -1,
-                "comparisonType": "asdf",
+                "id": TaggedEventCondition.id,
+                "match": "asdf",
+                "key": "asdf",
+                "value": "asdf",
             },
             {"id": RegressionEventCondition.id},
         ]
