@@ -304,7 +304,7 @@ def disable_project_uptime_subscription(uptime_monitor: ProjectUptimeSubscriptio
         # We set the status back to ok here so that if we re-enable we'll start from a good state
         uptime_status=UptimeStatus.OK,
     )
-    quotas.backend.disable_seat(DataCategory.UPTIME, uptime_monitor)
+    quotas.backend.remove_seat(DataCategory.UPTIME, uptime_monitor)
 
     uptime_subscription = uptime_monitor.uptime_subscription
 
