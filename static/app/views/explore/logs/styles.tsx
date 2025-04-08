@@ -20,6 +20,11 @@ export const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
+export const LogDetailPanelItem = styled(PanelItem)`
+  padding: ${space(1)} ${space(1)};
+  display: auto;
+`;
+
 export const StyledPanelItem = styled(PanelItem)<{
   align?: 'left' | 'center' | 'right';
   overflow?: boolean;
@@ -108,9 +113,6 @@ export const DetailsGrid = styled(StyledPanel)`
   grid-template-columns: 1fr;
   width: 100%;
   gap: ${space(1)} ${space(2)};
-  border-bottom: 0;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
   padding: ${space(1)} ${space(2)};
 `;
 
@@ -123,6 +125,13 @@ export const LogDetailsTitle = styled('div')`
 export const LogFirstCellContent = styled('div')`
   display: flex;
   align-items: center;
+`;
+
+export const DetailsBody = styled(LogDetailPanelItem)<{
+  logColors: ReturnType<typeof getLogColors>;
+}>`
+  color: ${p => p.logColors.color};
+  padding: ${space(1)} 0;
 `;
 
 export const DetailsFooter = styled(StyledPanelItem)<{

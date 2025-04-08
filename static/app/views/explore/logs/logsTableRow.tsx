@@ -40,11 +40,11 @@ import {
 } from 'sentry/views/explore/logs/useLogsQuery';
 
 import {
-  DetailsFooter,
+  DetailsBody,
   DetailsGrid,
   DetailsWrapper,
   getLogColors,
-  LogDetailsTitle,
+  LogDetailPanelItem,
   LogDetailTableBodyCell,
   LogFirstCellContent,
   LogsTableBodyFirstCell,
@@ -259,31 +259,32 @@ function LogRowDetails({
           {!isPending && data && (
             <Fragment>
               <DetailsGrid>
-                <LogDetailsTitle>{t('Log')}</LogDetailsTitle>
-                <LogFieldsTree
-                  attributes={data.attributes}
-                  hiddenAttributes={HiddenLogDetailFields}
-                  renderers={LogAttributesRendererMap}
-                  renderExtra={{
-                    highlightTerms,
-                    logColors,
-                    location,
-                    organization,
-                  }}
-                />
+                <DetailsBody logColors={logColors}>
+                  {LogBodyRenderer({
+                    item: getLogRowItem(OurLogKnownFieldKey.BODY, dataRow, meta),
+                    extra: {
+                      highlightTerms,
+                      logColors,
+                      wrapBody: true,
+                      location,
+                      organization,
+                    },
+                  })}
+                </DetailsBody>
+                <LogDetailPanelItem>
+                  <LogFieldsTree
+                    attributes={data.attributes}
+                    hiddenAttributes={HiddenLogDetailFields}
+                    renderers={LogAttributesRendererMap}
+                    renderExtra={{
+                      highlightTerms,
+                      logColors,
+                      location,
+                      organization,
+                    }}
+                  />
+                </LogDetailPanelItem>
               </DetailsGrid>
-              <DetailsFooter logColors={logColors}>
-                {LogBodyRenderer({
-                  item: getLogRowItem(OurLogKnownFieldKey.BODY, dataRow, meta),
-                  extra: {
-                    highlightTerms,
-                    logColors,
-                    wrapBody: true,
-                    location,
-                    organization,
-                  },
-                })}
-              </DetailsFooter>
             </Fragment>
           )}
         </LogDetailTableBodyCell>
