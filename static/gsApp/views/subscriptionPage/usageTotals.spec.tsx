@@ -45,9 +45,6 @@ describe('Subscription > UsageTotals', function () {
   });
 
   it('calculates error totals and renders them', async function () {
-    subscription.categories.errors = MetricHistoryFixture({
-      usage: 26,
-    });
     render(
       <UsageTotals
         category="errors"
@@ -82,9 +79,6 @@ describe('Subscription > UsageTotals', function () {
       organization,
       plan: 'am2_business',
     });
-    am2Subscription.categories.transactions = MetricHistoryFixture({
-      usage: 26,
-    });
     SubscriptionStore.set(organization.slug, am2Subscription);
     render(
       <UsageTotals
@@ -117,9 +111,6 @@ describe('Subscription > UsageTotals', function () {
   });
 
   it('renders continuous profiling totals', async function () {
-    subscription.categories.profileDuration = MetricHistoryFixture({
-      usage: 15 * MILLISECONDS_IN_HOUR,
-    });
     const profileDurationTotals = UsageTotalFixture({
       accepted: 15 * MILLISECONDS_IN_HOUR,
       dropped: 0,
@@ -207,9 +198,6 @@ describe('Subscription > UsageTotals', function () {
       plan: 'am2_business',
     });
     SubscriptionStore.set(organization.slug, am2Subscription);
-    am2Subscription.categories.profileDuration = MetricHistoryFixture({
-      usage: 15 * MILLISECONDS_IN_HOUR,
-    });
 
     render(
       <UsageTotals
@@ -248,9 +236,6 @@ describe('Subscription > UsageTotals', function () {
     const am2Subscription = SubscriptionFixture({
       organization,
       plan: 'am2_business',
-    });
-    am2Subscription.categories.transactions = MetricHistoryFixture({
-      usage: 26,
     });
     SubscriptionStore.set(organization.slug, am2Subscription);
     render(
@@ -430,9 +415,6 @@ describe('Subscription > UsageTotals', function () {
   });
 
   it('formats units', async function () {
-    subscription.categories.attachments = MetricHistoryFixture({
-      usage: 26,
-    });
     render(
       <UsageTotals
         category="attachments"
@@ -464,11 +446,6 @@ describe('Subscription > UsageTotals', function () {
   });
 
   it('renders default stats with no billing history', function () {
-    subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_business',
-    });
-    subscription.categories.transactions = MetricHistoryFixture({});
     render(
       <UsageTotals
         category="transactions"
@@ -478,12 +455,11 @@ describe('Subscription > UsageTotals', function () {
       />
     );
 
-    expect(screen.getByText('Performance units usage this period')).toBeInTheDocument();
+    expect(screen.getByText('Transactions usage this period')).toBeInTheDocument();
     expect(screen.getByText('0')).toBeInTheDocument();
   });
 
   it('renders gifted errors', function () {
-    subscription.categories.errors = MetricHistoryFixture({usage: 175_000});
     render(
       <UsageTotals
         category="errors"
@@ -504,11 +480,6 @@ describe('Subscription > UsageTotals', function () {
   });
 
   it('renders gifted transactions', function () {
-    subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_business',
-    });
-    subscription.categories.transactions = MetricHistoryFixture({});
     render(
       <UsageTotals
         category="transactions"
@@ -527,11 +498,6 @@ describe('Subscription > UsageTotals', function () {
   });
 
   it('does not render gifted transactions with unlimited quota', function () {
-    subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_business',
-    });
-    subscription.categories.transactions = MetricHistoryFixture({});
     render(
       <UsageTotals
         category="transactions"
@@ -566,9 +532,6 @@ describe('Subscription > UsageTotals', function () {
   });
 
   it('renders accepted percentage for attachments', function () {
-    subscription.categories.attachments = MetricHistoryFixture({
-      usage: GIGABYTE * 0.6,
-    });
     const attachments = UsageTotalFixture({accepted: GIGABYTE * 0.6});
     render(
       <UsageTotals
@@ -586,9 +549,6 @@ describe('Subscription > UsageTotals', function () {
 
   it('renders accepted percentage for errors', function () {
     const errors = UsageTotalFixture({accepted: 92_400});
-    subscription.categories.errors = MetricHistoryFixture({
-      usage: 92_400,
-    });
     render(
       <UsageTotals
         category={DataCategory.ERRORS}
@@ -604,14 +564,7 @@ describe('Subscription > UsageTotals', function () {
   });
 
   it('renders accepted percentage for transactions', function () {
-    subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_business',
-    });
     const transactions = UsageTotalFixture({accepted: 200_000});
-    subscription.categories.transactions = MetricHistoryFixture({
-      usage: 200_000,
-    });
     render(
       <UsageTotals
         category={DataCategory.TRANSACTIONS}
@@ -828,7 +781,6 @@ describe('Subscription > UsageTotals', function () {
     spendSubscription.categories.errors = MetricHistoryFixture({
       prepaid,
       reserved: prepaid,
-      usage: prepaidUsage,
     });
     const spendTotals = UsageTotalFixture({
       accepted: prepaidUsage,
@@ -862,7 +814,6 @@ describe('Subscription > UsageTotals', function () {
     spendSubscription.categories.errors = MetricHistoryFixture({
       prepaid,
       reserved: prepaid,
-      usage: prepaidUsage,
     });
     const spendTotals = UsageTotalFixture({
       accepted: prepaidUsage,
@@ -888,9 +839,6 @@ describe('Subscription > UsageTotals', function () {
   });
 
   it('displays plan usage when there is no spend', () => {
-    subscription.categories.errors = MetricHistoryFixture({
-      usage: 26,
-    });
     render(
       <UsageTotals
         category="errors"
@@ -1013,7 +961,6 @@ describe('Subscription > UsageTotals', function () {
     paygSubscription.categories.errors = MetricHistoryFixture({
       reserved: 100_000,
       onDemandQuantity: 50_000,
-      usage: 150_000,
     });
 
     render(
@@ -1078,7 +1025,6 @@ describe('Subscription > UsageTotals', function () {
     paygSubscription.categories.errors = MetricHistoryFixture({
       reserved: 100_000,
       onDemandQuantity: 0,
-      usage: 100_000,
     });
 
     render(
@@ -1181,9 +1127,14 @@ describe('calculateCategoryPrepaidUsage', () => {
     subscription.categories.errors = MetricHistoryFixture({
       prepaid,
       reserved: prepaid,
-      usage: prepaidUsage,
     });
-    expect(calculateCategoryPrepaidUsage('errors', subscription, prepaid)).toEqual({
+    const totals = UsageTotalFixture({
+      accepted: prepaidUsage,
+      dropped: 100_000,
+    });
+    expect(
+      calculateCategoryPrepaidUsage('errors', subscription, totals, prepaid)
+    ).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 50,
       prepaidPrice: 5000,
@@ -1202,8 +1153,10 @@ describe('calculateCategoryPrepaidUsage', () => {
     subscription.planDetails.planCategories.errors = [
       {events: 100_000, price: prepaidPrice * 12, unitPrice: 0.1, onDemandPrice: 0.2},
     ];
-    subscription.categories.errors = MetricHistoryFixture({});
-    expect(calculateCategoryPrepaidUsage('errors', subscription, prepaidPrice)).toEqual({
+    const totals = UsageTotalFixture();
+    expect(
+      calculateCategoryPrepaidUsage('errors', subscription, totals, prepaidPrice)
+    ).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 0,
       prepaidPrice,
@@ -1220,9 +1173,9 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
     const prepaidPrice = 0;
     delete subscription.planDetails.planCategories.monitorSeats;
-    subscription.categories.errors = MetricHistoryFixture({});
+    const totals = UsageTotalFixture();
     expect(
-      calculateCategoryPrepaidUsage('monitorSeats', subscription, prepaidPrice)
+      calculateCategoryPrepaidUsage('monitorSeats', subscription, totals, prepaidPrice)
     ).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 0,
@@ -1242,9 +1195,14 @@ describe('calculateCategoryPrepaidUsage', () => {
     subscription.categories.monitorSeats = MetricHistoryFixture({
       prepaid,
       reserved: prepaid,
-      usage: prepaidUsage,
     });
-    expect(calculateCategoryPrepaidUsage('monitorSeats', subscription, prepaid)).toEqual({
+    const totals = UsageTotalFixture({
+      accepted: prepaidUsage,
+      dropped: 0,
+    });
+    expect(
+      calculateCategoryPrepaidUsage('monitorSeats', subscription, totals, prepaid)
+    ).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 0,
       prepaidPrice: 0,
@@ -1260,13 +1218,15 @@ describe('calculateCategoryPrepaidUsage', () => {
       planTier: 'am2',
     });
     const prepaid = 100_000;
+    const totals = UsageTotalFixture({
+      accepted: 150_000, // totals.accepted > prepaidTotal
+    });
     subscription.categories.errors = MetricHistoryFixture({
       reserved: prepaid,
       onDemandQuantity: 50_000,
-      usage: 150_000,
     });
 
-    const result = calculateCategoryPrepaidUsage('errors', subscription, prepaid);
+    const result = calculateCategoryPrepaidUsage('errors', subscription, totals, prepaid);
 
     expect(result.onDemandUsage).toBe(50_000);
     expect(result.prepaidUsage).toBe(100_000);
@@ -1279,13 +1239,15 @@ describe('calculateCategoryPrepaidUsage', () => {
       planTier: 'am2',
     });
     const prepaid = 100_000;
+    const totals = UsageTotalFixture({
+      accepted: 80_000, // totals.accepted <= prepaidTotal
+    });
     subscription.categories.errors = MetricHistoryFixture({
       reserved: prepaid,
       onDemandQuantity: 0,
-      usage: 80_000,
     });
 
-    const result = calculateCategoryPrepaidUsage('errors', subscription, prepaid);
+    const result = calculateCategoryPrepaidUsage('errors', subscription, totals, prepaid);
 
     expect(result.onDemandUsage).toBe(0);
     expect(result.prepaidUsage).toBe(80_000);
@@ -1298,14 +1260,15 @@ describe('calculateCategoryPrepaidUsage', () => {
       planTier: 'am2',
     });
     const prepaid = UNLIMITED_RESERVED;
-
+    const totals = UsageTotalFixture({
+      accepted: 150_000,
+    });
     subscription.categories.errors = MetricHistoryFixture({
       reserved: prepaid,
       onDemandQuantity: 50_000,
-      usage: 150_000,
     });
 
-    const result = calculateCategoryPrepaidUsage('errors', subscription, prepaid);
+    const result = calculateCategoryPrepaidUsage('errors', subscription, totals, prepaid);
 
     expect(result.onDemandUsage).toBe(0);
     expect(result.prepaidUsage).toBe(150_000);
@@ -1314,17 +1277,16 @@ describe('calculateCategoryPrepaidUsage', () => {
   it('calculates for reserved budgets with reserved spend', function () {
     const subscription = Am3DsEnterpriseSubscriptionFixture({organization});
     const prepaid = 100_000_00;
-    subscription.categories.spans = MetricHistoryFixture({
-      reserved: prepaid,
-      onDemandQuantity: 50_000,
-      usage: 150_000,
+    const totals = UsageTotalFixture({
+      accepted: 150_000,
     });
+    subscription.categories.spans!.onDemandQuantity = 50_000;
 
     const result = calculateCategoryPrepaidUsage(
       'spans',
       subscription,
+      totals,
       prepaid,
-      null,
       undefined,
       10_000_00
     );
@@ -1340,8 +1302,8 @@ describe('calculateCategoryPrepaidUsage', () => {
     const result2 = calculateCategoryPrepaidUsage(
       'spans',
       subscription,
+      totals,
       prepaid,
-      null,
       undefined,
       100_000_00
     );
@@ -1356,8 +1318,8 @@ describe('calculateCategoryPrepaidUsage', () => {
     const result3 = calculateCategoryPrepaidUsage(
       'spans',
       subscription,
+      totals,
       prepaid,
-      null,
       undefined,
       0
     );
@@ -1373,17 +1335,16 @@ describe('calculateCategoryPrepaidUsage', () => {
   it('calculates for reserved budgets with reserved cpe', function () {
     const subscription = Am3DsEnterpriseSubscriptionFixture({organization});
     const prepaid = 100_000_00;
-    subscription.categories.spans = MetricHistoryFixture({
-      reserved: prepaid,
-      onDemandQuantity: 50_000,
-      usage: 150_000,
+    const totals = UsageTotalFixture({
+      accepted: 150_000,
     });
+    subscription.categories.spans!.onDemandQuantity = 50_000;
 
     const result = calculateCategoryPrepaidUsage(
       'spans',
       subscription,
+      totals,
       prepaid,
-      null,
       100
     );
 
