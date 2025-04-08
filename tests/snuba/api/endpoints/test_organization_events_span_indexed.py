@@ -1808,6 +1808,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             },
         ]
         expected = {
+            "dataScanned": "full",
             "dataset": mock.ANY,
             "datasetReason": "unchanged",
             "fields": {

@@ -356,6 +356,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
                 if full_scan is not None:
                     meta["dataScanned"] = "full" if full_scan else "partial"
+                else:
+                    # If this key isn't in meta there wasn't any sampling and we can assume all the data was scanned
+                    meta["dataScanned"] = "full"
 
                 # Only appears in meta when debug is passed to the endpoint
                 if query:

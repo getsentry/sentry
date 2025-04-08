@@ -2,7 +2,6 @@ import logging
 
 import sentry_sdk
 from google.protobuf.json_format import MessageToJson
-from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageMeta
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
@@ -15,6 +14,7 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
+from sentry.search.eap.utils import handle_downsample_meta
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import EventsMeta, SnubaData
 from sentry.utils import json, snuba_rpc
@@ -107,9 +107,7 @@ def run_table_query(
     final_data: SnubaData = []
     final_confidence: ConfidenceData = []
     final_meta: EventsMeta = EventsMeta(
-        fields={},
-        full_scan=rpc_response.meta.downsampled_storage_meta.tier
-        == DownsampledStorageMeta.SELECTED_TIER_1,
+        fields={}, full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta)
     )
     # Mapping from public alias to resolved column so we know type etc.
     columns_by_name = {col.public_alias: col for col in columns}
