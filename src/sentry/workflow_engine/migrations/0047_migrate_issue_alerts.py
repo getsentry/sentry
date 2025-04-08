@@ -50,7 +50,7 @@ SENTRY_RULES = {
 
 
 def split_conditions_and_filters(
-    rule_condition_list,
+    rule_condition_list: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     condition_list = []
     filter_list = []
