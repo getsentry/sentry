@@ -62,6 +62,7 @@ export default function ChartFooter({
       <InlineContainer>{elements}</InlineContainer>
       <InlineContainer>
         <IntervalSelector
+          key={eventView.interval}
           displayMode={displayMode}
           eventView={eventView}
           onIntervalChange={onIntervalChange}
