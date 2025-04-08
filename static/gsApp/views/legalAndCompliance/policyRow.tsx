@@ -219,7 +219,9 @@ export function PolicyRow({
                   ? t("Superusers can't consent to policies")
                   : hasBillingAccess
                     ? undefined
-                    : t("You don't have access to accept policies.")
+                    : t(
+                        "You don't have access to manage billing and subscription details."
+                      )
               }
             >
               {t('Review and Accept')}
