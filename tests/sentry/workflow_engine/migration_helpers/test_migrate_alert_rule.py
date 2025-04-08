@@ -51,6 +51,7 @@ from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,
     DataCondition,
+    DataConditionAlertRuleTrigger,
     DataConditionGroup,
     DataConditionGroupAction,
     DataSource,
@@ -159,6 +160,10 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
         comparison=alert_rule_trigger.alert_threshold,
         condition_result=condition_result,
     )
+    assert DataConditionAlertRuleTrigger.objects.filter(
+        data_condition=detector_trigger,
+        alert_rule_trigger_id=alert_rule_trigger.id,
+    ).exists()
 
     assert (
         detector_trigger.type == Condition.GREATER
@@ -356,6 +361,10 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
             type=detector_trigger_type,
             condition_group=detector_dcg,
         )
+        DataConditionAlertRuleTrigger.objects.create(
+            data_condition=detector_trigger,
+            alert_rule_trigger_id=alert_rule_trigger.id,
+        )
         data_condition_group = self.create_data_condition_group(organization=self.organization)
         self.create_workflow_data_condition_group(
             condition_group=data_condition_group, workflow=workflow
@@ -551,6 +560,9 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
         # check trigger objects
         assert not DataConditionGroup.objects.filter(id=action_filter_dcg.id).exists()
         assert not DataCondition.objects.filter(id=detector_trigger.id).exists()
+        assert not DataConditionAlertRuleTrigger.objects.filter(
+            data_condition=detector_trigger
+        ).exists()
         assert not DataCondition.objects.filter(id=action_filter.id).exists()
 
     @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
