@@ -1,4 +1,4 @@
-from sentry.notifications.notification_action.utils import execute_via_group_type_registry
+from sentry.notifications.notification_action.utils import execute_via_issue_alert_handler
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
@@ -33,4 +33,4 @@ class WebhookActionHandler(ActionHandler):
         action: Action,
         detector: Detector,
     ) -> None:
-        execute_via_group_type_registry(job, action, detector)
+        execute_via_issue_alert_handler(job, action, detector)
