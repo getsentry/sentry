@@ -1203,6 +1203,9 @@ def update_group_open_period(
     is unresolved manually without a regression. If the group is unresolved due to a regression, the
     open periods will be updated during ingestion.
     """
+    if not features.has("organizations:issue-open-periods", group.project.organization):
+        return
+
     if new_status not in (GroupStatus.RESOLVED, GroupStatus.UNRESOLVED):
         return
 

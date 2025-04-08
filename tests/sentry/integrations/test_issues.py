@@ -14,11 +14,13 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 
 
 class IssueSyncIntegration(TestCase):
+    @with_feature("organizations:issue-open-periods")
     def test_status_sync_inbound_resolve(self):
         group = self.group
         assert group.status == GroupStatus.UNRESOLVED
@@ -407,6 +409,7 @@ class IssueSyncIntegration(TestCase):
                 "provider_key": integration.get_provider().key,
             }
 
+    @with_feature("organizations:issue-open-periods")
     def test_status_sync_inbound_unresolve(self):
         group = self.group
         group.status = GroupStatus.RESOLVED

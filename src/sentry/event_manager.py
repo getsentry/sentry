@@ -1500,12 +1500,13 @@ def _create_group(
             logger.exception("Error after unsticking project counter")
             raise
 
-    GroupOpenPeriod.objects.create(
-        group=group,
-        project_id=project.id,
-        date_started=group.first_seen,
-        date_ended=None,
-    )
+    if features.has("organizations:issue-open-periods", project.organization):
+        GroupOpenPeriod.objects.create(
+            group=group,
+            project_id=project.id,
+            date_started=group.first_seen,
+            date_ended=None,
+        )
     return group
 
 
@@ -1714,12 +1715,13 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
-        GroupOpenPeriod.objects.create(
-            group=group,
-            project_id=group.project_id,
-            date_started=event.datetime,
-            date_ended=None,
-        )
+        if features.has("organizations:issue-open-periods", group.project.organization):
+            GroupOpenPeriod.objects.create(
+                group=group,
+                project_id=group.project_id,
+                date_started=event.datetime,
+                date_ended=None,
+            )
 
     return is_regression
 
