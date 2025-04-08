@@ -4,6 +4,10 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  type SpansRPCQueryExtras,
+  useProgressiveQuery,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
@@ -119,6 +123,33 @@ export const useDiscover = <
   dataset: DiscoverDatasets,
   referrer: string
 ) => {
+  const {result} = useProgressiveQuery<typeof useDiscoverImpl>({
+    queryHookImplementation: useDiscoverImpl,
+    queryHookArgs: {
+      options,
+      dataset,
+      referrer,
+    },
+    queryOptions: {shouldRunProgessiveQuery: true},
+  });
+
+  return result;
+};
+
+export const useDiscoverImpl = <
+  T extends Array<Extract<keyof ResponseType, string>>,
+  ResponseType,
+>({
+  options,
+  dataset,
+  referrer,
+  queryExtras,
+}: {
+  dataset: DiscoverDatasets;
+  options: UseDiscoverOptions<T>;
+  referrer: string;
+  queryExtras?: SpansRPCQueryExtras;
+}) => {
   const {
     fields = [],
     search = undefined,
@@ -143,11 +174,26 @@ export const useDiscover = <
     orderby
   );
 
+  // const result = useProgressiveQuery<typeof useWrappedDiscoverQuery>({
+  //   queryHookImplementation: useWrappedDiscoverQuery,
+  //   queryHookArgs: {
+  //     eventView,
+  //     initialData: [],
+  //     limit,
+  //     enabled: options.enabled,
+  //     referrer,
+  //     cursor,
+  //     noPagination,
+  //   },
+  //   queryOptions: {shouldRunProgessiveQuery: true},
+  // });
+
   const result = useWrappedDiscoverQuery({
     eventView,
     initialData: [],
     limit,
     enabled: options.enabled,
+    samplingMode: queryExtras?.samplingMode,
     referrer,
     cursor,
     noPagination,
@@ -157,8 +203,7 @@ export const useDiscover = <
   const data = (result?.data ?? []) as Array<Pick<ResponseType, T[number]>>;
 
   return {
-    ...result,
-    data,
+    result: {...result, data},
     isEnabled: options.enabled,
   };
 };

@@ -39,8 +39,13 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
       isFetched: boolean;
     };
   };
-  queryMode: QueryMode;
+  queryOptions: QueryOptions;
 }
+
+type QueryOptions = {
+  queryMode?: QueryMode;
+  shouldRunProgessiveQuery?: boolean;
+};
 
 /**
  * A hook that composes the behavior of progressively loading from a preflight
@@ -58,7 +63,7 @@ export function useProgressiveQuery<
 >({
   queryHookImplementation,
   queryHookArgs,
-  queryMode,
+  queryOptions,
 }: ProgressiveQueryOptions<TQueryFn>): ReturnType<TQueryFn> & {
   samplingMode?: SamplingMode;
 } {
@@ -68,24 +73,33 @@ export function useProgressiveQuery<
     'visibility-explore-progressive-loading'
   );
 
+  const {shouldRunProgessiveQuery, queryMode = QUERY_MODE.SERIAL} = queryOptions;
+
   // If the time range is small enough, just go directly to the best effort request
   const isSmallRange = getDiffInMinutes(selection.datetime) < SMALL_TIME_RANGE_THRESHOLD;
 
+  console.log(shouldRunProgessiveQuery, queryHookArgs.enabled, canUseProgressiveLoading);
   const singleQueryResult = queryHookImplementation({
     ...queryHookArgs,
-    enabled: queryHookArgs.enabled && !canUseProgressiveLoading,
+    enabled:
+      !shouldRunProgessiveQuery && queryHookArgs.enabled && !canUseProgressiveLoading,
   });
 
   const preflightRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: LOW_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled: queryHookArgs.enabled && canUseProgressiveLoading && !isSmallRange,
+    enabled:
+      shouldRunProgessiveQuery &&
+      queryHookArgs.enabled &&
+      canUseProgressiveLoading &&
+      !isSmallRange,
   });
 
   const bestEffortRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: HIGH_SAMPLING_MODE_QUERY_EXTRAS,
     enabled:
+      shouldRunProgessiveQuery &&
       queryHookArgs.enabled &&
       canUseProgressiveLoading &&
       (queryMode === QUERY_MODE.PARALLEL ||
