@@ -5,9 +5,16 @@ import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import type {OnSentryInitConfiguration} from 'sentry/types/system';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
+import {
+  DEFAULT_QUERY_CLIENT_CONFIG,
+  QueryClient,
+  QueryClientProvider,
+} from 'sentry/utils/queryClient';
 
 import {renderDom} from './renderDom';
 import {renderOnDomReady} from './renderOnDomReady';
+
+const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 
 const COMPONENT_MAP = {
   [SentryInitRenderReactComponent.INDICATORS]: () =>
@@ -56,9 +63,11 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
            * This is because config is not available at this point (user might not be logged in yet),
            * and so we dont know which theme to pick.
            */
-          <ThemeAndStyleProvider>
-            <PasswordStrength value={e.target.value} />
-          </ThemeAndStyleProvider>
+          <QueryClientProvider client={queryClient}>
+            <ThemeAndStyleProvider>
+              <PasswordStrength value={e.target.value} />
+            </ThemeAndStyleProvider>
+          </QueryClientProvider>
         );
       })
     );
@@ -85,9 +94,11 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
            * This is because config is not available at this point (user might not be logged in yet),
            * and so we dont know which theme to pick.
            */
-          <ThemeAndStyleProvider>
-            <Component {...props} />
-          </ThemeAndStyleProvider>
+          <QueryClientProvider client={queryClient}>
+            <ThemeAndStyleProvider>
+              <Component {...props} />
+            </ThemeAndStyleProvider>
+          </QueryClientProvider>
         ),
         initConfig.container,
         initConfig.props
