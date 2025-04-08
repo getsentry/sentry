@@ -640,15 +640,15 @@ class Referrer(StrEnum):
 
     # Performance Backend Laravel Overview Page
     API_PERFORMANCE_BACKEND_LARAVEL_REQUESTS_CHART = (
-        "api.performance.backend.laravel.requests-chart"
+        "api.performance.backend.overview.requests-chart"
     )
     API_PERFORMANCE_BACKEND_LARAVEL_DURATION_CHART = (
-        "api.performance.backend.laravel.duration-chart"
+        "api.performance.backend.overview.duration-chart"
     )
-    API_PERFORMANCE_BACKEND_LARAVEL_JOBS_CHART = "api.performance.backend.laravel.jobs-chart"
-    API_PERFORMANCE_BACKEND_LARAVEL_QUERIES_CHART = "api.performance.backend.laravel.queries-chart"
-    API_PERFORMANCE_BACKEND_LARAVEL_CACHE_CHART = "api.performance.backend.laravel.cache-chart"
-    API_PERFORMANCE_BACKEND_LARAVEL_PATHS_TABLE = "api.performance.backend.laravel.paths-table"
+    API_PERFORMANCE_BACKEND_LARAVEL_JOBS_CHART = "api.performance.backend.overview.jobs-chart"
+    API_PERFORMANCE_BACKEND_LARAVEL_QUERIES_CHART = "api.performance.backend.overview.queries-chart"
+    API_PERFORMANCE_BACKEND_LARAVEL_CACHE_CHART = "api.performance.backend.overview.cache-chart"
+    API_PERFORMANCE_BACKEND_LARAVEL_PATHS_TABLE = "api.performance.backend.overview.paths-table"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
