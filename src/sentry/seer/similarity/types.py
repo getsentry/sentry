@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Any, ClassVar, NotRequired, Self, TypedDict
 
 from sentry.models.grouphash import GroupHash
-from sentry.utils.json import apply_key_filter
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +76,9 @@ class SeerSimilarIssueData:
         """
 
         # Filter out any data we're not expecting, and then make sure what's left isn't missing anything
-        raw_similar_issue_data = apply_key_filter(
-            raw_similar_issue_data, keep_keys=cls.expected_incoming_keys
-        )
+        raw_similar_issue_data = {
+            k: v for k, v in raw_similar_issue_data.items() if k in cls.expected_incoming_keys
+        }
         missing_keys = cls.required_incoming_keys - raw_similar_issue_data.keys()
         if missing_keys:
             raise IncompleteSeerDataError(
