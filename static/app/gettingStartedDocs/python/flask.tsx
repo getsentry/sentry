@@ -18,6 +18,7 @@ import {
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {getPythonProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -230,7 +231,7 @@ sentry_sdk.init(
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-
+  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[flask]'}),
   performanceOnboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,

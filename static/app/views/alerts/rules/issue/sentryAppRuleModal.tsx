@@ -11,7 +11,7 @@ type Props = ModalRenderProps & {
   appName: string;
   config: SchemaFormConfig;
   onSubmitSuccess: React.ComponentProps<typeof SentryAppExternalForm>['onSubmitSuccess'];
-  resetValues: {[key: string]: any};
+  resetValues: Record<string, any>;
   sentryAppInstallationUuid: string;
 };
 

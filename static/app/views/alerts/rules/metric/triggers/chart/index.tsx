@@ -59,6 +59,7 @@ import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMar
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import type {MetricRule, Trigger} from '../../types';
 import {
@@ -747,7 +748,20 @@ class TriggersChart extends PureComponent<Props, State> {
             {noop}
           </EventsRequest>
         ) : null}
-        <EventsRequest {...baseProps} period={period} dataLoadedCallback={onDataLoaded}>
+        <EventsRequest
+          {...baseProps}
+          period={period}
+          dataLoadedCallback={onDataLoaded}
+          // Span alerts only need to do a best effort request and do not need
+          // preflight requests. A user needs to see the highest fidelity data possible
+          // to set up the alert.
+          sampling={
+            organization.features.includes('visibility-explore-progressive-loading') &&
+            dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+              ? SAMPLING_MODE.BEST_EFFORT
+              : undefined
+          }
+        >
           {({
             loading,
             errored,

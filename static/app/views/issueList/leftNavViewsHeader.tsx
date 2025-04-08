@@ -4,10 +4,8 @@ import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingA
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
 import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 type LeftNavViewsHeaderProps = {
@@ -16,24 +14,18 @@ type LeftNavViewsHeaderProps = {
 
 function LeftNavViewsHeader({selectedProjectIds}: LeftNavViewsHeaderProps) {
   const {projects} = useProjects();
-  const organization = useOrganization();
-  const {viewId} = useParams<{orgId?: string; viewId?: string}>();
   const prefersStackedNav = usePrefersStackedNav();
 
   const selectedProjects = projects.filter(({id}) =>
     selectedProjectIds.includes(Number(id))
   );
 
-  const {data: groupSearchViews} = useFetchGroupSearchViews({
-    orgSlug: organization.slug,
-  });
-
-  const viewTitle = groupSearchViews?.find(v => v.id === viewId)?.name;
+  const {data: groupSearchView} = useSelectedGroupSearchView();
 
   return (
     <Layout.Header noActionWrap unified={prefersStackedNav}>
       <Layout.HeaderContent unified={prefersStackedNav}>
-        <Layout.Title>{viewTitle ?? t('Issues')}</Layout.Title>
+        <Layout.Title>{groupSearchView?.name ?? t('Issues')}</Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions />
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />

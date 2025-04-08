@@ -79,10 +79,12 @@ export type SpanNumberFields =
   | SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY
   | SpanMetricsField.CACHE_ITEM_SIZE
   | SpanMetricsField.PRECISE_START_TS
-  | SpanMetricsField.PRECISE_FINISH_TS;
+  | SpanMetricsField.PRECISE_FINISH_TS
+  | DiscoverNumberFields;
 
 export type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
+  | 'id'
   | 'span_id'
   | 'span.op'
   | 'span.description'
@@ -115,16 +117,12 @@ export type SpanStringFields =
   | 'profiler.id'
   | 'thread.id';
 
-export type SpanMetricsQueryFilters = {
-  [Field in SpanStringFields]?: string;
-} & {
+export type SpanMetricsQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanMetricsField.PROJECT_ID]?: string;
   [SpanMetricsField.SPAN_DOMAIN]?: string;
 };
 
-export type SpanIndexedQueryFilters = {
-  [Field in SpanStringFields]?: string;
-} & {
+export type SpanIndexedQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 
@@ -154,6 +152,7 @@ export const SPAN_FUNCTIONS = [
   'cache_hit_rate',
   'cache_miss_rate',
   'sum',
+  'failure_rate',
 ] as const;
 
 type BreakpointCondition = 'less' | 'greater';
@@ -189,18 +188,15 @@ export type SpanMetricsResponse = {
 } & {
   ['project']: string;
   ['project.id']: number;
-} & {
-  [Function in RegressionFunctions]: number;
-} & {
-  [Function in SpanAnyFunction]: string;
-} & {
-  [Property in ConditionalAggregate as
-    | `${Property}(${string})`
-    | `${Property}(${string},${string})`
-    | `${Property}(${string},${string},${string})`]: number;
-} & {
-  [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
-};
+} & Record<RegressionFunctions, number> &
+  Record<SpanAnyFunction, string> & {
+    [Property in ConditionalAggregate as
+      | `${Property}(${string})`
+      | `${Property}(${string},${string})`
+      | `${Property}(${string},${string},${string})`]: number;
+  } & {
+    [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+  };
 
 export type MetricsFilters = {
   [Property in SpanStringFields as `${Property}`]?: string | string[];
@@ -221,19 +217,16 @@ export type EAPSpanResponse = {
 } & {
   ['project']: string;
   ['project.id']: number;
-} & {
-  [Function in RegressionFunctions]: number;
-} & {
-  [Function in SpanAnyFunction]: string;
-} & {
-  [Property in ConditionalAggregate as
-    | `${Property}(${string})`
-    | `${Property}(${string},${string})`
-    | `${Property}(${string},${string},${string})`]: number;
-} & {
-  [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
-  [SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG]: string;
-};
+} & Record<RegressionFunctions, number> &
+  Record<SpanAnyFunction, string> & {
+    [Property in ConditionalAggregate as
+      | `${Property}(${string})`
+      | `${Property}(${string},${string})`
+      | `${Property}(${string},${string},${string})`]: number;
+  } & {
+    [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG]: string;
+  };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;
 
@@ -432,6 +425,7 @@ export const METRICS_FUNCTIONS = [
 
 export enum MetricsFields {
   TRANSACTION_DURATION = 'transaction.duration',
+  SPAN_DURATION = 'span.duration',
   TRANSACTION = 'transaction',
   PROJECT = 'project',
   LCP_SCORE = 'measurements.score.lcp',
@@ -462,6 +456,7 @@ export enum MetricsFields {
 
 export type MetricsNumberFields =
   | MetricsFields.TRANSACTION_DURATION
+  | MetricsFields.SPAN_DURATION
   | MetricsFields.LCP_SCORE
   | MetricsFields.FCP_SCORE
   | MetricsFields.INP_SCORE
@@ -505,11 +500,84 @@ export type MetricsResponse = {
   [Property in MetricsNumberFields as `count_web_vitals(${Property}, any)`]: string[];
 };
 
+export enum DiscoverFields {
+  ID = 'id',
+  TRACE = 'trace',
+  USER_DISPLAY = 'user.display',
+  TRANSACTION = 'transaction',
+  LCP = 'measurements.lcp',
+  FCP = 'measurements.fcp',
+  CLS = 'measurements.cls',
+  TTFB = 'measurements.ttfb',
+  TRANSACTION_DURATION = 'transaction.duration',
+  SPAN_DURATION = 'span.duration',
+  REPLAY_ID = 'replayId',
+  TIMESTAMP = 'timestamp',
+  PROFILE_ID = 'profile.id',
+  PROJECT = 'project',
+  SCORE_TOTAL = 'measurements.score.total',
+  SCORE_LCP = 'measurements.score.lcp',
+  SCORE_FCP = 'measurements.score.fcp',
+  SCORE_CLS = 'measurements.score.cls',
+  SCORE_TTFB = 'measurements.score.ttfb',
+  SCORE_INP = 'measurements.score.inp',
+  SCORE_WEIGHT_LCP = 'measurements.score.weight.lcp',
+  SCORE_WEIGHT_FCP = 'measurements.score.weight.fcp',
+  SCORE_WEIGHT_CLS = 'measurements.score.weight.cls',
+  SCORE_WEIGHT_TTFB = 'measurements.score.weight.ttfb',
+  SCORE_WEIGHT_INP = 'measurements.score.weight.inp',
+  SCORE_RATIO_LCP = 'measurements.score.ratio.lcp',
+  SCORE_RATIO_FCP = 'measurements.score.ratio.fcp',
+  SCORE_RATIO_CLS = 'measurements.score.ratio.cls',
+  SCORE_RATIO_TTFB = 'measurements.score.ratio.ttfb',
+  SCORE_RATIO_INP = 'measurements.score.ratio.inp',
+}
+
 export type MetricsProperty = keyof MetricsResponse;
 
-export type MetricsQueryFilters = {
-  [Field in MetricsStringFields]?: string;
+export type DiscoverNumberFields =
+  | DiscoverFields.CLS
+  | DiscoverFields.FCP
+  | DiscoverFields.LCP
+  | DiscoverFields.TTFB
+  | DiscoverFields.TRANSACTION_DURATION
+  | DiscoverFields.SPAN_DURATION
+  | DiscoverFields.SCORE_TOTAL
+  | DiscoverFields.SCORE_LCP
+  | DiscoverFields.SCORE_FCP
+  | DiscoverFields.SCORE_CLS
+  | DiscoverFields.SCORE_TTFB
+  | DiscoverFields.SCORE_INP
+  | DiscoverFields.SCORE_WEIGHT_LCP
+  | DiscoverFields.SCORE_WEIGHT_FCP
+  | DiscoverFields.SCORE_WEIGHT_CLS
+  | DiscoverFields.SCORE_WEIGHT_TTFB
+  | DiscoverFields.SCORE_WEIGHT_INP
+  | DiscoverFields.SCORE_RATIO_LCP
+  | DiscoverFields.SCORE_RATIO_FCP
+  | DiscoverFields.SCORE_RATIO_CLS
+  | DiscoverFields.SCORE_RATIO_TTFB
+  | DiscoverFields.SCORE_RATIO_INP;
+
+export type DiscoverStringFields =
+  | DiscoverFields.ID
+  | DiscoverFields.TRACE
+  | DiscoverFields.USER_DISPLAY
+  | DiscoverFields.TRANSACTION
+  | DiscoverFields.REPLAY_ID
+  | DiscoverFields.TIMESTAMP
+  | DiscoverFields.PROFILE_ID
+  | DiscoverFields.PROJECT;
+
+export type DiscoverResponse = {
+  [Property in DiscoverNumberFields as `${Property}`]: number;
 } & {
+  [Property in DiscoverStringFields as `${Property}`]: string;
+};
+
+export type DiscoverProperty = keyof DiscoverResponse;
+
+export type MetricsQueryFilters = Partial<Record<MetricsStringFields, string>> & {
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 

@@ -65,7 +65,6 @@ export function TraceItemSearchQueryBuilder({
   portalTarget,
   projects: _projects,
   supportedAggregates = [],
-  submitOnFilterChange = false,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
@@ -87,7 +86,6 @@ export function TraceItemSearchQueryBuilder({
       fieldDefinitionGetter={getTraceItemFieldDefinitionFunction(itemType, filterTags)}
       onSearch={onSearch}
       onBlur={onBlur}
-      onChange={submitOnFilterChange ? onSearch : undefined}
       getFilterTokenWarning={getFilterTokenWarning}
       searchSource={searchSource}
       filterKeySections={filterKeySections}

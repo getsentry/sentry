@@ -114,9 +114,9 @@ function OrganizationMembersList() {
     {staleTime: 30000}
   );
 
-  const [invited, setInvited] = useState<{
-    [memberId: string]: 'loading' | 'success' | null;
-  }>({});
+  const [invited, setInvited] = useState<Record<string, 'loading' | 'success' | null>>(
+    {}
+  );
 
   const removeMember = async (id: string) => {
     await api.requestPromise(`/organizations/${organization.slug}/members/${id}/`, {

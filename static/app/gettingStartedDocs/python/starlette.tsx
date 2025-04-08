@@ -16,6 +16,7 @@ import {
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {getPythonProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -158,7 +159,9 @@ app = Starlette(routes=[
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-
+  profilingOnboarding: getPythonProfilingOnboarding({
+    basePackage: 'sentry-sdk[starlette]',
+  }),
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,

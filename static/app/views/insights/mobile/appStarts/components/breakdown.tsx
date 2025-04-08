@@ -6,9 +6,7 @@ import {space} from 'sentry/styles/space';
 import toPercent from 'sentry/utils/number/toPercent';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 
-interface Row {
-  [index: string]: number | undefined;
-}
+type Row = Record<string, number | undefined>;
 
 interface BreakdownGroup {
   color: string;

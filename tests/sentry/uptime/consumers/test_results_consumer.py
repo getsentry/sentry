@@ -22,7 +22,8 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry.conf.types import kafka_definition
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.constants import ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
+from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
@@ -36,7 +37,6 @@ from sentry.uptime.consumers.results_consumer import (
 )
 from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.detectors.tasks import is_failed_url
-from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
@@ -636,6 +636,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             scheduled_check_time=datetime.now() - timedelta(minutes=4),
         )
         with (
+            mock.patch("sentry.quotas.backend.disable_seat") as mock_disable_seat,
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             mock.patch(
                 "sentry.uptime.consumers.results_consumer.ONBOARDING_FAILURE_THRESHOLD", new=2
@@ -643,6 +644,13 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             self.tasks(),
             self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
+            disable_call_vals = []
+
+            def capture_disable_seat(data_category, seat_object):
+                disable_call_vals.append((data_category, seat_object.id))
+
+            mock_disable_seat.side_effect = capture_disable_seat
+
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -671,6 +679,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
         assert not redis.exists(key)
         assert is_failed_url(self.subscription.url)
+        # XXX: Since project_subscription is mutable, the delete sets the id to null. So we're unable
+        # to compare the calls directly. Instead, we add a side effect to the mock so that it keeps track of
+        # the values we want to check.
+        assert disable_call_vals == [(DataCategory.UPTIME, self.project_subscription.id)]
 
         hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
         with pytest.raises(Group.DoesNotExist):

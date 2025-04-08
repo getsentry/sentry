@@ -232,18 +232,6 @@ function Sidebar() {
     </Feature>
   );
 
-  const savedQueries = hasOrganization && (
-    <Feature features="performance-saved-queries" organization={organization}>
-      <SidebarItem
-        {...sidebarItemProps}
-        label={<GuideAnchor target="saved-queries">{t('All Queries')}</GuideAnchor>}
-        to={`/organizations/${organization?.slug}/explore/saved-queries/`}
-        id="performance-saved-queries"
-        icon={<SubitemDot collapsed />}
-      />
-    </Feature>
-  );
-
   const releases = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
@@ -430,7 +418,6 @@ function Sidebar() {
       {profiling}
       {replays}
       {discover}
-      {savedQueries}
     </SidebarAccordion>
   );
 
@@ -543,8 +530,8 @@ function Sidebar() {
                 collapsed={collapsed || horizontal}
                 organization={organization}
               />
-              {HookStore.get('sidebar:bottom-items').length > 0 &&
-                HookStore.get('sidebar:bottom-items')[0]!({
+              {HookStore.get('sidebar:try-business').length > 0 &&
+                HookStore.get('sidebar:try-business')[0]!({
                   orientation,
                   collapsed,
                   hasPanel,

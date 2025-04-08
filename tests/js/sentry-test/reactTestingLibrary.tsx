@@ -176,11 +176,9 @@ function makeAllTheProviders(options: ProviderOptions) {
 
     return (
       <CacheProvider value={{...cache, compat: true}}>
-        <ThemeProvider theme={ThemeFixture()}>
-          <QueryClientProvider client={makeTestQueryClient()}>
-            {wrappedContent}
-          </QueryClientProvider>
-        </ThemeProvider>
+        <QueryClientProvider client={makeTestQueryClient()}>
+          <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
+        </QueryClientProvider>
       </CacheProvider>
     );
   };

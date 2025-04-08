@@ -20,14 +20,25 @@ function IconLab({isSolid, ...props}: IconLabProps) {
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
-        <Fragment>
-          <path
-            fill={isSolid ? color : 'none'}
-            d="m13.06,11.73l-3.06-4.98V2.75h-4v4l-3.06,4.98c-.41.67.07,1.52.85,1.52h8.42c.78,0,1.26-.86.85-1.52Z"
-          />
-          <line x1="5" y1="2.75" x2="11" y2="2.75" />
-          <line x1="4" y1="10.25" x2="12" y2="10.25" />
-        </Fragment>
+        isSolid ? (
+          <Fragment>
+            <path d="M12.59,10.96l-2.59-4.21V2.75h-4v4l-2.59,4.21c-.62,1,.1,2.29,1.28,2.29h6.63c1.17,0,1.89-1.29,1.28-2.29Z" />
+            <line x1="5" y1="2.75" x2="11" y2="2.75" />
+            <path
+              fill={color}
+              d="M7.79,7.35l-2.3,3.77c-.1.17.02.38.21.38h4.61c.2,0,.32-.21.21-.38l-2.3-3.77c-.1-.16-.33-.16-.43,0Z"
+            />
+          </Fragment>
+        ) : (
+          <Fragment>
+            <path
+              fill={isSolid ? color : 'none'}
+              d="m13.06,11.73l-3.06-4.98V2.75h-4v4l-3.06,4.98c-.41.67.07,1.52.85,1.52h8.42c.78,0,1.26-.86.85-1.52Z"
+            />
+            <line x1="5" y1="2.75" x2="11" y2="2.75" />
+            <line x1="4" y1="10.25" x2="12" y2="10.25" />
+          </Fragment>
+        )
       ) : isSolid ? (
         <path d="M4 12.6667L7.33333 7.33333H8.66667L12 12.6667L11.3333 13.3333H4.66667L4 12.6667Z" />
       ) : (
