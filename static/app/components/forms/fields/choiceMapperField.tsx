@@ -1,13 +1,15 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {
+  CompactSelect,
+  type SelectOption,
+  type SingleSelectProps,
+} from 'sentry/components/core/compactSelect';
 import type {ControlProps} from 'sentry/components/core/select';
 import {Select} from 'sentry/components/core/select';
-import type {StaticDropdownAutoCompleteProps} from 'sentry/components/dropdownAutoComplete';
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import type {Item} from 'sentry/components/dropdownAutoComplete/types';
-import DropdownButton from 'sentry/components/dropdownButton';
 import FormField from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -46,7 +48,10 @@ export interface ChoiceMapperProps extends DefaultProps {
   /**
    * Props forwarded to the add mapping dropdown.
    */
-  addDropdown: StaticDropdownAutoCompleteProps;
+  addDropdown: Omit<SingleSelectProps<string>, 'options'> & {
+    items: Array<SelectOption<string>>;
+    noResultsMessage?: string;
+  };
   /**
    * A list of column labels (headers) for the multichoice table. This should
    * have the same mapping keys as the mappedSelectors prop.
@@ -143,7 +148,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
       }
     };
 
-    const addRow = (data: Item) => {
+    const addRow = (data: SelectOption<string>) => {
       saveChanges({...value, [data.value]: emptyValue});
     };
 
@@ -166,30 +171,31 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
       addDropdown.items?.filter(i => !value.hasOwnProperty(i.value)) ?? [];
 
     const valueMap =
-      addDropdown.items?.reduce((map, item) => {
+      addDropdown.items?.reduce<Record<string, React.ReactNode>>((map, item) => {
         map[item.value] = item.label;
         return map;
       }, {}) ?? {};
 
     const dropdown = (
-      <DropdownAutoComplete
+      <CompactSelect
         {...addDropdown}
-        alignMenu={valueIsEmpty ? 'right' : 'left'}
-        items={selectableValues}
-        onSelect={addRow}
-        disabled={disabled}
-      >
-        {({isOpen}) => (
-          <DropdownButton
-            icon={<IconAdd isCircled />}
-            isOpen={isOpen}
-            size="xs"
-            disabled={disabled}
-          >
-            {addButtonText}
-          </DropdownButton>
-        )}
-      </DropdownAutoComplete>
+        emptyMessage={
+          selectableValues.length === 0
+            ? addDropdown.emptyMessage
+            : addDropdown.noResultsMessage
+        }
+        size="xs"
+        searchable
+        disabled={false}
+        options={selectableValues}
+        menuWidth={250}
+        onChange={addRow}
+        triggerLabel={
+          <Flex gap={space(0.5)}>
+            <IconAdd isCircled /> {addButtonText}
+          </Flex>
+        }
+      />
     );
 
     // The field will be set to inline when there is no value set for the
