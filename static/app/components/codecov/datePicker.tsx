@@ -7,13 +7,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 
 export interface DatePickerProps
-  extends Partial<Partial<Omit<DateSelectorProps, 'relative' | 'menuBody'>>> {
-  /**
-   * Reset these URL params when we fire actions (custom routing only)
-   */
-  resetParamsOnChange?: string[];
-  upsell?: boolean;
-}
+  extends Partial<Partial<Omit<DateSelectorProps, 'relative' | 'menuBody'>>> {}
 
 export function DatePicker({
   onChange,
