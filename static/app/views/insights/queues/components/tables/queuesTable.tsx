@@ -77,7 +77,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage(app,span.duration)',
+    key: 'time_spent_percentage(span.duration)',
     name: t('Time Spent'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -89,7 +89,7 @@ const SORTABLE_FIELDS = [
   'count_op(queue.process)',
   'avg_if(span.duration,span.op,queue.process)',
   'avg(messaging.message.receive.latency)',
-  `${SpanFunction.TIME_SPENT_PERCENTAGE}(app,span.duration)`,
+  `${SpanFunction.TIME_SPENT_PERCENTAGE}(span.duration)`,
 ] as const;
 
 type ValidSort = Sort & {

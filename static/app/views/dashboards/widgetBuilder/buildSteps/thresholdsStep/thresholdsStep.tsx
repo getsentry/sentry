@@ -13,9 +13,7 @@ import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
 
 import {BuildStep} from '../buildStep';
 
-type ThresholdErrors = {
-  [K in ThresholdMaxKeys]?: string;
-};
+type ThresholdErrors = Partial<Record<ThresholdMaxKeys, string>>;
 
 type ThresholdsStepProps = {
   onThresholdChange: (maxKey: ThresholdMaxKeys, value: string) => void;
@@ -42,9 +40,7 @@ export enum ThresholdMaxKeys {
   MAX_2 = 'max2',
 }
 
-type ThresholdMaxValues = {
-  [K in ThresholdMaxKeys]?: number;
-};
+type ThresholdMaxValues = Partial<Record<ThresholdMaxKeys, number>>;
 
 export type ThresholdsConfig = {
   max_values: ThresholdMaxValues;

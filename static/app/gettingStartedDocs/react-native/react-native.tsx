@@ -123,6 +123,52 @@ Sentry.mobileReplayIntegration({
   maskAllVectors: true,
 }),`;
 
+const getReactNativeProfilingOnboarding = (): OnboardingConfig => ({
+  install: params => [
+    {
+      title: t('Install'),
+      description: t(
+        'Make sure your Sentry React Native SDK version is at least 5.32.0. If you already have the SDK installed, you can update it to the latest version with:'
+      ),
+      configurations: getInstallConfig(params, {
+        basePackage: '@sentry/react-native',
+      }),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Enable Tracing and Profiling by adding [code:tracesSampleRate] and [code:profilesSampleRate] to your [code:Sentry.init()] call.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: getConfigureSnippet({
+            ...params,
+            platformOptions: {
+              ...params.platformOptions,
+              installationMode: InstallationMode.MANUAL,
+            },
+            isProfilingSelected: true,
+          }),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'To confirm that profiling is working correctly, run your application and check the Sentry profiles page for the collected profiles.'
+      ),
+    },
+  ],
+});
+
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
     isAutoInstall(params)
@@ -518,6 +564,7 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding: feedbackOnboardingCrashApi,
   replayOnboarding,
   platformOptions,
+  profilingOnboarding: getReactNativeProfilingOnboarding(),
 };
 
 export default docs;

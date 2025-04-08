@@ -194,6 +194,7 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
+  profilingOnboarding: onboarding,
   crashReportOnboarding: CrashReportWebApiOnboarding,
   profilingOnboarding: getProfilingOnboarding(),
 };
