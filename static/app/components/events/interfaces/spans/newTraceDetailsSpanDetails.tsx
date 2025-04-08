@@ -100,8 +100,8 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
   const profileId = props.event.contexts.profile?.profile_id || '';
   const issues = useMemo(() => {
-    return [...props.node.errors, ...props.node.performance_issues];
-  }, [props.node.errors, props.node.performance_issues]);
+    return [...props.node.errors, ...props.node.occurences];
+  }, [props.node.errors, props.node.occurences]);
 
   const {projects} = useProjects();
   const project = projects.find(p => p.id === props.event.projectID);
@@ -300,8 +300,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanErrorMessage() {
-    const hasErrors =
-      props.node.errors.size > 0 || props.node.performance_issues.size > 0;
+    const hasErrors = props.node.errors.size > 0 || props.node.occurences.size > 0;
 
     if (!hasErrors || isGapSpan(props.node.value)) {
       return null;

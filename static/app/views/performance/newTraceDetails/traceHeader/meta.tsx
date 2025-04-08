@@ -102,10 +102,10 @@ export function Meta(props: MetaProps) {
       return [];
     }
 
-    const unique: TraceTree.TracePerformanceIssue[] = [];
+    const unique: TraceTree.TraceOccurence[] = [];
     const seenIssues: Set<number> = new Set();
 
-    for (const issue of traceNode.performance_issues) {
+    for (const issue of traceNode.occurences) {
       if (seenIssues.has(issue.issue_id)) {
         continue;
       }

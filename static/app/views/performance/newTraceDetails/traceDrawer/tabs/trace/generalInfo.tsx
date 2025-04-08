@@ -51,15 +51,15 @@ export function GeneralInfo(props: GeneralInfoProps) {
     return unique;
   }, [traceNode]);
 
-  const uniquePerformanceIssues = useMemo(() => {
+  const uniqueOccurences = useMemo(() => {
     if (!traceNode) {
       return [];
     }
 
-    const unique: TraceTree.TracePerformanceIssue[] = [];
+    const unique: TraceTree.TraceOccurence[] = [];
     const seenIssues: Set<number> = new Set();
 
-    for (const issue of traceNode.performance_issues) {
+    for (const issue of traceNode.occurences) {
       if (seenIssues.has(issue.issue_id)) {
         continue;
       }
@@ -70,7 +70,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
     return unique;
   }, [traceNode]);
 
-  const uniqueIssuesCount = uniqueErrorIssues.length + uniquePerformanceIssues.length;
+  const uniqueIssuesCount = uniqueErrorIssues.length + uniqueOccurences.length;
 
   const traceSlug = useMemo(() => {
     return params.traceSlug?.trim() ?? '';
@@ -147,7 +147,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
                   {tn(
                     '%s performance issue',
                     '%s performance issues',
-                    uniquePerformanceIssues.length
+                    uniqueOccurences.length
                   )}
                 </div>
               </Fragment>

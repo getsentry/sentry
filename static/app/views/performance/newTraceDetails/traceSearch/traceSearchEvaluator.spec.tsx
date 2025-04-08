@@ -69,9 +69,9 @@ function makeError(overrides: Partial<TraceTree.TraceError> = {}): TraceTree.Tra
   };
 }
 
-function makePerformanceIssue(
-  overrides: Partial<TraceTree.TracePerformanceIssue> = {}
-): TraceTree.TracePerformanceIssue {
+function makeOccurence(
+  overrides: Partial<TraceTree.TraceOccurence> = {}
+): TraceTree.TraceOccurence {
   return {
     event_id: 'event_id',
     project_slug: 'project',
@@ -487,7 +487,7 @@ describe('TraceSearchEvaluator', () => {
       it.each(['issue', 'issues'])('%s (performance issue on transaction)', async key => {
         const tree = makeTree([
           makeTransaction({
-            performance_issues: [makePerformanceIssue()],
+            performance_issues: [makeOccurence()],
           }),
           makeTransaction({errors: []}),
         ]);

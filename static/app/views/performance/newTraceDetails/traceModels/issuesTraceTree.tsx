@@ -78,7 +78,7 @@ export class IssuesTraceTree extends TraceTree {
           }
         }
 
-        for (const p of n.performance_issues) {
+        for (const p of n.occurences) {
           if (p.event_id === eventId) {
             return true;
           }

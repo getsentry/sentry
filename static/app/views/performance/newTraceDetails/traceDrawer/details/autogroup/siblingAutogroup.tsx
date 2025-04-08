@@ -20,8 +20,8 @@ export function SiblingAutogroupNodeDetails({
 }: TraceTreeNodeDetailsProps<SiblingAutogroupNode>) {
   const theme = useTheme();
   const issues = useMemo(() => {
-    return [...node.errors, ...node.performance_issues];
-  }, [node.errors, node.performance_issues]);
+    return [...node.errors, ...node.occurences];
+  }, [node.errors, node.occurences]);
 
   const parentTransaction = TraceTree.ParentTransaction(node);
 

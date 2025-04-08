@@ -515,7 +515,7 @@ function resolveValueFromKey(
           }
           case 'issue':
           case 'issues':
-            return node.errors.size > 0 || node.performance_issues.size > 0;
+            return node.errors.size > 0 || node.occurences.size > 0;
           case 'profile':
           case 'profiles':
             return node.profiles.length > 0;

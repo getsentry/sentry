@@ -252,7 +252,7 @@ describe('TraceTree', () => {
         }),
         traceMetadata
       );
-      expect(tree.root.children[0]!.children[0]!.performance_issues.size).toBe(1);
+      expect(tree.root.children[0]!.children[0]!.occurences.size).toBe(1);
     });
 
     it('adds transaction profile to node', () => {
