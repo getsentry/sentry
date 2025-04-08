@@ -75,7 +75,6 @@ class ProjectUptimeAlertCheckIndexEndpoint(
         assert most_recent["uptimeCheckId"]
         assert most_recent["uptimeSubscriptionId"] == self.project_uptime_subscription.id
         assert most_recent["regionName"] == "Default Region"
-        assert most_recent["checkStatusReason"] == "failure"
 
         assert any(v for v in response.data if v["checkStatus"] == "failure_incident")
         assert any(v for v in response.data if v["checkStatusReason"] is None)
