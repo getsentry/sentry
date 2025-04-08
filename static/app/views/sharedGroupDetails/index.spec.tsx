@@ -48,6 +48,10 @@ describe('SharedGroupDetails', function () {
         errors: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/test-org/project-slug/events/1/committers/`,
+      body: [],
+    });
   });
 
   afterEach(function () {

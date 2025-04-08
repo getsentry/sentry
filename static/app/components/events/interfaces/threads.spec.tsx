@@ -238,7 +238,7 @@ describe('Threads', function () {
 
         // Title
         expect(
-          await screen.findByRole('heading', {name: 'Stack Trace'})
+          await screen.findByRole('region', {name: 'Stack Trace'})
         ).toBeInTheDocument();
 
         // Actions
@@ -1013,7 +1013,9 @@ describe('Threads', function () {
           },
         };
         render(<Threads {...newProps} />, {organization});
-        expect(await screen.findByTestId('event-section-threads')).toBeInTheDocument();
+        expect(
+          await screen.findByRole('region', {name: 'Stack Trace'})
+        ).toBeInTheDocument();
         expect(screen.queryByText('Thread Tags')).not.toBeInTheDocument();
       });
 

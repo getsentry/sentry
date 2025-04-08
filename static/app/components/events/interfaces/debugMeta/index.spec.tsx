@@ -43,11 +43,16 @@ describe('DebugMeta', function () {
     );
     renderGlobalModal();
 
-    screen.getByRole('heading', {name: 'Images Loaded'});
+    expect(screen.getByRole('region', {name: 'Images Loaded'})).toBeInTheDocument();
     const imageName = image?.debug_file as string;
     expect(screen.queryByText(imageName)).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'View Images Loaded Section'})
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Collapse Images Loaded Section'})
+    ).toBeInTheDocument();
     expect(screen.getByText('Ok')).toBeInTheDocument();
     expect(screen.getByText(imageName)).toBeInTheDocument();
     expect(screen.getByText('Symbolication')).toBeInTheDocument();
@@ -89,7 +94,6 @@ describe('DebugMeta', function () {
     renderGlobalModal();
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
     await userEvent.click(screen.getByRole('button', {name: 'View'}));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(
@@ -115,8 +119,7 @@ describe('DebugMeta', function () {
     const imageName = image?.debug_file as string;
     const codeFile = image?.code_file as string;
 
-    screen.getByRole('heading', {name: 'Images Loaded'});
-    await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
+    expect(screen.getByRole('region', {name: 'Images Loaded'})).toBeInTheDocument();
     const imageNode = screen.getByText(imageName);
     expect(imageNode).toBeInTheDocument();
 
@@ -158,8 +161,7 @@ describe('DebugMeta', function () {
       {organization}
     );
 
-    screen.getByRole('heading', {name: 'Images Loaded'});
-    await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
+    expect(screen.getByText('Images Loaded')).toBeInTheDocument();
     expect(screen.getByText(firstImage?.debug_file as string)).toBeInTheDocument();
     expect(screen.getByText(secondImage?.debug_file)).toBeInTheDocument();
 

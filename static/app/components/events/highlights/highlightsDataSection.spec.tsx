@@ -56,16 +56,10 @@ describe('HighlightsDataSection', function () {
       />,
       {organization}
     );
-    expect(screen.getByText('Event Highlights')).toBeInTheDocument();
+    expect(screen.getByText('Highlights')).toBeInTheDocument();
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText("There's nothing here...")).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Add Highlights'})).toBeInTheDocument();
-    const viewAllButton = screen.getByRole('button', {name: 'View All'});
-    await userEvent.click(viewAllButton);
-    expect(analyticsSpy).toHaveBeenCalledWith(
-      'highlights.issue_details.view_all_clicked',
-      expect.anything()
-    );
     const editButton = screen.getByRole('button', {name: 'Edit'});
     await userEvent.click(editButton);
     expect(analyticsSpy).toHaveBeenCalledWith(
@@ -90,7 +84,7 @@ describe('HighlightsDataSection', function () {
     render(<HighlightsDataSection event={event} project={project} />, {
       organization,
     });
-    expect(screen.getByText('Event Highlights')).toBeInTheDocument();
+    expect(screen.getByText('Highlights')).toBeInTheDocument();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     for (const tagKey of highlightTags) {
       const row = screen

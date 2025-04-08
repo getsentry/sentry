@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -221,7 +220,7 @@ function GroupEventDetails() {
                 {renderContent()}
               </MainLayoutComponent>
               {hasStreamlinedUI ? null : (
-                <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
+                <StyledLayoutSide>
                   <GroupSidebar
                     organization={organization}
                     project={project}
@@ -264,22 +263,15 @@ const StyledLayoutMain = styled(Layout.Main)`
   }
 `;
 
-const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
-  ${p =>
-    p.hasStreamlinedUi
-      ? css`
-          padding: ${space(1.5)} ${space(2)};
-        `
-      : css`
-          padding: ${space(3)} ${space(2)} ${space(3)};
-
-          @media (min-width: ${p.theme.breakpoints.large}) {
-            padding-right: ${space(4)};
-          }
-        `}
+const StyledLayoutSide = styled(Layout.Side)`
+  padding: ${space(3)} ${space(2)} ${space(3)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding-left: ${p => (p.hasStreamlinedUi ? space(0.5) : 0)};
+    padding-right: ${space(4)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    padding-left: 0;
   }
 `;
 

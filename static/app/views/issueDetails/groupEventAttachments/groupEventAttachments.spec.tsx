@@ -77,7 +77,11 @@ describe('GroupEventAttachments', function () {
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/group-id/attachments/',
       expect.objectContaining({
-        query: {screenshot: '1'},
+        query: {
+          screenshot: '1',
+          environment: [],
+          statsPeriod: '14d',
+        },
       })
     );
   });
