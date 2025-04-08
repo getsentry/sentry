@@ -11,6 +11,7 @@ import {
 import {
   AlternativeConfiguration,
   crashReportOnboardingPython,
+  getPythonProfilingOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
@@ -173,7 +174,7 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  profilingOnboarding: onboarding,
+  profilingOnboarding: getPythonProfilingOnboarding(),
   crashReportOnboarding: crashReportOnboardingPython,
 };
 

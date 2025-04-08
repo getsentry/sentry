@@ -12,6 +12,7 @@ import {
 import {
   crashReportOnboardingPython,
   featureFlagOnboarding,
+  getPythonProfilingOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
@@ -123,6 +124,7 @@ const docs: Docs = {
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,
+  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[sanic]'}),
 };
 
 export default docs;

@@ -14,6 +14,7 @@ import {
   AlternativeConfiguration,
   crashReportOnboardingPython,
   featureFlagOnboarding,
+  getPythonProfilingOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
@@ -179,7 +180,7 @@ asyncio.run(main())
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  profilingOnboarding: onboarding,
+  profilingOnboarding: getPythonProfilingOnboarding(),
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,

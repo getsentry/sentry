@@ -14,6 +14,7 @@ import {
   AlternativeConfiguration,
   crashReportOnboardingPython,
   featureFlagOnboarding,
+  getPythonProfilingOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
@@ -169,7 +170,7 @@ web.run_app(app)
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  profilingOnboarding: onboarding,
+  profilingOnboarding: getPythonProfilingOnboarding(),
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,

@@ -13,6 +13,7 @@ import {
 import {
   AlternativeConfiguration,
   crashReportOnboardingPython,
+  getPythonProfilingOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -201,7 +202,7 @@ def init_sentry(**_kwargs):
 
 const docs: Docs = {
   onboarding,
-  profilingOnboarding: onboarding,
+  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[celery]'}),
   crashReportOnboarding: crashReportOnboardingPython,
 };
 

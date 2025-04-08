@@ -210,7 +210,7 @@ const onboarding: OnboardingConfig = {
           description:
             params.docsLocation === DocsPageLocation.PROFILING_PAGE
               ? tct(
-                  'You need a minimum version [code:1.18.0] of the [code:sentry-python] SDK for the profiling feature.',
+                  'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
                   {
                     code: <code />,
                   }
@@ -420,7 +420,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 export const getPythonProfilingOnboarding = ({
-  basePackage = 'sentry_sdk',
+  basePackage = 'sentry-sdk',
 }: {
   basePackage?: string;
 } = {}): OnboardingConfig => ({
@@ -428,7 +428,7 @@ export const getPythonProfilingOnboarding = ({
     {
       type: StepType.INSTALL,
       description: tct(
-        'To enable profiling, update the Sentry SDK to a compatible version ([code:1.18.0] or higher).',
+        'To enable profiling, update the Sentry SDK to a compatible version ([code:2.24.1] or higher).',
         {
           code: <code />,
         }
@@ -436,7 +436,7 @@ export const getPythonProfilingOnboarding = ({
       configurations: [
         {
           language: 'bash',
-          code: getProfilingInstallSnippet(basePackage, '1.18.0'),
+          code: getProfilingInstallSnippet(basePackage, '2.24.1'),
         },
       ],
     },

@@ -14,6 +14,7 @@ import {
   AlternativeConfiguration,
   crashReportOnboardingPython,
   featureFlagOnboarding,
+  getPythonProfilingOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
@@ -161,7 +162,7 @@ run(app, host='localhost', port=8000)
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  profilingOnboarding: onboarding,
+  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[bottle]'}),
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,
