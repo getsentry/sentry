@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -55,12 +55,16 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
     def test_timestamp_order(self):
         logs = [
             self.create_ourlog(
-                {"body": "bar"},
+                {"body": "foo"},
                 timestamp=self.ten_mins_ago,
             ),
             self.create_ourlog(
-                {"body": "foo"},
-                timestamp=self.nine_mins_ago,
+                {"body": "bar"},
+                timestamp=self.ten_mins_ago + timedelta(microseconds=1),
+            ),
+            self.create_ourlog(
+                {"body": "baz"},
+                timestamp=self.ten_mins_ago + timedelta(microseconds=2),
             ),
         ]
         self.store_ourlogs(logs)
@@ -77,7 +81,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         meta = response.data["meta"]
-        assert len(data) == 2
+        assert len(data) == len(logs)
 
         for log, source in zip(data, logs):
             assert log["log.body"] == source["body"]
