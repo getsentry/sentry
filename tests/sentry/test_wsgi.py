@@ -5,10 +5,12 @@ SUBPROCESS_TEST_WGI_WARMUP = """
 import sys
 assert "sentry.conf.urls" not in sys.modules
 assert "sentry.middleware.integrations.parsers.plugin" not in sys.modules
+assert "sentry.sentry_apps.services.app.impl" not in sys.modules
 
 import sentry.wsgi
 assert "sentry.conf.urls" in sys.modules
 assert "sentry.middleware.integrations.parsers.plugin" in sys.modules
+assert "sentry.sentry_apps.services.app.impl" in sys.modules
 
 import django.urls.resolvers
 from django.conf import settings
