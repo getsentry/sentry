@@ -37,14 +37,29 @@ interface ContinuousProfilingBetaAlertBannerProps {
 export function ContinuousProfilingBetaAlertBanner({
   organization,
 }: ContinuousProfilingBetaAlertBannerProps) {
-  if (!organization.features.includes('continuous-profiling-beta-ui')) {
+  if (
+    !organization.features.includes('continuous-profiling-beta') ||
+    !organization.features.includes('continuous-profiling-beta-ui')
+  ) {
     return null;
   }
 
+  const subscriptionUrl = `/settings/${organization.slug}/billing/overview/`;
+
   return (
     <Alert.Container>
-      <StyledAlert type="warning" showIcon>
-        {t('Something something beta ending')}
+      <StyledAlert
+        type="warning"
+        showIcon
+        trailingItems={
+          <Button to={subscriptionUrl} size="xs">
+            {t('Setup Budget')}
+          </Button>
+        }
+      >
+        {t(
+          'Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date.'
+        )}
       </StyledAlert>
     </Alert.Container>
   );
