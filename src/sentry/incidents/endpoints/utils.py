@@ -22,12 +22,12 @@ threshold_translators = {
 }
 
 data_condition_type_translators = {
-    Condition.GREATER_OR_EQUAL: lambda threshold: threshold - 100,
-    Condition.LESS_OR_EQUAL: lambda threshold: 100 - threshold,
+    Condition.GREATER_OR_EQUAL.value: lambda threshold: threshold - 100,
+    Condition.LESS_OR_EQUAL.value: lambda threshold: 100 - threshold,
 }
 
 
-def translate_threshold(alert_rule: AlertRule, threshold: float | None):
+def translate_threshold(alert_rule: AlertRule, threshold: float | None) -> float | None:
     """
     Translates our internal percent representation into a delta percentage.
     For ABOVE: A percentage like 170% would become 70% increase
@@ -42,7 +42,7 @@ def translate_threshold(alert_rule: AlertRule, threshold: float | None):
 
 def translate_data_condition_type(
     comparison_delta: int, condition_type: str, threshold: float | None
-):
+) -> float | None:
     """
     Translates our internal percent representation into a delta percentage.
     For ABOVE: A percentage like 170% would become 70% increase
