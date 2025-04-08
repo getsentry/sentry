@@ -64,7 +64,7 @@ export const useUpdateGroupSearchView = (
       options.onSuccess?.(data, parameters, context);
     },
     onError: (error, variables, context) => {
-      addErrorMessage(t('Failed to update views'));
+      addErrorMessage(t('Failed to update view'));
       options.onError?.(error, variables, context);
     },
   });
