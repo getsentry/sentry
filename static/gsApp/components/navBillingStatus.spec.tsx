@@ -119,7 +119,18 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     ).toBeInTheDocument();
     expect(screen.getByRole('checkbox')).not.toBeChecked();
 
+    // reset
     subscription.onDemandMaxSpend = 0;
+  });
+
+  it('should not render for managed orgs', function () {
+    subscription.canSelfServe = false;
+    SubscriptionStore.set(organization.slug, subscription);
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(screen.queryByText('Quota Exceeded')).not.toBeInTheDocument();
+
+    // reset
+    subscription.canSelfServe = true;
   });
 
   it('should update prompts when checkbox is toggled', async function () {

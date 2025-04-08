@@ -159,6 +159,7 @@ function PrimaryNavigationQuotaExceeded({
   const shouldShow =
     prefersStackedNav &&
     exceededCategories.length > 0 &&
+    subscription.canSelfServe &&
     !subscription.hasOverageNotificationsDisabled;
   if (!shouldShow || isLoading || isError) {
     return null;
