@@ -29,7 +29,7 @@ class OrganizationGroupSearchViewStarredEndpointTest(APITestCase):
             user_id = self.user.id
 
         if visibility is None:
-            visibility = GroupSearchViewVisibility.OWNER
+            visibility = GroupSearchViewVisibility.ORGANIZATION
 
         view = GroupSearchView.objects.create(
             name="Test View",

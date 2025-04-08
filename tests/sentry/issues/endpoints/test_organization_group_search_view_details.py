@@ -1,7 +1,7 @@
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.silo.base import SiloMode
@@ -221,6 +221,7 @@ class OrganizationGroupSearchViewsDeleteStarredAndLastVisitedTest(APITestCase):
             user_id=self.user_1.id,
             name="User 1's View",
             query="is:unresolved",
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -240,6 +241,7 @@ class OrganizationGroupSearchViewsDeleteStarredAndLastVisitedTest(APITestCase):
             user_id=self.user_2.id,
             name="User 2's View",
             query="is:unresolved",
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
 
         GroupSearchViewStarred.objects.create(
@@ -435,6 +437,7 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
             name="Personal View",
             query="is:unresolved",
             query_sort="date",
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
 
         data = {

@@ -27,7 +27,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
                 user_id=self.user.id,
                 query=f"is:unresolved query:{i}",
                 query_sort="date",
-                visibility=GroupSearchViewVisibility.OWNER,
+                visibility=GroupSearchViewVisibility.ORGANIZATION,
             )
             self.views.append(view)
 
@@ -37,7 +37,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
             user_id=self.user.id,
             query="is:unresolved non_starred",
             query_sort="date",
-            visibility=GroupSearchViewVisibility.OWNER,
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
 
         self.user_2_view = GroupSearchView.objects.create(
@@ -46,7 +46,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
             user_id=self.user_2.id,
             query="is:unresolved user_2",
             query_sort="date",
-            visibility=GroupSearchViewVisibility.OWNER,
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
 
         self.shared_view = GroupSearchView.objects.create(
