@@ -186,7 +186,8 @@ def devserver(
             and ctx.get_parameter_source(p.name) == click.core.ParameterSource.COMMANDLINE
         }
 
-        sentry_sdk.set_context("devserver_options", passed_options)
+        for option_name, option_value in passed_options.items():
+            sentry_sdk.set_tag(f"devserver.{option_name}", option_value)
 
         if bind is None:
             bind = "127.0.0.1:8000"

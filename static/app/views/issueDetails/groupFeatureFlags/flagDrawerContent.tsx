@@ -1,14 +1,18 @@
 import {useMemo} from 'react';
 
+import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
 import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
+import {useGroupSuspectFlagScores} from 'sentry/views/issueDetails/groupFeatureFlags/useGroupSuspectFlagScores';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {
   Container,
@@ -23,6 +27,8 @@ function getSortedTags(tags: GroupTag[]) {
   // Alphabetical by key.
   return tags.toSorted((t1, t2) => t1.key.localeCompare(t2.key));
 }
+
+const SHOW_SCORES_LOCAL_STORAGE_KEY = 'flag-drawer-show-suspicion-scores';
 
 export default function FlagDrawerContent({
   group,
@@ -64,6 +70,30 @@ export default function FlagDrawerContent({
     return searchedTags;
   }, [data, search, tagValues]);
 
+  // Suspect flag scoring. This a rudimentary INTERNAL-ONLY display for testing our scoring algorithms.
+  const [showScores, setShowScores] = useLocalStorageState(
+    SHOW_SCORES_LOCAL_STORAGE_KEY,
+    '0'
+  );
+
+  const organization = useOrganization();
+  const scoresEnabled =
+    organization.features.includes('suspect-scores-sandbox-ui') &&
+    organization.features.includes('feature-flag-suspect-flags');
+
+  const {data: suspectScores} = useGroupSuspectFlagScores({
+    groupId: group.id,
+    environment: environments.length ? environments : undefined,
+    enabled: scoresEnabled && showScores === '1',
+  });
+
+  const suspectScoresMap = useMemo(() => {
+    return Object.fromEntries(
+      suspectScores?.data?.map(score => [score.flag, score.score]) ?? []
+    );
+  }, [suspectScores]);
+
+  // CTA logic
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === group.project.slug)!;
 
@@ -89,14 +119,24 @@ export default function FlagDrawerContent({
         : t('No feature flags were found for this search')}
     </StyledEmptyStateWarning>
   ) : (
-    <Container>
-      {displayTags.map(tag => (
-        <div key={tag.name}>
-          <FlagDetailsLink tag={tag} key={tag.name}>
-            <TagDistribution tag={tag} key={tag.name} />
-          </FlagDetailsLink>
-        </div>
-      ))}
-    </Container>
+    <div>
+      <Container>
+        {displayTags.map(tag => (
+          <div key={tag.key}>
+            <FlagDetailsLink tag={tag} key={tag.key}>
+              <TagDistribution tag={tag} key={tag.key} />
+            </FlagDetailsLink>
+            {scoresEnabled && showScores === '1' && (
+              <div>{`Suspicion Score: ${suspectScoresMap[tag.key] ?? 'unknown'}`}</div>
+            )}
+          </div>
+        ))}
+      </Container>
+      {scoresEnabled && (
+        <Button onClick={() => setShowScores(showScores === '1' ? '0' : '1')}>
+          {showScores === '1' ? t('Hide Suspicion Scores') : t('Show Suspicion Scores')}
+        </Button>
+      )}
+    </div>
   );
 }
