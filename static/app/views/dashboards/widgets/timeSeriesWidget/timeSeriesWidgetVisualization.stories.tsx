@@ -32,7 +32,7 @@ import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
-const sampleDurationTimeSeries2 = {
+const sampleDurationTimeSeriesP50: TimeSeries = {
   ...sampleDurationTimeSeries,
   field: 'p50(span.duration)',
   data: sampleDurationTimeSeries.data.map(datum => {
@@ -43,7 +43,7 @@ const sampleDurationTimeSeries2 = {
   }),
 };
 
-const sampleDurationTimeSeries3 = {
+const sampleDurationTimeSeriesP75: TimeSeries = {
   ...sampleDurationTimeSeries,
   field: 'p75(span.duration)',
   data: sampleDurationTimeSeries.data.map(datum => {
@@ -103,7 +103,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Area(sampleDurationTimeSeries),
-                new Area(sampleDurationTimeSeries2),
+                new Area(sampleDurationTimeSeriesP50),
               ]}
             />
           </SmallWidget>
@@ -111,7 +111,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Line(sampleDurationTimeSeries),
-                new Line(sampleDurationTimeSeries2),
+                new Line(sampleDurationTimeSeriesP50),
               ]}
             />
           </SmallWidget>
@@ -311,7 +311,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               plottables={[
                 new Line(shiftTimeSeriesToNow(sampleThroughputTimeSeries), {delay: 90}),
                 new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {delay: 90}),
-                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries2), {delay: 90}),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeriesP50), {delay: 90}),
               ]}
             />
           </MediumWidget>
@@ -373,7 +373,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                   },
                 }),
                 new Line({
-                  ...sampleDurationTimeSeries2,
+                  ...sampleDurationTimeSeriesP50,
                   field: 'custom_agg2(duration)',
                   meta: {
                     type: 'integer',
@@ -484,7 +484,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Bars(sampleDurationTimeSeries, {}),
-                new Bars(sampleDurationTimeSeries2, {}),
+                new Bars(sampleDurationTimeSeriesP50, {}),
               ]}
             />
           </MediumWidget>
@@ -492,7 +492,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Bars(sampleDurationTimeSeries, {stack: 'all'}),
-                new Bars(sampleDurationTimeSeries2, {stack: 'all'}),
+                new Bars(sampleDurationTimeSeriesP50, {stack: 'all'}),
               ]}
             />
           </MediumWidget>
@@ -507,8 +507,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <TimeSeriesWidgetVisualization
             plottables={[
               new Bars(sampleDurationTimeSeries, {stack: 'all'}),
-              new Bars(sampleDurationTimeSeries2, {stack: 'all'}),
-              new Bars(sampleDurationTimeSeries3),
+              new Bars(sampleDurationTimeSeriesP50, {stack: 'all'}),
+              new Bars(sampleDurationTimeSeriesP75),
             ]}
           />
         </LargeWidget>
@@ -521,7 +521,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       sampleDurationTimeSeries
     );
     const shiftedSampleDurationTimeSeries2 = shiftTimeSeriesToNow(
-      sampleDurationTimeSeries2
+      sampleDurationTimeSeriesP50
     );
 
     const delay = 60 * 60 * 3;
@@ -560,6 +560,38 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             />
           </MediumWidget>
         </SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Click Events', () => {
+    const [sampleId, setSampleId] = useState<string>();
+
+    const samplesPlottable = useMemo(() => {
+      return new Samples(shiftedSpanSamples, {
+        alias: 'Span Samples',
+        attributeName: 'p99(span.duration)',
+        baselineValue: 175,
+        baselineLabel: 'Average',
+        onClick: row => {
+          setSampleId(row.id);
+        },
+      });
+    }, []);
+
+    return (
+      <Fragment>
+        <p>
+          You can respond to chart click events by passing the <code>onClick</code>{' '}
+          configuration option, if it's supported by the relevant plottable. Right now,
+          only the <code>Samples</code> plottable supports this configuration option.
+        </p>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization plottables={[samplesPlottable]} />
+
+          <p>Clicked sample ID: {sampleId}</p>
+        </MediumWidget>
       </Fragment>
     );
   });
@@ -711,7 +743,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
 
     const durationTimeSeries2 = toTimeSeriesSelection(
-      sampleDurationTimeSeries2,
+      sampleDurationTimeSeriesP50,
       start,
       end
     );
@@ -739,7 +771,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
   story('Legends', () => {
     const [legendSelection, setLegendSelection] = useState<LegendSelection>({
-      p99: false,
+      'p99(span.duration)': false,
     });
 
     return (
@@ -771,8 +803,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Area(sampleDurationTimeSeries, {alias: 'p50'}),
-                new Area(sampleDurationTimeSeries2, {alias: 'p99'}),
+                new Area(sampleDurationTimeSeries, {alias: 'p99'}),
+                new Area(sampleDurationTimeSeriesP50, {alias: 'p50'}),
               ]}
               legendSelection={legendSelection}
               onLegendSelectionChange={setLegendSelection}
@@ -782,7 +814,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Area(sampleDurationTimeSeries, {alias: 'Duration'}),
-                new Area(sampleDurationTimeSeries2, {alias: 'Duration'}),
+                new Area(sampleDurationTimeSeriesP50, {alias: 'Duration'}),
               ]}
             />
           </MediumWidget>

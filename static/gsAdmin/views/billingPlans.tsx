@@ -20,22 +20,14 @@ export interface BillingPlansResponse {
   not_live: string[];
 }
 
-interface Plans {
-  [planTierId: string]: PlanTier;
-}
+type Plans = Record<string, PlanTier>;
 
-interface PlanTier {
-  [planName: string]: PlanDetails;
-}
+type PlanTier = Record<string, PlanDetails>;
 
 interface PlanDetails {
   data_categories_disabled: string[];
-  price_tiers: {
-    [dataCategory: string]: PriceTier[];
-  };
-  pricing: {
-    [platform: string]: Price;
-  };
+  price_tiers: Record<string, PriceTier[]>;
+  pricing: Record<string, Price>;
 }
 
 interface Price {
@@ -340,7 +332,7 @@ function PlanDetailsSection({
   );
 }
 
-function PricingTable({pricing}: {pricing: {[platform: string]: Price}}) {
+function PricingTable({pricing}: {pricing: Record<string, Price>}) {
   return (
     <Panel>
       <StyledResultTable>

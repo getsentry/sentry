@@ -21,6 +21,7 @@ import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {
+  EChartClickHandler,
   EChartDataZoomHandler,
   EChartHighlightHandler,
   ReactEchartsRef,
@@ -88,7 +89,6 @@ export interface TimeSeriesWidgetVisualizationProps {
    * Default: `auto`
    */
   showLegend?: 'auto' | 'never';
-
   /**
    * Show releases as either lines per release or a bubble for a group of releases.
    */
@@ -126,7 +126,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const {
     connectReleaseBubbleChartRef,
-    releaseBubbleEventHandlers,
     releaseBubbleSeries,
     releaseBubbleXAxis,
     releaseBubbleGrid,
@@ -502,7 +501,26 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
+  const handleClick: EChartClickHandler = event => {
+    const affectedRange = seriesIndexToPlottableRangeMap.getRange(event.seriesIndex);
+    const affectedPlottable = affectedRange?.value;
+
+    if (
+      !defined(affectedRange) ||
+      !defined(affectedPlottable) ||
+      !defined(affectedPlottable.onClick)
+    ) {
+      return;
+    }
+
+    affectedPlottable.onClick(
+      getPlottableEventDataIndex(allSeries, event, affectedRange)
+    );
+  };
+
   const handleHighlight: EChartHighlightHandler = event => {
+    // Unlike click events, highlights happen to potentially more than one
+    // series at a time. We have to iterate each item in the batch
     for (const batch of event.batch ?? []) {
       const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
       const affectedPlottable = affectedRange?.value;
@@ -515,29 +533,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         continue;
       }
 
-      // Each plottable creates anywhere from 1 to N `Series` objects.
-      // `batch.dataIndex` is the data index in the _series_, not in the
-      // plottable. e.g., If this is the third series of the plottable, the data
-      // index in the plottable needs to be offset by the data counts of the
-      // first two.
-      const dataIndexOffset: number = sum(
-        allSeries
-          .slice(affectedRange.min ?? 0, batch.seriesIndex)
-          .map(seriesOfPlottable => {
-            return Array.isArray(seriesOfPlottable.data)
-              ? seriesOfPlottable.data.length
-              : 0;
-          })
+      affectedPlottable.onHighlight(
+        getPlottableEventDataIndex(allSeries, batch, affectedRange)
       );
-
-      affectedPlottable.onHighlight(dataIndexOffset + batch.dataIndex);
     }
   };
 
   return (
     <BaseChart
       ref={mergeRefs(props.ref, chartRef, handleChartRef)}
-      {...releaseBubbleEventHandlers}
       autoHeightResize
       series={allSeries}
       grid={{
@@ -607,6 +611,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       period={period}
       utc={utc ?? undefined}
       onHighlight={handleHighlight}
+      onClick={handleClick}
     />
   );
 }
@@ -618,6 +623,35 @@ function LoadingPanel() {
       <LoadingIndicator mini />
     </LoadingPlaceholder>
   );
+}
+
+/**
+ * Each plottable creates anywhere from 1 to N `Series` objects. When an event fires on a `Series` object, ECharts reports a `dataIndex`. This index won't match the data inside inside the original `Plottable`, since it produced more than on `Series`. To map backwards, we need to calculate an offset, based on how many other `Series` this plottable produced.
+ *
+ * e.g., If this is the third series of the plottable, the data index in the plottable needs to be offset by the data counts of the first two.
+ *
+ * @param series All series plotted on the chart
+ * @param affectedRange The range of series that the plottable is responsible for
+ * @param seriesIndex The index of the series where the event fires
+ * @returns The offset, as a number, of how many points the previous series are responsible for
+ */
+function getPlottableEventDataIndex(
+  series: SeriesOption[],
+  event: {
+    dataIndex: number;
+    seriesIndex: number;
+  },
+  affectedRange: Range<Plottable>
+): number {
+  const {dataIndex, seriesIndex} = event;
+
+  const dataIndexOffset = sum(
+    series.slice(affectedRange.min ?? 0, seriesIndex).map(seriesOfPlottable => {
+      return Array.isArray(seriesOfPlottable.data) ? seriesOfPlottable.data.length : 0;
+    })
+  );
+
+  return dataIndexOffset + dataIndex;
 }
 
 const LoadingPlaceholder = styled('div')`

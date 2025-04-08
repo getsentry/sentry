@@ -70,21 +70,21 @@ function ThresholdTypeForm({
           <Select
             name="comparisonDelta"
             styles={{
-              container: (provided: {[x: string]: string | number | boolean}) => ({
+              container: (provided: Record<string, string | number | boolean>) => ({
                 ...provided,
                 marginLeft: space(1),
               }),
-              control: (provided: {[x: string]: string | number | boolean}) => ({
+              control: (provided: Record<string, string | number | boolean>) => ({
                 ...provided,
                 minHeight: 30,
                 minWidth: 500,
                 maxWidth: 1000,
               }),
-              valueContainer: (provided: {[x: string]: string | number | boolean}) => ({
+              valueContainer: (provided: Record<string, string | number | boolean>) => ({
                 ...provided,
                 padding: 0,
               }),
-              singleValue: (provided: {[x: string]: string | number | boolean}) => ({
+              singleValue: (provided: Record<string, string | number | boolean>) => ({
                 ...provided,
               }),
             }}
