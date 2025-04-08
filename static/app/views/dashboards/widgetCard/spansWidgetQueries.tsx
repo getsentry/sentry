@@ -84,8 +84,7 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
         const {sampleCount: calculatedSampleCount, isSampled: calculatedIsSampled} =
           determineSeriesSampleCountAndIsSampled(
             series,
-            Object.keys(result).filter(seriesName => seriesName.toLowerCase() !== 'other')
-              .length > 0
+            Object.keys(result).some(seriesName => seriesName.toLowerCase() !== 'other')
           );
         seriesSampleCount = calculatedSampleCount;
         seriesConfidence = combineConfidenceForSeries(series);

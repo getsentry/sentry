@@ -65,7 +65,7 @@ function getIntendedStackView(
   exception: ReturnType<typeof getThreadException>
 ): StackView {
   if (exception) {
-    return exception.values.find(value => !!value.stacktrace?.hasSystemFrames)
+    return exception.values.some(value => !!value.stacktrace?.hasSystemFrames)
       ? StackView.APP
       : StackView.FULL;
   }

@@ -145,7 +145,7 @@ function DetailsPage({
           </NameWithBadges>,
         ]}
       >
-        {actions.filter(a => a.visible !== false).length > 0 && (
+        {actions.some(a => a.visible !== false) && (
           <DropdownActions actions={actions} label={`${rootName} Actions`} />
         )}
       </PageHeader>

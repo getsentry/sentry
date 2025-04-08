@@ -669,7 +669,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
             ])
             .filter(([, initial]) => !!initial)
         )
-      : {};
+      : [];
   };
 
   handleResetRow = <T extends keyof IssueAlertRuleAction>(
@@ -1097,8 +1097,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                   ?.split(':')[1];
                 if (
                   ownerId &&
-                  nextSelectedProject.teams.find(({id}) => id === ownerId) ===
-                    undefined &&
+                  !nextSelectedProject.teams.some(({id}) => id === ownerId) &&
                   nextSelectedProject.teams.length
                 ) {
                   this.handleOwnerChange({value: nextSelectedProject.teams[0]!.id});

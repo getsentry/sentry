@@ -37,7 +37,7 @@ function TeamStatsHealth({location, router}: Props) {
 
   let localTeamId: string | null | undefined =
     query.team ?? localStorage.getItem(localStorageKey);
-  if (localTeamId && !teams.find(team => team.id === localTeamId)) {
+  if (localTeamId && !teams.some(team => team.id === localTeamId)) {
     localTeamId = null;
   }
   const currentTeamId = localTeamId ?? teams[0]?.id;

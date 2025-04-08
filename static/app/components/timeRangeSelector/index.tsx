@@ -351,10 +351,9 @@ export function TimeRangeSelector({
           trigger={
             trigger ??
             ((triggerProps, isOpen) => {
-              const relativeSummary =
-                items.findIndex(item => item.value === relative) > -1
-                  ? relative?.toUpperCase()
-                  : t('Invalid Period');
+              const relativeSummary = items.some(item => item.value === relative)
+                ? relative?.toUpperCase()
+                : t('Invalid Period');
               const defaultLabel =
                 start && end ? getAbsoluteSummary(start, end, utc) : relativeSummary;
 

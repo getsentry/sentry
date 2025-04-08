@@ -435,8 +435,7 @@ export function getFieldOptionFormat(
 ): [string, FieldValueOption] | null {
   if (field.kind === 'function') {
     // Show the ellipsis if there are parameters that actually have values
-    const ellipsis =
-      field.function.slice(1).map(Boolean).filter(Boolean).length > 0 ? '\u2026' : '';
+    const ellipsis = field.function.slice(1).some(Boolean) ? '\u2026' : '';
 
     const functionName = field.alias || field.function[0];
     return [

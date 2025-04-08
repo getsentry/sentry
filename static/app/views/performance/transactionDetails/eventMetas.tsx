@@ -97,7 +97,7 @@ class EventMetas extends Component<Props, State> {
     // to check for presence of both to show the replay link button here.
     const hasReplay =
       organization.features.includes('session-replay') &&
-      Boolean(event.entries.find(({type}) => type === 'breadcrumbs')) &&
+      event.entries.some(({type}) => type === 'breadcrumbs') &&
       Boolean(getReplayIdFromEvent(event));
 
     const type = isTransaction(event) ? 'transaction' : 'event';

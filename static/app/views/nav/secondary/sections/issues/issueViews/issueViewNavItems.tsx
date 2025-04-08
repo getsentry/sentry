@@ -59,7 +59,7 @@ export function IssueViewNavItems({
   const replaceWithPersistentViewIds = useCallback(
     (responseViews: GroupSearchView[]) => {
       const newlyCreatedViews = responseViews.filter(
-        view => !views.find(tab => tab.id === view.id)
+        view => !views.some(tab => tab.id === view.id)
       );
       if (newlyCreatedViews.length > 0) {
         const assignedIds = new Set();
