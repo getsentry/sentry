@@ -1826,8 +1826,10 @@ describe('trace view', () => {
       await userEvent.click(searchInput);
       await userEvent.paste('transaction-op-none');
       await searchToResolve();
-      // eslint-disable-next-line testing-library/no-container
-      expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
+      await waitFor(() => {
+        // eslint-disable-next-line testing-library/no-container
+        expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
+      });
     }, 20_000);
   });
 
