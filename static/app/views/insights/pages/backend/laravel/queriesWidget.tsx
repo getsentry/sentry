@@ -16,6 +16,7 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
+import {Referrer} from 'sentry/views/insights/pages/backend/laravel/referrers';
 import {
   ModalChartContainer,
   ModalTableWrapper,
@@ -72,6 +73,7 @@ export function QueriesWidget({query}: {query?: string}) {
           sort: '-avg(span.duration)',
           per_page: 3,
           useRpc: 1,
+          referrer: Referrer.QUERIES_CHART,
         },
       },
     ],
