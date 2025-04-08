@@ -425,7 +425,7 @@ describe('IssueRuleEditor', function () {
         projects: [ProjectFixture({environments: ['production', 'staging']})],
       });
 
-      // Add the release filter
+      // Add the adopted release filter
       await selectEvent.select(
         screen.getByText('Add optional filter...'),
         /The {oldest_or_newest} adopted release associated/
