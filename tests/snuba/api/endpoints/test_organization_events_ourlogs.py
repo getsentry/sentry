@@ -85,6 +85,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
 
         for log, source in zip(data, logs):
             assert log["log.body"] == source["body"]
+            assert "tags[sentry.timestamp_precise,number]" in log
+            assert "timestamp" in log
             ts = datetime.fromisoformat(log["timestamp"])
             assert ts.tzinfo == timezone.utc
             timestamp_from_nanos = source["timestamp_nanos"] / 1_000_000_000
