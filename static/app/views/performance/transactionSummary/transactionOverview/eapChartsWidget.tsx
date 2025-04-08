@@ -3,9 +3,11 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
-import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {useWidgetChartQuery} from 'sentry/views/performance/transactionSummary/transactionOverview/useWidgetChartQuery';
+import {SpanIndexedField} from 'sentry/views/insights/types';
+import {useWidgetChartVisualization} from 'sentry/views/performance/transactionSummary/transactionOverview/useWidgetChartVisualization';
 
 export enum EAPWidgetType {
   DURATION_BREAKDOWN = 'duration_breakdown',
@@ -15,21 +17,27 @@ export enum EAPWidgetType {
   WEB_VITALS = 'web_vitals',
 }
 
-const WIDGET_OPTIONS: Record<EAPWidgetType, {description: string; title: string}> = {
+const WIDGET_OPTIONS: Record<
+  EAPWidgetType,
+  {description: string; title: string; spanCategoryTitle?: string}
+> = {
   [EAPWidgetType.DURATION_BREAKDOWN]: {
     title: t('Duration Breakdown'),
+    spanCategoryTitle: t('Span Category Breakdown'),
     description: t(
       'Duration Breakdown reflects transaction durations by percentile over time.'
     ),
   },
   [EAPWidgetType.DURATION_PERCENTILES]: {
     title: t('Duration Percentiles'),
+    spanCategoryTitle: t('Span Category Percentiles'),
     description: t(
       `Compare the duration at each percentile. Compare with Latency Histogram to see transaction volume at duration intervals.`
     ),
   },
   [EAPWidgetType.DURATION_DISTRIBUTION]: {
     title: t('Duration Distribution'),
+    spanCategoryTitle: t('Span Category Distribution'),
     description: t(
       'Duration Distribution reflects the volume of transactions per median duration.'
     ),
@@ -46,33 +54,16 @@ const WIDGET_OPTIONS: Record<EAPWidgetType, {description: string; title: string}
   },
 };
 
-function getWidgetContents(widgetType: EAPWidgetType) {
-  const widget = WIDGET_OPTIONS[widgetType];
-  const {title, description} = widget;
+function getWidgetContents(widgetType: EAPWidgetType, spanCategory?: string) {
+  const {title, description, spanCategoryTitle} = WIDGET_OPTIONS[widgetType];
 
-  let visualization: React.ReactNode | null = null;
+  const content = {title, description};
 
-  switch (widgetType) {
-    case EAPWidgetType.DURATION_BREAKDOWN:
-      visualization = null;
-      break;
-    case EAPWidgetType.DURATION_PERCENTILES:
-      visualization = null;
-      break;
-    case EAPWidgetType.DURATION_DISTRIBUTION:
-      visualization = null;
-      break;
-    case EAPWidgetType.TRENDS:
-      visualization = null;
-      break;
-    case EAPWidgetType.WEB_VITALS:
-      visualization = null;
-      break;
-    default:
-      visualization = null;
+  if (spanCategory && spanCategoryTitle) {
+    content.title = `${spanCategoryTitle} — ${spanCategory}`;
   }
 
-  return {title, description, visualization};
+  return content;
 }
 
 type EAPChartsWidgetProps = {
@@ -83,6 +74,10 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
   const [selectedWidget, setSelectedWidget] = useState<EAPWidgetType>(
     EAPWidgetType.DURATION_BREAKDOWN
   );
+  const location = useLocation();
+  const spanCategoryUrlParam = decodeScalar(
+    location.query?.[SpanIndexedField.SPAN_CATEGORY]
+  );
 
   const options = useMemo(() => {
     return Object.entries(WIDGET_OPTIONS).map(([key, value]) => ({
@@ -91,9 +86,9 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
     }));
   }, []);
 
-  const {title, description} = getWidgetContents(selectedWidget);
+  const {title, description} = getWidgetContents(selectedWidget, spanCategoryUrlParam);
 
-  const {plottables, isPending, error} = useWidgetChartQuery({
+  const visualization = useWidgetChartVisualization({
     selectedWidget,
     transactionName,
   });
@@ -106,13 +101,7 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
           <Widget.WidgetDescription title={title} description={description} />
         </Widget.WidgetToolbar>
       }
-      Visualization={
-        isPending || error ? (
-          <TimeSeriesWidgetVisualization.LoadingPlaceholder />
-        ) : (
-          <TimeSeriesWidgetVisualization plottables={plottables} />
-        )
-      }
+      Visualization={visualization}
       Footer={
         <FooterContainer>
           <CompactSelect

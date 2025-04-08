@@ -10,6 +10,7 @@ from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.group import Group
+from sentry.notifications.notifications.rules import get_key_from_rule_data
 from sentry.notifications.utils.links import create_link_to_workflow
 
 OPSGENIE_API_VERSION = "v2"
@@ -44,8 +45,7 @@ class OpsgenieClient(ApiClient):
         workflow_urls = []
         for rule in rules:
             # fetch the workflow_id from the rule.data
-            workflow_id = rule.data.get("workflow_id")
-            assert workflow_id is not None
+            workflow_id = get_key_from_rule_data(rule, "workflow_id")
             workflow_urls.append(
                 organization.absolute_url(create_link_to_workflow(organization.id, workflow_id))
             )
@@ -57,9 +57,8 @@ class OpsgenieClient(ApiClient):
         for rule in rules:
             rule_id = rule.id
             if features.has("organizations:workflow-engine-trigger-actions", organization):
-                rule_id = rule.data.get("legacy_rule_id")
+                rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
 
-            assert rule_id is not None
             path = f"/organizations/{organization.slug}/alerts/rules/{group.project.slug}/{rule_id}/details/"
             rule_urls.append(organization.absolute_url(path))
         return rule_urls

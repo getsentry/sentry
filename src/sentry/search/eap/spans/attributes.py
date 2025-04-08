@@ -142,17 +142,17 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ),
         ResolvedAttribute(
             public_alias="profiler.id",
-            internal_name="profiler_id",
+            internal_name="sentry.profiler_id",
             search_type="string",
         ),
         ResolvedAttribute(
             public_alias="thread.id",
-            internal_name="thread.id",
+            internal_name="sentry.thread.id",
             search_type="string",
         ),
         ResolvedAttribute(
             public_alias="thread.name",
-            internal_name="thread.name",
+            internal_name="sentry.thread.name",
             search_type="string",
         ),
         ResolvedAttribute(
@@ -407,6 +407,12 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[
         for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
         if not definition.secondary_alias and definition.search_type != "string"
     },
+}
+
+SPANS_PRIVATE_ATTRIBUTES: set[str] = {
+    definition.internal_name
+    for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+    if definition.private
 }
 
 
