@@ -152,6 +152,7 @@ export const SPAN_FUNCTIONS = [
   'cache_hit_rate',
   'cache_miss_rate',
   'sum',
+  'failure_rate',
 ] as const;
 
 type BreakpointCondition = 'less' | 'greater';
