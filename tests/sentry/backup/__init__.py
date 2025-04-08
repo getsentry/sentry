@@ -30,7 +30,9 @@ def verify_models_in_output(expected_models: list[type[models.Model]], actual_js
 
     # Do a quick scan to ensure that at least one instance of each expected model is present.
     actual_model_names = {entry["model"] for entry in actual_json}
-    expected_model_types = {"sentry." + type.__name__.lower(): type for type in expected_models}
+    expected_model_types = {
+        type._meta.app_label + "." + type.__name__.lower(): type for type in expected_models
+    }
     expected_model_names = set(expected_model_types.keys())
     notfound = sorted(expected_model_names - actual_model_names)
     if len(notfound) > 0:

@@ -818,7 +818,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
             "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
             "sentry.integration": [DateUpdatedComparator("date_updated")],
-            "sentry.monitor": [UUID4Comparator("guid")],
             "sentry.orgauthtoken": [
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
             ],
@@ -926,6 +925,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "explore.exploresavedquerystarred": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
+            "monitors.monitor": [UUID4Comparator("guid")],
         },
     )
 
