@@ -2,6 +2,7 @@ from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.age import AgeComparisonType
+from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
 from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
@@ -120,7 +121,14 @@ class TestMigrateIssueAlerts(TestMigrations):
 
         self.issue_alert_no_valid_conditions = self.create_project_rule(
             name="test7",
-            condition_data=[invalid_conditions[0]],
+            condition_data=[
+                {
+                    "interval": "1h",
+                    "id": EventUniqueUserFrequencyConditionWithConditions.id,
+                    "value": -1,
+                    "comparisonType": "asdf",
+                }
+            ],
             frequency=5,
         )
 
