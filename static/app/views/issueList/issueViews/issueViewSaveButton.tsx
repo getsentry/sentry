@@ -9,11 +9,17 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
+import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
 import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
+import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
+import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
+import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 type IssueViewSaveButtonProps = {
@@ -27,8 +33,31 @@ function SegmentedIssueViewSaveButton({
   openCreateIssueViewModal: () => void;
 }) {
   const organization = useOrganization();
-  const {hasUnsavedChanges, discardUnsavedChanges} = useIssueViewUnsavedChanges();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {hasUnsavedChanges} = useIssueViewUnsavedChanges();
   const buttonPriority = hasUnsavedChanges ? 'primary' : 'default';
+  const {data: view} = useSelectedGroupSearchView();
+  const {mutate: updateGroupSearchView, isPending: isSaving} = useUpdateGroupSearchView();
+
+  const discardUnsavedChanges = () => {
+    if (view) {
+      navigate({
+        pathname: location.pathname,
+        query: getIssueViewQueryParams({view}),
+      });
+    }
+  };
+
+  const saveView = () => {
+    if (view) {
+      updateGroupSearchView({
+        id: view.id,
+        name: view.name,
+        ...createIssueViewFromUrl({query: location.query}),
+      });
+    }
+  };
 
   return (
     <ButtonBar merged>
@@ -36,6 +65,8 @@ function SegmentedIssueViewSaveButton({
         priority={buttonPriority}
         analyticsEventName="issue_views.save.clicked"
         data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
+        onClick={saveView}
+        disabled={isSaving}
       >
         {t('Save')}
       </PrimarySaveButton>
@@ -61,6 +92,7 @@ function SegmentedIssueViewSaveButton({
         trigger={props => (
           <DropdownTrigger
             {...props}
+            disabled={isSaving}
             icon={<IconChevron direction="down" />}
             aria-label={t('More save options')}
             priority={buttonPriority}
