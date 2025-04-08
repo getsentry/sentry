@@ -68,7 +68,7 @@ export function LogsTable({
     minimumColumnWidth: 50,
     prefixColumnWidth: 'min-content',
     staticColumnWidths: {
-      [OurLogKnownFieldKey.BODY]: '1fr',
+      [OurLogKnownFieldKey.MESSAGE]: '1fr',
     },
   });
 

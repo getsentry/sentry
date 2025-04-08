@@ -192,7 +192,7 @@ export function LogRowContent({
                   }
                 }}
                 allowActions={
-                  field === OurLogKnownFieldKey.BODY ? ALLOWED_CELL_ACTIONS : []
+                  field === OurLogKnownFieldKey.MESSAGE ? ALLOWED_CELL_ACTIONS : []
                 }
               >
                 <LogFieldRenderer
@@ -274,7 +274,7 @@ function LogRowDetails({
               </DetailsGrid>
               <DetailsFooter logColors={logColors}>
                 {LogBodyRenderer({
-                  item: getLogRowItem(OurLogKnownFieldKey.BODY, dataRow, meta),
+                  item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
                   extra: {
                     highlightTerms,
                     logColors,

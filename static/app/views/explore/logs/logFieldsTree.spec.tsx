@@ -73,8 +73,8 @@ describe('logFieldsTree', () => {
 
     expect(screen.getByTestId('tree-key-project.id')).toBeInTheDocument();
     expect(screen.getByTestId('tree-key-project.id')).toHaveTextContent('project_id');
-    expect(screen.getByTestId('tree-key-log.severity_number')).toBeInTheDocument();
-    expect(screen.getByTestId('tree-key-log.severity_number')).toHaveTextContent(
+    expect(screen.getByTestId('tree-key-severity_number')).toBeInTheDocument();
+    expect(screen.getByTestId('tree-key-severity_number')).toHaveTextContent(
       'severity_number'
     );
   });
