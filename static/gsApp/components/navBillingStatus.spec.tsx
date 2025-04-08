@@ -5,7 +5,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {setMockDate} from 'sentry-test/utils';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 
@@ -16,7 +16,6 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 const MOCK_TODAY = 1654492173000;
 
 describe('PrimaryNavigationQuotaExceeded', function () {
-  setMockDate(MOCK_TODAY);
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     organization,
@@ -42,6 +41,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
   let customerPutMock: jest.Mock;
 
   beforeEach(() => {
+    setMockDate(MOCK_TODAY);
     localStorage.clear();
     organization.access = [];
     MockApiClient.clearMockResponses();
@@ -107,6 +107,10 @@ describe('PrimaryNavigationQuotaExceeded', function () {
       `billing-status-last-shown-date-${organization.id}`,
       'Mon Jun 06 2022' // MOCK_TODAY
     );
+  });
+
+  afterEach(() => {
+    resetMockDate();
   });
 
   function assertLocalStorageStateAfterAutoOpen() {
