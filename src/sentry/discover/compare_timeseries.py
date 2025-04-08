@@ -3,12 +3,15 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, TypedDict
+from urllib.parse import urlencode
 
 import sentry_sdk
+from django.urls import reverse
 
 from sentry import features
 from sentry.api.bases.organization import NoProjects
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
+from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
@@ -26,6 +29,15 @@ from sentry.utils.snuba import SnubaTSResult
 logger = logging.getLogger(__name__)
 
 
+def format_api_call(organization_slug, **kwargs):
+    url = reverse(
+        "sentry-api-0-organization-events-stats",
+        kwargs={"organization_id_or_slug": organization_slug},
+    )
+
+    return url, urlencode({**kwargs})
+
+
 class MismatchType(Enum):
     SNQL_ALWAYS_ZERO = "snql_always_zero"
     RPC_ALWAYS_ZERO = "rpc_always_zero"
@@ -33,6 +45,8 @@ class MismatchType(Enum):
     RPC_ALWAYS_LOWER = "rpc_always_lower"
     MORE_SPIKY = "more_spiky"
     LESS_SPIKY = "less_spiky"
+    INCOMPATIBLE_METRICS = "incompatible_metrics"
+    INSUFFICIENT_DATA = "insufficient_data"
 
 
 def get_time_window_for_interval(interval: int):
@@ -54,6 +68,7 @@ def make_rpc_request(
     query: str,
     aggregate: str,
     snuba_params: SnubaParams,
+    organization: Organization,
 ) -> TSResultForComparison:
     query = apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, query, None)
 
@@ -69,6 +84,25 @@ def make_rpc_request(
         sampling_mode=None,
     )
 
+    assert snuba_params.start is not None
+    assert snuba_params.end is not None
+
+    with sentry_sdk.isolation_scope() as scope:
+        path, query = format_api_call(
+            organization.slug,
+            query=query_parts["query"],
+            useRpc=1,
+            project=snuba_params.project_ids[0],
+            yAxis=query_parts["selected_columns"][0],
+            dataset="spans",
+            interval=snuba_params.granularity_secs,
+            start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            sampling="BEST_EFFORT",
+        )
+        api_call = organization.absolute_url(path, query)
+        scope.set_extra("eap_call", api_call)
+
     return TSResultForComparison(result=results, agg_alias=query_parts["selected_columns"][0])
 
 
@@ -78,6 +112,7 @@ def make_snql_request(
     time_window: int,
     on_demand_metrics_enabled: bool,
     snuba_params: SnubaParams,
+    organization: Organization,
 ) -> TSResultForComparison:
     query = apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, query, None)
 
@@ -91,6 +126,23 @@ def make_snql_request(
         on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
         zerofill_results=True,
     )
+
+    assert snuba_params.start is not None
+    assert snuba_params.end is not None
+
+    with sentry_sdk.isolation_scope() as scope:
+        path, query = format_api_call(
+            organization.slug,
+            query=query,
+            project=snuba_params.project_ids[0],
+            yAxis=aggregate,
+            dataset="metrics",
+            interval=snuba_params.granularity_secs,
+            start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+        )
+        api_call = organization.absolute_url(path, query)
+        scope.set_extra("metrics_call", api_call)
 
     return TSResultForComparison(result=results, agg_alias=get_function_alias(aggregate))
 
@@ -183,6 +235,7 @@ def align_timeseries(snql_result: TSResultForComparison, rpc_result: TSResultFor
 def assert_timeseries_close(aligned_timeseries, alert_rule):
     mismatches: dict[int, dict[str, float]] = {}
     missing_buckets = 0
+    all_zeros = True
     for timestamp, values in aligned_timeseries.items():
         rpc_value = values["rpc_value"]
         snql_value = values["snql_value"]
@@ -196,6 +249,7 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
         if rpc_value + snql_value == 0:
             continue
 
+        all_zeros = False
         mismatch = abs(rpc_value - snql_value)
         average = (rpc_value + snql_value) / 2
         diff = mismatch / average
@@ -212,7 +266,6 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
     if mismatches:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_extra("mismatches", mismatches)
-            scope.set_extra("alert_id", alert_rule.id)
 
             scope.set_tag(
                 "buckets_mismatch.percentage", len(mismatches) / len(aligned_timeseries) * 100
@@ -229,18 +282,16 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
             sentry_sdk.capture_message("Timeseries mismatch", level="info")
             logger.info("Alert %s has too many mismatches", alert_rule.id)
 
-            return False, mismatches
+            return False, mismatches, all_zeros
 
     if missing_buckets > 1:
-        with sentry_sdk.isolation_scope() as scope:
-            scope.set_extra("alert_id", alert_rule.id)
-            sentry_sdk.capture_message("Multiple missing buckets", level="info")
-            logger.info("Alert %s has multiple missing buckets", alert_rule.id)
+        sentry_sdk.capture_message("Multiple missing buckets", level="info")
+        logger.info("Alert %s has multiple missing buckets", alert_rule.id)
 
-            return False, mismatches
+        return False, mismatches
 
     logger.info("Alert %s timeseries is close", alert_rule.id)
-    return True, mismatches
+    return True, mismatches, all_zeros
 
 
 def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
@@ -266,6 +317,10 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
         return {"skipped": True, "is_close": False}
 
     organization = Organization.objects.get_from_cache(id=project.organization_id)
+
+    with sentry_sdk.isolation_scope() as scope:
+        scope.set_tag("organization", organization.slug)
+        scope.set_extra("alert_id", alert_rule.id)
 
     on_demand_metrics_enabled = features.has(
         "organizations:on-demand-metrics-extraction",
@@ -293,18 +348,33 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
         snuba_query.query,
         snuba_query.aggregate,
         snuba_params=snuba_params,
+        organization=organization,
     )
 
-    snql_result = make_snql_request(
-        snuba_query.query,
-        snuba_query.aggregate,
-        time_window=snuba_query.time_window,
-        on_demand_metrics_enabled=on_demand_metrics_enabled,
-        snuba_params=snuba_params,
-    )
+    try:
+        snql_result = make_snql_request(
+            snuba_query.query,
+            snuba_query.aggregate,
+            time_window=snuba_query.time_window,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
+            snuba_params=snuba_params,
+            organization=organization,
+        )
+    except IncompatibleMetricsQuery:
+        with sentry_sdk.isolation_scope() as scope:
+            scope.set_tag("mismatch_type", MismatchType.INCOMPATIBLE_METRICS.value)
+            sentry_sdk.capture_message("Timeseries mismatch", level="info")
+
+        return {"is_close": False, "skipped": False, "mismatches": []}
 
     aligned_timeseries = align_timeseries(snql_result=snql_result, rpc_result=rpc_result)
+    is_close, mismatches, all_zeros = assert_timeseries_close(aligned_timeseries, alert_rule)
 
-    is_close, mismatches = assert_timeseries_close(aligned_timeseries, alert_rule)
+    if all_zeros:
+        with sentry_sdk.isolation_scope() as scope:
+            scope.set_tag("mismatch_type", MismatchType.INSUFFICIENT_DATA.value)
+            sentry_sdk.capture_message("Timeseries mismatch", level="info")
+
+        return {"is_close": False, "skipped": False, "mismatches": mismatches}
 
     return {"is_close": is_close, "skipped": False, "mismatches": mismatches}
