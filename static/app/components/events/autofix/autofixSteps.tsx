@@ -161,11 +161,27 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     const errorStep = steps.find(step => step.status === AutofixStatus.ERROR);
     const errorMessage = errorStep?.completedMessage || t('Something went wrong.');
 
+    // sugar coat common errors
+    let customErrorMessage = '';
+    if (errorMessage.toLowerCase().includes('overloaded')) {
+      customErrorMessage = t(
+        'The robots are having a moment. Our LLM provider is overloaded - please try again soon.'
+      );
+    } else {
+      customErrorMessage = t(
+        "Oops, Autofix went kaput. We've dispatched Autofix to fix Autofix. In the meantime, try again?"
+      );
+    }
+
     return (
       <ErrorContainer>
         <StyledArrow direction="down" size="sm" />
         <ErrorMessage>
-          <strong>{t('Something went wrong with Autofix:')}</strong> {errorMessage}
+          {customErrorMessage || (
+            <Fragment>
+              {t('Something went wrong with Autofix:')} {errorMessage}
+            </Fragment>
+          )}
         </ErrorMessage>
       </ErrorContainer>
     );
