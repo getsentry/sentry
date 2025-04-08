@@ -20,7 +20,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SchemaHintsPageParams} from 'sentry/views/explore/components/schemaHintsList';
-import {addFilterToQuery} from 'sentry/views/explore/components/schemaHintsList';
+import {
+  addFilterToQuery,
+  useOpenFilterValueDropdown,
+} from 'sentry/views/explore/components/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 
 type SchemaHintsDrawerProps = SchemaHintsPageParams & {
@@ -41,7 +44,7 @@ function SchemaHintsDrawer({
 
   const [currentQuery, setCurrentQuery] = useState(exploreQuery);
   const [currentTableColumns, setCurrentTableColumns] = useState(tableColumns);
-
+  const [lastSelectedKey, setLastSelectedKey] = useState<string | null>(null);
   const handleQueryAndTableColumnsChange = useCallback(
     (newQuery: MutableSearch, newTableColumns: string[]) => {
       setCurrentQuery(newQuery.formatString());
@@ -122,6 +125,7 @@ function SchemaHintsDrawer({
           .getFilterKeys()
           .some(key => key === hint.key || key === `!${hint.key}`)
       ) {
+        setLastSelectedKey(null);
         // remove hint and/or negated hint if it exists
         filterQuery.removeFilter(hint.key);
         filterQuery.removeFilter(`!${hint.key}`);
@@ -132,6 +136,7 @@ function SchemaHintsDrawer({
           hint,
           hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
         );
+        setLastSelectedKey(hint.key);
       }
 
       const newTableColumns = currentTableColumns.includes(hint.key)
@@ -146,6 +151,11 @@ function SchemaHintsDrawer({
       });
     },
     [currentQuery, currentTableColumns, handleQueryAndTableColumnsChange, organization]
+  );
+
+  useOpenFilterValueDropdown(
+    lastSelectedKey,
+    source === SchemaHintsSources.LOGS ? 'logsQuery' : 'query'
   );
 
   const noAttributesMessage = (

@@ -25,6 +25,7 @@ import {
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
 import {
   getSchemaHintsListOrder,
@@ -74,7 +75,7 @@ export function addFilterToQuery(
   isBoolean: boolean
 ) {
   filterQuery.addFilterValue(
-    isBoolean || tag.kind === FieldKind.MEASUREMENT ? tag.key : `!${tag.key}`,
+    tag.key,
     isBoolean ? 'True' : tag.kind === FieldKind.MEASUREMENT ? '>0' : ''
   );
 }
@@ -86,6 +87,45 @@ const FILTER_KEY_SECTIONS: Record<SchemaHintsSources, FilterKeySection[]> = {
 
 function getFilterKeySections(source: SchemaHintsSources) {
   return FILTER_KEY_SECTIONS[source];
+}
+
+export function useOpenFilterValueDropdown(key: string | null, source: string) {
+  const location = useLocation();
+  const previousLocation = usePrevious(location);
+
+  useEffect(() => {
+    if (key && previousLocation?.query[source] !== location.query[source]) {
+      const observer = new MutationObserver((_mutations, obs) => {
+        const filterValue = document.querySelector(
+          `[aria-label="Edit value for filter: ${key}"]`
+        );
+
+        if (filterValue) {
+          // Element found, trigger the click
+          filterValue.dispatchEvent(
+            new MouseEvent('click', {
+              view: window,
+              bubbles: true,
+              cancelable: true,
+              buttons: 1,
+            })
+          );
+          // Stop observing once we've found and clicked the element
+          obs.disconnect();
+        }
+      });
+
+      // Start observing the document for changes
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+
+      // Cleanup function to disconnect the observer
+      return () => observer.disconnect();
+    }
+    return () => {};
+  }, [key, location.query, previousLocation?.query, source]);
 }
 
 function SchemaHintsList({
@@ -102,6 +142,7 @@ function SchemaHintsList({
   const location = useLocation();
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
+  const [lastSelectedKey, setLastSelectedKey] = useState<string | null>(null);
 
   const functionTags = useMemo(() => {
     return getFunctionTags(supportedAggregates);
@@ -203,6 +244,11 @@ function SchemaHintsList({
     return () => resizeObserver.disconnect();
   }, [filterTagsSorted, isDrawerOpen]);
 
+  useOpenFilterValueDropdown(
+    lastSelectedKey,
+    source === SchemaHintsSources.LOGS ? 'logsQuery' : 'query'
+  );
+
   const onHintClick = useCallback(
     (hint: Tag) => {
       if (hint.key === seeFullListTag.key) {
@@ -288,6 +334,8 @@ function SchemaHintsList({
               fields: newTableColumns,
             }
       );
+
+      setLastSelectedKey(hint.key);
 
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
