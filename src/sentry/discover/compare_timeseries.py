@@ -68,6 +68,7 @@ def make_rpc_request(
     query: str,
     aggregate: str,
     snuba_params: SnubaParams,
+    organization: Organization,
 ) -> TSResultForComparison:
     query = apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, query, None)
 
@@ -83,9 +84,12 @@ def make_rpc_request(
         sampling_mode=None,
     )
 
+    assert snuba_params.start is not None
+    assert snuba_params.end is not None
+
     with sentry_sdk.isolation_scope() as scope:
         path, query = format_api_call(
-            snuba_params.organization.slug,
+            organization.slug,
             query=query_parts["query"],
             useRpc=1,
             project=snuba_params.project_ids[0],
@@ -96,7 +100,7 @@ def make_rpc_request(
             end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             sampling="BEST_EFFORT",
         )
-        api_call = snuba_params.organization.absolute_url(path, query)
+        api_call = organization.absolute_url(path, query)
         scope.set_extra("eap_call", api_call)
 
     return TSResultForComparison(result=results, agg_alias=query_parts["selected_columns"][0])
@@ -108,6 +112,7 @@ def make_snql_request(
     time_window: int,
     on_demand_metrics_enabled: bool,
     snuba_params: SnubaParams,
+    organization: Organization,
 ) -> TSResultForComparison:
     query = apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, query, None)
 
@@ -122,9 +127,12 @@ def make_snql_request(
         zerofill_results=True,
     )
 
+    assert snuba_params.start is not None
+    assert snuba_params.end is not None
+
     with sentry_sdk.isolation_scope() as scope:
         path, query = format_api_call(
-            snuba_params.organization.slug,
+            organization.slug,
             query=query,
             project=snuba_params.project_ids[0],
             yAxis=aggregate,
@@ -133,7 +141,7 @@ def make_snql_request(
             start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         )
-        api_call = snuba_params.organization.absolute_url(path, query)
+        api_call = organization.absolute_url(path, query)
         scope.set_extra("metrics_call", api_call)
 
     return TSResultForComparison(result=results, agg_alias=get_function_alias(aggregate))
@@ -340,6 +348,7 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
         snuba_query.query,
         snuba_query.aggregate,
         snuba_params=snuba_params,
+        organization=organization,
     )
 
     try:
@@ -349,6 +358,7 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
             time_window=snuba_query.time_window,
             on_demand_metrics_enabled=on_demand_metrics_enabled,
             snuba_params=snuba_params,
+            organization=organization,
         )
     except IncompatibleMetricsQuery:
         with sentry_sdk.isolation_scope() as scope:
