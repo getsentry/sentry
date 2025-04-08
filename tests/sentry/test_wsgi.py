@@ -1,16 +1,28 @@
 import subprocess
 import sys
 
-SUBPROCESS_TEST_WGI_WARMUP = """
+modules = [
+    "sentry.identity.services.identity.impl",
+    "sentry.integrations.services.integration.impl",
+    "sentry.middleware.integrations.parsers.plugin",
+    "sentry.notifications.services.impl",
+    "sentry.sentry_apps.services.app.impl",
+    "sentry.users.services.user.impl",
+    "sentry.users.services.user_option.impl",
+]
+
+assert_not_in_sys_modules = "\n".join(f'assert "{module}" not in sys.modules' for module in modules)
+
+assert_in_sys_modules = "\n".join(f'assert "{module}" in sys.modules' for module in modules)
+
+SUBPROCESS_TEST_WGI_WARMUP = f"""
 import sys
-assert "sentry.conf.urls" not in sys.modules
-assert "sentry.middleware.integrations.parsers.plugin" not in sys.modules
-assert "sentry.sentry_apps.services.app.impl" not in sys.modules
+
+{assert_not_in_sys_modules}
 
 import sentry.wsgi
-assert "sentry.conf.urls" in sys.modules
-assert "sentry.middleware.integrations.parsers.plugin" in sys.modules
-assert "sentry.sentry_apps.services.app.impl" in sys.modules
+
+{assert_in_sys_modules}
 
 import django.urls.resolvers
 from django.conf import settings
