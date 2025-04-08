@@ -21,6 +21,7 @@ import type {QueryValue} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Referrer} from 'sentry/views/insights/pages/backend/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -155,7 +156,7 @@ export function PathsTable({query}: {query?: string}) {
             'sum(transaction.duration)',
           ],
           query: `(transaction.op:http.server) event.type:transaction ${query}`,
-          referrer: 'api.performance.landing-table',
+          referrer: Referrer.PATHS_TABLE,
           orderby: getOrderBy(sortField, sortOrder),
           useRpc: 1,
           per_page: PER_PAGE,
@@ -192,6 +193,7 @@ export function PathsTable({query}: {query?: string}) {
           sort: '-transaction',
           useRpc: 1,
           per_page: PER_PAGE,
+          referrer: Referrer.PATHS_TABLE,
         },
       },
     ],
