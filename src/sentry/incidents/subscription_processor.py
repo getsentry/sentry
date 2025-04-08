@@ -422,7 +422,7 @@ class SubscriptionProcessor:
             packet = MetricDetectorUpdate(
                 entity=subscription_update.get("entity", ""),
                 subscription_id=subscription_update["subscription_id"],
-                values={"aggregation_value": aggregation_value},
+                values={"value": aggregation_value},
                 timestamp=self.last_update,
             )
             data_packet = DataPacket[MetricDetectorUpdate](

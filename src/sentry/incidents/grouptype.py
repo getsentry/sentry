@@ -65,7 +65,7 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
     def get_group_key_values(
         self, data_packet: DataPacket[MetricDetectorUpdate]
     ) -> dict[DetectorGroupKey, int]:
-        return {None: data_packet.packet["values"]["aggregation_value"]}
+        return {None: data_packet.packet["values"]["value"]}
 
 
 # Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something
