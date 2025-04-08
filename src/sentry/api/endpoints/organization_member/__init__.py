@@ -85,13 +85,12 @@ def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:
 
 
 def can_admin_team(access: Access, team: Team) -> bool:
-    if (
-        access.has_scope("org:write")
-        or access.has_scope("team:write")
+
+    return (
+        access.has_team_scope(team, "team:write")
+        or access.has_scope("org:write")
         or access.has_scope("member:write")
-    ):
-        return True
-    return access.has_team_scope(team, "team:write") or access.has_team_scope(team, "team:admin")
+    )
 
 
 def get_allowed_org_roles(
