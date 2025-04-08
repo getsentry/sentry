@@ -10,6 +10,66 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
+export const profilingOnboarding = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'We use the [code:stackprof] [stackprofLink:gem] to collect profiles for Ruby.',
+        {
+          code: <code />,
+          stackprofLink: <ExternalLink href="https://github.com/tmm1/stackprof" />,
+        }
+      ),
+      configurations: [
+        {
+          description: tct(
+            'First add [code:stackprof] to your [code:Gemfile] and make sure it is loaded before [code:sentry-ruby].',
+            {
+              code: <code />,
+            }
+          ),
+          language: 'ruby',
+          code: `
+gem 'stackprof'
+gem 'sentry-ruby'`,
+        },
+      ],
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Then, make sure both [code:traces_sample_rate] and [code:profiles_sample_rate] are set and non-zero in your Sentry initializer.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Ruby',
+              value: 'ruby',
+              filename: 'config/initializers/sentry.rb',
+              language: 'ruby',
+              code: `
+Sentry.init do |config|
+  config.dsn = "${params.dsn.public}"
+  config.traces_sample_rate = 1.0
+  config.profiles_sample_rate = 1.0
+end
+                   `,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+};
+
 const getInstallSnippet = (params: Params) =>
   `${params.isProfilingSelected ? 'gem "stackprof"\n' : ''}gem "sentry-ruby"`;
 
@@ -121,8 +181,8 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  profilingOnboarding: onboarding,
   crashReportOnboarding: CrashReportWebApiOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;
