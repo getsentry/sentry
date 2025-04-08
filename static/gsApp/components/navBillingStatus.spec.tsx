@@ -127,6 +127,9 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     subscription.canSelfServe = false;
     SubscriptionStore.set(organization.slug, subscription);
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(
+      screen.queryByRole('button', {name: 'Billing Status'})
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('Quota Exceeded')).not.toBeInTheDocument();
 
     // reset
