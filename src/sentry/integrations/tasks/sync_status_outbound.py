@@ -8,6 +8,7 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group, GroupStatus
+from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.taskworker.config import TaskworkerConfig
@@ -60,9 +61,21 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
     ).capture() as lifecycle:
         lifecycle.add_extra("sync_task", "sync_status_outbound")
         if installation.should_sync("outbound_status"):
-            installation.sync_status_outbound(
-                external_issue, group.status == GroupStatus.RESOLVED, group.project_id
+            lifecycle.add_extras(
+                {
+                    "organization_id": external_issue.organization_id,
+                    "integration_id": integration.id,
+                    "external_issue": external_issue_id,
+                    "status": group.status,
+                }
             )
+            try:
+                installation.sync_status_outbound(
+                    external_issue, group.status == GroupStatus.RESOLVED, group.project_id
+                )
+            except IntegrationFormError as e:
+                lifecycle.record_halt(halt_reason=e)
+                return None
             analytics.record(
                 "integration.issue.status.synced",
                 provider=integration.provider,
