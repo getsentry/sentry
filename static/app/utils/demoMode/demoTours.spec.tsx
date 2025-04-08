@@ -267,7 +267,7 @@ describe('DemoTours', () => {
       await userEvent.click(screen.getByTestId('end-issues'));
 
       expect(mockState[DemoTour.ISSUES].isCompleted).toBe(true);
-      expect(mockState[DemoTour.ISSUES].currentStepId).toBeNull();
+      expect(mockState[DemoTour.ISSUES].currentStepId).toBeUndefined();
 
       expect(recordFinish).toHaveBeenCalledWith(
         DemoTour.ISSUES,
@@ -326,7 +326,7 @@ describe('DemoTours', () => {
       await userEvent.click(screen.getByTestId('end-tour'));
 
       expect(mockState[DemoTour.SIDEBAR].isCompleted).toBe(true);
-      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBeNull();
+      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBeUndefined();
       expect(screen.getByTestId('tour-active')).toHaveTextContent('none');
       expect(screen.getByTestId('tour-completed')).toHaveTextContent('true');
 
