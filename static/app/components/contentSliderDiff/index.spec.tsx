@@ -1,24 +1,37 @@
+import {Fragment} from 'react';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as useDimensions from 'sentry/utils/useDimensions';
 
-import {ContentSliderDiff} from '.';
+import {ContentSliderDiff, type ContentSliderDiffBodyProps} from '.';
+
+const beforeHelpText = 'This is before help text';
+const afterHelpText = 'This is after help text';
+
+function MockComponent({
+  onDividerMouseDown,
+}: Pick<ContentSliderDiffBodyProps, 'onDividerMouseDown'>) {
+  return (
+    <Fragment>
+      <ContentSliderDiff.Header>
+        <ContentSliderDiff.BeforeLabel help={beforeHelpText} />
+        <ContentSliderDiff.AfterLabel help={afterHelpText} />
+      </ContentSliderDiff.Header>
+      <ContentSliderDiff.Body
+        before={<div>Before Content</div>}
+        after={<div>After Content</div>}
+        onDividerMouseDown={onDividerMouseDown}
+      />
+    </Fragment>
+  );
+}
 
 describe('ContentSliderDiff', function () {
   it('renders tooltip when help is provided', async function () {
     jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 300, height: 300});
 
-    const beforeHelpText = 'This is beforehelp text';
-    const afterHelpText = 'This is after help text';
-
-    render(
-      <ContentSliderDiff
-        beforeContent={<div>Before Content</div>}
-        afterContent={<div>After Content</div>}
-        beforeHelp={beforeHelpText}
-        afterHelp={afterHelpText}
-      />
-    );
+    render(<MockComponent />);
 
     // Before Tooltip
     await userEvent.hover(screen.getAllByTestId('more-information')[0]!);
@@ -34,13 +47,7 @@ describe('ContentSliderDiff', function () {
 
     const mockOnDividerMouseDown = jest.fn();
 
-    render(
-      <ContentSliderDiff
-        beforeContent={<div>Before Content</div>}
-        afterContent={<div>After Content</div>}
-        onDividerMouseDown={mockOnDividerMouseDown}
-      />
-    );
+    render(<MockComponent onDividerMouseDown={mockOnDividerMouseDown} />);
 
     // Ensure that 'Before' and 'After' labels are rendered correctly
     expect(screen.getByText('Before')).toBeInTheDocument();
@@ -60,12 +67,7 @@ describe('ContentSliderDiff', function () {
   it('does not render content when dimensions are zero', function () {
     jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 0, height: 0});
 
-    render(
-      <ContentSliderDiff
-        beforeContent={<div>Before Content</div>}
-        afterContent={<div>After Content</div>}
-      />
-    );
+    render(<MockComponent />);
 
     expect(screen.queryByTestId('before-content')).not.toBeInTheDocument();
   });
