@@ -90,7 +90,9 @@ describe('AutofixChanges', () => {
       />
     );
 
-    expect(screen.getByText('Could not find a fix.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Autofix had trouble applying its code changes.')
+    ).toBeInTheDocument();
   });
 
   it('renders changes with action buttons', () => {
