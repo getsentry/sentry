@@ -215,6 +215,9 @@ from sentry.issues.endpoints.organization_group_search_view_starred_order import
 from sentry.issues.endpoints.organization_group_suspect_flags import (
     OrganizationGroupSuspectFlagsEndpoint,
 )
+from sentry.issues.endpoints.organization_group_suspect_tags import (
+    OrganizationGroupSuspectTagsEndpoint,
+)
 from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
 from sentry.monitors.endpoints.organization_monitor_checkin_index import (
     OrganizationMonitorCheckInIndexEndpoint,
@@ -582,6 +585,7 @@ from .endpoints.organization_releases import (
 )
 from .endpoints.organization_request_project_creation import OrganizationRequestProjectCreation
 from .endpoints.organization_sampling_project_rates import OrganizationSamplingProjectRatesEndpoint
+from .endpoints.organization_sdk_deprecations import OrganizationSdkDeprecationsEndpoint
 from .endpoints.organization_sdk_updates import (
     OrganizationSdksEndpoint,
     OrganizationSdkUpdatesEndpoint,
@@ -785,6 +789,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/suspect/flags/$",
             OrganizationGroupSuspectFlagsEndpoint.as_view(),
             name=f"{name_prefix}-suspect-flags",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/suspect/tags/$",
+            OrganizationGroupSuspectTagsEndpoint.as_view(),
+            name=f"{name_prefix}-suspect-tags",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/(?:user-feedback|user-reports)/$",
@@ -1449,6 +1458,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-sdk-updates",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/sdk-deprecations/$",
+        OrganizationSdkDeprecationsEndpoint.as_view(),
+        name="sentry-api-0-organization-sdk-deprecations",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/sdks/$",
         OrganizationSdksEndpoint.as_view(),
         name="sentry-api-0-organization-sdks",
@@ -1828,12 +1842,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-group-search-view-visit",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-view/(?P<view_id>[^\/]+)/starred/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/(?P<view_id>[^\/]+)/starred/$",
         OrganizationGroupSearchViewStarredEndpoint.as_view(),
         name="sentry-api-0-organization-group-search-view-starred",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views-starred-order/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/starred/order/$",
         OrganizationGroupSearchViewStarredOrderEndpoint.as_view(),
         name="sentry-api-0-organization-group-search-view-starred-order",
     ),

@@ -32,6 +32,7 @@ import {
   LogTableBody,
   LogTableRow,
 } from 'sentry/views/explore/logs/styles';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
@@ -66,6 +67,9 @@ export function LogsTable({
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
     minimumColumnWidth: 50,
     prefixColumnWidth: 'min-content',
+    staticColumnWidths: {
+      [OurLogKnownFieldKey.MESSAGE]: '1fr',
+    },
   });
 
   const isEmpty = !isPending && !isError && (data?.length ?? 0) === 0;

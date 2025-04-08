@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import CommitHistoryPage from 'sentry/views/pipeline/coverage/commits/commitHistory';
+import CommitHistoryPage from 'sentry/views/codecov/coverage/commits/commitHistory';
 
 const COVERAGE_FEATURE = 'codecov-ui';
 

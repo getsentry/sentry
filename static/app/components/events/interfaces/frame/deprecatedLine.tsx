@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Chevron} from 'sentry/components/chevron';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -16,7 +15,7 @@ import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourc
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import StrictClick from 'sentry/components/strictClick';
-import {IconFix, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
@@ -322,7 +321,7 @@ function DeprecatedLine({
                 onClick={toggleContext}
                 borderless
               >
-                <Chevron direction={isExpanded ? 'up' : 'down'} size="medium" />
+                <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
               </ToggleContextButton>
             ) : (
               <div style={{width: 20, height: 20}} />

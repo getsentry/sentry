@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import CommitYamlPage from 'sentry/views/pipeline/coverage/commits/commitYaml';
+import CommitYamlPage from 'sentry/views/codecov/coverage/commits/commitYaml';
 
 const COVERAGE_FEATURE = 'codecov-ui';
 

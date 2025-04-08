@@ -55,7 +55,7 @@ function GroupListBody({
   const organization = useOrganization();
 
   if (loading) {
-    return <LoadingIndicator hideMessage />;
+    return <LoadingIndicator />;
   }
 
   if (error) {

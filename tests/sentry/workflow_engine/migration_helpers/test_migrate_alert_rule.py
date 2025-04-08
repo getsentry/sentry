@@ -21,10 +21,9 @@ from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
-from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     PRIORITY_MAP,
@@ -52,6 +51,7 @@ from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,
     DataCondition,
+    DataConditionAlertRuleTrigger,
     DataConditionGroup,
     DataConditionGroupAction,
     DataSource,
@@ -160,6 +160,10 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
         comparison=alert_rule_trigger.alert_threshold,
         condition_result=condition_result,
     )
+    assert DataConditionAlertRuleTrigger.objects.filter(
+        data_condition=detector_trigger,
+        alert_rule_trigger_id=alert_rule_trigger.id,
+    ).exists()
 
     assert (
         detector_trigger.type == Condition.GREATER
@@ -268,8 +272,12 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
     def create_metric_alert_lookup_tables(
         self, alert_rule: AlertRule, detector: Detector, workflow: Workflow
     ) -> tuple[AlertRuleDetector, AlertRuleWorkflow]:
-        alert_rule_detector = self.create_alert_rule_detector(alert_rule, detector)
-        alert_rule_workflow = self.create_alert_rule_workflow(alert_rule, workflow)
+        alert_rule_detector = self.create_alert_rule_detector(
+            alert_rule_id=alert_rule.id, detector=detector
+        )
+        alert_rule_workflow = self.create_alert_rule_workflow(
+            alert_rule_id=alert_rule.id, workflow=workflow
+        )
         return (
             alert_rule_detector,
             alert_rule_workflow,
@@ -353,6 +361,10 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
             type=detector_trigger_type,
             condition_group=detector_dcg,
         )
+        DataConditionAlertRuleTrigger.objects.create(
+            data_condition=detector_trigger,
+            alert_rule_trigger_id=alert_rule_trigger.id,
+        )
         data_condition_group = self.create_data_condition_group(organization=self.organization)
         self.create_workflow_data_condition_group(
             condition_group=data_condition_group, workflow=workflow
@@ -411,30 +423,11 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         data_condition_group_action = self.create_data_condition_group_action(
             action, action_filter.condition_group
         )
-        action_alert_rule_trigger_action = ActionAlertRuleTriggerAction.objects.create(
-            action_id=action.id,
+        action_alert_rule_trigger_action = self.create_action_alert_rule_trigger_action(
+            action=action,
             alert_rule_trigger_action_id=alert_rule_trigger_action.id,
         )
         return action, data_condition_group_action, action_alert_rule_trigger_action
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_alert_rule_detector(alert_rule: AlertRule, detector: Detector) -> AlertRuleDetector:
-        return AlertRuleDetector.objects.create(alert_rule_id=alert_rule.id, detector=detector)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_alert_rule_workflow(alert_rule: AlertRule, workflow: Workflow) -> AlertRuleWorkflow:
-        return AlertRuleWorkflow.objects.create(alert_rule_id=alert_rule.id, workflow=workflow)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_action_alert_rule_trigger_action(
-        action: Action, alert_rule_trigger_action: AlertRuleTriggerAction
-    ) -> ActionAlertRuleTriggerAction:
-        return ActionAlertRuleTriggerAction.objects.create(
-            action=action, alert_rule_trigger_action_id=alert_rule_trigger_action.id
-        )
 
 
 class DualWriteAlertRuleTest(APITestCase):
@@ -567,6 +560,9 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
         # check trigger objects
         assert not DataConditionGroup.objects.filter(id=action_filter_dcg.id).exists()
         assert not DataCondition.objects.filter(id=detector_trigger.id).exists()
+        assert not DataConditionAlertRuleTrigger.objects.filter(
+            data_condition=detector_trigger
+        ).exists()
         assert not DataCondition.objects.filter(id=action_filter.id).exists()
 
     @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")

@@ -17,8 +17,6 @@ const usorg = OrganizationFixture({
 });
 
 describe('AccountSecurityEnroll', function () {
-  jest.spyOn(window.location, 'assign').mockImplementation(() => {});
-
   describe('Totp', function () {
     const authenticator = AuthenticatorsFixture().Totp({
       isEnrolled: false,

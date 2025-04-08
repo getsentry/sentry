@@ -78,7 +78,7 @@ describe('ResourcesLandingPage', function () {
         "project": [],
         "query": "has:sentry.normalized_description span.module:resource !sentry.normalized_description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
         "referrer": "api.starfish.get-span-domains",
-        "sort": "-count",
+        "sort": "-count()",
         "statsPeriod": "10d",
       },
       "skipAbort": undefined,

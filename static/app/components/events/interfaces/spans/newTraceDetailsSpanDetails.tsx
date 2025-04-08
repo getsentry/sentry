@@ -100,8 +100,8 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
   const profileId = props.event.contexts.profile?.profile_id || '';
   const issues = useMemo(() => {
-    return [...props.node.errors, ...props.node.performance_issues];
-  }, [props.node.errors, props.node.performance_issues]);
+    return [...props.node.errors, ...props.node.occurences];
+  }, [props.node.errors, props.node.occurences]);
 
   const {projects} = useProjects();
   const project = projects.find(p => p.id === props.event.projectID);
@@ -126,7 +126,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
         <StyledDiscoverButton href="#" size="xs" disabled>
-          <StyledLoadingIndicator size={12} />
+          <StyledLoadingIndicator size={16} />
         </StyledDiscoverButton>
       );
     }
@@ -300,8 +300,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanErrorMessage() {
-    const hasErrors =
-      props.node.errors.size > 0 || props.node.performance_issues.size > 0;
+    const hasErrors = props.node.errors.size > 0 || props.node.occurences.size > 0;
 
     if (!hasErrors || isGapSpan(props.node.value)) {
       return null;
@@ -313,8 +312,8 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function partitionSizes(data: any): {
-    nonSizeKeys: {[key: string]: unknown};
-    sizeKeys: {[key: string]: number};
+    nonSizeKeys: Record<string, unknown>;
+    sizeKeys: Record<string, number>;
   } {
     const sizeKeys = SIZE_DATA_KEYS.reduce(
       (keys, key) => {
@@ -662,7 +661,6 @@ const ValueTd = styled('td')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   display: flex;
   align-items: center;
-  height: ${space(2)};
   margin: 0;
 `;
 
@@ -731,7 +729,7 @@ export function Row({
 }
 
 export function Tags({span}: {span: RawSpanType}) {
-  const tags: {[tag_name: string]: string} | undefined = span?.tags;
+  const tags: Record<string, string> | undefined = span?.tags;
 
   if (!tags) {
     return null;

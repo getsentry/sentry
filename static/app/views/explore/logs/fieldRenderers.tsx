@@ -9,6 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {stripLogParamsFromLocation} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   AlignedCellContent,
   ColoredLogCircle,
@@ -50,7 +51,6 @@ export interface RendererExtra {
   logColors: ReturnType<typeof getLogColors>;
   organization: Organization;
   align?: 'left' | 'center' | 'right';
-  renderSeverityCircle?: boolean;
   useFullSeverityText?: boolean;
   wrapBody?: true;
 }
@@ -81,17 +81,8 @@ export function SeverityTextRenderer(props: LogFieldRendererProps) {
   const useFullSeverityText = props.extra.useFullSeverityText ?? false;
   const level = getLogSeverityLevel(severityNumber, attribute_value);
   const levelLabel = useFullSeverityText ? attribute_value : severityLevelToText(level);
-  const renderSeverityCircle = props.extra.renderSeverityCircle ?? false;
   return (
     <AlignedCellContent align={props.align}>
-      {renderSeverityCircle && (
-        <SeverityCircle
-          level={level}
-          levelLabel={levelLabel}
-          severityText={attribute_value}
-          logColors={props.extra.logColors}
-        />
-      )}
       <ColoredLogText logColors={props.extra.logColors}>{levelLabel}</ColoredLogText>
     </AlignedCellContent>
   );
@@ -131,12 +122,13 @@ export function TimestampRenderer(props: LogFieldRendererProps) {
 
 export function TraceIDRenderer(props: LogFieldRendererProps) {
   const traceId = props.item.value as string;
+  const location = stripLogParamsFromLocation(props.extra.location);
   const target = getTraceDetailsUrl({
     traceSlug: traceId,
     timestamp: props.tableResultLogRow?.[OurLogKnownFieldKey.TIMESTAMP],
     organization: props.extra.organization,
     dateSelection: props.extra.location,
-    location: props.extra.location,
+    location,
     source: TraceViewSources.TRACES,
   });
   return <Link to={target}>{props.basicRendered}</Link>;
@@ -201,7 +193,7 @@ export const LogAttributesRendererMap: Record<
     return TimestampRenderer(props);
   },
   [OurLogKnownFieldKey.SEVERITY_TEXT]: SeverityTextRenderer,
-  [OurLogKnownFieldKey.BODY]: LogBodyRenderer,
+  [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
   [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
 };
 
