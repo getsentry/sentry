@@ -66,10 +66,8 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                 # Get the field from the path if available
                 error_message = e.message
                 if e.path:
-                    # Create a copy of the path to avoid modifying the original
-                    path = list(e.path)
-                    if path:
-                        error_message = error_messages.get(str(path.pop(0)), error_message)
+                    if field := e.path[0]:
+                        error_message = error_messages.get(str(field), error_message)
 
                 return Response({"error": error_message}, status=400)
             except Exception:
