@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -95,28 +96,26 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={title} />}
-      Actions={
-        <Widget.WidgetToolbar>
-          <Widget.WidgetDescription title={title} description={description} />
-        </Widget.WidgetToolbar>
-      }
-      Visualization={visualization}
-      Footer={
-        <FooterContainer>
+      Title={
+        <WidgetTitleWrapper>
           <CompactSelect
             options={options}
             value={selectedWidget}
             onChange={option => setSelectedWidget(option.value as EAPWidgetType)}
+            triggerProps={{borderless: true, size: 'md'}}
           />
-        </FooterContainer>
+          <Widget.WidgetDescription title={title} description={description} />
+        </WidgetTitleWrapper>
       }
+      Visualization={visualization}
+      revealActions="always"
     />
   );
 }
 
-const FooterContainer = styled('div')`
+const WidgetTitleWrapper = styled('div')`
   display: flex;
-  align-items: right;
-  justify-content: right;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: ${space(1)};
 `;
