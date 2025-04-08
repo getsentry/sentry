@@ -155,15 +155,12 @@ function ComboBox<Value extends string>({
     (event: React.FocusEvent<HTMLInputElement>) => {
       const onFocusProp = inputProps.onFocus;
       onFocusProp?.(event);
-      if (menuTrigger === 'focus') {
-        state.open();
-      }
       // Need to setTimeout otherwise Chrome might reset the selection on padding click
       setTimeout(() => {
         event.target.select();
       }, 0);
     },
-    [inputProps.onFocus, menuTrigger, state]
+    [inputProps.onFocus]
   );
 
   const InputComponent = growingInput ? StyledGrowingInput : StyledInput;
