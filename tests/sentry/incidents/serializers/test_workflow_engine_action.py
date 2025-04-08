@@ -26,19 +26,23 @@ class TestActionSerializer(TestCase):
         migrate_metric_data_conditions(self.critical_trigger)
         self.action, _, _ = migrate_metric_action(self.critical_trigger_action)
 
+        self.expected = {
+            "id": str(self.critical_trigger_action.id),
+            "alertRuleTriggerId": str(self.critical_trigger.id),
+            "type": "email",
+            "targetType": "user",
+            "targetIdentifier": str(self.user.id),
+            "inputChannelId": None,
+            "integrationId": None,
+            "sentryAppId": None,
+            "dateCreated": self.action.date_added,
+            "desc": f"Send a notification to {self.user.email}",
+            "priority": self.action.data.get("priority"),
+        }
+
     def test_simple(self) -> None:
         serialized_action = serialize(self.action, self.user, WorkflowEngineActionSerializer())
-        assert serialized_action["id"] == str(self.critical_trigger_action.id)
-        assert serialized_action["alertRuleTriggerId"] == str(self.critical_trigger.id)
-        assert serialized_action["type"] == "email"
-        assert serialized_action["targetType"] == "user"
-        assert serialized_action["targetIdentifier"] == str(self.user.id)
-        assert serialized_action["inputChannelId"] is None
-        assert serialized_action["integrationId"] is None
-        assert serialized_action["sentryAppId"] is None
-        assert serialized_action["dateCreated"] == self.action.date_added
-        assert serialized_action["desc"] == f"Send a notification to {self.user.email}"
-        assert serialized_action["priority"] == self.action.data.get("priority")
+        assert serialized_action == self.expected
 
     def test_warning_trigger(self) -> None:
         """
@@ -59,17 +63,15 @@ class TestActionSerializer(TestCase):
         serialized_action = serialize(
             self.warning_action, self.user, WorkflowEngineActionSerializer()
         )
-        assert serialized_action["id"] == str(self.warning_trigger_action.id)
-        assert serialized_action["alertRuleTriggerId"] == str(self.warning_trigger.id)
-        assert serialized_action["type"] == "email"
-        assert serialized_action["targetType"] == "team"
-        assert serialized_action["targetIdentifier"] == str(self.og_team.id)
-        assert serialized_action["inputChannelId"] is None
-        assert serialized_action["integrationId"] is None
-        assert serialized_action["sentryAppId"] is None
-        assert serialized_action["dateCreated"] == self.warning_action.date_added
-        assert serialized_action["desc"] == f"Send an email to members of #{self.og_team.slug}"
-        assert serialized_action["priority"] == self.warning_action.data.get("priority")
+        warning_expected = self.expected.copy()
+        warning_expected["id"] = str(self.warning_trigger_action.id)
+        warning_expected["alertRuleTriggerId"] = str(self.warning_trigger.id)
+        warning_expected["targetType"] = "team"
+        warning_expected["targetIdentifier"] = str(self.og_team.id)
+        warning_expected["dateCreated"] = self.warning_action.date_added
+        warning_expected["desc"] = f"Send an email to members of #{self.og_team.slug}"
+        warning_expected["priority"] = self.warning_action.data.get("priority")
+        assert serialized_action == warning_expected
 
     def test_sentry_app_action(self) -> None:
         sentry_app = self.create_sentry_app(
@@ -101,13 +103,16 @@ class TestActionSerializer(TestCase):
         serialized_action = serialize(
             self.sentry_app_action, self.user, WorkflowEngineActionSerializer()
         )
-        assert serialized_action["type"] == "sentry_app"
-        assert serialized_action["id"] == str(self.sentry_app_trigger_action.id)
-        assert serialized_action["alertRuleTriggerId"] == str(self.sentry_app_trigger.id)
-        assert serialized_action["targetType"] == "sentry_app"
-        assert serialized_action["targetIdentifier"] == sentry_app.id
-        assert serialized_action["sentryAppId"] == sentry_app.id
-        assert serialized_action["settings"] == self.sentry_app_action.data["settings"]
+        sentry_app_expected = self.expected.copy()
+        sentry_app_expected["type"] = "sentry_app"
+        sentry_app_expected["id"] = str(self.sentry_app_trigger_action.id)
+        sentry_app_expected["alertRuleTriggerId"] = str(self.sentry_app_trigger.id)
+        sentry_app_expected["targetType"] = "sentry_app"
+        sentry_app_expected["targetIdentifier"] = sentry_app.id
+        sentry_app_expected["sentryAppId"] = sentry_app.id
+        sentry_app_expected["settings"] = self.sentry_app_action.data["settings"]
+        sentry_app_expected["desc"] = f"Send a notification via {sentry_app.name}"
+        assert serialized_action == sentry_app_expected
 
     def test_slack_action(self) -> None:
         self.integration = self.create_slack_integration(
@@ -132,13 +137,15 @@ class TestActionSerializer(TestCase):
         serialized_action = serialize(
             self.slack_action, self.user, WorkflowEngineActionSerializer()
         )
-        assert serialized_action["type"] == self.integration.provider
-        assert serialized_action["id"] == str(self.slack_trigger_action.id)
-        assert serialized_action["alertRuleTriggerId"] == str(self.slack_trigger.id)
-        assert serialized_action["targetType"] == "specific"
-        assert serialized_action["targetIdentifier"] == self.slack_trigger_action.target_display
-        assert serialized_action["integrationId"] == self.integration.id
-        assert (
-            serialized_action["desc"]
-            == f"Send a Slack notification to {self.slack_trigger_action.target_display}"
+        slack_expected = self.expected.copy()
+        slack_expected["type"] = self.integration.provider
+        slack_expected["id"] = str(self.slack_trigger_action.id)
+        slack_expected["alertRuleTriggerId"] = str(self.slack_trigger.id)
+        slack_expected["targetType"] = "specific"
+        slack_expected["targetIdentifier"] = self.slack_trigger_action.target_display
+        slack_expected["inputChannelId"] = "123"
+        slack_expected["integrationId"] = self.integration.id
+        slack_expected["desc"] = (
+            f"Send a Slack notification to {self.slack_trigger_action.target_display}"
         )
+        assert serialized_action == slack_expected
