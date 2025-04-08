@@ -63,8 +63,8 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                 data = orjson.loads(request.body)
                 jsonschema.validate(data, schema)
             except jsonschema.ValidationError as e:
-                # Get the field from the path if available
                 error_message = e.message
+                # Get the field from the path if available
                 if e.path:
                     if field := e.path[0]:
                         error_message = error_messages.get(str(field), error_message)
