@@ -292,30 +292,28 @@ class DemoSafePermission(SentryPermission):
         request: Request,
         organization: RpcUserOrganizationContext | Organization | RpcOrganization,
     ) -> None:
+        if not is_demo_user(request.user):
+            return super().determine_access(request, organization)
 
         org_context: RpcUserOrganizationContext | None = None
         if isinstance(organization, RpcUserOrganizationContext):
             org_context = organization
         else:
             org_context = organization_service.get_organization_by_id(
-                id=extract_id_from(organization), user_id=request.user.id if request.user else None
+                id=extract_id_from(organization),
+                user_id=request.user.id if request.user else None,
             )
 
         assert org_context is not None, "Failed to fetch organization in determine_access"
 
-        if is_demo_user(request.user):
-            if org_context.member and is_demo_mode_enabled():
-                readonly_scopes = get_readonly_scopes()
-                org_context.member.scopes = sorted(readonly_scopes)
-                request.access = access.from_request_org_and_scopes(
-                    request=request,
-                    rpc_user_org_context=org_context,
-                    scopes=readonly_scopes,
-                )
-
-            return
-
-        return super().determine_access(request, org_context)
+        if org_context.member and is_demo_mode_enabled():
+            readonly_scopes = get_readonly_scopes()
+            org_context.member.scopes = sorted(readonly_scopes)
+            request.access = access.from_request_org_and_scopes(
+                request=request,
+                rpc_user_org_context=org_context,
+                scopes=readonly_scopes,
+            )
 
     def has_permission(self, request: Request, view: APIView) -> bool:
         if is_demo_user(request.user):
