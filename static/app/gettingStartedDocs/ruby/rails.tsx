@@ -14,7 +14,7 @@ import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {getProfilingOnboarding} from 'sentry/gettingStartedDocs/ruby/ruby';
+import {profilingOnboarding} from 'sentry/gettingStartedDocs/ruby/ruby';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -206,7 +206,7 @@ const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
-  profilingOnboarding: getProfilingOnboarding(),
+  profilingOnboarding,
 };
 
 export default docs;
