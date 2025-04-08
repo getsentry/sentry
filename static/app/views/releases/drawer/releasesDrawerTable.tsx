@@ -48,9 +48,9 @@ type ReleaseHealthGridItem = Pick<ReleaseHealthItem, 'date' | 'release' | 'error
 type Column = GridColumnHeader<keyof ReleaseHealthGridItem>;
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
-  {key: 'release', name: 'release', width: 400},
+  {key: 'release', name: 'release', width: 320},
   {key: 'error_count', name: 'new issues', width: 110},
-  {key: 'date', name: 'created'},
+  {key: 'date', name: 'created', width: 200},
 ];
 
 /**
