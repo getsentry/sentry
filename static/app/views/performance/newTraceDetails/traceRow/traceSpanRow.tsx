@@ -98,7 +98,7 @@ export function TraceSpanRow(
           color={makeTraceNodeBarColor(props.theme, props.node)}
           node_space={props.node.space}
           errors={props.node.errors}
-          performance_issues={props.node.performance_issues}
+          occurences={props.node.occurences}
           profiles={NO_PROFILES}
         />
         <button
