@@ -302,6 +302,16 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             secondary_alias=True,
         ),
+        ResolvedAttribute(
+            public_alias="sentry.sampling_weight",
+            internal_name="sentry.sampling_weight",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="sentry.sampling_factor",
+            internal_name="sentry.sampling_factor",
+            search_type="number",
+        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("environment"),
         simple_sentry_field("messaging.destination.name"),
