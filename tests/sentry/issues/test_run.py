@@ -1,3 +1,4 @@
+import sys
 from collections.abc import Mapping, MutableMapping
 from datetime import datetime
 from typing import Any
@@ -187,7 +188,7 @@ class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin, StatusChangeT
         strategy = OccurrenceStrategyFactory(
             mode="batched-parallel",
             max_batch_size=3,
-            max_batch_time=1,
+            max_batch_time=sys.maxsize,
         ).create_with_partitions(
             commit=mock_commit,
             partitions={},
@@ -327,7 +328,7 @@ class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin, StatusChangeT
         strategy = OccurrenceStrategyFactory(
             mode="batched-parallel",
             max_batch_size=3,
-            max_batch_time=1,
+            max_batch_time=sys.maxsize,
         ).create_with_partitions(
             commit=mock_commit,
             partitions={},
@@ -407,12 +408,7 @@ class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin, StatusChangeT
             strategy.terminate()
 
         calls = [mock.call({partition_1: 2, partition_2: 2})]
-        separate_calls = [mock.call({partition_1: 2}), mock.call({partition_2: 2})]
-
-        try:
-            mock_commit.assert_has_calls(calls=calls, any_order=True)
-        except AssertionError:
-            mock_commit.assert_has_calls(calls=separate_calls, any_order=True)
+        mock_commit.assert_has_calls(calls=calls, any_order=True)
 
         assert mock_save_issue_occurrence.call_count == 2
         occurrence_data1 = occurrence1.to_dict()
