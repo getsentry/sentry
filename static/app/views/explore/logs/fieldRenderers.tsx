@@ -203,7 +203,7 @@ export const LogAttributesRendererMap: Record<
     return TimestampRenderer(props);
   },
   [OurLogKnownFieldKey.SEVERITY_TEXT]: SeverityTextRenderer,
-  [OurLogKnownFieldKey.BODY]: LogBodyRenderer,
+  [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
   [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
 };
 

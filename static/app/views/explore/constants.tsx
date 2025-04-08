@@ -48,7 +48,7 @@ export const SENTRY_SPAN_NUMBER_TAGS: string[] = [
 export const SENTRY_LOG_STRING_TAGS: string[] = [
   OurLogKnownFieldKey.TRACE_ID,
   OurLogKnownFieldKey.ID,
-  OurLogKnownFieldKey.BODY,
+  OurLogKnownFieldKey.MESSAGE,
   OurLogKnownFieldKey.SEVERITY_TEXT,
   OurLogKnownFieldKey.ORGANIZATION_ID,
   OurLogKnownFieldKey.PROJECT_ID,
