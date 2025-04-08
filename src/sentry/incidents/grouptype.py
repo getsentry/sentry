@@ -28,7 +28,6 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         self, group_key: DetectorGroupKey, new_status: PriorityLevel
     ) -> tuple[DetectorOccurrence, EventData]:
         # Returning a placeholder for now, this may require us passing more info
-
         occurrence = DetectorOccurrence(
             issue_title="Some Issue Title",
             subtitle="An Issue Subtitle",
@@ -37,15 +36,8 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
             culprit="Some culprit",
         )
 
-        event_data = {
-            "timestamp": occurrence.detection_time,
-            "project_id": occurrence.project_id,
-            "event_id": occurrence.event_id,
-            "platform": "python",
-            "received": occurrence.detection_time,
-            "tags": {},
-        }
-        return occurrence, event_data
+        # TODO - Add any additional data we want
+        return occurrence, {}
 
     @property
     def counter_names(self) -> list[str]:
