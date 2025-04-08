@@ -4,7 +4,6 @@ import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
-import {getSortLabel} from 'sentry/views/issueList/utils';
 
 type IssueViewsTableProps = {
   isError: boolean;
@@ -26,17 +25,11 @@ export function IssueViewsTable({views, isPending, isError}: IssueViewsTableProp
           <SavedEntityTable.HeaderCell key="project">
             {t('Project')}
           </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell key="query">
-            {t('Query')}
-          </SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell key="envs">
             {t('Envs')}
           </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell key="time">
-            {t('Time')}
-          </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell key="sort">
-            {t('Sort')}
+          <SavedEntityTable.HeaderCell key="query">
+            {t('Query')}
           </SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell key="last-visited">
             {t('Last Viewed')}
@@ -64,18 +57,10 @@ export function IssueViewsTable({views, isPending, isError}: IssueViewsTableProp
             <SavedEntityTable.CellProjects projects={view.projects} />
           </SavedEntityTable.Cell>
           <SavedEntityTable.Cell>
-            <SavedEntityTable.CellQuery query={view.query} />
-          </SavedEntityTable.Cell>
-          <SavedEntityTable.Cell>
             <SavedEntityTable.CellEnvironments environments={view.environments} />
           </SavedEntityTable.Cell>
           <SavedEntityTable.Cell>
-            <SavedEntityTable.CellTimeFilters timeFilters={view.timeFilters} />
-          </SavedEntityTable.Cell>
-          <SavedEntityTable.Cell>
-            <SavedEntityTable.CellTextContent>
-              {getSortLabel(view.querySort)}
-            </SavedEntityTable.CellTextContent>
+            <SavedEntityTable.CellQuery query={view.query} />
           </SavedEntityTable.Cell>
           <SavedEntityTable.Cell>
             <SavedEntityTable.CellTimeSince date={view.lastVisited} />
@@ -87,5 +72,7 @@ export function IssueViewsTable({views, isPending, isError}: IssueViewsTableProp
 }
 
 const SavedEntityTableWithColumns = styled(SavedEntityTable)`
-  grid-template-columns: 40px 20% 100px minmax(0, 1fr) 100px 80px 90px auto;
+  grid-template-columns:
+    40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
+    auto;
 `;
