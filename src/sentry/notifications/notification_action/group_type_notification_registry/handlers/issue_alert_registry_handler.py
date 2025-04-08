@@ -1,7 +1,6 @@
 import logging
 
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.notifications.notification_action.exceptions import NotificationHandlerException
 from sentry.notifications.notification_action.registry import (
     group_type_notification_registry,
     issue_alert_handler_registry,
@@ -28,9 +27,9 @@ class IssueAlertRegistryHandler(LegacyRegistryHandler):
                 extra={"action_id": action.id},
             )
             raise
-        except Exception as e:
+        except Exception:
             logger.exception(
                 "Error invoking issue alert handler",
                 extra={"action_id": action.id},
             )
-            raise NotificationHandlerException(e)
+            raise
