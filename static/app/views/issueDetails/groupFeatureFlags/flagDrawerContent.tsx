@@ -78,8 +78,8 @@ export default function FlagDrawerContent({
 
   const organization = useOrganization();
   const scoresEnabled =
-    organization.features.includes('organizations:suspect-scores-sandbox-ui') &&
-    organization.features.includes('organizations:feature-flag-suspect-flags');
+    organization.features.includes('suspect-scores-sandbox-ui') &&
+    organization.features.includes('feature-flag-suspect-flags');
 
   const {data: suspectScores} = useGroupSuspectFlagScores({
     groupId: group.id,
