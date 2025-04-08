@@ -300,20 +300,18 @@ class CommitContextIntegration(ABC):
         self,
         repo: Repository,
         pr_key: str,
-        comment_body: str,
+        comment_data: dict[str, Any],
         pullrequest_id: int,
         issue_list: list[int],
         metrics_base: str,
         comment_type: int = CommentType.MERGED_PR,
         language: str | None = None,
-        github_copilot_actions: list[dict[str, Any]] | None = None,
     ):
         client = self.get_client()
 
-        pr_comment_query = PullRequestComment.objects.filter(
+        pr_comment = PullRequestComment.objects.filter(
             pull_request__id=pullrequest_id, comment_type=comment_type
-        )
-        pr_comment = pr_comment_query[0] if pr_comment_query.exists() else None
+        ).first()
 
         interaction_type = (
             SCMIntegrationInteractionType.CREATE_COMMENT
@@ -331,14 +329,7 @@ class CommitContextIntegration(ABC):
                 resp = client.create_comment(
                     repo=repo.name,
                     issue_id=str(pr_key),
-                    data=(
-                        {
-                            "body": comment_body,
-                            "actions": github_copilot_actions,
-                        }
-                        if github_copilot_actions
-                        else {"body": comment_body}
-                    ),
+                    data=comment_data,
                 )
 
                 current_time = django_timezone.now()
@@ -367,14 +358,7 @@ class CommitContextIntegration(ABC):
                     repo=repo.name,
                     issue_id=str(pr_key),
                     comment_id=pr_comment.external_id,
-                    data=(
-                        {
-                            "body": comment_body,
-                            "actions": github_copilot_actions,
-                        }
-                        if github_copilot_actions
-                        else {"body": comment_body}
-                    ),
+                    data=comment_data,
                 )
                 metrics.incr(
                     metrics_base.format(integration=self.integration_name, key="comment_updated")

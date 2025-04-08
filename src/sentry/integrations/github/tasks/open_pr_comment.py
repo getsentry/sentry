@@ -619,7 +619,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         installation.create_or_update_comment(
             repo=repo,
             pr_key=pull_request.key,
-            comment_body=comment_body,
+            comment_data={"body": comment_body},
             pullrequest_id=pull_request.id,
             issue_list=issue_id_list,
             comment_type=CommentType.OPEN_PR,

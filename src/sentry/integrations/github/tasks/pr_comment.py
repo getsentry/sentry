@@ -223,8 +223,12 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     top_24_issues = issue_list[:24]  # 24 is the P99 for issues-per-PR
 
     enabled_copilot = features.has("organizations:gen-ai-features", organization)
-    github_copilot_actions = (
-        [
+
+    comment_data = {
+        "body": comment_body,
+    }
+    if enabled_copilot:
+        comment_data["actions"] = [
             {
                 "name": f"Root cause #{i + 1}",
                 "type": "copilot-chat",
@@ -232,19 +236,15 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
             }
             for i, issue_id in enumerate(top_24_issues[:3])
         ]
-        if enabled_copilot
-        else None
-    )
 
     try:
         installation.create_or_update_comment(
             repo=repo,
             pr_key=pr_key,
-            comment_body=comment_body,
+            comment_data=comment_data,
             pullrequest_id=pullrequest_id,
             issue_list=top_24_issues,
             metrics_base=MERGED_PR_METRICS_BASE,
-            github_copilot_actions=github_copilot_actions,
         )
     except ApiError as e:
         cache.delete(cache_key)
