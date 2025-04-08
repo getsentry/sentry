@@ -119,8 +119,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         if request.GET.get("useReranking"):
             similar_issues_params["use_reranking"] = request.GET["useReranking"] == "true"
 
-        extra: dict[str, Any] = dict(similar_issues_params.copy())
-        logger.info("Similar issues embeddings parameters", extra=extra)
+        logger.info("Similar issues embeddings parameters", extra=similar_issues_params)
 
         results = get_similarity_data_from_seer(similar_issues_params)
 
