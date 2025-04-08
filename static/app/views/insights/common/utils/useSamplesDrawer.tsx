@@ -1,4 +1,4 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -96,13 +96,19 @@ export function useSamplesDrawer({
   const shouldDrawerOpen = requiredParams.every(paramName =>
     Boolean(location.query[paramName])
   );
+  const previousShouldDrawerOpen = useRef(shouldDrawerOpen);
 
   useEffect(() => {
     if (shouldDrawerOpen) {
       openSamplesDrawer();
-    } else {
+    } else if (previousShouldDrawerOpen.current) {
+      // Only close if drawer was previously open due to URL params. This
+      // should stop the case where a different drawer was open and this hook
+      // closes it because params don't match
       closeDrawer();
     }
+
+    previousShouldDrawerOpen.current = shouldDrawerOpen;
   }, [shouldDrawerOpen, openSamplesDrawer, closeDrawer]);
 }
 
