@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sentry_sdk
-from django.db.models import Case, IntegerField, When
+from django.db.models import Case, Count, F, IntegerField, When
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -127,6 +127,10 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
                 "-date_added",
             ]
 
+        elif sort_by == "mostStarred":
+            queryset = queryset.annotate(starred_count=Count("exploresavedquerystarred"))
+            order_by = ["-starred_count", "-date_added"]
+
         else:
             order_by = ["lower_name"]
 
@@ -139,11 +143,16 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         starred_queries = request.query_params.get("starred")
 
         if starred_queries == "1":
-            queryset = queryset.filter(
-                id__in=ExploreSavedQueryStarred.objects.filter(
-                    organization=organization, user_id=request.user.id
-                ).values_list("explore_saved_query_id", flat=True)
+            queryset = (
+                queryset.filter(
+                    id__in=ExploreSavedQueryStarred.objects.filter(
+                        organization=organization, user_id=request.user.id
+                    ).values_list("explore_saved_query_id", flat=True)
+                )
+                .annotate(position=F("exploresavedquerystarred__position"))
+                .order_by("position")
             )
+            order_by = ["position", "-date_added"]
 
         queryset = queryset.order_by(*order_by)
 
