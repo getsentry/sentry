@@ -39,7 +39,7 @@ export default function UserHealthRateChart() {
       isLoading={isPending}
       error={error}
       legendSelection={{
-        [aliases.healthy_user_rate]: false,
+        healthy_user_rate: false,
       }}
     />
   );

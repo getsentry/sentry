@@ -66,11 +66,6 @@ export function ExploreSecondaryNav() {
           >
             {t('Releases')}
           </SecondaryNav.Item>
-          <Feature features="performance-saved-queries">
-            <SecondaryNav.Item to={`${baseUrl}/saved-queries/`}>
-              {t('All Queries')}
-            </SecondaryNav.Item>
-          </Feature>
         </SecondaryNav.Section>
         <Feature features="performance-saved-queries">
           <SecondaryNav.Section title={t('Starred Queries')}>
@@ -83,6 +78,11 @@ export function ExploreSecondaryNav() {
                 {query.name}
               </SecondaryNav.Item>
             )) ?? null}
+          </SecondaryNav.Section>
+          <SecondaryNav.Section>
+            <SecondaryNav.Item to={`${baseUrl}/saved-queries/`}>
+              {t('All Queries')}
+            </SecondaryNav.Item>
           </SecondaryNav.Section>
         </Feature>
       </SecondaryNav.Body>
