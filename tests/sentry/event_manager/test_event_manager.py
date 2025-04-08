@@ -2649,12 +2649,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert "grouping.in_app_frame_mix" not in metrics_logged
 
     def test_chained_exception_handling(self) -> None:
-        concurrent_exception = {
+        concurrent_exception: dict[str, Any] = {
             "type": "ConcurrentModificationException",
             "module": "java.util",
             "stacktrace": {"frames": [{"module": "java.lang.Thread", "abs_path": "Thread.java"}]},
         }
-        runtime_exception = {
+        runtime_exception: dict[str, Any] = {
             "type": "RuntimeException",
             "value": "An error occurred while executing doInBackground()",
             "module": "java.lang",
@@ -2673,11 +2673,16 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             )
         ).save(self.project.id)
         assert sdk7_event.group is not None
+        assert sdk7_event.data.get("main_exception_id") is None
 
+        # In SDK 8 we have exception_ids and main_exception_id
         concurrent_exception["mechanism"] = {"type": "chained", "exception_id": 1, "parent_id": 0}
-
-        # No exception ID would group correctly
-        sdk8_event_no_exception_id = EventManager(
+        runtime_exception["mechanism"] = {
+            "type": "UncaughtExceptionHandler",
+            "handled": False,
+            "exception_id": 0,
+        }
+        sdk8_event = EventManager(
             make_event(
                 platform="java",
                 exception={
@@ -2688,40 +2693,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 },
             )
         ).save(self.project.id)
-        assert sdk8_event_no_exception_id.group is not None
-        assert sdk8_event_no_exception_id.group.id == sdk7_event.group.id
-
-        # The wrong exception ID leads to different group IDs
-        runtime_exception["mechanism"]["exception_id"] = 0
-        sdk8_event_wrong_exception_id = EventManager(
-            make_event(
-                platform="java",
-                exception={
-                    "values": [
-                        concurrent_exception,
-                        runtime_exception,
-                    ]
-                },
-            )
-        ).save(self.project.id)
-        assert sdk8_event_wrong_exception_id.group is not None
-        assert sdk8_event_wrong_exception_id.group.id != sdk7_event.group.id
-
-        # The correct exception ID leads to the same group ID
-        runtime_exception["mechanism"]["exception_id"] = 1
-        sdk8_event_correct_exception_id = EventManager(
-            make_event(
-                platform="java",
-                exception={
-                    "values": [
-                        concurrent_exception,
-                        runtime_exception,
-                    ]
-                },
-            )
-        ).save(self.project.id)
-        assert sdk8_event_correct_exception_id.group is not None
-        assert sdk8_event_correct_exception_id.group.id == sdk7_event.group.id
+        assert sdk8_event.group is not None
+        # This is what our customer is seeing
+        assert sdk8_event.group.id != sdk7_event.group.id
 
 
 class ReleaseIssueTest(TestCase):
