@@ -17,7 +17,7 @@ export function PlatformSelection(props: StepProps) {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
 
-  const {configureSdk} = useConfigureSdk({
+  const {configureSdk, isLoadingData} = useConfigureSdk({
     onComplete: props.onComplete,
   });
 
@@ -40,6 +40,7 @@ export function PlatformSelection(props: StepProps) {
           )}
         </p>
         <PlatformPicker
+          loading={isLoadingData}
           noAutoFilter
           visibleSelection={false}
           source="targeted-onboarding"
