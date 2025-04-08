@@ -8,6 +8,9 @@ import {
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
+import {decodeInteger} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 export default storyBook('GuidedSteps', story => {
   story('Default', () => (
@@ -108,6 +111,49 @@ export default storyBook('GuidedSteps', story => {
             </GuidedSteps.Step>
           </GuidedSteps>
         </SizingWindow>
+      </Fragment>
+    );
+  });
+
+  story('Show initial step based on url parameter', () => {
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    return (
+      <Fragment>
+        <p>
+          When the page loads, the component will display the current step based on the
+          URL parameter—if one is present. This is especially useful for scenarios like
+          onboarding flows with empty states, where preserving the step state across
+          refreshes helps improve the user experience. This is accomplished by passing a
+          value to the <code>initialStep</code> prop and updating the URL param by using
+          the <code>onStepChange</code> prop.
+        </p>
+        <GuidedSteps
+          initialStep={decodeInteger(location.query.guidedStep)}
+          onStepChange={step => {
+            navigate({
+              pathname: location.pathname,
+              query: {
+                ...location.query,
+                guidedStep: step,
+              },
+            });
+          }}
+        >
+          <GuidedSteps.Step title="Step 1 Title" stepKey="step-1">
+            This is the first step.
+            <GuidedSteps.StepButtons />
+          </GuidedSteps.Step>
+          <GuidedSteps.Step title="Step 2 Title" stepKey="step-2">
+            This is the second step.
+            <GuidedSteps.StepButtons />
+          </GuidedSteps.Step>
+          <GuidedSteps.Step title="Step 3 Title" stepKey="step-3">
+            This is the third step.
+            <GuidedSteps.StepButtons />
+          </GuidedSteps.Step>
+        </GuidedSteps>
       </Fragment>
     );
   });

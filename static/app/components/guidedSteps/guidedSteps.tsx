@@ -14,11 +14,13 @@ import {type BaseButtonProps, Button} from 'sentry/components/core/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import usePrevious from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
   children: React.ReactNode;
   className?: string;
+  initialStep?: number;
   onStepChange?: (step: number) => void;
 };
 
@@ -56,11 +58,12 @@ export function useGuidedStepsContext() {
 }
 
 function useGuidedStepsContentValue({
+  initialStep,
   onStepChange,
-}: Pick<GuidedStepsProps, 'onStepChange'>): GuidedStepsContextState {
+}: Pick<GuidedStepsProps, 'onStepChange' | 'initialStep'>): GuidedStepsContextState {
   const registeredStepsRef = useRef<RegisteredSteps>({});
   const [totalSteps, setTotalSteps] = useState<number>(0);
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [currentStep, setCurrentStep] = useState<number>(initialStep ?? 1);
 
   // Steps are registered on initial render to determine the step order and which step to start on.
   // This allows Steps to be wrapped in other components, but does require that they exist on first
@@ -96,10 +99,14 @@ function useGuidedStepsContentValue({
   }, [getFirstIncompleteStep]);
 
   // On initial load, set the current step to the first incomplete step
+  // if the initial step is not defined.
   useEffect(() => {
+    if (defined(initialStep)) {
+      return;
+    }
     const firstIncompleteStep = getFirstIncompleteStep();
     setCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
-  }, [getFirstIncompleteStep]);
+  }, [getFirstIncompleteStep, initialStep]);
 
   const handleSetCurrentStep = useCallback(
     (step: number) => {
@@ -202,8 +209,13 @@ function StepButtons({children}: {children?: React.ReactNode}) {
   );
 }
 
-export function GuidedSteps({className, children, onStepChange}: GuidedStepsProps) {
-  const value = useGuidedStepsContentValue({onStepChange});
+export function GuidedSteps({
+  className,
+  children,
+  onStepChange,
+  initialStep,
+}: GuidedStepsProps) {
+  const value = useGuidedStepsContentValue({onStepChange, initialStep});
 
   return (
     <GuidedStepsContext value={value}>
