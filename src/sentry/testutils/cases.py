@@ -3364,6 +3364,9 @@ class SpanTestCase(BaseTestCase):
         # coerce to string
         for tag, value in dict(span["tags"]).items():
             span["tags"][tag] = str(value)
+        if "sentry_tags" not in span:
+            span["sentry_tags"] = {}
+        span["sentry_tags"].update({"sdk.name": "sentry.test.sdk", "sdk.version": "1.0"})
         if measurements:
             span["measurements"] = measurements
         return span
@@ -3523,10 +3526,6 @@ class TraceTestCase(SpanTestCase):
                             {
                                 "segment_id": event.event_id[:16],
                                 "event_id": event.event_id,
-                                "sentry_tags": {
-                                    "sdk.name": "sentry.test.sdk",
-                                    "sdk.version": "1.0",
-                                },
                             }
                         )
                         spans_to_store.append(
