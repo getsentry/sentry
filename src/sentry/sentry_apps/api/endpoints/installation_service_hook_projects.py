@@ -65,13 +65,13 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
                 key=lambda x: x.project_id,
             )
 
-    def _delete_servicehookprojects(self, service_hook_id: int, project_ids: list[int]) -> None:
+    def _delete_servicehookprojects(self, service_hook_id: int, project_ids: set[int]) -> None:
         ServiceHookProject.objects.filter(
             service_hook_id=service_hook_id, project_id__in=project_ids
         ).delete()
 
     def _add_servicehookprojects(
-        self, service_hook_id: int, project_ids: list[int]
+        self, service_hook_id: int, project_ids: set[int]
     ) -> list[ServiceHookProject]:
         res = []
         for project_id in project_ids:
