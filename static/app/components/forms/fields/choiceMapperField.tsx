@@ -50,6 +50,7 @@ export interface ChoiceMapperProps extends DefaultProps {
    */
   addDropdown: Omit<SingleSelectProps<string>, 'options'> & {
     items: Array<SelectOption<string>>;
+    noResultsMessage?: string;
   };
   /**
    * A list of column labels (headers) for the multichoice table. This should
@@ -177,8 +178,15 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
 
     const dropdown = (
       <CompactSelect
+        {...addDropdown}
+        emptyMessage={
+          selectableValues.length === 0
+            ? addDropdown.emptyMessage
+            : addDropdown.noResultsMessage
+        }
         size="xs"
         searchable
+        disabled={false}
         options={selectableValues}
         menuWidth={250}
         onChange={addRow}

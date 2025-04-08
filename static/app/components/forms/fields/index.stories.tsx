@@ -149,11 +149,12 @@ export default storyBook('Form', story => {
           columnLabels={{thing_1: 'Thing 1', thing_2: 'Thing 2'}}
           onChange={() => {}}
           addDropdown={{
+            emptyMessage: 'All items mapped',
+            noResultsMessage: 'No options found',
             items: [
               {value: 'mapped_1', label: 'Mapped 1'},
               {value: 'mapped_2', label: 'Mapped 2'},
             ],
-            children: () => 'Add',
           }}
           mappedSelectors={{}}
         />
