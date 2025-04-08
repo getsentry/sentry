@@ -13,7 +13,13 @@ import {
   type RawFlagData,
 } from 'sentry/views/issueDetails/streamline/featureFlagUtils';
 
-export default function useSuspectFlags({
+/**
+ * Legacy suspect flags implementation.
+ *
+ * Returns up to 3 recently changed flags from the intersection of A) the flags on one EVENT (rawFlagData) and
+ * B) organization audit logs (queried from /logs/).
+ */
+export default function useLegacyEventSuspectFlags({
   organization,
   firstSeen,
   rawFlagData,
