@@ -7,10 +7,14 @@ import {
 import {mapWebVitalToOrderBy} from 'sentry/views/insights/browser/webVitals/utils/mapWebVitalToOrderBy';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {useDiscoverDataset} from 'sentry/views/insights/common/queries/useDiscover';
+import {
+  useDiscoverDataset,
+  useEAPSpans,
+} from 'sentry/views/insights/common/queries/useDiscover';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {
   type DiscoverProperty,
+  type EAPSpanProperty,
   SpanIndexedField,
   type SubregionCode,
 } from 'sentry/views/insights/types';
@@ -67,7 +71,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     );
   }
 
-  const eapResult = useDiscoverDataset(
+  const eapResult = useEAPSpans(
     {
       sorts: [sort],
       search: mutableSearch.formatString(),
@@ -91,7 +95,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
           ? ([
               `measurements.score.${webVital}`,
               `measurements.score.weight.${webVital}`,
-            ] as DiscoverProperty[])
+            ] as EAPSpanProperty[])
           : []),
       ],
     },

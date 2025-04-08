@@ -79,10 +79,12 @@ export type SpanNumberFields =
   | SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY
   | SpanMetricsField.CACHE_ITEM_SIZE
   | SpanMetricsField.PRECISE_START_TS
-  | SpanMetricsField.PRECISE_FINISH_TS;
+  | SpanMetricsField.PRECISE_FINISH_TS
+  | DiscoverNumberFields;
 
 export type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
+  | 'id'
   | 'span_id'
   | 'span.op'
   | 'span.description'
