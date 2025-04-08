@@ -1,16 +1,19 @@
 import {Fragment, type MouseEventHandler} from 'react';
-import {css, type Theme} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonLabel} from 'sentry/components/core/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
+import Link, {type LinkProps} from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,7 +27,7 @@ interface SidebarItemLinkProps {
   to: string;
   activeTo?: string;
   children?: React.ReactNode;
-  onClick?: MouseEventHandler<HTMLElement>;
+  onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
 interface SidebarItemDropdownProps {
@@ -39,8 +42,8 @@ interface SidebarButtonProps {
   analyticsKey: string;
   children: React.ReactNode;
   label: string;
-  buttonProps?: React.HTMLAttributes<HTMLElement>;
-  onClick?: MouseEventHandler<HTMLElement>;
+  buttonProps?: React.HTMLAttributes<HTMLButtonElement>;
+  onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
 function recordPrimaryItemClick(analyticsKey: string, organization: Organization) {
@@ -50,21 +53,18 @@ function recordPrimaryItemClick(analyticsKey: string, organization: Organization
   });
 }
 
-export function SidebarItem({
-  children,
-  label,
-  showLabel,
-  ...props
-}: {
+interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   children: React.ReactNode;
   label: string;
   showLabel: boolean;
-} & React.HTMLAttributes<HTMLElement>) {
+}
+
+export function SidebarItem({children, label, showLabel, ...props}: SidebarItemProps) {
   const {layout} = useNavContext();
   return (
     <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '14px' : '19px'}>
       <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={0}>
-        <li {...props}>{children}</li>
+        <SidebarListItem {...props}>{children}</SidebarListItem>
       </Tooltip>
     </IconDefaultsProvider>
   );
@@ -167,7 +167,7 @@ export function SidebarButton({
         {...buttonProps}
         isMobile={layout === NavLayout.MOBILE}
         aria-label={showLabel ? undefined : label}
-        onClick={(e: React.MouseEvent<HTMLElement>) => {
+        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           recordPrimaryItemClick(analyticsKey, organization);
           buttonProps.onClick?.(e);
           onClick?.(e);
@@ -188,6 +188,26 @@ export function SeparatorItem() {
     </SeparatorListItem>
   );
 }
+
+const SidebarListItem = styled('li')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const SeparatorListItem = styled('li')`
+  list-style: none;
+  width: 100%;
+  padding: 0 ${space(1.5)};
+`;
+
+const Separator = styled('hr')`
+  outline: 0;
+  border: 0;
+  height: 1px;
+  background: ${p => p.theme.innerBorder};
+  margin: 0;
+`;
 
 const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   display: flex;
@@ -210,7 +230,7 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   }
 
   &:focus-visible {
-    box-shadow: 0 0 0 2px ${p.theme.button.default.focusBorder};
+    box-shadow: 0 0 0 2px ${p.theme.focusBorder};
     color: currentColor;
   }
 
@@ -229,29 +249,134 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   `}
 `;
 
-const NavLinkIconContainer = styled('span')`
-  position: relative;
+const ChonkNavLinkIconContainer = chonkStyled('span')`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 32px;
-  border-radius: ${p => p.theme.borderRadius};
-  overflow: hidden;
+  padding: ${space(1)} ${space(1)};
+  margin-bottom: ${space(0.5)};
+  border-radius: ${p => p.theme.radius.lg};
+`;
+
+const NavLinkIconContainer = withChonk(
+  styled('span')`
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 32px;
+    border-radius: ${p => p.theme.borderRadius};
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: currentColor;
+      opacity: 0;
+    }
+  `,
+  ChonkNavLinkIconContainer
+);
+
+const NavLinkLabel = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const ChonkNavLink = chonkStyled(Link, {
+  shouldForwardProp: prop => prop !== 'isMobile',
+})<{isMobile: boolean}>`
+  width: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: ${space(0.75)} ${space(1.5)};
+
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightNormal};
+
+  /* Disable default link focus styles */
+  outline: none;
+  box-shadow: none;
+  transition: none;
 
   &::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: currentColor;
+    top: 10px;
+    left: 0px;
+    width: 4px;
+    height: 26px;
+    border-radius: ${p => p.theme.radius.micro};
+    background-color: ${p => p.theme.colors.blue400};
+    transition: opacity 0.1s ease-in-out;
     opacity: 0;
+  }
+
+  &:active,
+  &:focus-visible {
+    outline: none;
+    box-shadow: none;
+    color: currentColor;
+  }
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    color: currentColor;
+
+    ${NavLinkIconContainer} {
+      outline: none;
+      box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};
+      background-color: ${p => p.theme.colors.blue100};
+    }
+  }
+
+  &[aria-selected='true'] {
+    &::before {
+      opacity: 1;
+    }
+    color: ${p => p.theme.purple400};
+
+    ${NavLinkIconContainer} {
+      background-color: ${p => p.theme.colors.blue100};
+    }
+  }
+
+  &:hover[aria-selected='true'] {
+    &::before {
+      opacity: 1;
+    }
+    ${NavLinkIconContainer} {
+      background-color: ${p => p.theme.colors.blue100};
+    }
+  }
+
+  &:hover:not([aria-selected='true']) {
+    color: ${p => p.theme.textColor};
+    ${NavLinkIconContainer} {
+      background-color: ${p => p.theme.colors.gray100};
+    }
   }
 `;
 
-export const NavLink = styled(Link, {
+interface NavLinkProps extends LinkProps {
+  isMobile: boolean;
+}
+
+const StyledNavLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
   ${baseNavItemStyles}
@@ -294,15 +419,27 @@ export const NavLink = styled(Link, {
     `}
 `;
 
-const NavLinkLabel = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+export const NavLink = styled((p: NavLinkProps) => {
+  const theme = useTheme();
+  if (theme.isChonk) {
+    return <ChonkNavLink {...p} />;
+  }
+  return <StyledNavLink {...p} />;
+})``;
+
+const ChonkNavButton = styled(Button, {
+  shouldForwardProp: prop => prop !== 'isMobile',
+})<{isMobile: boolean}>`
+  height: 44px;
+  width: 44px;
+
+  /* Disable interactionstatelayer hover */
+  ${ButtonLabel} span:first-child {
+    display: none;
+  }
 `;
 
-export const NavButton = styled('button', {
+const StyledNavButton = styled('button', {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
   border: none;
@@ -312,6 +449,18 @@ export const NavButton = styled('button', {
   ${linkStyles}
   ${baseNavItemStyles}
 `;
+
+interface NavButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
+  isMobile: boolean;
+}
+
+export const NavButton = styled((p: NavButtonProps) => {
+  const theme = useTheme();
+  if (theme.isChonk) {
+    return <ChonkNavButton {...p} aria-label={p['aria-label'] ?? ''} />;
+  }
+  return <StyledNavButton {...p} />;
+})``;
 
 export const SidebarItemUnreadIndicator = styled('span')`
   position: absolute;
@@ -329,16 +478,34 @@ export const SidebarItemUnreadIndicator = styled('span')`
   border: 2px solid ${p => p.theme.background};
 `;
 
-const SeparatorListItem = styled('li')`
+export const SidebarList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
+  position: relative;
   list-style: none;
+  margin: 0;
+  padding: 0;
+  padding-top: ${space(1)};
+  display: flex;
+  flex-direction: column;
+  align-items: ${p => (p.isMobile ? 'stretch' : 'center')};
+  gap: ${space(0.5)};
   width: 100%;
-  padding: 0 ${space(1.5)};
+
+  /* TriggerWrap div is getting in the way here */
+  ${p =>
+    p.theme.isChonk &&
+    css`
+      > div,
+      > li {
+        width: 100%;
+      }
+    `}
 `;
 
-const Separator = styled('hr')`
-  outline: 0;
-  border: 0;
-  height: 1px;
-  background: ${p => p.theme.innerBorder};
-  margin: 0;
+export const SidebarFooterWrapper = styled('div')<{isMobile: boolean}>`
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  margin-top: auto;
+  margin-bottom: ${p => (p.isMobile ? space(1) : 0)};
 `;
