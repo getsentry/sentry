@@ -36,10 +36,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
    */
   isHeld: boolean;
   /**
-   * Apply this to include 'reset' functionality on the drag handle
-   */
-  onDoubleClick: React.MouseEventHandler<HTMLElement>;
-  /**
    * Apply to the drag handle element
    */
   onMouseDown: React.MouseEventHandler<HTMLElement>;
@@ -135,9 +131,5 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     [onMouseMove, onMouseUp]
   );
 
-  const onDoubleClick = useCallback(() => {
-    updateSize(options.initialSize, true);
-  }, [updateSize, options.initialSize]);
-
-  return {isHeld, onMouseDown, onDoubleClick};
+  return {isHeld, onMouseDown};
 }
