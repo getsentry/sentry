@@ -14,6 +14,7 @@ import {
   feedbackOnboardingJsLoader,
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {getProfilingOnboarding} from 'sentry/gettingStartedDocs/ruby/ruby';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -64,68 +65,6 @@ rescue ZeroDivisionError => exception
 end
 
 Sentry.capture_message("test message")`;
-
-function getProfilingOnboarding(): OnboardingConfig {
-  return {
-    install: () => [
-      {
-        type: StepType.INSTALL,
-        description: tct(
-          'We use the [code:stackprof] [stackprofLink:gem] to collect profiles for Ruby.',
-          {
-            code: <code />,
-            stackprofLink: <ExternalLink href="https://github.com/tmm1/stackprof" />,
-          }
-        ),
-        configurations: [
-          {
-            description: tct(
-              'First add [code:stackprof] to your [code:Gemfile] and make sure it is loaded before [code:sentry-ruby].',
-              {
-                code: <code />,
-              }
-            ),
-            language: 'ruby',
-            code: `
-gem 'stackprof'
-gem 'sentry-ruby'`,
-          },
-        ],
-      },
-    ],
-    configure: (params: Params) => [
-      {
-        type: StepType.CONFIGURE,
-        description: tct(
-          'Then, make sure both [code:traces_sample_rate] and [code:profiles_sample_rate] are set and non-zero in your Sentry initializer.',
-          {
-            code: <code />,
-          }
-        ),
-        configurations: [
-          {
-            code: [
-              {
-                label: 'Ruby',
-                value: 'ruby',
-                filename: 'config/initializers/sentry.rb',
-                language: 'ruby',
-                code: `
-Sentry.init do |config|
-  config.dsn = "${params.dsn.public}"
-  config.traces_sample_rate = 1.0
-  config.profiles_sample_rate = 1.0
-end
-                `,
-              },
-            ],
-          },
-        ],
-      },
-    ],
-    verify: () => [],
-  };
-}
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
@@ -265,7 +204,6 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  profilingOnboarding: onboarding,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
   profilingOnboarding: getProfilingOnboarding(),

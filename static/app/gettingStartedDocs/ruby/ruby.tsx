@@ -10,7 +10,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-function getProfilingOnboarding(): OnboardingConfig {
+export function getProfilingOnboarding(): OnboardingConfig {
   return {
     install: () => [
       {
@@ -183,7 +183,6 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  profilingOnboarding: onboarding,
   crashReportOnboarding: CrashReportWebApiOnboarding,
   profilingOnboarding: getProfilingOnboarding(),
 };
