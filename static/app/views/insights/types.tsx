@@ -87,7 +87,7 @@ export type SpanNumberFields =
   | SpanMetricsField.MOBILE_FRAMES_DELAY
   | SpanMetricsField.MOBILE_FROZEN_FRAMES
   | SpanMetricsField.MOBILE_TOTAL_FRAMES
-  | SpanMetricsField.MOBILE_SLOW_FRAMES;
+  | SpanMetricsField.MOBILE_SLOW_FRAMES
   | DiscoverNumberFields;
 
 export type SpanStringFields =
