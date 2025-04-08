@@ -283,12 +283,6 @@ def get_seer_similar_issues(
     seer_request_metric_tags = {"hybrid_fingerprint": event_has_hybrid_fingerprint}
 
     seer_results = get_similarity_data_from_seer(request_data, seer_request_metric_tags)
-    metrics.distribution(
-        "grouping.similarity.seer_results_returned",
-        len(seer_results),
-        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={"platform": event.platform},
-    )
 
     # All of these will get overridden if we find a usable match
     matching_seer_result = None  # JSON of result data
@@ -349,6 +343,12 @@ def get_seer_similar_issues(
             tags={"platform": event.platform},
         )
 
+    metrics.distribution(
+        "grouping.similarity.seer_results_returned",
+        len(seer_results),
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"platform": event.platform},
+    )
     metrics.incr(
         "grouping.similarity.get_seer_similar_issues",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
