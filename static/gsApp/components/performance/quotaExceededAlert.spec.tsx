@@ -1,7 +1,7 @@
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
-import {setMockDate} from 'sentry-test/utils';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -58,6 +58,7 @@ describe('Renders QuotaExceededAlert correctly', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    resetMockDate();
   });
 
   it('renders alert when quota is exceeded', async function () {
