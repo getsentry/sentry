@@ -202,7 +202,7 @@ const onboarding: OnboardingConfig = {
               code: getSdkSetupSnippet(params),
             },
           ],
-          additionalInfo: <TracePropagationMessage />,
+          additionalInfo: params.isReplaySelected ? <TracePropagationMessage /> : null,
         },
         ...(params.isProfilingSelected
           ? [getProfilingDocumentHeaderConfigurationStep()]
