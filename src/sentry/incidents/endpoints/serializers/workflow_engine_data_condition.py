@@ -14,7 +14,9 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.workflow_engine.models import (
     Action,
+    AlertRuleDetector,
     DataCondition,
+    DataConditionAlertRuleTrigger,
     DataConditionGroup,
     DataConditionGroupAction,
     Detector,
@@ -81,9 +83,15 @@ class WorkflowEngineDataConditionSerializer(Serializer):
                 else Condition.LESS_OR_EQUAL
             ),
         )
+        alert_rule_trigger_id = DataConditionAlertRuleTrigger.objects.values_list(
+            "alert_rule_trigger_id", flat=True
+        ).get(data_condition=obj)
+        alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
+            detector=detector.id
+        )
         return {
-            "id": str(obj.id),
-            "alertRuleId": str(detector.id),
+            "id": str(alert_rule_trigger_id),
+            "alertRuleId": str(alert_rule_id),
             "label": (
                 "critical" if obj.condition_result == DetectorPriorityLevel.HIGH else "warning"
             ),
