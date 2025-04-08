@@ -659,7 +659,7 @@ class TestProcessResourceChange(TestCase):
 
         # SLO assertions
         assert_success_metric(mock_record)
-        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 1
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success) SEND_WEBHOOK (success)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
         )
@@ -705,7 +705,7 @@ class TestProcessResourceChange(TestCase):
 
         # SLO assertions
         assert_success_metric(mock_record)
-        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 1
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
         )
@@ -750,7 +750,8 @@ class TestProcessResourceChange(TestCase):
 
         # SLO assertions
         assert_success_metric(mock_record)
-        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 1
+        # PREPARE_WEBHOOK (success) 
+        # Did not send a webhook bc per-project filter on project_id 2 and post_process was for project_id 1
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
