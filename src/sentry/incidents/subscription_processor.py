@@ -46,6 +46,7 @@ from sentry.incidents.utils.process_update_helpers import (
 )
 from sentry.incidents.utils.types import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    MetricDetectorUpdate,
     QuerySubscriptionUpdate,
 )
 from sentry.models.project import Project
@@ -424,7 +425,7 @@ class SubscriptionProcessor:
                 "values": {"aggregation_value": aggregation_value},
                 "timestamp": self.last_update,
             }
-            data_packet = DataPacket[QuerySubscriptionUpdate](
+            data_packet = DataPacket[MetricDetectorUpdate](
                 source_id=str(self.subscription.id), packet=packet
             )
             process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
