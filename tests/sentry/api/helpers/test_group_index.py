@@ -123,9 +123,11 @@ class UpdateGroupsTest(TestCase):
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
         add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
         assert unresolved_group.status == GroupStatus.UNRESOLVED
-        assert GroupOpenPeriod.objects.filter(
+        open_period = GroupOpenPeriod.objects.filter(
             group=unresolved_group, date_ended__isnull=True
-        ).exists()
+        ).first()
+        assert open_period is not None
+        assert open_period.date_ended is None
 
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
@@ -140,6 +142,8 @@ class UpdateGroupsTest(TestCase):
         assert unresolved_group.status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=unresolved_group).exists()
         assert send_robust.called
+        open_period.refresh_from_db()
+        assert open_period.date_ended is not None
 
     @patch("sentry.signals.issue_ignored.send_robust")
     @patch("sentry.issues.status_change.post_save")
