@@ -70,9 +70,23 @@ export default function FlagDrawerContent({
 
   const suspectScoresMap = useMemo(() => {
     return Object.fromEntries(
-      suspectScores?.data?.map(score => [score.flag, score.score]) ?? []
+      suspectScores?.data?.map(score => [score.flag, score]) ?? []
     );
   }, [suspectScores]);
+
+  const getSuspectDisplay = useCallback(
+    (flag: string) => {
+      const scoreObj = suspectScoresMap[flag];
+      return (
+        <div>
+          {`Suspicion Score: ${scoreObj?.score.toString() ?? '_'}`}
+          <br />
+          {`Baseline Percent: ${scoreObj?.baseline_percent ? `${scoreObj.baseline_percent * 100}%` : '_'}`}
+        </div>
+      );
+    },
+    [suspectScoresMap]
+  );
 
   // Sort and filter results.
   const sortTags = useCallback(
@@ -80,7 +94,9 @@ export default function FlagDrawerContent({
       if (scoresEnabled && showScores === '1') {
         // Descending by score.
         return tags.toSorted(
-          (t1, t2) => (suspectScoresMap[t2.key] ?? 0) - (suspectScoresMap[t1.key] ?? 0)
+          (t1, t2) =>
+            (suspectScoresMap[t2.key]?.score ?? 0) -
+            (suspectScoresMap[t1.key]?.score ?? 0)
         );
       }
       // Alphabetical by key.
@@ -133,9 +149,7 @@ export default function FlagDrawerContent({
             <FlagDetailsLink tag={tag} key={tag.key}>
               <TagDistribution tag={tag} key={tag.key} />
             </FlagDetailsLink>
-            {scoresEnabled && showScores === '1' && (
-              <div>{`Suspicion Score: ${suspectScoresMap[tag.key] ?? 'unknown'}`}</div>
-            )}
+            {scoresEnabled && showScores === '1' && getSuspectDisplay(tag.key)}
           </div>
         ))}
       </Container>
