@@ -21,7 +21,8 @@ export type SortOption =
   | 'dateAdded'
   | 'dateUpdated'
   | 'mostPopular'
-  | 'recentlyViewed';
+  | 'recentlyViewed'
+  | 'mostStarred';
 
 // Comes from ExploreSavedQueryModelSerializer
 export type SavedQuery = {
