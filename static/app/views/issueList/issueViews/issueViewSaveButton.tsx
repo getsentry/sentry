@@ -13,6 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
+import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 type IssueViewSaveButtonProps = {
@@ -20,8 +21,58 @@ type IssueViewSaveButtonProps = {
   sort: IssueSortOptions;
 };
 
-export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
+function SegmentedIssueViewSaveButton({
+  openCreateIssueViewModal,
+}: {
+  openCreateIssueViewModal: () => void;
+}) {
   const organization = useOrganization();
+  const {hasUnsavedChanges, discardUnsavedChanges} = useIssueViewUnsavedChanges();
+  const buttonPriority = hasUnsavedChanges ? 'primary' : 'default';
+
+  return (
+    <ButtonBar merged>
+      <PrimarySaveButton
+        priority={buttonPriority}
+        analyticsEventName="issue_views.save.clicked"
+        data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
+      >
+        {t('Save')}
+      </PrimarySaveButton>
+      <DropdownMenu
+        items={[
+          {
+            key: 'reset',
+            label: t('Discard unsaved changes'),
+            onAction: () => {
+              trackAnalytics('issue_views.reset.clicked', {organization});
+              discardUnsavedChanges();
+            },
+          },
+          {
+            key: 'save-as',
+            label: t('Save as new view'),
+            onAction: () => {
+              trackAnalytics('issue_views.save_as.clicked', {organization});
+              openCreateIssueViewModal();
+            },
+          },
+        ]}
+        trigger={props => (
+          <DropdownTrigger
+            {...props}
+            icon={<IconChevron direction="down" />}
+            aria-label={t('More save options')}
+            priority={buttonPriority}
+          />
+        )}
+        position="bottom-end"
+      />
+    </ButtonBar>
+  );
+}
+
+export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
   const {viewId} = useParams();
   const {selection} = usePageFilters();
 
@@ -50,40 +101,8 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
     );
   }
 
-  // TODO: Check if the view has unsaved changes
-  const isModified = true;
-  const buttonPriority = isModified ? 'primary' : 'default';
-
   return (
-    <ButtonBar merged>
-      <PrimarySaveButton
-        priority={buttonPriority}
-        analyticsEventName="issue_views.save.clicked"
-      >
-        {t('Save')}
-      </PrimarySaveButton>
-      <DropdownMenu
-        items={[
-          {
-            key: 'save-as',
-            label: t('Save as new view'),
-            onAction: () => {
-              trackAnalytics('issue_views.save_as.clicked', {organization});
-              openCreateIssueViewModal();
-            },
-          },
-        ]}
-        trigger={props => (
-          <DropdownTrigger
-            {...props}
-            icon={<IconChevron direction="down" />}
-            aria-label={t('More save options')}
-            priority={buttonPriority}
-          />
-        )}
-        position="bottom-end"
-      />
-    </ButtonBar>
+    <SegmentedIssueViewSaveButton openCreateIssueViewModal={openCreateIssueViewModal} />
   );
 }
 
@@ -110,4 +129,5 @@ const DropdownTrigger = styled(Button)`
   border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
   padding-left: ${space(1)};
   padding-right: ${space(1)};
+  border-left: none;
 `;
