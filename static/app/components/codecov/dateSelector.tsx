@@ -30,7 +30,7 @@ export const CODECOV_DEFAULT_RELATIVE_PERIODS = {
   '30d': t('Last 30 days'),
 };
 
-export interface TimeSelectorProps
+export interface DateSelectorProps
   extends Omit<
     SingleSelectProps<string>,
     'disableSearchFilter' | 'onChange' | 'onClose' | 'options' | 'value'
@@ -51,7 +51,7 @@ export interface TimeSelectorProps
   relative?: string | null;
 }
 
-export function TimeSelector({
+export function DateSelector({
   relative,
   onChange,
   onClose,
@@ -59,7 +59,7 @@ export function TimeSelector({
   menuWidth,
   desynced,
   ...selectProps
-}: TimeSelectorProps) {
+}: DateSelectorProps) {
   const getOptions = useCallback((items: Item[]): Array<SelectOption<string>> => {
     return items.map((item: Item): SelectOption<string> => {
       return {

@@ -1,15 +1,13 @@
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
-import type {TimeSelectorProps} from 'sentry/components/codecov/timeSelector';
-import {TimeSelector} from 'sentry/components/codecov/timeSelector';
+import type {DateSelectorProps} from 'sentry/components/codecov/dateSelector';
+import {DateSelector} from 'sentry/components/codecov/dateSelector';
 import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 
 export interface DatePickerProps
-  extends Partial<
-    Partial<Omit<TimeSelectorProps, 'start' | 'end' | 'utc' | 'relative' | 'menuBody'>>
-  > {
+  extends Partial<Partial<Omit<DateSelectorProps, 'relative' | 'menuBody'>>> {
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
@@ -30,7 +28,7 @@ export function DatePicker({
   const period = selection.datetime?.period;
 
   return (
-    <TimeSelector
+    <DateSelector
       {...selectProps}
       relative={period}
       desynced={desynced}
