@@ -16,6 +16,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, CodeMappingTreesHelper
+from sentry.issues.auto_source_code_config.constants import UNINTENDED_RULES
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -77,6 +78,10 @@ def process_event(
     platform_config = PlatformConfig(platform)
     if not platform_config.is_supported():
         return [], []
+
+    # This is a temporary solution to remove unintended rules across the board
+    if platform_config.creates_in_app_stack_trace_rules():
+        remove_unintended_rules(project)
 
     frames_to_process = get_frames_to_process(event.data, platform)
     if not frames_to_process:
@@ -201,6 +206,23 @@ def create_configurations(
     # We return this to allow tests running in dry-run mode to assert
     # what would have been created.
     return code_mappings, in_app_stack_trace_rules
+
+
+def remove_unintended_rules(project: Project) -> None:
+    """
+    Remove unintended rules from the project's automatic grouping enhancements.
+    """
+    key = "sentry:automatic_grouping_enhancements"
+    in_app_stack_trace_rules = project.get_option(key, default="").split("\n")
+    if not in_app_stack_trace_rules:
+        return
+
+    # Remove rules that are not in the code mappings
+    for rule in in_app_stack_trace_rules:
+        if rule in UNINTENDED_RULES:
+            in_app_stack_trace_rules.remove(rule)
+
+    project.update_option(key, "\n".join(in_app_stack_trace_rules))
 
 
 def create_code_mapping(
