@@ -140,7 +140,7 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
         ...prev,
         [tourKey]: {
           ...prev[tourKey],
-          currentStepId: null,
+          currentStepId: undefined,
           isCompleted: true,
         },
       }));
