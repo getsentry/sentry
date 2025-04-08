@@ -172,13 +172,16 @@ type SpanAnyFunction = `any(${string})`;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
-export type SpanMetricsResponse = Record<`${Aggregate}(${SpanNumberFields})`, number> &
+export type SpanMetricsResponse = {
+  [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
+} & {
+  [Property in SpanFunctions as `${Property}()`]: number;
+} & {
+  [Property in SpanStringFields as `${Property}`]: string;
+} & {
+  [Property in SpanStringArrayFields as `${Property}`]: string[];
   // TODO: We should allow a nicer way to define functions with multiple arguments and different arg types
-  Record<`division(${SpanNumberFields},${SpanNumberFields})`, number> &
-  Record<`${SpanFunctions}()`, number> &
-  Record<SpanStringFields, string> & {
-    [Property in SpanStringArrayFields as `${Property}`]: string[];
-  } & {
+} & Record<`division(${SpanNumberFields},${SpanNumberFields})`, number> & {
     // TODO: This should include all valid HTTP codes or just all integers
     'http_response_count(2)': number;
     'http_response_count(3)': number;
@@ -200,7 +203,6 @@ export type SpanMetricsResponse = Record<`${Aggregate}(${SpanNumberFields})`, nu
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
   };
-
 export type MetricsFilters = {
   [Property in SpanStringFields as `${Property}`]?: string | string[];
 };
