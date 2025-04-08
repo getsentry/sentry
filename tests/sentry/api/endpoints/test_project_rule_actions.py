@@ -150,7 +150,6 @@ class ProjectRuleActionsEndpointTest(APITestCase):
 
 
 @apply_feature_flag_on_cls("organizations:workflow-engine-test-notifications")
-@apply_feature_flag_on_cls("organizations:workflow-engine-issue-alert-dual-write")
 class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest):
     endpoint = "sentry-api-0-project-rule-actions"
     method = "POST"

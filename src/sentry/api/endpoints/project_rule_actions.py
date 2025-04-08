@@ -17,6 +17,7 @@ from sentry.models.rule import Rule
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.utils.samples import create_sample_event
+from sentry.workflow_engine.endpoints.utils.test_fire_action import test_fire_action
 from sentry.workflow_engine.migration_helpers.rule_action import (
     translate_rule_data_actions_to_notification_actions,
 )
@@ -74,11 +75,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
             project, platform=project.platform, default="javascript", tagged=True
         )
 
-        if features.has(
-            "organizations:workflow-engine-test-notifications", project.organization
-        ) and features.has(
-            "organizations:workflow-engine-issue-alert-dual-write", project.organization
-        ):
+        if features.has("organizations:workflow-engine-test-notifications", project.organization):
             return self.execute_future_on_test_event_workflow_engine(test_event, rule)
 
         return self.execute_future_on_test_event(test_event, rule)
@@ -176,29 +173,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                 sentry_sdk.capture_exception(e)
                 continue
 
-            try:
-                action.trigger(
-                    event_data=event_data,
-                    detector=detector,
-                )
-            except Exception as exc:
-                if isinstance(exc, IntegrationFormError):
-                    logger.warning(
-                        "%s.test_alert.integration_error", action.type, extra={"exc": exc}
-                    )
-
-                    # IntegrationFormErrors should be safe to propagate via the API
-                    action_exceptions.append(str(exc))
-                else:
-                    # If we encounter some unexpected exception, we probably
-                    # don't want to continue executing more callbacks.
-                    logger.warning("%s.test_alert.unexpected_exception", action.type, exc_info=True)
-                    error_id = sentry_sdk.capture_exception(exc)
-                    action_exceptions.append(
-                        f"An unexpected error occurred. Error ID: '{error_id}'"
-                    )
-
-                break
+            action_exceptions.extend(test_fire_action(action, event_data, detector))
 
         status = None
         data = None
