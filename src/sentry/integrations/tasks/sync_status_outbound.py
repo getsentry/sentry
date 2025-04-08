@@ -60,6 +60,14 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
     ).capture() as lifecycle:
         lifecycle.add_extra("sync_task", "sync_status_outbound")
         if installation.should_sync("outbound_status"):
+            lifecycle.add_extras(
+                {
+                    "organization_id": external_issue.organization_id,
+                    "integration_id": integration.id,
+                    "external_issue": external_issue_id,
+                    "status": group.status,
+                }
+            )
             installation.sync_status_outbound(
                 external_issue, group.status == GroupStatus.RESOLVED, group.project_id
             )
