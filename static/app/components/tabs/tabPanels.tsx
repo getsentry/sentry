@@ -32,7 +32,7 @@ export function TabPanels(props: TabPanelsProps) {
     suppressTextValueWarning: true,
   });
   const selectedPanel = tabListState
-    ? collection.getItem(tabListState.selectedKey)
+    ? collection.getItem(tabListState.selectedKey!)
     : null;
 
   if (!tabListState) {

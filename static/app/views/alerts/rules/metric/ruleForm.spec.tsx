@@ -471,7 +471,6 @@ describe('Incident Rules Form', () => {
 
       const queryInput = await screen.findByTestId('query-builder-input');
       await userEvent.type(queryInput, 'has:http.url');
-      await userEvent.type(queryInput, '{enter}');
 
       await userEvent.click(screen.getByLabelText('Save Rule'));
 

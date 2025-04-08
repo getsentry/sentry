@@ -470,6 +470,7 @@ describe('ExploreToolbar', function () {
     await userEvent.keyboard('{Backspace}');
 
     await userEvent.click(within(section).getByRole('option', {name: 'avg(\u2026)'}));
+    await userEvent.click(within(section).getByText('span.duration'));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
     await userEvent.keyboard('{Escape}');
     await userEvent.click(within(section).getByText('Visualize'));

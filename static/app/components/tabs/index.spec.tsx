@@ -165,7 +165,7 @@ describe('Tabs', () => {
     expect(screen.getByRole('tab', {name: 'Details'})).toHaveFocus();
 
     // Press Arrow Right to select the next tab below (Activity)
-    await userEvent.keyboard('{arrowDown}{enter}');
+    await userEvent.keyboard('{arrowRight}{enter}');
 
     // The Activity tab should now be selected and its contents rendered
     expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
