@@ -23,7 +23,6 @@ class IssueSyncIntegration(TestCase):
         group = self.group
         assert group.status == GroupStatus.UNRESOLVED
         open_period = GroupOpenPeriod.objects.get(group=group)
-        open_period.update(date_ended=None)
         assert open_period.date_ended is None
 
         with assume_test_silo_mode(SiloMode.CONTROL):
