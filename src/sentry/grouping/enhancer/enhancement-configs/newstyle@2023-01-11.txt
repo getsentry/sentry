@@ -429,7 +429,6 @@ function:nextTick -app -group
 path:**/go/pkg/mod/** -app
 
 ## java
-# Any module categorized as framework should be added to sentry.issues.auto_source_code_config.constants
 module:akka.* category=framework
 module:com.fasterxml.* category=framework
 module:com.microsoft.* category=framework

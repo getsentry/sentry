@@ -903,7 +903,11 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
   },
   time_spent_percentage: fieldName => data => {
     const parsedFunction = parseFunction(fieldName);
-    const column = parsedFunction?.arguments?.[1] ?? SpanMetricsField.SPAN_SELF_TIME;
+    let column = parsedFunction?.arguments?.[1] ?? SpanMetricsField.SPAN_SELF_TIME;
+    // TODO - remove with eap, in eap this function only has one arg
+    if (parsedFunction?.arguments?.[0] === SpanMetricsField.SPAN_DURATION) {
+      column = SpanMetricsField.SPAN_DURATION;
+    }
     return (
       <TimeSpentCell
         percentage={data[fieldName]}

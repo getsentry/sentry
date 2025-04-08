@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as useOrganization from 'sentry/utils/useOrganization';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 import {useTraceMeta} from './useTraceMeta';
@@ -31,7 +31,6 @@ describe('useTraceMeta', () => {
   beforeEach(function () {
     queryClient.clear();
     jest.clearAllMocks();
-    jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
   });
 
   it('Returns merged meta results', async () => {
@@ -83,7 +82,9 @@ describe('useTraceMeta', () => {
     });
 
     const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <OrganizationContext value={organization}>{children}</OrganizationContext>
+      </QueryClientProvider>
     );
 
     const {result} = renderHook(() => useTraceMeta(mockedReplayTraces), {wrapper});
@@ -136,7 +137,9 @@ describe('useTraceMeta', () => {
     });
 
     const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <OrganizationContext value={organization}>{children}</OrganizationContext>
+      </QueryClientProvider>
     );
 
     const {result} = renderHook(() => useTraceMeta(mockedReplayTraces), {wrapper});
@@ -206,7 +209,9 @@ describe('useTraceMeta', () => {
     });
 
     const wrapper = ({children}: {children: React.ReactNode}) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <OrganizationContext value={organization}>{children}</OrganizationContext>
+      </QueryClientProvider>
     );
 
     const {result} = renderHook(() => useTraceMeta(mockedReplayTraces), {wrapper});

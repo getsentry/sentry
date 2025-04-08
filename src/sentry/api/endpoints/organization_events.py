@@ -23,7 +23,7 @@ from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.snuba import (
     discover,
     errors,
@@ -178,6 +178,9 @@ ALLOWED_EVENTS_REFERRERS: set[str] = {
     Referrer.API_EXPLORE_COMPARE_TABLE.value,
     Referrer.API_EXPLORE_LOGS_TABLE.value,
     Referrer.API_EXPLORE_LOGS_TABLE_ROW.value,
+    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_QUERIES_CHART.value,
+    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_CACHE_CHART.value,
+    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_PATHS_TABLE.value,
 }
 
 
@@ -465,7 +468,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     config=SearchResolverConfig(
                         auto_fields=True,
                         use_aggregate_conditions=use_aggregate_conditions,
-                        functions_acl={"time_spent_percentage"},
+                        fields_acl=FieldsACL(functions={"time_spent_percentage"}),
                     ),
                     sampling_mode=sampling_mode,
                 )

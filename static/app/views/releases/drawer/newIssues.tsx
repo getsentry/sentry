@@ -47,7 +47,6 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
       canSelectGroups={false}
       queryFilterDescription={queryFilterDescription}
       withChart={withChart}
-      narrowGroups
       renderEmptyMessage={renderEmptyMessage}
       withPagination={false}
       // onFetchSuccess={}

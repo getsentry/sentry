@@ -1179,12 +1179,16 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         )
         assert response.status_code == 200, response.content
         data = response.data["data"]
+        meta = response.data["meta"]
         assert len(data) == 6
-        assert response.data["meta"]["dataset"] == self.dataset
+        assert meta["dataset"] == self.dataset
 
         rows = data[0:6]
         for test in zip(event_counts, rows):
             self.assertAlmostEqual(test[1][1][0]["count"], test[0] / (3600.0 / 60.0))
+
+        assert meta["units"] == {"epm()": "1/minute"}
+        assert meta["fields"] == {"epm()": "rate"}
 
     @pytest.mark.xfail(reason="epm not implemented yet")
     def test_throughput_eps_minute_rollup(self):

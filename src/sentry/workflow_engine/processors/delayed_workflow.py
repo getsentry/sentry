@@ -29,7 +29,7 @@ from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
-from sentry.workflow_engine.handlers.condition.slow_condition_query_handlers import (
+from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
     slow_condition_query_handler_registry,
 )

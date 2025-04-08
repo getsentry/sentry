@@ -26,16 +26,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import IntegrationExternalMappingForm from './integrationExternalMappingForm';
 
-type CodeOwnersAssociationMappings = {
-  [projectSlug: string]: {
-    associations: {
-      [externalName: string]: string;
-    };
-    errors: {
-      [errorKey: string]: string;
-    };
-  };
-};
+type CodeOwnersAssociationMappings = Record<
+  string,
+  {
+    associations: Record<string, string>;
+    errors: Record<string, string>;
+  }
+>;
 
 type Props = Pick<
   IntegrationExternalMappingForm['props'],
