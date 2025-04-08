@@ -44,10 +44,10 @@ export function TraceDetails(props: TraceDetailsProps) {
       return [];
     }
 
-    return [...props.node.errors, ...props.node.performance_issues];
+    return [...props.node.errors, ...props.node.occurences];
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.node, props.node?.errors.size, props.node?.performance_issues.size]);
+  }, [props.node, props.node?.errors.size, props.node?.occurences.size]);
 
   if (!props.node) {
     return null;
