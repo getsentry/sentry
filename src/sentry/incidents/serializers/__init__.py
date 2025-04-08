@@ -1,4 +1,4 @@
-from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 
 __all__ = (
     "AlertRuleSerializer",
@@ -9,10 +9,10 @@ __all__ = (
 )
 
 ACTION_TARGET_TYPE_TO_STRING = {
-    ActionTarget.USER: "user",
-    ActionTarget.TEAM: "team",
-    ActionTarget.SPECIFIC: "specific",
-    ActionTarget.SENTRY_APP: "sentry_app",
+    AlertRuleTriggerAction.TargetType.USER: "user",
+    AlertRuleTriggerAction.TargetType.TEAM: "team",
+    AlertRuleTriggerAction.TargetType.SPECIFIC: "specific",
+    AlertRuleTriggerAction.TargetType.SENTRY_APP: "sentry_app",
 }
 STRING_TO_ACTION_TARGET_TYPE = {v: k for (k, v) in ACTION_TARGET_TYPE_TO_STRING.items()}
 
