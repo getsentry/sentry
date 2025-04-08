@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import Panel from 'sentry/components/panels/panel';
@@ -131,6 +131,9 @@ export default function ChartWithIssues({
               });
             }}
           />
+          <LinkButton size="xs" to={{pathname: `/issues/`}}>
+            {t('View All')}
+          </LinkButton>
         </Widget.WidgetToolbar>
       }
       noFooterPadding
