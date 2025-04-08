@@ -121,6 +121,12 @@ function PrimaryNavigationQuotaExceeded({
     )
     .reduce((acc, [category, currentHistory]) => {
       if (currentHistory.usageExceeded) {
+        if (
+          subscription.onDemandMaxSpend === 0 &&
+          (!currentHistory.reserved || currentHistory.reserved <= 1)
+        ) {
+          return acc;
+        }
         acc.push(category);
       }
       return acc;
