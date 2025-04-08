@@ -81,16 +81,23 @@ SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode})
 SecondaryNav.Section = function SecondaryNavSection({
   title,
   children,
+  trailingItems,
 }: {
   children: ReactNode;
   title?: ReactNode;
+  trailingItems?: ReactNode;
 }) {
   const {layout} = useNavContext();
 
   return (
     <Section>
       <SectionSeparator />
-      {title && <SectionTitle layout={layout}>{title}</SectionTitle>}
+      {title && (
+        <SectionTitle layout={layout}>
+          {title}
+          {trailingItems}
+        </SectionTitle>
+      )}
       {children}
     </Section>
   );
@@ -183,6 +190,10 @@ const SectionTitle = styled('div')<{layout: NavLayout}>`
   color: ${p => p.theme.subText};
   padding: 0 ${space(1)};
   margin: ${space(2)} 0 ${space(0.5)} 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 
   ${p =>
     p.layout === NavLayout.MOBILE &&

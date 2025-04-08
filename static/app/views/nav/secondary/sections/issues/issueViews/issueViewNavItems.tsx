@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import {Reorder} from 'framer-motion';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -252,12 +251,8 @@ export function IssueViewNavItems({
 
   return (
     <SecondaryNav.Section
-      title={
-        <TitleWrapper>
-          {t('Starred Views')}
-          <IssueViewAddViewButton baseUrl={baseUrl} />
-        </TitleWrapper>
-      }
+      title={t('Starred Views')}
+      trailingItems={<IssueViewAddViewButton baseUrl={baseUrl} />}
     >
       <Reorder.Group
         as="div"
@@ -306,9 +301,3 @@ export const constructViewLink = (baseUrl: string, view: IssueView) => {
     },
   });
 };
-
-const TitleWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
