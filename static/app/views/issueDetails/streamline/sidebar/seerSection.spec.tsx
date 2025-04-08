@@ -4,7 +4,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
@@ -92,44 +92,9 @@ describe('SeerSection', () => {
       {organization: customOrganization}
     );
 
-    expect(screen.getByText('How to fix ChunkLoadErrors')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'READ MORE'})).toBeInTheDocument();
-  });
-
-  it('toggles resources content when clicking Read More/Show Less', async () => {
-    const customOrganization = OrganizationFixture({
-      hideAiFeatures: true,
-      genAIConsent: false,
-    });
-
-    const disabledIssueSummaryGroup: Group = {
-      ...mockGroup,
-      issueCategory: IssueCategory.PERFORMANCE,
-      title: 'ChunkLoadError',
-      platform: 'javascript',
-    };
-
-    const javascriptProject: Project = {...mockProject, platform: 'javascript'};
-
-    render(
-      <SeerSection
-        event={mockEvent}
-        group={disabledIssueSummaryGroup}
-        project={javascriptProject}
-      />,
-      {organization: customOrganization}
-    );
-
-    const readMoreButton = screen.getByRole('button', {name: 'READ MORE'});
-    await userEvent.click(readMoreButton);
-
-    expect(screen.getByRole('button', {name: 'SHOW LESS'})).toBeInTheDocument();
-
-    const showLessButton = screen.getByRole('button', {name: 'SHOW LESS'});
-    await userEvent.click(showLessButton);
-
-    expect(screen.queryByRole('button', {name: 'SHOW LESS'})).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'READ MORE'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'How to fix ChunkLoadErrors'})
+    ).toBeInTheDocument();
   });
 
   describe('Seer button text', () => {
@@ -216,7 +181,7 @@ describe('SeerSection', () => {
       });
     });
 
-    it('shows "READ MORE" when only resources are available', async () => {
+    it('shows resource link when available', () => {
       const disabledIssueSummaryGroup: Group = {
         ...mockGroup,
         issueCategory: IssueCategory.PERFORMANCE,
@@ -245,7 +210,9 @@ describe('SeerSection', () => {
         {organization}
       );
 
-      expect(await screen.findByRole('button', {name: 'READ MORE'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'How to fix ChunkLoadErrors'})
+      ).toBeInTheDocument();
     });
 
     it('does not show CTA button when region is de', () => {

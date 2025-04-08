@@ -309,7 +309,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         """
         return self.get_cached(GitLabApiClientPath.commit.format(project=project_id, sha=sha))
 
-    def get_merge_commit_sha_from_commit(self, repo: str, sha: str) -> str | None:
+    def get_merge_commit_sha_from_commit(self, repo: Repository, sha: str) -> str | None:
         raise IntegrationFeatureNotImplementedError
 
     def compare_commits(self, project_id, start_sha, end_sha):
