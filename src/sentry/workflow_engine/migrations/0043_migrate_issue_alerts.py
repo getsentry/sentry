@@ -8,20 +8,59 @@ from django.db import migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 # TODO: remove these imports by copy-pasting the code into this file
-from sentry.rules.processing.processor import split_conditions_and_filters
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
-    create_event_unique_user_frequency_condition_with_conditions,
     translate_to_data_condition,
 )
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import SKIPPED_CONDITIONS
 from sentry.workflow_engine.migration_helpers.rule_action import (
     build_notification_actions_from_rule_data_actions,
 )
 
 logger = logging.getLogger(__name__)
+
+# COPY PASTES FOR RULE REGISTRY
+
+SENTRY_RULES = {
+    "sentry.rules.conditions.every_event.EveryEventCondition": "condition/event",
+    "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition": "condition/event",
+    "sentry.rules.conditions.regression_event.RegressionEventCondition": "condition/event",
+    "sentry.rules.conditions.reappeared_event.ReappearedEventCondition": "condition/event",
+    "sentry.rules.conditions.new_high_priority_issue.NewHighPriorityIssueCondition": "condition/event",
+    "sentry.rules.conditions.existing_high_priority_issue.ExistingHighPriorityIssueCondition": "condition/event",
+    "sentry.rules.conditions.tagged_event.TaggedEventCondition": "condition/event",
+    "sentry.rules.conditions.event_frequency.EventFrequencyCondition": "condition/event",
+    "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition": "condition/event",
+    "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions": "condition/event",
+    "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition": "condition/event",
+    "sentry.rules.conditions.event_attribute.EventAttributeCondition": "condition/event",
+    "sentry.rules.conditions.level.LevelCondition": "condition/event",
+    "sentry.rules.filters.age_comparison.AgeComparisonFilter": "filter/event",
+    "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter": "filter/event",
+    "sentry.rules.filters.assigned_to.AssignedToFilter": "filter/event",
+    "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter": "filter/event",
+    "sentry.rules.filters.latest_release.LatestReleaseFilter": "filter/event",
+    "sentry.rules.filters.issue_category.IssueCategoryFilter": "filter/event",
+    # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
+    "sentry.rules.filters.event_attribute.EventAttributeFilter": "filter/event",
+    "sentry.rules.filters.tagged_event.TaggedEventFilter": "filter/event",
+    "sentry.rules.filters.level.LevelFilter": "filter/event",
+}
+
+
+def split_conditions_and_filters(
+    rule_condition_list,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    condition_list = []
+    filter_list = []
+    for rule_cond in rule_condition_list:
+        if SENTRY_RULES.get(rule_cond["id"]) == "condition/event":
+            condition_list.append(rule_cond)
+        else:
+            filter_list.append(rule_cond)
+
+    return condition_list, filter_list
 
 
 # COPY PASTES FOR DATACONDITIONGROUP
@@ -39,6 +78,77 @@ class DataConditionGroupType(StrEnum):
     NONE = "none"
 
 
+# COPY PASTES FOR DATACONDITION
+
+
+class ComparisonType(StrEnum):
+    COUNT = "count"
+    PERCENT = "percent"
+
+
+class MatchType(StrEnum):
+    CONTAINS = "co"
+    ENDS_WITH = "ew"
+    EQUAL = "eq"
+    GREATER_OR_EQUAL = "gte"
+    GREATER = "gt"
+    IS_SET = "is"
+    IS_IN = "in"
+    LESS_OR_EQUAL = "lte"
+    LESS = "lt"
+    NOT_CONTAINS = "nc"
+    NOT_ENDS_WITH = "new"
+    NOT_EQUAL = "ne"
+    NOT_SET = "ns"
+    NOT_STARTS_WITH = "nsw"
+    NOT_IN = "nin"
+    STARTS_WITH = "sw"
+
+
+class Condition(StrEnum):
+    # Base conditions - Most DETECTOR_TRIGGERS will use these
+    EQUAL = "eq"
+    GREATER_OR_EQUAL = "gte"
+    GREATER = "gt"
+    LESS_OR_EQUAL = "lte"
+    LESS = "lt"
+    NOT_EQUAL = "ne"
+
+    # Anomaly detection
+    ANOMALY_DETECTION = "anomaly_detection"
+
+    # Issue conditions
+    AGE_COMPARISON = "age_comparison"
+    ASSIGNED_TO = "assigned_to"
+    EVENT_ATTRIBUTE = "event_attribute"
+    EVENT_CREATED_BY_DETECTOR = "event_created_by_detector"
+    EVENT_SEEN_COUNT = "event_seen_count"
+    EXISTING_HIGH_PRIORITY_ISSUE = "existing_high_priority_issue"
+    FIRST_SEEN_EVENT = "first_seen_event"
+    ISSUE_CATEGORY = "issue_category"
+    ISSUE_OCCURRENCES = "issue_occurrences"
+    LATEST_ADOPTED_RELEASE = "latest_adopted_release"
+    LATEST_RELEASE = "latest_release"
+    LEVEL = "level"
+    NEW_HIGH_PRIORITY_ISSUE = "new_high_priority_issue"
+    REGRESSION_EVENT = "regression_event"
+    REAPPEARED_EVENT = "reappeared_event"
+    TAGGED_EVENT = "tagged_event"
+    ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
+    ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
+
+    # Event frequency conditions
+    EVENT_FREQUENCY_COUNT = "event_frequency_count"
+    EVENT_FREQUENCY_PERCENT = "event_frequency_percent"
+    EVENT_UNIQUE_USER_FREQUENCY_COUNT = "event_unique_user_frequency_count"
+    EVENT_UNIQUE_USER_FREQUENCY_PERCENT = "event_unique_user_frequency_percent"
+    PERCENT_SESSIONS_COUNT = "percent_sessions_count"
+    PERCENT_SESSIONS_PERCENT = "percent_sessions_percent"
+
+    # Migration Only
+    EVERY_EVENT = "every_event"
+
+
 def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Project = apps.get_model("sentry", "Project")
     Rule = apps.get_model("sentry", "Rule")
@@ -46,12 +156,63 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
     RuleSnooze = apps.get_model("sentry", "RuleSnooze")
     AlertRuleDetector = apps.get_model("workflow_engine", "AlertRuleDetector")
     AlertRuleWorkflow = apps.get_model("workflow_engine", "AlertRuleWorkflow")
+    DataCondition = apps.get_model("workflow_engine", "DataCondition")
     DataConditionGroup = apps.get_model("workflow_engine", "DataConditionGroup")
     DataConditionGroupAction = apps.get_model("workflow_engine", "DataConditionGroupAction")
     Detector = apps.get_model("workflow_engine", "Detector")
     DetectorWorkflow = apps.get_model("workflow_engine", "DetectorWorkflow")
     Workflow = apps.get_model("workflow_engine", "Workflow")
     WorkflowDataConditionGroup = apps.get_model("workflow_engine", "WorkflowDataConditionGroup")
+
+    def _create_event_unique_user_frequency_condition_with_conditions(
+        data: dict[str, Any], dcg: Any, conditions: list[dict[str, Any]] | None = None
+    ) -> Any:
+        comparison_type = data.get("comparisonType", ComparisonType.COUNT)
+        comparison_type = ComparisonType(comparison_type)
+        value = max(int(data["value"]), 0)  # force to 0 if negative
+
+        comparison = {
+            "interval": data["interval"],
+            "value": value,
+        }
+
+        if comparison_type == ComparisonType.COUNT:
+            type = Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT
+        else:
+            type = Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT
+            comparison["comparison_interval"] = data["comparisonInterval"]
+
+        comparison_filters = []
+
+        if conditions:
+            for condition in conditions:
+                condition_id = condition["id"]
+                comparison_filter: dict[str, Any] = {}
+
+                match condition_id:
+                    case "sentry.rules.filters.event_attribute.EventAttributeFilter":
+                        comparison_filter["attribute"] = condition["attribute"]
+                    case "sentry.rules.filters.tagged_event.TaggedEventFilter":
+                        comparison_filter["key"] = condition["key"]
+                    case _:
+                        raise ValueError(f"Unsupported condition: {condition_id}")
+
+                match = MatchType(condition["match"])
+                comparison_filter["match"] = match
+
+                if match not in {MatchType.IS_SET, MatchType.NOT_SET}:
+                    comparison_filter["value"] = condition["value"]
+
+                comparison_filters.append(comparison_filter)
+
+        comparison["filters"] = comparison_filters
+
+        return DataCondition(
+            type=type,
+            comparison=comparison,
+            condition_result=True,
+            condition_group=dcg,
+        )
 
     def _bulk_create_data_conditions(
         rule: Any,
@@ -68,7 +229,7 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
                     == "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions"
                 ):  # special case: this condition uses filters, so the migration needs to combine the filters into the condition
                     dcg_conditions.append(
-                        create_event_unique_user_frequency_condition_with_conditions(
+                        _create_event_unique_user_frequency_condition_with_conditions(
                             dict(condition), dcg, filters
                         )
                     )
@@ -80,9 +241,7 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
                     extra={"rule_id": rule.id, "error": str(e)},
                 )
 
-        filtered_data_conditions = [
-            dc for dc in dcg_conditions if dc.type not in SKIPPED_CONDITIONS
-        ]
+        filtered_data_conditions = [dc for dc in dcg_conditions if dc.type != Condition.EVERY_EVENT]
 
         data_conditions: list[Any] = []
         # try one by one, ignoring errors
