@@ -13,12 +13,12 @@ import {IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {useSchemaHintsOnLargeScreen} from 'sentry/views/explore/components/schemaHintsDrawer';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
   type LogPageParamsUpdate,
   useLogsFields,
@@ -53,7 +53,6 @@ export function LogsTabContent({
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useExploreLogsTable({});
-  const isSchemaHintsDrawerOpenOnLargeScreen = useSchemaHintsOnLargeScreen();
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');
@@ -75,6 +74,9 @@ export function LogsTabContent({
           stringTags={stringAttributes}
           numberTags={numberAttributes}
           hiddenKeys={HiddenColumnEditorLogFields}
+          handleReset={() => {
+            setFields(defaultLogFields());
+          }}
           isDocsButtonHidden
         />
       ),
@@ -104,7 +106,6 @@ export function LogsTabContent({
             numberAttributes={numberAttributes}
             stringAttributes={stringAttributes}
             itemType={TraceItemDataset.LOGS}
-            submitOnFilterChange
           />
 
           <Button onClick={openColumnEditor} icon={<IconTable />}>
@@ -112,9 +113,7 @@ export function LogsTabContent({
           </Button>
         </FilterBarContainer>
         <Feature features="organizations:traces-schema-hints">
-          <SchemaHintsSection
-            withSchemaHintsDrawer={isSchemaHintsDrawerOpenOnLargeScreen}
-          >
+          <SchemaHintsSection>
             <SchemaHintsList
               supportedAggregates={[]}
               numberTags={numberAttributes}

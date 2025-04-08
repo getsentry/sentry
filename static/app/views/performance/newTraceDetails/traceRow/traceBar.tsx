@@ -18,7 +18,7 @@ import type {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
 import {TraceBackgroundPatterns} from '../traceRow/traceBackgroundPatterns';
-import {TraceErrorIcons, TracePerformanceIssueIcons} from '../traceRow/traceIcons';
+import {TraceErrorIcons, TraceOccurenceIcons} from '../traceRow/traceIcons';
 
 export function makeTraceNodeBarColor(
   theme: Theme,
@@ -154,7 +154,7 @@ interface TraceBarProps {
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
   node_space: [number, number] | null;
-  performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
+  occurences: TraceTreeNode<TraceTree.Transaction>['occurences'];
   profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;
 }
@@ -210,19 +210,19 @@ export function TraceBar(props: TraceBarProps) {
             manager={props.manager}
           />
         ) : null}
-        {props.performance_issues.size > 0 ? (
-          <TracePerformanceIssueIcons
+        {props.occurences.size > 0 ? (
+          <TraceOccurenceIcons
             node_space={props.node_space}
-            performance_issues={props.performance_issues}
+            occurences={props.occurences}
             manager={props.manager}
           />
         ) : null}
-        {props.performance_issues.size > 0 ||
+        {props.occurences.size > 0 ||
         props.errors.size > 0 ||
         props.profiles.length > 0 ? (
           <TraceBackgroundPatterns
             node_space={props.node_space}
-            performance_issues={props.performance_issues}
+            occurences={props.occurences}
             errors={props.errors}
             manager={props.manager}
           />
@@ -242,7 +242,7 @@ interface AutogroupedTraceBarProps {
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
   node_spaces: Array<[number, number]>;
-  performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
+  occurences: TraceTreeNode<TraceTree.Transaction>['occurences'];
   profiles: TraceTreeNode<TraceTree.NodeValue>['profiles'];
   virtualized_index: number;
 }
@@ -282,7 +282,7 @@ export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         manager={props.manager}
         virtualized_index={props.virtualized_index}
         errors={props.errors}
-        performance_issues={props.performance_issues}
+        occurences={props.occurences}
         profiles={props.profiles}
       />
     );
@@ -322,10 +322,10 @@ export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
             manager={props.manager}
           />
         ) : null}
-        {props.performance_issues.size > 0 ? (
-          <TracePerformanceIssueIcons
+        {props.occurences.size > 0 ? (
+          <TraceOccurenceIcons
             node_space={props.entire_space}
-            performance_issues={props.performance_issues}
+            occurences={props.occurences}
             manager={props.manager}
           />
         ) : null}

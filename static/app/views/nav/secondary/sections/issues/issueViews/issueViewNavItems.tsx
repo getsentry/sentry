@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import {Reorder} from 'framer-motion';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -56,20 +55,6 @@ export function IssueViewNavItems({
       setViews(loadedViews);
     }
   }, [loadedViews, views, setViews]);
-
-  // If the `viewId` (from `/issues/views/:viewId`) is not found in the views array,
-  // then redirect to the "All Issues" page
-  useEffect(() => {
-    if (viewId && !views.find(v => v.id === viewId)) {
-      navigate(
-        normalizeUrl({
-          pathname: `${baseUrl}/`,
-          query: queryParams,
-        })
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewId]);
 
   const replaceWithPersistentViewIds = useCallback(
     (responseViews: GroupSearchView[]) => {
@@ -266,12 +251,8 @@ export function IssueViewNavItems({
 
   return (
     <SecondaryNav.Section
-      title={
-        <TitleWrapper>
-          {t('Starred Views')}
-          <IssueViewAddViewButton baseUrl={baseUrl} />
-        </TitleWrapper>
-      }
+      title={t('Starred Views')}
+      trailingItems={<IssueViewAddViewButton baseUrl={baseUrl} />}
     >
       <Reorder.Group
         as="div"
@@ -320,9 +301,3 @@ export const constructViewLink = (baseUrl: string, view: IssueView) => {
     },
   });
 };
-
-const TitleWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;

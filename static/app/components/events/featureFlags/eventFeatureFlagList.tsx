@@ -31,8 +31,8 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import useLegacyEventSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useLegacyEventSuspectFlags';
 import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
-import useSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useSuspectFlags';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -114,7 +114,7 @@ export function EventFeatureFlagList({
     suspectFlags,
     isError: isSuspectError,
     isPending: isSuspectPending,
-  } = useSuspectFlags({
+  } = useLegacyEventSuspectFlags({
     organization,
     firstSeen: group.firstSeen,
     rawFlagData,
