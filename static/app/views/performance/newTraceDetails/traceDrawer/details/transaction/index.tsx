@@ -150,8 +150,8 @@ export function TransactionNodeDetails({
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
   const {projects} = useProjects();
   const issues = useMemo(() => {
-    return [...node.errors, ...node.performance_issues];
-  }, [node.errors, node.performance_issues]);
+    return [...node.errors, ...node.occurences];
+  }, [node.errors, node.occurences]);
   const {
     data: event,
     isError,

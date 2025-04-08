@@ -6,7 +6,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
@@ -123,7 +123,7 @@ function useDurationBreakdownVisualization({
   }
 
   const timeSeries = eapSeriesDataToTimeSeries(spanSeriesData);
-  const plottables = timeSeries.map(series => new Area(series));
+  const plottables = timeSeries.map(series => new Line(series));
 
   const enableReleaseBubblesProps = organization.features.includes('release-bubbles-ui')
     ? ({releases, showReleaseAs: 'bubble'} as const)

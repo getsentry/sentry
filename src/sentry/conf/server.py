@@ -3104,6 +3104,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "workflow_engine",
     "tempest",
     "explore",
+    "monitors",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
