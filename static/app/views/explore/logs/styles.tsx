@@ -132,33 +132,7 @@ export const DetailsBody = styled(LogDetailPanelItem)<{
 }>`
   color: ${p => p.logColors.color};
   padding: ${space(1)} 0;
-`;
-
-export const DetailsFooter = styled(StyledPanelItem)<{
-  logColors: ReturnType<typeof getLogColors>;
-  opaque?: boolean;
-}>`
-  width: 100%;
-  padding: ${space(1)} ${space(2)};
-  color: ${p => p.logColors.color};
-
-  &:last-child {
-    border: 1px solid ${p => p.logColors.border};
-  }
-
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
-
-  background: ${p =>
-    p.opaque
-      ? `linear-gradient(
-          ${p.logColors.backgroundLight},
-          ${p.logColors.backgroundLight}),
-          linear-gradient(${p.theme.background}, ${p.theme.background}
-        )`
-      : `
-          ${p.logColors.backgroundLight}
-        `};
+  font-family: ${p => p.theme.text.familyMono};
 `;
 
 export const StyledChevronButton = styled(Button)`
