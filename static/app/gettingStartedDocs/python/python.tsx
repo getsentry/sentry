@@ -136,7 +136,7 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
 };
 
 const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
-const getProfilingInstallSnippet = (basePackage: string, minimumVersion: string) =>
+const getProfilingInstallSnippet = (basePackage: string, minimumVersion?: string) =>
   `pip install --upgrade ${minimumVersion ? `${basePackage}>=${minimumVersion}` : basePackage}`;
 
 const getSdkSetupSnippet = (params: Params) => `
@@ -172,6 +172,52 @@ sentry_sdk.init(
 )${
   params.isProfilingSelected &&
   params.profilingOptions?.defaultProfilingMode === 'continuous'
+    ? `
+
+def slow_function():
+    import time
+    time.sleep(0.1)
+    return "done"
+
+def fast_function():
+    import time
+    time.sleep(0.05)
+    return "done"
+
+# Manually call start_profiler and stop_profiler
+# to profile the code in between
+sentry_sdk.profiler.start_profiler()
+
+for i in range(0, 10):
+    slow_function()
+    fast_function()
+
+# Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
+# your application until the process exits or stop_profiler is called.
+sentry_sdk.profiler.stop_profiler()`
+    : ''
+}`;
+
+const getProfilingSdkSetupSnippet = (params: Params, withExample: boolean) => `
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for tracing.
+    traces_sample_rate=1.0,
+    ${
+      params.profilingOptions?.defaultProfilingMode === 'continuous'
+        ? `# Set profile_session_sample_rate to 1.0 to profile 100%
+    # of profile sessions.
+    profile_session_sample_rate=1.0,`
+        : `# Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,`
+    }
+)${
+  withExample
     ? `
 
 def slow_function():
@@ -421,8 +467,10 @@ export const featureFlagOnboarding: OnboardingConfig = {
 };
 export const getPythonProfilingOnboarding = ({
   basePackage = 'sentry-sdk',
+  withExample = false,
 }: {
   basePackage?: string;
+  withExample?: boolean;
 } = {}): OnboardingConfig => ({
   install: () => [
     {
@@ -436,7 +484,7 @@ export const getPythonProfilingOnboarding = ({
       configurations: [
         {
           language: 'bash',
-          code: getProfilingInstallSnippet(basePackage, '2.24.1'),
+          code: getProfilingInstallSnippet(basePackage),
         },
       ],
     },
@@ -450,7 +498,7 @@ export const getPythonProfilingOnboarding = ({
       configurations: [
         {
           language: 'python',
-          code: getSdkSetupSnippet(params),
+          code: getProfilingSdkSetupSnippet(params, withExample),
         },
         {
           description: tct(
@@ -487,7 +535,7 @@ const docs: Docs = {
   performanceOnboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
-  profilingOnboarding: getPythonProfilingOnboarding(),
+  profilingOnboarding: getPythonProfilingOnboarding({withExample: true}),
 };
 
 export default docs;
