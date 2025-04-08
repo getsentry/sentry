@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Subquery
 
 from sentry.api.serializers import Serializer
 from sentry.incidents.endpoints.serializers.alert_rule_trigger_action import (
@@ -32,24 +33,25 @@ class WorkflowEngineActionSerializer(Serializer):
         """
         Fetches the alert rule trigger id for the detector trigger related to the given action
         """
-        action_dcga = DataConditionGroupAction.objects.get(action=action)
-        action_filter_data_condition = DataCondition.objects.get(
-            condition_group=action_dcga.condition_group,
+        action_dcga = DataConditionGroupAction.objects.filter(action=action)
+        action_filter_data_condition = DataCondition.objects.filter(
+            condition_group__in=Subquery(action_dcga.values("condition_group")),
             type=Condition.ISSUE_PRIORITY_EQUALS,
             condition_result=True,
         )
-        workflow_dcg = WorkflowDataConditionGroup.objects.get(
-            condition_group=action_filter_data_condition.condition_group
+        workflow_dcg = WorkflowDataConditionGroup.objects.filter(
+            condition_group__in=Subquery(action_filter_data_condition.values("condition_group"))
         )
-        detector_workflow = DetectorWorkflow.objects.get(workflow=workflow_dcg.workflow)
-        detector_trigger = DataCondition.objects.get(
-            condition_result=action_filter_data_condition.comparison,
-            condition_group=detector_workflow.detector.workflow_condition_group,
+        detector_workflow = DetectorWorkflow.objects.filter(
+            workflow__in=Subquery(workflow_dcg.values("workflow"))
         )
-        datacondition_alertruletrigger = DataConditionAlertRuleTrigger.objects.get(
-            data_condition=detector_trigger
+        detector_trigger = DataCondition.objects.filter(
+            condition_result__in=Subquery(action_filter_data_condition.values("comparison")),
+            condition_group__in=[dw.detector.workflow_condition_group for dw in detector_workflow],
         )
-        return datacondition_alertruletrigger.alert_rule_trigger_id
+        return DataConditionAlertRuleTrigger.objects.values_list(
+            "alert_rule_trigger_id", flat=True
+        ).get(data_condition__in=detector_trigger)
 
     def serialize(
         self, obj: Action, attrs: Mapping[str, Any], user: User | RpcUser | AnonymousUser, **kwargs
