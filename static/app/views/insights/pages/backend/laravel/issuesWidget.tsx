@@ -9,19 +9,23 @@ import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useLocation} from 'sentry/utils/useLocation';
 
 export function IssuesWidget({query = ''}: {query?: string}) {
   const location = useLocation();
-  const queryWithDefault = `is:unresolved event.type:error ${query}`.trim();
+  const queryWithDefault = new MutableSearch(['is:unresolved', 'event.type:error']);
+  if (query) {
+    queryWithDefault.setFilterValues('transaction', [query]);
+  }
 
   const queryParams = {
     limit: '5',
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),
-    query: queryWithDefault,
+    query: queryWithDefault.formatString(),
     sort: 'freq',
   };
 
