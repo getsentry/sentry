@@ -401,7 +401,7 @@ export function ProductSelection({
               strong: <strong />,
             }
           )}
-          docLink="https://docs.sentry.io/product/explore/profiling/"
+          docLink="https://docs.sentry.io/product/explore/profiling/getting-started/#continuous-profiling"
           onClick={() => handleClickProduct(ProductSolution.PROFILING)}
           disabled={disabledProducts[ProductSolution.PROFILING]}
           checked={urlProducts.includes(ProductSolution.PROFILING)}
