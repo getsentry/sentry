@@ -4,7 +4,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -17,15 +17,15 @@ import {ModulesOnboarding} from 'sentry/views/insights/common/components/modules
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
+import {WidgetLoader} from 'sentry/views/insights/common/widgetLoader';
+import {useHttpChartFilters} from 'sentry/views/insights/common/widgets/hooks/useHttpChartFilters';
 import {
   DomainsTable,
   isAValidSort,
 } from 'sentry/views/insights/http/components/tables/domainsTable';
 import {Referrer} from 'sentry/views/insights/http/referrers';
-import {BASE_FILTERS, FIELD_ALIASES} from 'sentry/views/insights/http/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -33,14 +33,7 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {
-  DataTitles,
-  getDurationChartTitle,
-  getThroughputChartTitle,
-} from '../../common/views/spans/types';
+import {ModuleName} from 'sentry/views/insights/types';
 
 export function HTTPLandingPage() {
   const organization = useOrganization();
@@ -56,25 +49,12 @@ export function HTTPLandingPage() {
   const query = useLocationQuery({
     fields: {
       'span.domain': decodeScalar,
-      [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
     },
   });
-
-  const ADDITIONAL_FILTERS: {[SpanMetricsField.USER_GEO_SUBREGION]?: string} = {};
-
-  if (query[SpanMetricsField.USER_GEO_SUBREGION].length > 0) {
-    ADDITIONAL_FILTERS[SpanMetricsField.USER_GEO_SUBREGION] =
-      `[${query[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`;
-  }
-
-  const chartFilters = {
-    ...BASE_FILTERS,
-    ...ADDITIONAL_FILTERS,
-  };
+  const chartFilters = useHttpChartFilters();
 
   const tableFilters = {
-    ...BASE_FILTERS,
-    ...ADDITIONAL_FILTERS,
+    ...chartFilters,
     'span.domain': query['span.domain'] ? `*${query['span.domain']}*` : undefined,
   };
 
@@ -95,45 +75,6 @@ export function HTTPLandingPage() {
       },
     });
   };
-
-  const {
-    isPending: isThroughputDataLoading,
-    data: throughputData,
-    error: throughputError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: ['epm()'],
-      transformAliasToInputFormat: true,
-    },
-    Referrer.LANDING_THROUGHPUT_CHART
-  );
-
-  const {
-    isPending: isDurationDataLoading,
-    data: durationData,
-    error: durationError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: ['avg(span.self_time)'],
-      transformAliasToInputFormat: true,
-    },
-    Referrer.LANDING_DURATION_CHART
-  );
-
-  const {
-    isPending: isResponseCodeDataLoading,
-    data: responseCodeData,
-    error: responseCodeError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-      transformAliasToInputFormat: true,
-    },
-    Referrer.LANDING_RESPONSE_CODE_CHART
-  );
 
   const domainsListResponse = useSpanMetrics(
     {
@@ -182,35 +123,15 @@ export function HTTPLandingPage() {
 
               <ModulesOnboarding moduleName={ModuleName.HTTP}>
                 <ModuleLayout.Third>
-                  <InsightsLineChartWidget
-                    title={getThroughputChartTitle('http')}
-                    series={[throughputData['epm()']]}
-                    isLoading={isThroughputDataLoading}
-                    error={throughputError}
-                  />
+                  <WidgetLoader id="httpThroughput" />
                 </ModuleLayout.Third>
 
                 <ModuleLayout.Third>
-                  <InsightsLineChartWidget
-                    title={getDurationChartTitle('http')}
-                    series={[durationData['avg(span.self_time)']]}
-                    isLoading={isDurationDataLoading}
-                    error={durationError}
-                  />
+                  <WidgetLoader id="httpDuration" />
                 </ModuleLayout.Third>
 
                 <ModuleLayout.Third>
-                  <InsightsLineChartWidget
-                    title={DataTitles.unsuccessfulHTTPCodes}
-                    series={[
-                      responseCodeData[`http_response_rate(3)`],
-                      responseCodeData[`http_response_rate(4)`],
-                      responseCodeData[`http_response_rate(5)`],
-                    ]}
-                    aliases={FIELD_ALIASES}
-                    isLoading={isResponseCodeDataLoading}
-                    error={responseCodeError}
-                  />
+                  <WidgetLoader id="httpResponses" />
                 </ModuleLayout.Third>
 
                 <ModuleLayout.Full>
