@@ -198,7 +198,10 @@ sentry_sdk.profiler.stop_profiler()`
     : ''
 }`;
 
-const getProfilingSdkSetupSnippet = (params: Params, withExample: boolean) => `
+const getProfilingSdkSetupSnippet = (
+  params: Params,
+  traceLifecycle: 'manual' | 'trace'
+) => `
 import sentry_sdk
 
 sentry_sdk.init(
@@ -210,14 +213,21 @@ sentry_sdk.init(
       params.profilingOptions?.defaultProfilingMode === 'continuous'
         ? `# Set profile_session_sample_rate to 1.0 to profile 100%
     # of profile sessions.
-    profile_session_sample_rate=1.0,`
+    profile_session_sample_rate=1.0,${
+      traceLifecycle === 'trace'
+        ? `
+    # Set profile_lifecycle to "trace" to automatically
+    # run the profiler on when there is an active transaction
+    profile_lifecycle="trace",`
+        : ''
+    }`
         : `# Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
-    profiles_sample_rate=1.0,`
+    profiles_sample_rate=1.0`
     }
 )${
-  withExample
+  traceLifecycle === 'manual'
     ? `
 
 def slow_function():
@@ -467,10 +477,10 @@ export const featureFlagOnboarding: OnboardingConfig = {
 };
 export const getPythonProfilingOnboarding = ({
   basePackage = 'sentry-sdk',
-  withExample = false,
+  traceLifecycle = 'trace',
 }: {
   basePackage?: string;
-  withExample?: boolean;
+  traceLifecycle?: 'manual' | 'trace';
 } = {}): OnboardingConfig => ({
   install: () => [
     {
@@ -498,7 +508,7 @@ export const getPythonProfilingOnboarding = ({
       configurations: [
         {
           language: 'python',
-          code: getProfilingSdkSetupSnippet(params, withExample),
+          code: getProfilingSdkSetupSnippet(params, traceLifecycle),
         },
         {
           description: tct(
@@ -535,7 +545,7 @@ const docs: Docs = {
   performanceOnboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
-  profilingOnboarding: getPythonProfilingOnboarding({withExample: true}),
+  profilingOnboarding: getPythonProfilingOnboarding({traceLifecycle: 'manual'}),
 };
 
 export default docs;
