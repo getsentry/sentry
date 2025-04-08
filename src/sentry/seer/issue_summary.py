@@ -21,10 +21,10 @@ from sentry.models.project import Project
 from sentry.seer.autofix import trigger_autofix
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.signed_seer_api import sign_with_seer_secret
-from sentry.services.hybrid_cloud.user import user_service
 from sentry.tasks.base import instrumented_task
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
