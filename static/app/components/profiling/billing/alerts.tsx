@@ -1,11 +1,8 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 
 export const ProfilingBetaAlertBanner = HookOrDefault({
   hookName: 'component:profiling-billing-banner',
@@ -30,42 +27,6 @@ export const ProfilingAM1OrMMXUpgrade = HookOrDefault({
   ),
 });
 
-interface ContinuousProfilingBetaAlertBannerProps {
-  organization: Organization;
-}
-
-export function ContinuousProfilingBetaAlertBanner({
-  organization,
-}: ContinuousProfilingBetaAlertBannerProps) {
-  if (
-    !organization.features.includes('continuous-profiling-beta') ||
-    !organization.features.includes('continuous-profiling-beta-ui')
-  ) {
-    return null;
-  }
-
-  const subscriptionUrl = `/settings/${organization.slug}/billing/overview/`;
-
-  return (
-    <Alert.Container>
-      <StyledAlert
-        type="warning"
-        showIcon
-        trailingItems={
-          <Button to={subscriptionUrl} size="xs">
-            {t('Setup Budget')}
-          </Button>
-        }
-      >
-        {t(
-          'Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date.'
-        )}
-      </StyledAlert>
-    </Alert.Container>
-  );
-}
-
-const StyledAlert = styled(Alert)`
-  margin: 0;
-  border-radius: 0;
-`;
+export const ContinuousProfilingBetaAlertBanner = HookOrDefault({
+  hookName: 'component:continuous-profiling-beta-banner',
+});
