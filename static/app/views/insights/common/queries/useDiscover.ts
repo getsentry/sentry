@@ -99,7 +99,7 @@ export const useMetrics = <Fields extends MetricsProperty[]>(
   );
 };
 
-export const useDiscoverDataset = <Fields extends DiscoverProperty[]>(
+export const useDiscoverOrEap = <Fields extends DiscoverProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
@@ -111,7 +111,10 @@ export const useDiscoverDataset = <Fields extends DiscoverProperty[]>(
   );
 };
 
-const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(
+export const useDiscover = <
+  T extends Array<Extract<keyof ResponseType, string>>,
+  ResponseType,
+>(
   options: UseDiscoverOptions<T> = {},
   dataset: DiscoverDatasets,
   referrer: string

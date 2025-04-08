@@ -1,3 +1,4 @@
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {
@@ -7,13 +8,11 @@ import {
 import {mapWebVitalToOrderBy} from 'sentry/views/insights/browser/webVitals/utils/mapWebVitalToOrderBy';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {
-  useDiscoverDataset,
-  useEAPSpans,
-} from 'sentry/views/insights/common/queries/useDiscover';
+import {useDiscover, useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {
   type DiscoverProperty,
+  type DiscoverResponse,
   type EAPSpanProperty,
   SpanIndexedField,
   type SubregionCode,
@@ -102,7 +101,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     'api.performance.browser.web-vitals.transaction'
   );
 
-  const result = useDiscoverDataset(
+  const result = useDiscover<DiscoverProperty[], DiscoverResponse>(
     {
       sorts: [sort],
       search: mutableSearch.formatString(),
@@ -133,6 +132,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
           : []),
       ],
     },
+    DiscoverDatasets.DISCOVER,
     'api.performance.browser.web-vitals.transaction'
   );
 
