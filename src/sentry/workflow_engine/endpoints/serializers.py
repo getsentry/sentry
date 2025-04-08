@@ -5,6 +5,7 @@ from typing import Any, NotRequired, TypedDict
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.options.project_option import ProjectOption
+from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
 from sentry.utils import json
 from sentry.workflow_engine.models import (
     Action,
@@ -17,7 +18,8 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
-from sentry.workflow_engine.types import DataConditionHandler, DataSourceTypeHandler
+from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
+from sentry.workflow_engine.types import ActionHandler, DataConditionHandler, DataSourceTypeHandler
 
 
 class ActionSerializerResponse(TypedDict):
@@ -38,6 +40,81 @@ class ActionSerializer(Serializer):
             "data": json.dumps(obj.data),
             "config": json.dumps(obj.config),
         }
+
+
+class SentryAppContext(TypedDict):
+    id: str
+    name: str
+    installationId: str
+    status: int
+    settings: NotRequired[dict[str, Any]]
+
+
+class ActionHandlerSerializerResponse(TypedDict):
+    type: str
+    handlerGroup: str
+    configSchema: dict
+    dataSchema: dict
+    sentryApp: NotRequired[SentryAppContext]
+    integrations: NotRequired[list]
+    services: NotRequired[list]
+
+
+@register(ActionHandler)
+class ActionHandlerSerializer(Serializer):
+    def transform_title(self, title: str) -> str:
+        if title in PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS:
+            return f"(Legacy) {title}"
+        return title
+
+    def serialize(
+        self,
+        obj: ActionHandler,
+        attrs: Mapping[str, Any],
+        user: Any,
+        **kwargs: Any,
+    ) -> ActionHandlerSerializerResponse:
+        action_type = kwargs.get("action_type")
+        if action_type is None:
+            raise ValueError("action_type is required")
+
+        result: ActionHandlerSerializerResponse = {
+            "type": action_type,
+            "handlerGroup": obj.group.value,
+            "configSchema": obj.config_schema,
+            "dataSchema": obj.data_schema,
+        }
+
+        integrations = kwargs.get("integrations")
+        if integrations:
+            result["integrations"] = [
+                {"id": str(integration.id), "name": integration.name}
+                for integration in integrations
+            ]
+
+        sentry_app_context = kwargs.get("sentry_app_context")
+        if sentry_app_context:
+            installation = sentry_app_context.installation
+            sentry_app: SentryAppContext = {
+                "id": str(installation.sentry_app.id),
+                "name": installation.sentry_app.name,
+                "installationId": str(installation.id),
+                "status": installation.sentry_app.status,
+            }
+            if sentry_app_context.component:
+                sentry_app["settings"] = sentry_app_context.component.app_schema.get("settings", {})
+            result["sentryApp"] = sentry_app
+
+        services = kwargs.get("services")
+        if services:
+            services_list = [
+                {"slug": service.slug, "name": self.transform_title(service.title)}
+                for service in services
+            ]
+            services_list.sort(key=lambda x: x["name"])
+            result["services"] = services_list
+
+        return result
 
 
 @register(DataSource)
@@ -281,4 +358,22 @@ class WorkflowSerializer(Serializer):
             "actionFilters": attrs.get("actionFilters"),
             "environment": obj.environment.name if obj.environment else None,
             "config": obj.config,
+        }
+
+
+class DetectorWorkflowResponse(TypedDict):
+    id: str
+    detectorId: str
+    workflowId: str
+
+
+@register(DetectorWorkflow)
+class DetectorWorkflowSerializer(Serializer):
+    def serialize(
+        self, obj: DetectorWorkflow, attrs: Mapping[str, Any], user, **kwargs
+    ) -> DetectorWorkflowResponse:
+        return {
+            "id": str(obj.id),
+            "detectorId": str(obj.detector.id),
+            "workflowId": str(obj.workflow.id),
         }

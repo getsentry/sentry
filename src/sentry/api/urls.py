@@ -1842,12 +1842,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-group-search-view-visit",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-view/(?P<view_id>[^\/]+)/starred/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/(?P<view_id>[^\/]+)/starred/$",
         OrganizationGroupSearchViewStarredEndpoint.as_view(),
         name="sentry-api-0-organization-group-search-view-starred",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views-starred-order/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/starred/order/$",
         OrganizationGroupSearchViewStarredOrderEndpoint.as_view(),
         name="sentry-api-0-organization-group-search-view-starred-order",
     ),

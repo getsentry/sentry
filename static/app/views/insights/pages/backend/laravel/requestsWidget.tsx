@@ -14,6 +14,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
+import {Referrer} from 'sentry/views/insights/pages/backend/laravel/referrers';
 import {ModalChartContainer} from 'sentry/views/insights/pages/backend/laravel/styles';
 import {Toolbar} from 'sentry/views/insights/pages/backend/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
@@ -38,6 +39,7 @@ export function RequestsWidget({query}: {query?: string}) {
           partial: 1,
           query: fullQuery,
           useRpc: 1,
+          referrer: Referrer.REQUESTS_CHART,
         },
       },
     ],
@@ -106,6 +108,7 @@ export function RequestsWidget({query}: {query?: string}) {
       Title={<Widget.WidgetTitle title={t('Requests')} />}
       Visualization={visualization}
       Actions={
+        organization.features.includes('visibility-explore-view') &&
         !isEmpty && (
           <Toolbar
             exploreParams={{

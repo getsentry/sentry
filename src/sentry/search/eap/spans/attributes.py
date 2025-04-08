@@ -302,6 +302,16 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             secondary_alias=True,
         ),
+        ResolvedAttribute(
+            public_alias="sentry.sampling_weight",
+            internal_name="sentry.sampling_weight",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="sentry.sampling_factor",
+            internal_name="sentry.sampling_factor",
+            search_type="number",
+        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("environment"),
         simple_sentry_field("messaging.destination.name"),
@@ -407,6 +417,12 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[
         for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
         if not definition.secondary_alias and definition.search_type != "string"
     },
+}
+
+SPANS_PRIVATE_ATTRIBUTES: set[str] = {
+    definition.internal_name
+    for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+    if definition.private
 }
 
 

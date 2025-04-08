@@ -220,7 +220,8 @@ function SchemaHintsList({
             {
               ariaLabel: t('Schema Hints Drawer'),
               drawerWidth: SCHEMA_HINTS_DRAWER_WIDTH,
-              resizable: false,
+              drawerKey: 'schema-hints-drawer',
+              resizable: true,
               drawerCss: css`
                 height: calc(100% - ${space(4)});
               `,
@@ -399,7 +400,7 @@ const SchemaHintOption = styled(Button)`
   }
 `;
 
-export const SchemaHintsSection = styled('div')<{withSchemaHintsDrawer: boolean}>`
+export const SchemaHintsSection = styled('div')`
   display: grid;
   /* This is to ensure the hints section spans all the columns */
   grid-column: 1/-1;
@@ -408,8 +409,7 @@ export const SchemaHintsSection = styled('div')<{withSchemaHintsDrawer: boolean}
   height: fit-content;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 1fr ${p =>
-        p.withSchemaHintsDrawer ? SCHEMA_HINTS_DRAWER_WIDTH : '0px'};
+    grid-template-columns: 1fr;
     margin-bottom: 0;
     margin-top: 0;
   }

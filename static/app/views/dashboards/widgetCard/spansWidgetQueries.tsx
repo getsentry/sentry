@@ -169,7 +169,7 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
               // the best effort query has completed.
               children({
                 ...(bestEffortChildrenProps ?? preflightProps),
-                isProgressivelyLoading: preflightProps.loading,
+                loading: preflightProps.loading,
               })
             ) : (
               <GenericWidgetQueries<SeriesResult, TableResult>

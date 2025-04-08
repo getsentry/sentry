@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
+from django.db.models import Count
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -33,9 +34,23 @@ class MemberPermission(OrganizationPermission):
     }
 
 
+SORT_MAP = {
+    "popularity": "popularity",
+    "-popularity": "-popularity",
+    "visited": "groupsearchviewlastvisited__last_visited",
+    "-visited": "-groupsearchviewlastvisited__last_visited",
+    "name": "name",
+    "-name": "-name",
+}
+
+
 class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
     createdBy = serializers.ChoiceField(
         choices=("me", "others"),
+        required=False,
+    )
+    sort = serializers.ChoiceField(
+        choices=list(SORT_MAP.keys()),
         required=False,
     )
 
@@ -66,7 +81,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         serializer = OrganizationGroupSearchViewGetSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         query = GroupSearchView.objects.filter(
             organization=organization, user_id=request.user.id
@@ -74,7 +89,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         # Return only the default view(s) if user has no custom views yet
         # TODO(msun): Delete this logic once left-nav views have been fully rolled out.
-        if not query.exists():
+        if not query.exists() and not serializer.validated_data.get("createdBy"):
             return self.paginate(
                 request=request,
                 paginator=SequencePaginator(
@@ -111,8 +126,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 )
 
         createdBy = serializer.validated_data.get("createdBy")
+        sort = SORT_MAP[serializer.validated_data.get("sort", "-visited")]
         if createdBy:
-            # TODO(msun): add support for different sorting
             if createdBy == "me":
                 starred_query = (
                     GroupSearchView.objects.filter(
@@ -121,7 +136,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                         id__in=starred_view_ids,
                     )
                     .prefetch_related("projects")
-                    .order_by("name")
+                    .annotate(popularity=Count("groupsearchviewstarred"))
+                    .order_by(sort)
                 )
                 non_starred_query = (
                     GroupSearchView.objects.filter(
@@ -130,7 +146,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     )
                     .exclude(id__in=starred_view_ids)
                     .prefetch_related("projects")
-                    .order_by("name")
+                    .annotate(popularity=Count("groupsearchviewstarred"))
+                    .order_by(sort)
                 )
             elif createdBy == "others":
                 starred_query = (
@@ -141,7 +158,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     )
                     .exclude(user_id=request.user.id)
                     .prefetch_related("projects")
-                    .order_by("name")
+                    .annotate(popularity=Count("groupsearchviewstarred"))
+                    .order_by(sort)
                 )
                 non_starred_query = (
                     GroupSearchView.objects.filter(
@@ -151,7 +169,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     .exclude(user_id=request.user.id)
                     .exclude(id__in=starred_view_ids)
                     .prefetch_related("projects")
-                    .order_by("name")
+                    .annotate(popularity=Count("groupsearchviewstarred"))
+                    .order_by(sort)
                 )
 
             return self.paginate(

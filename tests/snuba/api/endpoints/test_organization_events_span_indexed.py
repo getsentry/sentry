@@ -3761,7 +3761,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         ]
         assert meta["dataset"] == self.dataset
 
-    @pytest.mark.xfail(reason="RPC is not evaluating `Null != 200` correctly")
     def test_filtering_null_numeric_attr(self):
         spans = [
             self.create_span(
@@ -3781,7 +3780,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         self.store_spans(spans, is_eap=self.is_eap)
         response = self.do_request(
             {
-                "field": ["description", "tags[http.response.status_code,number]"],
+                "field": ["description", "tags[http.response.status_code,number]", "count()"],
                 "query": "!tags[http.response.status_code,number]:200",
                 "orderby": "description",
                 "project": self.project.id,
@@ -3797,6 +3796,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             {
                 "tags[http.response.status_code,number]": None,
                 "description": "foo",
+                "count()": 1,
             },
         ]
         assert meta["dataset"] == self.dataset
@@ -3863,6 +3863,37 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(response.data["data"]) == 2
         assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
         assert response.data["data"][1]["id"] == "b" * 16
+
+    def test_internal_fields(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "zoo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        for private_field in [
+            "sentry.organization_id",
+            "sentry.item_type",
+        ]:
+            response = self.do_request(
+                {
+                    "field": [private_field, "count()"],
+                    "query": "",
+                    "orderby": private_field,
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                    "statsPeriod": "1h",
+                }
+            )
+
+            assert response.status_code == 400, response.content
 
     def test_transaction_profile_attributes(self):
         span_with_profile = self.create_span(start_ts=before_now(minutes=10))
@@ -3991,3 +4022,66 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 "timestamp": mock.ANY,
             },
         ]
+
+    def test_sampling_weight_does_not_fail(self):
+        span = self.create_span(
+            {
+                "profile_id": None,
+                "sentry_tags": {
+                    "profiler_id": uuid4().hex,
+                    "thread.id": "123",
+                    "thread.name": "main",
+                },
+                "measurements": {"client_sample_rate": {"value": 0.5}},
+            },
+            start_ts=before_now(minutes=10),
+        )
+        self.store_spans([span], is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["sentry.sampling_weight"],
+                "query": "",
+                "orderby": "sentry.sampling_weight",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        # Sampling weight is 1 / client_sample_rate
+        assert data[0]["sentry.sampling_weight"] == 2.0
+        assert meta["dataset"] == self.dataset
+
+    def test_sampling_factor_does_not_fail(self):
+        span = self.create_span(
+            {
+                "profile_id": None,
+                "sentry_tags": {
+                    "profiler_id": uuid4().hex,
+                    "thread.id": "123",
+                    "thread.name": "main",
+                },
+                "measurements": {"client_sample_rate": {"value": 0.01}},
+            },
+            start_ts=before_now(minutes=10),
+        )
+        self.store_spans([span], is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["sentry.sampling_factor"],
+                "query": "",
+                "orderby": "sentry.sampling_factor",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["sentry.sampling_factor"] == 0.01
+        assert meta["dataset"] == self.dataset

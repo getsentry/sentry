@@ -424,10 +424,10 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     if (key === 'profile.id') {
       const profileId = String(row[key]);
       const profileTarget =
-        defined(row.projectSlug) && defined(row[key])
+        defined(row.project) && defined(row[key])
           ? generateProfileFlamechartRoute({
               organization,
-              projectSlug: row.projectSlug,
+              projectSlug: row.project,
               profileId,
             })
           : null;
@@ -490,7 +490,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
     if (key === 'id' || key === SpanIndexedField.SPAN_DESCRIPTION) {
       const traceViewLink = generateLinkToEventInTraceView({
-        projectSlug: row.projectSlug,
+        projectSlug: row.project,
         traceSlug: row.trace,
         eventId: row.id,
         timestamp: row.timestamp,
@@ -631,7 +631,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
               : PAGELOADS_COLUMN_ORDER
           }
           columnSortBy={[]}
-          data={tableData}
+          data={tableData as any as TransactionSampleRowWithScore[]} // TODO: fix typing
           grid={{
             renderHeadCell,
             renderBodyCell,
