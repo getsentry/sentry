@@ -2,6 +2,7 @@ import logging
 
 import sentry_sdk
 from google.protobuf.json_format import MessageToJson
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageMeta
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
@@ -105,7 +106,11 @@ def run_table_query(
     """Process the results"""
     final_data: SnubaData = []
     final_confidence: ConfidenceData = []
-    final_meta: EventsMeta = EventsMeta(fields={})
+    final_meta: EventsMeta = EventsMeta(
+        fields={},
+        full_scan=rpc_response.meta.downsampled_storage_meta.tier
+        == DownsampledStorageMeta.SELECTED_TIER_1,
+    )
     # Mapping from public alias to resolved column so we know type etc.
     columns_by_name = {col.public_alias: col for col in columns}
 

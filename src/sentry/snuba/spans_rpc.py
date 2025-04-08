@@ -5,6 +5,7 @@ from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageMeta
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
     Expression,
@@ -180,7 +181,11 @@ def run_timeseries_query(
 
     """Process the results"""
     result = ProcessedTimeseries()
-    final_meta: EventsMeta = EventsMeta(fields={})
+    final_meta: EventsMeta = EventsMeta(
+        fields={},
+        full_scan=rpc_response.meta.downsampled_storage_meta.tier
+        == DownsampledStorageMeta.SELECTED_TIER_1,
+    )
     for resolved_field in aggregates + groupbys:
         final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
 
@@ -351,7 +356,11 @@ def run_top_events_timeseries_query(
     """Process the results"""
     map_result_key_to_timeseries = defaultdict(list)
 
-    final_meta: EventsMeta = EventsMeta(fields={})
+    final_meta: EventsMeta = EventsMeta(
+        fields={},
+        full_scan=rpc_response.meta.downsampled_storage_meta.tier
+        == DownsampledStorageMeta.SELECTED_TIER_1,
+    )
     for resolved_field in aggregates + groupbys:
         final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
 
