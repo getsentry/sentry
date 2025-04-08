@@ -3519,7 +3519,16 @@ class TraceTestCase(SpanTestCase):
                 spans_to_store = []
                 for span in data["spans"]:
                     if span:
-                        span.update({"segment_id": event.event_id[:16], "event_id": event.event_id})
+                        span.update(
+                            {
+                                "segment_id": event.event_id[:16],
+                                "event_id": event.event_id,
+                                "sentry_tags": {
+                                    "sdk.name": "sentry.test.sdk",
+                                    "sdk.version": "1.0",
+                                },
+                            }
+                        )
                         spans_to_store.append(
                             self.create_span(
                                 span,
@@ -3567,6 +3576,8 @@ class TraceTestCase(SpanTestCase):
 
         span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
         span_data["sentry_tags"]["transaction"] = event.data["transaction"]
+        span_data["sentry_tags"]["sdk.name"] = event.data["sdk"]["name"]
+        span_data["sentry_tags"]["sdk.version"] = event.data["sdk"]["version"]
 
         return span_data
 

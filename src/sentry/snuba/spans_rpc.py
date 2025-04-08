@@ -464,6 +464,7 @@ def run_trace_query(
         "precise.finish_ts",
         "project.id",
         "span.duration",
+        "sdk.name",
     ]
     resolver = get_resolver(params=params, config=SearchResolverConfig())
     columns, _ = resolver.resolve_attributes(trace_attributes)
