@@ -51,14 +51,15 @@ def query(
     query_source: QuerySource | None = None,
     debug: bool = False,
 ) -> EventsResponse:
+    precise_timestamp = "tags[sentry.timestamp_precise,number]"
     if orderby == ["-timestamp"]:
-        orderby = ["-timestamp", "-sentry.timestamp_precise"]
-        if "sentry.timestamp_precise" not in selected_columns:
-            selected_columns.append("sentry.timestamp_precise")
+        orderby = ["-timestamp", f"-{precise_timestamp}"]
+        if precise_timestamp not in selected_columns:
+            selected_columns.append(precise_timestamp)
     if orderby == ["timestamp"]:
-        orderby = ["timestamp", "sentry.timestamp_precise"]
-        if "sentry.timestamp_precise" not in selected_columns:
-            selected_columns.append("sentry.timestamp_precise")
+        orderby = ["timestamp", precise_timestamp]
+        if precise_timestamp not in selected_columns:
+            selected_columns.append(precise_timestamp)
     return run_table_query(
         query_string=query or "",
         selected_columns=selected_columns,
