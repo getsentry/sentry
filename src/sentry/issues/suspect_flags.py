@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime
 from typing import NamedTuple
 
@@ -42,11 +43,11 @@ def get_suspect_flag_scores(
         total_b=outliers_count,
     )
 
-    baseline_percent_dict = {
-        key: (count / baseline_count if baseline_count else 0.0)
-        for key, value, count in baseline
-        if value == "true"
-    }
+    baseline_percent_dict = defaultdict(int)
+    if baseline_count:
+        for key, value, count in baseline:
+            if value == "true":
+                baseline_percent_dict[key] = count / baseline_count
 
     return [
         Score(key=key, score=score, baseline_percent=baseline_percent_dict[key])

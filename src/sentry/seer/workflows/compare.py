@@ -93,7 +93,7 @@ def _multi_dimensional_kl_compare_sets(
     baseline: Attributes, outliers: Attributes
 ) -> dict[str, float]:
     """
-    Computes the KL scores of each key in the outlier set.
+    Computes the KL scores of each key in both sets.
     """
     return {
         key: _kl_compare_sets(baseline[key], outliers[key]) for key in outliers if key in baseline
