@@ -1,5 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -12,7 +13,9 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
+import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
@@ -46,6 +49,7 @@ describe('StreamlinedActivitySection', function () {
   beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
+    localStorage.clear();
   });
 
   it('renders the input with a comment button', async function () {
@@ -297,5 +301,21 @@ describe('StreamlinedActivitySection', function () {
         ).toBeInTheDocument();
       }
     }
+  });
+
+  it('can mention a team', async function () {
+    TeamStore.loadInitialData([TeamFixture()]);
+    render(<StreamlinedActivitySection group={group} />);
+    await userEvent.type(screen.getByRole('textbox', {name: 'Add a comment'}), '#team');
+    await userEvent.click(screen.getByRole('option', {name: '# team -slug'}));
+    expect(screen.getByRole('textbox')).toHaveTextContent('#team-slug');
+  });
+
+  it('can mention a member', async function () {
+    MemberListStore.loadInitialData([UserFixture()], false, null);
+    render(<StreamlinedActivitySection group={group} />);
+    await userEvent.type(screen.getByRole('textbox', {name: 'Add a comment'}), '@foo');
+    await userEvent.click(screen.getByRole('option', {name: 'Foo Bar'}));
+    expect(screen.getByRole('textbox')).toHaveTextContent('@Foo Bar');
   });
 });
