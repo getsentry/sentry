@@ -224,9 +224,7 @@ export function AutofixChanges({
               <MarkdownAlert
                 dangerouslySetInnerHTML={{
                   __html: marked(
-                    step.termination_reason
-                      ? step.termination_reason
-                      : t('Autofix had trouble applying its code changes.')
+                    step.termination_reason || t('Autofix had trouble applying its code changes.')
                   ),
                 }}
               />
