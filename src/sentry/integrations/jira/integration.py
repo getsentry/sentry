@@ -34,6 +34,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
+    ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiUnauthorized,
     IntegrationError,
@@ -1053,7 +1054,12 @@ class JiraIntegration(IssueSyncIntegration):
             logger.warning("jira.status-sync-fail", extra=log_context)
             return
 
-        client.transition_issue(external_issue.key, transition["id"])
+        try:
+            client.transition_issue(external_issue.key, transition["id"])
+        except ApiInvalidRequestError:
+            raise
+        except ApiError as e:
+            self.raise_error(e)
 
     def _get_done_statuses(self):
         client = self.get_client()
