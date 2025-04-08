@@ -19,8 +19,11 @@ from sentry.workflow_engine.models import (
     ActionGroupStatus,
     DataCondition,
     DataConditionGroup,
+    WorkflowDataConditionGroup,
+    WorkflowFireHistory,
 )
 from sentry.workflow_engine.registry import action_handler_registry
+from sentry.workflow_engine.types import WorkflowEventData
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 
@@ -60,14 +63,34 @@ def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action
     return statuses
 
 
+def update_workflow_fire_histories(
+    actions_to_fire: BaseQuerySet[Action], event_data: WorkflowEventData
+) -> int:
+    # Update WorkflowFireHistory objects for workflows with actions to fire
+    fired_workflows = set(
+        WorkflowDataConditionGroup.objects.filter(
+            condition_group__dataconditiongroupaction__action__in=actions_to_fire
+        ).values_list("workflow_id", flat=True)
+    )
+
+    updated_rows = WorkflowFireHistory.objects.filter(
+        workflow_id__in=fired_workflows,
+        group=event_data.event.group,
+        event_id=event_data.event.event_id,
+    ).update(has_fired_actions=True)
+
+    return updated_rows
+
+
 # TODO(cathy): only reinforce workflow frequency for certain issue types
 def filter_recently_fired_workflow_actions(
-    filtered_action_groups: set[DataConditionGroup], group: Group
+    filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
 ) -> BaseQuerySet[Action]:
     # get the actions for any of the triggered data condition groups
     actions = Action.objects.filter(
         dataconditiongroupaction__condition_group__in=filtered_action_groups
     ).distinct()
+    group = event_data.event.group
 
     now = timezone.now()
     statuses = get_action_last_updated_statuses(now, actions, group)
@@ -91,6 +114,8 @@ def filter_recently_fired_workflow_actions(
 
     actions_without_statuses_ids = {action.id for action in actions_without_statuses}
     filtered_actions = actions.filter(id__in=actions_to_include | actions_without_statuses_ids)
+
+    update_workflow_fire_histories(filtered_actions, event_data)
 
     return filtered_actions
 
