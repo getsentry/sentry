@@ -22,6 +22,7 @@ export const AlwaysPresentLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.TRACE_ID,
   OurLogKnownFieldKey.SEVERITY_NUMBER,
   OurLogKnownFieldKey.SEVERITY_TEXT,
+  OurLogKnownFieldKey.TIMESTAMP,
 ];
 
 const AlwaysHiddenLogFields: OurLogFieldKey[] = [
