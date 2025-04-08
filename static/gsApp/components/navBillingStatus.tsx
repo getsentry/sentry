@@ -1,7 +1,8 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type MotionProps} from 'framer-motion';
+import moment from 'moment-timezone';
 
 import {usePrompts} from 'sentry/actionCreators/prompts';
 import {Checkbox} from 'sentry/components/core/checkbox';
@@ -22,7 +23,7 @@ import {
 } from 'sentry/views/nav/primary/primaryButtonOverlay';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
-import withSubscription from 'getsentry/components/withSubscription';
+import useSubscription from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/billing';
 import {listDisplayNames, sortCategoriesWithKeys} from 'getsentry/utils/dataCategory';
@@ -116,13 +117,8 @@ function QuotaExceededContent({
   );
 }
 
-function PrimaryNavigationQuotaExceeded({
-  subscription,
-  organization,
-}: {
-  organization: Organization;
-  subscription: Subscription;
-}) {
+function PrimaryNavigationQuotaExceeded({organization}: {organization: Organization}) {
+  const subscription = useSubscription();
   const exceededCategories = sortCategoriesWithKeys(subscription?.categories ?? {})
     .filter(
       ([category]) =>
@@ -131,7 +127,7 @@ function PrimaryNavigationQuotaExceeded({
     .reduce((acc, [category, currentHistory]) => {
       if (currentHistory.usageExceeded) {
         if (
-          subscription.onDemandMaxSpend === 0 &&
+          subscription?.onDemandMaxSpend === 0 &&
           (!currentHistory.reserved || currentHistory.reserved <= 1)
         ) {
           // don't show any categories without additional reserved volumes
@@ -152,22 +148,72 @@ function PrimaryNavigationQuotaExceeded({
   const {isLoading, isError, isPromptDismissed, snoozePrompt, showPrompt} = usePrompts({
     features: promptsToCheck,
     organization,
-    daysToSnooze: -1 * getDaysSinceDate(subscription.onDemandPeriodEnd),
+    daysToSnooze:
+      -1 *
+      getDaysSinceDate(
+        subscription?.onDemandPeriodEnd ?? moment().utc().toDate().toDateString()
+      ),
   });
 
   const {
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
+    state: overlayState,
   } = usePrimaryButtonOverlay({});
   const prefersStackedNav = usePrefersStackedNav();
   const theme = useTheme();
   const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
   const iconColor = prefersDarkMode ? theme.background : theme.textColor;
 
+  const hasSnoozedAllPrompts = useCallback(() => {
+    return Object.values(isPromptDismissed).every(Boolean);
+  }, [isPromptDismissed]);
+
+  useEffect(() => {
+    // auto open the alert if it hasn't been explicitly dismissed, and
+    // either it has been more than a day since the last shown date,
+    // the categories have changed, or
+    // the last time it was shown was before the current usage cycle started
+    const lastShownCategories = localStorage.getItem(
+      `billing-status-last-shown-categories-${organization.id}`
+    );
+    const lastShownDate = localStorage.getItem(
+      `billing-status-last-shown-date-${organization.id}`
+    );
+    const daysSinceLastShown = lastShownDate ? getDaysSinceDate(lastShownDate) : 0;
+    const currentCategories = exceededCategories.join('-');
+    const lastShownBeforeCurrentPeriod = moment(subscription?.onDemandPeriodStart)
+      .utc()
+      .isAfter(moment(lastShownDate).utc());
+    if (
+      !hasSnoozedAllPrompts() &&
+      (daysSinceLastShown >= 1 ||
+        currentCategories !== lastShownCategories ||
+        lastShownBeforeCurrentPeriod)
+    ) {
+      overlayState.open();
+      localStorage.setItem(
+        `billing-status-last-shown-categories-${organization.id}`,
+        currentCategories
+      );
+      localStorage.setItem(
+        `billing-status-last-shown-date-${organization.id}`,
+        moment().utc().toDate().toDateString()
+      );
+    }
+  }, [
+    exceededCategories,
+    organization.id,
+    hasSnoozedAllPrompts,
+    overlayState,
+    subscription?.onDemandPeriodStart,
+  ]);
+
   const shouldShow =
     prefersStackedNav &&
     exceededCategories.length > 0 &&
+    subscription &&
     subscription.canSelfServe &&
     !subscription.hasOverageNotificationsDisabled;
   if (!shouldShow || isLoading || isError) {
@@ -204,10 +250,6 @@ function PrimaryNavigationQuotaExceeded({
     }
   };
 
-  const hasSnoozedAllPrompts = () => {
-    return Object.values(isPromptDismissed).every(Boolean);
-  };
-
   return (
     <Fragment>
       <SidebarButton
@@ -234,7 +276,7 @@ function PrimaryNavigationQuotaExceeded({
   );
 }
 
-export default withSubscription(PrimaryNavigationQuotaExceeded, {noLoader: true});
+export default PrimaryNavigationQuotaExceeded;
 
 const Container = styled('div')`
   background: ${p => p.theme.background};
