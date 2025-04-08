@@ -37,10 +37,10 @@ class MemberPermission(OrganizationPermission):
 SORT_MAP = {
     "popularity": "popularity",
     "-popularity": "-popularity",
-    "last_seen": "groupsearchviewlastvisited__last_visited",
-    "-last_seen": "-groupsearchviewlastvisited__last_visited",
-    "alphabetical": "name",
-    "-alphabetical": "-name",
+    "visited": "groupsearchviewlastvisited__last_visited",
+    "-visited": "-groupsearchviewlastvisited__last_visited",
+    "name": "name",
+    "-name": "-name",
 }
 
 
@@ -126,9 +126,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 )
 
         createdBy = serializer.validated_data.get("createdBy")
-        sort = SORT_MAP[serializer.validated_data.get("sort", "-last_seen")]
+        sort = SORT_MAP[serializer.validated_data.get("sort", "-visited")]
         if createdBy:
-            # TODO(msun): add support for different sorting
             if createdBy == "me":
                 starred_query = (
                     GroupSearchView.objects.filter(
