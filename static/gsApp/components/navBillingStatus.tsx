@@ -125,6 +125,8 @@ function PrimaryNavigationQuotaExceeded({
           subscription.onDemandMaxSpend === 0 &&
           (!currentHistory.reserved || currentHistory.reserved <= 1)
         ) {
+          // don't show any categories without additional reserved volumes
+          // if there is no PAYG
           return acc;
         }
         acc.push(category);

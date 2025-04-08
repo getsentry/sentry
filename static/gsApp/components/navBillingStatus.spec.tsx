@@ -112,7 +112,6 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     // open the alert
     await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
     expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
-    // doesn't show categories with <1 reserved tier and no PAYG
     expect(
       screen.getByText(
         /You’ve run out of errors, replays, spans, cron monitors, and continuous profile hours for this billing cycle./
