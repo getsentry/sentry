@@ -37,17 +37,17 @@ export default function Providers({children, config, container}: Props) {
 
   return (
     <CacheProvider value={myCache}>
-      <ThemeProvider theme={lightTheme}>
-        <ConfigurationContextProvider config={config}>
-          <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={lightTheme}>
+          <ConfigurationContextProvider config={config}>
             <VisibilityContextProvider>
               <ToolbarRouterContextProvider>
                 <FeatureFlagsContextProvider>{children}</FeatureFlagsContextProvider>
               </ToolbarRouterContextProvider>
             </VisibilityContextProvider>
-          </QueryClientProvider>
-        </ConfigurationContextProvider>
-      </ThemeProvider>
+          </ConfigurationContextProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
     </CacheProvider>
   );
 }
