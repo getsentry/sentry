@@ -130,7 +130,6 @@ export const LogFirstCellContent = styled('div')`
 export const DetailsBody = styled(LogDetailPanelItem)<{
   logColors: ReturnType<typeof getLogColors>;
 }>`
-  color: ${p => p.logColors.color};
   padding: ${space(1)} 0;
   font-family: ${p => p.theme.text.familyMono};
 `;
