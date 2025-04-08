@@ -2515,6 +2515,16 @@ export const getFieldDefinition = (
         return LOG_FIELD_DEFINITIONS[key];
       }
 
+      // In EAP we have numeric tags that can be passed as parameters to
+      // aggregate functions. We assign value type based on kind, so that we can filter
+      // on them when suggesting function parameters.
+      if (kind === FieldKind.MEASUREMENT) {
+        return {
+          kind: FieldKind.FIELD,
+          valueType: FieldValueType.NUMBER,
+        };
+      }
+
       if (kind === FieldKind.TAG) {
         return {
           kind: FieldKind.FIELD,
