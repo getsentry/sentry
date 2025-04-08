@@ -8,9 +8,15 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('NoteInput', function () {
+  beforeEach(() => {
+    TeamStore.reset();
+    MemberListStore.reset();
+  });
+
   describe('New item', function () {
     it('renders', function () {
       render(<NoteInput />);
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
     });
 
     it('submits when meta + enter is pressed', async function () {
