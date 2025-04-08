@@ -15,6 +15,7 @@ __all__ = [
     "Detector",
     "DetectorState",
     "DetectorWorkflow",
+    "IncidentGroupOpenPeriod",
     "Workflow",
     "WorkflowDataConditionGroup",
     "WorkflowFireHistory",
@@ -34,6 +35,7 @@ from .datacondition_alertruletrigger import DataConditionAlertRuleTrigger
 from .detector import Detector
 from .detector_state import DetectorState
 from .detector_workflow import DetectorWorkflow
+from .incident_groupopenperiod import IncidentGroupOpenPeriod
 from .workflow import Workflow
 from .workflow_data_condition_group import WorkflowDataConditionGroup
 from .workflow_fire_history import WorkflowFireHistory
