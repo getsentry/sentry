@@ -1,3 +1,5 @@
+from typing import TypedDict
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.groupsearchview import (
     GroupSearchViewSerializer,
@@ -7,7 +9,7 @@ from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.savedsearch import SORT_LITERALS
 
 
-class GroupSearchViewStarredSerializerResponse(GroupSearchViewSerializerResponse):
+class GroupSearchViewStarredSerializerResponse(TypedDict):
     id: str
     name: str
     query: str
