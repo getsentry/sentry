@@ -1,15 +1,32 @@
 import abc
 import dataclasses
 import logging
+from collections.abc import Mapping, Sequence
 from typing import Any, Generic, TypeVar
 
-from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.grouptype import GroupType
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.types.actor import Actor
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
+
+
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class DetectorOccurrence:
+    issue_title: str
+    subtitle: str
+    resource_id: str | None = None
+    evidence_data: Mapping[str, Any] | None = None
+    evidence_display: Sequence[IssueEvidence] | None = None
+    type: type[GroupType]
+    level: str
+    culprit: str
+    initial_issue_priority: int | None = None
+    assignee: Actor | None = None
 
 
 @dataclasses.dataclass(frozen=True)
