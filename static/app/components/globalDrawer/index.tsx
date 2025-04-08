@@ -110,7 +110,7 @@ export function GlobalDrawer({children}: any) {
   const [currentDrawerConfig, overwriteDrawerConfig] = useState<
     DrawerConfig | undefined
   >();
-  // Used so avoid adding `currentDrawerConfig` as a dependency to the below
+  // Used to avoid adding `currentDrawerConfig` as a dependency to the below
   // `useLayoutEffect`. It's only used as a callback when `location` changes.
   const currentDrawerConfigRef = useRef(currentDrawerConfig);
 
