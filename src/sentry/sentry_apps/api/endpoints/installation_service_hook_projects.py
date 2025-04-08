@@ -55,20 +55,8 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
                 if not request.access.has_project_access(p_obj):
                     raise ProjectAccessError("Can not remove projects that are not accessible")
 
-            # Remove projects
-            ServiceHookProject.objects.filter(
-                service_hook_id=hook.id, project_id__in=projects_to_remove
-            ).delete()
-
-            # Add new projects
-            added_hook_projects = []
-            for project_id in projects_to_add:
-                added_hook_projects.append(
-                    ServiceHookProject.objects.create(
-                        project_id=project_id,
-                        service_hook_id=hook.id,
-                    )
-                )
+            self._delete_servicehookprojects(hook.id, projects_to_remove)
+            added_hook_projects = self._add_servicehookprojects(hook.id, projects_to_add)
 
             kept_project_ids = existing_project_ids & new_project_ids
             return sorted(
@@ -77,7 +65,25 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
                 key=lambda x: x.project_id,
             )
 
-    def _delete_hook_projects(self, installation_id: int) -> None:
+    def _delete_servicehookprojects(self, service_hook_id: int, project_ids: list[int]) -> None:
+        ServiceHookProject.objects.filter(
+            service_hook_id=service_hook_id, project_id__in=project_ids
+        ).delete()
+
+    def _add_servicehookprojects(
+        self, service_hook_id: int, project_ids: list[int]
+    ) -> list[ServiceHookProject]:
+        res = []
+        for project_id in project_ids:
+            res.append(
+                ServiceHookProject.objects.create(
+                    project_id=project_id,
+                    service_hook_id=service_hook_id,
+                )
+            )
+        return res
+
+    def _delete_all_hook_projects(self, installation_id: int) -> None:
         hook = ServiceHook.objects.get(installation_id=installation_id)
         hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
         deletions.exec_sync_many(list(hook_projects))
@@ -140,5 +146,5 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
         )
 
     def delete(self, request: Request, installation: SentryAppInstallation) -> Response:
-        self._delete_hook_projects(installation.id)
+        self._delete_all_hook_projects(installation.id)
         return Response(status=204)
