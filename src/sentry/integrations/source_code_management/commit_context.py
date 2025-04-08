@@ -8,12 +8,18 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import sentry_sdk
+from django.db import connection
 from django.utils import timezone as django_timezone
+from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
+from snuba_sdk import Request as SnubaRequest
 
 from sentry import analytics
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.constants import ObjectStatus
+from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.metrics import (
     CommitContextHaltReason,
     CommitContextIntegrationInteractionEvent,
@@ -25,6 +31,7 @@ from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.pullrequest import (
     CommentType,
@@ -34,18 +41,38 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
+    ApiError,
     ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiRetryError,
 )
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
 
-def _debounce_pr_comment_cache_key(pullrequest_id: int) -> str:
+@dataclass(frozen=True, kw_only=True)
+class CommitContextReferrers:
+    pr_comment_bot: Referrer
+
+
+@dataclass(frozen=True, kw_only=True)
+class CommitContextReferrerIds:
+    pr_bot: str
+    open_pr_bot: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class CommitContextOrganizationOptionKeys:
+    pr_bot: str
+
+
+def debounce_pr_comment_cache_key(pullrequest_id: int) -> str:
     return f"pr-comment-{pullrequest_id}"
 
 
@@ -59,6 +86,11 @@ def _pr_comment_log(integration_name: str, suffix: str) -> str:
 
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 PR_COMMENT_WINDOW = 14  # days
+
+MAX_SUSPECT_COMMITS = 1000
+
+# Metrics
+MERGED_PR_METRICS_BASE = "{integration}.pr_comment.{key}"
 
 
 @dataclass
@@ -96,6 +128,21 @@ class CommitContextIntegration(ABC):
 
     @abstractmethod
     def get_client(self) -> CommitContextClient:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def commit_context_referrers(self) -> CommitContextReferrers:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def commit_context_referrer_ids(self) -> CommitContextReferrerIds:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def commit_context_organization_option_keys(self) -> CommitContextOrganizationOptionKeys:
         raise NotImplementedError
 
     def get_blame_for_files(
@@ -275,7 +322,7 @@ class CommitContextIntegration(ABC):
                     _debounce_pr_comment_lock_key(pr.id), duration=10, name="queue_comment_task"
                 )
                 with lock.acquire():
-                    cache_key = _debounce_pr_comment_cache_key(pullrequest_id=pr.id)
+                    cache_key = debounce_pr_comment_cache_key(pullrequest_id=pr.id)
                     if cache.get(cache_key) is not None:
                         lifecycle.record_halt(CommitContextHaltReason.ALREADY_QUEUED)
                         return
@@ -302,7 +349,7 @@ class CommitContextIntegration(ABC):
         pr_key: str,
         comment_data: dict[str, Any],
         pullrequest_id: int,
-        issue_list: list[int],
+        issue_ids: list[int],
         metrics_base: str,
         comment_type: int = CommentType.MERGED_PR,
         language: str | None = None,
@@ -338,7 +385,7 @@ class CommitContextIntegration(ABC):
                     pull_request_id=pullrequest_id,
                     created_at=current_time,
                     updated_at=current_time,
-                    group_ids=issue_list,
+                    group_ids=issue_ids,
                     comment_type=comment_type,
                 )
                 metrics.incr(
@@ -364,7 +411,7 @@ class CommitContextIntegration(ABC):
                     metrics_base.format(integration=self.integration_name, key="comment_updated")
                 )
                 pr_comment.updated_at = django_timezone.now()
-                pr_comment.group_ids = issue_list
+                pr_comment.group_ids = issue_ids
                 pr_comment.save()
 
             logger_event = metrics_base.format(
@@ -374,6 +421,229 @@ class CommitContextIntegration(ABC):
                 logger_event,
                 extra={"new_comment": pr_comment is None, "pr_key": pr_key, "repo": repo.name},
             )
+
+    def on_create_or_update_comment_error(self, api_error: ApiError) -> bool:
+        if api_error.json:
+            if ISSUE_LOCKED_ERROR_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    MERGED_PR_METRICS_BASE.format(integration=self.integration_name, key="error"),
+                    tags={"type": "issue_locked_error"},
+                )
+                return True
+
+            elif RATE_LIMITED_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    MERGED_PR_METRICS_BASE.format(integration=self.integration_name, key="error"),
+                    tags={"type": "rate_limited_error"},
+                )
+                return True
+
+        return False
+
+    @abstractmethod
+    def format_pr_comment(self, issue_ids: list[int]) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
+    def build_pr_comment_data(
+        self,
+        organization: Organization,
+        repo: Repository,
+        pr_key: str,
+        comment_body: str,
+        issue_ids: list[int],
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
+    def get_issue_ids_from_pr(self, pr: PullRequest, limit: int = MAX_SUSPECT_COMMITS) -> list[int]:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT go.group_id issue_id
+                FROM sentry_groupowner go
+                JOIN sentry_pullrequest_commit c ON c.commit_id = (go.context::jsonb->>'commitId')::bigint
+                JOIN sentry_pull_request pr ON c.pull_request_id = pr.id
+                WHERE go.type=0
+                AND pr.id=%s
+                ORDER BY go.date_added
+                LIMIT %s
+                """,
+                params=[pr.id, limit],
+            )
+            return [issue_id for (issue_id,) in cursor.fetchall()]
+
+    def get_top_5_issues_by_count(
+        self, issue_ids: list[int], project: Project
+    ) -> list[dict[str, Any]]:
+        """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
+        request = SnubaRequest(
+            dataset=Dataset.Events.value,
+            app_id="default",
+            tenant_ids={"organization_id": project.organization_id},
+            query=(
+                Query(Entity("events"))
+                .set_select([Column("group_id"), Function("count", [], "event_count")])
+                .set_groupby([Column("group_id")])
+                .set_where(
+                    [
+                        Condition(Column("project_id"), Op.EQ, project.id),
+                        Condition(Column("group_id"), Op.IN, issue_ids),
+                        Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=30)),
+                        Condition(Column("timestamp"), Op.LT, datetime.now()),
+                        Condition(Column("level"), Op.NEQ, "info"),
+                    ]
+                )
+                .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
+                .set_limit(5)
+            ),
+        )
+        referrer = self.commit_context_referrers.pr_comment_bot.value
+        return raw_snql_query(request, referrer=referrer)["data"]
+
+    def run_pr_comment_workflow(
+        self, organization: Organization, repo: Repository, pr: PullRequest, project_id: int
+    ) -> None:
+        cache_key = debounce_pr_comment_cache_key(pullrequest_id=pr.id)
+
+        # cap to 1000 issues in which the merge commit is the suspect commit
+        issue_ids = self.get_issue_ids_from_pr(pr, limit=MAX_SUSPECT_COMMITS)
+
+        if not OrganizationOption.objects.get_value(
+            organization=organization,
+            key=self.commit_context_organization_option_keys.pr_bot,
+            default=True,
+        ):
+            logger.info(
+                _pr_comment_log(integration_name=self.integration_name, suffix="option_missing"),
+                extra={"organization_id": organization.id},
+            )
+            return
+
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+        except Project.DoesNotExist:
+            cache.delete(cache_key)
+            logger.info(
+                _pr_comment_log(integration_name=self.integration_name, suffix="project_missing"),
+                extra={"organization_id": organization.id},
+            )
+            metrics.incr(
+                MERGED_PR_METRICS_BASE.format(integration=self.integration_name, key="error"),
+                tags={"type": "missing_project"},
+            )
+            return
+
+        top_5_issues = self.get_top_5_issues_by_count(issue_ids, project)
+        if not top_5_issues:
+            logger.info(
+                _pr_comment_log(integration_name=self.integration_name, suffix="no_issues"),
+                extra={"organization_id": organization.id, "pr_id": pr.id},
+            )
+            cache.delete(cache_key)
+            return
+
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+
+        comment_body = self.format_pr_comment(issue_ids=top_5_issue_ids)
+        logger.info(
+            _pr_comment_log(integration_name=self.integration_name, suffix="comment_body"),
+            extra={"body": comment_body},
+        )
+
+        top_24_issue_ids = issue_ids[:24]  # 24 is the P99 for issues-per-PR
+
+        comment_data = self.build_pr_comment_data(
+            organization=organization,
+            repo=repo,
+            pr_key=pr.key,
+            comment_body=comment_body,
+            issue_ids=top_24_issue_ids,
+        )
+
+        try:
+            self.create_or_update_comment(
+                repo=repo,
+                pr_key=pr.key,
+                comment_data=comment_data,
+                pullrequest_id=pr.id,
+                issue_ids=top_24_issue_ids,
+                metrics_base=MERGED_PR_METRICS_BASE,
+            )
+        except ApiError as e:
+            cache.delete(cache_key)
+
+            if self.on_create_or_update_comment_error(api_error=e):
+                return
+
+            metrics.incr(
+                MERGED_PR_METRICS_BASE.format(integration=self.integration_name, key="error"),
+                tags={"type": "api_error"},
+            )
+            raise
+
+
+def run_pr_comment_workflow(integration_name: str, pullrequest_id: int, project_id: int) -> None:
+    cache_key = debounce_pr_comment_cache_key(pullrequest_id=pullrequest_id)
+
+    try:
+        pr = PullRequest.objects.get(id=pullrequest_id)
+        assert isinstance(pr, PullRequest)
+    except PullRequest.DoesNotExist:
+        cache.delete(cache_key)
+        logger.info(_pr_comment_log(integration_name=integration_name, suffix="pr_missing"))
+        return
+
+    try:
+        organization = Organization.objects.get_from_cache(id=pr.organization_id)
+        assert isinstance(organization, Organization)
+    except Organization.DoesNotExist:
+        cache.delete(cache_key)
+        logger.info(_pr_comment_log(integration_name=integration_name, suffix="org_missing"))
+        metrics.incr(
+            MERGED_PR_METRICS_BASE.format(integration=integration_name, key="error"),
+            tags={"type": "missing_org"},
+        )
+        return
+
+    try:
+        repo = Repository.objects.get(id=pr.repository_id)
+        assert isinstance(repo, Repository)
+    except Repository.DoesNotExist:
+        cache.delete(cache_key)
+        logger.info(
+            _pr_comment_log(integration_name=integration_name, suffix="repo_missing"),
+            extra={"organization_id": organization.id},
+        )
+        metrics.incr(
+            MERGED_PR_METRICS_BASE.format(integration=integration_name, key="error"),
+            tags={"type": "missing_repo"},
+        )
+        return
+
+    integration = integration_service.get_integration(
+        integration_id=repo.integration_id, status=ObjectStatus.ACTIVE
+    )
+    if not integration:
+        cache.delete(cache_key)
+        logger.info(
+            _pr_comment_log(integration_name=integration_name, suffix="integration_missing"),
+            extra={"organization_id": organization.id},
+        )
+        metrics.incr(
+            MERGED_PR_METRICS_BASE.format(integration=integration_name, key="error"),
+            tags={"type": "missing_integration"},
+        )
+        return
+
+    installation = integration.get_installation(organization_id=organization.id)
+    assert isinstance(installation, CommitContextIntegration)
+
+    installation.run_pr_comment_workflow(
+        organization=organization,
+        repo=repo,
+        pr=pr,
+        project_id=project_id,
+    )
 
 
 class CommitContextClient(ABC):

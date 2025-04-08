@@ -1,3 +1,5 @@
+import logging
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -5,12 +7,19 @@ import pytest
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
+    CommitContextOrganizationOptionKeys,
+    CommitContextReferrerIds,
+    CommitContextReferrers,
     SourceLineInfo,
 )
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric, assert_slo_metric
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now
+from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER, GITHUB_PR_BOT_REFERRER
 from sentry.users.models.identity import Identity
 
 
@@ -26,8 +35,32 @@ class MockCommitContextIntegration(CommitContextIntegration):
     def get_client(self):
         return self.client
 
+    commit_context_referrers = CommitContextReferrers(
+        pr_comment_bot=Referrer.GITHUB_PR_COMMENT_BOT,
+    )
+    commit_context_referrer_ids = CommitContextReferrerIds(
+        pr_bot=GITHUB_PR_BOT_REFERRER,
+        open_pr_bot=GITHUB_OPEN_PR_BOT_REFERRER,
+    )
+    commit_context_organization_option_keys = CommitContextOrganizationOptionKeys(
+        pr_bot="sentry:github_pr_bot",
+    )
 
-class CommitContextIntegrationTest(TestCase):
+    def format_pr_comment(self, issue_ids: list[int]) -> str:
+        raise NotImplementedError
+
+    def build_pr_comment_data(
+        self,
+        organization: Organization,
+        repo: Repository,
+        pr_key: str,
+        comment_body: str,
+        issue_ids: list[int],
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
+
+class TestCommitContextIntegrationSLO(TestCase):
     def setUp(self):
         super().setUp()
         self.integration = MockCommitContextIntegration()
@@ -186,3 +219,121 @@ class CommitContextIntegrationTest(TestCase):
         assert result == []
         assert len(mock_record.mock_calls) == 2
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+
+class TestTop5IssuesByCount(TestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.integration_impl = MockCommitContextIntegration()
+
+    def test_simple(self):
+        group1 = [
+            self.store_event(
+                {"fingerprint": ["group-1"], "timestamp": before_now(days=1).isoformat()},
+                project_id=self.project.id,
+            )
+            for _ in range(3)
+        ][0].group.id
+        group2 = [
+            self.store_event(
+                {"fingerprint": ["group-2"], "timestamp": before_now(days=1).isoformat()},
+                project_id=self.project.id,
+            )
+            for _ in range(6)
+        ][0].group.id
+        group3 = [
+            self.store_event(
+                {"fingerprint": ["group-3"], "timestamp": before_now(days=1).isoformat()},
+                project_id=self.project.id,
+            )
+            for _ in range(4)
+        ][0].group.id
+        res = self.integration_impl.get_top_5_issues_by_count(
+            [group1, group2, group3], self.project
+        )
+        assert [issue["group_id"] for issue in res] == [group2, group3, group1]
+
+    def test_over_5_issues(self):
+        issue_ids = [
+            self.store_event(
+                {"fingerprint": [f"group-{idx}"], "timestamp": before_now(days=1).isoformat()},
+                project_id=self.project.id,
+            ).group.id
+            for idx in range(6)
+        ]
+        res = self.integration_impl.get_top_5_issues_by_count(issue_ids, self.project)
+        assert len(res) == 5
+
+    def test_ignore_info_level_issues(self):
+        group1 = [
+            self.store_event(
+                {
+                    "fingerprint": ["group-1"],
+                    "timestamp": before_now(days=1).isoformat(),
+                    "level": logging.INFO,
+                },
+                project_id=self.project.id,
+            )
+            for _ in range(3)
+        ][0].group.id
+        group2 = [
+            self.store_event(
+                {"fingerprint": ["group-2"], "timestamp": before_now(days=1).isoformat()},
+                project_id=self.project.id,
+            )
+            for _ in range(6)
+        ][0].group.id
+        group3 = [
+            self.store_event(
+                {
+                    "fingerprint": ["group-3"],
+                    "timestamp": before_now(days=1).isoformat(),
+                    "level": logging.INFO,
+                },
+                project_id=self.project.id,
+            )
+            for _ in range(4)
+        ][0].group.id
+        res = self.integration_impl.get_top_5_issues_by_count(
+            [group1, group2, group3], self.project
+        )
+        assert [issue["group_id"] for issue in res] == [group2]
+
+    def test_do_not_ignore_other_issues(self):
+        group1 = [
+            self.store_event(
+                {
+                    "fingerprint": ["group-1"],
+                    "timestamp": before_now(days=1).isoformat(),
+                    "level": logging.ERROR,
+                },
+                project_id=self.project.id,
+            )
+            for _ in range(3)
+        ][0].group.id
+        group2 = [
+            self.store_event(
+                {
+                    "fingerprint": ["group-2"],
+                    "timestamp": before_now(days=1).isoformat(),
+                    "level": logging.INFO,
+                },
+                project_id=self.project.id,
+            )
+            for _ in range(6)
+        ][0].group.id
+        group3 = [
+            self.store_event(
+                {
+                    "fingerprint": ["group-3"],
+                    "timestamp": before_now(days=1).isoformat(),
+                    "level": logging.DEBUG,
+                },
+                project_id=self.project.id,
+            )
+            for _ in range(4)
+        ][0].group.id
+        res = self.integration_impl.get_top_5_issues_by_count(
+            [group1, group2, group3], self.project
+        )
+        assert [issue["group_id"] for issue in res] == [group3, group1]

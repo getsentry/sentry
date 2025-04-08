@@ -31,7 +31,12 @@ from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
-from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    CommitContextIntegration,
+    CommitContextOrganizationOptionKeys,
+    CommitContextReferrerIds,
+    CommitContextReferrers,
+)
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
@@ -39,12 +44,16 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.snuba.referrer import Referrer
+from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER, GITHUB_PR_BOT_REFERRER
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import determine_active_organization
@@ -173,11 +182,9 @@ def get_document_origin(org) -> str:
 class GitHubIntegration(
     RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration
 ):
-    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
+    integration_name = "github"
 
-    @property
-    def integration_name(self) -> str:
-        return "github"
+    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self) -> GitHubBaseClient:
         if not self.org_integration:
@@ -289,6 +296,75 @@ class GitHubIntegration(
         resp = self.get_client().search_issues(query)
         assert isinstance(resp, dict)
         return resp
+
+    # CommitContextIntegration methods
+
+    commit_context_referrers = CommitContextReferrers(
+        pr_comment_bot=Referrer.GITHUB_PR_COMMENT_BOT,
+    )
+    commit_context_referrer_ids = CommitContextReferrerIds(
+        pr_bot=GITHUB_PR_BOT_REFERRER,
+        open_pr_bot=GITHUB_OPEN_PR_BOT_REFERRER,
+    )
+    commit_context_organization_option_keys = CommitContextOrganizationOptionKeys(
+        pr_bot="sentry:github_pr_bot",
+    )
+
+    def format_comment_url(self, url: str, referrer: str) -> str:
+        return url + "?referrer=" + referrer
+
+    def format_pr_comment(self, issue_ids: list[int]) -> str:
+        single_issue_template = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
+        comment_body_template = """\
+## Suspect Issues
+This pull request was deployed and Sentry observed the following issues:
+
+{issue_list}
+
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+
+        def format_subtitle(subtitle: str) -> str:
+            return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
+
+        issues = Group.objects.filter(id__in=issue_ids).order_by("id").all()
+
+        issue_list = "\n".join(
+            single_issue_template.format(
+                title=issue.title,
+                subtitle=format_subtitle(issue.culprit),
+                url=self.format_comment_url(
+                    issue.get_absolute_url(), referrer=self.commit_context_referrer_ids.pr_bot
+                ),
+            )
+            for issue in issues
+        )
+
+        return comment_body_template.format(issue_list=issue_list)
+
+    def build_pr_comment_data(
+        self,
+        organization: Organization,
+        repo: Repository,
+        pr_key: str,
+        comment_body: str,
+        issue_ids: list[int],
+    ) -> dict[str, Any]:
+        enabled_copilot = features.has("organizations:gen-ai-features", organization)
+
+        comment_data = {
+            "body": comment_body,
+        }
+        if enabled_copilot:
+            comment_data["actions"] = [
+                {
+                    "name": f"Root cause #{i + 1}",
+                    "type": "copilot-chat",
+                    "prompt": f"@sentry root cause issue {str(issue_id)} with PR URL https://github.com/{repo.name}/pull/{str(pr_key)}",
+                }
+                for i, issue_id in enumerate(issue_ids[:3])
+            ]
+
+        return comment_data
 
 
 class GitHubIntegrationProvider(IntegrationProvider):
