@@ -92,6 +92,7 @@ const emptyTourState = {
   currentStepId: undefined,
   isCompleted: false,
   isRegistered: true,
+  orderedStepIds: [],
 };
 
 const TOUR_STATE_INITIAL_VALUE: Record<DemoTour, TourState<any>> = {
@@ -117,7 +118,7 @@ const TOUR_STATE_INITIAL_VALUE: Record<DemoTour, TourState<any>> = {
   },
 };
 
-export function DemoTourProvider({children}: {children: React.ReactNode}) {
+export function DemoToursProvider({children}: {children: React.ReactNode}) {
   const org = useOrganization();
   const [tourState, setTourState] = useLocalStorageState<
     Record<DemoTour, TourState<any>>

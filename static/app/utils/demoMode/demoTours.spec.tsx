@@ -1,9 +1,11 @@
 import {cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {recordFinish} from 'sentry/actionCreators/guides';
+import type {TourState} from 'sentry/components/tours/tourContext';
 import {
   DemoTour,
-  DemoTourProvider,
+  DemoTourElement,
+  DemoToursProvider,
   DemoTourStep,
   useDemoTours,
 } from 'sentry/utils/demoMode/demoTours';
@@ -17,175 +19,323 @@ jest.mock('sentry/utils/useLocalStorageState', () => ({
   useLocalStorageState: jest.fn(),
 }));
 
-const mockUseLocalStorageState = jest.mocked(useLocalStorageState);
-
-function MultiTourTester() {
-  const sidebarTour = useDemoTours(DemoTour.SIDEBAR);
-  const issuesTour = useDemoTours(DemoTour.ISSUES);
-  const releasesTour = useDemoTours(DemoTour.RELEASES);
-  const performanceTour = useDemoTours(DemoTour.PERFORMANCE);
+function TourHookTester({tourKey}: {tourKey: DemoTour}) {
+  const tour = useDemoTours(tourKey);
 
   return (
     <div>
-      <div data-testid="sidebar-step">{sidebarTour.currentStepId || 'none'}</div>
-      <div data-testid="issues-step">{issuesTour.currentStepId || 'none'}</div>
-      <div data-testid="releases-step">{releasesTour.currentStepId || 'none'}</div>
-      <div data-testid="performance-step">{performanceTour.currentStepId || 'none'}</div>
-
+      <div data-test-id="tour-active">{tour.currentStepId || 'none'}</div>
+      <div data-test-id="tour-completed">{String(tour.isCompleted)}</div>
       <button
-        data-testid="start-sidebar"
-        onClick={() => sidebarTour.startTour(DemoTourStep.SIDEBAR_PROJECTS)}
+        data-test-id="start-tour"
+        onClick={() =>
+          tour.startTour(
+            tourKey === DemoTour.SIDEBAR
+              ? DemoTourStep.SIDEBAR_PROJECTS
+              : DemoTourStep.ISSUES_STREAM
+          )
+        }
       >
-        Start Sidebar
+        Start Tour
+      </button>
+      <button data-test-id="end-tour" onClick={() => tour.endTour()}>
+        End Tour
       </button>
       <button
-        data-testid="start-issues"
-        onClick={() => issuesTour.startTour(DemoTourStep.ISSUES_STREAM)}
+        data-test-id="set-step"
+        onClick={() =>
+          tour.setStep(
+            tourKey === DemoTour.SIDEBAR
+              ? DemoTourStep.SIDEBAR_ISSUES
+              : DemoTourStep.ISSUES_TAGS
+          )
+        }
       >
-        Start Issues
-      </button>
-      <button data-testid="end-sidebar" onClick={() => sidebarTour.endTour()}>
-        End Sidebar
-      </button>
-      <button data-testid="end-issues" onClick={() => issuesTour.endTour()}>
-        End Issues
+        Set Step
       </button>
     </div>
   );
 }
 
-describe('DemoTourProvider', () => {
+// Helper component for testing multiple tours
+function MultiTourTester() {
+  const sidebarTour = useDemoTours(DemoTour.SIDEBAR);
+  const issuesTour = useDemoTours(DemoTour.ISSUES);
+
+  return (
+    <div>
+      <DemoTourElement
+        id={DemoTourStep.SIDEBAR_PROJECTS}
+        title="Sidebar Projects"
+        description="Learn about projects"
+      >
+        <div data-test-id="sidebar-projects-anchor">
+          {sidebarTour.currentStepId === DemoTourStep.SIDEBAR_PROJECTS
+            ? 'Active'
+            : 'Inactive'}
+        </div>
+      </DemoTourElement>
+
+      <DemoTourElement
+        id={DemoTourStep.SIDEBAR_ISSUES}
+        title="Sidebar Issues"
+        description="Learn about issues"
+      >
+        <div data-test-id="sidebar-issues-anchor">
+          {sidebarTour.currentStepId === DemoTourStep.SIDEBAR_ISSUES
+            ? 'Active'
+            : 'Inactive'}
+        </div>
+      </DemoTourElement>
+
+      <DemoTourElement
+        id={DemoTourStep.ISSUES_STREAM}
+        title="Issues Stream"
+        description="Learn about the issues stream"
+      >
+        <div data-test-id="issues-stream-anchor">
+          {issuesTour.currentStepId === DemoTourStep.ISSUES_STREAM
+            ? 'Active'
+            : 'Inactive'}
+        </div>
+      </DemoTourElement>
+
+      <DemoTourElement
+        id={DemoTourStep.ISSUES_TAGS}
+        title="Issues Tags"
+        description="Learn about issues tags"
+      >
+        <div data-test-id="issues-tags-anchor">
+          {issuesTour.currentStepId === DemoTourStep.ISSUES_TAGS ? 'Active' : 'Inactive'}
+        </div>
+      </DemoTourElement>
+
+      <button
+        data-test-id="start-sidebar"
+        onClick={() => sidebarTour.startTour(DemoTourStep.SIDEBAR_PROJECTS)}
+      >
+        Start Sidebar
+      </button>
+      <button
+        data-test-id="start-issues"
+        onClick={() => issuesTour.startTour(DemoTourStep.ISSUES_STREAM)}
+      >
+        Start Issues
+      </button>
+      <button data-test-id="end-sidebar" onClick={() => sidebarTour.endTour()}>
+        End Sidebar
+      </button>
+      <button data-test-id="end-issues" onClick={() => issuesTour.endTour()}>
+        End Issues
+      </button>
+      <button data-test-id="next-step-sidebar" onClick={() => sidebarTour.nextStep()}>
+        Next Sidebar Step
+      </button>
+      <button data-test-id="next-step-issues" onClick={() => issuesTour.nextStep()}>
+        Next Issues Step
+      </button>
+    </div>
+  );
+}
+
+interface MockToursState {
+  [DemoTour.SIDEBAR]: TourState<DemoTourStep>;
+  [DemoTour.ISSUES]: TourState<DemoTourStep>;
+  [DemoTour.RELEASES]: TourState<DemoTourStep>;
+  [DemoTour.PERFORMANCE]: TourState<DemoTourStep>;
+}
+
+const mockUseLocalStorageState = useLocalStorageState as jest.Mock;
+
+describe('DemoTours', () => {
+  let mockState: MockToursState;
+  let mockSetState: jest.Mock;
+
+  beforeEach(() => {
+    mockState = {
+      [DemoTour.SIDEBAR]: {
+        currentStepId: null,
+        isCompleted: false,
+        orderedStepIds: [DemoTourStep.SIDEBAR_PROJECTS, DemoTourStep.SIDEBAR_ISSUES],
+        isRegistered: true,
+        tourKey: DemoTour.SIDEBAR,
+      },
+      [DemoTour.ISSUES]: {
+        currentStepId: null,
+        isCompleted: false,
+        orderedStepIds: [DemoTourStep.ISSUES_STREAM, DemoTourStep.ISSUES_TAGS],
+        isRegistered: true,
+        tourKey: DemoTour.ISSUES,
+      },
+      [DemoTour.RELEASES]: {
+        currentStepId: null,
+        isCompleted: false,
+        orderedStepIds: [],
+        isRegistered: true,
+        tourKey: DemoTour.RELEASES,
+      },
+      [DemoTour.PERFORMANCE]: {
+        currentStepId: null,
+        isCompleted: false,
+        orderedStepIds: [],
+        isRegistered: true,
+        tourKey: DemoTour.PERFORMANCE,
+      },
+    };
+
+    mockSetState = jest.fn(
+      (stateOrUpdater: MockToursState | ((prev: MockToursState) => MockToursState)) => {
+        if (typeof stateOrUpdater === 'function') {
+          mockState = stateOrUpdater(mockState);
+        } else {
+          mockState = stateOrUpdater;
+        }
+        return mockState;
+      }
+    );
+
+    mockUseLocalStorageState.mockImplementation(() => [mockState, mockSetState]);
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
     cleanup();
   });
-  it('renders children', () => {
-    render(
-      <DemoTourProvider>
-        <div data-testid="child-component">Test Child</div>
-      </DemoTourProvider>
-    );
 
-    expect(screen.getByTestId('child-component')).toBeInTheDocument();
-    expect(screen.getByText('Test Child')).toBeInTheDocument();
+  describe('DemoToursProvider', () => {
+    it('renders children', () => {
+      render(
+        <DemoToursProvider>
+          <div data-test-id="child-component">Test Child</div>
+        </DemoToursProvider>
+      );
+
+      expect(screen.getByTestId('child-component')).toBeInTheDocument();
+      expect(screen.getByText('Test Child')).toBeInTheDocument();
+    });
+
+    it('initializes with correct state', () => {
+      render(
+        <DemoToursProvider>
+          <div data-test-id="child" />
+        </DemoToursProvider>
+      );
+
+      expect(mockUseLocalStorageState).toHaveBeenCalledWith(
+        'demo-mode:tours',
+        expect.any(Object)
+      );
+    });
+
+    it('maintains separate state for different tours', async () => {
+      render(
+        <DemoToursProvider>
+          <MultiTourTester />
+        </DemoToursProvider>
+      );
+
+      expect(screen.getByTestId('sidebar-projects-anchor')).toHaveTextContent('Inactive');
+      expect(screen.getByTestId('sidebar-issues-anchor')).toHaveTextContent('Inactive');
+      expect(screen.getByTestId('issues-stream-anchor')).toHaveTextContent('Inactive');
+      expect(screen.getByTestId('issues-tags-anchor')).toHaveTextContent('Inactive');
+
+      await userEvent.click(screen.getByTestId('start-sidebar'));
+
+      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBe(
+        DemoTourStep.SIDEBAR_PROJECTS
+      );
+      expect(screen.getByTestId('sidebar-projects-anchor')).toHaveTextContent('Active');
+      expect(screen.getByTestId('issues-stream-anchor')).toHaveTextContent('Inactive');
+
+      await userEvent.click(screen.getByTestId('start-issues'));
+
+      expect(mockState[DemoTour.ISSUES].currentStepId).toBe(DemoTourStep.ISSUES_STREAM);
+      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBe(
+        DemoTourStep.SIDEBAR_PROJECTS
+      );
+      expect(screen.getByTestId('sidebar-projects-anchor')).toHaveTextContent('Active');
+      expect(screen.getByTestId('issues-stream-anchor')).toHaveTextContent('Active');
+
+      await userEvent.click(screen.getByTestId('next-step-sidebar'));
+
+      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBe(DemoTourStep.SIDEBAR_ISSUES);
+      expect(screen.getByTestId('sidebar-issues-anchor')).toHaveTextContent('Active');
+
+      expect(mockState[DemoTour.ISSUES].currentStepId).toBe(DemoTourStep.ISSUES_STREAM);
+      expect(mockState[DemoTour.ISSUES].isCompleted).toBe(false);
+
+      await userEvent.click(screen.getByTestId('end-issues'));
+
+      expect(mockState[DemoTour.ISSUES].isCompleted).toBe(true);
+      expect(mockState[DemoTour.ISSUES].currentStepId).toBeNull();
+
+      expect(recordFinish).toHaveBeenCalledWith(
+        DemoTour.ISSUES,
+        expect.any(String),
+        expect.any(String),
+        expect.anything()
+      );
+    });
   });
 
-  it('maintains separate state for different tours', async () => {
-    // Mock the setState function to track updates
-    const mockSetState = jest.fn();
-    mockUseLocalStorageState.mockReturnValue([
-      {
-        [DemoTour.SIDEBAR]: {
-          currentStepId: null,
-          isCompleted: false,
-          orderedStepIds: [DemoTourStep.SIDEBAR_PROJECTS, DemoTourStep.SIDEBAR_ISSUES],
-          isRegistered: true,
-          tourKey: DemoTour.SIDEBAR,
-        },
-        [DemoTour.ISSUES]: {
-          currentStepId: null,
-          isCompleted: false,
-          orderedStepIds: [DemoTourStep.ISSUES_STREAM, DemoTourStep.ISSUES_TAGS],
-          isRegistered: true,
-          tourKey: DemoTour.ISSUES,
-        },
-        [DemoTour.RELEASES]: {
-          currentStepId: null,
-          isCompleted: false,
-          orderedStepIds: [DemoTourStep.RELEASES_COMPARE, DemoTourStep.RELEASES_DETAILS],
-          isRegistered: true,
-          tourKey: DemoTour.RELEASES,
-        },
-        [DemoTour.PERFORMANCE]: {
-          currentStepId: null,
-          isCompleted: false,
-          orderedStepIds: [
-            DemoTourStep.PERFORMANCE_TABLE,
-            DemoTourStep.PERFORMANCE_TRANSACTION_SUMMARY,
-          ],
-          isRegistered: true,
-          tourKey: DemoTour.PERFORMANCE,
-        },
-      },
-      mockSetState,
-    ]);
+  describe('useDemoTours', () => {
+    it('throws error when used outside provider', () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    render(
-      <DemoTourProvider>
-        <MultiTourTester />
-      </DemoTourProvider>
-    );
+      expect(() => {
+        render(<TourHookTester tourKey={DemoTour.SIDEBAR} />);
+      }).toThrow('Must be used within a TourContextProvider');
 
-    // Initially all tours should be inactive
-    expect(screen.queryByTestId('sidebar-step')).toBeUndefined();
-    expect(screen.queryByTestId('issues-step')).toBeUndefined();
-    expect(screen.queryByTestId('releases-step')).toBeUndefined();
-    expect(screen.queryByTestId('performance-step')).toBeUndefined();
+      jest.restoreAllMocks();
+    });
 
-    // Start sidebar tour
-    await userEvent.click(screen.getByTestId('start-sidebar'));
+    it('provides tour context when used inside provider', () => {
+      render(
+        <DemoToursProvider>
+          <TourHookTester tourKey={DemoTour.SIDEBAR} />
+        </DemoToursProvider>
+      );
 
-    // Verify setState was called with the correct update
-    expect(mockSetState).toHaveBeenCalledWith(
-      expect.objectContaining({
-        [DemoTour.SIDEBAR]: expect.objectContaining({
-          currentStepId: DemoTourStep.SIDEBAR_PROJECTS,
-        }),
-      })
-    );
+      expect(screen.getByTestId('tour-active')).toHaveTextContent('none');
+      expect(screen.getByTestId('tour-completed')).toHaveTextContent('false');
+    });
 
-    // Now start issues tour
-    await userEvent.click(screen.getByTestId('start-issues'));
+    it('handles tour actions', async () => {
+      render(
+        <DemoToursProvider>
+          <TourHookTester tourKey={DemoTour.SIDEBAR} />
+        </DemoToursProvider>
+      );
 
-    // Verify both tours have different state
-    expect(mockSetState).toHaveBeenCalledWith(
-      expect.objectContaining({
-        [DemoTour.ISSUES]: expect.objectContaining({
-          currentStepId: DemoTourStep.ISSUES_STREAM,
-        }),
-      })
-    );
+      await userEvent.click(screen.getByTestId('start-tour'));
 
-    // End sidebar tour
-    await userEvent.click(screen.getByTestId('end-sidebar'));
+      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBe(
+        DemoTourStep.SIDEBAR_PROJECTS
+      );
+      expect(screen.getByTestId('tour-active')).toHaveTextContent(
+        DemoTourStep.SIDEBAR_PROJECTS
+      );
 
-    // Verify only sidebar tour is marked completed
-    expect(mockSetState).toHaveBeenCalledWith(
-      expect.objectContaining({
-        [DemoTour.SIDEBAR]: expect.objectContaining({
-          currentStepId: null,
-          isCompleted: true,
-        }),
-        // Issues tour should not be in this update
-      })
-    );
+      await userEvent.click(screen.getByTestId('set-step'));
 
-    // End issues tour
-    await userEvent.click(screen.getByTestId('end-issues'));
+      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBe(DemoTourStep.SIDEBAR_ISSUES);
+      expect(screen.getByTestId('tour-active')).toHaveTextContent(
+        DemoTourStep.SIDEBAR_ISSUES
+      );
 
-    // Verify issues tour is now completed
-    expect(mockSetState).toHaveBeenCalledWith(
-      expect.objectContaining({
-        [DemoTour.ISSUES]: expect.objectContaining({
-          currentStepId: null,
-          isCompleted: true,
-        }),
-      })
-    );
+      await userEvent.click(screen.getByTestId('end-tour'));
 
-    // Verify recordFinish was called for both tours
-    expect(recordFinish).toHaveBeenCalledWith(
-      DemoTour.SIDEBAR,
-      expect.any(String),
-      expect.any(String),
-      expect.anything()
-    );
+      expect(mockState[DemoTour.SIDEBAR].isCompleted).toBe(true);
+      expect(mockState[DemoTour.SIDEBAR].currentStepId).toBeNull();
+      expect(screen.getByTestId('tour-active')).toHaveTextContent('none');
+      expect(screen.getByTestId('tour-completed')).toHaveTextContent('true');
 
-    expect(recordFinish).toHaveBeenCalledWith(
-      DemoTour.ISSUES,
-      expect.any(String),
-      expect.any(String),
-      expect.anything()
-    );
+      expect(recordFinish).toHaveBeenCalledWith(
+        DemoTour.SIDEBAR,
+        expect.any(String),
+        expect.any(String),
+        expect.anything()
+      );
+    });
   });
 });
