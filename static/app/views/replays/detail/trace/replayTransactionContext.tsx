@@ -249,9 +249,22 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         const pageLinks = listResp?.getResponseHeader('Link') ?? null;
         cursor = parseLinkHeader(pageLinks)?.next!;
         const indexComplete = !cursor.results;
-        setState(prev => ({...prev, indexComplete}) as InternalState);
+        setState(
+          prev =>
+            ({
+              ...prev,
+              indexComplete,
+            }) as InternalState
+        );
       } catch (indexError) {
-        setState(prev => ({...prev, indexError, indexComplete: true}) as InternalState);
+        setState(
+          prev =>
+            ({
+              ...prev,
+              indexError,
+              indexComplete: true,
+            }) as InternalState
+        );
         cursor = {cursor: '', results: false, href: ''} as ParsedHeader;
       }
     }
@@ -260,7 +273,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
   const externalState = useMemo(() => internalToExternalState(state), [state]);
 
   return (
-    <TxnContext.Provider
+    <TxnContext
       value={{
         eventView: listEventView,
         fetchTransactionData,
@@ -268,7 +281,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
       }}
     >
       {children}
-    </TxnContext.Provider>
+    </TxnContext>
   );
 }
 

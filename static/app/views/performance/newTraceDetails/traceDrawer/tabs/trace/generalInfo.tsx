@@ -7,7 +7,6 @@ import {t, tn} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
-import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useParams} from 'sentry/utils/useParams';
@@ -38,7 +37,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
       return [];
     }
 
-    const unique: TraceErrorOrIssue[] = [];
+    const unique: TraceTree.TraceErrorIssue[] = [];
     const seenIssues: Set<number> = new Set();
 
     for (const issue of traceNode.errors) {
@@ -52,15 +51,15 @@ export function GeneralInfo(props: GeneralInfoProps) {
     return unique;
   }, [traceNode]);
 
-  const uniquePerformanceIssues = useMemo(() => {
+  const uniqueOccurences = useMemo(() => {
     if (!traceNode) {
       return [];
     }
 
-    const unique: TraceErrorOrIssue[] = [];
+    const unique: TraceTree.TraceOccurence[] = [];
     const seenIssues: Set<number> = new Set();
 
-    for (const issue of traceNode.performance_issues) {
+    for (const issue of traceNode.occurences) {
       if (seenIssues.has(issue.issue_id)) {
         continue;
       }
@@ -71,7 +70,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
     return unique;
   }, [traceNode]);
 
-  const uniqueIssuesCount = uniqueErrorIssues.length + uniquePerformanceIssues.length;
+  const uniqueIssuesCount = uniqueErrorIssues.length + uniqueOccurences.length;
 
   const traceSlug = useMemo(() => {
     return params.traceSlug?.trim() ?? '';
@@ -108,7 +107,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
     throw new Error('Expected a trace node');
   }
 
-  if (props.tree.eventsCount === 0) {
+  if (props.tree.transactions_count === 0) {
     return null;
   }
 
@@ -148,7 +147,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
                   {tn(
                     '%s performance issue',
                     '%s performance issues',
-                    uniquePerformanceIssues.length
+                    uniqueOccurences.length
                   )}
                 </div>
               </Fragment>

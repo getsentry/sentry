@@ -1,8 +1,8 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -16,6 +16,7 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
+import {Referrer} from 'sentry/views/insights/pages/backend/laravel/referrers';
 import {
   ModalChartContainer,
   ModalTableWrapper,
@@ -45,6 +46,7 @@ function getSeriesName(item: {'span.group': string; transaction: string}) {
 }
 
 export function QueriesWidget({query}: {query?: string}) {
+  const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans',
@@ -71,6 +73,7 @@ export function QueriesWidget({query}: {query?: string}) {
           sort: '-avg(span.duration)',
           per_page: 3,
           useRpc: 1,
+          referrer: Referrer.QUERIES_CHART,
         },
       },
     ],
@@ -133,7 +136,14 @@ export function QueriesWidget({query}: {query?: string}) {
   const hasData =
     queriesRequest.data && queriesRequest.data.data.length > 0 && timeSeries.length > 0;
 
-  const colorPalette = getChartColorPalette(timeSeries.length - 2);
+  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
+
+  const aliases = Object.fromEntries(
+    queriesRequest.data?.data.map(item => [
+      getSeriesName(item),
+      item['sentry.normalized_description'],
+    ]) ?? []
+  );
 
   const visualization = (
     <WidgetVisualizationStates
@@ -143,15 +153,13 @@ export function QueriesWidget({query}: {query?: string}) {
       emptyMessage={<TimeSpentInDatabaseWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
-        aliases: Object.fromEntries(
-          queriesRequest.data?.data.map(item => [
-            getSeriesName(item),
-            item['sentry.normalized_description'],
-          ]) ?? []
-        ),
+        showLegend: 'never',
         plottables: timeSeries.map(
           (ts, index) =>
-            new Line(convertSeriesToTimeseries(ts), {color: colorPalette[index]})
+            new Line(convertSeriesToTimeseries(ts), {
+              color: colorPalette[index],
+              alias: aliases[ts.seriesName],
+            })
         ),
       }}
     />
@@ -188,6 +196,7 @@ export function QueriesWidget({query}: {query?: string}) {
       Title={<Widget.WidgetTitle title={t('Slow Queries')} />}
       Visualization={visualization}
       Actions={
+        organization.features.includes('visibility-explore-view') &&
         hasData && (
           <Toolbar
             exploreParams={{
@@ -224,8 +233,8 @@ export function QueriesWidget({query}: {query?: string}) {
 
 const ControllerText = styled('div')`
   ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1;
+  line-height: 1.2;
   min-width: 0px;
 `;

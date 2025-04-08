@@ -1,26 +1,28 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {TableCell} from 'sentry/components/charts/simpleTableChart';
 import {Button} from 'sentry/components/core/button';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/gridEditable/styles';
 import {HighlightComponent} from 'sentry/components/highlight';
 import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {space} from 'sentry/styles/space';
 import {unreachable} from 'sentry/utils/unreachable';
-import {TableBodyCell, TableRow} from 'sentry/views/explore/components/table';
+import {
+  TableBody,
+  TableBodyCell,
+  TableHeadCell,
+  TableRow,
+} from 'sentry/views/explore/components/table';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 
 export const StyledPanel = styled(Panel)`
-  margin-bottom: 0px;
+  margin-bottom: 0;
 `;
 
-export const HeaderCell = styled(PanelHeader)<{align: 'left' | 'right'}>`
-  white-space: nowrap;
-  justify-content: ${p => (p.align === 'left' ? 'flex-start' : 'flex-end')};
-  cursor: pointer;
+export const LogDetailPanelItem = styled(PanelItem)`
+  padding: ${space(1)} ${space(1)};
+  display: auto;
 `;
 
 export const StyledPanelItem = styled(PanelItem)<{
@@ -45,15 +47,45 @@ export const StyledPanelItem = styled(PanelItem)<{
 `;
 
 export const LogTableRow = styled(TableRow)`
-  cursor: pointer;
-`;
+  &:not(thead > &) {
+    cursor: pointer;
 
-export const LogTableCell = styled(TableCell)`
-  pointer-events: none;
+    &:hover {
+      background-color: ${p => p.theme.backgroundSecondary};
+    }
+
+    &:not(:last-child) {
+      border-bottom: 0;
+    }
+  }
 `;
 
 export const LogTableBodyCell = styled(TableBodyCell)`
-  min-height: ${GRID_BODY_ROW_HEIGHT - 8}px;
+  min-height: ${GRID_BODY_ROW_HEIGHT - 16}px;
+
+  padding: 2px ${space(2)};
+
+  font-size: ${p => p.theme.fontSizeMedium};
+
+  /* Need to select the 2nd child to select the first cell
+     as the first child is the interaction state layer */
+  &:nth-child(2) {
+    padding: 2px 0 2px ${space(3)};
+  }
+
+  &:last-child {
+    padding: 2px ${space(2)};
+  }
+`;
+
+export const LogTableBody = styled(TableBody)<{showHeader?: boolean}>`
+  ${p =>
+    p.showHeader
+      ? ''
+      : `
+    padding-top: ${space(1)};
+    padding-bottom: ${space(1)};
+    `}
 `;
 
 export const LogDetailTableBodyCell = styled(TableBodyCell)`
@@ -73,24 +105,14 @@ export const DetailsWrapper = styled('div')`
   flex-direction: column;
   white-space: nowrap;
   grid-column: 1 / -1;
+  z-index: ${2 /* place above the grid resizing lines */};
 `;
 
-export const DetailsGrid = styled(StyledPanel)`
-  display: grid;
-  grid-template-columns: 1fr;
-  width: 100%;
-  gap: ${space(1)} ${space(2)};
-  border-bottom: 0;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  padding: ${space(1)} ${space(2)};
-`;
-
-export const CenteredRow = styled('div')<{align?: 'left' | 'center' | 'right'}>`
+export const DetailsContent = styled(StyledPanel)`
   display: flex;
-  align-items: center;
-  flex-direction: row;
-  justify-content: ${p => p.align || 'left'};
+  flex-direction: column;
+  width: 100%;
+  padding: ${space(1)} ${space(2)};
 `;
 
 export const LogDetailsTitle = styled('div')`
@@ -99,40 +121,14 @@ export const LogDetailsTitle = styled('div')`
   user-select: none;
 `;
 
-export const LogTableBodyCellContent = styled('div')`
-  cursor: default;
-`;
-
-export const LogFirstCellContent = styled(LogTableBodyCellContent)`
+export const LogFirstCellContent = styled('div')`
   display: flex;
   align-items: center;
 `;
 
-export const DetailsFooter = styled(StyledPanelItem)<{
-  logColors: ReturnType<typeof getLogColors>;
-  opaque?: boolean;
-}>`
-  width: 100%;
-  padding: ${space(1)} ${space(2)};
-  color: ${p => p.logColors.color};
-
-  &:last-child {
-    border: 1px solid ${p => p.logColors.border};
-  }
-
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
-
-  background: ${p =>
-    p.opaque
-      ? `linear-gradient(
-          ${p.logColors.backgroundLight},
-          ${p.logColors.backgroundLight}),
-          linear-gradient(${p.theme.background}, ${p.theme.background}
-        )`
-      : `
-          ${p.logColors.backgroundLight}
-        `};
+export const DetailsBody = styled(LogDetailPanelItem)`
+  padding: ${space(1)} 0;
+  font-family: ${p => p.theme.text.familyMono};
 `;
 
 export const StyledChevronButton = styled(Button)`
@@ -166,7 +162,7 @@ export const ColoredLogText = styled('span')<{
 `;
 
 export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-align: ${p => p.align || 'left'};
 `;
 
@@ -178,9 +174,30 @@ export const LogsHighlight = styled(HighlightComponent)`
 `;
 
 export const WrappingText = styled('div')<{wrap?: boolean}>`
-  width: 100%;
-  ${p => p.theme.overflowEllipsis};
-  ${p => p.wrap && 'text-wrap: auto;'}
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  ${p => (p.wrap ? 'text-wrap: auto;' : '')}
+`;
+
+export const AlignedCellContent = styled('div')<{
+  align?: 'left' | 'center' | 'right';
+}>`
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: ${p => p.align || 'left'};
+  font-family: ${p => p.theme.text.familyMono};
+`;
+
+export const FirstTableHeadCell = styled(TableHeadCell)`
+  padding-right: ${space(1)};
+  padding-left: ${space(2)};
+`;
+
+export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
+  padding-right: 0;
+  padding-left: ${space(1)};
 `;
 
 export function getLogColors(level: SeverityLevel, theme: Theme) {

@@ -8,6 +8,7 @@ import {Button, LinkButton} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Select} from 'sentry/components/core/select';
+import TicketRuleModal from 'sentry/components/externalIssues/ticketRuleModal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
@@ -30,7 +31,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
-import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
 
 interface FieldProps {
   data: Props['data'];
@@ -378,13 +378,10 @@ function RuleNode({
             openModal(deps => (
               <TicketRuleModal
                 {...deps}
-                formFields={node.formFields || {}}
                 link={node.link}
                 ticketType={node.ticketType}
                 instance={data}
-                index={index}
                 onSubmitAction={updateParentFromTicketRule}
-                organization={organization}
               />
             ))
           }

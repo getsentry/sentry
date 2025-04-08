@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -8,14 +7,15 @@ import PanelProvider from 'sentry/utils/panelProvider';
 interface PanelProps extends React.HTMLAttributes<HTMLDivElement> {
   dashedBorder?: boolean;
   'data-test-id'?: string;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
 const Panel = styled(
-  forwardRef<HTMLDivElement, PanelProps>(({children, ...props}, forwardedRef) => (
-    <div ref={forwardedRef} {...props}>
+  ({children, ...props}: PanelProps) => (
+    <div {...props}>
       <PanelProvider>{children}</PanelProvider>
     </div>
-  )),
+  ),
   {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
 )`
   background: ${p => (p.dashedBorder ? p.theme.backgroundSecondary : p.theme.background)};

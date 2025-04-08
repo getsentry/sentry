@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
@@ -22,6 +23,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
 
 type ReleaseHealthItem = {
@@ -34,7 +36,11 @@ type ReleaseHealthItem = {
 
 interface Props {
   end: string;
+  environments: readonly string[];
+  onMouseOutRelease: (release: string) => void;
+  onMouseOverRelease: (release: string) => void;
   onSelectRelease: (release: string, projectId: string) => void;
+  projects: readonly number[];
   start: string;
 }
 
@@ -42,9 +48,9 @@ type ReleaseHealthGridItem = Pick<ReleaseHealthItem, 'date' | 'release' | 'error
 type Column = GridColumnHeader<keyof ReleaseHealthGridItem>;
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
-  {key: 'release', name: 'version', width: 400},
-  {key: 'error_count', name: 'new issues'},
-  {key: 'date', name: 'created'},
+  {key: 'release', name: 'release', width: 320},
+  {key: 'error_count', name: 'new issues', width: 110},
+  {key: 'date', name: 'created', width: 200},
 ];
 
 /**
@@ -53,7 +59,16 @@ const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
  * can't re-use because this will eventually be a bit different,
  * especially with the in-drawer navigation.
  */
-export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
+export function ReleaseDrawerTable({
+  end,
+  environments,
+  projects,
+  start,
+  onMouseOverRelease,
+  onMouseOutRelease,
+  onSelectRelease,
+}: Props) {
+  const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -62,6 +77,8 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
       `/organizations/${organization.slug}/releases/`,
       {
         query: {
+          project: projects,
+          environment: environments,
           ...Object.fromEntries(
             Object.entries(location.query).filter(([key]) =>
               ['project', 'environment'].includes(key)
@@ -82,7 +99,7 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
 
   const releaseData = data?.map(d => ({
     project: d.projects[0]!,
-    release: d.shortVersion ?? d.version,
+    release: d.version,
     date: d.dateCreated,
     error_count: d.projects[0]?.newGroups ?? 0,
     project_id: d.projects[0]?.id ?? 0,
@@ -122,19 +139,26 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
         return (
           <ReleaseLink
             to="#"
+            onMouseOver={() => {
+              onMouseOverRelease(dataRow.release);
+            }}
+            onMouseOut={() => {
+              onMouseOutRelease(dataRow.release);
+            }}
             onClick={e => {
               e.preventDefault();
               onSelectRelease(String(value), String(dataRow.project_id));
             }}
           >
             <ProjectBadge project={dataRow.project} disableLink hideName />
-            <TextOverflow>{value}</TextOverflow>
+            <TextOverflow>{formatVersion(value)}</TextOverflow>
           </ReleaseLink>
         );
       }
 
       if (column.key === 'error_count') {
-        return (
+        const value = dataRow[column.key];
+        return value > 0 ? (
           <Tooltip title={t('Open in Issues')} position="auto-start">
             <GlobalSelectionLink
               to={getReleaseNewIssuesUrl(
@@ -143,9 +167,11 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
                 dataRow.release
               )}
             >
-              <Count value={dataRow[column.key]} />
+              <Count value={value} />
             </GlobalSelectionLink>
           </Tooltip>
+        ) : (
+          <Count value={value} />
         );
       }
       if (!meta?.fields) {
@@ -160,11 +186,19 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
             location,
             organization,
             unit: meta.units[column.key],
+            theme,
           })}
         </CellWrapper>
       );
     },
-    [organization, location, onSelectRelease]
+    [
+      organization,
+      location,
+      onSelectRelease,
+      onMouseOutRelease,
+      onMouseOverRelease,
+      theme,
+    ]
   );
 
   const tableEmptyMessage = (

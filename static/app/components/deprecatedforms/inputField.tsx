@@ -1,6 +1,9 @@
-import FormField from 'sentry/components/deprecatedforms/formField';
+import {Input} from 'sentry/components/core/input';
+import FormField, {
+  type FormFieldProps,
+} from 'sentry/components/deprecatedforms/formField';
 
-type InputFieldProps = FormField['props'] & {
+type InputFieldProps = FormFieldProps & {
   autoComplete?: string;
   inputStyle?: Record<PropertyKey, unknown>;
   min?: number;
@@ -23,7 +26,7 @@ abstract class InputField<
 > extends FormField<Props, State> {
   getField() {
     return (
-      <input
+      <Input
         id={this.getId()} // TODO(Priscila): check the reason behind this. We are getting warnings if we have 2 or more fields with the same name, for instance in the DATA PRIVACY RULES
         type={this.getType()}
         className="form-control"
@@ -31,8 +34,8 @@ abstract class InputField<
         placeholder={this.props.placeholder}
         onChange={this.onChange}
         disabled={this.props.disabled}
-        name={this.props.name}
         required={this.props.required}
+        name={this.props.name}
         value={this.state.value as string | number} // can't pass in boolean here
         style={this.props.inputStyle}
         onBlur={this.props.onBlur}

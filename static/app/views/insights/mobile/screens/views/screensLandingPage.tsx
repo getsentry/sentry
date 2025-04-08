@@ -49,7 +49,7 @@ import {
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
-export function ScreensLandingPage() {
+function ScreensLandingPage() {
   const moduleName = ModuleName.MOBILE_VITALS;
   const navigate = useNavigate();
   const location = useLocation();

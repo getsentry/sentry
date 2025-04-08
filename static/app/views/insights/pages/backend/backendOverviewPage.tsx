@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -33,7 +34,6 @@ import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
 import {
@@ -54,6 +54,7 @@ import {
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
   generateBackendPerformanceEventView,
   USER_MISERY_TOOLTIP,
@@ -95,11 +96,13 @@ export const BACKEND_COLUMN_TITLES = [
 ];
 
 function BackendOverviewPage() {
+  useOverviewPageTrackPageload();
   const [isLaravelPageEnabled] = useIsLaravelInsightsEnabled();
   return isLaravelPageEnabled ? <LaravelOverviewPage /> : <GenericBackendOverviewPage />;
 }
 
 function GenericBackendOverviewPage() {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -176,6 +179,7 @@ function GenericBackendOverviewPage() {
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
     PerformanceWidgetSetting.SLOW_DB_OPS,
+    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
   ];
   const tripleChartRowCharts = filterAllowedChartsMetrics(
     organization,
@@ -242,7 +246,6 @@ function GenericBackendOverviewPage() {
         headerTitle={BACKEND_LANDING_TITLE}
         headerActions={
           <Fragment>
-            <ViewTrendsButton />
             <NewLaravelExperienceButton />
           </Fragment>
         }
@@ -291,6 +294,7 @@ function GenericBackendOverviewPage() {
                       {...sharedProps}
                     />
                     <Table
+                      theme={theme}
                       projects={projects}
                       columnTitles={BACKEND_COLUMN_TITLES}
                       setError={setPageError}

@@ -79,9 +79,11 @@ export enum DataCategory {
   REPLAYS = 'replays',
   MONITOR_SEATS = 'monitorSeats',
   PROFILE_DURATION = 'profileDuration',
+  PROFILE_DURATION_UI = 'profileDurationUI',
   SPANS = 'spans',
   SPANS_INDEXED = 'spansIndexed',
   PROFILE_CHUNKS = 'profileChunks',
+  PROFILE_CHUNKS_UI = 'profileChunksUI',
   UPTIME = 'uptime',
 }
 
@@ -102,9 +104,13 @@ export enum DataCategoryExact {
   MONITOR = 'monitor',
   MONITOR_SEAT = 'monitorSeat',
   PROFILE_DURATION = 'profileDuration',
+  PROFILE_DURATION_UI = 'profileDurationUI',
   SPAN = 'span',
   SPAN_INDEXED = 'spanIndexed',
   UPTIME = 'uptime',
+
+  LOG_ITEM = 'logItem',
+  LOG_BYTE = 'logByte',
 }
 
 export interface DataCategoryInfo {
@@ -116,6 +122,7 @@ export interface DataCategoryInfo {
   productName: string;
   titleName: string;
   uid: number;
+  snakeCasePlural?: string;
 }
 
 export type EventType = 'error' | 'transaction' | 'attachment';

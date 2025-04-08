@@ -1,6 +1,3 @@
-import {useContext} from 'react';
-
-import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import {
   findCompleteOrOverdueTasks,
@@ -49,12 +46,10 @@ export function useOnboardingTasks({disabled = false}: {disabled?: boolean} = {}
   refetch: () => void;
 } {
   const organization = useOrganization();
-  const onboardingContext = useContext(OnboardingContext);
   const {projects} = useProjects();
   const supportedTasks = getMergedTasks({
     organization,
     projects,
-    onboardingContext,
   }).filter(task => task.display);
 
   const allTasksDone = supportedTasks.every(findCompleteTasks);

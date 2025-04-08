@@ -114,7 +114,7 @@ function AccountSecurityWrapper({children}: Props) {
     countEnrolled,
     hasVerifiedEmail,
     handleRefresh,
-  });
+  } as any);
 }
 
 export default AccountSecurityWrapper;

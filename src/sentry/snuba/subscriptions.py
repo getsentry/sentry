@@ -181,8 +181,9 @@ def create_snuba_subscription(
         query_extra=query_extra,
     )
 
-    create_subscription_in_snuba.apply_async(
-        kwargs={"query_subscription_id": subscription.id}, countdown=5
+    transaction.on_commit(
+        lambda: create_subscription_in_snuba.delay(query_subscription_id=subscription.id),
+        using=router.db_for_write(QuerySubscription),
     )
 
     return subscription
@@ -222,15 +223,15 @@ def update_snuba_subscription(subscription, old_query_type, old_dataset, old_agg
     with transaction.atomic(router.db_for_write(QuerySubscription)):
         subscription.update(status=QuerySubscription.Status.UPDATING.value)
 
-        update_subscription_in_snuba.apply_async(
-            kwargs={
-                "query_subscription_id": subscription.id,
-                "old_query_type": old_query_type.value,
-                "old_dataset": old_dataset.value,
-                "old_aggregate": old_aggregate,
-                "old_query": old_query,
-            },
-            countdown=5,
+        transaction.on_commit(
+            lambda: update_subscription_in_snuba.delay(
+                query_subscription_id=subscription.id,
+                old_query_type=old_query_type.value,
+                old_dataset=old_dataset.value,
+                old_aggregate=old_aggregate,
+                old_query=old_query,
+            ),
+            using=router.db_for_write(QuerySubscription),
         )
 
     return subscription
@@ -255,8 +256,9 @@ def delete_snuba_subscription(subscription):
     """
     subscription.update(status=QuerySubscription.Status.DELETING.value)
 
-    delete_subscription_from_snuba.apply_async(
-        kwargs={"query_subscription_id": subscription.id}, countdown=5
+    transaction.on_commit(
+        lambda: delete_subscription_from_snuba.delay(query_subscription_id=subscription.id),
+        using=router.db_for_write(QuerySubscription),
     )
 
 
@@ -279,8 +281,9 @@ def disable_snuba_subscription(subscription):
     """
     subscription.update(status=QuerySubscription.Status.DISABLED.value)
 
-    delete_subscription_from_snuba.apply_async(
-        kwargs={"query_subscription_id": subscription.id}, countdown=5
+    transaction.on_commit(
+        lambda: delete_subscription_from_snuba.delay(query_subscription_id=subscription.id),
+        using=router.db_for_write(QuerySubscription),
     )
 
 
@@ -302,6 +305,8 @@ def enable_snuba_subscription(subscription):
     :return:
     """
     subscription.update(status=QuerySubscription.Status.CREATING.value)
-    create_subscription_in_snuba.apply_async(
-        kwargs={"query_subscription_id": subscription.id}, countdown=5
+
+    transaction.on_commit(
+        lambda: create_subscription_in_snuba.delay(query_subscription_id=subscription.id),
+        using=router.db_for_write(QuerySubscription),
     )

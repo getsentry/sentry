@@ -151,7 +151,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
     [isInstalled, selectedOrgSlug, sentryApp]
   );
 
-  const onInstall = useCallback(async (): Promise<any | undefined> => {
+  const onInstall = useCallback(async (): Promise<undefined | void> => {
     if (!organization || !sentryApp) {
       return undefined;
     }
@@ -216,7 +216,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
         sentryApp={sentryApp}
       />
       {organization && (
-        <OrganizationContext.Provider value={organization}>
+        <OrganizationContext value={organization}>
           <SentryAppDetailsModal
             sentryApp={sentryApp}
             organization={organization}
@@ -224,7 +224,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
             closeModal={onClose}
             isInstalled={disableInstall()}
           />
-        </OrganizationContext.Provider>
+        </OrganizationContext>
       )}
     </div>
   );

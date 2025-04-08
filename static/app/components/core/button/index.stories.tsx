@@ -1,8 +1,7 @@
-import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {Button, type ButtonProps} from 'sentry/components/core/button';
-import type {PropMatrix} from 'sentry/components/stories/matrix';
-import Matrix from 'sentry/components/stories/matrix';
+import Matrix, {type PropMatrix} from 'sentry/components/stories/matrix';
 import {IconDelete} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
@@ -13,58 +12,37 @@ export default storyBook('Button', (story, APIReference) => {
   APIReference(types.Button);
 
   story('Default', () => {
-    return <Button>Default Button</Button>;
-  });
+    const theme = useTheme();
+    const variants = theme.isChonk
+      ? ['default', 'transparent', 'primary', 'warning', 'danger', 'link']
+      : ['default', 'primary', 'link', 'danger'];
 
-  story('onClick', () => {
-    const [clickCount, setClickCount] = useState(0);
+    const propMatrix: PropMatrix<ButtonProps> = {
+      borderless: [false, true],
+      busy: [false, true],
+      children: ['Delete', undefined],
+      icon: [undefined, <IconDelete key="delete" />],
+      priority: variants as Array<ButtonProps['priority']>,
+      size: ['md', 'sm', 'xs', 'zero'],
+      disabled: [false, true],
+      external: [false, true],
+      title: [undefined, 'Delete this'],
+      translucentBorder: [false, true],
+    };
+
     return (
-      <Fragment>
-        <p>clicked = {clickCount}</p>
-        <Button onClick={() => setClickCount(prev => ++prev)}>Click Here</Button>
-      </Fragment>
+      <div>
+        <Matrix<ButtonProps>
+          render={Button}
+          propMatrix={propMatrix}
+          selectedProps={['size', 'priority']}
+        />
+        <Matrix<ButtonProps>
+          render={Button}
+          propMatrix={propMatrix}
+          selectedProps={['children', 'icon']}
+        />
+      </div>
     );
   });
-
-  const propMatrix: PropMatrix<ButtonProps> = {
-    borderless: [false, true],
-    busy: [false, true],
-    children: ['Delete', undefined],
-    icon: [undefined, <IconDelete key="" />],
-    priority: ['default', 'primary', 'danger', 'link', undefined],
-    size: ['md', 'sm', 'xs', 'zero'],
-    disabled: [false, true],
-    external: [false, true],
-    title: [undefined, 'Delete this'],
-    translucentBorder: [false, true],
-  };
-  story('Props', () => (
-    <div>
-      <Matrix<ButtonProps>
-        render={Button}
-        propMatrix={propMatrix}
-        selectedProps={['priority', 'size']}
-      />
-      <Matrix<ButtonProps>
-        render={Button}
-        propMatrix={propMatrix}
-        selectedProps={['children', 'icon']}
-      />
-      <Matrix<ButtonProps>
-        render={Button}
-        propMatrix={propMatrix}
-        selectedProps={['size', 'icon']}
-      />
-      <Matrix<ButtonProps>
-        render={Button}
-        propMatrix={propMatrix}
-        selectedProps={['borderless', 'translucentBorder']}
-      />
-      <Matrix<ButtonProps>
-        render={Button}
-        propMatrix={propMatrix}
-        selectedProps={['disabled', 'busy']}
-      />
-    </div>
-  ));
 });

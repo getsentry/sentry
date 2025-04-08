@@ -180,7 +180,6 @@ export function SortBySelectors({
           <ArithmeticInput
             name="arithmetic"
             type="text"
-            required
             placeholder={t('Enter Equation')}
             value={getEquation(customEquation.sortBy)}
             onUpdate={value => {

@@ -39,9 +39,7 @@ export function getIntervalForMetricFunction(
   return interval;
 }
 
-type GranularityLookup = {
-  [metricName: string]: GranularityLadder;
-};
+type GranularityLookup = Record<string, GranularityLadder>;
 
 const GRANULARITIES: GranularityLookup = {};
 

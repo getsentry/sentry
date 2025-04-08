@@ -666,7 +666,6 @@ class _QueryField extends Component<Props> {
             name="arithmetic"
             key="parameter:text"
             type="text"
-            required
             value={fieldValue.field}
             onUpdate={this.handleEquationChange}
             options={otherColumns}
@@ -813,7 +812,6 @@ export class BufferedInput extends Component<BufferedInputProps, InputState> {
     return (
       <StyledInput
         {...props}
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={this.input}
         className="form-control"
         value={this.state.value}

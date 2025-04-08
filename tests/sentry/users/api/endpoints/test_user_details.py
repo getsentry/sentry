@@ -47,6 +47,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert not resp.data["options"]["clock24Hours"]
         assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
         assert not resp.data["options"]["prefersStackedNavigation"]
+        assert not resp.data["options"]["prefersChonkUI"]
         assert not resp.data["options"]["quickStartDisplay"]
 
     def test_superuser_simple(self):
@@ -120,6 +121,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "prefersIssueDetailsStreamlinedUI": True,
                 "prefersSpecializedProjectOverview": {"2": True},
                 "prefersStackedNavigation": True,
+                "prefersChonkUI": True,
                 "quickStartDisplay": {self.organization.id: 1},
             },
         )
@@ -141,6 +143,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
             user=self.user, key="prefers_issue_details_streamlined_ui"
         )
         assert UserOption.objects.get_value(user=self.user, key="prefers_stacked_navigation")
+        assert UserOption.objects.get_value(user=self.user, key="prefers_chonk_ui")
         assert (
             UserOption.objects.get_value(
                 user=self.user, key="prefers_specialized_project_overview"
@@ -184,11 +187,11 @@ class UserDetailsUpdateTest(UserDetailsTest):
         self.login_as(user=user, superuser=False)
 
         self.create_useremail(user, "new@example.com", is_verified=True)
-        self.get_success_response("me", username="new@example.com")
-
+        response = self.get_success_response("me", username="new@example.com")
         user = User.objects.get(id=user.id)
 
         assert user.email == "c@example.com"
+        assert response.data["email"] == "c@example.com"
         assert user.username == "new@example.com"
 
     def test_change_username_when_same(self):

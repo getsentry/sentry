@@ -1,4 +1,5 @@
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import type {Theme} from '@emotion/react';
+
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
@@ -75,16 +76,20 @@ export enum PerformanceWidgetSetting {
   HIGHEST_CACHE_MISS_RATE_TRANSACTIONS = 'highest_cache__miss_rate_transactions',
 }
 
-const WIDGET_PALETTE = CHART_PALETTE[5];
 export const WIDGET_DEFINITIONS: ({
   organization,
+  theme,
 }: {
   organization: Organization;
+  theme: Theme;
 }) => Record<PerformanceWidgetSetting, ChartDefinition> = ({
   organization,
+  theme,
 }: {
   organization: Organization;
+  theme: Theme;
 }) => {
+  const WIDGET_PALETTE = theme.chart.colors[10];
   return {
     [PerformanceWidgetSetting.DURATION_HISTOGRAM]: {
       title: t('Duration Distribution'),

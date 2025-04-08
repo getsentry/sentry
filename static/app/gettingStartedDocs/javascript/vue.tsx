@@ -30,6 +30,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
+import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 export enum VueVersion {
   VUE3 = 'vue3',
@@ -135,6 +136,12 @@ const getInstallConfig = () => [
         language: 'bash',
         code: `yarn add @sentry/vue`,
       },
+      {
+        label: 'pnpm',
+        value: 'pnpm',
+        language: 'bash',
+        code: `pnpm add @sentry/vue`,
+      },
     ],
   },
 ];
@@ -144,24 +151,21 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     <Fragment>
       <MaybeBrowserProfilingBetaWarning {...params} />
       <p>
-        {tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
-          strong: <strong />,
-        })}
+        {tct(
+          "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
+          {
+            strong: <strong />,
+          }
+        )}
       </p>
     </Fragment>
   ),
   install: () => [
     {
       type: StepType.INSTALL,
-      description: (
-        <p>
-          {tct(
-            `Install the Sentry Vue SDK as a dependency using [code:npm] or [code:yarn], alongside the Sentry Vue SDK:`,
-            {
-              code: <code />,
-            }
-          )}
-        </p>
+      description: tct(
+        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]:',
+        {code: <code />}
       ),
       configurations: getInstallConfig(),
     },
@@ -366,17 +370,17 @@ const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
-  ...onboarding,
-  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
-};
+const profilingOnboarding = getJavascriptProfilingOnboarding({
+  getInstallConfig,
+  docsLink:
+    'https://docs.sentry.io/platforms/javascript/guides/vue/profiling/browser-profiling/',
+});
 
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-
   crashReportOnboarding,
   profilingOnboarding,
   featureFlagOnboarding,

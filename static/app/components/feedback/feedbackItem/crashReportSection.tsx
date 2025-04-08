@@ -40,11 +40,7 @@ export default function CrashReportSection({
 
   return (
     <IssueDetailsContainer>
-      <EventOrGroupHeader
-        eventId={crashReportId}
-        organization={organization}
-        data={groupData}
-      />
+      <EventOrGroupHeader eventId={crashReportId} data={groupData} />
       <EventOrGroupExtraDetails data={groupData} />
     </IssueDetailsContainer>
   );

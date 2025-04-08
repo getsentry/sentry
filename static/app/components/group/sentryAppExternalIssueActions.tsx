@@ -137,7 +137,7 @@ function SentryAppExternalIssueActions({
         >
           <StyledIntegrationLink
             onClick={e =>
-              disabled
+              disabled || externalIssue
                 ? e.preventDefault()
                 : doOpenSentryAppIssueModal({
                     organization,

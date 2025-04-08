@@ -228,15 +228,19 @@ class VSTSNewIdentityProvider(OAuth2Provider):
 
 class VSTSOAuth2LoginView(OAuth2LoginView):
     def get_authorize_params(self, state, redirect_uri):
-        return {
+        params = {
             "client_id": self.client_id,
             "response_type": "code",
             "redirect_uri": redirect_uri,
             "response_mode": "query",
             "scope": self.get_scope(),
             "state": state,
-            "prompt": "consent",
         }
+
+        if options.get("vsts.consent-prompt"):
+            params["prompt"] = "consent"
+
+        return params
 
 
 class VSTSNewOAuth2CallbackView(OAuth2CallbackView):

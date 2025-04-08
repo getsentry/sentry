@@ -32,7 +32,7 @@ function HookStats() {
   const organization = useOrganization();
   const {hookId, projectId} = useParams<{hookId: string; projectId: string}>();
 
-  const [until] = useState(() => Math.floor(new Date().getTime() / 1000));
+  const [until] = useState(() => Math.floor(Date.now() / 1000));
   const since = until - 3600 * 24 * 30;
 
   const {
@@ -174,7 +174,7 @@ export default function ProjectServiceHookDetails() {
       <Panel>
         <PanelHeader>{t('Event Validation')}</PanelHeader>
         <PanelBody>
-          <PanelAlert type="info" showIcon>
+          <PanelAlert type="info">
             Sentry will send the <code>X-ServiceHook-Signature</code> header built using{' '}
             <code>HMAC(SHA256, [secret], [payload])</code>. You should always verify this
             signature before trusting the information provided in the webhook.

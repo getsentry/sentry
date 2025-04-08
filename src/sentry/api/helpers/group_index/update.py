@@ -56,6 +56,7 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
 from .validators import GroupValidator, ValidationError
@@ -101,6 +102,7 @@ def handle_discard(
                     **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
             except IntegrityError:
+                incr_rollback_metrics(GroupTombstone)
                 # in this case, a tombstone has already been created
                 # for a group, so no hash updates are necessary
                 pass
@@ -612,7 +614,7 @@ def process_group_resolution(
     group.substatus = None
     group.resolved_at = now
     if affected and not options.get("groups.enable-post-update-signal"):
-        post_save.send(
+        post_save.send_robust(
             sender=Group,
             instance=group,
             created=False,
@@ -797,6 +799,9 @@ def prepare_response(
             sender=update_groups,
         )
 
+    # TODO(issues): This type is very fragile since it's fields are updated in quite a few places.
+    # Since this is a public API, we are using assuming a shape of MutateIssueResponse, but this
+    # cannot be enforced currently. If changing fields, please update that type.
     return Response(result)
 
 

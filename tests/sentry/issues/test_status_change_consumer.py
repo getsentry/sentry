@@ -212,7 +212,7 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
             [(self.project.id, self.occurrence.fingerprint)]
         )
         assert len(groups_by_fingerprint) == 1
-        group = groups_by_fingerprint[(self.project.id, self.occurrence.fingerprint[0])]
+        group = groups_by_fingerprint[(self.project.id, tuple(self.occurrence.fingerprint))]
         assert group.id == self.group.id
 
     def test_bulk_get_multiple_projects(self) -> None:
@@ -234,9 +234,9 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
             ]
         )
         assert len(groups_by_fingerprint) == 2
-        group1 = groups_by_fingerprint[(self.project.id, self.occurrence.fingerprint[0])]
+        group1 = groups_by_fingerprint[(self.project.id, tuple(self.occurrence.fingerprint))]
         assert group1.id == self.group.id
-        group2 = groups_by_fingerprint[(project2.id, occurrence2.fingerprint[0])]
+        group2 = groups_by_fingerprint[(project2.id, tuple(occurrence2.fingerprint))]
         assert group2.id == group2.id
 
     @patch("sentry.issues.status_change_consumer.metrics.incr")
@@ -260,9 +260,9 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
         )
 
         assert len(groups_by_fingerprint) == 1
-        group = groups_by_fingerprint[(self.project.id, self.occurrence.fingerprint[0])]
+        group = groups_by_fingerprint[(self.project.id, tuple(self.occurrence.fingerprint))]
         assert group.id == self.group.id
-        mock_metrics_incr.assert_called_with("occurrence_ingest.grouphash.not_found")
+        mock_metrics_incr.assert_called_with("occurrence_ingest.grouphash.not_found", amount=1)
 
     def test_bulk_get_same_fingerprint(self) -> None:
         # Set up second project and occurrence with the same
@@ -286,8 +286,62 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
             ]
         )
         assert len(groups_by_fingerprint) == 2
-        group1 = groups_by_fingerprint[(self.project.id, self.occurrence.fingerprint[0])]
+        group1 = groups_by_fingerprint[(self.project.id, tuple(self.occurrence.fingerprint))]
         assert group1.id == self.group.id
-        group2 = groups_by_fingerprint[(project2.id, self.occurrence.fingerprint[0])]
+        group2 = groups_by_fingerprint[(project2.id, tuple(self.occurrence.fingerprint))]
         assert group2.id == group2.id
         assert group1.id != group2.id
+
+    def test_bulk_get_single_project_multiple_hash(self) -> None:
+        message = get_test_message(self.project.id, fingerprint=["new-fingerprint"])
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+
+        other_occurrence = result[0]
+        assert other_occurrence is not None
+        other_group = Group.objects.get(grouphash__hash=other_occurrence.fingerprint[0])
+
+        groups_by_fingerprint = bulk_get_groups_from_fingerprints(
+            [(self.project.id, self.occurrence.fingerprint)]
+        )
+        assert groups_by_fingerprint == {
+            (self.project.id, tuple(self.occurrence.fingerprint)): self.group
+        }
+
+        groups_by_fingerprint = bulk_get_groups_from_fingerprints(
+            [(self.project.id, other_occurrence.fingerprint)]
+        )
+        assert groups_by_fingerprint == {
+            (self.project.id, tuple(other_occurrence.fingerprint)): other_group
+        }
+
+        groups_by_fingerprint = bulk_get_groups_from_fingerprints(
+            [
+                (
+                    self.project.id,
+                    tuple([*self.occurrence.fingerprint, *other_occurrence.fingerprint]),
+                )
+            ]
+        )
+        assert groups_by_fingerprint == {
+            (
+                self.project.id,
+                tuple([*self.occurrence.fingerprint, *other_occurrence.fingerprint]),
+            ): self.group
+        }
+
+        groups_by_fingerprint = bulk_get_groups_from_fingerprints(
+            [
+                (
+                    self.project.id,
+                    tuple([*other_occurrence.fingerprint, *self.occurrence.fingerprint]),
+                )
+            ]
+        )
+        assert groups_by_fingerprint == {
+            (
+                self.project.id,
+                tuple([*other_occurrence.fingerprint, *self.occurrence.fingerprint]),
+            ): other_group
+        }

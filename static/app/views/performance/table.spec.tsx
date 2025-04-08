@@ -33,7 +33,7 @@ const initializeData = (settings = {}, features: string[] = []) => {
 
 function WrappedComponent({data, ...rest}: any) {
   return (
-    <OrganizationContext.Provider value={data.organization}>
+    <OrganizationContext value={data.organization}>
       <MEPSettingProvider>
         <Table
           organization={data.organization}
@@ -44,7 +44,7 @@ function WrappedComponent({data, ...rest}: any) {
           {...rest}
         />
       </MEPSettingProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 
@@ -109,7 +109,7 @@ describe('Performance > Table', function () {
   let eventsMock: jest.Mock;
   beforeEach(function () {
     mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
     );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -218,7 +218,7 @@ describe('Performance > Table', function () {
       const link = within(transactionCell).getByRole('link', {name: '/apple/cart'});
       expect(link).toHaveAttribute(
         'href',
-        '/organizations/org-slug/performance/summary/?end=2019-10-02T00%3A00%3A00&project=2&query=&referrer=performance-transaction-summary&start=2019-10-01T00%3A00%3A00&statsPeriod=14d&transaction=%2Fapple%2Fcart&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
+        '/organizations/org-slug/insights/summary/?end=2019-10-02T00%3A00%3A00&project=2&query=&referrer=performance-transaction-summary&start=2019-10-01T00%3A00%3A00&statsPeriod=14d&transaction=%2Fapple%2Fcart&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
 
       const cellActionContainers = screen.getAllByTestId('cell-action-container');
@@ -307,7 +307,7 @@ describe('Performance > Table', function () {
         ProjectFixture({
           id: '3',
           slug: '3',
-          firstEvent: new Date(+new Date() - 25920e5).toISOString(),
+          firstEvent: new Date(Date.now() - 25920e5).toISOString(),
         }),
       ];
       const data = initializeData({

@@ -11,7 +11,7 @@ from django.conf import settings
 from django.db import router, transaction
 
 from sentry import eventstream
-from sentry.constants import LOG_LEVELS_MAP
+from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
 from sentry.event_manager import (
     GroupInfo,
     _get_or_create_group_environment,
@@ -29,6 +29,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.utils import json, metrics, redis
+from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
@@ -74,7 +75,11 @@ def process_occurrence_data(data: dict[str, Any]) -> None:
         return
 
     # Hash fingerprints to make sure they're a consistent length
-    data["fingerprint"] = [md5(part.encode("utf-8")).hexdigest() for part in data["fingerprint"]]
+    data["fingerprint"] = hash_fingerprint(data["fingerprint"])
+
+
+def hash_fingerprint(fingerprint: list[str]) -> list[str]:
+    return [md5(part.encode("utf-8")).hexdigest() for part in fingerprint]
 
 
 class IssueArgs(TypedDict):
@@ -101,7 +106,7 @@ def _create_issue_kwargs(
         # define it in `search_message` there.
         "message": event.search_message,
         "level": LOG_LEVELS_MAP.get(occurrence.level),
-        "culprit": occurrence.culprit,
+        "culprit": truncatechars(occurrence.culprit, MAX_CULPRIT_LENGTH),
         "last_seen": event.datetime,
         "first_seen": event.datetime,
         "active_at": event.datetime,
@@ -172,20 +177,24 @@ def save_issue_from_occurrence(
     # until after we have created a `Group`.
     issue_kwargs["message"] = augment_message_with_occurrence(issue_kwargs["message"], occurrence)
 
-    # TODO: For now we will assume a single fingerprint. We can expand later if necessary.
-    # Note that additional fingerprints won't be used to generated additional issues, they'll be
-    # used to map the occurrence to a specific issue.
-    new_grouphash = occurrence.fingerprint[0]
-    existing_grouphash = (
-        GroupHash.objects.filter(project=project, hash=new_grouphash)
-        .select_related("group")
-        .first()
-    )
+    existing_grouphashes = {
+        gh.hash: gh
+        for gh in GroupHash.objects.filter(
+            project=project, hash__in=occurrence.fingerprint
+        ).select_related("group")
+    }
+    primary_grouphash = None
+    for fingerprint_hash in occurrence.fingerprint:
+        if fingerprint_hash in existing_grouphashes:
+            primary_grouphash = existing_grouphashes[fingerprint_hash]
+            break
 
-    if not existing_grouphash:
+    if not primary_grouphash:
+        primary_hash = occurrence.fingerprint[0]
+
         cluster_key = settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS.get("cluster", "default")
         client = redis.redis_clusters.get(cluster_key)
-        if not should_create_group(occurrence.type, client, new_grouphash, project):
+        if not should_create_group(occurrence.type, client, primary_hash, project):
             metrics.incr("issues.issue.dropped.noise_reduction")
             return None
 
@@ -213,7 +222,9 @@ def save_issue_from_occurrence(
             ) as metric_tags,
             transaction.atomic(router.db_for_write(GroupHash)),
         ):
-            group, is_new = save_grouphash_and_group(project, event, new_grouphash, **issue_kwargs)
+            group, is_new, primary_grouphash = save_grouphash_and_group(
+                project, event, primary_hash, **issue_kwargs
+            )
             is_regression = False
             span.set_tag("save_issue_from_occurrence.outcome", "new_group")
             metric_tags["save_issue_from_occurrence.outcome"] = "new_group"
@@ -248,10 +259,10 @@ def save_issue_from_occurrence(
             except Exception:
                 logger.exception("Failed process assignment for occurrence")
 
-    elif existing_grouphash.group is None:
+    elif primary_grouphash.group is None:
         return None
     else:
-        group = existing_grouphash.group
+        group = primary_grouphash.group
         if group.issue_category.value != occurrence.type.category:
             logger.error(
                 "save_issue_from_occurrence.category_mismatch",
@@ -267,6 +278,23 @@ def save_issue_from_occurrence(
         group_event.occurrence = occurrence
         is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
         group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
+
+    additional_hashes = [f for f in occurrence.fingerprint if f != primary_grouphash.hash]
+    for fingerprint_hash in additional_hashes:
+        # Attempt to create the additional grouphash links. They shouldn't be linked to other groups, but guard against
+        # that
+        group_hash, created = GroupHash.objects.get_or_create(
+            project=project, hash=fingerprint_hash, defaults={"group": group_info.group}
+        )
+        if not created:
+            logger.warning(
+                "Failed to create additional grouphash for group, grouphash associated with existing group",
+                extra={
+                    "new_group_id": group_info.group.id,
+                    "hash": fingerprint_hash,
+                    "existing_group_id": group_hash.group_id,
+                },
+            )
 
     return group_info
 

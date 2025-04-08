@@ -11,7 +11,7 @@ import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceMod
 import {TraceTree} from './traceModels/traceTree';
 import type {TracePreferencesState} from './traceState/tracePreferences';
 import {useTraceState} from './traceState/traceStateProvider';
-import {isTransactionNode} from './traceGuards';
+import {isEAPTransactionNode, isTransactionNode} from './traceGuards';
 import type {TraceReducerState} from './traceState';
 import type {useTraceScrollToPath} from './useTraceScrollToPath';
 
@@ -26,23 +26,33 @@ async function maybeAutoExpandTrace(
     preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
   }
 ): Promise<TraceTree> {
-  const transactions = TraceTree.FindAll(tree.root, node => isTransactionNode(node));
-
-  if (transactions.length >= AUTO_EXPAND_TRANSACTION_THRESHOLD) {
+  if (tree.transactions_count >= AUTO_EXPAND_TRANSACTION_THRESHOLD) {
     return tree;
   }
 
+  const transactions = TraceTree.FindAll(
+    tree.root,
+    node => isTransactionNode(node) || isEAPTransactionNode(node)
+  );
+  // Expand each transaction, either by zooming (if it has spans to fetch)
+  // or just expanding in place
   const promises: Array<Promise<any>> = [];
   for (const transaction of transactions) {
-    promises.push(tree.zoom(transaction, true, options));
+    if (transaction.canFetch) {
+      promises.push(tree.zoom(transaction, true, options));
+    } else {
+      tree.expand(transaction, true);
+    }
   }
 
-  await Promise.allSettled(promises).catch(_e => {
-    Sentry.withScope(scope => {
-      scope.setFingerprint(['trace-auto-expand']);
-      Sentry.captureMessage('Failed to auto expand trace with low transaction count');
+  if (promises.length > 0) {
+    await Promise.allSettled(promises).catch(_e => {
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['trace-auto-expand']);
+        Sentry.captureMessage('Failed to auto expand trace with low transaction count');
+      });
     });
-  });
+  }
 
   return tree;
 }

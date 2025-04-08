@@ -31,4 +31,5 @@ GUIDES = {
     "crons_backend_insights": 38,
     "issue_views_page_filters_persistence": 39,
     "tour.issue_details": 40,
+    "tour.stacked_navigation": 41,
 }

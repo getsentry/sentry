@@ -22,7 +22,7 @@ export function MetricHistoryFixture(
     free: 0,
     onDemandBudget: 0,
     onDemandSpendUsed: 0,
-    onDemandCpe: 0,
+    paygCpe: 0,
     onDemandQuantity: 0,
     sentUsageWarning: false,
     softCapType: null,

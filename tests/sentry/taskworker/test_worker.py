@@ -4,16 +4,20 @@ from multiprocessing import Event
 from unittest import mock
 
 import grpc
+import pytest
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
+    ON_ATTEMPTS_EXCEEDED_DISCARD,
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
+    RetryState,
     TaskActivation,
 )
 
-import sentry.taskworker.tasks.examples as example_tasks
+from sentry.taskworker.state import current_task
 from sentry.taskworker.worker import ProcessingResult, TaskWorker, child_worker
 from sentry.testutils.cases import TestCase
+from sentry.utils.redis import redis_clusters
 
 SIMPLE_TASK = TaskActivation(
     id="111",
@@ -55,15 +59,32 @@ AT_MOST_ONCE_TASK = TaskActivation(
     processing_deadline_duration=2,
 )
 
+RETRY_STATE_TASK = TaskActivation(
+    id="654",
+    taskname="examples.retry_state",
+    namespace="examples",
+    parameters='{"args": [], "kwargs": {}}',
+    processing_deadline_duration=2,
+    retry_state=RetryState(
+        # no more attempts left
+        attempts=1,
+        max_attempts=2,
+        on_attempts_exceeded=ON_ATTEMPTS_EXCEEDED_DISCARD,
+    ),
+)
 
+
+@pytest.mark.django_db
 class TestTaskWorker(TestCase):
     def test_tasks_exist(self) -> None:
+        import sentry.taskworker.tasks.examples as example_tasks
+
         assert example_tasks.simple_task
         assert example_tasks.retry_task
         assert example_tasks.at_most_once_task
 
     def test_fetch_task(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=100)
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=100)
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = SIMPLE_TASK
 
@@ -74,7 +95,7 @@ class TestTaskWorker(TestCase):
         assert task.id == SIMPLE_TASK.id
 
     def test_fetch_no_task(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=100)
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=100)
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = None
             task = taskworker.fetch_task()
@@ -84,7 +105,7 @@ class TestTaskWorker(TestCase):
 
     def test_run_once_no_next_task(self) -> None:
         max_runtime = 5
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=1)
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1)
         with mock.patch.object(taskworker, "client") as mock_client:
             mock_client.get_task.return_value = SIMPLE_TASK
             # No next_task returned
@@ -110,7 +131,7 @@ class TestTaskWorker(TestCase):
         # Cover the scenario where update_task returns the next task which should
         # be processed.
         max_runtime = 5
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=1)
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1)
         with mock.patch.object(taskworker, "client") as mock_client:
 
             def update_task_response(*args, **kwargs):
@@ -143,7 +164,7 @@ class TestTaskWorker(TestCase):
         # Cover the scenario where update_task fails a few times in a row
         # We should retain the result until RPC succeeds.
         max_runtime = 5
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_task_count=1)
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1)
         with mock.patch.object(taskworker, "client") as mock_client:
 
             def update_task_response(*args, **kwargs):
@@ -179,7 +200,46 @@ class TestTaskWorker(TestCase):
             assert mock_client.get_task.called
             assert mock_client.update_task.call_count == 3
 
+    def test_run_once_current_task_state(self) -> None:
+        # Run a task that uses retry_task() helper
+        # to raise and catch a NoRetriesRemainingError
+        max_runtime = 5
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1)
+        with mock.patch.object(taskworker, "client") as mock_client:
 
+            def update_task_response(*args, **kwargs):
+                return None
+
+            mock_client.update_task.side_effect = update_task_response
+            mock_client.get_task.return_value = RETRY_STATE_TASK
+            taskworker.start_result_thread()
+
+            # Run until two tasks have been processed
+            start = time.time()
+            while True:
+                taskworker.run_once()
+                if mock_client.update_task.call_count >= 1:
+                    break
+                if time.time() - start > max_runtime:
+                    taskworker.shutdown()
+                    raise AssertionError("Timeout waiting for get_task to be called")
+
+            taskworker.shutdown()
+            assert mock_client.get_task.called
+            assert mock_client.update_task.call_count == 1
+            # status is complete, as retry_state task handles the NoRetriesRemainingError
+            mock_client.update_task.assert_called_with(
+                task_id=RETRY_STATE_TASK.id,
+                status=TASK_ACTIVATION_STATUS_COMPLETE,
+                fetch_next_task=None,
+            )
+            redis = redis_clusters.get("default")
+            assert current_task() is None, "should clear current task on completion"
+            assert redis.get("no-retries-remaining"), "key should exist if except block was hit"
+            redis.delete("no-retries-remaining")
+
+
+@pytest.mark.django_db
 def test_child_worker_complete() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
@@ -194,6 +254,7 @@ def test_child_worker_complete() -> None:
     assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
 
 
+@pytest.mark.django_db
 def test_child_worker_retry_task() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
@@ -208,6 +269,7 @@ def test_child_worker_retry_task() -> None:
     assert result.status == TASK_ACTIVATION_STATUS_RETRY
 
 
+@pytest.mark.django_db
 def test_child_worker_failure_task() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
@@ -222,6 +284,7 @@ def test_child_worker_failure_task() -> None:
     assert result.status == TASK_ACTIVATION_STATUS_FAILURE
 
 
+@pytest.mark.django_db
 def test_child_worker_shutdown() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
@@ -236,6 +299,7 @@ def test_child_worker_shutdown() -> None:
     assert processed.qsize() == 0
 
 
+@pytest.mark.django_db
 def test_child_worker_unknown_task() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
@@ -254,6 +318,7 @@ def test_child_worker_unknown_task() -> None:
     assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
 
 
+@pytest.mark.django_db
 def test_child_worker_at_most_once() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()

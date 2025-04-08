@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
+import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
 import {BreadcrumbSort} from 'sentry/components/events/interfaces/breadcrumbs';
 import type {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {
@@ -68,7 +68,12 @@ export function getSummaryBreadcrumbs(
   sort: BreadcrumbSort
 ) {
   const sortedCrumbs = sort === BreadcrumbSort.OLDEST ? crumbs : crumbs.toReversed();
-  return sortedCrumbs.slice(0, BREADCRUMB_SUMMARY_COUNT);
+  return sortedCrumbs.slice(
+    0,
+    crumbs.length <= BREADCRUMB_SUMMARY_COUNT + 1
+      ? BREADCRUMB_SUMMARY_COUNT + 1
+      : BREADCRUMB_SUMMARY_COUNT
+  );
 }
 
 export function getBreadcrumbTypeOptions(crumbs: EnhancedCrumb[]) {
@@ -171,7 +176,7 @@ export interface EnhancedCrumb {
   colorConfig: ReturnType<typeof getBreadcrumbColorConfig>;
   filter: ReturnType<typeof getBreadcrumbFilter>;
   iconComponent: ReturnType<typeof BreadcrumbIcon>;
-  levelComponent: ReturnType<typeof BreadcrumbLevel>;
+  levelComponent: React.ReactNode;
   // Display props
   title: ReturnType<typeof getBreadcrumbTitle>;
   meta?: BreadcrumbMeta;
@@ -364,7 +369,7 @@ export const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
       case BreadcrumbLevelType.DEBUG:
       case BreadcrumbLevelType.INFO:
       case BreadcrumbLevelType.LOG:
-        return p.theme.gray300;
+        return p.theme.subText;
     }
   }};
   display: ${p => (p.level === BreadcrumbLevelType.UNDEFINED ? 'none' : 'block')};

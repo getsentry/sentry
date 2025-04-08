@@ -13,6 +13,7 @@ import {
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
+import {getPythonProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -159,7 +160,13 @@ sentry_sdk.init(
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? `
+    # Set profile_session_sample_rate to 1.0 to profile 100%
+    # of profile sessions.
+    profile_session_sample_rate=1.0,`
+          : ''
     }
 )${
   params.isProfilingSelected &&
@@ -179,10 +186,11 @@ def fast_function():
 # Manually call start_profiler and stop_profiler
 # to profile the code in between
 sentry_sdk.profiler.start_profiler()
+
 for i in range(0, 10):
     slow_function()
     fast_function()
-#
+
 # Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
 # your application until the process exits or stop_profiler is called.
 sentry_sdk.profiler.stop_profiler()`
@@ -201,7 +209,7 @@ const onboarding: OnboardingConfig = {
           description:
             params.docsLocation === DocsPageLocation.PROFILING_PAGE
               ? tct(
-                  'You need a minimum version [code:1.18.0] of the [code:sentry-python] SDK for the profiling feature.',
+                  'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
                   {
                     code: <code />,
                   }
@@ -355,7 +363,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
     const {integrationName, packageName, makeConfigureCode, makeVerifyCode} =
       FEATURE_FLAG_CONFIGURATION_MAP[
         featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
-      ]!;
+      ];
 
     return [
       {
@@ -414,9 +422,9 @@ export const featureFlagOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   performanceOnboarding,
-
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
+  profilingOnboarding: getPythonProfilingOnboarding({traceLifecycle: 'manual'}),
 };
 
 export default docs;

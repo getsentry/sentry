@@ -1,5 +1,3 @@
-import {forwardRef} from 'react';
-
 import Anchor from './anchor';
 
 export interface ExternalLinkProps
@@ -8,14 +6,18 @@ export interface ExternalLinkProps
   openInNewTab?: boolean;
 }
 
-const ExternalLink = forwardRef<HTMLAnchorElement, ExternalLinkProps>(
-  ({openInNewTab = true, ...props}, ref) => {
-    const anchorProps = openInNewTab
-      ? {target: '_blank', rel: 'noreferrer noopener'}
-      : {href: props.href};
+function ExternalLink({
+  ref,
+  openInNewTab = true,
+  ...props
+}: ExternalLinkProps & {
+  ref?: React.Ref<HTMLAnchorElement>;
+}) {
+  const anchorProps = openInNewTab
+    ? {target: '_blank', rel: 'noreferrer noopener'}
+    : {href: props.href};
 
-    return <Anchor ref={ref} {...anchorProps} {...props} />;
-  }
-);
+  return <Anchor ref={ref} {...anchorProps} {...props} />;
+}
 
 export default ExternalLink;

@@ -2,11 +2,12 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {
   IntegrationInstallationStatus,
@@ -109,11 +110,12 @@ function IntegrationRow(props: Props) {
         </TitleContainer>
         <TagsContainer>
           {categories?.map(category => (
-            <CategoryTag
+            <Tag
               key={category}
-              category={category === 'api' ? 'API' : startCase(category)}
-              priority={category === publishStatus}
-            />
+              type={category === publishStatus ? 'highlight' : 'default'}
+            >
+              {category === 'api' ? 'API' : startCase(category)}
+            </Tag>
           ))}
         </TagsContainer>
       </FlexContainer>
@@ -176,8 +178,12 @@ const TitleContainer = styled('div')`
 
 const TagsContainer = styled('div')`
   flex: 3;
-  text-align: right;
   padding: 0 ${space(2)};
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: ${space(1)};
+  justify-content: flex-end;
 `;
 
 const IntegrationName = styled(Link)`
@@ -191,57 +197,33 @@ const IntegrationDetails = styled('div')`
 `;
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   &:before {
     content: '|';
-    color: ${p => p.theme.gray200};
+    color: ${p => p.theme.subText};
     margin-right: ${space(0.75)};
   }
 `;
 
 const LearnMore = styled(Link)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
-type PublishStatusProps = {status: SentryApp['status']; theme?: any};
+type PublishStatusProps = {status: SentryApp['status']};
 
 const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   <div {...props}>{status}</div>
 ))`
-  color: ${(props: PublishStatusProps) =>
-    props.status === 'published' ? props.theme.success : props.theme.gray300};
+  color: ${p => (p.status === 'published' ? p.theme.success : p.theme.subText)};
   font-weight: light;
   margin-right: ${space(0.75)};
   text-transform: capitalize;
   &:before {
     content: '|';
-    color: ${p => p.theme.gray200};
+    color: ${p => p.theme.subText};
     margin-right: ${space(0.75)};
     font-weight: ${p => p.theme.fontWeightNormal};
   }
-`;
-
-// TODO(Priscila): Replace this component with the Tag component
-const CategoryTag = styled(
-  ({
-    priority: _priority,
-    category,
-    ...p
-  }: {
-    category: string;
-    priority: boolean;
-    theme?: any;
-  }) => <div {...p}>{category}</div>
-)`
-  display: inline-block;
-  padding: 1px 10px;
-  background: ${p => (p.priority ? p.theme.purple200 : p.theme.gray100)};
-  border-radius: 20px;
-  font-size: ${space(1.5)};
-  margin: ${space(0.25)} ${space(0.5)};
-  line-height: ${space(3)};
-  text-align: center;
-  color: ${p => (p.priority ? p.theme.white : p.theme.gray500)};
 `;
 
 const ResolveNowButton = styled(LinkButton)`

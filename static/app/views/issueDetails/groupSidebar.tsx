@@ -40,10 +40,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueSidebarList';
-import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
+import SeerSection from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   environments: string[];
@@ -63,20 +61,14 @@ export function useFetchAllEnvsGroupData(
       groupId: group.id,
       environments: [],
     }),
-    {
-      staleTime: 30000,
-      gcTime: 30000,
-    }
+    {staleTime: 30000, gcTime: 30000}
   );
 }
 
 function useFetchCurrentRelease(organization: OrganizationSummary, group: Group) {
   return useApiQuery<CurrentRelease>(
     [`/organizations/${organization.slug}/issues/${group.id}/current-release/`],
-    {
-      staleTime: 30000,
-      gcTime: 30000,
-    }
+    {staleTime: 30000, gcTime: 30000}
   );
 }
 
@@ -90,11 +82,10 @@ export default function GroupSidebar({
   const activeUser = useUser();
   const {data: allEnvironmentsGroupData} = useFetchAllEnvsGroupData(organization, group);
   const {data: currentRelease} = useFetchCurrentRelease(organization, group);
-  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const location = useLocation();
 
-  const {areAiFeaturesAllowed} = useAiConfig(group, event, project);
+  const {areAiFeaturesAllowed} = useAiConfig(group, project);
 
   const onAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
     const {alert_date, alert_rule_id, alert_type} = location.query;
@@ -266,18 +257,10 @@ export default function GroupSidebar({
       {((areAiFeaturesAllowed && issueTypeConfig.issueSummary.enabled) ||
         issueTypeConfig.resources) && (
         <ErrorBoundary mini>
-          <SolutionsSection group={group} project={project} event={event} />
+          <SeerSection group={group} project={project} event={event} />
         </ErrorBoundary>
       )}
-
-      {hasStreamlinedUI && event && (
-        <ErrorBoundary mini>
-          <ExternalIssueSidebarList group={group} event={event} project={project} />
-        </ErrorBoundary>
-      )}
-      {!hasStreamlinedUI && (
-        <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
-      )}
+      <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
       {issueTypeConfig.stats.enabled && (
         <GroupReleaseStats
           organization={organization}
@@ -288,22 +271,22 @@ export default function GroupSidebar({
           currentRelease={currentRelease}
         />
       )}
-      {!hasStreamlinedUI && event && (
+      {event && (
         <ErrorBoundary mini>
           <ExternalIssueList project={project} group={group} event={event} />
         </ErrorBoundary>
       )}
-      {!hasStreamlinedUI && renderPluginIssue()}
+      {renderPluginIssue()}
       {issueTypeConfig.pages.tagsTab.enabled && (
         <TagFacets
           environments={environments}
           groupId={group.id}
           tagKeys={
-            isMobilePlatform(project?.platform)
+            isMobilePlatform(project.platform)
               ? MOBILE_TAGS
-              : frontend.some(val => val === project?.platform)
+              : frontend.includes(project.platform ?? 'other')
                 ? FRONTEND_TAGS
-                : backend.some(val => val === project?.platform)
+                : backend.includes(project.platform ?? 'other')
                   ? BACKEND_TAGS
                   : DEFAULT_TAGS
           }
@@ -314,8 +297,8 @@ export default function GroupSidebar({
       {issueTypeConfig.regression.enabled && event && (
         <EventThroughput event={event} group={group} />
       )}
-      {!hasStreamlinedUI && renderParticipantData()}
-      {!hasStreamlinedUI && renderSeenByList()}
+      {renderParticipantData()}
+      {renderSeenByList()}
     </Container>
   );
 }

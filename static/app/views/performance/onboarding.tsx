@@ -16,8 +16,8 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import UnsupportedAlert from 'sentry/components/alerts/unsupportedAlert';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
@@ -58,8 +58,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import EventWaiter from 'sentry/utils/eventWaiter';
+import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 
 import {traceAnalytics} from './newTraceDetails/traceAnalytics';
@@ -475,6 +477,8 @@ function OnboardingPanel({
 
 export function Onboarding({organization, project}: OnboardingProps) {
   const api = useApi();
+  const location = useLocation();
+  const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const [received, setReceived] = useState<boolean>(false);
   const showNewUi = organization.features.includes('tracing-onboarding-new-ui');
@@ -630,7 +634,18 @@ export function Onboarding({organization, project}: OnboardingProps) {
   return (
     <OnboardingPanel project={project}>
       <BodyTitle>{t('Set up the Sentry SDK')}</BodyTitle>
-      <GuidedSteps>
+      <GuidedSteps
+        initialStep={decodeInteger(location.query.guidedStep)}
+        onStepChange={step => {
+          navigate({
+            pathname: location.pathname,
+            query: {
+              ...location.query,
+              guidedStep: step,
+            },
+          });
+        }}
+      >
         <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
           <div>
             <div>

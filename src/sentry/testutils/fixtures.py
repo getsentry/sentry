@@ -30,7 +30,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
-    MonitorType,
     ScheduleType,
 )
 from sentry.organizations.services.organization import RpcOrganization
@@ -163,6 +162,9 @@ class Fixtures:
 
     def create_member(self, *args, **kwargs):
         return Factories.create_member(*args, **kwargs)
+
+    def create_member_invite(self, *args, **kwargs):
+        return Factories.create_member_invite(*args, **kwargs)
 
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
@@ -456,7 +458,6 @@ class Fixtures:
         return Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=project_id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule": "* * * * *",
                 "schedule_type": ScheduleType.CRONTAB,
@@ -667,6 +668,18 @@ class Fixtures:
     def create_detector_workflow(self, *args, **kwargs):
         return Factories.create_detector_workflow(*args, **kwargs)
 
+    def create_alert_rule_detector(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
+        return Factories.create_alert_rule_detector(*args, **kwargs)
+
+    def create_action_alert_rule_trigger_action(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
+        return Factories.create_action_alert_rule_trigger_action(*args, **kwargs)
+
+    def create_alert_rule_workflow(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
+        return Factories.create_alert_rule_workflow(*args, **kwargs)
+
     def create_workflow_data_condition_group(self, *args, **kwargs):
         return Factories.create_workflow_data_condition_group(*args, **kwargs)
 
@@ -741,6 +754,7 @@ class Fixtures:
         owner: User | Team | None = None,
         uptime_status=UptimeStatus.OK,
         uptime_status_update_date: datetime | None = None,
+        id: int | None = None,
     ) -> ProjectUptimeSubscription:
         if project is None:
             project = self.project
@@ -761,6 +775,7 @@ class Fixtures:
             Actor.from_object(owner) if owner else None,
             uptime_status,
             uptime_status_update_date,
+            id,
         )
 
     @pytest.fixture(autouse=True)

@@ -44,7 +44,25 @@ export type EChartEventHandler<P> = (params: P, instance: ECharts) => void;
 
 export type EChartChartReadyHandler = (instance: ECharts) => void;
 
-export type EChartHighlightHandler = EChartEventHandler<any>;
+/**
+ * Incomplete type for the "highlight" event handler in ECharts. This is taken
+ * from a combination of the ECharts documentation page, and data seen in running code
+ * in handlers attached to line charts and pie charts.
+ */
+export interface EChartsHighlightEventParam {
+  type: 'highlight';
+  batch?: Array<{
+    dataIndex: number;
+    dataIndexInside: number;
+    escapeConnect: boolean;
+    notBlur: boolean;
+    seriesIndex: number;
+    type: string;
+  }>;
+  name?: string;
+}
+
+export type EChartHighlightHandler = EChartEventHandler<EChartsHighlightEventParam>;
 
 /**
  * XXX: These are incomplete types and can also vary depending on the component type

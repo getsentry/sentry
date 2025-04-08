@@ -16,7 +16,6 @@ class DeleteOrganizationMemberTest(APITestCase, TransactionTestCase, HybridCloud
             name="Custom View",
             query="is:unresolved",
             query_sort="date",
-            position=0,
         )
 
         self.ScheduledDeletion.schedule(instance=member, days=0)
@@ -41,7 +40,6 @@ class DeleteOrganizationMemberTest(APITestCase, TransactionTestCase, HybridCloud
             name="Custom View",
             query="is:unresolved",
             query_sort="date",
-            position=0,
         )
 
         custom_view_two = GroupSearchView.objects.create(
@@ -50,7 +48,6 @@ class DeleteOrganizationMemberTest(APITestCase, TransactionTestCase, HybridCloud
             name="Custom View",
             query="is:unresolved",
             query_sort="date",
-            position=0,
         )
 
         self.ScheduledDeletion.schedule(instance=member_one, days=0)

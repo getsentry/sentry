@@ -2,7 +2,6 @@ from unittest.mock import patch
 
 import orjson
 import pytest
-import responses
 from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
@@ -22,9 +21,6 @@ pytestmark = [requires_snuba]
 
 class GetChannelIdTest(TestCase):
     def setUp(self):
-        self.resp = responses.mock
-        self.resp.__enter__()
-
         self.integration = install_slack(self.event.project.organization)
 
         self.response_json = {

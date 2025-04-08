@@ -26,6 +26,7 @@ from sentry.models.options.option import Option
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
     BackupTransactionTestCase,
@@ -34,6 +35,7 @@ from sentry.testutils.helpers.backups import (
     generate_rsa_key_pair,
 )
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.email import Email
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
@@ -501,6 +503,30 @@ class FilteringTests(ExportTestCase):
             data = self.export(tmp_dir, scope=ExportScope.User, filter_by=set())
 
             assert len(data) == 0
+
+    def test_export_user_mismatched_email(self):
+        self.create_user(
+            email="Testing.Upper@example.com",
+            username="user_1",
+            is_staff=False,
+            is_superuser=False,
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Modify the generated email record to have different casing.
+            # This can happen if a useremail record is updated as we don't sync
+            # data to sentry_email on update.
+            email = Email.objects.get(email="Testing.Upper@example.com")
+            email.email = "testing.upper@example.com"
+            email.save()
+
+        with TemporaryDirectory() as tmp_dir:
+            data = self.export(tmp_dir, scope=ExportScope.User)
+
+            # Ensure email record is exported despite email casing being different.
+            assert self.count(data, User) == 1
+            assert self.count(data, UserEmail) == 1
+            assert self.count(data, Email) == 1
+            assert self.exists(data, User, "username", "user_1")
 
     def test_export_filter_orgs_single(self):
         # Create a superadmin not in any orgs, so that we can test that `OrganizationMember`s

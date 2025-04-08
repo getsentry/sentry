@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -14,12 +14,14 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
+import {Referrer} from 'sentry/views/insights/pages/backend/laravel/referrers';
 import {ModalChartContainer} from 'sentry/views/insights/pages/backend/laravel/styles';
 import {Toolbar} from 'sentry/views/insights/pages/backend/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
 
 export function DurationWidget({query}: {query?: string}) {
+  const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
 
@@ -37,6 +39,7 @@ export function DurationWidget({query}: {query?: string}) {
           partial: 1,
           useRpc: 1,
           query: fullQuery,
+          referrer: Referrer.DURATION_CHART,
         },
       },
     ],
@@ -46,7 +49,7 @@ export function DurationWidget({query}: {query?: string}) {
   const getTimeSeries = useCallback(
     (field: string, color?: string): DiscoverSeries | undefined => {
       const series = data?.[field];
-      if (!series) {
+      if (!series || series.data.every(([_, [value]]) => value?.count === 0)) {
         return undefined;
       }
 
@@ -65,12 +68,12 @@ export function DurationWidget({query}: {query?: string}) {
 
   const plottables = useMemo(() => {
     return [
-      getTimeSeries('avg(span.duration)', CHART_PALETTE[1][0]),
-      getTimeSeries('p95(span.duration)', CHART_PALETTE[1][1]),
+      getTimeSeries('avg(span.duration)', theme.chart.colors[1][0]),
+      getTimeSeries('p95(span.duration)', theme.chart.colors[1][1]),
     ]
       .filter(series => !!series)
       .map(ts => new Line(convertSeriesToTimeseries(ts)));
-  }, [getTimeSeries]);
+  }, [getTimeSeries, theme]);
 
   const isEmpty = plottables.every(plottable => plottable.isEmpty);
 
@@ -91,6 +94,7 @@ export function DurationWidget({query}: {query?: string}) {
       Title={<Widget.WidgetTitle title={t('Duration')} />}
       Visualization={visualization}
       Actions={
+        organization.features.includes('visibility-explore-view') &&
         !isEmpty && (
           <Toolbar
             exploreParams={{

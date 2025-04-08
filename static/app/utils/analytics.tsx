@@ -11,6 +11,10 @@ import {
   featureFlagEventMap,
   type FeatureFlagEventParameters,
 } from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
+import {
+  logsAnalyticsEventMap,
+  type LogsAnalyticsEventParameters,
+} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {navigationAnalyticsEventMap} from 'sentry/utils/analytics/navigationAnalyticsEvents';
 import {
   quickStartEventMap,
@@ -67,6 +71,8 @@ import {signupEventMap} from './analytics/signupAnalyticsEvents';
 import type {StackTraceEventParameters} from './analytics/stackTraceAnalyticsEvents';
 import {stackTraceEventMap} from './analytics/stackTraceAnalyticsEvents';
 import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
+import type {TempestEventParameters} from './analytics/tempestAnalyticsEvents';
+import {tempestEventMap} from './analytics/tempestAnalyticsEvents';
 import {tracingEventMap, type TracingEventParameters} from './analytics/tracingEventMap';
 import type {TeamInsightsEventParameters} from './analytics/workflowAnalyticsEvents';
 import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
@@ -97,9 +103,11 @@ interface EventParameters
     IntegrationEventParameters,
     ProjectCreationEventParameters,
     SignupAnalyticsParameters,
+    LogsAnalyticsEventParameters,
     TracingEventParameters,
     StatsEventParameters,
     QuickStartEventParameters,
+    TempestEventParameters,
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
@@ -117,6 +125,7 @@ const allEventMap: Record<string, string | null> = {
   ...performanceEventMap,
   ...tracingEventMap,
   ...profilingEventMap,
+  ...logsAnalyticsEventMap,
   ...releasesEventMap,
   ...replayEventMap,
   ...searchEventMap,
@@ -133,6 +142,7 @@ const allEventMap: Record<string, string | null> = {
   ...statsEventMap,
   ...quickStartEventMap,
   ...navigationAnalyticsEventMap,
+  ...tempestEventMap,
 };
 
 /**

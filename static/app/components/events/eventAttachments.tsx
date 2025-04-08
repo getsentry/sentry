@@ -32,6 +32,7 @@ type EventAttachmentsProps = {
    */
   group: Group | undefined;
   project: Project;
+  disableCollapsePersistence?: boolean;
 };
 
 type AttachmentPreviewOpenMap = Record<string, boolean>;
@@ -60,7 +61,12 @@ function ViewAllGroupAttachmentsButton() {
   );
 }
 
-function EventAttachmentsContent({event, project, group}: EventAttachmentsProps) {
+function EventAttachmentsContent({
+  event,
+  project,
+  group,
+  disableCollapsePersistence,
+}: EventAttachmentsProps) {
   const organization = useOrganization();
   const {
     data: attachments = [],
@@ -113,6 +119,7 @@ function EventAttachmentsContent({event, project, group}: EventAttachmentsProps)
       actions={
         hasStreamlinedUI && project && group ? <ViewAllGroupAttachmentsButton /> : null
       }
+      disableCollapsePersistence={disableCollapsePersistence}
     >
       {crashFileStripped && (
         <EventAttachmentsCrashReportsNotice

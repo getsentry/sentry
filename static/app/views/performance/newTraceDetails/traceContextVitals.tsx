@@ -19,13 +19,17 @@ type Props = {
   tree: TraceTree;
 };
 
-export function TraceContextVitals({tree}: Props) {
+export function treeHasValidVitals(tree: TraceTree) {
   const allowedVitals = Object.keys(VITAL_DETAILS);
-  const hasValidWebVitals = Array.from(tree.vitals.values()).some(vitalGroup =>
+  return Array.from(tree.vitals.values()).some(vitalGroup =>
     vitalGroup.some(vital => allowedVitals.includes(`measurements.${vital.key}`))
   );
+}
 
-  if (!hasValidWebVitals) {
+export function TraceContextVitals({tree}: Props) {
+  const hasValidVitals = treeHasValidVitals(tree);
+
+  if (!hasValidVitals) {
     return null;
   }
 
@@ -147,7 +151,7 @@ const VitalPillValue = styled('div')`
 `;
 
 const NoValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.headerFontSize};
 `;
 

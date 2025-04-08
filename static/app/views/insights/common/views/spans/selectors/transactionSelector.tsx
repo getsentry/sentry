@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 import debounce from 'lodash/debounce';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';

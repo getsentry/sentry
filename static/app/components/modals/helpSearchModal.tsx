@@ -6,21 +6,19 @@ import {Input} from 'sentry/components/core/input';
 import HelpSearch from 'sentry/components/helpSearch';
 import Hook from 'sentry/components/hook';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = ModalRenderProps & {
-  organization: Organization;
   placeholder?: string;
 };
 
 function HelpSearchModal({
   Body,
   closeModal,
-  organization,
   placeholder = t('Search for documentation, FAQs, blog posts...'),
   ...props
 }: Props) {
+  const organization = useOrganization();
   const theme = useTheme();
 
   return (
@@ -71,4 +69,4 @@ export const modalCss = css`
   }
 `;
 
-export default withOrganization(HelpSearchModal);
+export default HelpSearchModal;

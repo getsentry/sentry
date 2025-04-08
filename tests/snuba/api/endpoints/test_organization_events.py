@@ -5056,8 +5056,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert meta["measurements.frames_slow_rate"] == "percentage"
         assert meta["measurements.frames_frozen_rate"] == "percentage"
         assert meta["measurements.stall_count"] == "number"
-        assert meta["measurements.stall_total_time"] == "number"
-        assert meta["measurements.stall_longest_time"] == "number"
+        assert meta["measurements.stall_total_time"] == "duration"
+        assert meta["measurements.stall_longest_time"] == "duration"
         assert meta["measurements.stall_percentage"] == "percentage"
 
         query = {
@@ -6024,6 +6024,40 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             ],
             key=lambda row: row["id"],
         )
+
+    def test_debug_param(self):
+        self.user = self.create_user("user@example.com", is_superuser=False)
+
+        query = {
+            "field": ["spans.http"],
+            "project": [self.project.id],
+            "query": "event.type:transaction",
+            "dataset": "discover",
+            "debug": True,
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 200, response.content
+        # Debug should be ignored without superuser
+        assert "query" not in response.data["meta"]
+
+        self.user = self.create_user("superuser@example.com", is_superuser=True)
+        self.create_team(organization=self.organization, members=[self.user])
+
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert "query" in response.data["meta"]
+        # We should get the snql query back in the query key
+        assert "MATCH" in response.data["meta"]["query"]
 
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):

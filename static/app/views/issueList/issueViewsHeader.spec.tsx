@@ -6,7 +6,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {
+  type GroupSearchView,
+  GroupSearchViewVisibility,
+} from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('IssueViewsHeader', () => {
@@ -27,7 +30,6 @@ describe('IssueViewsHeader', () => {
       query: 'priority:high',
       querySort: IssueSortOptions.DATE,
       environments: [],
-      isAllProjects: false,
       projects: [],
       timeFilters: {
         end: '2024-01-01',
@@ -35,6 +37,8 @@ describe('IssueViewsHeader', () => {
         start: '2024-01-02',
         utc: false,
       },
+      visibility: GroupSearchViewVisibility.OWNER,
+      lastVisited: null,
     },
     {
       id: '2',
@@ -42,7 +46,6 @@ describe('IssueViewsHeader', () => {
       query: 'priority:medium',
       querySort: IssueSortOptions.DATE,
       environments: [],
-      isAllProjects: false,
       projects: [],
       timeFilters: {
         start: null,
@@ -50,6 +53,8 @@ describe('IssueViewsHeader', () => {
         period: '1d',
         utc: null,
       },
+      visibility: GroupSearchViewVisibility.ORGANIZATION,
+      lastVisited: null,
     },
     {
       id: '3',
@@ -57,7 +62,6 @@ describe('IssueViewsHeader', () => {
       query: 'priority:low',
       querySort: IssueSortOptions.NEW,
       environments: [],
-      isAllProjects: false,
       projects: [],
       timeFilters: {
         end: '2024-01-01',
@@ -65,6 +69,8 @@ describe('IssueViewsHeader', () => {
         start: '2024-01-02',
         utc: true,
       },
+      visibility: GroupSearchViewVisibility.ORGANIZATION,
+      lastVisited: null,
     },
   ];
 

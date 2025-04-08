@@ -1,7 +1,7 @@
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export function shiftTimeSeriesToNow(timeSeries: TimeSeries): TimeSeries {
-  const currentTimestamp = new Date().getTime();
+  const currentTimestamp = Date.now();
 
   const lastDatum = timeSeries.data.at(-1);
   if (!lastDatum) {

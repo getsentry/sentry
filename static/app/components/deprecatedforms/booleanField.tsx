@@ -1,4 +1,6 @@
+import {Checkbox} from 'sentry/components/core/checkbox';
 import InputField from 'sentry/components/deprecatedforms/inputField';
+import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {defined} from 'sentry/utils';
@@ -14,7 +16,7 @@ type State = InputField['state'] & {
 /**
  * @deprecated Do not use this
  */
-export default class BooleanField extends InputField<Props, State> {
+class BooleanField extends InputField<Props, State> {
   coerceValue(initialValue: string | number) {
     const value = super.coerceValue(initialValue);
     return value ? true : false;
@@ -27,7 +29,7 @@ export default class BooleanField extends InputField<Props, State> {
 
   getField() {
     return (
-      <input
+      <Checkbox
         id={this.getId()}
         type={this.getType()}
         checked={this.state.value}
@@ -70,3 +72,8 @@ export default class BooleanField extends InputField<Props, State> {
     return 'checkbox';
   }
 }
+
+/**
+ * @deprecated Do not use this
+ */
+export default withFormContext(BooleanField);

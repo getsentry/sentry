@@ -156,7 +156,7 @@ class UpdateGroupsTest(TestCase):
         assert group.status == GroupStatus.IGNORED
         assert group.substatus == GroupSubStatus.FOREVER
         assert send_robust.called
-        post_save.send.assert_called_with(
+        post_save.send_robust.assert_called_with(
             sender=Group,
             instance=group,
             created=False,

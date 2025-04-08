@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -30,7 +31,6 @@ import useProjects from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
@@ -40,6 +40,7 @@ import {
   FRONTEND_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
+import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
   generateFrontendOtherPerformanceEventView,
   USER_MISERY_TOOLTIP,
@@ -79,6 +80,9 @@ export const FRONTEND_COLUMN_TITLES = [
 ];
 
 function FrontendOverviewPage() {
+  useOverviewPageTrackPageload();
+  const theme = useTheme();
+
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -200,10 +204,7 @@ function FrontendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <FrontendHeader
-        headerTitle={FRONTEND_LANDING_TITLE}
-        headerActions={<ViewTrendsButton />}
-      />
+      <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -245,6 +246,7 @@ function FrontendOverviewPage() {
                     selectedProjects={eventView.project.map(String)}
                   >
                     <Table
+                      theme={theme}
                       projects={projects}
                       columnTitles={FRONTEND_COLUMN_TITLES}
                       setError={setPageError}

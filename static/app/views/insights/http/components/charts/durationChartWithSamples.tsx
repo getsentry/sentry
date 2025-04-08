@@ -1,6 +1,12 @@
 import type {ComponentProps} from 'react';
+import {useTheme} from '@emotion/react';
 
-import type {EChartHighlightHandler, Series} from 'sentry/types/echarts';
+import type {
+  EChartHighlightHandler,
+  EChartsHighlightEventParam,
+  Series,
+  SeriesDataUnit,
+} from 'sentry/types/echarts';
 import {AVG_COLOR} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
@@ -9,15 +15,13 @@ import {CHART_HEIGHT} from 'sentry/views/insights/http/settings';
 
 interface Props {
   isLoading: boolean;
+  onHighlight: (
+    data: Array<{dataPoint: SeriesDataUnit | undefined; series: Series}>,
+    event: EChartsHighlightEventParam
+  ) => void;
   series: Series[];
   error?: Error | null;
-  onHighlight?: (highlights: Highlight[], event: Event) => void; // TODO: Correctly type this
   scatterPlot?: ComponentProps<typeof Chart>['scatterPlot'];
-}
-
-interface Highlight {
-  dataPoint: Series['data'][number];
-  series: Series[];
 }
 
 export function DurationChartWithSamples({
@@ -27,6 +31,7 @@ export function DurationChartWithSamples({
   error,
   onHighlight,
 }: Props) {
+  const theme = useTheme();
   // TODO: This is duplicated from `DurationChart` in `SampleList`. Resolve the duplication
   const handleChartHighlight: EChartHighlightHandler = function (event) {
     // ignore mouse hovering over the chart legend
@@ -37,13 +42,13 @@ export function DurationChartWithSamples({
     // TODO: Gross hack. Even though `scatterPlot` is a separate prop, it's just an array of `Series` that gets appended to the main series. To find the point that was hovered, we re-construct the correct series order. It would have been cleaner to just pass the scatter plot as its own, single series
     const allSeries = [...series, ...(scatterPlot ?? [])];
 
-    const highlightedDataPoints = event.batch.map((batch: any) => {
-      let {seriesIndex} = batch;
-      const {dataIndex} = batch;
+    const highlightedDataPoints = event.batch.map(eventData => {
+      let {seriesIndex} = eventData;
+      const {dataIndex} = eventData;
       // TODO: More hacks. The Chart component partitions the data series into a complete and incomplete series. Wrap the series index to work around overflowing index.
       seriesIndex = seriesIndex % allSeries.length;
 
-      const highlightedSeries = allSeries?.[seriesIndex];
+      const highlightedSeries = allSeries?.[seriesIndex]!;
       const highlightedDataPoint = highlightedSeries?.data?.[dataIndex];
 
       return {series: highlightedSeries, dataPoint: highlightedDataPoint};
@@ -67,7 +72,7 @@ export function DurationChartWithSamples({
         scatterPlot={scatterPlot}
         loading={isLoading}
         error={error}
-        chartColors={[AVG_COLOR]}
+        chartColors={[AVG_COLOR(theme)]}
         type={ChartType.LINE}
         aggregateOutputFormat="duration"
       />

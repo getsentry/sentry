@@ -174,7 +174,7 @@ const InfoHeader = styled('div')`
 
 const ConsentHeader = styled('p')`
   font-weight: bold;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-transform: uppercase;
   margin-bottom: ${space(1)};
 `;
@@ -204,13 +204,13 @@ const ConsentLabelHeader = styled('div')`
 `;
 const ConsentLabelBody = styled('p')`
   margin-bottom: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const StyledIconWrapper = styled('span')`
   margin-left: ${space(3)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const Footer = styled('div')`

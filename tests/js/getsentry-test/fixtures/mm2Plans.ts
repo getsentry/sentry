@@ -1,12 +1,15 @@
-import type {Plan} from 'getsentry/types';
+import { ANNUAL, MONTHLY } from 'getsentry/constants';
+import {CheckoutType, type Plan} from 'getsentry/types';
 
 // mm2 plans with data volume up to 500k
 const MM2_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
 };
 
+const BUDGET_TERM = 'on-demand';
 const MM2_PLANS: Record<string, Plan> = {
   mm2_a_100k: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -16,6 +19,7 @@ const MM2_PLANS: Record<string, Plan> = {
     categories: ['errors'],
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
+    budgetTerm: BUDGET_TERM,
     hasOnDemandModes: false,
     trialPlan: null,
     maxMembers: null,
@@ -32,8 +36,8 @@ const MM2_PLANS: Record<string, Plan> = {
     price: 8900,
     userSelectable: true,
     allowAdditionalReservedEvents: false,
-    contractInterval: 'monthly',
-    billingInterval: 'monthly',
+    contractInterval: MONTHLY,
+    billingInterval: MONTHLY,
     allowOnDemand: true,
     onDemandEventPrice: 0.089,
     retentionDays: 90,
@@ -60,6 +64,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_a_100k_ac: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -70,6 +75,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: null,
     maxMembers: null,
     planCategories: {
@@ -85,8 +91,8 @@ const MM2_PLANS: Record<string, Plan> = {
     price: 8000,
     userSelectable: true,
     allowAdditionalReservedEvents: false,
-    contractInterval: 'annual',
-    billingInterval: 'monthly',
+    contractInterval: ANNUAL,
+    billingInterval: MONTHLY,
     allowOnDemand: true,
     onDemandEventPrice: 0.08,
     retentionDays: 90,
@@ -113,6 +119,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_a_100k_auf: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -123,6 +130,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: null,
     maxMembers: null,
     planCategories: {
@@ -138,8 +146,8 @@ const MM2_PLANS: Record<string, Plan> = {
     price: 96000,
     userSelectable: true,
     allowAdditionalReservedEvents: false,
-    contractInterval: 'annual',
-    billingInterval: 'annual',
+    contractInterval: ANNUAL,
+    billingInterval: ANNUAL,
     allowOnDemand: true,
     onDemandEventPrice: 0.08,
     retentionDays: 90,
@@ -166,6 +174,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_a_500k: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -176,6 +185,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: null,
     maxMembers: null,
     planCategories: {
@@ -191,8 +201,8 @@ const MM2_PLANS: Record<string, Plan> = {
     price: 28900,
     userSelectable: true,
     allowAdditionalReservedEvents: false,
-    contractInterval: 'monthly',
-    billingInterval: 'monthly',
+    contractInterval: MONTHLY,
+    billingInterval: MONTHLY,
     allowOnDemand: true,
     onDemandEventPrice: 0.089,
     retentionDays: 90,
@@ -219,6 +229,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_a_500k_ac: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -229,6 +240,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: null,
     maxMembers: null,
     planCategories: {
@@ -244,8 +256,8 @@ const MM2_PLANS: Record<string, Plan> = {
     price: 26000,
     userSelectable: true,
     allowAdditionalReservedEvents: false,
-    contractInterval: 'annual',
-    billingInterval: 'monthly',
+    contractInterval: ANNUAL,
+    billingInterval: MONTHLY,
     allowOnDemand: true,
     onDemandEventPrice: 0.08,
     retentionDays: 90,
@@ -272,6 +284,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_a_500k_auf: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -282,6 +295,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: null,
     maxMembers: null,
     planCategories: {
@@ -297,8 +311,8 @@ const MM2_PLANS: Record<string, Plan> = {
     price: 312000,
     userSelectable: true,
     allowAdditionalReservedEvents: false,
-    contractInterval: 'annual',
-    billingInterval: 'annual',
+    contractInterval: ANNUAL,
+    billingInterval: ANNUAL,
     allowOnDemand: true,
     onDemandEventPrice: 0.08,
     retentionDays: 90,
@@ -325,6 +339,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_b_100k: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -335,6 +350,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -350,8 +366,8 @@ const MM2_PLANS: Record<string, Plan> = {
     price: 2900,
     userSelectable: true,
     allowAdditionalReservedEvents: false,
-    contractInterval: 'monthly',
-    billingInterval: 'monthly',
+    contractInterval: MONTHLY,
+    billingInterval: MONTHLY,
     allowOnDemand: true,
     onDemandEventPrice: 0.029,
     retentionDays: 90,
@@ -367,6 +383,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_b_100k_ac: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -377,6 +394,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -392,8 +410,8 @@ const MM2_PLANS: Record<string, Plan> = {
     price: 2600,
     userSelectable: true,
     allowAdditionalReservedEvents: false,
-    contractInterval: 'annual',
-    billingInterval: 'monthly',
+    contractInterval: ANNUAL,
+    billingInterval: MONTHLY,
     allowOnDemand: true,
     onDemandEventPrice: 0.026,
     retentionDays: 90,
@@ -409,6 +427,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_b_100k_auf: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -419,6 +438,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -434,8 +454,8 @@ const MM2_PLANS: Record<string, Plan> = {
     price: 31200,
     userSelectable: true,
     allowAdditionalReservedEvents: false,
-    contractInterval: 'annual',
-    billingInterval: 'annual',
+    contractInterval: ANNUAL,
+    billingInterval: ANNUAL,
     allowOnDemand: true,
     onDemandEventPrice: 0.026,
     retentionDays: 90,
@@ -451,6 +471,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_b_500k: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -461,6 +482,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -476,8 +498,8 @@ const MM2_PLANS: Record<string, Plan> = {
     price: 9900,
     userSelectable: true,
     allowAdditionalReservedEvents: false,
-    contractInterval: 'monthly',
-    billingInterval: 'monthly',
+    contractInterval: MONTHLY,
+    billingInterval: MONTHLY,
     allowOnDemand: true,
     onDemandEventPrice: 0.029,
 
@@ -494,6 +516,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_b_500k_ac: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -504,6 +527,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -519,8 +543,8 @@ const MM2_PLANS: Record<string, Plan> = {
     price: 8900,
     userSelectable: true,
     allowAdditionalReservedEvents: false,
-    contractInterval: 'annual',
-    billingInterval: 'monthly',
+    contractInterval: ANNUAL,
+    billingInterval: MONTHLY,
     allowOnDemand: true,
     onDemandEventPrice: 0.026,
     retentionDays: 90,
@@ -536,6 +560,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_b_500k_auf: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -546,6 +571,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -561,8 +587,8 @@ const MM2_PLANS: Record<string, Plan> = {
     price: 106800,
     userSelectable: true,
     allowAdditionalReservedEvents: false,
-    contractInterval: 'annual',
-    billingInterval: 'annual',
+    contractInterval: ANNUAL,
+    billingInterval: ANNUAL,
     allowOnDemand: true,
     onDemandEventPrice: 0.026,
     retentionDays: 90,
@@ -578,6 +604,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_f: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -588,6 +615,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'am1_t',
     maxMembers: 1,
     planCategories: {
@@ -603,12 +631,74 @@ const MM2_PLANS: Record<string, Plan> = {
     price: 0,
     userSelectable: true,
     allowAdditionalReservedEvents: false,
-    contractInterval: 'monthly',
-    billingInterval: 'monthly',
+    contractInterval: MONTHLY,
+    billingInterval: MONTHLY,
     allowOnDemand: false,
     onDemandEventPrice: 0,
     retentionDays: 30,
     features: ['advanced-search'],
+  },
+  mm2_a: {
+    id: 'mm2_a',
+    name: 'Business',
+    description: '',
+    price: 0,
+    basePrice: 0,
+    totalPrice: 0,
+    trialPlan: 'am2_business',
+    isTestPlan: false,
+    maxMembers: null,
+    retentionDays: 90,
+    userSelectable: false,
+    checkoutType: CheckoutType.STANDARD,
+    features: [
+      'advanced-search',
+      'discover-basic',
+        "incidents",
+        "integrations-alert-rule",
+        "integrations-chat-unfurl",
+        "integrations-incident-management",
+        "integrations-issue-basic",
+        "integrations-issue-sync",
+        "sso-basic",
+        "weekly-reports",
+        "custom-inbound-filters",
+        "custom-symbol-sources",
+        "data-forwarding",
+        "discard-groups",
+        "dashboards-basic",
+        "discover-query",
+        "global-views",
+        "integrations-codeowners",
+        "integrations-event-hooks",
+        "integrations-stacktrace-link",
+        "rate-limits",
+        "relay",
+        "sso-saml2",
+        "extended-data-retention"
+    ],
+    billingInterval: MONTHLY,
+    contractInterval: MONTHLY,
+    onDemandEventPrice: 0.089,
+    allowOnDemand: true,
+    reservedMinimum: 100000,
+    allowAdditionalReservedEvents: true,
+    categories: ['errors'],
+    availableCategories: [
+    ],
+    onDemandCategories: ['errors'],
+    checkoutCategories: ['errors'],
+    hasOnDemandModes: false,
+    planCategories: {
+      errors: [
+        {
+          events: 100000,
+          price: 0,
+        },
+        ]
+    },
+    categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
+    budgetTerm: BUDGET_TERM,
   },
 };
 

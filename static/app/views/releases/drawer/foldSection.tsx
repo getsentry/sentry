@@ -1,19 +1,12 @@
-import {
-  type CSSProperties,
-  forwardRef,
-  Fragment,
-  useCallback,
-  useRef,
-  useState,
-} from 'react';
+import {type CSSProperties, Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import mergeRefs from 'sentry/utils/mergeRefs';
 
 export interface FoldSectionProps {
   children: React.ReactNode;
@@ -39,6 +32,7 @@ export interface FoldSectionProps {
    * Disable the ability for the user to collapse the section
    */
   preventCollapse?: boolean;
+  ref?: React.Ref<HTMLElement>;
   style?: CSSProperties;
 }
 
@@ -47,19 +41,17 @@ export interface FoldSectionProps {
  * steamlined issues view, without localStorage syncing and
  * analytics.
  */
-export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function FoldSection(
-  {
-    children,
-    title,
-    sectionKey,
-    actions,
-    className,
-    navScrollMargin = 0,
-    initialCollapse = false,
-    preventCollapse = false,
-  },
-  forwardedRef
-) {
+export function FoldSection({
+  ref,
+  children,
+  title,
+  sectionKey,
+  actions,
+  className,
+  navScrollMargin = 0,
+  initialCollapse = false,
+  preventCollapse = false,
+}: FoldSectionProps) {
   const hasAttemptedScroll = useRef(false);
   const [isCollapsed, setIsCollapsed] = useState(initialCollapse);
 
@@ -106,7 +98,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
   return (
     <Fragment>
       <Section
-        ref={mergeRefs([forwardedRef, scrollToSection])}
+        ref={mergeRefs(ref, scrollToSection)}
         id={sectionKey}
         scrollMargin={navScrollMargin ?? 0}
         role="region"
@@ -148,7 +140,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
       <SectionDivider />
     </Fragment>
   );
-});
+}
 
 export const SectionDivider = styled('hr')`
   border-color: ${p => p.theme.translucentBorder};

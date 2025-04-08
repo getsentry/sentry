@@ -3,7 +3,6 @@ import hmac
 import logging
 import random
 from collections.abc import Callable
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 import grpc
@@ -19,7 +18,8 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 from sentry_protos.taskbroker.v1.taskbroker_pb2_grpc import ConsumerServiceStub
 
 from sentry import options
-from sentry.utils import metrics
+from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER
+from sentry.utils import json, metrics
 
 logger = logging.getLogger("sentry.taskworker.client")
 
@@ -55,8 +55,8 @@ else:
 
 
 class RequestSignatureInterceptor(InterceptorBase):
-    def __init__(self, shared_secret: str):
-        self._secret = shared_secret.encode("utf-8")
+    def __init__(self, shared_secret: list[str]):
+        self._secret = shared_secret[0].encode("utf-8")
 
     def intercept_unary_unary(
         self,
@@ -85,38 +85,64 @@ class RequestSignatureInterceptor(InterceptorBase):
 class TaskworkerClient:
     """
     Taskworker RPC client wrapper
+
+    When num_brokers is provided, the client will connect to all brokers
+    and choose a new broker to pair with randomly every max_tasks_before_rebalance tasks.
     """
 
-    def __init__(self, host: str, num_brokers: int | None) -> None:
-        self._host = host if not num_brokers else self.loadbalance(host, num_brokers)
+    def __init__(
+        self,
+        host: str,
+        num_brokers: int | None = None,
+        max_tasks_before_rebalance: int = DEFAULT_REBALANCE_AFTER,
+    ) -> None:
+        self._hosts: list[str] = (
+            [host] if not num_brokers else self._get_all_hosts(host, num_brokers)
+        )
 
-        # TODO(taskworker) Need to support xds bootstrap file
         grpc_config = options.get("taskworker.grpc_service_config")
-        grpc_options = []
+        self._grpc_options = []
         if grpc_config:
-            grpc_options = [("grpc.service_config", grpc_config)]
+            self._grpc_options = [("grpc.service_config", grpc_config)]
 
-        logger.info("Connecting to %s with options %s", self._host, grpc_options)
-        channel = grpc.insecure_channel(self._host, options=grpc_options)
+        self._cur_host = random.choice(self._hosts)
+        self._host_to_stubs: dict[str, ConsumerServiceStub] = {
+            self._cur_host: self._connect_to_host(self._cur_host)
+        }
+        self._task_id_to_host: dict[str, str] = {}
+
+        self._max_tasks_before_rebalance = max_tasks_before_rebalance
+        self._num_tasks_before_rebalance = max_tasks_before_rebalance
+
+    def _connect_to_host(self, host: str) -> ConsumerServiceStub:
+        logger.info("Connecting to %s with options %s", host, self._grpc_options)
+        channel = grpc.insecure_channel(host, options=self._grpc_options)
         if settings.TASKWORKER_SHARED_SECRET:
-            channel = grpc.intercept_channel(
-                channel, RequestSignatureInterceptor(settings.TASKWORKER_SHARED_SECRET)
-            )
-        self._channel = channel
-        self._stub = ConsumerServiceStub(self._channel)
+            secrets = json.loads(settings.TASKWORKER_SHARED_SECRET)
+            channel = grpc.intercept_channel(channel, RequestSignatureInterceptor(secrets))
+        return ConsumerServiceStub(channel)
 
-    def loadbalance(self, host: str, num_brokers: int) -> str:
+    def _get_all_hosts(self, pattern: str, num_brokers: int) -> list[str]:
         """
-        This function can be used to determine which broker a particular taskworker should connect to.
-        Currently it selects a random broker and connects to it.
+        This function is used to determine the individual host names of
+        the broker given their headless service name.
 
-        This assumes that the passed in port is of the form broker:port, where broker corresponds to the
-        headless service of the brokers.
+        This assumes that the passed in port is of the form broker:port,
+        where broker corresponds to the headless service of the brokers.
         """
-        domain, port = host.split(":")
-        random.seed(datetime.now().microsecond)
-        broker_index = random.randint(0, num_brokers - 1)
-        return f"{domain}-{broker_index}:{port}"
+        domain, port = pattern.split(":")
+        return [f"{domain}-{i}:{port}" for i in range(0, num_brokers)]
+
+    def _get_cur_stub(self) -> tuple[str, ConsumerServiceStub]:
+        if self._num_tasks_before_rebalance == 0:
+            self._cur_host = random.choice(self._hosts)
+            self._num_tasks_before_rebalance = self._max_tasks_before_rebalance
+
+        if self._cur_host not in self._host_to_stubs:
+            self._host_to_stubs[self._cur_host] = self._connect_to_host(self._cur_host)
+
+        self._num_tasks_before_rebalance -= 1
+        return self._cur_host, self._host_to_stubs[self._cur_host]
 
     def get_task(self, namespace: str | None = None) -> TaskActivation | None:
         """
@@ -128,7 +154,8 @@ class TaskworkerClient:
         request = GetTaskRequest(namespace=namespace)
         try:
             with metrics.timer("taskworker.get_task.rpc"):
-                response = self._stub.GetTask(request)
+                host, stub = self._get_cur_stub()
+                response = stub.GetTask(request)
         except grpc.RpcError as err:
             metrics.incr(
                 "taskworker.client.rpc_error", tags={"method": "GetTask", "status": err.code().name}
@@ -141,6 +168,7 @@ class TaskworkerClient:
                 "taskworker.client.get_task",
                 tags={"namespace": response.task.namespace},
             )
+            self._task_id_to_host[response.task.id] = host
             return response.task
         return None
 
@@ -163,7 +191,11 @@ class TaskworkerClient:
         )
         try:
             with metrics.timer("taskworker.update_task.rpc"):
-                response = self._stub.SetTaskStatus(request)
+                if task_id not in self._task_id_to_host:
+                    metrics.incr("taskworker.client.task_id_not_in_client")
+                    return None
+                host = self._task_id_to_host.pop(task_id)
+                response = self._host_to_stubs[host].SetTaskStatus(request)
         except grpc.RpcError as err:
             metrics.incr(
                 "taskworker.client.rpc_error",
@@ -173,5 +205,6 @@ class TaskworkerClient:
                 return None
             raise
         if response.HasField("task"):
+            self._task_id_to_host[response.task.id] = host
             return response.task
         return None

@@ -24,7 +24,7 @@ import CancelSubscriptionAction from 'admin/components/cancelSubscriptionAction'
 import triggerChangeBalanceModal from 'admin/components/changeBalanceAction';
 import triggerChangeDatesModal from 'admin/components/changeDatesAction';
 import triggerGoogleDomainModal from 'admin/components/changeGoogleDomainAction';
-import ChangePlanAction from 'admin/components/changePlanAction';
+import triggerChangePlanAction from 'admin/components/changePlanAction';
 import CloseAccountInfo from 'admin/components/closeAccountInfo';
 import CustomerCharges from 'admin/components/customers/customerCharges';
 import CustomerHistory from 'admin/components/customers/customerHistory';
@@ -43,6 +43,7 @@ import {
 } from 'admin/components/customers/customerStatsFilters';
 import OrganizationStatus from 'admin/components/customers/organizationStatus';
 import PendingChanges from 'admin/components/customers/pendingChanges';
+import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import DetailsPage from 'admin/components/detailsPage';
 import ForkCustomerAction from 'admin/components/forkCustomer';
@@ -56,7 +57,7 @@ import testVercelApiEndpoint from 'admin/components/testVCApiEndpoints';
 import toggleSpendAllocationModal from 'admin/components/toggleSpendAllocationModal';
 import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {Subscription} from 'getsentry/types';
+import type {BillingConfig, Subscription} from 'getsentry/types';
 import {
   hasActiveVCFeature,
   isBizPlanFamily,
@@ -70,6 +71,7 @@ type Props = DeprecatedAsyncComponent['props'] &
   RouteComponentProps<{orgId: string}, unknown>;
 
 type State = DeprecatedAsyncComponent['state'] & {
+  billingConfig: BillingConfig | null;
   data: Subscription | null;
   organization: Organization | null;
 };
@@ -93,6 +95,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
         `/organizations/${this.props.params.orgId}/`,
         {query: {detailed: 0, include_feature_flags: 1}},
       ],
+      ['billingConfig', `/customers/${this.props.params.orgId}/billing-config/?tier=all`],
     ];
   }
 
@@ -123,7 +126,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
   get giftCategories() {
     const {data} = this.state;
 
-    if (data === null) {
+    if (data === null || !data.planDetails) {
       return {};
     }
     // Can only gift for checkout categories
@@ -133,13 +136,21 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
         const reserved = data.categories?.[category]?.reserved;
         const isUnlimited = isUnlimitedReserved(reserved);
         const isReservedBudgetQuota = reserved === RESERVED_BUDGET_QUOTA;
+
+        // Check why categories are disabled
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        const categoryNotExists = !data.categories?.[category];
+        const notInCheckoutCategories =
+          !data.planDetails?.checkoutCategories?.includes(category);
+        const notInOnDemandCategories =
+          !data.planDetails?.onDemandCategories?.includes(category);
+
         return [
           category,
           {
             disabled:
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              !data.categories?.[category] ||
-              !data.planDetails.checkoutCategories.includes(category) ||
+              categoryNotExists ||
+              (notInCheckoutCategories && notInOnDemandCategories) ||
               isUnlimited ||
               isReservedBudgetQuota,
             displayName: getPlanCategoryName({
@@ -257,7 +268,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
   };
 
   renderBody() {
-    const {data, organization} = this.state;
+    const {data, organization, billingConfig} = this.state;
     const {orgId} = this.props.params;
     const regionMap = ConfigStore.get('regions').reduce(
       (acc: any, region: any) => {
@@ -354,6 +365,9 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
 
     const orgFeatures = organization?.features ?? [];
     const hasAdminTestFeatures = orgFeatures.includes('add-billing-metric-usage-admin');
+    const hasAdminDeleteBillingMetricHistory = orgFeatures.includes(
+      'delete-billing-metric-history-admin'
+    );
 
     const activeDataType = this.activeDataType;
     return (
@@ -570,19 +584,14 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
               disabledReason: data.partner?.isActive
                 ? 'This account is managed by a third-party.'
                 : 'No payment method on file.',
-              confirmModalOpts: {
-                disableConfirmButton: true,
-                priority: 'danger',
-                confirmText: 'Change Plan',
-                renderModalSpecificContent: deps => (
-                  <ChangePlanAction
-                    orgId={orgId}
-                    {...deps}
-                    partnerPlanId={data.partner?.isActive ? data.planDetails.id : null}
-                  />
-                ),
-              },
-              onAction: params => this.onChangePlan({...params}),
+              skipConfirmModal: true,
+              onAction: () =>
+                triggerChangePlanAction({
+                  orgId,
+                  subscription: data,
+                  partnerPlanId: data.partner?.isActive ? data.planDetails.id : null,
+                  onSuccess: () => this.reloadData(),
+                }),
             },
             {
               key: 'checkAM2',
@@ -641,6 +650,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                 triggerProvisionSubscription({
                   orgId,
                   subscription: data,
+                  billingConfig,
                   canProvisionDsPlan: hasAdminTestFeatures,
                   onSuccess: () => this.reloadData(),
                 }),
@@ -748,6 +758,18 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                 }),
             },
             {
+              key: 'deleteBillingMetricHistory',
+              name: 'Delete Billing Metric History',
+              help: 'Delete billing metric history for a specific data category.',
+              skipConfirmModal: true,
+              visible: hasAdminDeleteBillingMetricHistory,
+              onAction: () =>
+                deleteBillingMetricHistory({
+                  onSuccess: () => this.reloadData(),
+                  organization,
+                }),
+            },
+            {
               key: 'testVercelApi',
               name: 'Test Vercel API',
               help: 'Send API requests to Vercel',
@@ -768,9 +790,9 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
             {
               visible: !!data.pendingChanges,
               content: (
-                <OrganizationContext.Provider value={organization}>
+                <OrganizationContext value={organization}>
                   <PendingChanges subscription={data} />
-                </OrganizationContext.Provider>
+                </OrganizationContext>
               ),
             },
             {

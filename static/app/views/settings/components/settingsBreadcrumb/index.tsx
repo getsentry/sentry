@@ -21,7 +21,7 @@ const MENUS = {
 } as const;
 
 type Props = {
-  params: {[param: string]: string | undefined};
+  params: Record<string, string | undefined>;
   route: any;
   routes: RouteWithName[];
   className?: string;
@@ -61,7 +61,7 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
             <CrumbLink to={recreateRoute(route, {routes, params})}>
               {pathTitle || route.name}
             </CrumbLink>
-            <Divider isLast={isLast} />
+            {isLast ? null : <Divider />}
           </Crumb>
         );
       })}

@@ -12,7 +12,6 @@ import styled from '@emotion/styled';
 import type {TabListState} from '@react-stately/tabs';
 import type {Orientation} from '@react-types/shared';
 import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
 
 import type {TabContext, TabsProps} from 'sentry/components/tabs';
 import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
@@ -496,8 +495,7 @@ export function IssueViewsStateProvider({
                 name: tab.label,
                 query: tab.query,
                 querySort: tab.querySort,
-                projects: isEqual(tab.projects, [-1]) ? [] : tab.projects,
-                isAllProjects: isEqual(tab.projects, [-1]),
+                projects: tab.projects,
                 environments: tab.environments,
                 timeFilters: tab.timeFilters,
               })),
@@ -674,7 +672,7 @@ export function IssueViewsStateProvider({
   }, [setOnNewViewsSaved, handleNewViewsSaved]);
 
   return (
-    <IssueViewsContext.Provider
+    <IssueViewsContext
       value={{
         rootProps: {...restProps, orientation: 'horizontal'},
         tabListState,
@@ -685,7 +683,7 @@ export function IssueViewsStateProvider({
       }}
     >
       {children}
-    </IssueViewsContext.Provider>
+    </IssueViewsContext>
   );
 }
 

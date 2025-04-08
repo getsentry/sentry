@@ -214,7 +214,7 @@ const AlertPanel = styled('div')<
     `}
 
   ${p =>
-    p.expand &&
+    !!p.expand &&
     css`
       cursor: pointer;
       ${TrailingItems} {

@@ -1,19 +1,25 @@
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {percent} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {getSessionsInterval} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useSessionAdoptionRate from 'sentry/views/insights/sessions/queries/useSessionProjectTotal';
 import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function useCrashFreeSessions() {
   const location = useLocation();
   const organization = useOrganization();
+  const {
+    selection: {datetime},
+  } = usePageFilters();
 
-  const locationWithoutWidth = {
+  const locationQuery = {
     ...location,
     query: {
       ...location.query,
+      query: undefined,
       width: undefined,
       cursor: undefined,
     },
@@ -28,7 +34,8 @@ export default function useCrashFreeSessions() {
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...locationWithoutWidth.query,
+          ...locationQuery.query,
+          interval: getSessionsInterval(datetime),
           field: ['sum(session)'],
           groupBy: ['session.status', 'release'],
         },
@@ -42,6 +49,30 @@ export default function useCrashFreeSessions() {
   if (isPending || !sessionData) {
     return {
       series: [],
+      isPending,
+      error,
+    };
+  }
+
+  // No data to report, just map the intervals to a value of 0
+  if (!sessionData.groups.length) {
+    return {
+      series: [
+        {
+          seriesName: 'crash_free_session_rate',
+          data: sessionData.intervals.map(interval => ({
+            name: interval,
+            value: 0,
+          })),
+          meta: {
+            fields: {
+              [`crash_free_session_rate`]: 'percentage' as const,
+              time: 'date' as const,
+            },
+            units: {},
+          },
+        },
+      ],
       isPending,
       error,
     };

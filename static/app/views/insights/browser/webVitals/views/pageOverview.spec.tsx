@@ -64,6 +64,10 @@ describe('PageOverview', function () {
       url: `/organizations/${organization.slug}/recent-searches/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -85,12 +89,6 @@ describe('PageOverview', function () {
             'p75(measurements.cls)',
             'p75(measurements.ttfb)',
             'p75(measurements.inp)',
-            'p75(transaction.duration)',
-            'count_web_vitals(measurements.lcp, any)',
-            'count_web_vitals(measurements.fcp, any)',
-            'count_web_vitals(measurements.cls, any)',
-            'count_web_vitals(measurements.ttfb, any)',
-            'count_web_vitals(measurements.inp, any)',
             'count()',
           ],
           query:

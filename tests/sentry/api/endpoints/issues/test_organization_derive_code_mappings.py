@@ -51,7 +51,33 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             }
         ]
         with patch(
-            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.list_file_matches",
+            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.get_file_and_repo_matches",
+            return_value=expected_matches,
+        ):
+            response = self.client.get(self.url, data=config_data, format="json")
+            assert mock_get_trees_for_org.call_count == 1
+            assert response.status_code == 200, response.content
+            assert response.data == expected_matches
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
+    def test_get_frame_with_module(self, mock_get_trees_for_org: Any) -> None:
+        config_data = {
+            "absPath": "Billing.kt",
+            "module": "com.waffleware.billing.Billing$1",
+            "platform": "java",
+            "stacktraceFilename": "Billing.kt",
+        }
+        expected_matches = [
+            {
+                "filename": "Billing.kt",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
+                "stacktrace_root": "com/waffleware/",
+                "source_path": "app/src/main/java/com/waffleware/",
+            }
+        ]
+        with patch(
+            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.get_file_and_repo_matches",
             return_value=expected_matches,
         ):
             response = self.client.get(self.url, data=config_data, format="json")
@@ -73,7 +99,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             }
         ]
         with patch(
-            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.list_file_matches",
+            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.get_file_and_repo_matches",
             return_value=expected_matches,
         ):
             response = self.client.get(self.url, data=config_data, format="json")
@@ -103,7 +129,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             },
         ]
         with patch(
-            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.list_file_matches",
+            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.get_file_and_repo_matches",
             return_value=expected_matches,
         ):
             response = self.client.get(self.url, data=config_data, format="json")
@@ -156,7 +182,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         repo = Repository.objects.get(name="getsentry/codemap")
         assert response.status_code == 201, response.content
         assert response.data == {
-            "automaticallyGenerated": True,
+            "automaticallyGenerated": False,
             "id": str(response.data["id"]),
             "projectId": str(self.project.id),
             "projectSlug": self.project.slug,

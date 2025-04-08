@@ -290,7 +290,7 @@ function RuleListRow({
           <ActorAvatar actor={ownerActor} size={24} />
         ) : (
           <AssigneeWrapper>
-            {!projectsLoaded && <StyledLoadingIndicator mini />}
+            {!projectsLoaded && <StyledLoadingIndicator mini size={16} />}
             {projectsLoaded && (
               <DropdownAutoComplete
                 data-test-id="alert-row-assignee"
@@ -366,7 +366,7 @@ const AlertName = styled('div')`
 `;
 
 const AlertIncidentDate = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const ProjectBadgeContainer = styled('div')`
@@ -432,7 +432,6 @@ const MarginLeft = styled('div')`
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  height: 24px;
   margin: 0;
   margin-right: ${space(1.5)};
 `;

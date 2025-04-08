@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
@@ -235,6 +236,7 @@ function OpsBreakdown({
   hideHeader = false,
   topN = TOP_N_SPANS,
 }: Props) {
+  const theme = useTheme();
   const transactionEvent =
     event.type === 'transaction' || event.type === 'aggregateTransaction'
       ? event
@@ -254,7 +256,7 @@ function OpsBreakdown({
 
     const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
     const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
-    const opsColor: string = pickBarColor(operationName);
+    const opsColor: string = pickBarColor(operationName, theme);
 
     return (
       <OpsLine key={operationName}>
@@ -338,7 +340,7 @@ const OpsName = styled('div')`
 `;
 
 const Dur = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-variant-numeric: tabular-nums;
 `;
 

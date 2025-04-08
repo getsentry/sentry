@@ -10,9 +10,8 @@ import {IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import type {BillingDetails, Invoice} from 'getsentry/types';
@@ -23,11 +22,10 @@ import {displayPriceWithCents} from '../amCheckout/utils';
 
 import InvoiceDetailsActions from './actions';
 
-type Props = RouteComponentProps<{invoiceGuid: string}, unknown> & {
-  organization: Organization;
-};
+interface Props extends RouteComponentProps<{invoiceGuid: string}, unknown> {}
 
-function InvoiceDetails({organization, params}: Props) {
+function InvoiceDetails({params}: Props) {
+  const organization = useOrganization();
   const {
     data: billingDetails,
     isPending: isBillingDetailsLoading,
@@ -241,7 +239,7 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
   );
 }
 
-export default withOrganization(InvoiceDetails);
+export default InvoiceDetails;
 
 const SenderName = styled('h3')`
   display: flex;

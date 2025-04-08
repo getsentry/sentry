@@ -34,7 +34,6 @@ describe('ArithmeticInput', function () {
         name="refinement"
         key="parameter:text"
         type="text"
-        required
         value=""
         onUpdate={jest.fn()}
         options={columns}
@@ -60,7 +59,6 @@ describe('ArithmeticInput', function () {
         name="refinement"
         key="parameter:text"
         type="text"
-        required
         value=""
         onUpdate={jest.fn()}
         options={columns}
@@ -94,7 +92,6 @@ describe('ArithmeticInput', function () {
         name="refinement"
         key="parameter:text"
         type="text"
-        required
         value=""
         onUpdate={jest.fn()}
         options={columns}
@@ -152,7 +149,6 @@ describe('ArithmeticInput', function () {
         name="refinement"
         key="parameter:text"
         type="text"
-        required
         value=""
         onUpdate={jest.fn()}
         options={columns}
@@ -174,7 +170,6 @@ describe('ArithmeticInput', function () {
         name="refinement"
         key="parameter:text"
         type="text"
-        required
         value=""
         onUpdate={jest.fn()}
         options={columns}
@@ -198,7 +193,6 @@ describe('ArithmeticInput', function () {
         name="refinement"
         key="parameter:text"
         type="text"
-        required
         value=""
         onUpdate={jest.fn()}
         options={columns}
@@ -220,7 +214,6 @@ describe('ArithmeticInput', function () {
         name="refinement"
         key="parameter:text"
         type="text"
-        required
         value=""
         onUpdate={jest.fn()}
         options={columns}
@@ -239,7 +232,6 @@ describe('ArithmeticInput', function () {
       <ArithmeticInput
         name="refinement"
         type="text"
-        required
         value=""
         onUpdate={() => {}}
         options={[]}

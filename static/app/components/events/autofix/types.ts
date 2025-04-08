@@ -53,20 +53,18 @@ export type AutofixUpdateEndpointResponse = {
   status?: 'success' | 'error';
 };
 
-export type AutofixRepository = {
-  default_branch: string;
-  external_id: string;
-  integration_id: string;
-  name: string;
-  provider: string;
-  url: string;
-  is_readable?: boolean;
-  is_writeable?: boolean;
+export type CodebaseState = {
+  is_readable: boolean | null;
+  is_writeable: boolean | null;
+  repo_external_id: string | null;
 };
 
 export type AutofixData = {
+  codebases: Record<string, CodebaseState>;
   created_at: string;
-  repositories: AutofixRepository[];
+  request: {
+    repos: SeerRepoDefinition[];
+  };
   run_id: string;
   status: AutofixStatus;
   actor_ids?: number[];
@@ -75,6 +73,7 @@ export type AutofixData = {
   };
   completed_at?: string | null;
   error_message?: string;
+  feedback?: AutofixFeedback;
   options?: AutofixOptions;
   steps?: AutofixStep[];
   users?: Record<number, User>;
@@ -130,6 +129,8 @@ export type CodeSnippetContext = {
 export type AutofixInsight = {
   insight: string;
   justification: string;
+  change_diff?: FilePatch[];
+  type?: 'insight' | 'file_change';
 };
 
 export interface AutofixDefaultStep extends BaseStep {
@@ -174,6 +175,7 @@ export type AutofixCodebaseChange = {
 export interface AutofixChangesStep extends BaseStep {
   changes: AutofixCodebaseChange[];
   type: AutofixStepType.CHANGES;
+  termination_reason?: string;
 }
 
 export type AutofixRelevantCodeFile = {
@@ -212,6 +214,13 @@ export type GroupWithAutofix = Group & {
   metadata?: EventMetadataWithAutofix;
 };
 
+export type AutofixFeedback = {
+  root_cause_thumbs_down?: boolean;
+  root_cause_thumbs_up?: boolean;
+  solution_thumbs_down?: boolean;
+  solution_thumbs_up?: boolean;
+};
+
 export type FilePatch = {
   added: number;
   hunks: Hunk[];
@@ -243,4 +252,34 @@ export interface AutofixRepoDefinition {
   name: string;
   owner: string;
   provider: string;
+}
+
+export interface Repository {
+  externalId: string;
+  id: string;
+  name: string;
+  provider?: {
+    id?: string;
+    name?: string;
+  };
+}
+
+export interface RepoSettings {
+  branch: string;
+  instructions: string;
+}
+
+export interface SeerRepoDefinition {
+  external_id: string;
+  name: string;
+  owner: string;
+  provider: string;
+  base_commit_sha?: string;
+  branch_name?: string;
+  instructions?: string;
+  provider_raw?: string;
+}
+
+export interface ProjectPreferences {
+  repositories: SeerRepoDefinition[];
 }

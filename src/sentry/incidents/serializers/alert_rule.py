@@ -2,6 +2,7 @@ import logging
 import operator
 from datetime import timedelta
 
+import sentry_sdk
 from django import forms
 from django.conf import settings
 from django.db import router, transaction
@@ -33,9 +34,8 @@ from sentry.snuba.models import QuerySubscription
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule_trigger,
-    dual_update_resolve_condition,
-    migrate_alert_rule,
-    migrate_resolve_threshold_data_conditions,
+    dual_update_alert_rule,
+    dual_write_alert_rule,
 )
 
 from .alert_rule_trigger import AlertRuleTriggerSerializer
@@ -270,6 +270,8 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 )
                 raise BadRequest
 
+            self._handle_triggers(alert_rule, triggers)
+
             # NOTE (mifu67): skip dual writing anomaly detection alerts until we figure out how to handle them
             should_dual_write = (
                 features.has(
@@ -278,12 +280,11 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 and alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC
             )
             if should_dual_write:
-                migrate_alert_rule(alert_rule, user)
-
-            self._handle_triggers(alert_rule, triggers)
-            if should_dual_write:
-                migrate_resolve_threshold_data_conditions(alert_rule)
-
+                try:
+                    dual_write_alert_rule(alert_rule, user)
+                except Exception:
+                    sentry_sdk.capture_exception()
+                    raise BadRequest(message="Error when creating alert rule")
             return alert_rule
 
     def update(self, instance, validated_data):
@@ -312,6 +313,11 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 )
                 raise BadRequest
             self._handle_triggers(alert_rule, triggers)
+            try:
+                dual_update_alert_rule(alert_rule)
+            except Exception:
+                sentry_sdk.capture_exception()
+                raise BadRequest(message="Error when updating alert rule")
             return alert_rule
 
     def _handle_triggers(self, alert_rule, triggers):
@@ -359,8 +365,5 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                         channel_lookup_timeout_error = e
                 else:
                     raise serializers.ValidationError(trigger_serializer.errors)
-            # after all the triggers have been processed, dual update the resolve data condition if necessary
-            # if an error occurs in this method, it won't affect the alert rule triggers, which have already been saved
-            dual_update_resolve_condition(alert_rule)
         if channel_lookup_timeout_error:
             raise channel_lookup_timeout_error

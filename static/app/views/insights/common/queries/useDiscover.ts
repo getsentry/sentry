@@ -6,7 +6,10 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
+  DiscoverProperty,
+  DiscoverResponse,
   EAPSpanProperty,
   EAPSpanResponse,
   MetricsProperty,
@@ -24,6 +27,7 @@ interface UseDiscoverOptions<Fields> {
   fields?: Fields;
   limit?: number;
   noPagination?: boolean;
+  orderby?: string | string[];
   pageFilters?: PageFilters;
   projectIds?: number[];
   /**
@@ -37,10 +41,11 @@ export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
+  const useEap = useInsightsEap();
   // Indexed spans dataset always returns an `id`
   return useDiscover<Fields | [SpanIndexedField.ID], SpanIndexedResponse>(
     options,
-    DiscoverDatasets.SPANS_INDEXED,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_INDEXED,
     referrer
   );
 };
@@ -74,9 +79,10 @@ export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
+  const useEap = useInsightsEap();
   return useDiscover<Fields, SpanMetricsResponse>(
     options,
-    DiscoverDatasets.SPANS_METRICS,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
     referrer
   );
 };
@@ -85,14 +91,30 @@ export const useMetrics = <Fields extends MetricsProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
+  const useEap = useInsightsEap();
   return useDiscover<Fields, MetricsResponse>(
     options,
-    DiscoverDatasets.METRICS,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
     referrer
   );
 };
 
-const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(
+export const useDiscoverOrEap = <Fields extends DiscoverProperty[]>(
+  options: UseDiscoverOptions<Fields> = {},
+  referrer: string
+) => {
+  const useEap = useInsightsEap();
+  return useDiscover<Fields, DiscoverResponse>(
+    options,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.DISCOVER,
+    referrer
+  );
+};
+
+export const useDiscover = <
+  T extends Array<Extract<keyof ResponseType, string>>,
+  ResponseType,
+>(
   options: UseDiscoverOptions<T> = {},
   dataset: DiscoverDatasets,
   referrer: string
@@ -106,6 +128,7 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     pageFilters: pageFiltersFromOptions,
     noPagination,
     projectIds,
+    orderby,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -116,7 +139,8 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     sorts,
     pageFiltersFromOptions ?? pageFilters.selection,
     dataset,
-    projectIds
+    projectIds,
+    orderby
   );
 
   const result = useWrappedDiscoverQuery({
@@ -145,7 +169,8 @@ function getEventView(
   sorts: Sort[] = [],
   pageFilters: PageFilters,
   dataset: DiscoverDatasets,
-  projectIds?: number[]
+  projectIds?: number[],
+  orderby?: string | string[]
 ) {
   const query = typeof search === 'string' ? search : (search?.formatString() ?? '');
 
@@ -156,6 +181,7 @@ function getEventView(
       fields,
       dataset,
       version: 2,
+      orderby,
     },
     pageFilters
   );

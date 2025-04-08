@@ -339,17 +339,16 @@ export type EventsStats = {
 };
 
 // API response for a top N Discover series or a multi-axis Discover series
-export type MultiSeriesEventsStats = {
-  [groupOrSeriesName: string]: EventsStats;
-};
+export type MultiSeriesEventsStats = Record<string, EventsStats>;
 
 // API response for a grouped top N Discover series
-export type GroupedMultiSeriesEventsStats = {
-  [groupName: string]: {
+export type GroupedMultiSeriesEventsStats = Record<
+  string,
+  {
     [seriesName: string]: EventsStats | number;
     order: number;
-  };
-};
+  }
+>;
 
 export type EventsStatsSeries<F extends string> = {
   data: Array<{
@@ -397,4 +396,29 @@ export enum SessionStatus {
   ABNORMAL = 'abnormal',
   ERRORED = 'errored',
   CRASHED = 'crashed',
+}
+
+interface IssuesMetricsTimeseries {
+  axis: 'new_issues_count' | 'resolved_issues_count' | 'new_issues_count_by_release';
+  groupBy: string[];
+  meta: {
+    interval: number;
+    isOther: boolean;
+    order: number;
+    valueType: string;
+    valueUnit: null | string;
+  };
+  values: Array<{
+    timestamp: number;
+    value: number;
+  }>;
+}
+
+export interface IssuesMetricsApiResponse {
+  meta: {
+    dataset: string;
+    end: number;
+    start: number;
+  };
+  timeseries: IssuesMetricsTimeseries[];
 }

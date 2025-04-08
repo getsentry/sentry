@@ -9,8 +9,7 @@ from sentry.rules.filters.latest_release import LatestReleaseFilter, get_project
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.models.workflow import Workflow
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
@@ -24,11 +23,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-            }
-        )
+        self.event_data = WorkflowEventData(event=self.group_event)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison=True,
@@ -72,7 +67,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
         new_release.add_project(self.project)
 
         self.event.data["tags"] = (("release", new_release.version),)
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_latest_release_no_match(self):
         old_release = Release.objects.create(
@@ -90,7 +85,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
         new_release.add_project(self.project)
 
         self.event.data["tags"] = (("release", old_release.version),)
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_caching(self):
         old_release = Release.objects.create(
@@ -100,7 +95,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
         )
         old_release.add_project(self.project)
         self.event.data["tags"] = (("release", old_release.version),)
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         new_release = Release.objects.create(
             organization_id=self.organization.id,
@@ -113,7 +108,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
         cache_key = get_project_release_cache_key(self.event.group.project_id)
         assert cache.get(cache_key) is None
 
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         # ensure we clear the cache when a release is deleted
         new_release.safe_delete()
@@ -121,7 +116,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
         assert cache.get(cache_key) is None
 
         # rule should pass again because the latest release is oldRelease
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_latest_release_with_environment(self):
         self.create_release(
@@ -144,23 +139,18 @@ class TestLatestReleaseCondition(ConditionTestCase):
             date_added=datetime(2020, 9, 3, 3, 8, 24, 880386, tzinfo=UTC),
         )
 
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-                "workflow": Workflow(environment_id=self.environment.id),
-            }
-        )
+        self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
 
         self.event.data["tags"] = (("release", new_release.version),)
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.event.data["tags"] = (("release", other_env_release.version),)
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch("sentry.search.utils.get_latest_release")
     def test_release_does_not_exist(self, mock_get_latest_release):
         mock_get_latest_release.side_effect = Release.DoesNotExist
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch.object(Release.objects, "get", return_value=None)
     def test_no_release_object(self, mock_get):
@@ -171,4 +161,4 @@ class TestLatestReleaseCondition(ConditionTestCase):
         )
         newRelease.add_project(self.project)
 
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)

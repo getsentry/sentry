@@ -16,21 +16,33 @@ export type IssueUpdateData =
   | MarkReviewed
   | GroupStatusResolution;
 
+export enum GroupSearchViewVisibility {
+  OWNER = 'owner',
+  ORGANIZATION = 'organization',
+}
+
+export enum GroupSearchViewCreatedBy {
+  ME = 'me',
+  OTHERS = 'others',
+}
+
 export type GroupSearchView = {
   environments: string[];
   id: string;
-  isAllProjects: boolean;
+  lastVisited: string | null;
   name: string;
   projects: number[];
   query: string;
   querySort: IssueSortOptions;
   timeFilters: PageFilters['datetime'];
+  visibility: GroupSearchViewVisibility;
 };
 
-export interface UpdateGroupSearchViewPayload extends Omit<GroupSearchView, 'id'> {
+export interface UpdateGroupSearchViewPayload
+  extends Omit<GroupSearchView, 'id' | 'lastVisited' | 'visibility'> {
   environments: string[];
-  isAllProjects: boolean;
   projects: number[];
   timeFilters: PageFilters['datetime'];
   id?: string;
+  isAllProjects?: boolean;
 }

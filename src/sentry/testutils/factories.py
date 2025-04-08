@@ -96,6 +96,7 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -170,6 +171,9 @@ from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.workflow_engine.models import (
     Action,
+    ActionAlertRuleTriggerAction,
+    AlertRuleDetector,
+    AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
     DataConditionGroupAction,
@@ -423,6 +427,22 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
+    def create_member_invite(
+        organization: Organization | None = None,
+        email: str | None = None,
+        **kwargs,
+    ) -> OrganizationMemberInvite:
+        if organization is None:
+            organization = Factories.create_organization()
+        if email is None:
+            email = f"{petname.generate().title()}@email.com"
+        om = OrganizationMember.objects.create(organization=organization)
+        return OrganizationMemberInvite.objects.create(
+            organization=organization, organization_member_id=om.id, email=email, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_team_membership(team, member=None, user=None, role=None):
         if member is None:
             member, created = OrganizationMember.objects.get_or_create(
@@ -540,7 +560,7 @@ class Factories:
         action_data=None,
         allow_no_action_data=False,
         condition_data=None,
-        name="",
+        name="Test Alert",
         action_match="all",
         filter_match="all",
         **kwargs,
@@ -1997,6 +2017,7 @@ class Factories:
         owner: Actor | None,
         uptime_status: UptimeStatus,
         uptime_status_update_date: datetime,
+        id: int | None,
     ):
         if name is None:
             name = petname.generate().title()
@@ -2019,6 +2040,7 @@ class Factories:
             owner_user_id=owner_user_id,
             uptime_status=uptime_status,
             uptime_status_update_date=uptime_status_update_date,
+            pk=id,
         )
 
     @staticmethod
@@ -2196,15 +2218,30 @@ class Factories:
     def create_action(
         config: dict[str, Any] | None = None,
         type: Action.Type | None = None,
+        data: dict[str, Any] | None = None,
         **kwargs,
     ) -> Action:
+        if config is None and type is None and data is None:
+            # Default to a slack action with nice defaults so someone can just do
+            # self.create_action() and have a sane default
+            config = {
+                "target_identifier": "1",
+                "target_display": "Sentry User",
+                "target_type": ActionTarget.SPECIFIC,
+            }
+
+            data = {"notes": "bufos are great", "tags": "bufo-bot"}
+
         if config is None:
             config = {}
+
+        if data is None:
+            data = {}
 
         if type is None:
             type = Action.Type.SLACK
 
-        return Action.objects.create(type=type, config=config, **kwargs)
+        return Action.objects.create(type=type, config=config, data=data, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2218,6 +2255,62 @@ class Factories:
         if workflow is None:
             workflow = Factories.create_workflow()
         return DetectorWorkflow.objects.create(detector=detector, workflow=workflow, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_alert_rule_workflow(
+        alert_rule_id: int | None = None,
+        rule_id: int | None = None,
+        workflow: Workflow | None = None,
+        **kwargs,
+    ) -> AlertRuleWorkflow:
+        if rule_id is None and alert_rule_id is None:
+            raise ValueError("Either rule_id or alert_rule_id must be provided")
+
+        if rule_id is not None and alert_rule_id is not None:
+            raise ValueError("Only one of rule_id or alert_rule_id can be provided")
+
+        if workflow is None:
+            workflow = Factories.create_workflow()
+
+        return AlertRuleWorkflow.objects.create(
+            alert_rule_id=alert_rule_id, rule_id=rule_id, workflow=workflow, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_alert_rule_detector(
+        alert_rule_id: int | None = None,
+        rule_id: int | None = None,
+        detector: Detector | None = None,
+        **kwargs,
+    ) -> AlertRuleDetector:
+        if rule_id is None and alert_rule_id is None:
+            raise ValueError("Either rule_id or alert_rule_id must be provided")
+
+        if rule_id is not None and alert_rule_id is not None:
+            raise ValueError("Only one of rule_id or alert_rule_id can be provided")
+
+        if detector is None:
+            detector = Factories.create_detector()
+
+        return AlertRuleDetector.objects.create(
+            alert_rule_id=alert_rule_id, rule_id=rule_id, detector=detector, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_action_alert_rule_trigger_action(
+        alert_rule_trigger_action_id: int,
+        action: Action | None = None,
+        **kwargs,
+    ) -> ActionAlertRuleTriggerAction:
+        if action is None:
+            action = Factories.create_action()
+
+        return ActionAlertRuleTriggerAction.objects.create(
+            action=action, alert_rule_trigger_action_id=alert_rule_trigger_action_id
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

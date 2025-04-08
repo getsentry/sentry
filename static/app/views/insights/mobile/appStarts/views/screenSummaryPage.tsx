@@ -149,9 +149,9 @@ export function ScreenSummaryContentPage() {
             `transaction:${transactionName}`,
             `span.op:app.start.${appStartType}`,
             '(',
-            'span.description:"Cold Start"',
+            'span.description:["Cold Start","Cold App Start"]',
             'OR',
-            'span.description:"Warm Start"',
+            'span.description:["Warm Start","Warm App Start"]',
             ')',
           ]}
           fields={[

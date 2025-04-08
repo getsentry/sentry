@@ -1,5 +1,4 @@
 import {Fragment, useRef} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 
@@ -8,16 +7,15 @@ import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import Link from 'sentry/components/links/link';
 import {IconStar} from 'sentry/icons';
-import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {getLocation, getMessage, isGroup, isTombstone} from 'sentry/utils/events';
+import {getMessage, isGroup, isTombstone} from 'sentry/utils/events';
 import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import withOrganization from 'sentry/utils/withOrganization';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {createIssueLink} from 'sentry/views/issueList/utils';
 
@@ -25,7 +23,6 @@ import EventTitleError from './eventTitleError';
 
 interface EventOrGroupHeaderProps {
   data: Event | Group | GroupTombstoneHelper;
-  organization: Organization;
   eventId?: string;
   hideIcons?: boolean;
   hideLevel?: boolean;
@@ -80,7 +77,6 @@ function usePreloadGroupOnHover({
 function EventOrGroupHeader({
   data,
   index,
-  organization,
   query,
   onClick,
   hideIcons,
@@ -88,16 +84,16 @@ function EventOrGroupHeader({
   source,
 }: EventOrGroupHeaderProps) {
   const location = useLocation();
+  const organization = useOrganization();
 
-  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
   const preloadHoverProps = usePreloadGroupOnHover({
     groupId: data.id,
-    disabled: !hasNewLayout || isTombstone(data) || !isGroup(data),
+    disabled: isTombstone(data) || !isGroup(data),
     organization,
   });
 
   function getTitleChildren() {
-    const {isBookmarked, hasSeen} = data as Group;
+    const {isBookmarked} = data as Group;
     return (
       <Fragment>
         {!hideIcons && isBookmarked && (
@@ -106,14 +102,7 @@ function EventOrGroupHeader({
           </IconWrapper>
         )}
         <ErrorBoundary customComponent={() => <EventTitleError />} mini>
-          <StyledEventOrGroupTitle
-            data={data}
-            // hasSeen is undefined for GroupTombstone
-            hasSeen={hasSeen === undefined ? true : hasSeen}
-            withStackTracePreview
-            query={query}
-            hasNewLayout={hasNewLayout}
-          />
+          <StyledEventOrGroupTitle data={data} withStackTracePreview query={query} />
         </ErrorBoundary>
       </Fragment>
     );
@@ -142,50 +131,31 @@ function EventOrGroupHeader({
       query,
     });
 
-    if (hasNewLayout) {
-      return (
-        <NewTitleWithLink
-          {...commonEleProps}
-          {...preloadHoverProps}
-          to={to}
-          onClick={onClick}
-          data-issue-title-link
-        >
-          {getTitleChildren()}
-        </NewTitleWithLink>
-      );
-    }
-
     return (
-      <TitleWithLink {...commonEleProps} to={to} onClick={onClick}>
+      <TitleWithLink
+        {...commonEleProps}
+        {...preloadHoverProps}
+        to={to}
+        onClick={onClick}
+        data-issue-title-link
+      >
         {getTitleChildren()}
       </TitleWithLink>
     );
   }
 
-  const eventLocation = getLocation(data);
-
   return (
     <div data-test-id="event-issue-header">
       <Title>{getTitle()}</Title>
-      {eventLocation && !hasNewLayout ? <Location>{eventLocation}</Location> : null}
       <StyledEventMessage
         data={data}
         level={'level' in data ? data.level : undefined}
         message={getMessage(data)}
         type={data.type}
-        levelIndicatorSize={9}
       />
     </div>
   );
 }
-
-const truncateStyles = css`
-  overflow: hidden;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
 
 const Title = styled('div')`
   margin-bottom: ${space(0.25)};
@@ -198,32 +168,8 @@ const Title = styled('div')`
   }
 `;
 
-const LocationWrapper = styled('div')`
-  ${truncateStyles};
-  margin: 0 0 5px;
-  direction: rtl;
-  text-align: left;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.subText};
-  span {
-    direction: ltr;
-  }
-`;
-
-function Location(props: any) {
-  const {children, ...rest} = props;
-  return (
-    <LocationWrapper {...rest}>
-      {tct('in [location]', {
-        location: <span>{children}</span>,
-      })}
-    </LocationWrapper>
-  );
-}
-
 const StyledEventMessage = styled(EventMessage)`
   margin: 0 0 5px;
-  gap: ${space(0.5)};
   font-size: inherit;
 `;
 
@@ -233,11 +179,6 @@ const IconWrapper = styled('span')`
 `;
 
 const TitleWithLink = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-`;
-
-const NewTitleWithLink = styled(Link)`
   ${p => p.theme.overflowEllipsis};
   color: ${p => p.theme.textColor};
 
@@ -250,12 +191,8 @@ const TitleWithoutLink = styled('span')`
   ${p => p.theme.overflowEllipsis};
 `;
 
-export default withOrganization(EventOrGroupHeader);
+export default EventOrGroupHeader;
 
-const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
-  hasNewLayout: boolean;
-  hasSeen: boolean;
-}>`
-  font-weight: ${p =>
-    p.hasSeen && !p.hasNewLayout ? p.theme.fontWeightNormal : p.theme.fontWeightBold};
+const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
+  font-weight: ${p => p.theme.fontWeightBold};
 `;

@@ -26,12 +26,14 @@ import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
 interface BaseExploreTablesProps {
   confidences: Confidence[];
+  isProgressivelyLoading: boolean;
   samplesTab: Tab;
   setSamplesTab: (tab: Tab) => void;
 }
 
 interface ExploreTablesProps extends BaseExploreTablesProps {
   aggregatesTableResult: AggregatesTableResult;
+  isProgressivelyLoading: boolean;
   spansTableResult: SpansTableResult;
   tracesTableResult: TracesTableResult;
 }
@@ -49,6 +51,7 @@ export function ExploreTables(props: ExploreTablesProps) {
 
 interface AggregatesExploreTablesProps extends BaseExploreTablesProps {
   aggregatesTableResult: AggregatesTableResult;
+  isProgressivelyLoading: boolean;
 }
 
 function ExploreAggregatesTable(props: AggregatesExploreTablesProps) {
@@ -56,6 +59,7 @@ function ExploreAggregatesTable(props: AggregatesExploreTablesProps) {
 }
 
 interface SamplesExploreTablesProps extends BaseExploreTablesProps {
+  isProgressivelyLoading: boolean;
   spansTableResult: SpansTableResult;
   tracesTableResult: TracesTableResult;
 }
@@ -109,5 +113,5 @@ const SamplesTableHeader = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;

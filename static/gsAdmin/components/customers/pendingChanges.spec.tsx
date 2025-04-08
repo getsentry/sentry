@@ -6,7 +6,7 @@ import {
   Am3DsEnterpriseSubscriptionFixture,
   SubscriptionFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PendingChanges from 'admin/components/customers/pendingChanges';
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
@@ -169,6 +169,7 @@ describe('PendingChanges', function () {
           contractInterval: 'annual',
           billingInterval: 'annual',
           onDemandCategories: ['errors', 'transactions', 'attachments'],
+          budgetTerm: 'on-demand',
         }),
         onDemandBudgets: {
           enabled: true,
@@ -199,7 +200,55 @@ describe('PendingChanges', function () {
       'The following changes will take effect on Feb 16, 2022'
     );
     expect(container).toHaveTextContent(
-      'On-demand budget — shared on-demand of $100 → per-category on-demand (errors at $3, transactions at $2, and attachments at $1)'
+      'On-demand budget — shared on-demand budget of $100 → per-category on-demand budget (errors at $3, transactions at $2, and attachments at $1)'
+    );
+  });
+
+  it('combines regular and on-demand changes', function () {
+    const subscription = SubscriptionFixture({
+      organization: OrganizationFixture(),
+      onDemandBudgets: {
+        enabled: true,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 10000,
+        onDemandSpendUsed: 0,
+      },
+      pendingChanges: PendingChangesFixture({
+        planDetails: PlanFixture({
+          name: 'Team (Enterprise)',
+          contractInterval: 'annual',
+          billingInterval: 'annual',
+          onDemandCategories: ['errors', 'transactions', 'attachments'],
+          budgetTerm: 'on-demand',
+        }),
+        onDemandBudgets: {
+          enabled: true,
+          budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+          errorsBudget: 300,
+          transactionsBudget: 200,
+          replaysBudget: 0,
+          attachmentsBudget: 100,
+          budgets: {errors: 300, transactions: 200, replays: 0, attachments: 100},
+        },
+        onDemandMaxSpend: 50000,
+        effectiveDate: '2022-03-16',
+        onDemandEffectiveDate: '2022-03-16',
+      }),
+    });
+    const {container} = render(<PendingChanges subscription={subscription} />);
+
+    expect(container).toHaveTextContent(
+      'This account has pending changes to the subscription'
+    );
+    expect(container).toHaveTextContent(
+      'The following changes will take effect on Mar 16, 2022'
+    );
+    expect(container).toHaveTextContent('Plan changes — Developer → Team (Enterprise)');
+    expect(container).toHaveTextContent(
+      'On-demand budget — shared on-demand budget of $100 → per-category on-demand budget (errors at $3, transactions at $2, and attachments at $1)'
+    );
+    expect(screen.getAllByText(/The following changes will take effect on/)).toHaveLength(
+      1
     );
   });
 
@@ -344,7 +393,9 @@ describe('PendingChanges', function () {
 
     const {container} = render(<PendingChanges subscription={subscription} />);
 
-    expect(container).toHaveTextContent('Plan changes — Business → Business');
+    expect(container).toHaveTextContent(
+      'Plan changes — Business → Enterprise (Business)'
+    );
     expect(container).toHaveTextContent(
       'Reserved accepted spans — 10,000,000 → reserved budget'
     );
@@ -369,7 +420,6 @@ describe('PendingChanges', function () {
       pendingChanges: PendingChangesFixture({
         planDetails: PlanDetailsLookupFixture('am3_business_ent_auf'),
         plan: 'am3_business_ent_auf',
-        planName: 'Business',
         reserved: {
           spans: 10_000_000,
         },
@@ -378,7 +428,9 @@ describe('PendingChanges', function () {
 
     const {container} = render(<PendingChanges subscription={subscription} />);
 
-    expect(container).toHaveTextContent('Plan changes — Business → Business');
+    expect(container).toHaveTextContent(
+      'Plan changes — Enterprise (Business) → Enterprise (Business)'
+    );
     expect(container).toHaveTextContent(
       'Reserved accepted spans — reserved budget → 10,000,000 spans'
     );

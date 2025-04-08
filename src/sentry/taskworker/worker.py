@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import atexit
+import contextlib
 import dataclasses
 import logging
 import multiprocessing
@@ -9,11 +10,11 @@ import signal
 import sys
 import threading
 import time
+from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import ForkProcess
 from multiprocessing.synchronize import Event
 from typing import Any
-from uuid import uuid4
 
 import grpc
 import orjson
@@ -30,13 +31,17 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 )
 
 from sentry.taskworker.client import TaskworkerClient
+from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER, DEFAULT_WORKER_QUEUE_SIZE
 from sentry.taskworker.registry import taskregistry
+from sentry.taskworker.state import clear_current_task, current_task, set_current_task
 from sentry.taskworker.task import Task
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
 
 mp_context = multiprocessing.get_context("fork")
 logger = logging.getLogger("sentry.taskworker.worker")
+
+AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
 
 
 @dataclasses.dataclass
@@ -47,7 +52,22 @@ class ProcessingResult:
     status: TaskActivationStatus.ValueType
 
 
-AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
+@contextlib.contextmanager
+def timeout_alarm(seconds: int, handler: Callable[[int, object], None]) -> Generator[None]:
+    """
+    Context manager to handle SIGALRM handlers
+
+    To prevent tasks from consuming a worker forever, we set a timeout
+    alarm that will interrupt tasks that run longer than
+    their processing_deadline.
+    """
+    original = signal.signal(signal.SIGALRM, handler)
+    try:
+        signal.alarm(seconds)
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, original)
 
 
 def get_at_most_once_key(namespace: str, taskname: str, task_id: str) -> str:
@@ -82,26 +102,28 @@ def child_worker(
     for module in settings.TASKWORKER_IMPORTS:
         __import__(module)
 
-    current_task_id: str | None = None
     processed_task_count = 0
 
-    def handle_alarm(signum: int, frame: Any) -> None:
+    def handle_alarm(signum: int, frame: object) -> None:
         """
         Handle SIGALRM
 
         If we hit an alarm in a child, we need to push a result
         and terminate the child.
         """
-        nonlocal current_task_id, processed_tasks
-
-        if current_task_id:
+        current = current_task()
+        if current:
             processed_tasks.put(
-                ProcessingResult(task_id=current_task_id, status=TASK_ACTIVATION_STATUS_FAILURE)
+                ProcessingResult(task_id=current.id, status=TASK_ACTIVATION_STATUS_FAILURE)
             )
-        metrics.incr("taskworker.worker.processing_deadline_exceeded")
+            metrics.incr(
+                "taskworker.worker.processing_deadline_exceeded",
+                tags={
+                    "namespace": current.namespace,
+                    "taskname": current.taskname,
+                },
+            )
         sys.exit(1)
-
-    signal.signal(signal.SIGALRM, handle_alarm)
 
     while True:
         if max_task_count and processed_task_count >= max_task_count:
@@ -137,29 +159,26 @@ def child_worker(
             key = get_at_most_once_key(activation.namespace, activation.taskname, activation.id)
             if cache.add(key, "1", timeout=AT_MOST_ONCE_TIMEOUT):  # The key didn't exist
                 metrics.incr(
-                    "taskworker.task.at_most_once.executed", tags={"task": activation.taskname}
+                    "taskworker.task.at_most_once.executed", tags={"taskname": activation.taskname}
                 )
             else:
                 metrics.incr(
-                    "taskworker.worker.at_most_once.skipped", tags={"task": activation.taskname}
+                    "taskworker.worker.at_most_once.skipped", tags={"taskname": activation.taskname}
                 )
                 continue
 
-        current_task_id = activation.id
+        set_current_task(activation)
 
-        # Set an alarm for the processing_deadline_duration
-        signal.alarm(activation.processing_deadline_duration)
-
-        execution_start_time = time.time()
         next_state = TASK_ACTIVATION_STATUS_FAILURE
+        # Use time.time() so we can measure against activation.received_at
+        execution_start_time = time.time()
         try:
-            _execute_activation(task_func, activation)
+            with timeout_alarm(activation.processing_deadline_duration, handle_alarm):
+                _execute_activation(task_func, activation)
             next_state = TASK_ACTIVATION_STATUS_COMPLETE
-            # Clear the alarm
-            signal.alarm(0)
         except Exception as err:
             if task_func.should_retry(activation.retry_state, err):
-                logger.info("taskworker.task.retry", extra={"task": activation.taskname})
+                logger.info("taskworker.task.retry", extra={"taskname": activation.taskname})
                 next_state = TASK_ACTIVATION_STATUS_RETRY
 
             if next_state != TASK_ACTIVATION_STATUS_RETRY:
@@ -167,9 +186,10 @@ def child_worker(
                     "taskworker.task.errored", extra={"type": str(err.__class__), "error": str(err)}
                 )
 
+        clear_current_task()
         processed_task_count += 1
 
-        # Get completion time before pushing to queue to avoid inflating latency metrics.
+        # Get completion time before pushing to queue, so we can measure queue append time
         execution_complete_time = time.time()
         processed_tasks.put(ProcessingResult(task_id=activation.id, status=next_state))
         metrics.distribution(
@@ -199,12 +219,12 @@ def child_worker(
         metrics.distribution(
             "taskworker.worker.execution_duration",
             execution_duration,
-            tags={"namespace": activation.namespace},
+            tags={"namespace": activation.namespace, "taskname": activation.taskname},
         )
         metrics.distribution(
             "taskworker.worker.execution_latency",
             execution_latency,
-            tags={"namespace": activation.namespace},
+            tags={"namespace": activation.namespace, "taskname": activation.taskname},
         )
 
 
@@ -242,20 +262,19 @@ class TaskWorker:
         self,
         rpc_host: str,
         num_brokers: int | None,
-        max_task_count: int | None = None,
+        max_child_task_count: int | None = None,
         namespace: str | None = None,
         concurrency: int = 1,
-        child_tasks_queue_maxsize: int = 1,
-        result_queue_maxsize: int = 5,
+        child_tasks_queue_maxsize: int = DEFAULT_WORKER_QUEUE_SIZE,
+        result_queue_maxsize: int = DEFAULT_WORKER_QUEUE_SIZE,
+        rebalance_after: int = DEFAULT_REBALANCE_AFTER,
         **options: dict[str, Any],
     ) -> None:
         self.options = options
-        self._execution_count = 0
-        self._worker_id = uuid4().hex
-        self._max_task_count = max_task_count
+        self._max_child_task_count = max_child_task_count
         self._namespace = namespace
         self._concurrency = concurrency
-        self.client = TaskworkerClient(rpc_host, num_brokers)
+        self.client = TaskworkerClient(rpc_host, num_brokers, rebalance_after)
         self._child_tasks: multiprocessing.Queue[TaskActivation] = mp_context.Queue(
             maxsize=child_tasks_queue_maxsize
         )
@@ -335,10 +354,10 @@ class TaskWorker:
         task = self.fetch_task()
         if task:
             try:
-                start_time = time.time()
+                start_time = time.monotonic()
                 self._child_tasks.put(task)
                 metrics.distribution(
-                    "taskworker.worker.child_task.put.duration", time.time() - start_time
+                    "taskworker.worker.child_task.put.duration", time.monotonic() - start_time
                 )
             except queue.Full:
                 logger.warning(
@@ -383,7 +402,9 @@ class TaskWorker:
         """
         task_received = self._task_receive_timing.pop(result.task_id, None)
         if task_received is not None:
-            metrics.distribution("taskworker.worker.complete_duration", time.time() - task_received)
+            metrics.distribution(
+                "taskworker.worker.complete_duration", time.monotonic() - task_received
+            )
 
         if fetch:
             fetch_next = None
@@ -392,7 +413,7 @@ class TaskWorker:
 
             next_task = self._send_update_task(result, fetch_next)
             if next_task:
-                self._task_receive_timing[next_task.id] = time.time()
+                self._task_receive_timing[next_task.id] = time.monotonic()
                 try:
                     self._child_tasks.put(next_task)
                 except queue.Full:
@@ -446,7 +467,7 @@ class TaskWorker:
                     self._child_tasks,
                     self._processed_tasks,
                     self._shutdown_event,
-                    self._max_task_count,
+                    self._max_child_task_count,
                 ),
             )
             process.start()
@@ -467,11 +488,12 @@ class TaskWorker:
             return None
 
         if not activation:
+            metrics.incr("taskworker.worker.fetch_task.not_found")
             logger.debug("taskworker.fetch_task.not_found")
 
             self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 10)
             return None
 
         self._gettask_backoff_seconds = 0
-        self._task_receive_timing[activation.id] = time.time()
+        self._task_receive_timing[activation.id] = time.monotonic()
         return activation

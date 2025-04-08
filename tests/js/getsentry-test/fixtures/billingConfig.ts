@@ -9,6 +9,17 @@ import type {BillingConfig} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 
 export function BillingConfigFixture(tier: PlanTier): BillingConfig {
+  if (tier === PlanTier.TEST) {
+    return {
+      id: PlanTier.TEST,
+      freePlan: 'am3_f',
+      defaultPlan: 'am3_f',
+      defaultReserved: {errors: 1000000},
+      annualDiscount: 0.1,
+      planList: Object.values(AM3_PLANS),
+      featureList: FeatureListFixture(),
+    };
+  }
   if (tier === PlanTier.MM1) {
     return {
       id: PlanTier.MM1,
@@ -67,6 +78,25 @@ export function BillingConfigFixture(tier: PlanTier): BillingConfig {
       },
       annualDiscount: 0.1,
       planList: Object.values(AM3_PLANS),
+      featureList: FeatureListFixture(),
+    };
+  }
+
+  if (tier === PlanTier.ALL) {
+    return {
+      id: PlanTier.AM3,
+      freePlan: 'am3_f',
+      defaultPlan: 'am3_team',
+      defaultReserved: {
+        errors: 50_000,
+        attachments: 1,
+        replays: 50,
+        monitorSeats: 1,
+        spans: 10_000_000,
+        uptime: 1,
+      },
+      annualDiscount: 0.1,
+      planList: Object.values(MM1_PLANS).concat(Object.values(MM2_PLANS), Object.values(AM1_PLANS), Object.values(AM2_PLANS), Object.values(AM3_PLANS)),
       featureList: FeatureListFixture(),
     };
   }

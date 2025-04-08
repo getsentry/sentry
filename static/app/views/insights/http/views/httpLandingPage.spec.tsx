@@ -3,18 +3,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {HTTPLandingPage} from 'sentry/views/insights/http/views/httpLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-
 jest.mock('sentry/utils/useReleaseStats');
 
 describe('HTTPLandingPage', function () {
@@ -28,8 +24,6 @@ describe('HTTPLandingPage', function () {
 
   let spanListRequestMock!: jest.Mock;
   let regionFilterRequestMock!: jest.Mock;
-
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -58,26 +52,6 @@ describe('HTTPLandingPage', function () {
     key: '',
   });
 
-  jest.mocked(useProjects).mockReturnValue({
-    projects: [
-      ProjectFixture({
-        id: '1',
-        name: 'Backend',
-        slug: 'backend',
-        firstTransactionEvent: true,
-        platform: 'javascript',
-        hasInsightsHttp: true,
-      }),
-    ],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-    fetching: false,
-    hasMore: null,
-    fetchError: null,
-    initiallyLoaded: false,
-  });
-
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
     isPending: false,
@@ -88,6 +62,17 @@ describe('HTTPLandingPage', function () {
 
   beforeEach(function () {
     jest.clearAllMocks();
+
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        id: '1',
+        name: 'Backend',
+        slug: 'backend',
+        firstTransactionEvent: true,
+        platform: 'javascript',
+        hasInsightsHttp: true,
+      }),
+    ]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
@@ -144,7 +129,7 @@ describe('HTTPLandingPage', function () {
             project: 'backend',
             'project.id': 1,
             'sum(span.self_time)': 815833579.659315,
-            'spm()': 40767.0,
+            'epm()': 40767.0,
             'time_spent_percentage()': 0.33634048399458855,
             'http_response_rate(3)': 0.00035567983908553485,
             'http_response_rate(4)': 0.3931893443226139,
@@ -156,7 +141,7 @@ describe('HTTPLandingPage', function () {
             project: 'frontend',
             'project.id': 2,
             'sum(span.self_time)': 473552338.9970339,
-            'spm()': 29912.133333333335,
+            'epm()': 29912.133333333335,
             'time_spent_percentage()': 0.19522955032268177,
             'http_response_rate(3)': 0.0,
             'http_response_rate(4)': 0.0012324987407562593,
@@ -170,7 +155,7 @@ describe('HTTPLandingPage', function () {
             'span.domain': 'array',
             'sum(span.self_time)': 'duration',
             'http_response_rate(3)': 'percentage',
-            'spm()': 'rate',
+            'epm()': 'rate',
             'time_spent_percentage()': 'percentage',
             'http_response_rate(4)': 'percentage',
             'http_response_rate(5)': 'percentage',
@@ -195,10 +180,10 @@ describe('HTTPLandingPage', function () {
         ],
         meta: {
           fields: {
-            'spm()': 'rate',
+            'epm()': 'rate',
           },
           units: {
-            'spm()': '1/second',
+            'epm()': '1/second',
           },
         },
       },
@@ -295,7 +280,7 @@ describe('HTTPLandingPage', function () {
           referrer: 'api.performance.http.landing-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
-          yAxis: 'spm()',
+          yAxis: 'epm()',
           transformAliasToInputFormat: '1',
         },
       })
@@ -386,7 +371,7 @@ describe('HTTPLandingPage', function () {
             'project',
             'project.id',
             'span.domain',
-            'spm()',
+            'epm()',
             'http_response_rate(3)',
             'http_response_rate(4)',
             'http_response_rate(5)',

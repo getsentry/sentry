@@ -33,8 +33,8 @@ export type ReadableExploreQueryParts = {
 const DEFAULT_QUERY: ReadableExploreQueryParts = {
   chartType: ChartType.LINE,
   yAxes: [DEFAULT_VISUALIZATION],
-  sortBys: [{kind: 'desc', field: DEFAULT_VISUALIZATION_FIELD!}],
-  fields: ['id', DEFAULT_VISUALIZATION_FIELD!],
+  sortBys: [{kind: 'desc', field: DEFAULT_VISUALIZATION_FIELD}],
+  fields: ['id', DEFAULT_VISUALIZATION_FIELD],
   groupBys: [],
   query: '',
 };
@@ -292,7 +292,10 @@ export function generateExploreCompareRoute({
   const url = getCompareBaseUrl(organization);
   const compareQuery: WritableExploreQueryParts = {
     chartType,
-    groupBys: mode === Mode.AGGREGATE ? groupBys : [],
+    // Filter out empty strings which are used to indicate no grouping
+    // in Trace Explorer. The same assumption does not exist for the
+    // comparison view.
+    groupBys: mode === Mode.AGGREGATE ? groupBys?.filter(Boolean) : [],
     query,
     sortBys,
     yAxes,

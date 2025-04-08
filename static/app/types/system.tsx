@@ -84,7 +84,7 @@ declare global {
       Modal: any;
       getModalPortal: () => HTMLElement;
       modalFocusTrap?: {
-        current?: FocusTrap;
+        current?: FocusTrap | null;
       };
     };
     /**

@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import sentry_sdk
 from django.apps import apps
@@ -54,15 +55,35 @@ def process_pending_batch() -> None:
 
 
 @instrumented_task(name="sentry.tasks.process_buffer.process_incr", queue="counters-0")
-def process_incr(**kwargs):
+def process_incr(
+    columns: dict[str, int] | None = None,
+    filters: dict[str, Any] | None = None,
+    extra: dict[str, Any] | None = None,
+    signal_only: bool | None = None,
+    model_name: str | None = None,
+    **kwargs,
+):
     """
     Processes a buffer event.
     """
     from sentry import buffer
 
-    sentry_sdk.set_tag("model", kwargs.get("model", "Unknown"))
+    model = None
+    if model_name:
+        assert "." in model_name, "model_name must be in form `sentry.Group`"
+        model = apps.get_model(model_name)
 
-    buffer.backend.process(**kwargs)
+    if model:
+        sentry_sdk.set_tag("model", model._meta.model_name)
+
+    buffer.backend.process(
+        model=model,
+        columns=columns,
+        filters=filters,
+        extra=extra,
+        signal_only=signal_only,
+        **kwargs,
+    )
 
 
 def buffer_incr(model, *args, **kwargs):
@@ -81,7 +102,7 @@ def buffer_incr(model, *args, **kwargs):
     name="sentry.tasks.process_buffer.buffer_incr_task",
     queue="buffers.incr",
 )
-def buffer_incr_task(app_label, model_name, args, kwargs):
+def buffer_incr_task(app_label: str, model_name: str, args: Any, kwargs: Any):
     """
     Call `buffer.incr`, resolving the model first.
 

@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -10,6 +11,12 @@ from requests import RequestException
 from sentry.http import safe_urlread
 from sentry.models.group import Group
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppExternalRequestHaltReason,
+    SentryAppInteractionEvent,
+    SentryAppInteractionType,
+)
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.users.models.user import User
@@ -18,6 +25,15 @@ from sentry.utils import json
 
 logger = logging.getLogger("sentry.sentry_apps.external_requests")
 ACTION_TO_PAST_TENSE = {"create": "created", "link": "linked"}
+FAILURE_REASON_BASE = f"{SentryAppEventType.EXTERNAL_ISSUE_LINKED}.{{}}"
+BAD_RESPONSE_HALT_REASON = FAILURE_REASON_BASE.format(
+    SentryAppExternalRequestHaltReason.BAD_RESPONSE
+)
+
+
+class IssueRequestActionType(StrEnum):
+    CREATE = "create"
+    LINK = "link"
 
 
 @dataclass
@@ -56,64 +72,74 @@ class IssueLinkRequester:
     group: Group
     fields: dict[str, Any]
     user: RpcUser | User
-    action: str
+    action: IssueRequestActionType
 
     def run(self) -> dict[str, Any]:
         response: dict[str, str] = {}
-
-        try:
-            request = send_and_save_sentry_app_request(
-                self._build_url(),
-                self.sentry_app,
-                self.install.organization_id,
-                f"external_issue.{ACTION_TO_PAST_TENSE[self.action]}",
-                headers=self._build_headers(),
-                method="POST",
-                data=self.body,
-            )
-            body = safe_urlread(request)
-            response = json.loads(body)
-        except (json.JSONDecodeError, TypeError):
-            raise SentryAppIntegratorError(
-                message=f"Unable to parse response from {self.sentry_app.slug}",
-                webhook_context={
-                    "error_type": "issue-link-requester.invalid-json",
-                    "uri": self.uri,
-                    "response": body,
-                    "installation_uuid": self.install.uuid,
-                },
-                status_code=500,
-            )
-        except RequestException as e:
-            error_type = "issue-link-requester.error"
-            extras = {
-                "sentry_app": self.sentry_app.slug,
-                "installation_uuid": self.install.uuid,
-                "project": self.group.project.slug,
-                "group": self.group.id,
+        event = SentryAppEventType(f"external_issue.{ACTION_TO_PAST_TENSE[self.action]}")
+        with SentryAppInteractionEvent(
+            operation_type=SentryAppInteractionType.EXTERNAL_REQUEST,
+            event_type=event,
+        ).capture() as lifecycle:
+            extras: dict[str, Any] = {
                 "uri": self.uri,
-                "error_message": str(e),
+                "installation_uuid": self.install.uuid,
+                "sentry_app_slug": self.sentry_app.slug,
+                "project_slug": self.group.project.slug,
+                "group_id": self.group.id,
             }
-            logger.info(error_type, extra=extras)
-            raise SentryAppIntegratorError(
-                message=f"Issue occured while trying to contact {self.sentry_app.slug} to link issue",
-                webhook_context={"error_type": error_type, **extras},
-                status_code=500,
-            )
+            try:
+                request = send_and_save_sentry_app_request(
+                    self._build_url(),
+                    self.sentry_app,
+                    self.install.organization_id,
+                    event,
+                    headers=self._build_headers(),
+                    method="POST",
+                    data=self.body,
+                )
+                response_body = safe_urlread(request)
 
-        if not self._validate_response(response):
-            raise SentryAppIntegratorError(
-                message=f"Invalid response format from sentry app {self.sentry_app} when linking issue",
-                webhook_context={
-                    "error_type": "issue-link-requester.invalid-response",
-                    "response": response,
-                    "installation_uuid": self.install.uuid,
-                    "uri": self.uri,
-                },
-                status_code=500,
-            )
+                response = json.loads(response_body)
+            except (json.JSONDecodeError, TypeError) as e:
+                extras["response_body"] = response_body
+                lifecycle.record_halt(
+                    halt_reason=e,
+                    extra={"halt_reason": BAD_RESPONSE_HALT_REASON, **extras},
+                )
 
-        return response
+                raise SentryAppIntegratorError(
+                    message=f"Unable to parse response from {self.sentry_app.slug}",
+                    webhook_context={"error_type": BAD_RESPONSE_HALT_REASON, **extras},
+                    status_code=500,
+                )
+            except RequestException as e:
+                extras["error_message"] = str(e)
+                lifecycle.record_halt(
+                    halt_reason=e,
+                    extra={"halt_reason": BAD_RESPONSE_HALT_REASON, **extras},
+                )
+
+                raise SentryAppIntegratorError(
+                    message=f"Issue occured while trying to contact {self.sentry_app.slug} to link issue",
+                    webhook_context={"error_type": BAD_RESPONSE_HALT_REASON, **extras},
+                    status_code=500,
+                )
+
+            if not self._validate_response(response):
+                extras["response"] = response
+                lifecycle.record_halt(
+                    halt_reason=BAD_RESPONSE_HALT_REASON,
+                    extra={"halt_reason": BAD_RESPONSE_HALT_REASON, **extras},
+                )
+
+                raise SentryAppIntegratorError(
+                    message=f"Invalid response format from sentry app {self.sentry_app} when linking issue",
+                    webhook_context={"error_type": BAD_RESPONSE_HALT_REASON, **extras},
+                    status_code=500,
+                )
+
+            return response
 
     def _build_url(self) -> str:
         urlparts = urlparse(self.sentry_app.webhook_url)

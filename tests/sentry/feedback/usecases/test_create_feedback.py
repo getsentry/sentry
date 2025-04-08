@@ -783,7 +783,6 @@ def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka)
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
     tags = produced_event["tags"]
     assert tags["user.email"] == "josh.ferge@sentry.io"
-    assert tags["trace.id"] == "abc123"
 
     # Uses feedback contact_email if user context doesn't have one
     del event["user"]["email"]
@@ -800,14 +799,12 @@ def test_create_feedback_tags_skips_if_empty(default_project, mock_produce_occur
     event = mock_feedback_event(default_project.id, datetime.now(UTC))
     event["user"].pop("email", None)
     event["contexts"]["feedback"].pop("contact_email", None)
-    event["contexts"].pop("trace", None)
     create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
     tags = produced_event["tags"]
     assert "user.email" not in tags
-    assert "trace.id" not in tags
 
 
 @django_db_all
@@ -837,6 +834,36 @@ def test_create_feedback_filters_large_message(
 
     assert mock_complete_prompt.call_count == 0
     assert mock_produce_occurrence_to_kafka.call_count == 0
+
+
+@django_db_all
+def test_create_feedback_evidence_has_source(default_project, mock_produce_occurrence_to_kafka):
+    """We need this evidence field in post process, to determine if we should send alerts."""
+    event = mock_feedback_event(default_project.id, datetime.now(UTC))
+    source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+    create_feedback_issue(event, default_project.id, source)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
+    assert evidence["source"] == source.value
+
+
+@django_db_all
+def test_create_feedback_evidence_has_spam(
+    default_project, mock_produce_occurrence_to_kafka, monkeypatch
+):
+    """We need this evidence field in post process, to determine if we should send alerts."""
+    monkeypatch.setattr("sentry.feedback.usecases.create_feedback.is_spam", lambda _: True)
+    default_project.update_option("sentry:feedback_ai_spam_detection", True)
+
+    with Feature({"organizations:user-feedback-spam-filter-ingest": True}):
+        event = mock_feedback_event(default_project.id, datetime.now(UTC))
+        source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        create_feedback_issue(event, default_project.id, source)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
+    assert evidence["is_spam"] is True
 
 
 """

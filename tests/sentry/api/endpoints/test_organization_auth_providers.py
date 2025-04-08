@@ -1,8 +1,6 @@
 from django.urls import reverse
 
-from sentry import auth
 from sentry.auth.partnership_configs import ChannelName
-from sentry.auth.providers.fly.provider import FlyOAuth2Provider, NonPartnerFlyOAuth2Provider
 from sentry.testutils.cases import APITestCase, PermissionTestCase
 
 
@@ -28,11 +26,6 @@ class OrganizationAuthProviders(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
-        auth.register(FlyOAuth2Provider)
-        self.addCleanup(auth.unregister, FlyOAuth2Provider)
-
-        auth.register(NonPartnerFlyOAuth2Provider)
-        self.addCleanup(auth.unregister, NonPartnerFlyOAuth2Provider)
 
     def test_get_list_of_auth_providers(self):
         with self.feature("organizations:sso-basic"):

@@ -4,6 +4,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import SelectField from 'sentry/components/forms/fields/selectField';
+import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
@@ -19,11 +20,11 @@ enum VercelEndpoint {
   SUBMIT_BILLING_DATA = 'submit_billing_data',
   SUBMIT_INVOICE = 'submit_invoice',
   CREATE_EVENT = 'create_event',
+  REFUND = 'refund',
 }
 
 type AdminTestVercelApiRequest = {
   extra: string | null;
-  organization_id: number;
   vercel_endpoint: VercelEndpoint;
 };
 
@@ -41,19 +42,19 @@ function TestVercelApiEndpointModal({
     VercelEndpoint.SUBMIT_BILLING_DATA
   );
   const [extra, setExtra] = useState<string | null>(null);
+  const orgSlug = subscription.slug;
 
   const onSubmit = () => {
     const data: AdminTestVercelApiRequest = {
-      extra: endpoint === VercelEndpoint.SUBMIT_INVOICE ? extra : null,
-      organization_id: Number(subscription.id),
+      extra,
       vercel_endpoint: endpoint,
     };
 
-    api.request(`/_admin/test-vercel-api/`, {
+    api.request(`/_admin/${orgSlug}/test-vercel-api/`, {
       method: 'POST',
       data,
       success: () => {
-        addSuccessMessage('Sent billing data to Vercel API.');
+        addSuccessMessage('Sent request to Vercel API.');
         closeModal();
         onSuccess();
       },
@@ -96,6 +97,16 @@ function TestVercelApiEndpointModal({
               }}
               required
               choices={['paid', 'notpaid']}
+            />
+          )}
+          {endpoint === VercelEndpoint.REFUND && (
+            <TextField
+              label="Invoice ID"
+              name="invoice_id"
+              placeholder={t('sentry invoice id')}
+              onChange={(value: string) => {
+                setExtra(value);
+              }}
             />
           )}
         </Form>

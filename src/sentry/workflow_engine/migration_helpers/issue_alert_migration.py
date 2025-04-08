@@ -82,7 +82,7 @@ class IssueAlertMigrator:
             ).first()
             if error_detector:
                 created = not AlertRuleDetector.objects.filter(
-                    detector=error_detector, rule=self.rule
+                    detector=error_detector, rule_id=self.rule.id
                 ).exists()
             else:
                 error_detector = Detector(type=ErrorGroupType.slug, project=self.project)
@@ -94,7 +94,7 @@ class IssueAlertMigrator:
                 defaults={"config": {}, "name": "Error Detector"},
             )
             _, created = AlertRuleDetector.objects.get_or_create(
-                detector=error_detector, rule=self.rule
+                detector=error_detector, rule_id=self.rule.id
             )
 
         if not created:
@@ -191,13 +191,18 @@ class IssueAlertMigrator:
 
         # the only time the data_conditions list will be empty is if somebody only has EveryEventCondition in their conditions list.
         # if it's empty and this is not the case, we should not migrate
-        no_conditions = len(data_conditions) == 0
+        no_conditions = len(conditions) == 0
+        no_data_conditions = len(data_conditions) == 0
         only_has_every_event_cond = (
             len(conditions) == 1 and conditions[0]["id"] == EveryEventCondition.id
         )
 
-        if not self.is_dry_run and no_conditions and not only_has_every_event_cond:
-            raise Exception("No valid conditions, skipping migration")
+        if not self.is_dry_run:
+            if no_data_conditions and no_conditions:
+                # originally no conditions and we expect no data conditions
+                pass
+            elif no_data_conditions and not only_has_every_event_cond:
+                raise Exception("No valid trigger conditions, skipping migration")
 
         enabled = True
         rule_snooze = RuleSnooze.objects.filter(rule=self.rule, user_id=None).first()
@@ -227,7 +232,7 @@ class IssueAlertMigrator:
             workflow = Workflow.objects.create(**kwargs)
             workflow.update(date_added=self.rule.date_added)
             DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
-            AlertRuleWorkflow.objects.create(rule=self.rule, workflow=workflow)
+            AlertRuleWorkflow.objects.create(rule_id=self.rule.id, workflow=workflow)
 
         return workflow
 

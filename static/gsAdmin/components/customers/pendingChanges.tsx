@@ -190,15 +190,11 @@ function getRegularChanges(subscription: Subscription) {
 
   categories.forEach(category => {
     if (
-      (pendingChanges.customPrices?.[category as DataCategories] ?? 0) !==
-      (subscription.categories?.[category as DataCategories]?.customPrice ?? 0)
+      (pendingChanges.customPrices?.[category] ?? 0) !==
+      (subscription.categories?.[category]?.customPrice ?? 0)
     ) {
-      const old = getStringForPrice(
-        subscription.categories?.[category as DataCategories]?.customPrice
-      );
-      const change = getStringForPrice(
-        pendingChanges.customPrices?.[category as DataCategories]
-      );
+      const old = getStringForPrice(subscription.categories?.[category]?.customPrice);
+      const change = getStringForPrice(pendingChanges.customPrices?.[category]);
       changes.push(
         formatChangeForCategory({
           category: category as DataCategory,
@@ -304,13 +300,11 @@ function getOnDemandChanges(subscription: Subscription) {
     if (!isOnDemandBudgetsEqual(pendingOnDemandBudgets, currentOnDemandBudgets)) {
       const current = formatOnDemandBudget(
         subscription.planDetails,
-        subscription.planTier,
         currentOnDemandBudgets,
         subscription.planDetails.onDemandCategories
       );
       const change = formatOnDemandBudget(
         pendingChanges.planDetails,
-        subscription.planTier,
         pendingOnDemandBudgets,
         pendingChanges.planDetails.onDemandCategories
       );
@@ -355,13 +349,21 @@ function getChanges(subscription: Subscription, planMigrations: PlanMigration[])
   const effectiveDate = activeMigration?.effectiveAt ?? pendingChanges.effectiveDate;
 
   const regularChanges = getRegularChanges(subscription);
-  if (regularChanges.length > 0) {
-    changeSet.push({effectiveDate, items: regularChanges});
-  }
-
   const onDemandChanges = getOnDemandChanges(subscription);
-  if (onDemandChanges.length) {
-    changeSet.push({effectiveDate: onDemandEffectiveDate, items: onDemandChanges});
+
+  if (effectiveDate === onDemandEffectiveDate) {
+    const combinedChanges = [...regularChanges, ...onDemandChanges];
+    if (combinedChanges.length > 0) {
+      changeSet.push({effectiveDate, items: combinedChanges});
+    }
+  } else {
+    if (regularChanges.length > 0) {
+      changeSet.push({effectiveDate, items: regularChanges});
+    }
+
+    if (onDemandChanges.length > 0) {
+      changeSet.push({effectiveDate: onDemandEffectiveDate, items: onDemandChanges});
+    }
   }
 
   return changeSet;

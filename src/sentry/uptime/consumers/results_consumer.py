@@ -39,7 +39,7 @@ from sentry.uptime.models import (
 )
 from sentry.uptime.subscriptions.subscriptions import (
     check_and_update_regions,
-    delete_uptime_subscriptions_for_project,
+    delete_project_uptime_subscription,
     update_project_uptime_subscription,
 )
 from sentry.uptime.subscriptions.tasks import (
@@ -63,8 +63,12 @@ ONBOARDING_FAILURE_THRESHOLD = 3
 ONBOARDING_FAILURE_REDIS_TTL = ONBOARDING_MONITOR_PERIOD
 # How frequently we should run active auto-detected subscriptions
 AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL = timedelta(minutes=1)
-# The TTL of the redis key used to track consecutive statuses
-ACTIVE_THRESHOLD_REDIS_TTL = timedelta(minutes=60)
+# The TTL of the redis key used to track consecutive statuses. We need this to be longer than the longest interval we
+# support, so that the key doesn't expire between checks. We add an extra hour to account for any backlogs in
+# processing.
+ACTIVE_THRESHOLD_REDIS_TTL = timedelta(seconds=max(UptimeSubscription.IntervalSeconds)) + timedelta(
+    minutes=60
+)
 SNUBA_UPTIME_RESULTS_CODEC: Codec[SnubaUptimeResult] = get_topic_codec(Topic.SNUBA_UPTIME_RESULTS)
 # We want to limit cardinality for provider tags. This controls how many tags we should include
 TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
@@ -358,11 +362,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             failure_count = pipeline.execute()[0]
             if failure_count >= ONBOARDING_FAILURE_THRESHOLD:
                 # If we've hit too many failures during the onboarding period we stop monitoring
-                delete_uptime_subscriptions_for_project(
-                    project_subscription.project,
-                    project_subscription.uptime_subscription,
-                    modes=[ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING],
-                )
+                delete_project_uptime_subscription(project_subscription)
                 # Mark the url as failed so that we don't attempt to auto-detect it for a while
                 set_failed_url(project_subscription.uptime_subscription.url)
                 redis.delete(key)

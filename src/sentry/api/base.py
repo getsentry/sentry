@@ -377,10 +377,6 @@ class Endpoint(APIView):
 
         sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER", ""))
 
-        # Tags that will ultimately flow into the metrics backend at the end of
-        # the request (happens via middleware/stats.py).
-        request._metric_tags = {}
-
         start_time = time.time()
 
         origin = request.META.get("HTTP_ORIGIN", "null")

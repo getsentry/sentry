@@ -60,9 +60,5 @@ export function FlamegraphProvider(props: FlamegraphProviderProps) {
     return newFlamegraph;
   }, [sorting, threadId, view, profileGroup]);
 
-  return (
-    <FlamegraphContext.Provider value={flamegraph}>
-      {props.children}
-    </FlamegraphContext.Provider>
-  );
+  return <FlamegraphContext value={flamegraph}>{props.children}</FlamegraphContext>;
 }

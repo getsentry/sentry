@@ -26,7 +26,7 @@ type Options = {
  * React component is unmounted (may be disabled via options).
  */
 function useApi({persistInFlight, api: providedApi}: Options = {}) {
-  const localApi = useRef<Client>();
+  const localApi = useRef<Client | undefined>(undefined);
 
   // Lazily construct the client if we weren't provided with one
   if (localApi.current === undefined && providedApi === undefined) {

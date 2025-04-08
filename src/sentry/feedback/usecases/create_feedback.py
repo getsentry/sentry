@@ -8,7 +8,6 @@ from typing import Any, TypedDict
 from uuid import uuid4
 
 import jsonschema
-import sentry_sdk
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -61,7 +60,7 @@ class FeedbackCreationSource(Enum):
         }
 
 
-def make_evidence(feedback, is_message_spam: bool | None):
+def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: bool | None):
     evidence_data = {}
     evidence_display = []
     if feedback.get("associated_event_id"):
@@ -85,8 +84,11 @@ def make_evidence(feedback, is_message_spam: bool | None):
         evidence_data["name"] = feedback["name"]
         evidence_display.append(IssueEvidence(name="name", value=feedback["name"], important=False))
 
+    evidence_data["source"] = source.value  # Used by alerts post process.
+    # Exluding this from the display, since it's not useful to users.
+
     if is_message_spam is True:
-        evidence_data["is_spam"] = is_message_spam
+        evidence_data["is_spam"] = is_message_spam  # Used by alerts post process.
         evidence_display.append(
             IssueEvidence(name="is_spam", value=str(is_message_spam), important=False)
         )
@@ -265,16 +267,17 @@ def should_filter_feedback(
                 "referrer": source.value,
             },
         )
-        logger.info(
-            "Feedback message exceeds max size.",
-            extra={
-                "project_id": project_id,
-                "entrypoint": "create_feedback_issue",
-                "referrer": source.value,
-            },
-        )
-        # For Sentry employee debugging. Sentry will capture a truncated `feedback_message` in local variables.
-        sentry_sdk.capture_message("Feedback message exceeds max size.", "warning")
+        if random.random() < 0.1:
+            logger.info(
+                "Feedback message exceeds max size.",
+                extra={
+                    "project_id": project_id,
+                    "entrypoint": "create_feedback_issue",
+                    "referrer": source.value,
+                    "length": len(message),
+                    "feedback_message": message[:100],
+                },
+            )
         return True, "Too Large"
 
     return False, None
@@ -328,7 +331,9 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
     detection_time = datetime.fromtimestamp(event["timestamp"], UTC)
-    evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"], is_message_spam)
+    evidence_data, evidence_display = make_evidence(
+        event["contexts"]["feedback"], source, is_message_spam
+    )
     issue_fingerprint = [uuid4().hex]
     occurrence = IssueOccurrence(
         id=uuid4().hex,
@@ -360,11 +365,6 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     user_email = get_path(event_fixed, "user", "email")
     if user_email and "user.email" not in event_fixed["tags"]:
         event_fixed["tags"]["user.email"] = user_email
-
-    # Set the trace.id tag to expose it for the feedback UI.
-    trace_id = get_path(event_fixed, "contexts", "trace", "trace_id")
-    if trace_id:
-        event_fixed["tags"]["trace.id"] = trace_id
 
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)
