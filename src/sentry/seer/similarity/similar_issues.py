@@ -24,7 +24,7 @@ from sentry.seer.similarity.types import (
 from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
 from sentry.utils import json, metrics
 from sentry.utils.circuit_breaker2 import CircuitBreaker
-from sentry.utils.json import JSONDecodeError, apply_key_filter
+from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +49,11 @@ def get_similarity_data_from_seer(
     referrer = similar_issues_request.get("referrer")
     metric_tags = {**(metric_tags or {}), **({"referrer": referrer} if referrer else {})}
 
-    logger_extra = apply_key_filter(
-        similar_issues_request,
-        keep_keys=["event_id", "project_id", "hash", "referrer", "use_reranking"],
-    )
+    logger_extra = {
+        k: v
+        for k, v in similar_issues_request.items()
+        if k in {"event_id", "project_id", "hash", "referrer", "use_reranking"}
+    }
     logger.info(
         "get_seer_similar_issues.request",
         extra=logger_extra,
