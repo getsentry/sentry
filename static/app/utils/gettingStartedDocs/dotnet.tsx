@@ -88,9 +88,9 @@ export const getDotnetProfilingOnboarding = ({
     {
       type: StepType.INSTALL,
       description: tct(
-        'Make sure the SDK is up to date. The minimum version of the SDK required for profiling is [strong:4.3.0].',
+        'Make sure the SDK is up to date. The minimum version of the SDK required for profiling is [code:4.3.0].',
         {
-          strong: <strong />,
+          code: <code />,
         }
       ),
       configurations: [
