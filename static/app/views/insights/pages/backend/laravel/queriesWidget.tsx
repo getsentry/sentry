@@ -194,6 +194,7 @@ export function QueriesWidget({query}: {query?: string}) {
       Title={<Widget.WidgetTitle title={t('Slow Queries')} />}
       Visualization={visualization}
       Actions={
+        organization.features.includes('visibility-explore-view') &&
         hasData && (
           <Toolbar
             exploreParams={{

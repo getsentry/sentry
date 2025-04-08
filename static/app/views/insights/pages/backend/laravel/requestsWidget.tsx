@@ -106,6 +106,7 @@ export function RequestsWidget({query}: {query?: string}) {
       Title={<Widget.WidgetTitle title={t('Requests')} />}
       Visualization={visualization}
       Actions={
+        organization.features.includes('visibility-explore-view') &&
         !isEmpty && (
           <Toolbar
             exploreParams={{
