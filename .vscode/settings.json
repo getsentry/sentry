@@ -33,7 +33,8 @@
     "editor.tabSize": 4,
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit"
+      "source.organizeImports": "explicit",
+      "source.unusedImports": "explicit"
     },
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
