@@ -731,7 +731,7 @@ class ExhaustiveFixtures(Fixtures):
 
         InsightsStarredTransaction.objects.create(
             organization=org,
-            created_by_id=owner_id,
+            user_id=owner_id,
             project=project,
             transaction_name="test_transaction",
         )
