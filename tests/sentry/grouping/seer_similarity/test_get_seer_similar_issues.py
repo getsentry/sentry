@@ -69,6 +69,7 @@ def create_new_event(
 def assert_metrics_call(
     mock_metrics_function: MagicMock,
     metric_key: str,
+    result: str,
     extra_tags: dict[str, Any] | None = None,
     value: Any | None = None,
 ) -> None:
@@ -80,6 +81,7 @@ def assert_metrics_call(
         "sample_rate": options.get("seer.similarity.metrics_sample_rate"),
         "tags": {
             "platform": "python",
+            "result": result,
             **(extra_tags or {}),
         },
     }
@@ -141,11 +143,16 @@ class ParentGroupFoundTest(TestCase):
                 0.01,
                 existing_grouphash,
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=1)
+
             assert_metrics_call(
-                mock_incr,
-                "get_seer_similar_issues",
-                {"is_hybrid": False, "result": "match_found"},
+                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": False}
+            )
+            assert_metrics_call(
+                mock_distribution,
+                "seer_results_returned",
+                "match_found",
+                {"is_hybrid": False},
+                value=1,
             )
 
             # Ensure we're not recording things we don't want to be. (The metrics we're checking
@@ -195,16 +202,24 @@ class ParentGroupFoundTest(TestCase):
                 0.01,
                 existing_grouphash,
             )
+
+            # Metric from `_should_use_seer_match_for_grouping`
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "fingerprint_match")
+
+            # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "fingerprint_match"}
+                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": True}
             )
             assert_metrics_call(
-                mock_incr,
-                "get_seer_similar_issues",
-                {"is_hybrid": True, "result": "match_found"},
+                mock_distribution,
+                "seer_results_returned",
+                "match_found",
+                {"is_hybrid": True},
+                value=1,
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=1)
-            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=1)
+            assert_metrics_call(
+                mock_distribution, "hybrid_fingerprint_results_checked", "match_found", value=1
+            )
 
     @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -236,16 +251,27 @@ class ParentGroupFoundTest(TestCase):
             return_value=seer_result_data,
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
+
+            # Metric from `_should_use_seer_match_for_grouping`
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "no_fingerprint_match")
+
+            # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "no_fingerprint_match"}
+                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
             )
             assert_metrics_call(
-                mock_incr,
-                "get_seer_similar_issues",
-                {"is_hybrid": True, "result": "no_matches_usable"},
+                mock_distribution,
+                "seer_results_returned",
+                "no_matches_usable",
+                {"is_hybrid": True},
+                value=1,
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=1)
-            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=1)
+            assert_metrics_call(
+                mock_distribution,
+                "hybrid_fingerprint_results_checked",
+                "no_matches_usable",
+                value=1,
+            )
 
     @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -277,16 +303,27 @@ class ParentGroupFoundTest(TestCase):
             return_value=seer_result_data,
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
+
+            # Metric from `_should_use_seer_match_for_grouping`
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "only_event_hybrid")
+
+            # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "only_event_hybrid"}
+                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
             )
             assert_metrics_call(
-                mock_incr,
-                "get_seer_similar_issues",
-                {"is_hybrid": True, "result": "no_matches_usable"},
+                mock_distribution,
+                "seer_results_returned",
+                "no_matches_usable",
+                {"is_hybrid": True},
+                value=1,
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=1)
-            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=1)
+            assert_metrics_call(
+                mock_distribution,
+                "hybrid_fingerprint_results_checked",
+                "no_matches_usable",
+                value=1,
+            )
 
     @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -315,16 +352,27 @@ class ParentGroupFoundTest(TestCase):
             return_value=seer_result_data,
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
+
+            # Metric from `_should_use_seer_match_for_grouping`
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "only_parent_hybrid")
+
+            # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "only_parent_hybrid"}
+                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
             )
             assert_metrics_call(
-                mock_incr,
-                "get_seer_similar_issues",
-                {"is_hybrid": True, "result": "no_matches_usable"},
+                mock_distribution,
+                "seer_results_returned",
+                "no_matches_usable",
+                {"is_hybrid": True},
+                value=1,
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=1)
-            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=1)
+            assert_metrics_call(
+                mock_distribution,
+                "hybrid_fingerprint_results_checked",
+                "no_matches_usable",
+                value=1,
+            )
 
     @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -369,16 +417,27 @@ class ParentGroupFoundTest(TestCase):
             return_value=seer_result_data,
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
+
+            # Metric from `_should_use_seer_match_for_grouping`
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "no_parent_metadata")
+
+            # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "no_parent_metadata"}
+                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
             )
             assert_metrics_call(
-                mock_incr,
-                "get_seer_similar_issues",
-                {"is_hybrid": True, "result": "no_matches_usable"},
+                mock_distribution,
+                "seer_results_returned",
+                "no_matches_usable",
+                {"is_hybrid": True},
+                value=1,
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=1)
-            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=1)
+            assert_metrics_call(
+                mock_distribution,
+                "hybrid_fingerprint_results_checked",
+                "no_matches_usable",
+                value=1,
+            )
 
 
 class MultipleParentGroupsFoundTest(TestCase):
@@ -424,11 +483,15 @@ class MultipleParentGroupsFoundTest(TestCase):
             )
 
             assert_metrics_call(
-                mock_incr,
-                "get_seer_similar_issues",
-                {"is_hybrid": False, "result": "match_found"},
+                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": False}
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=2)
+            assert_metrics_call(
+                mock_distribution,
+                "seer_results_returned",
+                "match_found",
+                {"is_hybrid": False},
+                value=2,
+            )
 
             # Ensure we're not recording things we don't want to be. (The metrics we're checking
             # should only be recorded for events or parent grouphashes with hybrid fingerprints.)
@@ -492,15 +555,26 @@ class MultipleParentGroupsFoundTest(TestCase):
                 existing_grouphash,
             )
 
+            # Metric from `_should_use_seer_match_for_grouping`
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "fingerprint_match")
+
+            # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "fingerprint_match"}
+                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": True}
             )
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", {"is_hybrid": True, "result": "match_found"}
+                mock_distribution,
+                "seer_results_returned",
+                "match_found",
+                {"is_hybrid": True},
+                value=2,
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=2)
-            # It only does one check because it stops once it's found a match
-            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=1)
+            assert_metrics_call(
+                mock_distribution,
+                "hybrid_fingerprint_results_checked",
+                "match_found",
+                value=1,  # It only does one check because it stops once it's found a match
+            )
 
     @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -555,18 +629,27 @@ class MultipleParentGroupsFoundTest(TestCase):
                 existing_grouphash2,
             )
 
+            # Metrics from `_should_use_seer_match_for_grouping`
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "no_fingerprint_match")
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "fingerprint_match")
+
+            # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "no_fingerprint_match"}
+                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": True}
             )
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "fingerprint_match"}
+                mock_distribution,
+                "seer_results_returned",
+                "match_found",
+                {"is_hybrid": True},
+                value=2,
             )
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", {"is_hybrid": True, "result": "match_found"}
+                mock_distribution,
+                "hybrid_fingerprint_results_checked",
+                "match_found",
+                value=2,  # It does two checks because the first result isn't a match
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=2)
-            # It does two checks because the first result isn't a match
-            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=2)
 
     @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -611,16 +694,26 @@ class MultipleParentGroupsFoundTest(TestCase):
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
 
+            # Metric from `_should_use_seer_match_for_grouping`
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "no_fingerprint_match")
+
+            # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "no_fingerprint_match"}
+                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
             )
             assert_metrics_call(
-                mock_incr,
-                "get_seer_similar_issues",
-                {"is_hybrid": True, "result": "no_matches_usable"},
+                mock_distribution,
+                "seer_results_returned",
+                "no_matches_usable",
+                {"is_hybrid": True},
+                value=2,
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=2)
-            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=2)
+            assert_metrics_call(
+                mock_distribution,
+                "hybrid_fingerprint_results_checked",
+                "no_matches_usable",
+                value=2,
+            )
 
     @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -665,16 +758,26 @@ class MultipleParentGroupsFoundTest(TestCase):
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
 
+            # Metric from `_should_use_seer_match_for_grouping`
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "only_event_hybrid")
+
+            # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "only_event_hybrid"}
+                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
             )
             assert_metrics_call(
-                mock_incr,
-                "get_seer_similar_issues",
-                {"is_hybrid": True, "result": "no_matches_usable"},
+                mock_distribution,
+                "seer_results_returned",
+                "no_matches_usable",
+                {"is_hybrid": True},
+                value=2,
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=2)
-            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=2)
+            assert_metrics_call(
+                mock_distribution,
+                "hybrid_fingerprint_results_checked",
+                "no_matches_usable",
+                value=2,
+            )
 
     @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -716,16 +819,26 @@ class MultipleParentGroupsFoundTest(TestCase):
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
 
+            # Metric from `_should_use_seer_match_for_grouping`
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "only_parent_hybrid")
+
+            # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "only_parent_hybrid"}
+                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
             )
             assert_metrics_call(
-                mock_incr,
-                "get_seer_similar_issues",
-                {"is_hybrid": True, "result": "no_matches_usable"},
+                mock_distribution,
+                "seer_results_returned",
+                "no_matches_usable",
+                {"is_hybrid": True},
+                value=2,
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=2)
-            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=2)
+            assert_metrics_call(
+                mock_distribution,
+                "hybrid_fingerprint_results_checked",
+                "no_matches_usable",
+                value=2,
+            )
 
     @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -773,17 +886,24 @@ class MultipleParentGroupsFoundTest(TestCase):
                 existing_grouphash2,
             )
 
+            # Metrics from `_should_use_seer_match_for_grouping`
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "only_parent_hybrid")
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "non-hybrid")
+
+            # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "only_parent_hybrid"}
+                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": True}
             )
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "non-hybrid"}
+                mock_distribution,
+                "seer_results_returned",
+                "match_found",
+                {"is_hybrid": True},
+                value=2,
             )
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", {"is_hybrid": True, "result": "match_found"}
+                mock_distribution, "hybrid_fingerprint_results_checked", "match_found", value=2
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=2)
-            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=2)
 
     @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -847,19 +967,25 @@ class MultipleParentGroupsFoundTest(TestCase):
                 0.02,
                 existing_grouphash2,
             )
+
+            # Metrics from `_should_use_seer_match_for_grouping`
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "no_parent_metadata")
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "fingerprint_match")
+
+            # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "no_parent_metadata"}
+                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": True}
             )
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "fingerprint_match"}
+                mock_distribution,
+                "seer_results_returned",
+                "match_found",
+                {"is_hybrid": True},
+                value=2,
             )
             assert_metrics_call(
-                mock_incr,
-                "get_seer_similar_issues",
-                {"is_hybrid": True, "result": "match_found"},
+                mock_distribution, "hybrid_fingerprint_results_checked", "match_found", value=2
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=2)
-            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=2)
 
     @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -930,18 +1056,25 @@ class MultipleParentGroupsFoundTest(TestCase):
                 existing_grouphash2,
             )
 
+            # Metrics from `_should_use_seer_match_for_grouping`
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "no_fingerprint_match")
+            assert_metrics_call(mock_incr, "hybrid_fingerprint_match_check", "fingerprint_match")
+
+            # Metrics from `get_seer_similar_issues`
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "no_fingerprint_match"}
+                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": True}
             )
             assert_metrics_call(
-                mock_incr, "hybrid_fingerprint_match_check", {"result": "fingerprint_match"}
+                mock_distribution,
+                "seer_results_returned",
+                "match_found",
+                {"is_hybrid": True},
+                value=3,
             )
-            assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", {"is_hybrid": True, "result": "match_found"}
-            )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=3)
             # It only does two checks because the second result is a match
-            assert_metrics_call(mock_distribution, "hybrid_fingerprint_results_checked", value=2)
+            assert_metrics_call(
+                mock_distribution, "hybrid_fingerprint_results_checked", "match_found", value=2
+            )
 
     @patch("sentry.grouping.ingest.seer.metrics.distribution")
     @patch("sentry.grouping.ingest.seer.metrics.incr")
@@ -991,9 +1124,15 @@ class MultipleParentGroupsFoundTest(TestCase):
             # It doesn't consider this a hybrid fingerprint case because neither the incoming event
             # nor the chosen parent issue is hybrid
             assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", {"is_hybrid": False, "result": "match_found"}
+                mock_incr, "get_seer_similar_issues", "match_found", {"is_hybrid": False}
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=2)
+            assert_metrics_call(
+                mock_distribution,
+                "seer_results_returned",
+                "match_found",
+                {"is_hybrid": False},
+                value=2,
+            )
 
             # Ensure we're not recording things we don't want to be. (The metrics we're checking
             # should only be recorded for events or parent grouphashes with hybrid fingerprints.)
@@ -1017,11 +1156,16 @@ class NoParentGroupFoundTest(TestCase):
             return_value=[],
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=0)
+
             assert_metrics_call(
-                mock_incr,
-                "get_seer_similar_issues",
-                {"is_hybrid": False, "result": "no_seer_matches"},
+                mock_incr, "get_seer_similar_issues", "no_seer_matches", {"is_hybrid": False}
+            )
+            assert_metrics_call(
+                mock_distribution,
+                "seer_results_returned",
+                "no_seer_matches",
+                {"is_hybrid": False},
+                value=0,
             )
 
             # Ensure we're not recording things we don't want to be. (The metrics we're checking
@@ -1049,11 +1193,15 @@ class NoParentGroupFoundTest(TestCase):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
 
             assert_metrics_call(
-                mock_incr,
-                "get_seer_similar_issues",
-                {"is_hybrid": True, "result": "no_seer_matches"},
+                mock_incr, "get_seer_similar_issues", "no_seer_matches", {"is_hybrid": True}
             )
-            assert_metrics_call(mock_distribution, "seer_results_returned", value=0)
+            assert_metrics_call(
+                mock_distribution,
+                "seer_results_returned",
+                "no_seer_matches",
+                {"is_hybrid": True},
+                value=0,
+            )
 
             # Ensure we're not recording things we don't want to be. (This metric should only be
             # recorded when there are results to check.)
