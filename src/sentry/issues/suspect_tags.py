@@ -34,15 +34,14 @@ def get_suspect_tag_scores(
     outliers_count = query_error_counts(org_id, project_id, start, end, envs, group_id=group_id)
     baseline_count = query_error_counts(org_id, project_id, start, end, envs, group_id=None)
 
-    score_dict = keyed_kl_score(
-        a=baseline,
-        b=outliers,
-        total_a=baseline_count,
-        total_b=outliers_count,
-    )
     return [
         Score(key=key, score=score)
-        for key, score in sorted(score_dict.items(), key=lambda x: x[1], reverse=True)
+        for key, score in keyed_kl_score(
+            a=baseline,
+            b=outliers,
+            total_a=baseline_count,
+            total_b=outliers_count,
+        )
     ]
 
 

@@ -15,7 +15,7 @@ def keyed_kl_score(
     b: Sequence[KeyedValueCount],
     total_a: int,
     total_b: int,
-) -> dict[str, float]:
+) -> list[tuple[str, float]]:
     """
     KL score a multi-dimensional distribution of values. Returns a list of key, score pairs.
     Duplicates are not tolerated.
@@ -91,13 +91,20 @@ def _add_unseen_value(dist: Distribution, total: int) -> None:
 
 def _multi_dimensional_kl_compare_sets(
     baseline: Attributes, outliers: Attributes
-) -> dict[str, float]:
+) -> list[tuple[str, float]]:
     """
-    Computes the KL scores of each key in both sets.
+    Computes the KL scores of each key in the outlier set and returns a sorted list, in descending
+    order, of key, score values.
     """
-    return {
-        key: _kl_compare_sets(baseline[key], outliers[key]) for key in outliers if key in baseline
-    }
+    return sorted(
+        (
+            (key, _kl_compare_sets(baseline[key], outliers[key]))
+            for key in outliers
+            if key in baseline
+        ),
+        key=lambda k: k[1],
+        reverse=True,
+    )
 
 
 def _kl_compare_sets(a: Distribution, b: Distribution):
