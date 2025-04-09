@@ -189,7 +189,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
           }
         }
 
-        for (const o of n.occurences) {
+        for (const o of n.occurrences) {
           if (o.event_id === props.event.eventID) {
             return true;
           }
@@ -204,7 +204,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
             return true;
           }
         }
-        for (const o of n.occurences) {
+        for (const o of n.occurrences) {
           if (o.event_id === props.event.eventID) {
             return true;
           }
@@ -220,7 +220,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
             return true;
           }
         }
-        for (const o of n.occurences) {
+        for (const o of n.occurrences) {
           if (o.event_id === props.event.occurrence?.id) {
             return true;
           }
@@ -247,7 +247,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         if (
           isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
-          node.occurences.size > 0
+          node.occurrences.size > 0
         ) {
           preserveNodes.push(props.tree.list[start]!);
           break;
@@ -259,7 +259,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         if (
           isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
-          node.occurences.size > 0
+          node.occurrences.size > 0
         ) {
           preserveNodes.push(props.tree.list[start]!);
           break;

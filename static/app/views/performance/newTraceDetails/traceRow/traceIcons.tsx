@@ -56,15 +56,15 @@ export function TraceErrorIcons(props: ErrorIconsProps) {
 interface TraceOccurenceIconsProps {
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
-  occurences: TraceTreeNode<TraceTree.Transaction>['occurences'];
+  occurrences: TraceTreeNode<TraceTree.Transaction>['occurrences'];
 }
 
 export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
   const occurences = useMemo(() => {
-    return [...props.occurences];
-  }, [props.occurences]);
+    return [...props.occurrences];
+  }, [props.occurrences]);
 
-  if (!props.occurences.size) {
+  if (!props.occurrences.size) {
     return null;
   }
 

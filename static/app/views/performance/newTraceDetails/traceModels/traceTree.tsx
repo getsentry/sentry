@@ -191,9 +191,9 @@ export declare namespace TraceTree {
   type TraceErrorIssue = TraceError | EAPError;
 
   type TracePerformanceIssue = TracePerformanceIssueType;
-  type TraceOccurence = TracePerformanceIssue | EAPOccurrence;
+  type TraceOccurrence = TracePerformanceIssue | EAPOccurrence;
 
-  type TraceIssue = TraceErrorIssue | TraceOccurence;
+  type TraceIssue = TraceErrorIssue | TraceOccurrence;
 
   type Profile = {profile_id: string} | {profiler_id: string};
   type Project = {
@@ -444,20 +444,20 @@ export class TraceTree extends TraceTreeEventDispatcher {
           }
         }
 
-        let occurences: TraceTree.TraceOccurence[] = [];
+        let occurences: TraceTree.TraceOccurrence[] = [];
         if ('performance_issues' in c.value) {
           occurences = c.value.performance_issues;
         } else if ('occurrences' in c.value) {
-          occurences = c.value.occurrences as TraceTree.TraceOccurence[]; // Small typo for 'occurrences' vs 'occurences', will remove casting in stacked PR
+          occurences = c.value.occurrences as TraceTree.TraceOccurrence[];
         }
 
         for (const occurence of occurences) {
-          traceNode.occurences.add(occurence);
+          traceNode.occurrences.add(occurence);
 
           // Propagate occurences to the closest EAP transaction for visibility in the initially collapsed
           // eap-transactions only view, on load
           if (closestEAPTransaction) {
-            closestEAPTransaction.occurences.add(occurence);
+            closestEAPTransaction.occurrences.add(occurence);
           }
         }
       }
@@ -629,7 +629,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           c.value,
           node
         )) {
-          c.occurences.add(performanceIssue);
+          c.occurrences.add(performanceIssue);
         }
         for (const error of getRelatedSpanErrorsFromTransaction(c.value, node)) {
           c.errors.add(error);
@@ -678,8 +678,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       baseTraceNode.errors.add(error);
     }
 
-    for (const occurence of additionalTraceNode.occurences) {
-      baseTraceNode.occurences.add(occurence);
+    for (const occurence of additionalTraceNode.occurrences) {
+      baseTraceNode.occurrences.add(occurence);
     }
 
     for (const profile of additionalTraceNode.profiles) {
@@ -853,7 +853,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       let groupMatchCount = 0;
 
       let errors: TraceTree.TraceErrorIssue[] = [];
-      let occurences: TraceTree.TraceOccurence[] = [];
+      let occurences: TraceTree.TraceOccurrence[] = [];
 
       let start = head.space[0];
       let end = head.space[0] + head.space[1];
@@ -870,7 +870,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         end = Math.max(end, tail.space[0] + tail.space[1]);
 
         errors = errors.concat(Array.from(tail.errors));
-        occurences = occurences.concat(Array.from(tail.occurences));
+        occurences = occurences.concat(Array.from(tail.occurrences));
 
         groupMatchCount++;
         tail = tail.children[0];
@@ -920,14 +920,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
       // Checking the tail node for errors as it is not included in the grouping
       // while loop, but is hidden when the autogrouped node is collapsed
       errors = errors.concat(Array.from(tail.errors));
-      occurences = occurences.concat(Array.from(tail.occurences));
+      occurences = occurences.concat(Array.from(tail.occurrences));
 
       start = Math.min(start, tail.space[0]);
       end = Math.max(end, tail.space[0] + tail.space[1]);
 
       autoGroupedNode.space = [start, end - start];
       autoGroupedNode.errors = new Set(errors);
-      autoGroupedNode.occurences = new Set(occurences);
+      autoGroupedNode.occurrences = new Set(occurences);
 
       for (const c of tail.children) {
         c.parent = autoGroupedNode;
@@ -1058,8 +1058,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
                 autoGroupedNode.errors.add(error);
               }
 
-              for (const occurence of child.occurences) {
-                autoGroupedNode.occurences.add(occurence);
+              for (const occurence of child.occurrences) {
+                autoGroupedNode.occurrences.add(occurence);
               }
             }
 
@@ -1362,7 +1362,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
             return true;
           }
         }
-        for (const o of n.occurences) {
+        for (const o of n.occurrences) {
           if (o.event_id === eventId) {
             return true;
           }
@@ -1380,7 +1380,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
             return true;
           }
         }
-        for (const o of n.occurences) {
+        for (const o of n.occurrences) {
           if (o.event_id === eventId) {
             return true;
           }
@@ -2313,12 +2313,12 @@ function getRelatedSpanErrorsFromTransaction(
 function getRelatedPerformanceIssuesFromTransaction(
   span: TraceTree.Span,
   node: TraceTreeNode<TraceTree.NodeValue>
-): TraceTree.TraceOccurence[] {
+): TraceTree.TraceOccurrence[] {
   if (!isTransactionNode(node) || !node.value?.performance_issues?.length) {
     return [];
   }
 
-  const occurences: TraceTree.TraceOccurence[] = [];
+  const occurences: TraceTree.TraceOccurrence[] = [];
 
   for (const perfIssue of node.value.performance_issues) {
     for (const s of perfIssue.span) {
