@@ -2,7 +2,6 @@ import enum
 import logging
 from datetime import timedelta
 from typing import ClassVar, Literal, Self, cast
-from uuid import UUID
 
 from django.conf import settings
 from django.db import models
@@ -298,12 +297,12 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
     def bulk_get_query_object(
         data_sources: list[DataSource],
     ) -> dict[int, UptimeSubscription | None]:
-        uptime_subscription_ids: list[UUID] = []
+        uptime_subscription_ids: list[int] = []
 
         for ds in data_sources:
             try:
-                subscription_id = UUID(ds.source_id)
-                uptime_subscription_ids.append(subscription_id)
+                uptime_subscription_id = int(ds.source_id)
+                uptime_subscription_ids.append(uptime_subscription_id)
             except ValueError:
                 logger.exception(
                     "Invalid DataSource.source_id fetching UptimeSubscription",
@@ -311,13 +310,13 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
                 )
 
         qs_lookup = {
-            str(uptime_subscription.subscription_id): uptime_subscription
+            str(uptime_subscription.id): uptime_subscription
             for uptime_subscription in UptimeSubscription.objects.filter(
-                subscription_id__in=uptime_subscription_ids
+                id__in=uptime_subscription_ids
             )
         }
         return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
 
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
-        return [ModelRelation(UptimeSubscription, {"subscription_id": instance.source_id})]
+        return [ModelRelation(UptimeSubscription, {"id": instance.source_id})]
