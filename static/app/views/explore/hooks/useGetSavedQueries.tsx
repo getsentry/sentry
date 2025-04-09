@@ -23,6 +23,7 @@ export type SortOption =
   | 'mostPopular'
   | 'recentlyViewed'
   | 'starred';
+  | 'mostStarred';
 
 // Comes from ExploreSavedQueryModelSerializer
 export type SavedQuery = {
