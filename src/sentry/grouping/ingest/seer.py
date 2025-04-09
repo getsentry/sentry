@@ -283,12 +283,6 @@ def get_seer_similar_issues(
     seer_request_metric_tags = {"hybrid_fingerprint": event_has_hybrid_fingerprint}
 
     seer_results = get_similarity_data_from_seer(request_data, seer_request_metric_tags)
-    metrics.distribution(
-        "grouping.similarity.seer_results_returned",
-        len(seer_results),
-        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={"platform": event.platform},
-    )
 
     # All of these will get overridden if we find a usable match
     matching_seer_result = None  # JSON of result data
@@ -338,6 +332,7 @@ def get_seer_similar_issues(
         # to check) but we couldn't use it because it was hybrid
         or seer_match_status == "no_matches_usable"
     )
+    metrics_tags = {"platform": event.platform, "result": seer_match_status}
 
     # We don't want to collect this metric in non-hybrid cases (for which the answer will always be
     # 1) or in cases where Seer doesn't return any results (for which the answer will always be 0).
@@ -346,17 +341,19 @@ def get_seer_similar_issues(
             "grouping.similarity.hybrid_fingerprint_results_checked",
             parent_grouphashes_checked,
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"platform": event.platform},
+            tags=metrics_tags,
         )
 
+    metrics.distribution(
+        "grouping.similarity.seer_results_returned",
+        len(seer_results),
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={**metrics_tags, "is_hybrid": is_hybrid_fingerprint_case},
+    )
     metrics.incr(
         "grouping.similarity.get_seer_similar_issues",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={
-            "platform": event.platform,
-            "is_hybrid": is_hybrid_fingerprint_case,
-            "result": seer_match_status,
-        },
+        tags={**metrics_tags, "is_hybrid": is_hybrid_fingerprint_case},
     )
 
     logger.info(
