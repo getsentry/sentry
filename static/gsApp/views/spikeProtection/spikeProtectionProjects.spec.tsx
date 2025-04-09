@@ -4,7 +4,6 @@ import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  cleanup,
   render,
   renderGlobalModal,
   screen,
@@ -119,9 +118,6 @@ describe('project renders and toggles', () => {
       ],
       statusCode: 200,
     });
-  });
-  afterEach(() => {
-    cleanup();
   });
 
   async function validateComponents(project: Project, isEnabled: boolean) {
