@@ -131,7 +131,19 @@ export declare namespace TraceTree {
 
   type EAPError = {
     event_id: string;
-    event_type: string;
+    event_type: 'error';
+    issue_id: number;
+    level: Level;
+    project_id: number;
+    project_slug: string;
+    start_timestamp: number;
+    transaction: string;
+    description?: string;
+  };
+
+  type EAPOccurrence = {
+    event_id: string;
+    event_type: 'occurrence';
     issue_id: number;
     level: Level;
     project_id: number;
@@ -148,6 +160,7 @@ export declare namespace TraceTree {
     errors: EAPError[];
     event_id: string;
     is_transaction: boolean;
+    occurrences: EAPOccurrence[];
     op: string;
     parent_span_id: string;
     project_id: number;
@@ -177,7 +190,8 @@ export declare namespace TraceTree {
   type TraceError = TraceErrorType;
   type TraceErrorIssue = TraceError | EAPError;
 
-  type TraceOccurence = TracePerformanceIssueType;
+  type TracePerformanceIssue = TracePerformanceIssueType;
+  type TraceOccurence = TracePerformanceIssueType | EAPOccurrence;
 
   type TraceIssue = TraceErrorIssue | TraceOccurence;
 
@@ -429,11 +443,22 @@ export class TraceTree extends TraceTreeEventDispatcher {
             closestEAPTransaction.errors.add(error);
           }
         }
-      }
 
-      if (isTransactionNode(c)) {
-        for (const performanceIssue of c.value.performance_issues) {
-          traceNode.occurences.add(performanceIssue);
+        let occurences: TraceTree.TraceOccurence[] = [];
+        if ('performance_issues' in c.value) {
+          occurences = c.value.performance_issues;
+        } else if ('occurrences' in c.value) {
+          occurences = c.value.occurrences as TraceTree.TraceOccurence[]; // Small typo for 'occurrences' vs 'occurences', will remove casting in stacked PR
+        }
+
+        for (const occurence of occurences) {
+          traceNode.occurences.add(occurence);
+
+          // Propagate occurences to the closest EAP transaction for visibility in the initially collapsed
+          // eap-transactions only view, on load
+          if (closestEAPTransaction) {
+            closestEAPTransaction.occurences.add(occurence);
+          }
         }
       }
 

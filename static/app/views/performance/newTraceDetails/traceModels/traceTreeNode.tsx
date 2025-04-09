@@ -117,6 +117,11 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
         value.performance_issues.forEach(issue => this.occurences.add(issue));
       }
 
+      // EAP spans can have occurences
+      if ('occurrences' in value && Array.isArray(value.occurrences)) {
+        value.occurrences.forEach(occurence => this.occurences.add(occurence));
+      }
+
       if ('profile_id' in value && typeof value.profile_id === 'string') {
         this.profiles.push({profile_id: value.profile_id});
       }

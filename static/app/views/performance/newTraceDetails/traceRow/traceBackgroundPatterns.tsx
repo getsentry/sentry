@@ -69,8 +69,11 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
         </div>
       ) : occurences.length > 0 ? (
         <Fragment>
-          {occurences.map((issue, i) => {
-            const timestamp = issue.start * 1e3;
+          {occurences.map((occurence, i) => {
+            const timestamp =
+              'start_timestamp' in occurence
+                ? occurence.start_timestamp * 1e3
+                : occurence.start * 1e3;
             // Clamp the issue timestamp to the span's timestamp
             const left = props.manager.computeRelativeLeftPositionFromOrigin(
               clamp(

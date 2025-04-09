@@ -19,6 +19,7 @@ import {
   assertEAPSpanNode,
   assertTransactionNode,
   makeEAPError,
+  makeEAPOccurence,
   makeEAPSpan,
   makeEAPTrace,
   makeEventTransaction,
@@ -183,6 +184,21 @@ const eapTraceWithErrors = makeEAPTrace([
         event_id: 'eap-span-2',
         is_transaction: false,
         errors: [makeEAPError({event_id: 'eap-error-1'})],
+      }),
+    ],
+  }),
+]);
+
+const eapTraceWithOccurences = makeEAPTrace([
+  makeEAPSpan({
+    event_id: 'eap-span-1',
+    is_transaction: true,
+    occurrences: [],
+    children: [
+      makeEAPSpan({
+        event_id: 'eap-span-2',
+        is_transaction: false,
+        occurrences: [makeEAPOccurence({event_id: 'eap-occurence-1'})],
       }),
     ],
   }),
@@ -582,6 +598,18 @@ describe('TraceTree', () => {
 
       expect(eapTransaction?.errors.size).toBe(1);
       expect(eapSpan?.errors.size).toBe(1);
+    });
+
+    it('adds eap occurences to tree nodes', () => {
+      const tree = TraceTree.FromTrace(eapTraceWithOccurences, traceMetadata);
+
+      expect(tree.root.children[0]!.occurences.size).toBe(1);
+
+      const eapTransaction = findEAPSpanByEventId(tree, 'eap-span-1');
+      const eapSpan = findEAPSpanByEventId(tree, 'eap-span-2');
+
+      expect(eapTransaction?.occurences.size).toBe(1);
+      expect(eapSpan?.occurences.size).toBe(1);
     });
 
     it('initializes expanded based on is_transaction property', () => {

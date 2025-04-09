@@ -71,15 +71,18 @@ export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
   return (
     <Fragment>
       {occurences.map((occurence, i) => {
-        const timestamp = occurence.timestamp
-          ? occurence.timestamp * 1e3
-          : occurence.start
-            ? occurence.start * 1e3
-            : props.node_space![0];
-        // Clamp the issue timestamp to the span's timestamp
+        const occurence_start_timestamp =
+          'start_timestamp' in occurence ? occurence.start_timestamp : null;
+        const icon_timestamp =
+          'timestamp' in occurence && occurence.timestamp
+            ? occurence.timestamp * 1e3
+            : occurence_start_timestamp
+              ? occurence_start_timestamp * 1e3
+              : props.node_space![0];
+        // Clamp the occurence's timestamp to the span's timestamp
         const left = props.manager.computeRelativeLeftPositionFromOrigin(
           clamp(
-            timestamp,
+            icon_timestamp,
             props.node_space![0],
             props.node_space![0] + props.node_space![1]
           ),
