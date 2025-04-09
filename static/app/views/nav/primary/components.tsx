@@ -193,7 +193,6 @@ const SidebarListItem = styled('li')`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
 `;
 
 const SeparatorListItem = styled('li')`
@@ -437,7 +436,6 @@ const StyledNavButton = styled('button', {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
   border: none;
-  margin: auto;
   position: relative;
   background: transparent;
 
