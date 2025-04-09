@@ -22,7 +22,7 @@ export type SortOption =
   | 'dateUpdated'
   | 'mostPopular'
   | 'recentlyViewed'
-  | 'starred';
+  | 'starred'
   | 'mostStarred';
 
 // Comes from ExploreSavedQueryModelSerializer
