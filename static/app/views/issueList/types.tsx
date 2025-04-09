@@ -43,7 +43,7 @@ export type GroupSearchView = StarredGroupSearchView & {
 };
 
 export interface UpdateGroupSearchViewPayload
-  extends Omit<GroupSearchView, 'id' | 'lastVisited' | 'visibility'> {
+  extends Omit<GroupSearchView, 'id' | 'lastVisited' | 'visibility' | 'starred'> {
   environments: string[];
   projects: number[];
   timeFilters: PageFilters['datetime'];
