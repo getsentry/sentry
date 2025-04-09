@@ -104,8 +104,6 @@ export default function FlagDrawerContent({
     !project.hasFlags &&
     featureFlagOnboardingPlatforms.includes(project.platform ?? 'other');
 
-  const organization = useOrganization();
-
   useEffect(() => {
     if (!isPending && !isError && !showCTA) {
       trackAnalytics('flags.drawer_rendered', {
