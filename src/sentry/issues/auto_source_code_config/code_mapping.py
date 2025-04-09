@@ -593,16 +593,16 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
 
     # Gets rid of the class name
     parts = module.rsplit(".", 1)[0].split(".")
+    dirpath = "/".join(parts)
 
     if len(parts) >= STACK_ROOT_MAX_LEVEL:
         # com.example.foo.bar.Baz$InnerClass, Baz.kt ->
         #    stack_root: com/example/
         #    file_path:  com/example/foo/bar/Baz.kt
         stack_root = "/".join(parts[:STACK_ROOT_MAX_LEVEL])
-        file_path = "/".join(parts) + "/" + abs_path
     else:
         # a.Bar, Bar.kt -> stack_root: a/, file_path:  a/Bar.kt
         stack_root = parts[0] + "/"
-        file_path = f"{stack_root}{abs_path}"
 
+    file_path = f"{dirpath}/{abs_path}"
     return stack_root, file_path
