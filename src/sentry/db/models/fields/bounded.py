@@ -11,11 +11,16 @@ __all__ = (
     "BoundedBigIntegerField",
     "BoundedPositiveIntegerField",
     "BoundedPositiveBigIntegerField",
+    "WrappingU32IntegerField",
 )
+
+I32_MAX = 2_147_483_647  # 2**31 - 1
+U32_MAX = 4_294_967_295  # 2**32 - 1
+I64_MAX = 9_223_372_036_854_775_807  # 2**63 - 1
 
 
 class BoundedIntegerField(models.IntegerField):
-    MAX_VALUE = 2147483647
+    MAX_VALUE = I32_MAX
 
     def get_prep_value(self, value: int) -> int:
         if value:
@@ -25,7 +30,7 @@ class BoundedIntegerField(models.IntegerField):
 
 
 class BoundedPositiveIntegerField(models.PositiveIntegerField):
-    MAX_VALUE = 2147483647
+    MAX_VALUE = I32_MAX
 
     def get_prep_value(self, value: int) -> int:
         if value:
@@ -34,8 +39,35 @@ class BoundedPositiveIntegerField(models.PositiveIntegerField):
         return super().get_prep_value(value)
 
 
+class WrappingU32IntegerField(models.IntegerField):
+    """
+    This type allows storing a full unsigned `u32` value by manually wrapping it around,
+    so it is stored as a signed `i32` value in the database.
+    """
+
+    MIN_VALUE = 0
+    MAX_VALUE = U32_MAX
+
+    def get_prep_value(self, value: int) -> int:
+        if value:
+            value = int(value)
+            assert self.MIN_VALUE <= value <= self.MAX_VALUE
+
+            if value > I32_MAX:
+                value = value - 2**32
+
+        return super().get_prep_value(value)
+
+    def from_db_value(self, value: int | None, expression, connection) -> int | None:
+        if value is None:
+            return None
+        if value < 0:
+            return value + 2**32
+        return value
+
+
 class BoundedAutoField(models.AutoField):
-    MAX_VALUE = 2147483647
+    MAX_VALUE = I32_MAX
 
     def get_prep_value(self, value: int) -> int:
         if value:
@@ -49,7 +81,7 @@ if settings.SENTRY_USE_BIG_INTS:
     class BoundedBigIntegerField(models.BigIntegerField):
         description = _("Big Integer")
 
-        MAX_VALUE = 9223372036854775807
+        MAX_VALUE = I64_MAX
 
         def get_internal_type(self) -> str:
             return "BigIntegerField"
@@ -63,7 +95,7 @@ if settings.SENTRY_USE_BIG_INTS:
     class BoundedPositiveBigIntegerField(models.PositiveBigIntegerField):
         description = _("Positive big integer")
 
-        MAX_VALUE = 9223372036854775807
+        MAX_VALUE = I64_MAX
 
         def get_internal_type(self) -> str:
             return "PositiveBigIntegerField"
@@ -77,7 +109,7 @@ if settings.SENTRY_USE_BIG_INTS:
     class BoundedBigAutoField(models.BigAutoField):
         description = _("Big Integer")
 
-        MAX_VALUE = 9223372036854775807
+        MAX_VALUE = I64_MAX
 
         def get_internal_type(self) -> str:
             return "BigAutoField"
