@@ -1615,7 +1615,9 @@ describe('trace view', () => {
       await searchToResolve();
 
       // When there is no match, the highlighting is removed
-      expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
+      await waitFor(() => {
+        expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
+      });
     });
 
     it('auto highlights the first result when search begins', async () => {
