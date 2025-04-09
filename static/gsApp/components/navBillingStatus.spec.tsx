@@ -11,6 +11,7 @@ import ConfigStore from 'sentry/stores/configStore';
 
 import PrimaryNavigationQuotaExceeded from 'getsentry/components/navBillingStatus';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {OnDemandBudgetMode} from 'getsentry/types';
 
 // Jun 06 2022
 const MOCK_TODAY = 1654492173000;
@@ -137,7 +138,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     expect(screen.getByRole('checkbox')).not.toBeChecked();
   });
 
-  it('should render PAYG categories when there is PAYG', async function () {
+  it('should render PAYG categories when there is shared PAYG', async function () {
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
       'errors-replays-spans-monitorSeats-profileDuration' // exceeded categories
@@ -158,6 +159,44 @@ describe('PrimaryNavigationQuotaExceeded', function () {
 
     // reset
     subscription.onDemandMaxSpend = 0;
+  });
+
+  it('should render PAYG categories with per category PAYG', async function () {
+    localStorage.setItem(
+      `billing-status-last-shown-categories-${organization.id}`,
+      'errors-replays-spans-monitorSeats' // exceeded categories
+    );
+    subscription.onDemandBudgets = {
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+      budgets: {
+        monitorSeats: 100,
+      },
+      usedSpends: {},
+      enabled: true,
+      attachmentsBudget: 0,
+      errorsBudget: 0,
+      replaysBudget: 0,
+      transactionsBudget: 0,
+      attachmentSpendUsed: 0,
+      errorSpendUsed: 0,
+      transactionSpendUsed: 0,
+    };
+    SubscriptionStore.set(organization.slug, subscription);
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+    // open the alert
+    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+    expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /You’ve run out of errors, replays, spans, and cron monitors for this billing cycle./
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
+
+    // reset
+    subscription.onDemandMaxSpend = 0;
+    subscription.onDemandBudgets = undefined;
   });
 
   it('should not render for managed orgs', function () {

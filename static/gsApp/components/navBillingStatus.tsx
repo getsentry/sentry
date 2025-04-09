@@ -24,7 +24,11 @@ import {
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import useSubscription from 'getsentry/hooks/useSubscription';
-import type {Subscription} from 'getsentry/types';
+import {
+  type DataCategories,
+  OnDemandBudgetMode,
+  type Subscription,
+} from 'getsentry/types';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/billing';
 import {listDisplayNames, sortCategoriesWithKeys} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
@@ -126,8 +130,12 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     )
     .reduce((acc, [category, currentHistory]) => {
       if (currentHistory.usageExceeded) {
+        const designatedBudget =
+          subscription?.onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
+            ? subscription.onDemandBudgets.budgets[category as DataCategories]
+            : subscription?.onDemandMaxSpend;
         if (
-          subscription?.onDemandMaxSpend === 0 &&
+          !designatedBudget &&
           (!currentHistory.reserved || currentHistory.reserved <= 1)
         ) {
           // don't show any categories without additional reserved volumes
