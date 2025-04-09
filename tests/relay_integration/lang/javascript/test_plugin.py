@@ -170,25 +170,36 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         contexts = event.interfaces["contexts"].to_json()
-
-        os_context = contexts.get("os")
-        assert os_context.get("os") == "Android 4.3"
-        assert os_context.get("name") == "Android"
-        assert os_context.get("type") == "os"
-        assert os_context.get("version") == "4.3"
+        assert contexts.get("os") == {
+            "os": "Android 4.3",
+            "name": "Android",
+            "type": "os",
+            "version": "4.3",
+        }
 
         browser_context = contexts.get("browser")
-        assert browser_context.get("browser") == "Android 4.3"
-        assert browser_context.get("name") == "Android"
-        assert browser_context.get("type") == "browser"
-        assert browser_context.get("version") == "4.3"
 
-        device_context = contexts.get("device")
-        assert device_context.get("family") == "Samsung SCH-R530U"
-        assert device_context.get("type") == "device"
-        assert device_context.get("model") == "SCH-R530U"
-        assert device_context.get("name") == "Galaxy S3"
-        assert device_context.get("brand") == "Samsung"
+        # The `user_agent` field was added retroactively so the browser context assertion needs to be forwards and backwards compatible
+        assert (
+            browser_context.get("user_agent") == None
+            or browser_context.get("user_agent")
+            == "Mozilla/5.0 (Linux; U; Android 4.3; en-us; SCH-R530U Build/JSS15J) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30 USCC-R530U"
+        )
+        del browser_context.user_agent
+        assert browser_context == {
+            "browser": "Android 4.3",
+            "name": "Android",
+            "type": "browser",
+            "version": "4.3",
+        }
+
+        assert contexts.get("device") == {
+            "family": "Samsung SCH-R530U",
+            "type": "device",
+            "model": "SCH-R530U",
+            "name": "Galaxy S3",
+            "brand": "Samsung",
+        }
 
     @requires_symbolicator
     @pytest.mark.symbolicator
