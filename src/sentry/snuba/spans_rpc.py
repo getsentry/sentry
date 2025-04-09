@@ -13,7 +13,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.constants import DOUBLE, INT, STRING
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import CONFIDENCES, EAPResponse, SearchResolverConfig
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.eap.utils import handle_downsample_meta
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import EventsMeta, SnubaParams
@@ -118,6 +118,7 @@ def run_timeseries_query(
         comp_query_params.start = comp_query_params.start_date - comparison_delta
         comp_query_params.end = comp_query_params.end_date - comparison_delta
 
+        search_resolver = get_resolver(comp_query_params, config)
         comp_rpc_request, aggregates, groupbys = rpc_dataset_common.get_timeseries_query(
             search_resolver,
             comp_query_params,
