@@ -11,13 +11,15 @@ feedback: 0004_index_together
 
 hybridcloud: 0019_add_provider_webhook_payload
 
+monitors: 0001_initial
+
 nodestore: 0002_nodestore_no_dictfield
 
 remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0863_update_organization_member_invite_model
+sentry: 0865_file_offsets
 
 social_auth: 0002_default_auto_field
 
@@ -25,4 +27,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0031_translate_uptime_object_headers_to_lists_take_three
 
-workflow_engine: 0042_workflow_fire_history_add_fired_actions_bool
+workflow_engine: 0043_create_incidentgroupopenperiod_lookup_table

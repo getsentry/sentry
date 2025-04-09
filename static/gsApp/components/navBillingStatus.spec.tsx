@@ -44,7 +44,6 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     setMockDate(MOCK_TODAY);
     localStorage.clear();
     organization.access = [];
-    MockApiClient.clearMockResponses();
     subscription.categories.errors!.usageExceeded = true;
     subscription.categories.replays!.usageExceeded = true;
     subscription.categories.spans!.usageExceeded = true;
@@ -60,6 +59,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
         },
       })
     );
+    MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -81,11 +81,9 @@ describe('PrimaryNavigationQuotaExceeded', function () {
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
     });
-
     promptMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/organizations/${organization.slug}/prompts-activity/`,
-      body: {},
     });
     requestUpgradeMock = MockApiClient.addMockResponse({
       method: 'POST',
@@ -121,6 +119,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
       localStorage.getItem(`billing-status-last-shown-date-${organization.id}`)
     ).toBe('Mon Jun 06 2022');
   }
+
   it('should render', async function () {
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
@@ -139,11 +138,11 @@ describe('PrimaryNavigationQuotaExceeded', function () {
   });
 
   it('should render PAYG categories when there is PAYG', async function () {
-    subscription.onDemandMaxSpend = 100;
     localStorage.setItem(
       `billing-status-last-shown-categories-${organization.id}`,
-      'errors-replays-spans-monitorSeats-profileDuration'
+      'errors-replays-spans-monitorSeats-profileDuration' // exceeded categories
     );
+    subscription.onDemandMaxSpend = 100;
     SubscriptionStore.set(organization.slug, subscription);
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
@@ -174,8 +173,9 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     subscription.canSelfServe = true;
   });
 
-  it('should update prompts when checkbox is toggled on', async function () {
+  it('should update prompts when checkbox is toggled', async function () {
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
     // open the alert
     await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
     expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
@@ -195,7 +195,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
 
     // click the button
     await userEvent.click(screen.getByText('Request Additional Quota'));
-    expect(promptMock).toHaveBeenCalled();
+    expect(promptMock).toHaveBeenCalledTimes(3);
     expect(requestUpgradeMock).toHaveBeenCalled();
   });
 
@@ -216,6 +216,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
       url: `/subscriptions/${organization.slug}/`,
       body: freeSub,
     });
+
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
     // open the alert
@@ -225,7 +226,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
 
     // click the button
     await userEvent.click(screen.getByText('Start Trial'));
-    expect(promptMock).toHaveBeenCalled();
+    expect(promptMock).toHaveBeenCalledTimes(1);
     expect(customerPutMock).toHaveBeenCalled();
   });
 

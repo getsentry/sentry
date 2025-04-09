@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Key} from '@react-types/shared';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -13,7 +13,6 @@ import {extractSelectionParameters} from 'sentry/components/organizations/pageFi
 import {TabList} from 'sentry/components/tabs';
 import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness, IconLab} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -201,7 +200,7 @@ function TabLabel({moduleName}: TabLabelProps) {
     return (
       <TabContainer>
         {moduleTitles[moduleName]}
-        {isModuleConsideredNew(moduleName) && <Badge type="new">{t('New')}</Badge>}
+        {isModuleConsideredNew(moduleName) && <FeatureBadge type="new" />}
         {showBusinessIcon && <IconBusiness />}
       </TabContainer>
     );

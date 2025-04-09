@@ -153,6 +153,9 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       getDaysSinceDate(
         subscription?.onDemandPeriodEnd ?? moment().utc().toDate().toDateString()
       ),
+    options: {
+      enabled: promptsToCheck.length > 0,
+    },
   });
 
   const {
