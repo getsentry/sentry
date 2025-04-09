@@ -20,7 +20,7 @@ export function SavedQueriesLandingContent() {
     {value: 'name', label: t('Name')},
     {value: 'dateAdded', label: t('Date Added')},
     {value: 'dateUpdated', label: t('Date Updated')},
-    {value: 'mostPopular', label: t('Most Popular')},
+    {value: 'mostStarred', label: t('Most Starred')},
   ];
   return (
     <div>
