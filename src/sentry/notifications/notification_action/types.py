@@ -201,23 +201,6 @@ class BaseIssueAlertHandler(ABC):
             for callback, future in futures:
                 safe_execute(callback, job.event, future)
 
-    @staticmethod
-    def send_test_notification(
-        job: WorkflowEventData,
-        futures: Collection[
-            tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
-        ],
-    ) -> None:
-        """
-        This method will execute the futures.
-        Based off of process_rules in post_process.py
-        """
-        with sentry_sdk.start_span(
-            op="workflow_engine.handlers.action.notification.issue_alert.execute_futures"
-        ):
-            for callback, future in futures:
-                callback(job.event, future)
-
     @classmethod
     def invoke_legacy_registry(
         cls,
@@ -247,10 +230,7 @@ class BaseIssueAlertHandler(ABC):
 
             # Execute the futures
             # If the rule id is -1, we are sending a test notification
-            if rule.id == -1:
-                cls.send_test_notification(job, futures)
-            else:
-                cls.execute_futures(job, futures)
+            cls.execute_futures(job, futures)
 
 
 class TicketingIssueAlertHandler(BaseIssueAlertHandler):
