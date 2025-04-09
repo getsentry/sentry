@@ -19,7 +19,7 @@ function getException(
     };
   }
 
-  const exceptionHasAtLeastOneStacktrace = !!exceptionDataValues.find(
+  const exceptionHasAtLeastOneStacktrace = exceptionDataValues.some(
     exceptionDataValue => exceptionDataValue.stacktrace
   );
 

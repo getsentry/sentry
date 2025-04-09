@@ -475,11 +475,11 @@ export default function AssigneeSelectorDropdown({
 
     // Remove suggested assignees from the member list and team list to avoid duplicates
     memList = memList.filter(
-      user => !suggestedUsers.find(suggested => suggested.id === user.id)
+      user => !suggestedUsers.some(suggested => suggested.id === user.id)
     );
     assignableTeamList = assignableTeamList.filter(
       assignableTeam =>
-        !suggestedTeams.find(suggested => suggested.id === assignableTeam.team.id)
+        !suggestedTeams.some(suggested => suggested.id === assignableTeam.team.id)
     );
 
     const memberOptions = {
