@@ -48,7 +48,7 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.ECOSYSTEM
 
     @extend_schema(
         operation_id="Test Fire Actions",
