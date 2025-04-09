@@ -29,7 +29,7 @@ class OrganizationGroupSearchViewStarredEndpointTest(APITestCase):
             user_id = self.user.id
 
         if visibility is None:
-            visibility = GroupSearchViewVisibility.OWNER
+            visibility = GroupSearchViewVisibility.ORGANIZATION
 
         view = GroupSearchView.objects.create(
             name="Test View",
@@ -52,20 +52,6 @@ class OrganizationGroupSearchViewStarredEndpointTest(APITestCase):
         response = self.client.post(self.get_url(737373), data={"starred": True})
 
         assert response.status_code == 404
-
-    @with_feature("organizations:issue-view-sharing")
-    def test_view_not_accessible(self):
-        other_user = self.create_user()
-        view = self.create_view(user_id=other_user.id)
-
-        response = self.client.post(self.get_url(view.id), data={"starred": True})
-
-        assert response.status_code == 404
-        assert not GroupSearchViewStarred.objects.filter(
-            organization=self.org,
-            user_id=self.user.id,
-            group_search_view=view,
-        ).exists()
 
     @with_feature("organizations:issue-view-sharing")
     def test_organization_view_accessible(self):

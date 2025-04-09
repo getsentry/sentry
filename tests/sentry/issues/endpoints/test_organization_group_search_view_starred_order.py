@@ -27,7 +27,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
                 user_id=self.user.id,
                 query=f"is:unresolved query:{i}",
                 query_sort="date",
-                visibility=GroupSearchViewVisibility.OWNER,
+                visibility=GroupSearchViewVisibility.ORGANIZATION,
             )
             self.views.append(view)
 
@@ -37,7 +37,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
             user_id=self.user.id,
             query="is:unresolved non_starred",
             query_sort="date",
-            visibility=GroupSearchViewVisibility.OWNER,
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
 
         self.user_2_view = GroupSearchView.objects.create(
@@ -46,7 +46,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
             user_id=self.user_2.id,
             query="is:unresolved user_2",
             query_sort="date",
-            visibility=GroupSearchViewVisibility.OWNER,
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
 
         self.shared_view = GroupSearchView.objects.create(
@@ -185,19 +185,6 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
         assert response.data == {
             "view_ids": [
                 ErrorDetail(string="Single view cannot take up multiple positions", code="invalid")
-            ]
-        }
-
-    @with_feature("organizations:issue-view-sharing")
-    def test_error_on_inaccessible_views(self):
-        view_ids = [self.views[0].id, self.user_2_view.id]
-
-        response = self.client.put(self.url, data={"view_ids": view_ids}, format="json")
-
-        assert response.status_code == 400
-        assert response.data == {
-            "view_ids": [
-                ErrorDetail(string="You do not have access to one or more views", code="invalid")
             ]
         }
 
