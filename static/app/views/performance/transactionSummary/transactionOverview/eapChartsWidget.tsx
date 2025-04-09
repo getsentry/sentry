@@ -1,5 +1,4 @@
 import {useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -101,28 +100,21 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={title} />}
+      Title={
+        <CompactSelect
+          options={options}
+          value={selectedWidget}
+          onChange={option => setSelectedWidget(option.value as EAPWidgetType)}
+          triggerProps={{borderless: true, size: 'zero'}}
+        />
+      }
       Actions={
         <Widget.WidgetToolbar>
           <Widget.WidgetDescription title={title} description={description} />
         </Widget.WidgetToolbar>
       }
       Visualization={visualization}
-      Footer={
-        <FooterContainer>
-          <CompactSelect
-            options={options}
-            value={selectedWidget}
-            onChange={option => setSelectedWidget(option.value as EAPWidgetType)}
-          />
-        </FooterContainer>
-      }
+      revealActions="always"
     />
   );
 }
-
-const FooterContainer = styled('div')`
-  display: flex;
-  align-items: right;
-  justify-content: right;
-`;
