@@ -177,7 +177,6 @@ def run_timeseries_query(
 
     """Run the query"""
     rpc_response = snuba_rpc.timeseries_rpc([rpc_request])[0]
-
     """Process the results"""
     result = ProcessedTimeseries()
     final_meta: EventsMeta = EventsMeta(fields={})
