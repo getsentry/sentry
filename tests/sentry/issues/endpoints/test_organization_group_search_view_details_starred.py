@@ -6,7 +6,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
 
-class OrganizationGroupSearchViewStarredEndpointTest(APITestCase):
+class OrganizationGroupSearchViewDetailsStarredEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-group-search-view-starred"
     method = "post"
 
@@ -25,11 +25,8 @@ class OrganizationGroupSearchViewStarredEndpointTest(APITestCase):
         )
 
     def create_view(self, user_id=None, visibility=None, starred=False):
-        if user_id is None:
-            user_id = self.user.id
-
-        if visibility is None:
-            visibility = GroupSearchViewVisibility.ORGANIZATION
+        user_id = user_id or self.user.id
+        visibility = visibility or GroupSearchViewVisibility.OWNER
 
         view = GroupSearchView.objects.create(
             name="Test View",
