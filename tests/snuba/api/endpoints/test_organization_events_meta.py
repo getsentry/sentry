@@ -578,6 +578,46 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         assert meta["fields"]["span.duration"] == "duration"
         assert meta["units"]["span.duration"] == "millisecond"
 
+    def test_order_by(self):
+
+        self.login_as(user=self.user)
+        project = self.create_project()
+        url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
+
+        spans = [
+            self.create_span(
+                {"description": "SELECT * FROM users", "trace_id": "1" * 32},
+                start_ts=self.ten_mins_ago,
+                duration=20,
+            ),
+            self.create_span(
+                {"description": "SELECT * FROM orders", "trace_id": "2" * 32},
+                start_ts=self.nine_mins_ago,
+                duration=200,
+            ),
+        ]
+
+        self.store_spans(spans)
+
+        response = self.client.get(
+            url,
+            {
+                "query": "",
+                "lowerBound": "0",
+                "firstBound": "100",
+                "secondBound": "200",
+                "upperBound": "300",
+                "column": "span.duration",
+                "project": self.project.id,
+                "additionalFields": "description",
+            },
+            format="json",
+        )
+
+        data = response.data["data"]
+        assert data[0]["description"] == "SELECT * FROM users"
+        assert data[1]["description"] == "SELECT * FROM orders"
+
 
 class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestBase):
     viewname = "sentry-api-0-organization-spans-samples"
