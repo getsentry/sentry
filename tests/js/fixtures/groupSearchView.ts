@@ -17,6 +17,7 @@ export function GroupSearchViewFixture(params: Partial<GroupSearchView> = {}): G
     },
     lastVisited: null,
     visibility: GroupSearchViewVisibility.ORGANIZATION,
+    starred: false,
     ...params,
   };
 }

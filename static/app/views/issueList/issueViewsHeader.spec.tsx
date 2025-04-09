@@ -39,6 +39,7 @@ describe('IssueViewsHeader', () => {
       },
       visibility: GroupSearchViewVisibility.OWNER,
       lastVisited: null,
+      starred: false,
     },
     {
       id: '2',
@@ -55,6 +56,7 @@ describe('IssueViewsHeader', () => {
       },
       visibility: GroupSearchViewVisibility.ORGANIZATION,
       lastVisited: null,
+      starred: false,
     },
     {
       id: '3',
@@ -71,6 +73,7 @@ describe('IssueViewsHeader', () => {
       },
       visibility: GroupSearchViewVisibility.ORGANIZATION,
       lastVisited: null,
+      starred: false,
     },
   ];
 

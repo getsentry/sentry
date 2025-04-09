@@ -34,6 +34,7 @@ export type GroupSearchView = {
   projects: number[];
   query: string;
   querySort: IssueSortOptions;
+  starred: boolean;
   timeFilters: PageFilters['datetime'];
   visibility: GroupSearchViewVisibility;
 };

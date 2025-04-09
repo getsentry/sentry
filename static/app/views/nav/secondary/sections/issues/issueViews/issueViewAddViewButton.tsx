@@ -59,6 +59,7 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
             projects: defaultProject,
             environments: DEFAULT_ENVIRONMENTS,
             timeFilters: DEFAULT_TIME_FILTERS,
+            starred: true,
           },
         ],
         orgSlug: organization.slug,
