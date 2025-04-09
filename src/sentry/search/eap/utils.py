@@ -3,7 +3,10 @@ from datetime import datetime
 from typing import Any, Literal
 
 from google.protobuf.timestamp_pb2 import Timestamp
-from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import (
+    DownsampledStorageConfig,
+    DownsampledStorageMeta,
+)
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import Expression, TimeSeriesRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function
@@ -126,3 +129,13 @@ def translate_internal_to_public_alias(
 ) -> str | None:
     mapping = INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(item_type, {}).get(type, {})
     return mapping.get(internal_alias)
+
+
+def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
+    if meta.tier in {
+        DownsampledStorageMeta.SELECTED_TIER_1,
+        DownsampledStorageMeta.SELECTED_TIER_UNSPECIFIED,
+    }:
+        return True
+    else:
+        return False
