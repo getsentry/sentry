@@ -14,7 +14,8 @@ describe('Chart', function () {
     const parsingError = new Error('Could not parse chart data');
 
     render(
-      <Chart error={parsingError} data={[]} loading={false} type={ChartType.LINE} />
+      <Chart error={parsingError} data={[]} loading={false} type={ChartType.LINE} />,
+      {enableRouterMocks: false}
     );
 
     expect(screen.getByTestId('chart-error-panel')).toBeInTheDocument();
@@ -42,7 +43,9 @@ describe('Chart', function () {
         }),
       },
     ];
-    render(<Chart data={mockedSeries} loading={false} type={ChartType.LINE} />);
+    render(<Chart data={mockedSeries} loading={false} type={ChartType.LINE} />, {
+      enableRouterMocks: false,
+    });
     expect(jest.mocked(BaseChart).mock.calls[0]![0].series?.[0]).toHaveProperty(
       'markLine'
     );
