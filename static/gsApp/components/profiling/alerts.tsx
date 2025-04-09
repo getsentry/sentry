@@ -14,7 +14,7 @@ import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
-import {isEnterprise} from 'getsentry/utils/billing';
+import {isAm2Plan, isEnterprise} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function makeLinkToOwnersAndBillingMembers(
@@ -403,7 +403,7 @@ function ContinuousProfilingBetaAlertBannerInner({
       >
         {subscription.isFree
           ? tct(
-              '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go-budget after this date. To avoid disruptions, upgrade to a paid plan.',
+              '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date. To avoid disruptions, upgrade to a paid plan.',
               {bold: <b />}
             )
           : isEnterprise(subscription)
@@ -411,10 +411,15 @@ function ContinuousProfilingBetaAlertBannerInner({
                 '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. To avoid disruptions, contact your account manager before then to add it to your plan.',
                 {bold: <b />}
               )
-            : tct(
-                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date.',
-                {bold: <b />}
-              )}
+            : isAm2Plan(subscription.plan)
+              ? tct(
+                  '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require an on-demand budget after this date.',
+                  {bold: <b />}
+                )
+              : tct(
+                  '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date.',
+                  {bold: <b />}
+                )}
       </StyledAlert>
     </Alert.Container>
   );
