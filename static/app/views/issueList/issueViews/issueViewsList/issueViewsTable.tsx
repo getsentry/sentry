@@ -43,9 +43,9 @@ export function IssueViewsTable({views, isPending, isError}: IssueViewsTableProp
     >
       {views.map((view, index) => (
         <SavedEntityTable.Row key={view.id} isFirst={index === 0}>
-          <SavedEntityTable.ButtonCell>
+          <SavedEntityTable.Cell>
             <SavedEntityTable.CellStar isStarred onClick={() => {}} />
-          </SavedEntityTable.ButtonCell>
+          </SavedEntityTable.Cell>
           <SavedEntityTable.Cell>
             <SavedEntityTable.CellName
               to={`/organizations/${organization.slug}/issues/views/${view.id}/`}

@@ -41,6 +41,12 @@ function LoadingSkeleton({pageSize}: {pageSize: number}) {
   ));
 }
 
+/**
+ * Meant to be used for tables that display saved entities, such as issue views,
+ * saved queries, or dashboards. Exports a number of sub-components for rendering
+ * the table's content such as the name link, projects, query, etc. to keep things
+ * consistent.
+ */
 export function SavedEntityTable({
   children,
   className,
@@ -133,10 +139,11 @@ SavedEntityTable.Cell = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(1.5)};
-`;
 
-SavedEntityTable.ButtonCell = styled(SavedEntityTable.Cell)`
-  padding: 0 ${space(0.5)};
+  /* Buttons already provide some padding */
+  &:has(> button:first-child) {
+    padding: 0 ${space(0.5)};
+  }
 `;
 
 SavedEntityTable.CellStar = function CellStar({
