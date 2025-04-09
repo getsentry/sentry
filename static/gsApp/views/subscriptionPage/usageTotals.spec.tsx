@@ -1612,3 +1612,142 @@ describe('hasReservedQuotaFunctionality', function () {
     );
   });
 });
+
+describe('Usage Bar Rendering', function () {
+  const organization = OrganizationFixture();
+  let subscription: Subscription;
+
+  beforeEach(() => {
+    subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      isTrial: false,
+    });
+    // Mock basic category info
+    subscription.categories.errors = MetricHistoryFixture({usage: 0});
+    SubscriptionStore.set(organization.slug, subscription);
+  });
+
+  afterEach(() => {
+    SubscriptionStore.init();
+  });
+
+  it('renders 100% unused width when reserved is 0 and not a trial', function () {
+    subscription.categories.errors = MetricHistoryFixture({usage: 0});
+    render(
+      <UsageTotals
+        category="errors"
+        totals={UsageTotalFixture({accepted: 0})}
+        reservedUnits={0}
+        prepaidUnits={0} // No prepaid units if reserved is 0
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('usage-card-errors')).toBeInTheDocument();
+
+    const usageBarContainer = screen.getByTestId('usage-bar-container-errors');
+    expect(usageBarContainer).toBeInTheDocument();
+
+    const firstGroupBars = usageBarContainer?.querySelectorAll(
+      '[class*="PlanUseBarGroup"]:first-of-type > [class*="PlanUseBar"]'
+    );
+    // Should only be one bar (the unused bar)
+    expect(firstGroupBars).toHaveLength(1);
+    expect(firstGroupBars?.[0]).toHaveStyle({width: '100%'});
+  });
+
+  it('renders correct unused width when reserved is non-zero and not a trial (50% usage)', function () {
+    const reserved = 100_000;
+    const usage = reserved / 2;
+    subscription.categories.errors = MetricHistoryFixture({usage});
+
+    render(
+      <UsageTotals
+        category="errors"
+        totals={UsageTotalFixture({accepted: usage})}
+        reservedUnits={reserved}
+        prepaidUnits={reserved} // Prepaid matches reserved
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('usage-card-errors')).toBeInTheDocument();
+
+    const usageBarContainer = screen.getByTestId('usage-bar-container-errors');
+    expect(usageBarContainer).toBeInTheDocument();
+
+    const firstGroupBars = usageBarContainer?.querySelectorAll(
+      '[class*="PlanUseBarGroup"]:first-of-type > [class*="PlanUseBar"]'
+    );
+    // Should be two bars (used + unused)
+    expect(firstGroupBars).toHaveLength(2);
+    expect(firstGroupBars?.[0]).toHaveStyle({width: '50%'}); // Used bar
+    expect(firstGroupBars?.[1]).toHaveStyle({width: '50%'}); // Unused bar
+  });
+
+  it('renders correct unused width when reserved is 0 but is a trial (0% usage)', function () {
+    subscription.isTrial = true;
+    subscription.categories.errors = MetricHistoryFixture({usage: 0});
+
+    render(
+      <UsageTotals
+        category="errors"
+        totals={UsageTotalFixture({accepted: 0})}
+        reservedUnits={0} // Reserved is 0
+        prepaidUnits={0} // Assume trial gives some implicit quota, or calculation handles 0
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('usage-card-errors')).toBeInTheDocument();
+
+    const usageBarContainer = screen.getByTestId('usage-bar-container-errors');
+    expect(usageBarContainer).toBeInTheDocument();
+
+    const firstGroupBars = usageBarContainer?.querySelectorAll(
+      '[class*="PlanUseBarGroup"]:first-of-type > [class*="PlanUseBar"]'
+    );
+    // Should only be one bar (unused, calculated as 100 - 0%)
+    expect(firstGroupBars).toHaveLength(1);
+    expect(firstGroupBars?.[0]).toHaveStyle({width: '100%'});
+  });
+
+  it('renders correct unused width when reserved is 0 but is a trial (50% usage)', function () {
+    subscription.isTrial = true;
+    const trialQuota = 100_000; // Assume trial provides some implicit quota used for % calculation
+    const usage = trialQuota / 2;
+    subscription.categories.errors = MetricHistoryFixture({usage});
+
+    render(
+      <UsageTotals
+        category="errors"
+        totals={UsageTotalFixture({accepted: usage})}
+        reservedUnits={0} // Reserved is 0
+        prepaidUnits={trialQuota} // Pass the trial quota as prepaid for calculation
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('usage-card-errors')).toBeInTheDocument();
+
+    const usageBarContainer = screen.getByTestId('usage-bar-container-errors');
+    expect(usageBarContainer).toBeInTheDocument();
+
+    const firstGroupBars = usageBarContainer?.querySelectorAll(
+      '[class*="PlanUseBarGroup"]:first-of-type > [class*="PlanUseBar"]'
+    );
+    // Should be two bars (used + unused)
+    expect(firstGroupBars).toHaveLength(2);
+    expect(firstGroupBars?.[0]).toHaveStyle({width: '50%'}); // Used bar
+    expect(firstGroupBars?.[1]).toHaveStyle({width: '50%'}); // Unused bar (calculated as 100 - 50%)
+  });
+});
