@@ -14,6 +14,7 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
+from sentry.search.eap.utils import handle_downsample_meta
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import EventsMeta, SnubaData
 from sentry.utils import json, snuba_rpc
@@ -105,7 +106,9 @@ def run_table_query(
     """Process the results"""
     final_data: SnubaData = []
     final_confidence: ConfidenceData = []
-    final_meta: EventsMeta = EventsMeta(fields={})
+    final_meta: EventsMeta = EventsMeta(
+        fields={}, full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta)
+    )
     # Mapping from public alias to resolved column so we know type etc.
     columns_by_name = {col.public_alias: col for col in columns}
 

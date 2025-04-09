@@ -665,6 +665,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             )
             assert response.status_code == 200, response.content
             expected = {
+                "dataScanned": "full",
                 "dataset": mock.ANY,
                 "datasetReason": "unchanged",
                 "fields": {
@@ -1808,6 +1809,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             },
         ]
         expected = {
+            "dataScanned": "full",
             "dataset": mock.ANY,
             "datasetReason": "unchanged",
             "fields": {
@@ -3831,6 +3833,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
+        assert response.data["meta"]["dataScanned"] == "partial"
 
     def test_best_effort_request(self):
         span = self.create_span(
@@ -3863,6 +3866,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(response.data["data"]) == 2
         assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
         assert response.data["data"][1]["id"] == "b" * 16
+        assert response.data["meta"]["dataScanned"] == "full"
 
     def test_internal_fields(self):
         self.store_spans(
