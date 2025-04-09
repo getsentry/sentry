@@ -378,6 +378,7 @@ def handle_query_errors() -> Generator[None]:
         if isinstance(arg, TimeoutError):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
             raise ParseError(detail=TIMEOUT_RPC_ERROR_MESSAGE)
+        sentry_sdk.capture_exception(error)
         raise APIException(detail=message)
     except SnubaError as error:
         message = "Internal error. Please try again."
