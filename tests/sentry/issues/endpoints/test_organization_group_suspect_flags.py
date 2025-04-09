@@ -50,8 +50,8 @@ class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.json() == {
             "data": [
-                {"flag": "key", "score": 2.7622287114272543},
-                {"flag": "other", "score": 0.0},
+                {"flag": "key", "score": 2.7622287114272543, "baseline_percent": 0.5},
+                {"flag": "other", "score": 0.0, "baseline_percent": 0.0},
             ]
         }
 
