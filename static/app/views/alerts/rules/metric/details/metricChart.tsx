@@ -61,6 +61,7 @@ import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
 import {useMetricSessionStats} from 'sentry/views/issueDetails/metricIssues/useMetricSessionStats';
 
@@ -459,6 +460,11 @@ export default function MetricChart({
       rule,
       timePeriod,
       referrer: 'api.alerts.alert-rule-chart',
+      samplingMode:
+        organization.features.includes('visibility-explore-progressive-loading') &&
+        rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+          ? SAMPLING_MODE.BEST_EFFORT
+          : undefined,
     },
     {enabled: !shouldUseSessionsStats}
   );
