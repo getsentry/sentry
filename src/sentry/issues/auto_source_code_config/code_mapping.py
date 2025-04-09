@@ -18,7 +18,7 @@ from sentry.models.repository import Repository
 from sentry.utils import metrics
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
-from .constants import METRIC_PREFIX
+from .constants import METRIC_PREFIX, STACK_ROOT_MAX_LEVEL
 from .integration_utils import InstallationNotFoundError, get_installation
 from .utils.platform import PlatformConfig
 
@@ -593,11 +593,11 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
 
     parts = module.split(".")
 
-    if len(parts) > 2:
+    if len(parts) > STACK_ROOT_MAX_LEVEL:
         # com.example.foo.bar.Baz$InnerClass, Baz.kt ->
         #    stack_root: com/example/
         #    file_path:  com/example/foo/bar/Baz.kt
-        stack_root = "/".join(parts[:2])
+        stack_root = "/".join(parts[:STACK_ROOT_MAX_LEVEL])
         file_path = "/".join(parts[:-1]) + "/" + abs_path
     else:
         # a.Bar, Bar.kt -> stack_root: a/, file_path:  a/Bar.kt
