@@ -387,11 +387,6 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     import_grouptype()
 
-    from django.utils import timezone
-
-    from sentry.app import env
-    from sentry.runner.settings import get_sentry_conf
-
     # Hacky workaround to dynamically set the CSRF_TRUSTED_ORIGINS for self hosted
     if settings.SENTRY_SELF_HOSTED and not settings.CSRF_TRUSTED_ORIGINS:
         from sentry import options
@@ -402,9 +397,6 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
         else:
             # For first time users that have not yet set system url prefix, let's default to localhost url
             settings.CSRF_TRUSTED_ORIGINS = ["http://localhost:9000", "http://127.0.0.1:9000"]
-
-    env.data["config"] = get_sentry_conf()
-    env.data["start_date"] = timezone.now()
 
 
 def setup_services(validate: bool = True) -> None:

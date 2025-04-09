@@ -3,14 +3,11 @@ from __future__ import annotations
 import contextlib
 from collections.abc import Generator
 from threading import local
-from typing import Any
 
 from django.http.request import HttpRequest
 
 
 class State(local):
-    data: dict[str, Any] = {}
-
     def __init__(self) -> None:
         self.request_stack: list[HttpRequest] = []
 
