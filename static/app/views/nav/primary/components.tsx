@@ -297,11 +297,12 @@ const ChonkNavLink = chonkStyled(Link, {
   width: 100%;
   position: relative;
   display: flex;
-  flex-direction: column;
+  flex-direction: ${p => (p.isMobile ? 'row' : 'column')};
+  justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
   align-items: center;
-  justify-content: center;
 
-  padding: ${space(0.75)} ${space(1.5)};
+  padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : `${space(0.75)} ${space(1.5)}`)};
+  gap: ${p => (p.isMobile ? space(1) : 0)};
 
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
@@ -315,7 +316,8 @@ const ChonkNavLink = chonkStyled(Link, {
   &::before {
     content: '';
     position: absolute;
-    top: 10px;
+    top: ${p => (p.isMobile ? '50%' : '10px')};
+    transform: ${p => (p.isMobile ? 'translateY(-50%)' : 'none')};
     left: 0px;
     width: 4px;
     height: 26px;
@@ -332,7 +334,6 @@ const ChonkNavLink = chonkStyled(Link, {
     color: currentColor;
   }
 
-  &:focus,
   &:focus-visible {
     outline: none;
     color: currentColor;
@@ -430,12 +431,20 @@ export const NavLink = styled((p: NavLinkProps) => {
 const ChonkNavButton = styled(Button, {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
-  height: 44px;
-  width: 44px;
+  height: ${p => (p.isMobile ? 'auto' : '44px')};
+  width: ${p => (p.isMobile ? '100%' : '44px')};
+  padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : undefined)};
+  display: flex;
+  align-items: center;
+  justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
+  line-height: 1;
 
   /* Disable interactionstatelayer hover */
-  ${ButtonLabel} span:first-child {
-    display: none;
+  ${ButtonLabel} {
+    gap: ${p => (p.isMobile ? space(1) : 0)};
+    span:first-child {
+      display: none;
+    }
   }
 `;
 
@@ -457,15 +466,21 @@ interface NavButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
 export const NavButton = styled((p: NavButtonProps) => {
   const theme = useTheme();
   if (theme.isChonk) {
-    return <ChonkNavButton {...p} aria-label={p['aria-label'] ?? ''} />;
+    return (
+      <ChonkNavButton
+        {...p}
+        aria-label={p['aria-label'] ?? ''}
+        size={p.isMobile ? 'zero' : undefined}
+      />
+    );
   }
   return <StyledNavButton {...p} />;
 })``;
 
-export const SidebarItemUnreadIndicator = styled('span')`
+export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   position: absolute;
-  top: calc(50% - 12px);
-  left: calc(50% + 12px);
+  top: ${p => (p.isMobile ? `8px` : `calc(50% - 5px)`)};
+  left: ${p => (p.isMobile ? '32px' : `calc(50% + 12px)`)};
   transform: translate(-50%, -50%);
   display: block;
   text-align: center;
