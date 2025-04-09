@@ -651,58 +651,82 @@ function CustomerOverview({customer, onAction, organization}: Props) {
         {productTrialCategories.length > 0 && (
           <Fragment>
             <h6>Product Trials</h6>
-            <DetailList>
+            <ProductTrialsDetailListContainer>
               {productTrialCategories.map(category => {
-                const categoryName = titleCase(
-                  getPlanCategoryName({plan: customer.planDetails, category})
-                );
+                const categoryName = getPlanCategoryName({
+                  plan: customer.planDetails,
+                  category,
+                  title: true,
+                });
+                const upperCategory = upperFirst(category);
+
                 return (
                   <DetailLabel key={category} title={categoryName}>
-                    <Button
-                      priority="link"
-                      onClick={() =>
-                        updateCustomerStatus(
-                          'allowTrial' + upperFirst(category),
-                          'product trial'
-                        )
-                      }
-                    >
-                      {tct('Allow [categoryName] Trial', {categoryName})}
-                    </Button>
-                    {' |'}
-                    <Button
-                      priority="link"
-                      onClick={() =>
-                        updateCustomerStatus(
-                          'startTrial' + upperFirst(category),
-                          'product trial'
-                        )
-                      }
-                    >
-                      {tct('Start [categoryName] Trial', {categoryName})}
-                    </Button>
-                    {' | '}
-                    <Button
-                      priority="link"
-                      onClick={() =>
-                        updateCustomerStatus(
-                          'stopTrial' + upperFirst(category),
-                          'product trial'
-                        )
-                      }
-                    >
-                      {tct('Stop [categoryName] Trial', {categoryName})}
-                    </Button>
+                    <TrialActions>
+                      <Button
+                        size="xs"
+                        onClick={() =>
+                          updateCustomerStatus(
+                            `allowTrial${upperCategory}`,
+                            'product trial'
+                          )
+                        }
+                      >
+                        {tct('Allow Trial', {categoryName})}
+                      </Button>
+                      <Button
+                        size="xs"
+                        onClick={() =>
+                          updateCustomerStatus(
+                            `startTrial${upperCategory}`,
+                            'product trial'
+                          )
+                        }
+                      >
+                        {tct('Start Trial', {categoryName})}
+                      </Button>
+                      <Button
+                        size="xs"
+                        onClick={() =>
+                          updateCustomerStatus(
+                            `stopTrial${upperCategory}`,
+                            'product trial'
+                          )
+                        }
+                      >
+                        {tct('Stop Trial', {categoryName})}
+                      </Button>
+                    </TrialActions>
                   </DetailLabel>
                 );
               })}
-            </DetailList>
+            </ProductTrialsDetailListContainer>
           </Fragment>
         )}
       </div>
     </DetailsContainer>
   );
 }
+
+const TrialActions = styled('div')`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+`;
+
+const ProductTrialsDetailListContainer = styled(DetailList)`
+  dt {
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    min-height: 38px;
+  }
+  dd {
+    display: flex;
+    align-items: center;
+    min-height: 38px;
+  }
+`;
 
 type ThresholdLabelProps = {
   children: React.ReactNode;
