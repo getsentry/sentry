@@ -17,9 +17,11 @@ import GridEditable, {
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import {GridHeadCellStatic} from 'sentry/components/gridEditable/styles';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -176,9 +178,7 @@ export function SavedQueriesTable({
     if (col.key === 'lastVisited') {
       return (
         <LastColumnWrapper>
-          <span>
-            {row.lastVisited ? new Date(row.lastVisited).toDateString() : NO_VALUE}
-          </span>
+          <span>{row.lastVisited ? <TimeSince date={row.lastVisited} /> : NO_VALUE}</span>
           <span>
             <DropdownMenu
               items={[
@@ -307,6 +307,7 @@ export function SavedQueriesTable({
           columnSortBy={[]}
           bodyStyle={{overflow: 'visible', zIndex: 'unset'}}
           minimumColWidth={30}
+          resizable={false}
         />
       </StyledStreamlineGridEditable>
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
@@ -351,6 +352,10 @@ const StyledStreamlineGridEditable = styled(StreamlineGridEditable)`
   ${GridHeadCellStatic}:first-child {
     height: auto;
     padding-left: ${space(1.5)};
+  }
+
+  tr:hover > ${InteractionStateLayer} {
+    opacity: 0.06;
   }
 `;
 
