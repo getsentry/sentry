@@ -86,14 +86,11 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
 
         action_exceptions = []
 
-        # Create a test event for the project
         test_event = create_sample_event(
             project, platform=project.platform, default="javascript", tagged=True
         )
 
-        # Create a dummy workflow and detector for testing
         workflow_id = -1
-
         workflow_event_data = WorkflowEventData(
             event=test_event,
             workflow_id=workflow_id,
@@ -107,7 +104,6 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
             type="error",
         )
 
-        # Process each action
         for action_data in data.get("actions", []):
             # Create a temporary Action object (not saved to database)
             action = Action(
