@@ -1,12 +1,17 @@
 import {useLayoutEffect} from 'react';
 
-interface UseScrollLeftSyncArgs {
+interface UseScrollSyncArgs {
+  direction: 'left' | 'top' | 'all';
   refsToSync: Array<React.RefObject<HTMLElement | null>>;
   scrollingRef: React.RefObject<HTMLElement | null>;
 }
 
 // this hook syncs the scroll position of the scrollingRef with the refsToSync
-export const useScrollLeftSync = ({scrollingRef, refsToSync}: UseScrollLeftSyncArgs) => {
+export const useScrollSync = ({
+  direction,
+  refsToSync,
+  scrollingRef,
+}: UseScrollSyncArgs) => {
   // this effect syncs the scroll position of the scrollingRef with the refsToSync
   useLayoutEffect(() => {
     // if the scrollingRef is not available, return
@@ -26,7 +31,14 @@ export const useScrollLeftSync = ({scrollingRef, refsToSync}: UseScrollLeftSyncA
       // sync the scroll position of the scrollingRef with the refsToSync
       refsToSync.forEach(ref => {
         if (clonedScrollingRef && ref.current) {
-          ref.current.scrollLeft = clonedScrollingRef.scrollLeft;
+          if (direction === 'left') {
+            ref.current.scrollLeft = clonedScrollingRef.scrollLeft;
+          } else if (direction === 'top') {
+            ref.current.scrollTop = clonedScrollingRef.scrollTop;
+          } else {
+            ref.current.scrollTop = clonedScrollingRef.scrollTop;
+            ref.current.scrollLeft = clonedScrollingRef.scrollLeft;
+          }
         }
       });
     };
@@ -38,5 +50,5 @@ export const useScrollLeftSync = ({scrollingRef, refsToSync}: UseScrollLeftSyncA
       // remove the scroll event listener
       clonedScrollingRef.removeEventListener('scroll', onScroll);
     };
-  }, [scrollingRef, refsToSync]);
+  }, [scrollingRef, refsToSync, direction]);
 };
