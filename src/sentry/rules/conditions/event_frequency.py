@@ -943,7 +943,6 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         # We do not have sessions for non-error issue types
         for group in generic_issue_ids:
             batch_percents[group] = 0
-
         return batch_percents
 
     def passes_activity_frequency(
