@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -130,7 +131,9 @@ export function GlobalDrawer({children}: any) {
     closeDrawer();
   }, [currentDrawerConfig, closeDrawer]);
 
-  currentDrawerConfigRef.current = currentDrawerConfig;
+  useEffect(() => {
+    currentDrawerConfigRef.current = currentDrawerConfig;
+  }, [currentDrawerConfig]);
 
   // Close the drawer when the browser history changes.
   useLayoutEffect(
