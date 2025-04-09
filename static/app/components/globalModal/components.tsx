@@ -36,7 +36,7 @@ const ChonkCloseButton = chonkStyled((p: Omit<ButtonProps, 'aria-label'>) => {
   return (
     <Button
       aria-label={t('Close Modal')}
-      size={'xs'}
+      size="xs"
       icon={<IconClose size="xs" />}
       borderless
       {...p}
