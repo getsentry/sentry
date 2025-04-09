@@ -103,7 +103,6 @@ class MockConditionGroupValidator(BaseDataConditionGroupValidator):
 class MockDetectorValidator(BaseDetectorTypeValidator):
     data_source = MockDataSourceValidator()
     condition_group = MockConditionGroupValidator()
-    # config = JSONField()
 
 
 # TODO - see if we can refactor and mock the grouptype / grouptype.registry
