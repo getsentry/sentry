@@ -23,6 +23,7 @@ from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_values
+from sentry.snuba import spans_rpc
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -273,14 +274,15 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             end=now,
             granularity_secs=self.time_window,
         )
+        search_resolver = spans_rpc.get_resolver(snuba_params, SearchResolverConfig())
 
         rpc_request, _, _ = get_timeseries_query(
+            search_resolver=search_resolver,
             params=snuba_params,
             query_string=query,
             y_axes=[self.aggregate],
             groupby=[],
             referrer=referrer,
-            config=SearchResolverConfig(),
             sampling_mode=None,
         )
 
