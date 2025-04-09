@@ -188,7 +188,7 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
     [issuesTour, releasesTour, performanceTour, sidebarTour]
   );
 
-  return <DemoToursContext.Provider value={tours}>{children}</DemoToursContext.Provider>;
+  return <DemoToursContext value={tours}>{children}</DemoToursContext>;
 }
 
 // Helper to get tour category from step remains the same
