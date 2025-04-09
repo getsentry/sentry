@@ -463,6 +463,8 @@ def run_trace_query(
         "precise.start_ts",
         "precise.finish_ts",
         "project.id",
+        "profile.id",
+        "profiler.id",
         "span.duration",
         "sdk.name",
     ]

@@ -54,6 +54,8 @@ class SerializedSpan(SerializedEvent):
     end_timestamp: datetime
     op: str
     parent_span_id: str | None
+    profile_id: str
+    profiler_id: str
     sdk_name: str
     is_transaction: bool
 
@@ -128,6 +130,8 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 event_id=event["id"],
                 project_id=event["project.id"],
                 project_slug=event["project.slug"],
+                profile_id=event["profile.id"],
+                profiler_id=event["profiler.id"],
                 parent_span_id=None if event["parent_span"] == "0" * 16 else event["parent_span"],
                 start_timestamp=event["precise.start_ts"],
                 end_timestamp=event["precise.finish_ts"],
