@@ -3,6 +3,7 @@
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -25,9 +26,22 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveConstraint(
-            model_name="groupopenperiod",
-            name="exclude_open_period_overlap",
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.RemoveConstraint(
+                    model_name="groupopenperiod",
+                    name="exclude_open_period_overlap",
+                ),
+            ],
+            database_operations=[
+                SafeRunSQL(
+                    """
+                    ALTER TABLE "sentry_groupopenperiod"
+                    DROP CONSTRAINT IF EXISTS "exclude_open_period_overlap";
+                    """,
+                    hints={"tables": ["sentry_groupopenperiod"]},
+                ),
+            ],
         ),
         # These two operations weren't able to run together in the right sequence -
         # commenting this out to include in a later migration. This migration now
