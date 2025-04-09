@@ -118,10 +118,10 @@ describe('DomainViewHeader', function () {
       />,
       {organization}
     );
-    expect(screen.getByRole('tab', {name: 'Mobile Vitals New'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Mobile Vitals new'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Network Requests'})).toBeInTheDocument();
     expect(
-      screen.queryByRole('tab', {name: 'Network Requests New'})
+      screen.queryByRole('tab', {name: 'Network Requests new'})
     ).not.toBeInTheDocument();
   });
 });
