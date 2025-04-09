@@ -160,7 +160,7 @@ class TaskNamespace:
 
         # We know this type is futures.Future, but cannot assert so,
         # because it is also mock.Mock in tests.
-        produce_future.add_done_callback(  # type:ignore[attr-defined]
+        produce_future.add_done_callback(  # type:ignore[union-attr]
             lambda future: self._handle_produce_future(
                 future=future,
                 tags={
