@@ -93,9 +93,9 @@ function GroupEventDetails() {
       params.eventId &&
       !['latest', 'oldest'].includes(params.eventId)
     ) {
+      const environment = getEventEnvironment(prevEvent);
       const shouldRedirect =
-        environments.length > 0 &&
-        !environments.find(env => env === getEventEnvironment(prevEvent));
+        environments.length > 0 && (!environment || !environments.includes(environment));
 
       if (shouldRedirect) {
         navigate(
