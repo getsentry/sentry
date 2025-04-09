@@ -123,12 +123,22 @@ describe('getRuntimeLabel', function () {
 
     expect(getRuntimeLabelAndTooltip(frontedEvent)?.label).toBe('Frontend');
 
+    const serverlessEvent = EventFixture({
+      sdk: {name: 'javascript'},
+      contexts: {
+        runtime: {name: 'node'},
+        browser: {name: 'Chrome'}, // Backend events also have 'browser'
+        cloud_resource: {['cloud.provider']: 'cloudflare', type: 'default'},
+      },
+    });
+
+    expect(getRuntimeLabelAndTooltip(serverlessEvent)?.label).toBe('Backend');
+
     const backendEvent = EventFixture({
       sdk: {name: 'javascript'},
       contexts: {
         runtime: {name: 'node'},
-        browser: {name: 'Chrome'}, // Cloud Events still have the item 'browser'
-        cloud_resource: {['cloud.provider']: 'cloudflare', type: 'default'},
+        browser: {name: 'Chrome'}, // Backend events also have 'browser'
       },
     });
 

@@ -192,8 +192,10 @@ export function getRuntimeLabelAndTooltip(
   }
 
   if (
-    (event.contexts.runtime && !event.contexts.browser) ||
-    event.contexts?.cloud_resource // Cloudflare, Vercel etc.
+    event.contexts?.runtime?.name &&
+    ['node', 'bun', 'deno', 'cloudflare', 'vercel-edge'].includes(
+      event.contexts.runtime.name
+    )
   ) {
     return {label: t('Backend'), tooltip: t('Error from Server, Edge or Worker Runtime')};
   }
