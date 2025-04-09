@@ -195,6 +195,18 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
         self.get_success_response(self.organization.slug, self.project.slug, actions=action_data)
         assert action.called
 
+    def test_unknown_action_returns_400(self):
+        action_data = [
+            {
+                "id": "sentry.rules.actions.fake_action.FakeAction",
+            }
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug, self.project.slug, actions=action_data
+        )
+        assert response.status_code == 400
+
     @mock.patch.object(PagerDutyClient, "send_trigger")
     @mock.patch(
         "sentry.notifications.notification_action.registry.group_type_notification_registry.get",
