@@ -10,6 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 import {openAM2ProfilingUpsellModal} from 'getsentry/actionCreators/modal';
+import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
@@ -361,3 +362,57 @@ export const ProfilingAM1OrMMXUpgrade = withSubscription(
     noLoader: true,
   }
 );
+
+interface ContinuousProfilingBetaAlertBannerInner {
+  organization: Organization;
+  subscription: Subscription;
+}
+
+function ContinuousProfilingBetaAlertBannerInner({
+  organization,
+  subscription,
+}: ContinuousProfilingBetaAlertBannerInner) {
+  if (
+    !organization.features.includes('continuous-profiling-beta') ||
+    !organization.features.includes('continuous-profiling-beta-ui')
+  ) {
+    return null;
+  }
+
+  const eventTypes: EventType[] = ['profileDuration', 'profileDurationUI'];
+
+  return (
+    <Alert.Container>
+      <StyledAlert
+        type="warning"
+        showIcon
+        trailingItems={
+          <AddEventsCTA
+            organization={organization}
+            subscription={subscription}
+            buttonProps={{
+              size: 'xs',
+            }}
+            eventTypes={eventTypes}
+            notificationType="overage_critical"
+            referrer={`overage-alert-${eventTypes.join('-')}`}
+            source="continuous-profiling-beta-trial-banner"
+          />
+        }
+      >
+        {t(
+          'Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date.'
+        )}
+      </StyledAlert>
+    </Alert.Container>
+  );
+}
+
+export const ContinuousProfilingBetaAlertBanner = withSubscription(
+  ContinuousProfilingBetaAlertBannerInner
+);
+
+const StyledAlert = styled(Alert)`
+  margin: 0;
+  border-radius: 0;
+`;

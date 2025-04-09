@@ -26,3 +26,7 @@ export const ProfilingAM1OrMMXUpgrade = HookOrDefault({
     </Fragment>
   ),
 });
+
+export const ContinuousProfilingBetaAlertBanner = HookOrDefault({
+  hookName: 'component:continuous-profiling-beta-banner',
+});
