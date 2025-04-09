@@ -396,7 +396,7 @@ function ContinuousProfilingBetaAlertBannerInner({
             eventTypes={eventTypes}
             notificationType="overage_critical"
             referrer={`overage-alert-${eventTypes.join('-')}`}
-            source="nav-quota-overage"
+            source="continuous-profiling-beta-trial-banner"
           />
         }
       >
