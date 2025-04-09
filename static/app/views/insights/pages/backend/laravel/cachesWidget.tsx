@@ -171,7 +171,7 @@ export function CachesWidget({query}: {query?: string}) {
             <div>
               <Link
                 to={
-                  organization.features.includes('caches')
+                  organization.features.includes('insights-addon-modules')
                     ? `/insights/backend/caches?project=${item['project.id']}&transaction=${item.transaction}`
                     : `/insights/backend/caches`
                 }
