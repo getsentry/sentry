@@ -145,7 +145,7 @@ export function PrimaryNavigationItems() {
           description={null}
         >
           <SidebarLink
-            to={`/${prefix}/settings/${organization.slug}/`}
+            to={`/${prefix}/settings/organization/`}
             activeTo={`/${prefix}/settings/`}
             analyticsKey="settings"
             label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.SETTINGS].label}
