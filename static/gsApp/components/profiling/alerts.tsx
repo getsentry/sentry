@@ -376,10 +376,7 @@ function ContinuousProfilingBetaAlertBannerInner({
   organization,
   subscription,
 }: ContinuousProfilingBetaAlertBannerInner) {
-  if (
-    !organization.features.includes('continuous-profiling-beta') ||
-    !organization.features.includes('continuous-profiling-beta-ui')
-  ) {
+  if (!organization.features.includes('continuous-profiling-beta')) {
     return null;
   }
 
@@ -416,13 +413,7 @@ export const ContinuousProfilingBetaAlertBanner = withSubscription(
   ContinuousProfilingBetaAlertBannerInner
 );
 
-interface ContinuousProfilingBetaSDKAlertBannerProps {
-  organization: Organization;
-}
-
-export function ContinuousProfilingBetaSDKAlertBanner({
-  organization,
-}: ContinuousProfilingBetaSDKAlertBannerProps) {
+export function ContinuousProfilingBetaSDKAlertBanner() {
   const sdkDeprecationResults = useSDKDeprecations();
 
   const sdkDeprecations = useMemo(() => {
@@ -437,10 +428,6 @@ export function ContinuousProfilingBetaSDKAlertBanner({
   }, [sdkDeprecationResults.data?.data]);
 
   if (sdkDeprecations.size <= 0) {
-    return null;
-  }
-
-  if (!organization.features.includes('continuous-profiling-beta-ui')) {
     return null;
   }
 
