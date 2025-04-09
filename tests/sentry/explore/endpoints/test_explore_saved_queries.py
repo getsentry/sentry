@@ -420,6 +420,12 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             explore_saved_query=model_d,
             position=1,
         )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 2,
+            explore_saved_query=model_d,
+            position=1,
+        )
 
         with self.feature(self.feature_name):
             response = self.client.get(self.url, data={"sortBy": ["starred", "recentlyViewed"]})
