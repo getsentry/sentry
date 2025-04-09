@@ -195,9 +195,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
           }
         }
       }
-      if (isSpanNode(n) || isEAPSpanNode(n)) {
-        const spanId = 'span_id' in n.value ? n.value.span_id : n.value.event_id;
-        if (spanId === props.event.eventID) {
+      if (isSpanNode(n)) {
+        if (n.value.span_id === props.event.eventID) {
           return true;
         }
         for (const e of n.errors) {
@@ -207,6 +206,22 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         }
         for (const p of n.occurences) {
           if (p.event_id === props.event.eventID) {
+            return true;
+          }
+        }
+      }
+
+      if (isEAPSpanNode(n)) {
+        if (n.value.event_id === props.event.eventID) {
+          return true;
+        }
+        for (const e of n.errors) {
+          if (e.event_id === props.event.eventID) {
+            return true;
+          }
+        }
+        for (const o of n.occurences) {
+          if (o.event_id === props.event.occurrence?.id) {
             return true;
           }
         }

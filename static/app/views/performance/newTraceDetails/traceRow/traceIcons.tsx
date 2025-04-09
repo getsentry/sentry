@@ -72,7 +72,7 @@ export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
     <Fragment>
       {occurences.map((occurence, i) => {
         const occurence_start_timestamp =
-          'start_timestamp' in occurence ? occurence.start_timestamp : null;
+          'start_timestamp' in occurence ? occurence.start_timestamp : occurence.start;
         const icon_timestamp =
           'timestamp' in occurence && occurence.timestamp
             ? occurence.timestamp * 1e3

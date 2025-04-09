@@ -1386,11 +1386,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
           }
         }
       }
-      if (isEAPSpanNode(n)) {
-        if (n.value.event_id === eventId) {
-          return true;
-        }
-      }
       if (isTraceErrorNode(n) || isEAPErrorNode(n)) {
         return n.value.event_id === eventId;
       }
