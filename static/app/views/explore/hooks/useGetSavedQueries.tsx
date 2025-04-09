@@ -22,6 +22,7 @@ export type SortOption =
   | 'dateUpdated'
   | 'mostPopular'
   | 'recentlyViewed'
+  | 'starred'
   | 'mostStarred';
 
 // Comes from ExploreSavedQueryModelSerializer
@@ -48,7 +49,7 @@ type Props = {
   exclude?: 'owned' | 'shared';
   perPage?: number;
   query?: string;
-  sortBy?: SortOption;
+  sortBy?: SortOption[];
   starred?: boolean;
 };
 

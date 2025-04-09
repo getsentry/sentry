@@ -66,7 +66,10 @@ describe('SavedQueriesTable', () => {
         `/organizations/${organization.slug}/explore/saved/`,
         expect.objectContaining({
           method: 'GET',
-          query: expect.objectContaining({sortBy: 'recentlyViewed', exclude: 'shared'}),
+          query: expect.objectContaining({
+            sortBy: ['starred', 'recentlyViewed'],
+            exclude: 'shared',
+          }),
         })
       )
     );
@@ -80,7 +83,7 @@ describe('SavedQueriesTable', () => {
         expect.objectContaining({
           method: 'GET',
           query: expect.objectContaining({
-            sortBy: 'recentlyViewed',
+            sortBy: ['starred', 'recentlyViewed'],
             exclude: 'owned',
           }),
         })
@@ -215,7 +218,7 @@ describe('SavedQueriesTable', () => {
     expect(getQueriesMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/explore/saved/`,
       expect.objectContaining({
-        query: expect.objectContaining({sortBy: 'mostPopular'}),
+        query: expect.objectContaining({sortBy: ['starred', 'mostPopular']}),
       })
     );
   });

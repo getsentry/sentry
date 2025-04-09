@@ -1140,16 +1140,22 @@ describe('Customer Details', function () {
       })[1]!
     );
 
-    expect(screen.getByText('Start Trial')).toBeInTheDocument();
-    expect(screen.getByText('Convert to Sponsored')).toBeInTheDocument();
-    expect(screen.getByText('Gift errors')).toBeInTheDocument();
-    expect(screen.getByText('Gift transactions')).toBeInTheDocument();
-    expect(screen.getByText('Gift attachments')).toBeInTheDocument();
-    expect(screen.getByText('Change Plan')).toBeInTheDocument();
-    expect(screen.getByText('Start Enterprise Trial')).toBeInTheDocument();
-    expect(screen.getByText('Change Google Domain')).toBeInTheDocument();
-    expect(screen.getByText('Suspend Account')).toBeInTheDocument();
-    expect(screen.getByText('Add Legacy Soft Cap')).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Start Trial/})).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: /Convert to Sponsored/})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Gift errors/})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Gift transactions/})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Gift attachments/})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Change Plan/})).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: /Start Enterprise Trial/})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: /Change Google Domain/})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Suspend Account/})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Add Legacy Soft Cap/})).toBeInTheDocument();
   });
 
   it('renders and hides generic confirmation modals', async function () {
@@ -1646,7 +1652,7 @@ describe('Customer Details', function () {
         })[1]!
       );
 
-      expect(screen.getByText('Allow Trial')).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: /Allow Trial/})).toBeInTheDocument();
     });
 
     it('hides Allow Trial in the dropdown when not eligible', async function () {
@@ -1672,7 +1678,7 @@ describe('Customer Details', function () {
         })[1]!
       );
 
-      expect(screen.queryByText('Allow Trial')).not.toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: /Allow Trial/})).not.toBeInTheDocument();
     });
 
     it('hides Allow Trial in the dropdown when on active trial', async function () {
@@ -1698,7 +1704,7 @@ describe('Customer Details', function () {
         })[1]!
       );
 
-      expect(screen.queryByText('Allow Trial')).not.toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: /Allow Trial/})).not.toBeInTheDocument();
     });
 
     it('allows an org to trial', async function () {
@@ -1732,7 +1738,7 @@ describe('Customer Details', function () {
 
       renderGlobalModal();
 
-      await userEvent.click(screen.getByText('Allow Trial'));
+      await userEvent.click(screen.getByRole('option', {name: /Allow Trial/}));
 
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
