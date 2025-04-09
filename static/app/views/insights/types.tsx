@@ -302,6 +302,7 @@ export enum SpanIndexedField {
   LCP_ELEMENT = 'lcp.element',
   CLS_SOURCE = 'cls.source.1',
   NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
+  MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
 }
 
 export type SpanIndexedResponse = {
@@ -391,6 +392,10 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.USER_GEO_SUBREGION]: string;
   [SpanIndexedField.LCP_ELEMENT]: string;
   [SpanIndexedField.CLS_SOURCE]: string;
+  [SpanIndexedField.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH]: number;
+  [SpanIndexedField.PROJECT]: string;
+  [SpanIndexedField.SPAN_GROUP]: string;
+  'any(id)': string;
 };
 
 export type SpanIndexedProperty = keyof SpanIndexedResponse;
