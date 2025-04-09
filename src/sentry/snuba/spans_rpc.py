@@ -27,7 +27,7 @@ from sentry.search.eap.constants import DOUBLE, INT, MAX_ROLLUP_POINTS, STRING, 
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import CONFIDENCES, EAPResponse, SearchResolverConfig
-from sentry.search.eap.utils import transform_binary_formula_to_expression
+from sentry.search.eap.utils import handle_downsample_meta, transform_binary_formula_to_expression
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
 from sentry.snuba import rpc_dataset_common
@@ -179,7 +179,9 @@ def run_timeseries_query(
     rpc_response = snuba_rpc.timeseries_rpc([rpc_request])[0]
     """Process the results"""
     result = ProcessedTimeseries()
-    final_meta: EventsMeta = EventsMeta(fields={})
+    final_meta: EventsMeta = EventsMeta(
+        fields={}, full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta)
+    )
     for resolved_field in aggregates + groupbys:
         final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
 
@@ -350,7 +352,9 @@ def run_top_events_timeseries_query(
     """Process the results"""
     map_result_key_to_timeseries = defaultdict(list)
 
-    final_meta: EventsMeta = EventsMeta(fields={})
+    final_meta: EventsMeta = EventsMeta(
+        fields={}, full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta)
+    )
     for resolved_field in aggregates + groupbys:
         final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
 
