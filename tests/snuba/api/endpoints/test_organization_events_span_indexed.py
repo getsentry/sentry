@@ -665,6 +665,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             )
             assert response.status_code == 200, response.content
             expected = {
+                "dataScanned": "full",
                 "dataset": mock.ANY,
                 "datasetReason": "unchanged",
                 "fields": {
