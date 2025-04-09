@@ -90,8 +90,6 @@ function TestComponent({
 describe('Performance > TransactionSummary', function () {
   let eventStatsMock: jest.Mock;
   beforeEach(function () {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
-
     // Small screen size will hide search bar trailing items like warning icon
     Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
 
@@ -522,6 +520,17 @@ describe('Performance > TransactionSummary', function () {
       },
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {
+        count: 0,
+      },
+    });
+
     jest.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.AUTO);
   });
 
@@ -587,7 +596,7 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByText('Status Breakdown')).toBeInTheDocument();
     });
 
-    it('renders feature flagged UI elements', function () {
+    it('renders feature flagged UI elements', async function () {
       const {organization, router} = initializeData({
         features: ['incidents'],
       });
@@ -605,7 +614,9 @@ describe('Performance > TransactionSummary', function () {
       );
 
       // Ensure create alert from discover is shown with metric alerts
-      expect(screen.getByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Create Alert'})
+      ).toBeInTheDocument();
     });
 
     it('renders Web Vitals widget', async function () {
@@ -737,7 +748,7 @@ describe('Performance > TransactionSummary', function () {
       );
     });
 
-    it('fetches transaction threshold', function () {
+    it('fetches transaction threshold', async function () {
       const {organization, router} = initializeData();
 
       const getTransactionThresholdMock = MockApiClient.addMockResponse({
@@ -769,6 +780,8 @@ describe('Performance > TransactionSummary', function () {
           organization,
         }
       );
+
+      expect(await screen.findByText('Transaction Summary')).toBeInTheDocument();
 
       expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
       expect(getProjectThresholdMock).not.toHaveBeenCalled();
