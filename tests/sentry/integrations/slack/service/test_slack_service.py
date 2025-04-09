@@ -344,7 +344,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
             self.service.notify_all_threads_for_activity(activity=self.activity)
             mock_notify.assert_called_once()
 
-    @with_feature("organizations:workflow-engine-notification-action")
+    @with_feature("organizations:workflow-engine-trigger-actions")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
@@ -385,7 +385,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
 
     @with_feature(
         {
-            "organizations:workflow-engine-notification-action": True,
+            "organizations:workflow-engine-trigger-actions": True,
             "organizations:slack-threads-refactor-uptime": True,
         }
     )

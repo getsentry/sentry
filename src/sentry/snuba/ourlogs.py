@@ -51,6 +51,15 @@ def query(
     query_source: QuerySource | None = None,
     debug: bool = False,
 ) -> EventsResponse:
+    precise_timestamp = "tags[sentry.timestamp_precise,number]"
+    if orderby == ["-timestamp"]:
+        orderby = ["-timestamp", f"-{precise_timestamp}"]
+        if precise_timestamp not in selected_columns:
+            selected_columns.append(precise_timestamp)
+    if orderby == ["timestamp"]:
+        orderby = ["timestamp", precise_timestamp]
+        if precise_timestamp not in selected_columns:
+            selected_columns.append(precise_timestamp)
     return run_table_query(
         query_string=query or "",
         selected_columns=selected_columns,
@@ -58,6 +67,7 @@ def query(
         offset=offset or 0,
         limit=limit,
         referrer=referrer or "referrer unset",
+        sampling_mode=None,
         resolver=get_resolver(
             params=snuba_params,
             config=SearchResolverConfig(

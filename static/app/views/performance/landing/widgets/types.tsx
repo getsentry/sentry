@@ -57,9 +57,7 @@ export interface WidgetDataResult {
   isErrored: boolean;
   isLoading: boolean;
 }
-export interface WidgetDataConstraint {
-  [dataKey: string]: WidgetDataResult | undefined;
-}
+export type WidgetDataConstraint = Record<string, WidgetDataResult | undefined>;
 
 export type QueryChildren = {
   children: (props: any) => React.ReactNode; // TODO(k-fish): Fix any type.

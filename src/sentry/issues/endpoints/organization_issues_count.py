@@ -25,7 +25,7 @@ ISSUES_COUNT_MAX_HITS_LIMIT = 100
 @region_silo_endpoint
 class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
     enforce_rate_limit = True

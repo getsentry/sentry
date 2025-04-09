@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -9,6 +10,7 @@ import {getHasTag} from 'sentry/components/events/searchBar';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -24,7 +26,14 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
-import {SCHEMA_HINTS_LIST_ORDER_KEYS} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
+import {
+  getSchemaHintsListOrder,
+  removeHiddenKeys,
+  SchemaHintsSources,
+} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
+import type {LogPageParamsUpdate} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {WritablePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
+import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
 export const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
@@ -34,11 +43,13 @@ interface SchemaHintsListProps extends SchemaHintsPageParams {
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
   isLoading?: boolean;
+  source?: SchemaHintsSources;
 }
 
 export interface SchemaHintsPageParams {
   exploreQuery: string;
-  setExploreQuery: (query: string) => void;
+  setPageParams: (pageParams: WritablePageParams | LogPageParamsUpdate) => void;
+  tableColumns: string[];
 }
 
 const seeFullListTag: Tag = {
@@ -68,13 +79,24 @@ export function addFilterToQuery(
   );
 }
 
+const FILTER_KEY_SECTIONS: Record<SchemaHintsSources, FilterKeySection[]> = {
+  [SchemaHintsSources.EXPLORE]: SPANS_FILTER_KEY_SECTIONS,
+  [SchemaHintsSources.LOGS]: LOGS_FILTER_KEY_SECTIONS,
+};
+
+function getFilterKeySections(source: SchemaHintsSources) {
+  return FILTER_KEY_SECTIONS[source];
+}
+
 function SchemaHintsList({
   supportedAggregates,
   numberTags,
   stringTags,
   isLoading,
   exploreQuery,
-  setExploreQuery,
+  tableColumns,
+  setPageParams,
+  source = SchemaHintsSources.EXPLORE,
 }: SchemaHintsListProps) {
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -87,26 +109,30 @@ function SchemaHintsList({
 
   // sort tags by the order they show up in the query builder
   const filterTagsSorted = useMemo(() => {
-    const filterTags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
+    const filterTags = removeHiddenKeys({
+      ...functionTags,
+      ...numberTags,
+      ...stringTags,
+    });
     filterTags.has = getHasTag({...stringTags});
 
-    const schemaHintsPresetTags = getTagsFromKeys(
-      SCHEMA_HINTS_LIST_ORDER_KEYS,
-      filterTags
-    );
+    const schemaHintsListOrder = getSchemaHintsListOrder(source);
+    const filterKeySections = getFilterKeySections(source);
 
-    const sectionKeys = SPANS_FILTER_KEY_SECTIONS.flatMap(
-      section => section.children
-    ).filter(key => !SCHEMA_HINTS_LIST_ORDER_KEYS.includes(key));
+    const schemaHintsPresetTags = getTagsFromKeys(schemaHintsListOrder, filterTags);
+
+    const sectionKeys = filterKeySections
+      .flatMap(section => section.children)
+      .filter(key => !schemaHintsListOrder.includes(key));
     const sectionSortedTags = getTagsFromKeys(sectionKeys, filterTags);
 
     const otherKeys = Object.keys(filterTags).filter(
-      key => !sectionKeys.includes(key) && !SCHEMA_HINTS_LIST_ORDER_KEYS.includes(key)
+      key => !sectionKeys.includes(key) && !schemaHintsListOrder.includes(key)
     );
     const otherTags = getTagsFromKeys(otherKeys, filterTags);
 
     return [...schemaHintsPresetTags, ...sectionSortedTags, ...otherTags];
-  }, [numberTags, stringTags, functionTags]);
+  }, [functionTags, numberTags, stringTags, source]);
 
   const [visibleHints, setVisibleHints] = useState([seeFullListTag]);
 
@@ -186,12 +212,19 @@ function SchemaHintsList({
               <SchemaHintsDrawer
                 hints={filterTagsSorted}
                 exploreQuery={exploreQuery}
-                setExploreQuery={setExploreQuery}
+                tableColumns={tableColumns}
+                setPageParams={setPageParams}
+                source={source}
               />
             ),
             {
               ariaLabel: t('Schema Hints Drawer'),
               drawerWidth: SCHEMA_HINTS_DRAWER_WIDTH,
+              drawerKey: 'schema-hints-drawer',
+              resizable: true,
+              drawerCss: css`
+                height: calc(100% - ${space(4)});
+              `,
               transitionProps: {
                 key: 'schema-hints-drawer',
                 type: 'tween',
@@ -203,8 +236,8 @@ function SchemaHintsList({
                   location.pathname !== newLocation.pathname ||
                   // will close if anything but the filter query has changed
                   !isEqual(
-                    omit(location.query, ['query']),
-                    omit(newLocation.query, ['query'])
+                    omit(location.query, ['query', 'field', 'search', 'logsQuery']),
+                    omit(newLocation.query, ['query', 'field', 'search', 'logsQuery'])
                   )
                 );
               },
@@ -239,7 +272,24 @@ function SchemaHintsList({
         getFieldDefinition(hint.key, 'span', hint.kind)?.valueType ===
         FieldValueType.BOOLEAN;
       addFilterToQuery(newSearchQuery, hint, isBoolean);
-      setExploreQuery(newSearchQuery.formatString());
+
+      const newTableColumns = tableColumns.includes(hint.key)
+        ? tableColumns
+        : [...tableColumns, hint.key];
+      const newQuery = newSearchQuery.formatString();
+
+      setPageParams(
+        source === SchemaHintsSources.LOGS
+          ? {
+              search: newSearchQuery,
+              fields: newTableColumns,
+            }
+          : {
+              query: newQuery,
+              fields: newTableColumns,
+            }
+      );
+
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
         source: 'list',
@@ -248,9 +298,11 @@ function SchemaHintsList({
     },
     [
       exploreQuery,
-      setExploreQuery,
-      isDrawerOpen,
+      tableColumns,
+      setPageParams,
+      source,
       organization,
+      isDrawerOpen,
       openDrawer,
       filterTagsSorted,
       location.pathname,
@@ -348,7 +400,7 @@ const SchemaHintOption = styled(Button)`
   }
 `;
 
-export const SchemaHintsSection = styled('div')<{withSchemaHintsDrawer: boolean}>`
+export const SchemaHintsSection = styled('div')`
   display: grid;
   /* This is to ensure the hints section spans all the columns */
   grid-column: 1/-1;
@@ -357,8 +409,7 @@ export const SchemaHintsSection = styled('div')<{withSchemaHintsDrawer: boolean}
   height: fit-content;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 1fr ${p =>
-        p.withSchemaHintsDrawer ? SCHEMA_HINTS_DRAWER_WIDTH : '0px'};
+    grid-template-columns: 1fr;
     margin-bottom: 0;
     margin-top: 0;
   }

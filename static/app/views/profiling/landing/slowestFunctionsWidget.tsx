@@ -18,7 +18,6 @@ import ScoreBar from 'sentry/components/scoreBar';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -225,12 +224,13 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
   stats,
   totalDuration,
 }: SlowestFunctionEntryProps<F>) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === String(func['project.id']));
 
   const score = Math.ceil((((func['sum()'] as number) ?? 0) / totalDuration) * BARS);
-  const palette = new Array(BARS).fill([CHART_PALETTE[0][0]]);
+  const palette = new Array(BARS).fill([theme.chart.colors[0][0]]);
 
   const frame = useMemo(() => {
     return new Frame(

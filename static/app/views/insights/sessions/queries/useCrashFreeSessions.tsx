@@ -1,19 +1,25 @@
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {percent} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {getSessionsInterval} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useSessionAdoptionRate from 'sentry/views/insights/sessions/queries/useSessionProjectTotal';
 import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function useCrashFreeSessions() {
   const location = useLocation();
   const organization = useOrganization();
+  const {
+    selection: {datetime},
+  } = usePageFilters();
 
   const locationQuery = {
     ...location,
     query: {
       ...location.query,
+      query: undefined,
       width: undefined,
       cursor: undefined,
     },
@@ -29,6 +35,7 @@ export default function useCrashFreeSessions() {
       {
         query: {
           ...locationQuery.query,
+          interval: getSessionsInterval(datetime),
           field: ['sum(session)'],
           groupBy: ['session.status', 'release'],
         },

@@ -14,6 +14,7 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import type {DatasetConfig} from '../datasetConfig/base';
 import type {DashboardFilters, Widget, WidgetQuery} from '../types';
@@ -35,6 +36,7 @@ function getReferrer(displayType: DisplayType) {
 
 export type OnDataFetchedProps = {
   confidence?: Confidence;
+  isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
@@ -48,6 +50,7 @@ export type GenericWidgetQueriesChildrenProps = {
   loading: boolean;
   confidence?: Confidence;
   errorMessage?: string;
+  isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
@@ -79,6 +82,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   limit?: number;
   loading?: boolean;
   mepSetting?: MEPState | null;
+  onDataFetchStart?: () => void;
   onDataFetched?: ({
     tableResults,
     timeseriesResults,
@@ -87,6 +91,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
   onDemandControlContext?: OnDemandControlContext;
+  samplingMode?: SamplingMode;
   // Skips adding parens before applying dashboard filters
   // Used for datasets that do not support parens/boolean logic
   skipDashboardFilterParens?: boolean;
@@ -243,6 +248,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       onDataFetched,
       onDemandControlContext,
       mepSetting,
+      samplingMode,
     } = this.props;
     const widget = this.widgetForRequest(cloneDeep(originalWidget));
     const responses = await Promise.all(
@@ -266,7 +272,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           requestLimit,
           cursor,
           getReferrer(widget.displayType),
-          mepSetting
+          mepSetting,
+          samplingMode
         );
       })
     );
@@ -305,7 +312,6 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       });
     }
   }
-
   async fetchSeriesData(queryFetchID: symbol) {
     const {
       widget: originalWidget,
@@ -317,6 +323,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       onDataFetched,
       mepSetting,
       onDemandControlContext,
+      samplingMode,
     } = this.props;
     const widget = this.widgetForRequest(cloneDeep(originalWidget));
 
@@ -330,7 +337,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           selection,
           onDemandControlContext,
           getReferrer(widget.displayType),
-          mepSetting
+          mepSetting,
+          samplingMode
         );
       })
     );
@@ -377,7 +385,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
   }
 
   async fetchData() {
-    const {widget} = this.props;
+    const {widget, onDataFetchStart} = this.props;
 
     const queryFetchID = Symbol('queryFetchID');
     this.setState({
@@ -387,6 +395,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       errorMessage: undefined,
       queryFetchID,
     });
+
+    onDataFetchStart?.();
 
     try {
       if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {

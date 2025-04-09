@@ -292,7 +292,10 @@ export function generateExploreCompareRoute({
   const url = getCompareBaseUrl(organization);
   const compareQuery: WritableExploreQueryParts = {
     chartType,
-    groupBys: mode === Mode.AGGREGATE ? groupBys : [],
+    // Filter out empty strings which are used to indicate no grouping
+    // in Trace Explorer. The same assumption does not exist for the
+    // comparison view.
+    groupBys: mode === Mode.AGGREGATE ? groupBys?.filter(Boolean) : [],
     query,
     sortBys,
     yAxes,

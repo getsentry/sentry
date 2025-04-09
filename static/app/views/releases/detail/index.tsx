@@ -229,7 +229,7 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
             releaseMeta={releaseMeta}
             refetchData={this.fetchData}
           />
-          <ReleaseContext.Provider
+          <ReleaseContext
             value={{
               release,
               project,
@@ -242,7 +242,7 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
             }}
           >
             {this.props.children}
-          </ReleaseContext.Provider>
+          </ReleaseContext>
         </NoProjectMessage>
       </Layout.Page>
     );

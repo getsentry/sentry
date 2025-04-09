@@ -7,6 +7,8 @@ describe('SavedQueriesTable', () => {
   const {organization} = initializeOrg();
   let getQueriesMock: jest.Mock;
   let deleteQueryMock: jest.Mock;
+  let starQueryMock: jest.Mock;
+  let unstarQueryMock: jest.Mock;
 
   beforeEach(() => {
     getQueriesMock = MockApiClient.addMockResponse({
@@ -32,6 +34,14 @@ describe('SavedQueriesTable', () => {
       url: `/organizations/${organization.slug}/explore/saved/1/`,
       method: 'DELETE',
     });
+    starQueryMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/1/starred/`,
+      method: 'POST',
+    });
+    unstarQueryMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/2/starred/`,
+      method: 'POST',
+    });
   });
 
   afterEach(() => {
@@ -56,7 +66,10 @@ describe('SavedQueriesTable', () => {
         `/organizations/${organization.slug}/explore/saved/`,
         expect.objectContaining({
           method: 'GET',
-          query: expect.objectContaining({sortBy: 'mostPopular', exclude: 'shared'}),
+          query: expect.objectContaining({
+            sortBy: ['starred', 'recentlyViewed'],
+            exclude: 'shared',
+          }),
         })
       )
     );
@@ -70,7 +83,7 @@ describe('SavedQueriesTable', () => {
         expect.objectContaining({
           method: 'GET',
           query: expect.objectContaining({
-            sortBy: 'mostPopular',
+            sortBy: ['starred', 'recentlyViewed'],
             exclude: 'owned',
           }),
         })
@@ -129,6 +142,95 @@ describe('SavedQueriesTable', () => {
     expect(await screen.findByText('Query Name')).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/traces/compare/?dataset=spansRpc&id=1&project=1&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%7D&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%7D&title=Query%20Name'
+    );
+  });
+
+  it('should display starred status', async () => {
+    getQueriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/`,
+      body: [
+        {
+          id: 1,
+          name: 'Query Name',
+          projects: [1],
+          createdBy: {
+            name: 'Test User',
+          },
+          query: [
+            {
+              visualize: [],
+              groupby: [],
+            },
+          ],
+          starred: false,
+        },
+        {
+          id: 2,
+          name: 'Starred Query',
+          projects: [1],
+          createdBy: {
+            name: 'Test User',
+          },
+          query: [
+            {
+              visualize: [],
+              groupby: [],
+            },
+          ],
+          starred: true,
+        },
+      ],
+    });
+    render(<SavedQueriesTable mode="owned" />);
+    await screen.findByText('Query Name');
+    screen.getByText('Starred Query');
+    expect(screen.getByLabelText('Unstar')).toBeInTheDocument();
+    expect(screen.getByLabelText('Star')).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Star'));
+    await waitFor(() =>
+      expect(starQueryMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/explore/saved/1/starred/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            starred: true,
+          },
+        })
+      )
+    );
+    await userEvent.click(screen.getByLabelText('Unstar'));
+    await waitFor(() =>
+      expect(unstarQueryMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/explore/saved/2/starred/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            starred: false,
+          },
+        })
+      )
+    );
+  });
+
+  it('should sort by most popular', async () => {
+    render(<SavedQueriesTable mode="owned" sort="mostPopular" />);
+    await screen.findByText('Query Name');
+    expect(getQueriesMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/explore/saved/`,
+      expect.objectContaining({
+        query: expect.objectContaining({sortBy: ['starred', 'mostPopular']}),
+      })
+    );
+  });
+
+  it('should search for a query', async () => {
+    render(<SavedQueriesTable mode="owned" searchQuery="Query Name" />);
+    await screen.findByText('Query Name');
+    expect(getQueriesMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/explore/saved/`,
+      expect.objectContaining({
+        query: expect.objectContaining({query: 'Query Name'}),
+      })
     );
   });
 });

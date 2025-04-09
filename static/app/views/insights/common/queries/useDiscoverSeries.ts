@@ -16,6 +16,7 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   MetricsProperty,
   SpanFunctions,
@@ -39,7 +40,7 @@ interface UseMetricsSeriesOptions<Fields> {
   interval?: string;
   overriddenRoute?: string;
   referrer?: string;
-  search?: MutableSearch;
+  search?: MutableSearch | string; // TODO: Remove string type and always require MutableSearch
   transformAliasToInputFormat?: boolean;
   yAxis?: Fields;
 }
@@ -48,14 +49,38 @@ export const useSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {},
   referrer: string
 ) => {
-  return useDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_METRICS, referrer);
+  const useEap = useInsightsEap();
+  return useDiscoverSeries<Fields>(
+    options,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
+    referrer
+  );
+};
+
+export const useEAPSeries = <
+  Fields extends
+    | MetricsProperty[]
+    | SpanMetricsProperty[]
+    | SpanIndexedField[]
+    | SpanFunctions[]
+    | string[],
+>(
+  options: UseMetricsSeriesOptions<Fields> = {},
+  referrer: string
+) => {
+  return useDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_EAP_RPC, referrer);
 };
 
 export const useMetricsSeries = <Fields extends MetricsProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {},
   referrer: string
 ) => {
-  return useDiscoverSeries<Fields>(options, DiscoverDatasets.METRICS, referrer);
+  const useEap = useInsightsEap();
+  return useDiscoverSeries<Fields>(
+    options,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
+    referrer
+  );
 };
 
 /**
@@ -68,9 +93,10 @@ export const useSpanIndexedSeries = <
   referrer: string,
   dataset?: DiscoverDatasets
 ) => {
+  const useEap = useInsightsEap();
   return useDiscoverSeries<Fields>(
     options,
-    dataset ?? DiscoverDatasets.SPANS_INDEXED,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : (dataset ?? DiscoverDatasets.SPANS_INDEXED),
     referrer
   );
 };

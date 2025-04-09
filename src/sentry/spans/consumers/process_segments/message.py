@@ -154,7 +154,7 @@ def _detect_performance_problems(segment_span: Span, spans: list[Span], project:
     event_data = _build_shim_event_data(segment_span, spans)
     performance_problems = detect_performance_problems(event_data, project, standalone=True)
 
-    if not options.get("standalone-spans.send-occurrence-to-platform.enable"):
+    if not segment_span.get("_performance_issues_spans"):
         return
 
     # Prepare a slimmer event payload for the occurrence consumer. This event

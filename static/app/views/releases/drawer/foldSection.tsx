@@ -32,6 +32,7 @@ export interface FoldSectionProps {
    * Disable the ability for the user to collapse the section
    */
   preventCollapse?: boolean;
+  ref?: React.Ref<HTMLElement>;
   style?: CSSProperties;
 }
 
@@ -41,7 +42,7 @@ export interface FoldSectionProps {
  * analytics.
  */
 export function FoldSection({
-  ref: forwardedRef,
+  ref,
   children,
   title,
   sectionKey,
@@ -50,9 +51,7 @@ export function FoldSection({
   navScrollMargin = 0,
   initialCollapse = false,
   preventCollapse = false,
-}: FoldSectionProps & {
-  ref?: React.Ref<HTMLElement>;
-}) {
+}: FoldSectionProps) {
   const hasAttemptedScroll = useRef(false);
   const [isCollapsed, setIsCollapsed] = useState(initialCollapse);
 
@@ -99,7 +98,7 @@ export function FoldSection({
   return (
     <Fragment>
       <Section
-        ref={mergeRefs(forwardedRef, scrollToSection)}
+        ref={mergeRefs(ref, scrollToSection)}
         id={sectionKey}
         scrollMargin={navScrollMargin ?? 0}
         role="region"

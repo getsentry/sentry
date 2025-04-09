@@ -505,7 +505,7 @@ export function Control({
 
   const theme = useTheme();
   return (
-    <SelectContext.Provider value={contextValue}>
+    <SelectContext value={contextValue}>
       <ControlWrap {...wrapperProps}>
         {trigger ? (
           trigger(mergeProps(triggerKeyboardProps, overlayTriggerProps), overlayIsOpen)
@@ -541,7 +541,7 @@ export function Control({
                 <MenuHeader size={size}>
                   <MenuTitle>{menuTitle}</MenuTitle>
                   <MenuHeaderTrailingItems>
-                    {loading && <StyledLoadingIndicator size={12} mini />}
+                    {loading && <StyledLoadingIndicator size={12} />}
                     {typeof menuHeaderTrailingItems === 'function'
                       ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
                       : menuHeaderTrailingItems}
@@ -580,7 +580,7 @@ export function Control({
           </StyledOverlay>
         </StyledPositionWrapper>
       </ControlWrap>
-    </SelectContext.Provider>
+    </SelectContext>
   );
 }
 
@@ -641,9 +641,7 @@ const MenuTitle = styled('span')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
-    margin: 0 ${space(0.5)} 0 ${space(1)};
-    height: 12px;
-    width: 12px;
+    margin: 0;
   }
 `;
 

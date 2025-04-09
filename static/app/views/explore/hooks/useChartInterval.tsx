@@ -109,7 +109,7 @@ const MINIMUM_INTERVAL = new GranularityLadder([
 const MAXIMUM_INTERVAL = new GranularityLadder([
   [THIRTY_DAYS, '1d'],
   [TWO_WEEKS, '1d'],
-  [ONE_WEEK, '1d'],
+  [ONE_WEEK, '12h'],
   [FORTY_EIGHT_HOURS, '4h'],
   [SIX_HOURS, '1h'],
   [0, '15m'],

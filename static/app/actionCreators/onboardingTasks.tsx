@@ -1,43 +1,37 @@
-import type {Client} from 'sentry/api';
-import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import type {OnboardingTaskStatus, UpdatedTask} from 'sentry/types/onboarding';
-import type {Organization} from 'sentry/types/organization';
-import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
+import type {UpdatedTask} from 'sentry/types/onboarding';
+import {useMutation} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 /**
- * Update an onboarding task.
- *
- * If no API client is provided the task will not be updated on the server side
- * and will only update in the organization store.
+ * Custom hook to update multiple onboarding tasks in parallel.
  */
-export function updateOnboardingTask(
-  api: Client | null,
-  organization: Organization,
-  updatedTask: UpdatedTask
-) {
-  if (isDemoModeActive()) {
-    updateDemoWalkthroughTask(updatedTask);
-    return;
-  }
-  if (api !== null) {
-    api.requestPromise(`/organizations/${organization.slug}/onboarding-tasks/`, {
-      method: 'POST',
-      data: updatedTask,
-    });
-  }
+export function useUpdateOnboardingTasks() {
+  const api = useApi();
+  const organization = useOrganization();
 
-  const hasExistingTask = organization.onboardingTasks.find(
-    task => task.task === updatedTask.task
-  );
+  return useMutation({
+    mutationFn: async (tasksToUpdate: UpdatedTask[]) => {
+      await Promise.all(
+        tasksToUpdate.map(task =>
+          api.requestPromise(`/organizations/${organization.slug}/onboarding-tasks/`, {
+            method: 'POST',
+            data: task,
+          })
+        )
+      );
+      return tasksToUpdate;
+    },
+    onSuccess: (tasksToUpdate: UpdatedTask[]) => {
+      const updatedOnboardingTasks = organization.onboardingTasks.map(task => {
+        const updatedTask = tasksToUpdate.find(updated => updated.task === task.task);
+        return updatedTask ? {...task, ...updatedTask} : task;
+      });
 
-  const user = ConfigStore.get('user');
-  const onboardingTasks = hasExistingTask
-    ? organization.onboardingTasks.map(task =>
-        task.task === updatedTask.task ? {...task, ...updatedTask} : task
-      )
-    : [...organization.onboardingTasks, {...updatedTask, user} as OnboardingTaskStatus];
-
-  OrganizationStore.onUpdate({onboardingTasks});
+      OrganizationStore.onUpdate({
+        onboardingTasks: updatedOnboardingTasks,
+      });
+    },
+  });
 }

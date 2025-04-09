@@ -21,12 +21,12 @@ import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import Stepper from 'sentry/views/onboarding/components/stepper';
 
-import EncryptBackup from './encryptBackup';
+import {EncryptBackup} from './encryptBackup';
 import GetStarted from './getStarted';
-import InProgress from './inProgress';
-import PublicKey from './publicKey';
+import {InProgress} from './inProgress';
+import {PublicKey} from './publicKey';
 import type {MaybeUpdateRelocationState, RelocationState, StepDescriptor} from './types';
-import UploadBackup from './uploadBackup';
+import {UploadBackup} from './uploadBackup';
 
 type RouteParams = {
   step: string;

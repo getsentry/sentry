@@ -6,6 +6,7 @@ from typing import Any
 
 import orjson
 from django.http import HttpResponse
+from rest_framework import status
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.jira_server.webhooks import (
@@ -27,9 +28,13 @@ class JiraServerRequestParser(BaseRequestParser):
             integration = get_integration_from_token(token)
         except ValueError as e:
             logger.info("%s.no_integration", self.provider, extra={"error": str(e)})
-            return HttpResponse(status=200)
+            return HttpResponse(status=status.HTTP_200_OK)
 
         organizations = self.get_organizations_from_integration(integration=integration)
+
+        if len(organizations) == 0:
+            return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
+
         regions = self.get_regions_from_organizations(organizations=organizations)
 
         try:
@@ -40,7 +45,7 @@ class JiraServerRequestParser(BaseRequestParser):
         # We only process webhooks with changelogs
         if not data.get("changelog"):
             logger.info("missing-changelog", extra={"integration_id": integration.id})
-            return HttpResponse(status=200)
+            return HttpResponse(status=status.HTTP_200_OK)
 
         return self.get_response_from_webhookpayload(
             regions=regions,

@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
@@ -36,6 +37,8 @@ type ReleaseHealthItem = {
 interface Props {
   end: string;
   environments: readonly string[];
+  onMouseOutRelease: (release: string) => void;
+  onMouseOverRelease: (release: string) => void;
   onSelectRelease: (release: string, projectId: string) => void;
   projects: readonly number[];
   start: string;
@@ -45,9 +48,9 @@ type ReleaseHealthGridItem = Pick<ReleaseHealthItem, 'date' | 'release' | 'error
 type Column = GridColumnHeader<keyof ReleaseHealthGridItem>;
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
-  {key: 'release', name: 'release', width: 400},
+  {key: 'release', name: 'release', width: 320},
   {key: 'error_count', name: 'new issues', width: 110},
-  {key: 'date', name: 'created'},
+  {key: 'date', name: 'created', width: 200},
 ];
 
 /**
@@ -61,8 +64,11 @@ export function ReleaseDrawerTable({
   environments,
   projects,
   start,
+  onMouseOverRelease,
+  onMouseOutRelease,
   onSelectRelease,
 }: Props) {
+  const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -133,6 +139,12 @@ export function ReleaseDrawerTable({
         return (
           <ReleaseLink
             to="#"
+            onMouseOver={() => {
+              onMouseOverRelease(dataRow.release);
+            }}
+            onMouseOut={() => {
+              onMouseOutRelease(dataRow.release);
+            }}
             onClick={e => {
               e.preventDefault();
               onSelectRelease(String(value), String(dataRow.project_id));
@@ -174,11 +186,19 @@ export function ReleaseDrawerTable({
             location,
             organization,
             unit: meta.units[column.key],
+            theme,
           })}
         </CellWrapper>
       );
     },
-    [organization, location, onSelectRelease]
+    [
+      organization,
+      location,
+      onSelectRelease,
+      onMouseOutRelease,
+      onMouseOverRelease,
+      theme,
+    ]
   );
 
   const tableEmptyMessage = (

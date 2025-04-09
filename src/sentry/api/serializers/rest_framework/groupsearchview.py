@@ -66,6 +66,7 @@ class ViewValidator(serializers.Serializer):
 
 
 class GroupSearchViewValidator(serializers.Serializer):
+    # TODO(msun): Remove min_length when tabbed views are removed
     views = serializers.ListField(
         child=ViewValidator(), required=True, min_length=1, max_length=MAX_VIEWS
     )

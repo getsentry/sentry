@@ -61,6 +61,7 @@ import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
 import {useMetricSessionStats} from 'sentry/views/issueDetails/metricIssues/useMetricSessionStats';
 
@@ -335,16 +336,19 @@ export default function MetricChart({
         totalDuration,
         waitingForDataDuration,
         chartOption,
-      } = getMetricAlertChartOption({
-        timeseriesData,
-        rule,
-        seriesName: formattedAggregate,
-        incidents,
-        anomalies,
-        showWaitingForData:
-          shouldShowOnDemandMetricAlertUI(organization) && isOnDemandAlert,
-        handleIncidentClick,
-      });
+      } = getMetricAlertChartOption(
+        {
+          timeseriesData,
+          rule,
+          seriesName: formattedAggregate,
+          incidents,
+          anomalies,
+          showWaitingForData:
+            shouldShowOnDemandMetricAlertUI(organization) && isOnDemandAlert,
+          handleIncidentClick,
+        },
+        theme
+      );
 
       const comparisonSeriesName = capitalize(
         COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta)
@@ -456,6 +460,11 @@ export default function MetricChart({
       rule,
       timePeriod,
       referrer: 'api.alerts.alert-rule-chart',
+      samplingMode:
+        organization.features.includes('visibility-explore-progressive-loading') &&
+        rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+          ? SAMPLING_MODE.BEST_EFFORT
+          : undefined,
     },
     {enabled: !shouldUseSessionsStats}
   );
@@ -574,7 +583,7 @@ export function getMetricChartTooltipFormatter({
         )}</strong></span></div>`,
       `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span>${pointYFormatted}</div>`,
       comparisonSeries &&
-        `<div><span class="tooltip-label">${comparisonSeries.marker} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
+        `<div><span class="tooltip-label">${comparisonSeries.marker as string} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
       `</div>`,
       `<div class="tooltip-footer">`,
       `<span>${startTime} &mdash; ${endTime}</span>`,
@@ -614,7 +623,7 @@ const StyledInlineContainer = styled(InlineContainer)`
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.formText};
+  background: ${p => p.theme.subText};
   height: ${space(1)};
   margin-right: ${space(0.5)};
 `;

@@ -4,12 +4,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {DomainViewHeader} from 'sentry/views/insights/pages/domainViewHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useOrganization');
 
 const useLocationMock = jest.mocked(useLocation);
 
@@ -23,7 +21,6 @@ describe('DomainViewHeader', function () {
     useLocationMock.mockReturnValue({
       pathname: '/organizations/org-slug/insights/frontend/',
     } as Location);
-    jest.mocked(useOrganization).mockReturnValue(organization);
   });
 
   it('renders', () => {
@@ -33,7 +30,8 @@ describe('DomainViewHeader', function () {
         domainTitle="domainTitle"
         modules={[ModuleName.HTTP]}
         selectedModule={undefined}
-      />
+      />,
+      {organization}
     );
 
     expect(screen.getByText('domainTitle')).toBeInTheDocument();
@@ -59,14 +57,15 @@ describe('DomainViewHeader', function () {
         domainTitle="domainTitle"
         modules={[ModuleName.HTTP]}
         selectedModule={undefined}
-      />
+      />,
+      {organization}
     );
 
     const overviewTab = screen.getByRole('tab', {name: 'Overview'});
     const networkRequestsTab = screen.getByRole('tab', {name: 'Network Requests'});
     expect(overviewTab.firstChild).toHaveAttribute(
       'href',
-      '/domainBaseUrl?environment=prod&project=1&statsPeriod=14d'
+      '/mock-pathname/domainBaseUrl?environment=prod&project=1&statsPeriod=14d'
     );
     expect(networkRequestsTab.firstChild).toHaveAttribute(
       'href',
@@ -75,14 +74,15 @@ describe('DomainViewHeader', function () {
   });
 
   it('does not show network requests without features', () => {
-    jest.mocked(useOrganization).mockReturnValue(OrganizationFixture());
+    const organizationWithoutFeatures = OrganizationFixture();
     render(
       <DomainViewHeader
         domainBaseUrl="domainBaseUrl"
         domainTitle="domainTitle"
         modules={[ModuleName.HTTP]}
         selectedModule={undefined}
-      />
+      />,
+      {organization: organizationWithoutFeatures}
     );
 
     expect(screen.getByText('domainTitle')).toBeInTheDocument();
@@ -98,7 +98,8 @@ describe('DomainViewHeader', function () {
         modules={[ModuleName.HTTP]}
         selectedModule={undefined}
         hasOverviewPage={false}
-      />
+      />,
+      {organization}
     );
 
     expect(screen.getByText('domainTitle')).toBeInTheDocument();
@@ -114,12 +115,13 @@ describe('DomainViewHeader', function () {
         modules={[ModuleName.HTTP, ModuleName.MOBILE_VITALS]}
         selectedModule={undefined}
         hasOverviewPage={false}
-      />
+      />,
+      {organization}
     );
-    expect(screen.getByRole('tab', {name: 'Mobile Vitals New'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Mobile Vitals new'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Network Requests'})).toBeInTheDocument();
     expect(
-      screen.queryByRole('tab', {name: 'Network Requests New'})
+      screen.queryByRole('tab', {name: 'Network Requests new'})
     ).not.toBeInTheDocument();
   });
 });

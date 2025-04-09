@@ -1,8 +1,8 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import Link from 'sentry/components/links/link';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -14,6 +14,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
+import {Referrer} from 'sentry/views/insights/pages/backend/laravel/referrers';
 import {
   ModalChartContainer,
   ModalTableWrapper,
@@ -31,6 +32,7 @@ function isCacheHitError(error: RequestError | null) {
   );
 }
 export function CachesWidget({query}: {query?: string}) {
+  const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
 
@@ -53,6 +55,7 @@ export function CachesWidget({query}: {query?: string}) {
           sort: '-cache_miss_rate()',
           useRpc: 1,
           per_page: 4,
+          referrer: Referrer.CACHE_CHART,
         },
       },
     ],
@@ -131,7 +134,7 @@ export function CachesWidget({query}: {query?: string}) {
     cachesRequest.data.data.length > 0 &&
     timeSeries.length > 0;
 
-  const colorPalette = getChartColorPalette(timeSeries.length - 2);
+  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
 
   const visualization = (
     <WidgetVisualizationStates
@@ -141,6 +144,7 @@ export function CachesWidget({query}: {query?: string}) {
       emptyMessage={<HighestCacheMissRateTransactionsWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
+        showLegend: 'never',
         plottables: timeSeries.map(
           (ts, index) =>
             new Line(convertSeriesToTimeseries(ts), {color: colorPalette[index]})
@@ -166,7 +170,11 @@ export function CachesWidget({query}: {query?: string}) {
             </div>
             <div>
               <Link
-                to={`/insights/backend/caches?project=${item['project.id']}&transaction=${item.transaction}`}
+                to={
+                  organization.features.includes('insights-addon-modules')
+                    ? `/insights/backend/caches?project=${item['project.id']}&transaction=${item.transaction}`
+                    : `/insights/backend/caches`
+                }
               >
                 {item.transaction}
               </Link>

@@ -163,6 +163,7 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
         }
 
         const newIds = [...prevSelectedIds, repoId];
+        setSearchQuery('');
         setTimeout(() => savePreferencesToServer(newIds), 500);
         return newIds;
       });
@@ -171,7 +172,7 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
         restoreScrollPosition(scrollPosition);
       }, 0);
     },
-    [saveScrollPosition, restoreScrollPosition, savePreferencesToServer]
+    [saveScrollPosition, restoreScrollPosition, savePreferencesToServer, setSearchQuery]
   );
 
   const removeRepository = useCallback(
@@ -249,7 +250,7 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
     }, [repositories, selectedRepoIds, searchQuery, showAddRepositories]);
 
   const sectionTitle = showAddRepositories
-    ? t('Add repositories')
+    ? t('Add Repositories')
     : selectedRepoIds.length === 0
       ? t('No Repositories Selected')
       : selectedRepoIds.length === 1
@@ -312,8 +313,8 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
       <Button
         {...triggerProps}
         size="xs"
-        title={t('Autofix Settings')}
-        aria-label={t('Autofix Settings')}
+        title={t('Project Settings for Autofix')}
+        aria-label={t('Project Settings for Autofix')}
         icon={<IconSettings />}
       />
 
@@ -332,11 +333,16 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
             <div {...keyboardProps}>
               <ContentContainer ref={contentRef} className="scrollable-content">
                 <ContentHeader>
-                  <ContentTitle>{t('Autofix Settings')}</ContentTitle>
+                  <ContentTitle>
+                    {t(
+                      'Configure Autofix for %s',
+                      project.slug.toUpperCase().slice(0, 1) + project.slug.slice(1)
+                    )}
+                  </ContentTitle>
                 </ContentHeader>
                 {showSaveNotice && (
                   <SaveNotice>
-                    <IconInfo size="sm" color="warningText" />
+                    <IconInfo size="md" />
                     {t(
                       'Changes will apply to the next run. Hit "Start Over" then start a new run for Autofix to use your changes.'
                     )}
@@ -348,7 +354,7 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
                     {!showAddRepositories && (
                       <QuestionTooltip
                         title={t(
-                          'Below are the repositories that Autofix will work on. Autofix will only be able to see code and make PRs to the repositories that you select here.'
+                          'Below are the repositories that Autofix will work on. Autofix will only be able to see code from and make PRs to the repositories that you select here.'
                         )}
                         size="sm"
                       />
@@ -374,7 +380,7 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
                     }
                     onClick={toggleAddRepositoriesView}
                   >
-                    {showAddRepositories ? t('Back to selected') : t('Add repositories')}
+                    {showAddRepositories ? t('Back to Selected') : t('Add Repos')}
                   </AddReposButton>
                 </SectionHeader>
                 {showAddRepositories && (
@@ -388,6 +394,7 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
                         type="text"
                         placeholder={t('Search repositories...')}
                         value={searchQuery}
+                        autoFocus
                         onChange={handleSearchChange}
                       />
                     </InputGroup>
@@ -395,7 +402,7 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
                 )}
                 {isFetchingRepositories || isLoadingPreferences ? (
                   <LoadingContainer>
-                    <StyledLoadingIndicator size={48} />
+                    <StyledLoadingIndicator size={36} />
                     <LoadingMessage>
                       {t('Loading all your messy repositories...')}
                     </LoadingMessage>
@@ -577,9 +584,9 @@ const SaveNotice = styled('div')`
   gap: ${space(1)};
   padding: ${space(1.5)};
   margin-bottom: ${space(1.5)};
-  background-color: ${p => p.theme.yellow100};
-  border: 1px solid ${p => p.theme.yellow200};
+  background-color: ${p => p.theme.alert.warning.backgroundLight};
+  border: 1px solid ${p => p.theme.alert.warning.border};
   border-radius: ${p => p.theme.borderRadius};
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.alert.warning.color};
 `;

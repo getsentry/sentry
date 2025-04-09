@@ -7,7 +7,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
-import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
+import {useScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';

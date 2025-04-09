@@ -10,6 +10,7 @@ import {
   useState,
 } from 'react';
 import {flushSync} from 'react-dom';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
@@ -127,6 +128,7 @@ function clampHeight(height: number) {
 }
 
 export function TraceWaterfall(props: TraceWaterfallProps) {
+  const theme = useTheme();
   const api = useApi();
   const filters = usePageFilters();
   const {projects} = useProjects();
@@ -200,7 +202,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         span_list: {width: 1 - traceState.preferences.list.width},
       },
       traceScheduler,
-      traceView
+      traceView,
+      theme
     );
     // We only care about initial state when we initialize the view manager
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1014,7 +1017,7 @@ export const TraceGrid = styled('div')<{
   --unknown: ${p => p.theme.gray300};
   --profile: ${p => p.theme.purple300};
   --autogrouped: ${p => p.theme.blue300};
-  --performance-issue: ${p => p.theme.blue300};
+  --occurence: ${p => p.theme.blue300};
   --panel-height: ${DEFAULT_HEIGHT}px;
 
   background-color: ${p => p.theme.background};

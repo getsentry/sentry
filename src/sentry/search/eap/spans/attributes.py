@@ -1,3 +1,5 @@
+from typing import Literal
+
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
 
 from sentry.search.eap import constants
@@ -140,17 +142,17 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ),
         ResolvedAttribute(
             public_alias="profiler.id",
-            internal_name="profiler_id",
+            internal_name="sentry.profiler_id",
             search_type="string",
         ),
         ResolvedAttribute(
             public_alias="thread.id",
-            internal_name="thread.id",
+            internal_name="sentry.thread.id",
             search_type="string",
         ),
         ResolvedAttribute(
             public_alias="thread.name",
-            internal_name="thread.name",
+            internal_name="sentry.thread.name",
             search_type="string",
         ),
         ResolvedAttribute(
@@ -212,6 +214,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias=PRECISE_FINISH_TS,
             internal_name="sentry.end_timestamp",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="received",
+            internal_name="sentry.received",
             search_type="number",
         ),
         ResolvedAttribute(
@@ -294,6 +301,16 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="db.system",
             search_type="string",
             secondary_alias=True,
+        ),
+        ResolvedAttribute(
+            public_alias="sentry.sampling_weight",
+            internal_name="sentry.sampling_weight",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="sentry.sampling_factor",
+            internal_name="sentry.sampling_factor",
+            search_type="number",
         ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("environment"),
@@ -383,6 +400,30 @@ def module_context_constructor(params: SnubaParams) -> VirtualColumnContext:
         to_column_name="span.module",
         value_map=value_map,
     )
+
+
+SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[str, str]] = {
+    "string": {
+        definition.internal_name: definition.public_alias
+        for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type == "string"
+    }
+    | {
+        # sentry.service is the project id as a string, but map to project for convenience
+        "sentry.service": "project",
+    },
+    "number": {
+        definition.internal_name: definition.public_alias
+        for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type != "string"
+    },
+}
+
+SPANS_PRIVATE_ATTRIBUTES: set[str] = {
+    definition.internal_name
+    for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+    if definition.private
+}
 
 
 SPAN_VIRTUAL_CONTEXTS = {

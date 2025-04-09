@@ -21,29 +21,55 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SchemaHintsPageParams} from 'sentry/views/explore/components/schemaHintsList';
 import {addFilterToQuery} from 'sentry/views/explore/components/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 
 type SchemaHintsDrawerProps = SchemaHintsPageParams & {
   hints: Tag[];
+  source: SchemaHintsSources;
 };
 
 function SchemaHintsDrawer({
   hints,
   exploreQuery,
-  setExploreQuery,
+  tableColumns,
+  setPageParams,
+  source,
 }: SchemaHintsDrawerProps) {
   const organization = useOrganization();
   const [searchQuery, setSearchQuery] = useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  const [currentQuery, setCurrentQuery] = useState(exploreQuery);
+  const [currentTableColumns, setCurrentTableColumns] = useState(tableColumns);
+
+  const handleQueryAndTableColumnsChange = useCallback(
+    (newQuery: MutableSearch, newTableColumns: string[]) => {
+      setCurrentQuery(newQuery.formatString());
+      setCurrentTableColumns(newTableColumns);
+      setPageParams(
+        source === SchemaHintsSources.LOGS
+          ? {
+              search: newQuery,
+              fields: newTableColumns,
+            }
+          : {
+              query: newQuery.formatString(),
+              fields: newTableColumns,
+            }
+      );
+    },
+    [setPageParams, source]
+  );
+
   const selectedFilterKeys = useMemo(() => {
-    const filterQuery = new MutableSearch(exploreQuery);
+    const filterQuery = new MutableSearch(currentQuery);
     const allKeys = filterQuery.getFilterKeys();
     // When there is a filter with a negation, it stores the negation in the key.
     // To ensure all the keys are represented correctly in the drawer, we must
     // take these into account.
     const keysWithoutNegation = allKeys.map(key => key.replace('!', ''));
     return [...new Set(keysWithoutNegation)];
-  }, [exploreQuery]);
+  }, [currentQuery]);
 
   const sortedSelectedHints = useMemo(() => {
     const sortedKeys = selectedFilterKeys.toSorted((a, b) => {
@@ -90,10 +116,11 @@ function SchemaHintsDrawer({
 
   const handleCheckboxChange = useCallback(
     (hint: Tag) => {
-      const filterQuery = new MutableSearch(exploreQuery);
+      const filterQuery = new MutableSearch(currentQuery);
       if (
-        filterQuery.getFilterKeys().includes(hint.key) ||
-        filterQuery.getFilterKeys().includes(`!${hint.key}`)
+        filterQuery
+          .getFilterKeys()
+          .some(key => key === hint.key || key === `!${hint.key}`)
       ) {
         // remove hint and/or negated hint if it exists
         filterQuery.removeFilter(hint.key);
@@ -106,14 +133,19 @@ function SchemaHintsDrawer({
           hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
         );
       }
-      setExploreQuery(filterQuery.formatString());
+
+      const newTableColumns = currentTableColumns.includes(hint.key)
+        ? currentTableColumns
+        : [...currentTableColumns, hint.key];
+
+      handleQueryAndTableColumnsChange(filterQuery, newTableColumns);
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
         source: 'drawer',
         organization,
       });
     },
-    [exploreQuery, organization, setExploreQuery]
+    [currentQuery, currentTableColumns, handleQueryAndTableColumnsChange, organization]
   );
 
   const noAttributesMessage = (
@@ -126,11 +158,13 @@ function SchemaHintsDrawer({
     const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
 
     const hintType =
-      hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
-        ? t('boolean')
-        : hint.kind === FieldKind.MEASUREMENT
-          ? t('number')
-          : t('string');
+      hintFieldDefinition?.valueType === FieldValueType.BOOLEAN ? (
+        <Badge type="default">{t('boolean')}</Badge>
+      ) : hint.kind === FieldKind.MEASUREMENT ? (
+        <Badge type="success">{t('number')}</Badge>
+      ) : (
+        <Badge type="highlight">{t('string')}</Badge>
+      );
 
     return (
       <div ref={virtualizer.measureElement} data-index={index}>
@@ -143,7 +177,7 @@ function SchemaHintsDrawer({
             <Tooltip title={prettifyTagKey(hint.key)} showOnlyOnOverflow skipWrapper>
               <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
             </Tooltip>
-            <Badge>{hintType}</Badge>
+            {hintType}
           </CheckboxLabelContainer>
         </StyledMultipleCheckboxItem>
       </div>
@@ -210,6 +244,7 @@ export const useSchemaHintsOnLargeScreen = () => {
 
 const SchemaHintsHeader = styled('h4')`
   margin: 0;
+  flex-shrink: 0;
 `;
 
 const StyledDrawerBody = styled(DrawerBody)`
@@ -221,6 +256,7 @@ const HeaderContainer = styled('div')`
   justify-content: space-between;
   align-items: center;
   margin-bottom: ${space(2)};
+  gap: ${space(1.5)};
 `;
 
 const CheckboxLabelContainer = styled('div')`
@@ -294,7 +330,6 @@ const VirtualOffset = styled('div')<{offset: number}>`
 `;
 
 const SearchInput = styled(InputGroup.Input)`
-  border: 0;
   box-shadow: unset;
   color: inherit;
 `;

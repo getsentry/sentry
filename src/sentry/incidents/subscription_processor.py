@@ -46,6 +46,7 @@ from sentry.incidents.utils.process_update_helpers import (
 )
 from sentry.incidents.utils.types import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    MetricDetectorUpdate,
     QuerySubscriptionUpdate,
 )
 from sentry.models.project import Project
@@ -396,14 +397,7 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return
 
-        if features.has(
-            "organizations:workflow-engine-metric-alert-processing",
-            self.subscription.project.organization,
-        ):
-            data_packet = DataPacket[QuerySubscriptionUpdate](
-                source_id=str(self.subscription.id), packet=subscription_update
-            )
-            process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
+        aggregation_value = self.get_aggregation_value(subscription_update, self.alert_rule)
 
         self.last_update = subscription_update["timestamp"]
 
@@ -421,7 +415,20 @@ class SubscriptionProcessor:
                 },
             )
 
-        aggregation_value = self.get_aggregation_value(subscription_update, self.alert_rule)
+        if features.has(
+            "organizations:workflow-engine-metric-alert-processing",
+            self.subscription.project.organization,
+        ):
+            packet = MetricDetectorUpdate(
+                entity=subscription_update.get("entity", ""),
+                subscription_id=subscription_update["subscription_id"],
+                values={"value": aggregation_value},
+                timestamp=self.last_update,
+            )
+            data_packet = DataPacket[MetricDetectorUpdate](
+                source_id=str(self.subscription.id), packet=packet
+            )
+            process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 
         has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", self.subscription.project.organization
@@ -786,16 +793,13 @@ class SubscriptionProcessor:
 
         # Schedule the actions to be fired
         for action in actions_to_fire:
-            transaction.on_commit(
-                handle_trigger_action.s(
-                    action_id=action.id,
-                    incident_id=incident.id,
-                    project_id=self.subscription.project_id,
-                    method=method,
-                    new_status=new_status,
-                    metric_value=metric_value,
-                ).delay,
-                router.db_for_write(AlertRule),
+            self._schedule_trigger_action(
+                action_id=action.id,
+                incident_id=incident.id,
+                project_id=self.subscription.project_id,
+                method=method,
+                new_status=new_status,
+                metric_value=metric_value,
             )
 
         if features.has("organizations:metric-issue-poc", self.alert_rule.organization):
@@ -803,6 +807,27 @@ class SubscriptionProcessor:
                 incident=incident,
                 metric_value=metric_value,
             )
+
+    def _schedule_trigger_action(
+        self,
+        action_id: int,
+        incident_id: int,
+        project_id: int,
+        method: str,
+        new_status: int,
+        metric_value: float,
+    ) -> None:
+        transaction.on_commit(
+            lambda: handle_trigger_action.delay(
+                action_id=action_id,
+                incident_id=incident_id,
+                project_id=project_id,
+                method=method,
+                new_status=new_status,
+                metric_value=metric_value,
+            ),
+            using=router.db_for_write(AlertRule),
+        )
 
     def handle_incident_severity_update(self) -> None:
         if self.active_incident:

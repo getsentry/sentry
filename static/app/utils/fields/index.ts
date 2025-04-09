@@ -145,6 +145,7 @@ export enum FieldValueType {
   SIZE = 'size',
   RATE = 'rate',
   PERCENT_CHANGE = 'percent_change',
+  SCORE = 'score',
 }
 
 export enum WebVital {
@@ -821,13 +822,13 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
 
 // TODO: Extend the two lists below with more options upon backend support
 export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
-  SpanIndexedField.SPAN_DURATION,
+  SpanIndexedField.SPAN_DURATION, // DO NOT RE-ORDER: the first element is used as the default
   SpanIndexedField.SPAN_SELF_TIME,
 ];
 
 export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
+  AggregationKey.COUNT, // DO NOT RE-ORDER: the first element is used as the default
   AggregationKey.AVG,
-  AggregationKey.COUNT,
   AggregationKey.P50,
   AggregationKey.P75,
   AggregationKey.P90,
@@ -2370,11 +2371,9 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
 export enum FeedbackFieldKey {
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
-  EMAIL = 'contact_email',
   LOCALE_LANG = 'locale.lang',
   LOCALE_TIMEZONE = 'locale.timezone',
   MESSAGE = 'message',
-  NAME = 'name',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
   URL = 'url',
@@ -2389,7 +2388,6 @@ export const FEEDBACK_FIELDS = [
   FieldKey.DEVICE_MODEL_ID,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
-  FeedbackFieldKey.EMAIL,
   FieldKey.ENVIRONMENT,
   FieldKey.ID,
   FieldKey.IS,
@@ -2397,15 +2395,13 @@ export const FEEDBACK_FIELDS = [
   FeedbackFieldKey.LOCALE_LANG,
   FeedbackFieldKey.LOCALE_TIMEZONE,
   FeedbackFieldKey.MESSAGE,
-  FeedbackFieldKey.NAME,
   FeedbackFieldKey.OS_NAME,
   FeedbackFieldKey.OS_VERSION,
-  FieldKey.PLATFORM,
+  FieldKey.PLATFORM_NAME,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
   FieldKey.TIMESTAMP,
   FieldKey.TRACE,
-  FieldKey.TRANSACTION,
   FeedbackFieldKey.URL,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
@@ -2424,11 +2420,6 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FeedbackFieldKey.EMAIL]: {
-    desc: t('Contact email of the user writing the feedback'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [FeedbackFieldKey.LOCALE_LANG]: {
     desc: t('Language preference of the user'),
     kind: FieldKind.FIELD,
@@ -2440,14 +2431,10 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FeedbackFieldKey.MESSAGE]: {
-    desc: t('Message written by the user providing feedback'),
+    desc: t('Message written by the user providing feedback.'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-  },
-  [FeedbackFieldKey.NAME]: {
-    desc: t('Name of the user writing feedback'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+    allowWildcard: true,
   },
   [FeedbackFieldKey.OS_NAME]: {
     desc: t('Name of the operating system'),
@@ -2526,6 +2513,16 @@ export const getFieldDefinition = (
       if (key in LOG_FIELD_DEFINITIONS) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return LOG_FIELD_DEFINITIONS[key];
+      }
+
+      // In EAP we have numeric tags that can be passed as parameters to
+      // aggregate functions. We assign value type based on kind, so that we can filter
+      // on them when suggesting function parameters.
+      if (kind === FieldKind.MEASUREMENT) {
+        return {
+          kind: FieldKind.FIELD,
+          valueType: FieldValueType.NUMBER,
+        };
       }
 
       if (kind === FieldKind.TAG) {

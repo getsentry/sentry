@@ -51,7 +51,7 @@ export type RawSpanType = {
     'avg(span.self_time)'?: number;
   };
   status?: string;
-  tags?: {[key: string]: string};
+  tags?: Record<string, string>;
 };
 
 export type AggregateSpanType = RawSpanType & {
@@ -174,7 +174,7 @@ export type EnhancedProcessedSpanType =
     } & SpanSiblingGroupProps);
 
 // map span_id to children whose parent_span_id is equal to span_id
-export type SpanChildrenLookupType = {[span_id: string]: SpanType[]};
+export type SpanChildrenLookupType = Record<string, SpanType[]>;
 
 export type ParsedTraceType = {
   childSpans: SpanChildrenLookupType;
@@ -226,6 +226,10 @@ export type TraceContextType = {
   total?: number;
   trace_id?: string;
   type?: 'trace';
+};
+
+export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
+  span_id: string; // TODO: Remove this temporary type.
 };
 
 type SpanTreeDepth = number;

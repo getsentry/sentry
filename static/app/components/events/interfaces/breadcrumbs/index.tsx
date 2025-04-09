@@ -23,7 +23,7 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 import SearchBarAction from '../searchBarAction';
 
-import Level from './breadcrumb/level';
+import {Level} from './breadcrumb/level';
 import Type from './breadcrumb/type';
 import Breadcrumbs from './breadcrumbs';
 import {getVirtualCrumb, transformCrumbs} from './utils';

@@ -1,4 +1,5 @@
 import {useCallback, useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
@@ -35,6 +36,7 @@ export function MetricRulesEdit({
   onChangeTitle,
   ...props
 }: Props) {
+  const theme = useTheme();
   const navigate = useNavigate();
 
   const {
@@ -101,6 +103,7 @@ export function MetricRulesEdit({
 
   return (
     <RuleForm
+      theme={theme}
       {...props}
       // HACK: gnarly workaround to force the component to re-render when rule updates
       // Remove this once the RuleForm component is refactored to use `react-query`

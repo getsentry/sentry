@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
@@ -26,6 +27,7 @@ type Props = {
 
 export function TraceLevelOpsBreakdown({metaQueryResults, isTraceLoading}: Props) {
   const hasNewTraceUi = useHasTraceNewUi();
+  const theme = useTheme();
 
   if (!hasNewTraceUi || metaQueryResults.status === 'error') {
     return null;
@@ -48,7 +50,7 @@ export function TraceLevelOpsBreakdown({metaQueryResults, isTraceLoading}: Props
         .slice(0, 4)
         .map(([op, count]) => {
           const percentage = count / span_count;
-          const color = pickBarColor(op);
+          const color = pickBarColor(op, theme);
           const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
 
           return (

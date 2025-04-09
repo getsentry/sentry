@@ -1,7 +1,6 @@
 import {dropUndefinedKeys} from '@sentry/core';
 import type {Location, LocationDescriptor, Path} from 'history';
 
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import type {Organization} from 'sentry/types/organization';
 import type {Trace} from 'sentry/types/profiling/core';
 import type {Project} from 'sentry/types/project';
@@ -9,6 +8,7 @@ import {
   isContinuousProfileReference,
   isTransactionProfileReference,
 } from 'sentry/utils/profiling/guards/profile';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 const LEGACY_PROFILING_BASE_PATHNAME = 'profiling';
 const PROFILING_BASE_PATHNAME = 'explore/profiling';
@@ -223,21 +223,23 @@ export function generateProfileRouteFromProfileReference({
   reference,
   query,
 }: {
-  frameName: string;
-  framePackage: string | undefined;
   organization: Organization;
   projectSlug: Project['slug'];
   reference: Profiling.BaseProfileReference | Profiling.ProfileReference;
+  frameName?: string;
+  framePackage?: string;
   query?: Location['query'];
 }): LocationDescriptor {
   if (typeof reference === 'string') {
-    return generateProfileFlamechartRouteWithHighlightFrame({
+    return generateProfileFlamechartRouteWithQuery({
       organization,
       projectSlug,
       profileId: reference,
-      frameName,
-      framePackage,
-      query,
+      query: {
+        ...query,
+        frameName,
+        framePackage,
+      },
     });
   }
 

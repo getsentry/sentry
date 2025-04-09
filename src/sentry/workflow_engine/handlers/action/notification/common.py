@@ -1,24 +1,5 @@
 from sentry.notifications.models.notificationaction import ActionTarget
 
-# TODO(iamrajjoshi): This should be removed once I define the config schemas for each action type
-GENERIC_ACTION_CONFIG_SCHEMA = {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "description": "The configuration schema for Notification Actions",
-    "type": "object",
-    "properties": {
-        "target_identifier": {
-            "type": ["string", "null"],
-        },
-        "target_display": {
-            "type": ["string", "null"],
-        },
-        "target_type": {
-            "type": ["integer", "null"],
-            "enum": [*ActionTarget] + [None],
-        },
-    },
-}
-
 MESSAGING_ACTION_CONFIG_SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "description": "The configuration schema for a Messaging Action",

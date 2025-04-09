@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import atexit
+import contextlib
 import dataclasses
 import logging
 import multiprocessing
@@ -9,6 +10,7 @@ import signal
 import sys
 import threading
 import time
+from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import ForkProcess
 from multiprocessing.synchronize import Event
@@ -27,16 +29,20 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
     TaskActivationStatus,
 )
+from sentry_sdk.consts import OP, SPANDATA, SPANSTATUS
 
 from sentry.taskworker.client import TaskworkerClient
 from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER, DEFAULT_WORKER_QUEUE_SIZE
 from sentry.taskworker.registry import taskregistry
+from sentry.taskworker.state import clear_current_task, current_task, set_current_task
 from sentry.taskworker.task import Task
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
 
 mp_context = multiprocessing.get_context("fork")
 logger = logging.getLogger("sentry.taskworker.worker")
+
+AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
 
 
 @dataclasses.dataclass
@@ -47,7 +53,22 @@ class ProcessingResult:
     status: TaskActivationStatus.ValueType
 
 
-AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
+@contextlib.contextmanager
+def timeout_alarm(seconds: int, handler: Callable[[int, object], None]) -> Generator[None]:
+    """
+    Context manager to handle SIGALRM handlers
+
+    To prevent tasks from consuming a worker forever, we set a timeout
+    alarm that will interrupt tasks that run longer than
+    their processing_deadline.
+    """
+    original = signal.signal(signal.SIGALRM, handler)
+    try:
+        signal.alarm(seconds)
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, original)
 
 
 def get_at_most_once_key(namespace: str, taskname: str, task_id: str) -> str:
@@ -82,34 +103,28 @@ def child_worker(
     for module in settings.TASKWORKER_IMPORTS:
         __import__(module)
 
-    current_activation: TaskActivation | None = None
     processed_task_count = 0
 
-    def handle_alarm(signum: int, frame: Any) -> None:
+    def handle_alarm(signum: int, frame: object) -> None:
         """
         Handle SIGALRM
 
         If we hit an alarm in a child, we need to push a result
         and terminate the child.
         """
-        nonlocal current_activation, processed_tasks
-
-        if current_activation:
+        current = current_task()
+        if current:
             processed_tasks.put(
-                ProcessingResult(
-                    task_id=current_activation.id, status=TASK_ACTIVATION_STATUS_FAILURE
-                )
+                ProcessingResult(task_id=current.id, status=TASK_ACTIVATION_STATUS_FAILURE)
             )
             metrics.incr(
                 "taskworker.worker.processing_deadline_exceeded",
                 tags={
-                    "namespace": current_activation.namespace,
-                    "taskname": current_activation.taskname,
+                    "namespace": current.namespace,
+                    "taskname": current.taskname,
                 },
             )
         sys.exit(1)
-
-    signal.signal(signal.SIGALRM, handle_alarm)
 
     while True:
         if max_task_count and processed_task_count >= max_task_count:
@@ -153,18 +168,15 @@ def child_worker(
                 )
                 continue
 
-        current_activation = activation
+        set_current_task(activation)
 
-        # Set an alarm for the processing_deadline_duration
-        signal.alarm(activation.processing_deadline_duration)
-
-        execution_start_time = time.time()
         next_state = TASK_ACTIVATION_STATUS_FAILURE
+        # Use time.time() so we can measure against activation.received_at
+        execution_start_time = time.time()
         try:
-            _execute_activation(task_func, activation)
+            with timeout_alarm(activation.processing_deadline_duration, handle_alarm):
+                _execute_activation(task_func, activation)
             next_state = TASK_ACTIVATION_STATUS_COMPLETE
-            # Clear the alarm
-            signal.alarm(0)
         except Exception as err:
             if task_func.should_retry(activation.retry_state, err):
                 logger.info("taskworker.task.retry", extra={"taskname": activation.taskname})
@@ -175,9 +187,10 @@ def child_worker(
                     "taskworker.task.errored", extra={"type": str(err.__class__), "error": str(err)}
                 )
 
+        clear_current_task()
         processed_task_count += 1
 
-        # Get completion time before pushing to queue to avoid inflating latency metrics.
+        # Get completion time before pushing to queue, so we can measure queue append time
         execution_complete_time = time.time()
         processed_tasks.put(ProcessingResult(task_id=activation.id, status=next_state))
         metrics.distribution(
@@ -225,14 +238,37 @@ def _execute_activation(task_func: Task[Any, Any], activation: TaskActivation) -
 
     transaction = sentry_sdk.continue_trace(
         environ_or_headers=headers,
-        op="task.taskworker",
+        op="queue.task.taskworker",
         name=f"{activation.namespace}:{activation.taskname}",
+        origin="taskworker",
     )
     with (
         track_memory_usage("taskworker.worker.memory_change"),
         sentry_sdk.start_transaction(transaction),
     ):
-        task_func(*args, **kwargs)
+        transaction.set_data(
+            "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
+        )
+        task_added_time = activation.received_at.ToDatetime().timestamp()
+        latency = time.time() - task_added_time
+
+        with sentry_sdk.start_span(
+            op=OP.QUEUE_PROCESS,
+            name=activation.taskname,
+            origin="taskworker",
+        ) as span:
+            span.set_data(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
+            span.set_data(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
+            span.set_data(SPANDATA.MESSAGING_MESSAGE_RECEIVE_LATENCY, latency)
+            span.set_data(SPANDATA.MESSAGING_MESSAGE_RETRY_COUNT, activation.retry_state.attempts)
+            span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
+
+        try:
+            task_func(*args, **kwargs)
+            transaction.set_status(SPANSTATUS.OK)
+        except Exception:
+            transaction.set_status(SPANSTATUS.INTERNAL_ERROR)
+            raise
 
 
 class TaskWorker:
@@ -342,10 +378,10 @@ class TaskWorker:
         task = self.fetch_task()
         if task:
             try:
-                start_time = time.time()
+                start_time = time.monotonic()
                 self._child_tasks.put(task)
                 metrics.distribution(
-                    "taskworker.worker.child_task.put.duration", time.time() - start_time
+                    "taskworker.worker.child_task.put.duration", time.monotonic() - start_time
                 )
             except queue.Full:
                 logger.warning(
@@ -390,7 +426,9 @@ class TaskWorker:
         """
         task_received = self._task_receive_timing.pop(result.task_id, None)
         if task_received is not None:
-            metrics.distribution("taskworker.worker.complete_duration", time.time() - task_received)
+            metrics.distribution(
+                "taskworker.worker.complete_duration", time.monotonic() - task_received
+            )
 
         if fetch:
             fetch_next = None
@@ -399,7 +437,7 @@ class TaskWorker:
 
             next_task = self._send_update_task(result, fetch_next)
             if next_task:
-                self._task_receive_timing[next_task.id] = time.time()
+                self._task_receive_timing[next_task.id] = time.monotonic()
                 try:
                     self._child_tasks.put(next_task)
                 except queue.Full:
@@ -481,5 +519,5 @@ class TaskWorker:
             return None
 
         self._gettask_backoff_seconds = 0
-        self._task_receive_timing[activation.id] = time.time()
+        self._task_receive_timing[activation.id] = time.monotonic()
         return activation

@@ -20,6 +20,7 @@ type Results = {
   loading: boolean;
   confidence?: Confidence;
   errorMessage?: string;
+  isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
@@ -34,6 +35,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   dashboardFilters?: DashboardFilters;
+  onDataFetchStart?: () => void;
   onDataFetched?: (
     results: Pick<
       Results,
@@ -58,6 +60,7 @@ export function WidgetCardDataLoader({
   tableItemLimit,
   onDataFetched,
   onWidgetSplitDecision,
+  onDataFetchStart,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
@@ -104,12 +107,12 @@ export function WidgetCardDataLoader({
     return (
       <SpansWidgetQueries
         api={api}
-        organization={organization}
         widget={widget}
         selection={selection}
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
+        onDataFetchStart={onDataFetchStart}
       >
         {props => <Fragment>{children({...props})}</Fragment>}
       </SpansWidgetQueries>

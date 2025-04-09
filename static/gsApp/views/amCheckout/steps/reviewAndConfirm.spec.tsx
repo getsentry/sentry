@@ -323,7 +323,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
         },
         name: '',
       },
-      contractPeriodEnd: moment().add(7, 'days').toString(),
+      contractPeriodEnd: moment().add(7, 'days').toISOString(),
     });
     const {preview} = mockPreviewGet(partnerOrg.slug);
     const mockConfirm = mockSubscriptionPut(partnerOrg.slug);
@@ -421,7 +421,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
         },
         name: '',
       },
-      contractPeriodEnd: moment().add(20, 'days').toString(),
+      contractPeriodEnd: moment().add(20, 'days').toISOString(),
     });
     const {preview} = mockPreviewGet(partnerOrg.slug);
     const mockConfirm = mockSubscriptionPut(partnerOrg.slug);
@@ -549,7 +549,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
   it('should render billed through self serve partner copy for effectiveNow', async function () {
     const partnerSub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: moment().add(20, 'days').toString(),
+      contractPeriodEnd: moment().add(20, 'days').toISOString(),
       plan: 'am3_f',
       planTier: PlanTier.AM3,
       isSelfServePartner: true,
@@ -607,7 +607,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
 
     const partnerSub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: moment().add(20, 'days').toString(),
+      contractPeriodEnd: moment().add(20, 'days').toISOString(),
       plan: 'am3_f',
       planTier: PlanTier.AM3,
       isSelfServePartner: true,

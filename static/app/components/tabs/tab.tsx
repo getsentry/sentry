@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabProps} from '@react-aria/tabs';
@@ -58,46 +57,44 @@ export interface BaseTabProps {
    * `variant='filled'` since other variants do not have a border
    */
   borderStyle?: 'solid' | 'dashed';
+  ref?: React.Ref<HTMLLIElement>;
   to?: string;
   variant?: 'flat' | 'filled' | 'floating';
 }
 
-export function BaseTab({
-  ref: forwardedRef,
-  ...props
-}: BaseTabProps & {
-  ref?: React.Ref<HTMLLIElement>;
-}) {
-  const {
-    to,
-    orientation,
-    overflowing,
-    tabProps,
-    hidden,
-    isSelected,
-    variant = 'flat',
-    borderStyle = 'solid',
-    as = 'li',
-  } = props;
-
-  const ref = useObjectRef(forwardedRef);
-  const InnerWrap = useCallback(
-    ({children}: any) =>
-      to ? (
-        <TabLink
-          to={to}
-          onMouseDown={handleLinkClick}
-          onPointerDown={handleLinkClick}
-          orientation={orientation}
-          tabIndex={-1}
-        >
-          {children}
-        </TabLink>
-      ) : (
-        <TabInnerWrap orientation={orientation}>{children}</TabInnerWrap>
-      ),
-    [to, orientation]
+function InnerWrap({
+  children,
+  to,
+  orientation,
+}: Pick<BaseTabProps, 'children' | 'to' | 'orientation'>) {
+  return to ? (
+    <TabLink
+      to={to}
+      onMouseDown={handleLinkClick}
+      onPointerDown={handleLinkClick}
+      orientation={orientation}
+      tabIndex={-1}
+    >
+      {children}
+    </TabLink>
+  ) : (
+    <TabInnerWrap orientation={orientation}>{children}</TabInnerWrap>
   );
+}
+
+export function BaseTab({
+  to,
+  children,
+  ref,
+  orientation,
+  overflowing,
+  tabProps,
+  hidden,
+  isSelected,
+  variant = 'flat',
+  borderStyle = 'solid',
+  as = 'li',
+}: BaseTabProps) {
   if (variant === 'filled') {
     return (
       <FilledTabWrap
@@ -112,7 +109,7 @@ export function BaseTab({
           <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
         )}
         <FilledFocusLayer />
-        {props.children}
+        {children}
       </FilledTabWrap>
     );
   }
@@ -128,7 +125,7 @@ export function BaseTab({
       >
         <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
         <VariantFocusLayer />
-        {props.children}
+        {children}
       </FloatingTabWrap>
     );
   }
@@ -142,13 +139,13 @@ export function BaseTab({
       ref={ref}
       as={as}
     >
-      <InnerWrap>
+      <InnerWrap to={to} orientation={orientation}>
         <StyledInteractionStateLayer
           orientation={orientation}
           higherOpacity={isSelected}
         />
         <FocusLayer orientation={orientation} />
-        {props.children}
+        {children}
         <TabSelectionIndicator orientation={orientation} selected={isSelected} />
       </InnerWrap>
     </TabWrap>
@@ -161,7 +158,7 @@ export function BaseTab({
  * usage in tabs.stories.js
  */
 export function Tab({
-  ref: forwardedRef,
+  ref,
   item,
   state,
   orientation,
@@ -172,14 +169,14 @@ export function Tab({
 }: TabProps & {
   ref?: React.Ref<HTMLLIElement>;
 }) {
-  const ref = useObjectRef(forwardedRef);
+  const objectRef = useObjectRef(ref);
 
   const {
     key,
     rendered,
     props: {to, hidden},
   } = item;
-  const {tabProps, isSelected} = useTab({key, isDisabled: hidden}, state, ref);
+  const {tabProps, isSelected} = useTab({key, isDisabled: hidden}, state, objectRef);
 
   return (
     <BaseTab
@@ -189,7 +186,7 @@ export function Tab({
       hidden={hidden}
       orientation={orientation}
       overflowing={overflowing}
-      ref={ref}
+      ref={objectRef}
       borderStyle={borderStyle}
       variant={variant}
       as={as}

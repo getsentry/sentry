@@ -21,6 +21,11 @@ export enum GroupSearchViewVisibility {
   ORGANIZATION = 'organization',
 }
 
+export enum GroupSearchViewCreatedBy {
+  ME = 'me',
+  OTHERS = 'others',
+}
+
 export type GroupSearchView = {
   environments: string[];
   id: string;
@@ -29,6 +34,7 @@ export type GroupSearchView = {
   projects: number[];
   query: string;
   querySort: IssueSortOptions;
+  starred: boolean;
   timeFilters: PageFilters['datetime'];
   visibility: GroupSearchViewVisibility;
 };
@@ -40,4 +46,13 @@ export interface UpdateGroupSearchViewPayload
   timeFilters: PageFilters['datetime'];
   id?: string;
   isAllProjects?: boolean;
+}
+
+export enum GroupSearchViewSort {
+  VISITED_DESC = '-visited',
+  VISITED_ASC = 'visited',
+  POPULARITY_DESC = '-popularity',
+  POPULARITY_ASC = 'popularity',
+  NAME_ASC = 'name',
+  NAME_DESC = '-name',
 }

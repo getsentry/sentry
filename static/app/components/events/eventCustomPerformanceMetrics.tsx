@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -114,6 +115,7 @@ export function EventCustomPerformanceMetric({
   source,
   isHomepage,
 }: EventCustomPerformanceMetricProps) {
+  const theme = useTheme();
   const {value, unit} = event.measurements?.[name] ?? {};
   if (value === null) {
     return null;
@@ -125,7 +127,7 @@ export function EventCustomPerformanceMetric({
     ? FIELD_FORMATTERS[fieldType].renderFunc(
         name,
         {[name]: renderValue},
-        {location, organization, unit}
+        {location, organization, unit, theme}
       )
     : renderValue;
 
@@ -210,6 +212,7 @@ export function TraceEventCustomPerformanceMetric({
   source,
   isHomepage,
 }: EventCustomPerformanceMetricProps) {
+  const theme = useTheme();
   const {value, unit} = event.measurements?.[name] ?? {};
   if (value === null) {
     return null;
@@ -221,7 +224,7 @@ export function TraceEventCustomPerformanceMetric({
     ? FIELD_FORMATTERS[fieldType].renderFunc(
         name,
         {[name]: renderValue},
-        {location, organization, unit}
+        {location, organization, unit, theme}
       )
     : renderValue;
 

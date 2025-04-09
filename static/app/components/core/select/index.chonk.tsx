@@ -1,11 +1,10 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import omit from 'lodash/omit';
 
-import {Chevron} from 'sentry/components/chevron';
 import {Button} from 'sentry/components/core/button';
 import type {StylesConfig as ReactSelectStylesConfig} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {IconClose} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
@@ -68,7 +67,7 @@ export const getChonkStylesConfig = ({
       background: theme.background,
       border: `1px solid ${theme.border}`,
       boxShadow: theme.dropShadowMedium,
-      borderRadius: theme.borderRadius,
+      borderRadius: theme.formRadius[size].borderRadius,
       transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
       ...(state.isFocused && theme.focusRing),
@@ -76,6 +75,7 @@ export const getChonkStylesConfig = ({
         background: theme.background,
         color: theme.disabled,
         cursor: 'not-allowed',
+        opacity: '60%',
       }),
       ...omit(theme.form[size], 'height'),
       ...(state.isMulti && {
@@ -256,7 +256,7 @@ export function ChonkDropdownIndicator(
 ) {
   return (
     <selectComponents.DropdownIndicator {...props}>
-      <Chevron direction="down" size="medium" />
+      <IconChevron direction="down" size="xs" />
     </selectComponents.DropdownIndicator>
   );
 }
