@@ -227,10 +227,9 @@ function UsageHistoryRow({history, subscription}: RowProps) {
   // Only display categories with billing metric history
   const sortedCategories = sortCategories(categories);
 
-  const hasGifts =
-    Object.values(DataCategory).filter(c => {
-      return !!categories[c]?.free;
-    }).length > 0;
+  const hasGifts = Object.values(DataCategory).some(c => {
+    return !!categories[c]?.free;
+  });
 
   return (
     <StyledPanelItem>

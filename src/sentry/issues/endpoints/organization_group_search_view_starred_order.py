@@ -8,7 +8,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 
@@ -25,17 +24,6 @@ class GroupSearchViewStarredOrderSerializer(serializers.Serializer):
     def validate_view_ids(self, view_ids):
         if len(view_ids) != len(set(view_ids)):
             raise serializers.ValidationError("Single view cannot take up multiple positions")
-
-        gsvs = GroupSearchView.objects.filter(
-            organization=self.context["organization"], id__in=view_ids
-        )
-        # This should never happen, but we can check just in case
-        if any(
-            gsv.user_id != self.context["user"].id
-            and gsv.visibility != GroupSearchViewVisibility.ORGANIZATION
-            for gsv in gsvs
-        ):
-            raise serializers.ValidationError("You do not have access to one or more views")
 
         return view_ids
 
