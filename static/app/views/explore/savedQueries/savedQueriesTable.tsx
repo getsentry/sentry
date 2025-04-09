@@ -99,12 +99,20 @@ export function SavedQueriesTable({
 
   const starQueryHandler = useCallback(
     (id: number, starred: boolean) => {
-      starQuery(id, starred);
       if (starred) {
         setStarredIds(prev => [...prev, id]);
       } else {
         setStarredIds(prev => prev.filter(starredId => starredId !== id));
       }
+      starQuery(id, starred).catch(() => {
+        // If the starQuery call fails, we need to revert the starredIds state
+        addErrorMessage(t('Unable to star query'));
+        if (starred) {
+          setStarredIds(prev => prev.filter(starredId => starredId !== id));
+        } else {
+          setStarredIds(prev => [...prev, id]);
+        }
+      });
     },
     [starQuery]
   );
