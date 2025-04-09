@@ -1,9 +1,7 @@
 import {useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -97,25 +95,20 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
   return (
     <Widget
       Title={
-        <WidgetTitleWrapper>
-          <CompactSelect
-            options={options}
-            value={selectedWidget}
-            onChange={option => setSelectedWidget(option.value as EAPWidgetType)}
-            triggerProps={{borderless: true, size: 'md'}}
-          />
+        <CompactSelect
+          options={options}
+          value={selectedWidget}
+          onChange={option => setSelectedWidget(option.value as EAPWidgetType)}
+          triggerProps={{borderless: true, size: 'zero'}}
+        />
+      }
+      Actions={
+        <Widget.WidgetToolbar>
           <Widget.WidgetDescription title={title} description={description} />
-        </WidgetTitleWrapper>
+        </Widget.WidgetToolbar>
       }
       Visualization={visualization}
       revealActions="always"
     />
   );
 }
-
-const WidgetTitleWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  margin-bottom: ${space(1)};
-`;
