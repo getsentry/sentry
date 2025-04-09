@@ -2675,7 +2675,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert sdk7_event.group is not None
         assert sdk7_event.data.get("main_exception_id") is None
 
-        # In SDK 8 we have exception_ids and main_exception_id
+        # In SDK 8 we have exception_ids
         concurrent_exception["mechanism"] = {"type": "chained", "exception_id": 1, "parent_id": 0}
         runtime_exception["mechanism"] = {
             "type": "UncaughtExceptionHandler",
@@ -2695,7 +2695,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ).save(self.project.id)
         assert sdk8_event.group is not None
         # This is what our customer is seeing
-        assert sdk8_event.group.id != sdk7_event.group.id
+        assert sdk8_event.group.id == sdk7_event.group.id
 
 
 class ReleaseIssueTest(TestCase):

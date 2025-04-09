@@ -392,6 +392,7 @@ class EventManager:
         )
 
         pre_normalize_type = self._data.get("type")
+        # XXX: We reject main_exception_id here, thus, the SDK cannot set it
         self._data = rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
 
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
