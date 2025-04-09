@@ -653,9 +653,11 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             <h6>Product Trials</h6>
             <DetailList>
               {productTrialCategories.map(category => {
-                const categoryName = titleCase(
-                  getPlanCategoryName({plan: customer.planDetails, category})
-                );
+                const categoryName = getPlanCategoryName({
+                  plan: customer.planDetails,
+                  category,
+                  title: true,
+                });
                 return (
                   <DetailLabel key={category} title={categoryName}>
                     <Button
