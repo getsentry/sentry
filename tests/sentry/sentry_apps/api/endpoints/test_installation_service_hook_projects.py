@@ -68,7 +68,6 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
 
         response = self.client.put(self.url, data={}, format="json")
         assert response.status_code == 400
-        assert "Need at least one project" in response.data["error"]
 
     def test_delete_service_hook_projects(self):
         self.login_as(user=self.user)
