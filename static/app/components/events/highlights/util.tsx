@@ -188,7 +188,7 @@ export function getRuntimeLabelAndTooltip(
     return {label: t('Backend'), tooltip: t('Error from Server, Edge or Worker Runtime')};
   }
   if (knownRuntimeType?.isFrontend) {
-    return {label: t('Frontend'), tooltip: t('Error from Client (inside Browser)')};
+    return {label: t('Frontend'), tooltip: t('Error from Client (e.g. Browser)')};
   }
 
   if (
@@ -201,7 +201,7 @@ export function getRuntimeLabelAndTooltip(
     return {label: t('Backend'), tooltip: t('Error from Server, Edge or Worker Runtime')};
   }
   if (event.contexts.browser) {
-    return {label: t('Frontend'), tooltip: t('Error from Client (inside Browser)')};
+    return {label: t('Frontend'), tooltip: t('Error from Client (e.g. Browser)')};
   }
 
   return null;
