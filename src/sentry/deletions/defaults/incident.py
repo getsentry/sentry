@@ -1,5 +1,6 @@
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.incidents.models.incident import Incident
+from sentry.models.groupopenperiod import GroupOpenPeriod
 
 
 class IncidentDeletionTask(ModelDeletionTask[Incident]):
@@ -7,7 +8,19 @@ class IncidentDeletionTask(ModelDeletionTask[Incident]):
         from sentry.incidents.models.incident import IncidentProject
         from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 
-        return [
-            ModelRelation(IncidentGroupOpenPeriod, {"incident_id": instance.id}),
+        model_relations = [
             ModelRelation(IncidentProject, {"incident": instance}),
         ]
+
+        inc_gop = IncidentGroupOpenPeriod.objects.filter(incident_id=instance.id)
+
+        if inc_gop:
+            model_relations.append(
+                ModelRelation(IncidentGroupOpenPeriod, {"incident_id": instance.id})
+            )
+            model_relations.append(
+                ModelRelation(
+                    GroupOpenPeriod, {"id__in": [igop.group_open_period.id for igop in inc_gop]}
+                )
+            )
+        return model_relations
