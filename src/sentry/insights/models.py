@@ -16,8 +16,8 @@ class InsightsStarredTransaction(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    project = FlexibleForeignKey("sentry.Project")
-    organization = FlexibleForeignKey("sentry.Organization")
+    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
+    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
     transaction_name = models.CharField(max_length=255)
 
