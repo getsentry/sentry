@@ -161,7 +161,7 @@ const MemoryChartSeries = memo(
               const seriesTooltips = toArray(values).map(
                 value => `
             <div>
-              <span className="tooltip-label">${value.marker}<strong>${value.seriesName}</strong></span>
+              <span className="tooltip-label">${value.marker as string}<strong>${value.seriesName}</strong></span>
               ${formatBytesBase2((value.data as any)[1])}
             </div>
           `
