@@ -418,7 +418,7 @@ describe('CustomerOverview', function () {
     });
     const productTrialsList = productTrialsHeading.nextElementSibling as HTMLElement;
     expect(productTrialsList).toBeInTheDocument();
-    expect(productTrialsList.tagName).toBe('DL'); // Verify it's the correct element type
+    expect(productTrialsList.tagName).toBe('DL');
 
     // Check within the Transactions section (AM1 only has Transactions trial)
     const transactionsTermElement = within(productTrialsList!).getByText('Transactions:');
