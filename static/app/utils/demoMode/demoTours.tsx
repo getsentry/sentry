@@ -50,7 +50,7 @@ type DemoToursContextType = {
   sidebar: TourContextType<DemoTourStep>;
 };
 
-export const DemoToursContext = createContext<DemoToursContextType | null>(null);
+const DemoToursContext = createContext<DemoToursContextType | null>(null);
 
 export function useDemoTours(tourKey: DemoTour): TourContextType<DemoTourStep> {
   const tourContext = useContext(DemoToursContext);
