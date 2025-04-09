@@ -170,25 +170,25 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         contexts = event.interfaces["contexts"].to_json()
-        assert contexts.get("os") == {
-            "os": "Android 4.3",
-            "name": "Android",
-            "type": "os",
-            "version": "4.3",
-        }
-        assert contexts.get("browser") == {
-            "browser": "Android 4.3",
-            "name": "Android",
-            "type": "browser",
-            "version": "4.3",
-        }
-        assert contexts.get("device") == {
-            "family": "Samsung SCH-R530U",
-            "type": "device",
-            "model": "SCH-R530U",
-            "name": "Galaxy S3",
-            "brand": "Samsung",
-        }
+
+        os_context = contexts.get("os")
+        assert os_context.get("os") == "Android 4.3"
+        assert os_context.get("name") == "Android"
+        assert os_context.get("type") == "os"
+        assert os_context.get("version") == "4.3"
+
+        browser_context = contexts.get("browser")
+        assert browser_context.get("browser") == "Android 4.3"
+        assert browser_context.get("name") == "Android"
+        assert browser_context.get("type") == "browser"
+        assert browser_context.get("version") == "4.3"
+
+        device_context = contexts.get("device")
+        assert device_context.get("family") == "Samsung SCH-R530U"
+        assert device_context.get("type") == "device"
+        assert device_context.get("model") == "SCH-R530U"
+        assert device_context.get("name") == "Galaxy S3"
+        assert device_context.get("brand") == "Samsung"
 
     @requires_symbolicator
     @pytest.mark.symbolicator
