@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -16,6 +17,7 @@ import Pagination from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {
   ContinuousProfilingBetaAlertBanner,
+  ContinuousProfilingBetaSDKAlertBanner,
   ProfilingBetaAlertBanner,
 } from 'sentry/components/profiling/billing/alerts';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
@@ -97,7 +99,10 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
       >
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
-          <ContinuousProfilingBetaAlertBanner organization={organization} />
+          <Feature features="continuous-profiling-beta-ui">
+            <ContinuousProfilingBetaAlertBanner organization={organization} />
+            <ContinuousProfilingBetaSDKAlertBanner />
+          </Feature>
           <ProfilingContentPageHeader />
           <LayoutBody>
             <LayoutMain fullWidth>

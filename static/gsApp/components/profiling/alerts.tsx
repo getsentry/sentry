@@ -1,13 +1,17 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {openAM2ProfilingUpsellModal} from 'getsentry/actionCreators/modal';
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
@@ -372,10 +376,7 @@ function ContinuousProfilingBetaAlertBannerInner({
   organization,
   subscription,
 }: ContinuousProfilingBetaAlertBannerInner) {
-  if (
-    !organization.features.includes('continuous-profiling-beta') ||
-    !organization.features.includes('continuous-profiling-beta-ui')
-  ) {
+  if (!organization.features.includes('continuous-profiling-beta')) {
     return null;
   }
 
@@ -412,7 +413,99 @@ export const ContinuousProfilingBetaAlertBanner = withSubscription(
   ContinuousProfilingBetaAlertBannerInner
 );
 
-const StyledAlert = styled(Alert)`
+export function ContinuousProfilingBetaSDKAlertBanner() {
+  const sdkDeprecationResults = useSDKDeprecations();
+
+  const sdkDeprecations = useMemo(() => {
+    const sdks: Map<string, SDKDeprecation> = new Map();
+
+    for (const sdk of sdkDeprecationResults.data?.data ?? []) {
+      const key = `${sdk.sdkName}:${sdk.sdkVersion}`;
+      sdks.set(key, sdk);
+    }
+
+    return sdks;
+  }, [sdkDeprecationResults.data?.data]);
+
+  if (sdkDeprecations.size <= 0) {
+    return null;
+  }
+
+  return (
+    <Alert.Container>
+      <StyledAlert type="warning" showIcon>
+        {tct(
+          '[bold:Action Needed: Profiling beta period ends May 19, 2025.] Your SDK is out of date. To continue using profiling without interruption, upgrade to the latest version:',
+          {
+            bold: <b />,
+          }
+        )}
+        <SDKDeprecationsContainer>
+          {sdkDeprecations.values().map(sdk => {
+            const key = `${sdk.projectId}-${sdk.sdkName}-${sdk.sdkVersion}`;
+            return (
+              <SDKDeprecationContainer key={key}>
+                <Dot />
+                {tct('[name] minimum version [version]', {
+                  name: <code>{sdk.sdkName}</code>,
+                  version: <code>{sdk.minimumVersion}</code>,
+                })}
+              </SDKDeprecationContainer>
+            );
+          })}
+        </SDKDeprecationsContainer>
+      </StyledAlert>
+    </Alert.Container>
+  );
+}
+
+interface SDKDeprecation {
+  minimumVersion: string;
+  projectId: string;
+  sdkName: string;
+  sdkVersion: string;
+}
+
+function useSDKDeprecations() {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
+  const path = `/organizations/${organization.slug}/sdk-deprecations/`;
+  const options = {
+    query: {
+      project: selection.projects,
+      event_type: 'profile',
+    },
+  };
+
+  return useApiQuery<{data: SDKDeprecation[]}>([path, options], {
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: false,
+  });
+}
+
+const SDKDeprecationsContainer = styled('ul')`
   margin: 0;
+`;
+
+const SDKDeprecationContainer = styled('li')`
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+`;
+
+const Dot = styled('span')`
+  display: inline-block;
+  margin-right: ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  width: ${space(0.5)};
+  height: ${space(0.5)};
+  background-color: ${p => p.theme.textColor};
+`;
+
+const StyledAlert = styled(Alert)`
+  margin: 0 !important;
   border-radius: 0;
 `;
