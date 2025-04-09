@@ -271,26 +271,47 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
 
     def test_get_starred_queries(self):
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
-        model = ExploreSavedQuery.objects.create(
+        model_a = ExploreSavedQuery.objects.create(
             organization=self.org,
             created_by_id=self.user.id,
-            name="Starred query",
+            name="Starred query A",
             query=query,
         )
-        model.set_projects(self.project_ids)
-
+        model_a.set_projects(self.project_ids)
         ExploreSavedQueryStarred.objects.create(
             organization=self.org,
             user_id=self.user.id,
-            explore_saved_query=model,
+            explore_saved_query=model_a,
             position=1,
+        )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            explore_saved_query=model_a,
+            position=1,
+        )
+
+        model_b = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Starred query B",
+            query=query,
+        )
+        model_b.set_projects(self.project_ids)
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            explore_saved_query=model_b,
+            position=2,
         )
 
         with self.feature(self.feature_name):
             response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["name"] == "Starred query"
+        assert (
+            len(response.data) == 1
+        )  # Only one query should be returned because the other query is starred by a different user
+        assert response.data[0]["name"] == "Starred query A"
         assert response.data[0]["starred"] is True
         assert response.data[0]["position"] == 1
 
@@ -385,10 +406,25 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             position=2,
         )
 
+        model_d = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Query D",
+            query=query,
+            last_visited=before_now(minutes=15),
+        )
+        model_d.set_projects(self.project_ids)
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            explore_saved_query=model_d,
+            position=1,
+        )
+
         with self.feature(self.feature_name):
             response = self.client.get(self.url, data={"sortBy": ["starred", "recentlyViewed"]})
         assert response.status_code == 200, response.content
-        assert len(response.data) == 4
+        assert len(response.data) == 5
         assert response.data[0]["name"] == "Query B"
         assert response.data[0]["starred"] is True
         assert response.data[0]["position"] == 2
@@ -401,6 +437,11 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.data[3]["name"] == "Query C"
         assert response.data[3]["starred"] is False
         assert response.data[3]["position"] is None
+        assert response.data[4]["name"] == "Query D"
+        assert (
+            response.data[4]["starred"] is False
+        )  # This should be false because this query is starred by a different user
+        assert response.data[4]["position"] is None
 
     def test_post_require_mode(self):
         with self.feature(self.feature_name):
