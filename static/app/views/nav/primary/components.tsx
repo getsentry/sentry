@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Button, ButtonLabel} from 'sentry/components/core/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link, {type LinkProps} from 'sentry/components/links/link';
+import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -193,6 +193,7 @@ const SidebarListItem = styled('li')`
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
 `;
 
 const SeparatorListItem = styled('li')`
@@ -254,7 +255,6 @@ const ChonkNavLinkIconContainer = chonkStyled('span')`
   align-items: center;
   justify-content: center;
   padding: ${space(1)} ${space(1)};
-  margin-bottom: ${space(0.5)};
   border-radius: ${p => p.theme.radius.lg};
 `;
 
@@ -294,38 +294,23 @@ const NavLinkLabel = styled('div')`
 const ChonkNavLink = chonkStyled(Link, {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
-  width: 100%;
-  position: relative;
   display: flex;
+  position: relative;
+  width: 100%;
   flex-direction: ${p => (p.isMobile ? 'row' : 'column')};
   justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
   align-items: center;
 
   padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : `${space(0.75)} ${space(1.5)}`)};
-  gap: ${p => (p.isMobile ? space(1) : 0)};
 
+  /* On mobile, the buttons are horizontal, so we need a gap between the icon and label */
+  gap: ${p => (p.isMobile ? space(1) : space(0.5))};
+
+  /* Disable default link styles and only apply them to the icon container */
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
-
-  /* Disable default link focus styles */
   outline: none;
   box-shadow: none;
   transition: none;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: ${p => (p.isMobile ? '50%' : '10px')};
-    transform: ${p => (p.isMobile ? 'translateY(-50%)' : 'none')};
-    left: 0px;
-    width: 4px;
-    height: 26px;
-    border-radius: ${p => p.theme.radius.micro};
-    background-color: ${p => p.theme.colors.blue400};
-    transition: opacity 0.1s ease-in-out;
-    opacity: 0;
-  }
 
   &:active,
   &:focus-visible {
@@ -334,10 +319,23 @@ const ChonkNavLink = chonkStyled(Link, {
     color: currentColor;
   }
 
-  &:focus-visible {
-    outline: none;
-    color: currentColor;
+  &::before {
+    content: '';
+    position: absolute;
+    /* We align the active state indicator to the top of the icon container, not to the center of the button */
+    top: ${p => (p.isMobile ? '50%' : '12px')};
+    transform: ${p => (p.isMobile ? 'translateY(-50%)' : 'none')};
+    left: 0px;
+    width: 4px;
+    height: 20px;
+    border-radius: ${p => p.theme.radius.micro};
+    background-color: ${p => p.theme.colors.blue400};
+    transition: opacity 0.1s ease-in-out;
+    opacity: 0;
+  }
 
+  /* Apply focus styles only to the icon container */
+  &:focus-visible {
     ${NavLinkIconContainer} {
       outline: none;
       box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};
@@ -345,37 +343,28 @@ const ChonkNavLink = chonkStyled(Link, {
     }
   }
 
-  &[aria-selected='true'] {
-    &::before {
-      opacity: 1;
-    }
-    color: ${p => p.theme.purple400};
-
-    ${NavLinkIconContainer} {
-      background-color: ${p => p.theme.colors.blue100};
-    }
-  }
-
-  &:hover[aria-selected='true'] {
-    &::before {
-      opacity: 1;
-    }
-    ${NavLinkIconContainer} {
-      background-color: ${p => p.theme.colors.blue100};
-    }
-  }
-
-  &:hover:not([aria-selected='true']) {
+  &:hover {
     color: ${p => p.theme.textColor};
     ${NavLinkIconContainer} {
       background-color: ${p => p.theme.colors.gray100};
     }
   }
-`;
 
-interface NavLinkProps extends LinkProps {
-  isMobile: boolean;
-}
+  &[aria-selected='true'] {
+    color: ${p => p.theme.purple400};
+
+    &::before { opacity: 1; }
+    ${NavLinkIconContainer} {
+      background-color: ${p => p.theme.colors.blue100};
+    }
+
+    &:hover {
+      ${NavLinkIconContainer} {
+        background-color: ${p => p.theme.colors.blue100};
+      }
+    }
+  }
+`;
 
 const StyledNavLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'isMobile',
@@ -420,29 +409,25 @@ const StyledNavLink = styled(Link, {
     `}
 `;
 
-export const NavLink = styled((p: NavLinkProps) => {
-  const theme = useTheme();
-  if (theme.isChonk) {
-    return <ChonkNavLink {...p} />;
-  }
-  return <StyledNavLink {...p} />;
-})``;
+export const NavLink = withChonk(StyledNavLink, ChonkNavLink);
 
 const ChonkNavButton = styled(Button, {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
+  display: flex;
+  align-items: center;
+
+  /* On mobile, the buttons are full width and have a gap between the icon and label */
+  justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
   height: ${p => (p.isMobile ? 'auto' : '44px')};
   width: ${p => (p.isMobile ? '100%' : '44px')};
   padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : undefined)};
-  display: flex;
-  align-items: center;
-  justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
-  line-height: 1;
 
-  /* Disable interactionstatelayer hover */
   ${ButtonLabel} {
-    gap: ${p => (p.isMobile ? space(1) : 0)};
-    span:first-child {
+    gap: ${space(1)};
+
+    /* Disable interactionstatelayer hover */
+    [data-isl] {
       display: none;
     }
   }
@@ -452,6 +437,7 @@ const StyledNavButton = styled('button', {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
   border: none;
+  margin: auto;
   position: relative;
   background: transparent;
 
@@ -463,6 +449,7 @@ interface NavButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
   isMobile: boolean;
 }
 
+// Use a manual theme switch because the types of Button dont seem to play well with withChonk.
 export const NavButton = styled((p: NavButtonProps) => {
   const theme = useTheme();
   if (theme.isChonk) {
@@ -479,8 +466,8 @@ export const NavButton = styled((p: NavButtonProps) => {
 
 export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   position: absolute;
-  top: ${p => (p.isMobile ? `8px` : `calc(50% - 5px)`)};
-  left: ${p => (p.isMobile ? '32px' : `calc(50% + 12px)`)};
+  top: ${p => (p.isMobile ? `8px` : `calc(50% - 12px)`)};
+  left: ${p => (p.isMobile ? '32px' : `calc(50% + 14px)`)};
   transform: translate(-50%, -50%);
   display: block;
   text-align: center;
