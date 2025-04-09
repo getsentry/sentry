@@ -9,12 +9,16 @@ export function useVisitQuery() {
 
   const visitQuery = useCallback(
     async (id: string) => {
-      await api.requestPromise(
-        `/organizations/${organization.slug}/explore/saved/${id}/visit/`,
-        {
-          method: 'POST',
-        }
-      );
+      try {
+        await api.requestPromise(
+          `/organizations/${organization.slug}/explore/saved/${id}/visit/`,
+          {
+            method: 'POST',
+          }
+        );
+      } catch (_err) {
+        // Don't do anything
+      }
     },
     [api, organization.slug]
   );
