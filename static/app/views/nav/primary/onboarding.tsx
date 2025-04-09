@@ -80,9 +80,7 @@ function OnboardingItem({
           {...overlayTriggerProps}
           isMobile={isMobile}
           aria-label={showLabel ? undefined : label}
-          onMouseEnter={() => {
-            refetch();
-          }}
+          onMouseEnter={refetch}
         >
           <InteractionStateLayer />
           <ProgressRingWrapper isMobile={isMobile}>
@@ -111,7 +109,10 @@ function OnboardingItem({
           </ProgressRingWrapper>
           {showLabel ? label : null}
           {pendingCompletionSeen && (
-            <SidebarItemUnreadIndicator data-test-id="pending-seen-indicator" />
+            <SidebarItemUnreadIndicator
+              data-test-id="pending-seen-indicator"
+              isMobile={isMobile}
+            />
           )}
         </NavButton>
       </SidebarItem>

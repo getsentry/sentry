@@ -1,6 +1,4 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import Hook from 'sentry/components/hook';
@@ -13,11 +11,15 @@ import {
   IconSettings,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CODECOV_BASE_URL, COVERAGE_BASE_URL} from 'sentry/views/codecov/settings';
 import {useNavContext} from 'sentry/views/nav/context';
-import {SeparatorItem, SidebarLink} from 'sentry/views/nav/primary/components';
+import {
+  SeparatorItem,
+  SidebarFooterWrapper,
+  SidebarLink,
+  SidebarList,
+} from 'sentry/views/nav/primary/components';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {PrimaryNavigationHelp} from 'sentry/views/nav/primary/help';
 import {PrimaryNavigationOnboarding} from 'sentry/views/nav/primary/onboarding';
@@ -28,21 +30,19 @@ import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 
 function SidebarBody({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
-  return (
-    <SidebarItemList isMobile={layout === NavLayout.MOBILE}>{children}</SidebarItemList>
-  );
+  return <SidebarList isMobile={layout === NavLayout.MOBILE}>{children}</SidebarList>;
 }
 
 function SidebarFooter({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
   return (
     <SidebarFooterWrapper isMobile={layout === NavLayout.MOBILE}>
-      <SidebarItemList
+      <SidebarList
         isMobile={layout === NavLayout.MOBILE}
         compact={layout === NavLayout.SIDEBAR}
       >
         {children}
-      </SidebarItemList>
+      </SidebarList>
     </SidebarFooterWrapper>
   );
 }
@@ -173,38 +173,3 @@ export function PrimaryNavigationItems() {
     </Fragment>
   );
 }
-
-const SidebarItemList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
-  position: relative;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  padding-top: ${space(1)};
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: ${space(0.5)};
-  width: 100%;
-
-  ${p =>
-    !p.isMobile &&
-    css`
-      align-items: center;
-      gap: ${space(0.5)};
-    `}
-
-  ${p =>
-    p.compact &&
-    css`
-      gap: ${space(0.5)};
-    `}
-`;
-
-const SidebarFooterWrapper = styled('div')<{isMobile: boolean}>`
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  margin-top: auto;
-  margin-bottom: ${p => (p.isMobile ? space(1) : 0)};
-`;
