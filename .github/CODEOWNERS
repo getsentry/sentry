@@ -533,6 +533,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/api/helpers/group_index/                        @getsentry/issues
 /src/sentry/api/helpers/source_map_helper.py                @getsentry/issues
 /src/sentry/api/issue_search.py                             @getsentry/issues
+/src/sentry/api/endpoints/organization_pinned_searches.py   @getsentry/issues
 /src/sentry/deletions/defaults/group.py                     @getsentry/issue-detection-backend
 /src/sentry/deletions/tasks/groups.py                       @getsentry/issue-detection-backend
 /src/sentry/event_manager.py                                @getsentry/issue-detection-backend
