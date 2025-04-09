@@ -56,7 +56,7 @@ class TimedeltaSchedule(Schedule):
             raise ValueError("interval must be at least one second")
 
     def monitor_interval(self) -> tuple[int, MonitorConfigScheduleUnit]:
-        time_units = (
+        time_units: tuple[tuple[MonitorConfigScheduleUnit, float], ...] = (
             ("day", 60 * 60 * 24.0),
             ("hour", 60 * 60.0),
             ("minute", 60.0),

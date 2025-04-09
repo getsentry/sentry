@@ -85,8 +85,8 @@ class Task(Generic[P, R]):
 
     def apply_async(
         self,
-        args: list[Any] | None = None,
-        kwargs: Mapping[str, Any] | None = None,
+        args: Any | None = None,
+        kwargs: Any | None = None,
         headers: Mapping[str, Any] | None = None,
         expires: int | datetime.timedelta | None = None,
         **options: Any,
