@@ -181,7 +181,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         browser_context = contexts.get("browser")
 
         # The `user_agent` field was added retroactively so the browser context assertion needs to be forwards and backwards compatible
-        browser_context.pop("user_agent", None) in (
+        assert browser_context.pop("user_agent", None) in (
             None,
             "Mozilla/5.0 (Linux; U; Android 4.3; en-us; SCH-R530U Build/JSS15J) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30 USCC-R530U",
         )
