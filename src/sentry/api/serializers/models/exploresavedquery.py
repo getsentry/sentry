@@ -66,7 +66,6 @@ class ExploreSavedQueryModelSerializer(Serializer):
             result[explore_saved_query]["created_by"] = serialized_users.get(
                 str(explore_saved_query.created_by_id)
             )
-            result[explore_saved_query]["starred"] = explore_saved_query.id in starred_queries
             if explore_saved_query.id in starred_queries:
                 result[explore_saved_query]["starred"] = True
                 result[explore_saved_query]["position"] = starred_queries[explore_saved_query.id]
