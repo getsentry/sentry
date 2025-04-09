@@ -19,6 +19,8 @@ import {
   isAValidSort,
   TransactionsTable,
 } from 'sentry/views/insights/cache/components/tables/transactionsTable';
+import {CacheMissRateWidget} from 'sentry/views/insights/cache/components/widgets/cacheMissRateWidget';
+import {CacheThroughputWidget} from 'sentry/views/insights/cache/components/widgets/cacheThroughputWidget';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
 import {BASE_FILTERS, MODULE_DOC_LINK} from 'sentry/views/insights/cache/settings';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -26,10 +28,7 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
-import {
-  useMetrics,
-  useSpanMetrics,
-} from 'sentry/views/insights/common/queries/useDiscover';
+import {useMetrics, useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -42,10 +41,9 @@ import {
   SpanFunction,
   SpanMetricsField,
 } from 'sentry/views/insights/types';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
 import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
-import {DataTitles, getThroughputChartTitle} from '../../common/views/spans/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
@@ -90,19 +88,6 @@ export function CacheLandingPage() {
       transformAliasToInputFormat: true,
     },
     Referrer.LANDING_CACHE_HIT_MISS_CHART
-  );
-
-  const {
-    isPending: isThroughputDataLoading,
-    data: throughputData,
-    error: throughputError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(BASE_FILTERS),
-      yAxis: ['epm()'],
-      transformAliasToInputFormat: true,
-    },
-    Referrer.LANDING_CACHE_THROUGHPUT_CHART
   );
 
   const {
@@ -209,20 +194,10 @@ export function CacheLandingPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.CACHE}>
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={DataTitles[`cache_miss_rate()`]}
-                    series={[cacheMissRateData[`${CACHE_MISS_RATE}()`]]}
-                    isLoading={isCacheMissRateLoading}
-                    error={cacheMissRateError}
-                  />
+                  <CacheMissRateWidget />
                 </ModuleLayout.Half>
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={getThroughputChartTitle('cache.get_item')}
-                    series={[throughputData['epm()']]}
-                    isLoading={isThroughputDataLoading}
-                    error={throughputError}
-                  />
+                  <CacheThroughputWidget />
                 </ModuleLayout.Half>
                 <ModuleLayout.Full>
                   <TransactionsTable
