@@ -26,6 +26,7 @@ import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/billing';
 import {listDisplayNames, sortCategoriesWithKeys} from 'getsentry/utils/dataCategory';
+import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 const ANIMATE_PROPS: MotionProps = {
   animate: {
@@ -51,7 +52,15 @@ function QuotaExceededContent({
 }: {
   exceededCategories: string[];
   isDismissed: boolean;
-  onCheck: (checked: boolean) => void;
+  onCheck: ({
+    checked,
+    eventTypes,
+    isManual,
+  }: {
+    checked: boolean;
+    eventTypes: EventType[];
+    isManual?: boolean;
+  }) => void;
   organization: Organization;
   subscription: Subscription;
 }) {
@@ -89,14 +98,14 @@ function QuotaExceededContent({
             notificationType="overage_critical"
             referrer={`overage-alert-${eventTypes.join('-')}`}
             source="nav-quota-overage"
-            handleRequestSent={() => onCheck(true)}
+            handleRequestSent={() => onCheck({checked: true, eventTypes})}
           />
           <DismissContainer>
             <Checkbox
               name="dismiss"
               checked={isDismissed}
               onChange={e => {
-                onCheck(e.target.checked);
+                onCheck({checked: e.target.checked, eventTypes, isManual: true});
               }}
             />
             <CheckboxLabel>{t("Don't annoy me again")}</CheckboxLabel>
@@ -121,6 +130,14 @@ function PrimaryNavigationQuotaExceeded({
     )
     .reduce((acc, [category, currentHistory]) => {
       if (currentHistory.usageExceeded) {
+        if (
+          subscription.onDemandMaxSpend === 0 &&
+          (!currentHistory.reserved || currentHistory.reserved <= 1)
+        ) {
+          // don't show any categories without additional reserved volumes
+          // if there is no PAYG
+          return acc;
+        }
         acc.push(category);
       }
       return acc;
@@ -154,12 +171,21 @@ function PrimaryNavigationQuotaExceeded({
   const shouldShow =
     prefersStackedNav &&
     exceededCategories.length > 0 &&
+    subscription.canSelfServe &&
     !subscription.hasOverageNotificationsDisabled;
   if (!shouldShow || isLoading || isError) {
     return null;
   }
 
-  const onCheckboxChange = (checked: boolean) => {
+  const onCheckboxChange = ({
+    checked,
+    eventTypes,
+    isManual = false,
+  }: {
+    checked: boolean;
+    eventTypes: EventType[];
+    isManual?: boolean;
+  }) => {
     promptsToCheck.forEach(prompt => {
       if (checked) {
         snoozePrompt(prompt);
@@ -167,6 +193,18 @@ function PrimaryNavigationQuotaExceeded({
         showPrompt(prompt);
       }
     });
+    if (isManual) {
+      const analyticsEvent = checked
+        ? 'quota_alert.clicked_snooze'
+        : 'quota_alert.clicked_unsnooze';
+      trackGetsentryAnalytics(analyticsEvent, {
+        organization,
+        subscription,
+        event_types: eventTypes?.sort().join(','),
+        is_warning: false,
+        source: 'nav-quota-overage',
+      });
+    }
   };
 
   const hasSnoozedAllPrompts = () => {
