@@ -6,7 +6,7 @@ import {
   InvoicedSubscriptionFixture,
   SubscriptionFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -398,7 +398,9 @@ describe('CustomerOverview', function () {
       organization,
       plan: 'am1_f',
       planTier: PlanTier.AM1,
+      canSelfServe: true,
     });
+    am1_subscription.planDetails.categories = [DataCategory.TRANSACTIONS];
 
     render(
       <CustomerOverview
@@ -409,10 +411,38 @@ describe('CustomerOverview', function () {
     );
 
     expect(screen.getByText('Product Trials')).toBeInTheDocument();
-    expect(screen.getByText('Replays:')).toBeInTheDocument();
+
+    // Find the DetailList containing product trials by finding the heading and its next sibling
+    const productTrialsHeading = screen.getByRole('heading', {
+      name: 'Product Trials',
+    });
+    const productTrialsList = productTrialsHeading.nextElementSibling as HTMLElement;
+    expect(productTrialsList).toBeInTheDocument();
+    expect(productTrialsList.tagName).toBe('DL'); // Verify it's the correct element type
+
+    // Check within the Transactions section (AM1 only has Transactions trial)
+    const transactionsTermElement = within(productTrialsList!).getByText('Transactions:');
+    const transactionsDefinition =
+      transactionsTermElement.nextElementSibling as HTMLElement;
+    expect(transactionsDefinition).toBeInTheDocument(); // Ensure we found the dd
+    expect(
+      within(transactionsDefinition).getByRole('button', {name: 'Allow Trial'})
+    ).toBeInTheDocument();
+    expect(
+      within(transactionsDefinition).getByRole('button', {name: 'Start Trial'})
+    ).toBeInTheDocument();
+    expect(
+      within(transactionsDefinition).getByRole('button', {name: 'Stop Trial'})
+    ).toBeInTheDocument();
+
+    // Ensure other trial categories are NOT present
+    expect(within(productTrialsList!).queryByText('Replays:')).not.toBeInTheDocument();
+    expect(within(productTrialsList!).queryByText('Spans:')).not.toBeInTheDocument();
+    expect(
+      within(productTrialsList!).queryByText('Performance Units:')
+    ).not.toBeInTheDocument();
+
     expect(screen.queryByText('Spans:')).not.toBeInTheDocument();
-    expect(screen.queryByText('Performance Units:')).not.toBeInTheDocument();
-    expect(screen.getByText('Transactions:')).toBeInTheDocument();
   });
 
   it('render product trials for am2 account', function () {
@@ -421,7 +451,12 @@ describe('CustomerOverview', function () {
       organization,
       plan: 'am2_f',
       planTier: PlanTier.AM2,
+      canSelfServe: true,
     });
+    am2_subscription.planDetails.categories = [
+      DataCategory.REPLAYS,
+      DataCategory.TRANSACTIONS,
+    ];
 
     render(
       <CustomerOverview
@@ -432,10 +467,47 @@ describe('CustomerOverview', function () {
     );
 
     expect(screen.getByText('Product Trials')).toBeInTheDocument();
-    expect(screen.getByText('Replays:')).toBeInTheDocument();
+
+    // Find the DetailList containing product trials by finding the heading and its next sibling
+    const productTrialsHeading = screen.getByRole('heading', {
+      name: 'Product Trials',
+    });
+    const productTrialsList = productTrialsHeading.nextElementSibling as HTMLElement;
+    expect(productTrialsList).toBeInTheDocument();
+    expect(productTrialsList.tagName).toBe('DL'); // Verify it's the correct element type
+
+    // Check within the Replays section
+    const replaysTermElement = within(productTrialsList!).getByText('Replays:');
+    const replaysDefinition = replaysTermElement.nextElementSibling as HTMLElement;
+    expect(replaysDefinition).toBeInTheDocument(); // Ensure we found the dd
+    expect(
+      within(replaysDefinition).getByRole('button', {name: 'Allow Trial'})
+    ).toBeInTheDocument();
+
+    // Check within the Performance Units section
+    const performanceTermElement = within(productTrialsList!).getByText(
+      'Performance Units:'
+    );
+    const performanceDefinition =
+      performanceTermElement.nextElementSibling as HTMLElement;
+    expect(performanceDefinition).toBeInTheDocument(); // Ensure we found the dd
+    expect(
+      within(performanceDefinition).getByRole('button', {name: 'Allow Trial'})
+    ).toBeInTheDocument();
+    expect(
+      within(performanceDefinition).getByRole('button', {name: 'Start Trial'})
+    ).toBeInTheDocument();
+    expect(
+      within(performanceDefinition).getByRole('button', {name: 'Stop Trial'})
+    ).toBeInTheDocument();
+
+    // Ensure other trial categories are NOT present
+    expect(within(productTrialsList!).queryByText('Spans:')).not.toBeInTheDocument();
+    expect(
+      within(productTrialsList!).queryByText('Transactions:')
+    ).not.toBeInTheDocument();
+
     expect(screen.queryByText('Spans:')).not.toBeInTheDocument();
-    expect(screen.getByText('Performance Units:')).toBeInTheDocument();
-    expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
   });
 
   it('render product trials for am3 account', function () {
@@ -444,7 +516,9 @@ describe('CustomerOverview', function () {
       organization,
       plan: 'am3_f',
       planTier: PlanTier.AM3,
+      canSelfServe: true,
     });
+    am3_subscription.planDetails.categories = [DataCategory.REPLAYS, DataCategory.SPANS];
 
     render(
       <CustomerOverview
@@ -455,10 +529,40 @@ describe('CustomerOverview', function () {
     );
 
     expect(screen.getByText('Product Trials')).toBeInTheDocument();
-    expect(screen.getByText('Replays:')).toBeInTheDocument();
-    expect(screen.getByText('Spans:')).toBeInTheDocument();
+
+    // Find the DetailList containing product trials by finding the heading and its next sibling
+    const productTrialsHeading = screen.getByRole('heading', {
+      name: 'Product Trials',
+    });
+    const productTrialsList = productTrialsHeading.nextElementSibling as HTMLElement;
+    expect(productTrialsList).toBeInTheDocument();
+    expect(productTrialsList.tagName).toBe('DL'); // Verify it's the correct element type
+
+    // Check within the Replays section
+    const replaysTermElement = within(productTrialsList!).getByText('Replays:');
+    const replaysDefinition = replaysTermElement.nextElementSibling as HTMLElement;
+    expect(replaysDefinition).toBeInTheDocument(); // Ensure we found the dd
+    expect(
+      within(replaysDefinition).getByRole('button', {name: 'Allow Trial'})
+    ).toBeInTheDocument();
+
+    // Check within the Spans section
+    const spansTermElement = within(productTrialsList!).getByText('Spans:');
+    const spansDefinition = spansTermElement.nextElementSibling as HTMLElement;
+    expect(spansDefinition).toBeInTheDocument(); // Ensure we found the dd
+    expect(
+      within(spansDefinition).getByRole('button', {name: 'Allow Trial'})
+    ).toBeInTheDocument();
+
+    // Ensure other trial categories are NOT present
+    expect(
+      within(productTrialsList!).queryByText('Performance Units:')
+    ).not.toBeInTheDocument();
+    expect(
+      within(productTrialsList!).queryByText('Transactions:')
+    ).not.toBeInTheDocument();
+
     expect(screen.queryByText('Performance Units:')).not.toBeInTheDocument();
-    expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
   });
 
   it('render dynamic sampling rate for am3 account', function () {
