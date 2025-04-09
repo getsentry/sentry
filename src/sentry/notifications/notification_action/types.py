@@ -225,7 +225,6 @@ class BaseIssueAlertHandler(ABC):
             futures = cls.get_rule_futures(job, rule, notification_uuid)
 
             # Execute the futures
-            # If the rule id is -1, we are sending a test notification
             cls.execute_futures(job, futures)
 
 
