@@ -176,26 +176,29 @@ export function getHighlightTagData({
  * Returns a label that can be used in the Event Highlight Summary.
  * Currently only used for JavaScript-based events.
  */
-export function getRuntimeLabel(
+export function getRuntimeLabelAndTooltip(
   event: Event,
   knownRuntimeType?: {isBackend?: boolean; isFrontend?: boolean}
-): string | null {
+): {label: string; tooltip: string} | null {
   if (!event.sdk?.name.includes('javascript')) {
     return null;
   }
 
   if (knownRuntimeType?.isBackend) {
-    return t('Backend');
+    return {label: t('Backend'), tooltip: t('Error from Server, Edge or Worker Runtime')};
   }
   if (knownRuntimeType?.isFrontend) {
-    return t('Frontend');
+    return {label: t('Frontend'), tooltip: t('Error from Client (inside Browser)')};
   }
 
-  if (event.contexts.browser) {
-    return t('Frontend');
+  if (
+    (event.contexts.runtime && !event.contexts.browser) ||
+    event.contexts?.cloud_resource // Cloudflare, Vercel etc.
+  ) {
+    return {label: t('Backend'), tooltip: t('Error from Server, Edge or Worker Runtime')};
   }
-  if (event.contexts.runtime && !event.contexts.browser) {
-    return t('Backend');
+  if (event.contexts.browser) {
+    return {label: t('Frontend'), tooltip: t('Error from Client (inside Browser)')};
   }
 
   return null;

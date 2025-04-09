@@ -7,7 +7,7 @@ import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
   getHighlightTagData,
-  getRuntimeLabel,
+  getRuntimeLabelAndTooltip,
 } from 'sentry/components/events/highlights/util';
 
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
@@ -92,7 +92,7 @@ describe('getRuntimeLabel', function () {
       sdk: {name: 'python'},
     });
 
-    expect(getRuntimeLabel(event)).toBeNull();
+    expect(getRuntimeLabelAndTooltip(event)).toBeNull();
   });
 
   it('returns explicitly set runtime type', function () {
@@ -100,29 +100,39 @@ describe('getRuntimeLabel', function () {
       sdk: {name: 'javascript'},
     });
 
-    expect(getRuntimeLabel(backendEvent, {isBackend: true})).toBe('Backend');
+    expect(getRuntimeLabelAndTooltip(backendEvent, {isBackend: true})?.label).toBe(
+      'Backend'
+    );
 
     const frontendEvent = EventFixture({
       sdk: {name: 'javascript'},
     });
 
-    expect(getRuntimeLabel(frontendEvent, {isFrontend: true})).toBe('Frontend');
+    expect(getRuntimeLabelAndTooltip(frontendEvent, {isFrontend: true})?.label).toBe(
+      'Frontend'
+    );
   });
 
   it('returns inferred runtime', function () {
     const frontedEvent = EventFixture({
       sdk: {name: 'javascript'},
-      contexts: {browser: {name: 'Chrome'}},
+      contexts: {
+        browser: {name: 'Chrome'},
+      },
     });
 
-    expect(getRuntimeLabel(frontedEvent)).toBe('Frontend');
+    expect(getRuntimeLabelAndTooltip(frontedEvent)?.label).toBe('Frontend');
 
     const backendEvent = EventFixture({
       sdk: {name: 'javascript'},
-      contexts: {runtime: {name: 'node'}},
+      contexts: {
+        runtime: {name: 'node'},
+        browser: {name: 'Chrome'}, // Cloud Events still have the item 'browser'
+        cloud_resource: {['cloud.provider']: 'cloudflare', type: 'default'},
+      },
     });
 
-    expect(getRuntimeLabel(backendEvent)).toBe('Backend');
+    expect(getRuntimeLabelAndTooltip(backendEvent)?.label).toBe('Backend');
   });
 
   it('returns null when no runtime can be determined', function () {
@@ -131,6 +141,6 @@ describe('getRuntimeLabel', function () {
       contexts: {}, // No browser or runtime context
     });
 
-    expect(getRuntimeLabel(event)).toBeNull();
+    expect(getRuntimeLabelAndTooltip(event)).toBeNull();
   });
 });

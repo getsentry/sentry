@@ -15,7 +15,7 @@ import ScreenshotModal, {
   modalCss,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {SCREENSHOT_NAMES} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/utils';
-import {getRuntimeLabel} from 'sentry/components/events/highlights/util';
+import {getRuntimeLabelAndTooltip} from 'sentry/components/events/highlights/util';
 import {Text} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -108,14 +108,19 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   const environmentTag = event.tags?.find(tag => tag.key === 'environment');
 
   const runtimeLabel = getRuntimeLabel(event, {isBackend: isMetaFrameworkBackendIssue});
+  const runtimeInfo = getRuntimeLabelAndTooltip(event, {
+    isBackend: isMetaFrameworkBackendIssue,
+  });
 
   return items.length || screenshot ? (
     <Fragment>
       <IconBar>
         <ScrollCarousel gap={2} aria-label={t('Icon highlights')}>
-          {runtimeLabel && (
+          {runtimeInfo && (
             <Fragment>
-              <StyledRuntimeText>{runtimeLabel}</StyledRuntimeText>
+              <Tooltip title={runtimeInfo.tooltip} isHoverable>
+                <StyledRuntimeText>{runtimeInfo.label}</StyledRuntimeText>
+              </Tooltip>
               <DividerWrapper>
                 <Divider />
               </DividerWrapper>
