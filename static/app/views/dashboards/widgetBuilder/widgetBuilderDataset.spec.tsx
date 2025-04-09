@@ -6,7 +6,6 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  act,
   render,
   screen,
   userEvent,
@@ -78,7 +77,7 @@ function renderTestComponent({
     },
   });
 
-  act(() => ProjectsStore.loadInitialData(projects));
+  ProjectsStore.loadInitialData(projects);
 
   const widgetLegendState = new WidgetLegendSelectionState({
     location: LocationFixture(),
