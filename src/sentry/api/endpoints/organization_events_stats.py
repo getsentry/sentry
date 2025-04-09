@@ -22,6 +22,7 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
+    ourlogs,
     spans_eap,
     spans_indexed,
     spans_metrics,
@@ -282,7 +283,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         use_rpc = request.GET.get("useRpc", "0") == "1" and dataset == spans_eap
         sampling_mode = request.GET.get("sampling")
         transform_alias_to_input_format = (
-            request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
+            request.GET.get("transformAliasToInputFormat") == "1" or use_rpc or dataset == ourlogs
         )
         sentry_sdk.set_tag("performance.use_rpc", use_rpc)
 

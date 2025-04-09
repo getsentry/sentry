@@ -1042,9 +1042,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert response.data["meta"]["dataset"] == self.dataset
 
         rows = data[0:6]
-        for test in zip(event_counts, rows):
-            assert test[1][1][0]["count"] == test[0]
-            assert test[1][1][0]["comparisonCount"] == test[0] / 2
+        for expected, actual in zip(event_counts, rows):
+            assert actual[1][0]["count"] == expected
+            assert actual[1][0]["comparisonCount"] == expected / 2
 
     def test_comparison_delta_with_empty_comparison_values(self):
         event_counts = [6, 0, 6, 4, 0, 4]
