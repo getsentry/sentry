@@ -299,7 +299,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
 
     @mock.patch("sentry.seer.similarity.similar_issues.delete_seer_grouping_records_by_hash")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_calls_seer_deletion_task_if_parent_group_not_found(
+    def test_calls_seer_deletion_task_if_parent_hash_not_found(
         self,
         mock_seer_similarity_request: MagicMock,
         mock_seer_deletion_request: MagicMock,
