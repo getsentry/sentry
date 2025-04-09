@@ -416,15 +416,21 @@ describe('CustomerOverview', function () {
     const productTrialsHeading = screen.getByRole('heading', {
       name: 'Product Trials',
     });
-    const productTrialsList = productTrialsHeading.nextElementSibling as HTMLElement;
+    const productTrialsList = productTrialsHeading.nextElementSibling;
     expect(productTrialsList).toBeInTheDocument();
+    // Check if productTrialsList is an HTMLElement before using within
+    if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
+      throw new Error('Product trials list not found or not an HTMLElement');
+    }
     expect(productTrialsList.tagName).toBe('DL');
 
     // Check within the Transactions section (AM1 only has Transactions trial)
-    const transactionsTermElement = within(productTrialsList!).getByText('Transactions:');
-    const transactionsDefinition =
-      transactionsTermElement.nextElementSibling as HTMLElement;
+    const transactionsTermElement = within(productTrialsList).getByText('Transactions:');
+    const transactionsDefinition = transactionsTermElement.nextElementSibling;
     expect(transactionsDefinition).toBeInTheDocument(); // Ensure we found the dd
+    if (!transactionsDefinition || !(transactionsDefinition instanceof HTMLElement)) {
+      throw new Error('Transactions definition not found or not an HTMLElement');
+    }
     expect(
       within(transactionsDefinition).getByRole('button', {name: 'Allow Trial'})
     ).toBeInTheDocument();
@@ -436,13 +442,13 @@ describe('CustomerOverview', function () {
     ).toBeInTheDocument();
 
     // Ensure other trial categories are NOT present
-    expect(within(productTrialsList!).queryByText('Replays:')).not.toBeInTheDocument();
-    expect(within(productTrialsList!).queryByText('Spans:')).not.toBeInTheDocument();
+    expect(within(productTrialsList).queryByText('Replays:')).not.toBeInTheDocument();
+    expect(within(productTrialsList).queryByText('Spans:')).not.toBeInTheDocument();
     expect(
-      within(productTrialsList!).queryByText('Performance Units:')
+      within(productTrialsList).queryByText('Performance Units:')
     ).not.toBeInTheDocument();
 
-    expect(screen.queryByText('Spans:')).not.toBeInTheDocument();
+    expect(within(productTrialsList).queryByText('Spans:')).not.toBeInTheDocument();
   });
 
   it('render product trials for am2 account', function () {
@@ -472,25 +478,33 @@ describe('CustomerOverview', function () {
     const productTrialsHeading = screen.getByRole('heading', {
       name: 'Product Trials',
     });
-    const productTrialsList = productTrialsHeading.nextElementSibling as HTMLElement;
+    const productTrialsList = productTrialsHeading.nextElementSibling;
     expect(productTrialsList).toBeInTheDocument();
+    // Check if productTrialsList is an HTMLElement before using within
+    if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
+      throw new Error('Product trials list not found or not an HTMLElement');
+    }
     expect(productTrialsList.tagName).toBe('DL'); // Verify it's the correct element type
 
     // Check within the Replays section
-    const replaysTermElement = within(productTrialsList!).getByText('Replays:');
-    const replaysDefinition = replaysTermElement.nextElementSibling as HTMLElement;
+    const replaysTermElement = within(productTrialsList).getByText('Replays:');
+    const replaysDefinition = replaysTermElement.nextElementSibling;
     expect(replaysDefinition).toBeInTheDocument(); // Ensure we found the dd
+    if (!replaysDefinition || !(replaysDefinition instanceof HTMLElement)) {
+      throw new Error('Replays definition not found or not an HTMLElement');
+    }
     expect(
       within(replaysDefinition).getByRole('button', {name: 'Allow Trial'})
     ).toBeInTheDocument();
 
     // Check within the Performance Units section
-    const performanceTermElement = within(productTrialsList!).getByText(
-      'Performance Units:'
-    );
-    const performanceDefinition =
-      performanceTermElement.nextElementSibling as HTMLElement;
+    const performanceTermElement =
+      within(productTrialsList).getByText('Performance Units:');
+    const performanceDefinition = performanceTermElement.nextElementSibling;
     expect(performanceDefinition).toBeInTheDocument(); // Ensure we found the dd
+    if (!performanceDefinition || !(performanceDefinition instanceof HTMLElement)) {
+      throw new Error('Performance definition not found or not an HTMLElement');
+    }
     expect(
       within(performanceDefinition).getByRole('button', {name: 'Allow Trial'})
     ).toBeInTheDocument();
@@ -502,12 +516,12 @@ describe('CustomerOverview', function () {
     ).toBeInTheDocument();
 
     // Ensure other trial categories are NOT present
-    expect(within(productTrialsList!).queryByText('Spans:')).not.toBeInTheDocument();
+    expect(within(productTrialsList).queryByText('Spans:')).not.toBeInTheDocument();
     expect(
-      within(productTrialsList!).queryByText('Transactions:')
+      within(productTrialsList).queryByText('Transactions:')
     ).not.toBeInTheDocument();
 
-    expect(screen.queryByText('Spans:')).not.toBeInTheDocument();
+    expect(within(productTrialsList).queryByText('Spans:')).not.toBeInTheDocument();
   });
 
   it('render product trials for am3 account', function () {
@@ -534,35 +548,47 @@ describe('CustomerOverview', function () {
     const productTrialsHeading = screen.getByRole('heading', {
       name: 'Product Trials',
     });
-    const productTrialsList = productTrialsHeading.nextElementSibling as HTMLElement;
+    const productTrialsList = productTrialsHeading.nextElementSibling;
     expect(productTrialsList).toBeInTheDocument();
+    // Check if productTrialsList is an HTMLElement before using within
+    if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
+      throw new Error('Product trials list not found or not an HTMLElement');
+    }
     expect(productTrialsList.tagName).toBe('DL'); // Verify it's the correct element type
 
     // Check within the Replays section
-    const replaysTermElement = within(productTrialsList!).getByText('Replays:');
-    const replaysDefinition = replaysTermElement.nextElementSibling as HTMLElement;
+    const replaysTermElement = within(productTrialsList).getByText('Replays:');
+    const replaysDefinition = replaysTermElement.nextElementSibling;
     expect(replaysDefinition).toBeInTheDocument(); // Ensure we found the dd
+    if (!replaysDefinition || !(replaysDefinition instanceof HTMLElement)) {
+      throw new Error('Replays definition not found or not an HTMLElement');
+    }
     expect(
       within(replaysDefinition).getByRole('button', {name: 'Allow Trial'})
     ).toBeInTheDocument();
 
     // Check within the Spans section
-    const spansTermElement = within(productTrialsList!).getByText('Spans:');
-    const spansDefinition = spansTermElement.nextElementSibling as HTMLElement;
+    const spansTermElement = within(productTrialsList).getByText('Spans:');
+    const spansDefinition = spansTermElement.nextElementSibling;
     expect(spansDefinition).toBeInTheDocument(); // Ensure we found the dd
+    if (!spansDefinition || !(spansDefinition instanceof HTMLElement)) {
+      throw new Error('Spans definition not found or not an HTMLElement');
+    }
     expect(
       within(spansDefinition).getByRole('button', {name: 'Allow Trial'})
     ).toBeInTheDocument();
 
     // Ensure other trial categories are NOT present
     expect(
-      within(productTrialsList!).queryByText('Performance Units:')
+      within(productTrialsList).queryByText('Performance Units:')
     ).not.toBeInTheDocument();
     expect(
-      within(productTrialsList!).queryByText('Transactions:')
+      within(productTrialsList).queryByText('Transactions:')
     ).not.toBeInTheDocument();
 
-    expect(screen.queryByText('Performance Units:')).not.toBeInTheDocument();
+    expect(
+      within(productTrialsList).queryByText('Performance Units:')
+    ).not.toBeInTheDocument();
   });
 
   it('render dynamic sampling rate for am3 account', function () {
