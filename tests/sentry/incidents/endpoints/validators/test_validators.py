@@ -8,6 +8,7 @@ from sentry.incidents.metric_alert_detector import (
     MetricAlertComparisonConditionValidator,
     MetricAlertsDetectorValidator,
 )
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
@@ -128,6 +129,10 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
                         "conditionGroupId": self.data_condition_group.id,
                     },
                 ],
+            },
+            "config": {
+                "threshold_period": 1,
+                "detection_type": AlertRuleDetectionType.STATIC.value,
             },
         }
 

@@ -118,21 +118,23 @@ class TestMetricAlertFireDetectorConfig(JSONConfigBaseTest, APITestCase):
         )
 
     def test_empty_config(self):
-        self.create_detector(
-            name=self.metric_alert.name,
-            project_id=self.project.id,
-            type="test_metric_alert_fire",
-            owner_user_id=self.metric_alert.user_id,
-            config={},
-        )
+        with pytest.raises(ValidationError):
+            self.create_detector(
+                name=self.metric_alert.name,
+                project_id=self.project.id,
+                type="test_metric_alert_fire",
+                owner_user_id=self.metric_alert.user_id,
+                config={},
+            )
 
     def test_no_config(self):
-        self.create_detector(
-            name=self.metric_alert.name,
-            project_id=self.project.id,
-            type="test_metric_alert_fire",
-            owner_user_id=self.metric_alert.user_id,
-        )
+        with pytest.raises(ValidationError):
+            self.create_detector(
+                name=self.metric_alert.name,
+                project_id=self.project.id,
+                type="test_metric_alert_fire",
+                owner_user_id=self.metric_alert.user_id,
+            )
 
     def test_incorrect_config(self):
         with pytest.raises(ValidationError):

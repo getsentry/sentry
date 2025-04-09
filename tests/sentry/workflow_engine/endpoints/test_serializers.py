@@ -8,6 +8,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import default_detector_config_data
 from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -30,7 +31,7 @@ class TestDetectorSerializer(TestCase):
             "dateUpdated": detector.date_updated,
             "dataSources": None,
             "conditionGroup": None,
-            "config": {},
+            "config": default_detector_config_data[MetricAlertFire.slug],
         }
 
     def test_serialize_full(self):
@@ -130,7 +131,7 @@ class TestDetectorSerializer(TestCase):
                     }
                 ],
             },
-            "config": {},
+            "config": default_detector_config_data[MetricAlertFire.slug],
         }
 
     def test_serialize_bulk(self):
