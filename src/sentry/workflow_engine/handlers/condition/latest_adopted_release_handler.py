@@ -4,7 +4,7 @@ from sentry.models.environment import Environment
 from sentry.models.release import follows_semver_versioning_scheme
 from sentry.rules.age import AgeComparisonType, ModelAgeType
 from sentry.rules.filters.latest_adopted_release_filter import (
-    get_first_last_release_for_env,
+    get_first_last_release_for_event,
     is_newer_release,
 )
 from sentry.search.utils import LatestReleaseOrders
@@ -56,7 +56,7 @@ class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowEventDat
         if not latest_project_release:
             return False
 
-        release = get_first_last_release_for_env(event, release_age_type, order_type)
+        release = get_first_last_release_for_event(event, release_age_type, order_type)
         if not release:
             return False
 
