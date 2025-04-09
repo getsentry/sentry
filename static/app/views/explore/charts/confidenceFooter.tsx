@@ -8,6 +8,7 @@ import {defined} from 'sentry/utils';
 
 type Props = {
   confidence?: Confidence;
+  isSampled?: boolean | null;
   sampleCount?: number;
   topEvents?: number;
 };
@@ -16,13 +17,15 @@ export function ConfidenceFooter(props: Props) {
   return <Container>{confidenceMessage(props)}</Container>;
 }
 
-function confidenceMessage({sampleCount, confidence, topEvents}: Props) {
+function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Props) {
   const isTopN = defined(topEvents) && topEvents > 0;
   if (!defined(sampleCount)) {
     return isTopN
       ? t('* Chart for top %s groups extrapolated from \u2026', topEvents)
       : t('* Chart extrapolated from \u2026');
   }
+
+  const noSampling = defined(isSampled) && !isSampled;
 
   const lowAccuracySampleCount = (
     <Tooltip
@@ -41,6 +44,7 @@ function confidenceMessage({sampleCount, confidence, topEvents}: Props) {
           )}
         </div>
       }
+      disabled={noSampling}
       maxWidth={270}
     >
       <InsufficientSamples>

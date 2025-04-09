@@ -133,7 +133,7 @@ export function MultiQueryModeChart({
   ]);
 
   const {data, error, loading} = getSeries();
-  const {sampleCount} = determineSeriesSampleCountAndIsSampled(data, isTopN);
+  const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(data, isTopN);
 
   const visualizationType =
     queryParts.chartType === ChartType.LINE
@@ -327,6 +327,7 @@ export function MultiQueryModeChart({
         <ConfidenceFooter
           sampleCount={sampleCount}
           confidence={confidence}
+          isSampled={isSampled}
           topEvents={isTopN ? numSeries : undefined}
         />
       }
