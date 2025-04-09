@@ -16,6 +16,7 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
+import {getPhpProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/php';
 
 type Params = DocsParams;
 
@@ -218,7 +219,7 @@ const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   performanceOnboarding,
-  profilingOnboarding: onboarding,
+  profilingOnboarding: getPhpProfilingOnboarding(),
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
 };
