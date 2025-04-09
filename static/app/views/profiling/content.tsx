@@ -16,6 +16,7 @@ import Pagination from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {
   ContinuousProfilingBetaAlertBanner,
+  ContinuousProfilingBetaSDKAlertBanner,
   ProfilingBetaAlertBanner,
 } from 'sentry/components/profiling/billing/alerts';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
@@ -98,6 +99,7 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
           <ContinuousProfilingBetaAlertBanner organization={organization} />
+          <ContinuousProfilingBetaSDKAlertBanner organization={organization} />
           <ProfilingContentPageHeader />
           <LayoutBody>
             <LayoutMain fullWidth>
