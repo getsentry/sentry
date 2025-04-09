@@ -57,8 +57,6 @@ if TYPE_CHECKING:
     from sentry.models.options.project_template_option import ProjectTemplateOptionManager
     from sentry.users.models.user import User
 
-SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
-
 # NOTE:
 # - When you modify this list, ensure that the platform IDs listed in "sentry/static/app/data/platforms.tsx" match.
 # - Please keep this list organized alphabetically.
@@ -389,7 +387,7 @@ class Project(Model):
                     max_length=50,
                 )
 
-        if SENTRY_USE_SNOWFLAKE:
+        if settings.SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "project_snowflake_key"
             save_with_snowflake_id(
                 instance=self,
