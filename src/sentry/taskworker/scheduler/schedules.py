@@ -51,6 +51,21 @@ class TimedeltaSchedule(Schedule):
         if delta.total_seconds() < 0:
             raise ValueError("interval must be at least one second")
 
+    def monitor_interval(self) -> tuple[int, str]:
+        time_units = (
+            ("day", 60 * 60 * 24.0),
+            ("hour", 60 * 60.0),
+            ("minute", 60.0),
+        )
+
+        seconds = self._delta.total_seconds()
+        for unit, divider in time_units:
+            if seconds >= divider:
+                interval = int(seconds / divider)
+                return (interval, unit)
+
+        return (int(seconds), "second")
+
     def is_due(self, last_run: datetime | None = None) -> bool:
         """Check if the schedule is due to run again based on last_run."""
         if last_run is None:
@@ -97,6 +112,10 @@ class CrontabSchedule(Schedule):
             self._cronsim = CronSim(str(crontab), timezone.now())
         except CronSimError as e:
             raise ValueError(f"crontab expression {self._crontab} is invalid") from e
+
+    def monitor_value(self) -> str:
+        """Get the crontab expression as a string"""
+        return str(self._crontab)
 
     def is_due(self, last_run: datetime | None = None) -> bool:
         """Check if the schedule is due to run again based on last_run."""
