@@ -29,7 +29,7 @@ class MemberPermission(OrganizationPermission):
 
 
 @region_silo_endpoint
-class OrganizationGroupSearchViewStarredEndpoint(OrganizationEndpoint):
+class OrganizationGroupSearchViewDetailsStarredEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
