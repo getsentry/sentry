@@ -453,7 +453,7 @@ function UsageTotals({
       reservedSpend
     );
   const unusedPrepaidWidth =
-    reserved !== 0 || subscription.isTrial ? 100 - prepaidPercentUsed : 0;
+    reserved !== 0 || subscription.isTrial ? 100 - prepaidPercentUsed : 100;
   const totalCategorySpend =
     (hasReservedBudget
       ? (subscription.reservedBudgets?.find(budget => category in budget.categories)
