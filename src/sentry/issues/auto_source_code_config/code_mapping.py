@@ -591,14 +591,15 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
     if "." not in module:
         raise DoesNotFollowJavaPackageNamingConvention
 
-    parts = module.split(".")
+    # Gets rid of the class name
+    parts = module.rsplit(".", 1)[0].split(".")
 
-    if len(parts) > STACK_ROOT_MAX_LEVEL:
+    if len(parts) >= STACK_ROOT_MAX_LEVEL:
         # com.example.foo.bar.Baz$InnerClass, Baz.kt ->
         #    stack_root: com/example/
         #    file_path:  com/example/foo/bar/Baz.kt
         stack_root = "/".join(parts[:STACK_ROOT_MAX_LEVEL])
-        file_path = "/".join(parts[:-1]) + "/" + abs_path
+        file_path = "/".join(parts) + "/" + abs_path
     else:
         # a.Bar, Bar.kt -> stack_root: a/, file_path:  a/Bar.kt
         stack_root = parts[0] + "/"
