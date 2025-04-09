@@ -148,7 +148,7 @@ class LatestAdoptedReleaseFilterTest(RuleTestCase):
         self.create_group_release(group=self.event.group, release=test_release)
         data = {"oldest_or_newest": "oldest", "older_or_newer": "newer", "environment": prod.name}
         rule = self.get_rule(data=data)
-        self.assertPasses(rule, event)
+        self.assertDoesNotPass(rule, event)
 
     def test_date(self):
         event = self.get_event()
