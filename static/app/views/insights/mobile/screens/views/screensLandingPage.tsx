@@ -37,7 +37,6 @@ import {
   MODULE_TITLE,
 } from 'sentry/views/insights/mobile/screens/settings';
 import {
-  type GenericVitalItem,
   getColdAppStartPerformance,
   getDefaultMetricPerformance,
   getWarmAppStartPerformance,
@@ -47,11 +46,7 @@ import {
   type VitalStatus,
 } from 'sentry/views/insights/mobile/screens/utils';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {
-  type MetricsProperty,
-  ModuleName,
-  type SpanMetricsProperty,
-} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
 
 function ScreensLandingPage() {
   const moduleName = ModuleName.MOBILE_VITALS;
@@ -71,7 +66,7 @@ function ScreensLandingPage() {
     );
   }, [location, navigate]);
 
-  const vitalItems: VitalItem[] = [
+  const vitalItems = [
     {
       title: t('Avg. Cold App Start'),
       description: t('Average Cold App Start duration'),
@@ -88,7 +83,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#app-start-instrumentation',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#app-start-tracing',
       },
-      field: 'avg(measurements.app_start_cold)',
+      field: 'avg(measurements.app_start_cold)' as const,
       dataset: DiscoverDatasets.METRICS,
       getStatus: getColdAppStartPerformance,
     },
@@ -108,7 +103,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#app-start-instrumentation',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#app-start-tracing',
       },
-      field: 'avg(measurements.app_start_warm)',
+      field: 'avg(measurements.app_start_warm)' as const,
       dataset: DiscoverDatasets.METRICS,
       getStatus: getWarmAppStartPerformance,
     },
@@ -125,7 +120,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
-      field: `division(mobile.slow_frames,mobile.total_frames)`,
+      field: `division(mobile.slow_frames,mobile.total_frames)` as const,
       dataset: DiscoverDatasets.SPANS_METRICS,
       getStatus: getDefaultMetricPerformance,
     },
@@ -142,7 +137,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
-      field: `division(mobile.frozen_frames,mobile.total_frames)`,
+      field: `division(mobile.frozen_frames,mobile.total_frames)` as const,
       dataset: DiscoverDatasets.SPANS_METRICS,
       getStatus: getDefaultMetricPerformance,
     },
@@ -161,7 +156,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
-      field: `avg(mobile.frames_delay)`,
+      field: `avg(mobile.frames_delay)` as const,
       dataset: DiscoverDatasets.SPANS_METRICS,
       getStatus: getDefaultMetricPerformance,
     },
@@ -179,7 +174,7 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#time-to-initial-display',
         iOS: 'https://docs.sentry.io/platforms/apple/features/experimental-features/',
       },
-      field: `avg(measurements.time_to_initial_display)`,
+      field: `avg(measurements.time_to_initial_display)` as const,
       dataset: DiscoverDatasets.METRICS,
       getStatus: getDefaultMetricPerformance,
     },
@@ -197,25 +192,24 @@ function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#time-to-full-display',
         iOS: 'https://docs.sentry.io/platforms/apple/features/experimental-features/',
       },
-      field: `avg(measurements.time_to_full_display)`,
+      field: `avg(measurements.time_to_full_display)` as const,
       dataset: DiscoverDatasets.METRICS,
       getStatus: getDefaultMetricPerformance,
     },
-  ];
-  const metricsFields: MetricsProperty[] = [];
-  const spanMetricsFields: SpanMetricsProperty[] = [];
+  ] satisfies VitalItem[];
+
+  const metricsFields = vitalItems
+    .filter(item => item.dataset === DiscoverDatasets.METRICS)
+    .map(item => item.field);
+
+  const spanMetricsFields = vitalItems
+    .filter(item => item.dataset === DiscoverDatasets.SPANS_METRICS)
+    .map(item => item.field);
+
   const [state, setState] = useState<{
     status: VitalStatus | undefined;
     vital: VitalItem | undefined;
   }>({status: undefined, vital: undefined});
-
-  vitalItems.forEach(element => {
-    if (element.dataset === DiscoverDatasets.METRICS) {
-      metricsFields.push(element.field);
-    } else if (element.dataset === DiscoverDatasets.SPANS_METRICS) {
-      spanMetricsFields.push(element.field);
-    }
-  });
 
   const query = new MutableSearch(['transaction.op:ui.load']);
   if (isProjectCrossPlatform) {
@@ -240,45 +234,9 @@ function ScreensLandingPage() {
     Referrer.SCREENS_METRICS
   );
 
-  const isMetricsItem = (
-    item: VitalItem
-  ): item is GenericVitalItem<DiscoverDatasets.METRICS> => {
-    return item.dataset === DiscoverDatasets.METRICS;
-  };
-
-  const metricValueFor = (item: VitalItem): MetricValue | undefined => {
-    // We have to have seperate if statements for metrics and spans because typescript is not smart enough to infer the type of the row
-    if (isMetricsItem(item)) {
-      const row = metricsResult.data[0];
-      const units = metricsResult.meta?.units;
-      const fieldTypes = metricsResult.meta?.fields;
-
-      const fieldType = fieldTypes?.[item.field];
-      const value = row?.[item.field];
-      const unit = units?.[item.field];
-
-      return {
-        type: fieldType,
-        unit,
-        // typescript is not smart enough to infer the type because the useSpanMetrics fields are dynamic
-        value: value as string | number | undefined,
-      };
-    }
-    const row = spanMetricsResult.data[0];
-    const units = spanMetricsResult.meta?.units;
-    const fieldTypes = spanMetricsResult.meta?.fields;
-
-    const fieldType = fieldTypes?.[item.field];
-    const unit = units?.[item.field];
-    const value = row?.[item.field];
-
-    return {
-      type: fieldType,
-      unit,
-      // typescript is not smart enough to infer the type because the useSpanMetrics fields are dynamic
-      value: value as string | number | undefined,
-    };
-  };
+  const metricsData = {...metricsResult.data[0], ...spanMetricsResult.data[0]};
+  const metaUnits = {...metricsResult.meta?.units, ...spanMetricsResult.meta?.units};
+  const metaFields = {...metricsResult.meta?.fields, ...spanMetricsResult.meta?.fields};
 
   const {openVitalsDrawer} = useMobileVitalsDrawer({
     Component: <VitalDetailPanel vital={state.vital} status={state.status} />,
@@ -326,7 +284,12 @@ function ScreensLandingPage() {
                   <Container>
                     <Flex data-test-id="mobile-vitals-top-metrics">
                       {vitalItems.map(item => {
-                        const metricValue = metricValueFor(item);
+                        const metricValue: MetricValue = {
+                          type: metaFields?.[item.field],
+                          value: metricsData?.[item.field],
+                          unit: metaUnits?.[item.field],
+                        };
+
                         const status =
                           (metricValue && item.getStatus(metricValue, item.field)) ??
                           STATUS_UNKNOWN;
