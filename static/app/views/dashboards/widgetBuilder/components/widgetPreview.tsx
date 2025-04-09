@@ -3,7 +3,6 @@ import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {
   type DashboardDetails,
@@ -37,7 +36,6 @@ function WidgetPreview({
   const organization = useOrganization();
   const location = useLocation();
   const router = useRouter();
-  const pageFilters = usePageFilters();
 
   const {state} = useWidgetBuilderContext();
 
@@ -83,8 +81,6 @@ function WidgetPreview({
       forceDescriptionTooltip={shouldForceDescriptionTooltip ? true : undefined}
       isWidgetInvalid={isWidgetInvalid}
       shouldResize={state.displayType !== DisplayType.TABLE}
-      organization={organization}
-      selection={pageFilters.selection}
       widget={
         widget.widgetType === WidgetType.SPANS && isChart
           ? widgetWithDedupedYAxes

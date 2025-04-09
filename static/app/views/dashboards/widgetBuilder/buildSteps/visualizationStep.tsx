@@ -35,7 +35,6 @@ interface Props {
   isWidgetInvalid: boolean;
   location: Location;
   onChange: (displayType: DisplayType) => void;
-  pageFilters: PageFilters;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   dashboardFilters?: DashboardFilters;
@@ -45,7 +44,6 @@ interface Props {
 }
 
 export function VisualizationStep({
-  pageFilters,
   displayType,
   error,
   onChange,
@@ -126,8 +124,6 @@ export function VisualizationStep({
       </FieldGroup>
       <VisualizationWrapper displayType={displayType}>
         <WidgetCard
-          organization={organization}
-          selection={pageFilters}
           widget={debouncedWidget}
           dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboardFilters}
           isEditingDashboard={false}
