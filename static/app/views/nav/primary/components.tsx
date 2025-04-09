@@ -437,6 +437,7 @@ const StyledNavButton = styled('button', {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
   border: none;
+  margin: auto;
   position: relative;
   background: transparent;
 
@@ -465,8 +466,8 @@ export const NavButton = styled((p: NavButtonProps) => {
 
 export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
   position: absolute;
-  top: ${p => (p.isMobile ? `8px` : `calc(50% - 5px)`)};
-  left: ${p => (p.isMobile ? '32px' : `calc(50% + 12px)`)};
+  top: ${p => (p.isMobile ? `8px` : `calc(50% - 12px)`)};
+  left: ${p => (p.isMobile ? '32px' : `calc(50% + 14px)`)};
   transform: translate(-50%, -50%);
   display: block;
   text-align: center;
