@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {createPortal} from 'react-dom';
 import type {To} from 'react-router-dom';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -11,6 +11,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -211,7 +212,59 @@ const SectionSeparator = styled('hr')`
   border: none;
 `;
 
-const Item = styled(Link)<{layout: NavLayout}>`
+interface ItemProps extends LinkProps {
+  layout: NavLayout;
+}
+
+const ChonkItem = chonkStyled(Link)<ItemProps>`
+  display: flex;
+  gap: ${space(1)};
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  color: ${p => p.theme.textColor};
+  padding: ${p => (p.layout === NavLayout.MOBILE ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px` : `${space(0.75)} ${space(1.5)}`)};
+  border-radius: ${p => (p.layout === NavLayout.MOBILE ? '0' : p.theme.radius.lg)};
+
+  /* Disable interaction state layer */
+  > span[role='presentation']:first-child {
+    display: none;
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%) translateX(100%);
+    left: -${space(1.5)};
+    width: 4px;
+    height: 20px;
+    border-radius: ${p => p.theme.radius.micro};
+    background-color: ${p => p.theme.colors.blue400};
+    transition: opacity 0.1s ease-in-out;
+    opacity: 0;
+  }
+
+  &[aria-selected='true'] {
+    color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.colors.blue100};
+
+    &:hover {
+      background-color: ${p => p.theme.colors.blue100};
+    }
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &:hover:not([aria-selected='true']) {
+    color: ${p => p.theme.textColor};
+    background-color: ${p => p.theme.colors.gray100};
+  }
+`;
+
+const StyledNavItem = styled(Link)<ItemProps>`
   position: relative;
   display: flex;
   padding: 4px ${space(1)};
@@ -253,6 +306,14 @@ const Item = styled(Link)<{layout: NavLayout}>`
       border-radius: 0;
     `}
 `;
+
+export const Item = styled((p: ItemProps) => {
+  const theme = useTheme();
+  if (theme.isChonk) {
+    return <ChonkItem {...p} />;
+  }
+  return <StyledNavItem {...p} />;
+})``;
 
 const ItemText = styled('span')`
   ${p => p.theme.overflowEllipsis}

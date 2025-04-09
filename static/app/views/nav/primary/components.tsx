@@ -316,11 +316,11 @@ const ChonkNavLink = chonkStyled(Link, {
   &::before {
     content: '';
     position: absolute;
-    top: ${p => (p.isMobile ? '50%' : '10px')};
+    top: ${p => (p.isMobile ? '50%' : '14px')};
     transform: ${p => (p.isMobile ? 'translateY(-50%)' : 'none')};
     left: 0px;
     width: 4px;
-    height: 26px;
+    height: 20px;
     border-radius: ${p => p.theme.radius.micro};
     background-color: ${p => p.theme.colors.blue400};
     transition: opacity 0.1s ease-in-out;
