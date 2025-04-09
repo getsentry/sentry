@@ -18,7 +18,7 @@ class BaseActionValidator(CamelSnakeModelSerializer[T], Generic[T]):
     data: Any = serializers.JSONField()
     config: Any = serializers.JSONField()
     type = serializers.ChoiceField(choices=[(t.value, t.name) for t in Action.Type])
-    integration_id = serializers.IntegerField()
+    integration_id = serializers.IntegerField(required=False)
 
     class Meta:
         model = T
