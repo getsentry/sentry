@@ -5,7 +5,6 @@ import {
   getApiQueryData,
   setApiQueryData,
   useMutation,
-  type UseMutationOptions,
   useQueryClient,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -18,23 +17,17 @@ type UpdateGroupSearchViewStarredOrderVariables = {
   viewIds: number[];
 };
 
-export const useUpdateGroupSearchViewStarredOrder = (
-  options: Omit<
-    UseMutationOptions<void, RequestError, UpdateGroupSearchViewStarredOrderVariables>,
-    'mutationFn'
-  > = {}
-) => {
+export const useUpdateGroupSearchViewStarredOrder = () => {
   const api = useApi();
   const queryClient = useQueryClient();
 
   return useMutation<void, RequestError, UpdateGroupSearchViewStarredOrderVariables>({
-    ...options,
     mutationFn: ({orgSlug, viewIds}: UpdateGroupSearchViewStarredOrderVariables) =>
       api.requestPromise(`/organizations/${orgSlug}/group-search-views/starred/order/`, {
         method: 'PUT',
         data: {view_ids: viewIds},
       }),
-    onSuccess: (_, parameters, context) => {
+    onSuccess: (_, parameters) => {
       // Reorder the existing views in the cache
       const groupSearchViews = getApiQueryData<GroupSearchView[]>(
         queryClient,
@@ -52,11 +45,9 @@ export const useUpdateGroupSearchViewStarredOrder = (
         makeFetchGroupSearchViewsKey({orgSlug: parameters.orgSlug}),
         newViewsOrder
       );
-      options.onSuccess?.(_, parameters, context);
     },
-    onError: (error, variables, context) => {
+    onError: () => {
       addErrorMessage(t('Failed to update starred views order'));
-      options.onError?.(error, variables, context);
     },
   });
 };
