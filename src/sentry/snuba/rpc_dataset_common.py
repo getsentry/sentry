@@ -23,8 +23,7 @@ from sentry.search.eap.columns import (
 from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
-from sentry.search.eap.utils import handle_downsample_meta
-from sentry.search.eap.utils import transform_binary_formula_to_expression
+from sentry.search.eap.utils import handle_downsample_meta, transform_binary_formula_to_expression
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
 from sentry.utils import json, snuba_rpc
