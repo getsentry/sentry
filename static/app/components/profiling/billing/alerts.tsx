@@ -30,3 +30,7 @@ export const ProfilingAM1OrMMXUpgrade = HookOrDefault({
 export const ContinuousProfilingBetaAlertBanner = HookOrDefault({
   hookName: 'component:continuous-profiling-beta-banner',
 });
+
+export const ContinuousProfilingBetaSDKAlertBanner = HookOrDefault({
+  hookName: 'component:continuous-profiling-beta-sdk-banner',
+});
