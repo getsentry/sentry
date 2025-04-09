@@ -9,6 +9,7 @@ import SearchBar from 'sentry/components/searchBar';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -77,6 +78,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
 }
 
 function SortDropdown() {
+  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const sort = useIssueViewSort();
@@ -88,6 +90,10 @@ function SortDropdown() {
         icon: <IconSort />,
       }}
       onChange={newSort => {
+        trackAnalytics('issue_views.table.sort_changed', {
+          organization,
+          sort: newSort.value,
+        });
         navigate({
           pathname: location.pathname,
           query: {sort: newSort.value},
