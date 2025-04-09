@@ -85,7 +85,7 @@ export function SavedQueriesTable({
   const filteredData = data?.filter(row => row.query?.length > 0) ?? [];
   const {deleteQuery} = useDeleteQuery();
   const {starQuery} = useStarQuery();
-  const {updateQueryFromSavedQuery} = useSaveQuery();
+  const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useSaveQuery();
 
   const getHandleUpdateFromSavedQuery = useCallback(
     (savedQuery: SavedQuery) => {
@@ -95,6 +95,13 @@ export function SavedQueriesTable({
     },
     [updateQueryFromSavedQuery]
   );
+
+  const duplicateQuery = async (savedQuery: SavedQuery) => {
+    await saveQueryFromSavedQuery({
+      ...savedQuery,
+      name: `${savedQuery.name} (Copy)`,
+    });
+  };
 
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
     navigate({
@@ -169,6 +176,15 @@ export function SavedQueriesTable({
                 {
                   key: 'duplicate',
                   label: t('Duplicate'),
+                  onAction: async () => {
+                    addLoadingMessage(t('Duplicating query...'));
+                    try {
+                      await duplicateQuery(row);
+                      addSuccessMessage(t('Query duplicated'));
+                    } catch (error) {
+                      addErrorMessage(t('Unable to duplicate query'));
+                    }
+                  },
                 },
                 {
                   key: 'delete',
