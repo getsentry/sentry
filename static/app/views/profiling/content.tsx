@@ -14,7 +14,10 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
-import {ProfilingBetaAlertBanner} from 'sentry/components/profiling/billing/alerts';
+import {
+  ContinuousProfilingBetaAlertBanner,
+  ProfilingBetaAlertBanner,
+} from 'sentry/components/profiling/billing/alerts';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -94,6 +97,7 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
       >
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
+          <ContinuousProfilingBetaAlertBanner organization={organization} />
           <ProfilingContentPageHeader />
           <LayoutBody>
             <LayoutMain fullWidth>
