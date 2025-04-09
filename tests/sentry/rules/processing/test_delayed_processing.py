@@ -393,7 +393,7 @@ class GetRulesToFireTest(TestCase):
         self.group1: Group = self.create_group(self.project)
         self.group2: Group = self.create_group(self.project)
 
-        self.condition_group_results: dict[UniqueConditionQuery, dict[int, int]] = {
+        self.condition_group_results: dict[UniqueConditionQuery, dict[int, int | float]] = {
             UniqueConditionQuery(
                 cls_id=TEST_RULE_SLOW_CONDITION["id"],
                 interval=TEST_RULE_SLOW_CONDITION["interval"],
