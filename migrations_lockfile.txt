@@ -19,7 +19,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0864_move_monitors
+sentry: 0865_file_offsets
 
 social_auth: 0002_default_auto_field
 
