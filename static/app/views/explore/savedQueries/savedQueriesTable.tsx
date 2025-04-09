@@ -77,7 +77,7 @@ export function SavedQueriesTable({
   const navigate = useNavigate();
   const cursor = decodeScalar(location.query[cursorKey]);
   const {data, isLoading, pageLinks, isFetched} = useGetSavedQueries({
-    sortBy: sort,
+    sortBy: ['starred', sort],
     exclude: mode === 'owned' ? 'shared' : mode === 'shared' ? 'owned' : undefined, // Inverse because this is an exclusion
     perPage,
     cursor,
