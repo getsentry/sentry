@@ -1,6 +1,5 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
@@ -13,7 +12,9 @@ import type {
   IntegrationRepository,
   Repository,
 } from 'sentry/types/integrations';
+import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface IntegrationReposAddRepositoryProps {
@@ -27,6 +28,8 @@ interface IntegrationRepoSearchResult {
   repos: IntegrationRepository[];
 }
 
+const defaultSearchResult: IntegrationRepoSearchResult = {repos: []};
+
 export function IntegrationReposAddRepository({
   integration,
   currentRepositories,
@@ -35,47 +38,30 @@ export function IntegrationReposAddRepository({
 }: IntegrationReposAddRepositoryProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
-  const [dropdownBusy, setDropdownBusy] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [searchResult, setSearchResult] = useState<IntegrationRepoSearchResult>({
-    repos: [],
-  });
+  const [search, setSearch] = useState<string>();
+  const debouncedSearch = useDebouncedValue(search, 200);
 
-  const searchRepositoriesRequest = useCallback(
-    async (searchQuery?: string) => {
+  const query = useQuery({
+    queryKey: [
+      `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+      {method: 'GET', query: {search: debouncedSearch}},
+    ] as const,
+    queryFn: async context => {
       try {
-        const data: IntegrationRepoSearchResult = await api.requestPromise(
-          `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
-          {method: 'GET', query: {search: searchQuery}}
-        );
-        setSearchResult(data);
+        onSearchError(null);
+        return await fetchDataQuery<IntegrationRepoSearchResult>(context);
       } catch (error) {
         onSearchError(error?.status);
-      }
-      setDropdownBusy(false);
-    },
-    [api, integration, organization, onSearchError]
-  );
-
-  const debouncedSearchRepositoriesRequest = useMemo(
-    () => debounce(query => searchRepositoriesRequest(query), 200),
-    [searchRepositoriesRequest]
-  );
-
-  const handleSearchRepositories = useCallback(
-    (e?: React.ChangeEvent<HTMLInputElement>) => {
-      if (e?.target.value) {
-        setDropdownBusy(true);
-        onSearchError(null);
-        debouncedSearchRepositoriesRequest(e?.target.value);
-      } else {
-        setDropdownBusy(false);
-        onSearchError(null);
-        setSearchResult({repos: []});
+        throw error;
       }
     },
-    [debouncedSearchRepositoriesRequest, onSearchError]
-  );
+    retry: 0,
+    staleTime: 20_000,
+    enabled: !!debouncedSearch,
+  });
+
+  const searchResult = query.data?.[0] ?? defaultSearchResult;
 
   const addRepo = async (selection: {value: string}) => {
     setAdding(true);
@@ -143,11 +129,11 @@ export function IntegrationReposAddRepository({
       <DropdownAutoComplete
         items={dropdownItems}
         onSelect={addRepo}
-        onChange={handleSearchRepositories}
+        onChange={e => setSearch(e.target.value)}
         emptyMessage={t('Please enter a repository name')}
         noResultsMessage={t('No repositories found')}
         searchPlaceholder={t('Search Repositories')}
-        busy={dropdownBusy}
+        busy={query.isFetching}
         alignMenu="right"
       >
         {({isOpen}) => (
