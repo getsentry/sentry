@@ -191,7 +191,7 @@ export declare namespace TraceTree {
   type TraceErrorIssue = TraceError | EAPError;
 
   type TracePerformanceIssue = TracePerformanceIssueType;
-  type TraceOccurence = TracePerformanceIssueType | EAPOccurrence;
+  type TraceOccurence = TracePerformanceIssue | EAPOccurrence;
 
   type TraceIssue = TraceErrorIssue | TraceOccurence;
 
