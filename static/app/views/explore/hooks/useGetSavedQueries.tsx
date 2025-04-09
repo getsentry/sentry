@@ -62,7 +62,7 @@ export function useGetSavedQueries({
 }: Props) {
   const organization = useOrganization();
 
-  const {data, isLoading, getResponseHeader} = useApiQuery<SavedQuery[]>(
+  const {data, isLoading, getResponseHeader, ...rest} = useApiQuery<SavedQuery[]>(
     [
       `/organizations/${organization.slug}/explore/saved/`,
       {
@@ -83,7 +83,7 @@ export function useGetSavedQueries({
 
   const pageLinks = getResponseHeader?.('Link');
 
-  return {data, isLoading, pageLinks};
+  return {data, isLoading, pageLinks, ...rest};
 }
 
 export function useInvalidateSavedQueries() {
