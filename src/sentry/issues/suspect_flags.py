@@ -1,10 +1,18 @@
+from collections import defaultdict
 from datetime import datetime
+from typing import NamedTuple
 
 import sentry_sdk
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
-from sentry.seer.workflows.compare import KeyedValueCount, Score, keyed_kl_score
+from sentry.seer.workflows.compare import KeyedValueCount, keyed_kl_score
 from sentry.utils.snuba import raw_snql_query
+
+
+class Score(NamedTuple):
+    key: str
+    score: float
+    baseline_percent: float
 
 
 @sentry_sdk.trace
@@ -18,7 +26,7 @@ def get_suspect_flag_scores(
 ) -> list[Score]:
     """
     Queries the baseline and outliers sets. Computes the KL scores of each and returns a sorted
-    list of key, score values.
+    list of key, score, baseline_percent tuples.
     """
     outliers = query_selection_set(org_id, project_id, start, end, envs, group_id=group_id)
     baseline = query_baseline_set(
@@ -28,12 +36,23 @@ def get_suspect_flag_scores(
     outliers_count = query_error_counts(org_id, project_id, start, end, envs, group_id=group_id)
     baseline_count = query_error_counts(org_id, project_id, start, end, envs, group_id=None)
 
-    return keyed_kl_score(
+    keyed_scores = keyed_kl_score(
         a=baseline,
         b=outliers,
         total_a=baseline_count,
         total_b=outliers_count,
     )
+
+    baseline_percent_dict: defaultdict[str, float] = defaultdict(int)
+    if baseline_count:
+        for key, value, count in baseline:
+            if value == "true":
+                baseline_percent_dict[key] = count / baseline_count
+
+    return [
+        Score(key=key, score=score, baseline_percent=baseline_percent_dict[key])
+        for key, score in keyed_scores
+    ]
 
 
 @sentry_sdk.trace

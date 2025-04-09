@@ -110,4 +110,4 @@ class SnubaTest(TestCase, SnubaTestCase):
         )
 
         results = get_suspect_flag_scores(1, 1, before, later, envs=[], group_id=1)
-        assert results == [("key", 2.7622287114272543), ("other", 0.0)]
+        assert results == [("key", 2.7622287114272543, 0.5), ("other", 0.0, 0.0)]
