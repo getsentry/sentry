@@ -3,11 +3,15 @@ from __future__ import annotations
 import abc
 import logging
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 from cronsim import CronSim, CronSimError
 from django.utils import timezone
 
 from sentry.conf.types.taskworker import crontab
+
+if TYPE_CHECKING:
+    from sentry_sdk._types import MonitorConfigScheduleUnit
 
 logger = logging.getLogger("taskworker.scheduler")
 
@@ -51,7 +55,7 @@ class TimedeltaSchedule(Schedule):
         if delta.total_seconds() < 0:
             raise ValueError("interval must be at least one second")
 
-    def monitor_interval(self) -> tuple[int, str]:
+    def monitor_interval(self) -> tuple[int, MonitorConfigScheduleUnit]:
         time_units = (
             ("day", 60 * 60 * 24.0),
             ("hour", 60 * 60.0),
