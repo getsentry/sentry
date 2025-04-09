@@ -268,7 +268,7 @@ describe('TraceTree', () => {
         }),
         traceMetadata
       );
-      expect(tree.root.children[0]!.children[0]!.occurences.size).toBe(1);
+      expect(tree.root.children[0]!.children[0]!.occurrences.size).toBe(1);
     });
 
     it('adds transaction profile to node', () => {
@@ -603,13 +603,13 @@ describe('TraceTree', () => {
     it('adds eap occurences to tree nodes', () => {
       const tree = TraceTree.FromTrace(eapTraceWithOccurences, traceMetadata);
 
-      expect(tree.root.children[0]!.occurences.size).toBe(1);
+      expect(tree.root.children[0]!.occurrences.size).toBe(1);
 
       const eapTransaction = findEAPSpanByEventId(tree, 'eap-span-1');
       const eapSpan = findEAPSpanByEventId(tree, 'eap-span-2');
 
-      expect(eapTransaction?.occurences.size).toBe(1);
-      expect(eapSpan?.occurences.size).toBe(1);
+      expect(eapTransaction?.occurrences.size).toBe(1);
+      expect(eapSpan?.occurrences.size).toBe(1);
     });
 
     it('initializes expanded based on is_transaction property', () => {

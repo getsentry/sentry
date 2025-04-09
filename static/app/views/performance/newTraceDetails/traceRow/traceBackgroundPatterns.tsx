@@ -24,17 +24,17 @@ interface BackgroundPatternsProps {
   errors: TraceTreeNode<TraceTree.Transaction>['errors'];
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
-  occurences: TraceTreeNode<TraceTree.Transaction>['occurences'];
+  occurrences: TraceTreeNode<TraceTree.Transaction>['occurrences'];
 }
 
 export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
   const occurences = useMemo(() => {
-    if (!props.occurences.size) {
+    if (!props.occurrences.size) {
       return [];
     }
 
-    return [...props.occurences];
-  }, [props.occurences]);
+    return [...props.occurrences];
+  }, [props.occurrences]);
 
   const errors = useMemo(() => {
     if (!props.errors.size) {
@@ -47,7 +47,7 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
     return getMaxErrorSeverity(errors);
   }, [errors]);
 
-  if (!props.occurences.size && !props.errors.size) {
+  if (!props.occurrences.size && !props.errors.size) {
     return null;
   }
 
