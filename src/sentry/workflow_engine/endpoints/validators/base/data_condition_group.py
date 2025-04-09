@@ -15,10 +15,9 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
         conditions: list[DataCondition] = []
 
         for condition in value:
-            condition_validator = BaseDataConditionValidator(data=condition)
-
-            if not condition_validator.is_valid():
-                raise serializers.ValidationError(condition_validator.errors)
+            condition_validator = BaseDataConditionValidator(data=condition).is_valid(
+                raise_exception=True
+            )
 
             condition = DataCondition(condition_validator.validated_data)
             conditions.append(condition)
