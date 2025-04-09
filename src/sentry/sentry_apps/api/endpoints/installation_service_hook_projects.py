@@ -1,4 +1,5 @@
 from django.db import router, transaction
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -19,6 +20,37 @@ class ProjectAccessError(Exception):
     pass
 
 
+class ServiceHookProjectsInputSerializer(serializers.Serializer):
+    projects = serializers.ListField(required=True)
+
+    def validate_projects(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError(
+                "Projects must be a list, not %s" % type(value).__name__
+            )
+
+        if not value:
+            raise serializers.ValidationError("Projects list cannot be empty")
+
+        # Check the type of the first element to determine expected type
+        first_elem = value[0]
+        expected_type = type(first_elem)
+
+        if expected_type not in (str, int):
+            raise serializers.ValidationError(
+                "Project identifiers must be either all strings (slugs) or all integers (IDs)"
+            )
+
+        # Verify all elements are of the same type
+        if not all(isinstance(x, expected_type) for x in value):
+            raise serializers.ValidationError(
+                "Mixed types detected. All project identifiers must be of the same type "
+                "(either all strings/slugs or all integers/IDs)"
+            )
+
+        return value
+
+
 @region_silo_endpoint
 class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
@@ -33,7 +65,7 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
         return list(ServiceHookProject.objects.filter(service_hook_id=hook.id))
 
     def _replace_hook_projects(
-        self, installation: SentryAppInstallation, project_ids: list[int], request: Request
+        self, installation: SentryAppInstallation, new_project_ids: set[int], request: Request
     ) -> list[ServiceHookProject]:
         with transaction.atomic(router.db_for_write(ServiceHookProject)):
             hook = ServiceHook.objects.get(installation_id=installation.id)
@@ -42,7 +74,6 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
                     "project_id", flat=True
                 )
             )
-            new_project_ids = set(project_ids)
 
             # Determine which projects to add and which to remove
             projects_to_add = new_project_ids - existing_project_ids
@@ -101,27 +132,23 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
         )
 
     def put(self, request: Request, installation: SentryAppInstallation) -> Response:
-        try:
-            projects = request.data.get("projects")
-            assert projects
-        except AssertionError:
-            return Response(
-                status=400,
-                data={
-                    "error": "Need at least one project in request data (e.g. {'projects': ['slug_or_id1', ...]}). To remove all project filters, use DELETE."
-                },
-            )
+
+        serializer = ServiceHookProjectsInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        projects = serializer.validated_data["projects"]
 
         # convert slugs to ids if needed
         org_id = installation.organization_id
-        project_ids = []
-        for project in projects:
+        project_ids = set()
+        for project in set(projects):
             try:
                 project_obj = project_service.get_by_id(organization_id=org_id, id=int(project))
             except ValueError:
                 project_obj = project_service.get_by_slug(organization_id=org_id, slug=project)
             if project_obj and request.access.has_project_access(project_obj):
-                project_ids.append(project_obj.id)
+                project_ids.add(project_obj.id)
             else:
                 return Response(
                     status=400,
