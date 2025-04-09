@@ -30,7 +30,6 @@ from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import make_split_task_queues
 
 
@@ -436,6 +435,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.data_secrecy",
     "sentry.workflow_engine",
     "sentry.explore",
+    "sentry.insights",
 )
 
 # Silence internal hints from Django's system checks
@@ -3104,6 +3104,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "workflow_engine",
     "tempest",
     "explore",
+    "insights",
     "monitors",
 )
 # Where to write the lockfile to.
