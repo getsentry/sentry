@@ -24,14 +24,21 @@ type Props = {
 function mapActionsToCompactSelect(
   actions: Props['actions']
 ): Array<SelectOption<string>> {
-  return actions.map(action => ({
-    value: action.key,
-    label: action.name,
-    details: action.help,
-    disabled: action.disabled,
-    tooltip: action.disabled ? action.disabledReason : undefined,
-    help: action.help,
-  }));
+  return actions
+    .map(action => {
+      if (action.visible === false) {
+        return null;
+      }
+      return {
+        value: action.key,
+        label: action.name,
+        details: action.help,
+        disabled: action.disabled,
+        tooltip: action.disabled ? action.disabledReason : undefined,
+        help: action.help,
+      };
+    })
+    .filter(Boolean) as Array<SelectOption<string>>;
 }
 
 function DropdownActions({actions, label}: Props) {
