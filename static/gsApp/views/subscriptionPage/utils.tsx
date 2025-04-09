@@ -40,7 +40,7 @@ export function calculateCategorySpend(
   const categoryInfo: BillingMetricHistory = subscription.categories[category];
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const slots: EventBucket[] = subscription.planDetails.planCategories[category];
-  if (!defined(categoryInfo?.reserved)) {
+  if (!defined(categoryInfo?.reserved) || !defined(slots)) {
     return {
       prepaidSpent: 0,
       onDemandSpent: 0,
