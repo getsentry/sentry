@@ -43,6 +43,8 @@ type SpansWidgetQueriesProps = {
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
+  onBestEffortDataFetched?: () => void;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
 };
 
@@ -126,6 +128,7 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
   dashboardFilters,
   onDataFetched,
   getConfidenceInformation,
+  onDataFetchStart,
 }: SpansWidgetQueriesImplProps) {
   const config = SpansConfig;
   const organization = useOrganization();
@@ -166,6 +169,7 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
         dashboardFilters={dashboardFilters}
         afterFetchSeriesData={afterFetchSeriesData}
         samplingMode={SAMPLING_MODE.PREFLIGHT}
+        onDataFetchStart={onDataFetchStart}
         onDataFetched={() => {
           setBestEffortChildrenProps(null);
         }}
@@ -203,7 +207,7 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
                     loading: false,
                     isProgressivelyLoading: false,
                   });
-                  onDataFetched?.(results);
+                  onDataFetched?.({...results, isProgressivelyLoading: false});
                 }}
               >
                 {bestEffortProps => {

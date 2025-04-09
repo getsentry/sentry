@@ -40,6 +40,7 @@ type Props = {
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: string;
   noPadding?: boolean;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: {
     pageLinks?: string;
     tableResults?: TableDataWithTitle[];
@@ -82,6 +83,7 @@ export function WidgetCardChartContainer({
   widgetLegendState,
   showConfidenceWarning,
   minTableColumnWidth,
+  onDataFetchStart,
 }: Props) {
   const location = useLocation();
 
@@ -101,6 +103,7 @@ export function WidgetCardChartContainer({
       selection={selection}
       onDataFetched={onDataFetched}
       onWidgetSplitDecision={onWidgetSplitDecision}
+      onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}
     >
       {({
