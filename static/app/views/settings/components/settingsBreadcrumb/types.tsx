@@ -6,9 +6,6 @@ export type RouteWithName = RouteProps & {
   name?: string;
 };
 
-export type SettingsBreadcrumbProps = Omit<
-  RouteComponentProps,
-  'location' | 'routeParams' | 'router' | 'params'
-> & {
+export type SettingsBreadcrumbProps = Pick<RouteComponentProps, 'route' | 'routes'> & {
   isLast: boolean;
 };
