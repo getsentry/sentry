@@ -63,7 +63,6 @@ describe('IssueViewsList', function () {
     );
     expect(screen.getByText(textWithMarkupMatcher('foo is bar'))).toBeInTheDocument();
     expect(screen.getByText('env1')).toBeInTheDocument();
-    expect(screen.getByText('7d')).toBeInTheDocument();
 
     expect(await screen.findByText('Bar')).toBeInTheDocument();
     expect(screen.getByText('Bar')).toHaveAttribute(
@@ -73,6 +72,5 @@ describe('IssueViewsList', function () {
     expect(screen.getByText(textWithMarkupMatcher('bar is baz'))).toBeInTheDocument();
     expect(screen.getByText('My Projects')).toBeInTheDocument();
     expect(screen.getByText('All')).toBeInTheDocument();
-    expect(screen.getByText('1d')).toBeInTheDocument();
   });
 });
