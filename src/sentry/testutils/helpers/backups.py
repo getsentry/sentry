@@ -50,7 +50,7 @@ from sentry.incidents.models.incident import (
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
-from sentry.insights.models import InsightsStarredTransaction
+from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.project_integration import ProjectIntegration
@@ -729,11 +729,11 @@ class ExhaustiveFixtures(Fixtures):
             position=0,
         )
 
-        InsightsStarredTransaction.objects.create(
+        InsightsStarredSegment.objects.create(
             organization=org,
             user_id=owner_id,
             project=project,
-            transaction_name="test_transaction",
+            segment_name="test_transaction",
         )
 
         return org

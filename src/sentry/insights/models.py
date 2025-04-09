@@ -9,7 +9,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 
 
 @region_silo_model
-class InsightsStarredTransaction(DefaultFieldsModel):
+class InsightsStarredSegment(DefaultFieldsModel):
     """
     A starred transaction in Insights
     """
@@ -19,10 +19,10 @@ class InsightsStarredTransaction(DefaultFieldsModel):
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
-    transaction_name = models.CharField(max_length=255)
+    segment_name = models.CharField(max_length=255)
 
     class Meta:
         app_label = "insights"
-        db_table = "insights_starred_transactions"
+        db_table = "insights_starred_segments"
 
-    __repr__ = sane_repr("organization_id", "user_id", "transaction_name")
+    __repr__ = sane_repr("organization_id", "user_id", "segment_name")
