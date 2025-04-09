@@ -1,5 +1,6 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {
   addErrorMessage,
@@ -75,7 +76,7 @@ export function SavedQueriesTable({
   const location = useLocation();
   const navigate = useNavigate();
   const cursor = decodeScalar(location.query[cursorKey]);
-  const {data, isLoading, pageLinks} = useGetSavedQueries({
+  const {data, isLoading, pageLinks, isFetched} = useGetSavedQueries({
     sortBy: sort,
     exclude: mode === 'owned' ? 'shared' : mode === 'shared' ? 'owned' : undefined, // Inverse because this is an exclusion
     perPage,
@@ -86,6 +87,35 @@ export function SavedQueriesTable({
   const {deleteQuery} = useDeleteQuery();
   const {starQuery} = useStarQuery();
   const {updateQueryFromSavedQuery} = useSaveQuery();
+
+  const [starredIds, setStarredIds] = useState<number[]>([]);
+
+  // Initialize starredIds state when queries have been fetched
+  useEffect(() => {
+    if (isFetched === true) {
+      setStarredIds(data?.filter(row => row.starred).map(row => row.id) ?? []);
+    }
+  }, [isFetched, data]);
+
+  const starQueryHandler = useCallback(
+    (id: number, starred: boolean) => {
+      if (starred) {
+        setStarredIds(prev => [...prev, id]);
+      } else {
+        setStarredIds(prev => prev.filter(starredId => starredId !== id));
+      }
+      starQuery(id, starred).catch(() => {
+        // If the starQuery call fails, we need to revert the starredIds state
+        addErrorMessage(t('Unable to star query'));
+        if (starred) {
+          setStarredIds(prev => prev.filter(starredId => starredId !== id));
+        } else {
+          setStarredIds(prev => [...prev, id]);
+        }
+      });
+    },
+    [starQuery]
+  );
 
   const getHandleUpdateFromSavedQuery = useCallback(
     (savedQuery: SavedQuery) => {
@@ -173,10 +203,10 @@ export function SavedQueriesTable({
                 {
                   key: 'delete',
                   label: t('Delete'),
-                  onAction: () => {
+                  onAction: async () => {
                     addLoadingMessage(t('Deleting query...'));
                     try {
-                      deleteQuery(row.id);
+                      await deleteQuery(row.id);
                       addSuccessMessage(t('Query deleted'));
                     } catch (error) {
                       addErrorMessage(t('Unable to delete query'));
@@ -248,24 +278,32 @@ export function SavedQueriesTable({
     if (!row) {
       return [null];
     }
+
+    const debouncedOnClick = debounce(
+      () => {
+        if (row.starred) {
+          addLoadingMessage(t('Unstarring query...'));
+          starQueryHandler(row.id, false);
+          addSuccessMessage(t('Query unstarred'));
+        } else {
+          addLoadingMessage(t('Starring query...'));
+          starQueryHandler(row.id, true);
+          addSuccessMessage(t('Query starred'));
+        }
+      },
+      1000,
+      {leading: true}
+    );
     return [
       <Center key={`starred-${row.id}`}>
         <Button
           aria-label={row.starred ? t('Unstar') : t('Star')}
           size="zero"
           borderless
-          icon={<IconStar size="sm" color="gray400" isSolid={row.starred} />}
-          onClick={() => {
-            if (row.starred) {
-              addLoadingMessage(t('Unstarring query...'));
-              starQuery(row.id, false);
-              addSuccessMessage(t('Query unstarred'));
-            } else {
-              addLoadingMessage(t('Starring query...'));
-              starQuery(row.id, true);
-              addSuccessMessage(t('Query starred'));
-            }
-          }}
+          icon={
+            <IconStar size="sm" color="gray400" isSolid={starredIds.includes(row.id)} />
+          }
+          onClick={debouncedOnClick}
         />
       </Center>,
     ];
