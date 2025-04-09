@@ -3,28 +3,27 @@ from __future__ import annotations
 import logging
 from uuid import UUID
 
+import jsonschema
 import msgpack
 from django.conf import settings
 from redis import StrictRedis
 from rediscluster import RedisCluster
-from sentry_kafka_schemas.codecs import Codec
 
-from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.conf.types.uptime import UptimeRegionConfig
+from sentry.uptime.config_schema import CHECK_CONFIG_SCHEMA
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.types import CheckConfig
 from sentry.utils import redis
 
 logger = logging.getLogger(__name__)
 
-UPTIME_CONFIGS_CODEC: Codec[CheckConfig] = get_topic_codec(Topic.UPTIME_CONFIGS)
-
 
 def produce_config(destination_region_slug: str, config: CheckConfig):
+    jsonschema.validate(config, CHECK_CONFIG_SCHEMA)
     _send_to_redis(
         destination_region_slug,
         UUID(config["subscription_id"]),
-        UPTIME_CONFIGS_CODEC.encode(config),
+        msgpack.packb(config),
     )
 
 
