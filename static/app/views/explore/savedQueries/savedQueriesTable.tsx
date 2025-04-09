@@ -203,10 +203,10 @@ export function SavedQueriesTable({
                 {
                   key: 'delete',
                   label: t('Delete'),
-                  onAction: () => {
+                  onAction: async () => {
                     addLoadingMessage(t('Deleting query...'));
                     try {
-                      deleteQuery(row.id);
+                      await deleteQuery(row.id);
                       addSuccessMessage(t('Query deleted'));
                     } catch (error) {
                       addErrorMessage(t('Unable to delete query'));
