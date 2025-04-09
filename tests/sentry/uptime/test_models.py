@@ -1,5 +1,4 @@
 from unittest import mock
-from uuid import uuid4
 
 from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.models import (
@@ -50,12 +49,11 @@ class UptimeSubscriptionDataSourceHandlerTest(UptimeTestCase):
         super().setUp()
         self.uptime_subscription = self.create_uptime_subscription(
             url="https://santry.io",
-            subscription_id=str(uuid4()),
         )
 
         self.data_source = self.create_data_source(
             type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
-            source_id=str(self.uptime_subscription.subscription_id),
+            source_id=str(self.uptime_subscription.id),
         )
 
     def test_bulk_get_query_object(self):
