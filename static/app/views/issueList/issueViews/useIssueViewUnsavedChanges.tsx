@@ -1,7 +1,6 @@
 import isEqual from 'lodash/isEqual';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
@@ -9,12 +8,10 @@ import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useS
 export function useIssueViewUnsavedChanges() {
   const {data: view} = useSelectedGroupSearchView();
   const location = useLocation();
-  const navigate = useNavigate();
 
   if (!view) {
     return {
       hasUnsavedChanges: false,
-      discardUnsavedChanges: () => {},
     };
   }
 
@@ -27,11 +24,5 @@ export function useIssueViewUnsavedChanges() {
 
   return {
     hasUnsavedChanges,
-    discardUnsavedChanges: () => {
-      navigate({
-        pathname: location.pathname,
-        query: getIssueViewQueryParams({view}),
-      });
-    },
   };
 }
