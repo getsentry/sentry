@@ -28,6 +28,7 @@ class DeleteIncidentTest(BaseWorkflowTest, HybridCloudTestMixin):
             data={"timestamp": one_minute, "fingerprint": ["group1"]}, project_id=self.project.id
         )
         group = event.group
+        assert group
         group_open_period = GroupOpenPeriod.objects.create(
             project=self.project, group=group, user_id=self.user.id
         )
