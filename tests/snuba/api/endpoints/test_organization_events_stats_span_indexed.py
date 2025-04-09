@@ -1716,7 +1716,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "end": self.day_ago + timedelta(minutes=4),
                 "interval": "1m",
                 "query": "",
-                "yAxis": ["http_response_rate(4)"],
+                "yAxis": ["http_response_rate(5)"],
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
@@ -1726,7 +1726,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
 
         assert data["data"][0][1][0]["count"] == 0.0
         assert data["data"][1][1][0]["count"] == 0.5
-        assert data["data"][2][1][0]["count"] == 0.25
+        assert data["data"][2][1][0]["count"] == 0.75
 
     def test_http_response_rate_multiple_series_fails_for_some_reason(self):
         self.store_spans(
