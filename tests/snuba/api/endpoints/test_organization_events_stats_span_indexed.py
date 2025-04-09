@@ -1678,8 +1678,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[2][1][0]["count"] == 0.0
         assert response.data["meta"]["dataset"] == self.dataset
 
-    # This passes no problem
-    def test_http_response_rate_multiple_series(self):
+    def test_http_response_rate(self):
         self.store_spans(
             [
                 self.create_span(
@@ -1728,7 +1727,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data["data"][1][1][0]["count"] == 0.5
         assert data["data"][2][1][0]["count"] == 0.75
 
-    def test_http_response_rate_multiple_series_fails_for_some_reason(self):
+    @pytest.mark.xfail(
+        reason="raw sql is is not querying for 5xx's, https://github.com/getsentry/eap-planning/issues/242"
+    )
+    def test_http_response_rate_multiple_series(self):
         self.store_spans(
             [
                 self.create_span(
@@ -1779,7 +1781,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
 
         assert data["http_response_rate(5)"]["data"][0][1][0]["count"] == 0.0
         assert data["http_response_rate(5)"]["data"][1][1][0]["count"] == 0.5
-        assert data["http_response_rate(5)"]["data"][2][1][0]["count"] == 0.75  # why is this 0.25?
+        assert data["http_response_rate(5)"]["data"][2][1][0]["count"] == 0.75
 
     @pytest.mark.xfail(reason="https://github.com/getsentry/eap-planning/issues/237")
     def test_downsampling_single_series(self):
