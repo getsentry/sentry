@@ -291,7 +291,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Starred query"
-        assert response.data[0]["starred"] == 1
+        assert response.data[0]["starred"] is True
         assert response.data[0]["position"] == 1
 
     def test_get_most_starred_queries(self):
@@ -334,13 +334,13 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 3
         assert response.data[0]["name"] == "Most starred query"
-        assert response.data[0]["starred"] == 1
+        assert response.data[0]["starred"] is True
         assert response.data[0]["position"] == 1
         assert response.data[1]["name"] == "Second most starred query"
-        assert response.data[1]["starred"] == 1
+        assert response.data[1]["starred"] is True
         assert response.data[1]["position"] == 2
         assert response.data[2]["name"] == "Test query"
-        assert response.data[2]["starred"] == 0
+        assert response.data[2]["starred"] is False
         assert response.data[2]["position"] is None
 
     def test_get_sortby_multiple(self):
@@ -390,16 +390,16 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 4
         assert response.data[0]["name"] == "Query B"
-        assert response.data[0]["starred"] == 1
+        assert response.data[0]["starred"] is True
         assert response.data[0]["position"] == 2
         assert response.data[1]["name"] == "Query A"
-        assert response.data[1]["starred"] == 1
+        assert response.data[1]["starred"] is True
         assert response.data[1]["position"] == 1
         assert response.data[2]["name"] == "Test query"
-        assert response.data[2]["starred"] == 0
+        assert response.data[2]["starred"] is False
         assert response.data[2]["position"] is None
         assert response.data[3]["name"] == "Query C"
-        assert response.data[3]["starred"] == 0
+        assert response.data[3]["starred"] is False
         assert response.data[3]["position"] is None
 
     def test_post_require_mode(self):
