@@ -579,19 +579,18 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         assert meta["units"]["span.duration"] == "millisecond"
 
     def test_order_by(self):
-
         self.login_as(user=self.user)
         project = self.create_project()
         url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
 
         spans = [
             self.create_span(
-                {"description": "SELECT * FROM users", "trace_id": "1" * 32},
+                {"description": "SELECT * FROM users"},
                 start_ts=self.ten_mins_ago,
                 duration=20,
             ),
             self.create_span(
-                {"description": "SELECT * FROM orders", "trace_id": "2" * 32},
+                {"description": "SELECT * FROM orders"},
                 start_ts=self.nine_mins_ago,
                 duration=200,
             ),
@@ -602,21 +601,38 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         response = self.client.get(
             url,
             {
-                "query": "",
                 "lowerBound": "0",
                 "firstBound": "100",
-                "secondBound": "200",
-                "upperBound": "300",
-                "column": "span.duration",
+                "secondBound": "250",
+                "upperBound": "500",
                 "project": self.project.id,
-                "additionalFields": "description",
+                "additionalFields": "span.duration",
+                "sort": "-span.duration",
             },
             format="json",
         )
 
         data = response.data["data"]
-        assert data[0]["description"] == "SELECT * FROM users"
-        assert data[1]["description"] == "SELECT * FROM orders"
+        assert data[0]["span.duration"] == 200
+        assert data[1]["span.duration"] == 20
+
+        response = self.client.get(
+            url,
+            {
+                "lowerBound": "0",
+                "firstBound": "100",
+                "secondBound": "250",
+                "upperBound": "500",
+                "project": self.project.id,
+                "additionalFields": "span.duration",
+                "sort": "span.duration",
+            },
+            format="json",
+        )
+
+        data = response.data["data"]
+        assert data[0]["span.duration"] == 20
+        assert data[1]["span.duration"] == 200
 
 
 class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestBase):
