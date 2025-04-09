@@ -291,7 +291,116 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Starred query"
-        assert response.data[0]["starred"] == 1
+        assert response.data[0]["starred"] is True
+        assert response.data[0]["position"] == 1
+
+    def test_get_most_starred_queries(self):
+        query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Most starred query",
+            query=query,
+        )
+        second_model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Second most starred query",
+            query=query,
+        )
+        model.set_projects(self.project_ids)
+        second_model.set_projects(self.project_ids)
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model,
+            position=1,
+        )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            explore_saved_query=model,
+            position=1,
+        )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=second_model,
+            position=2,
+        )
+
+        with self.feature(self.feature_name):
+            response = self.client.get(self.url, data={"sortBy": "mostStarred"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        assert response.data[0]["name"] == "Most starred query"
+        assert response.data[0]["starred"] is True
+        assert response.data[0]["position"] == 1
+        assert response.data[1]["name"] == "Second most starred query"
+        assert response.data[1]["starred"] is True
+        assert response.data[1]["position"] == 2
+        assert response.data[2]["name"] == "Test query"
+        assert response.data[2]["starred"] is False
+        assert response.data[2]["position"] is None
+
+    def test_get_sortby_multiple(self):
+        query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        model_a = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Query A",
+            query=query,
+            last_visited=before_now(minutes=30),
+        )
+        model_a.set_projects(self.project_ids)
+
+        model_b = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Query B",
+            query=query,
+            last_visited=before_now(minutes=20),
+        )
+        model_b.set_projects(self.project_ids)
+
+        model_c = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Query C",
+            query=query,
+            last_visited=before_now(minutes=10),
+        )
+        model_c.set_projects(self.project_ids)
+
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_a,
+            position=1,
+        )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_b,
+            position=2,
+        )
+
+        with self.feature(self.feature_name):
+            response = self.client.get(self.url, data={"sortBy": ["starred", "recentlyViewed"]})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 4
+        assert response.data[0]["name"] == "Query B"
+        assert response.data[0]["starred"] is True
+        assert response.data[0]["position"] == 2
+        assert response.data[1]["name"] == "Query A"
+        assert response.data[1]["starred"] is True
+        assert response.data[1]["position"] == 1
+        assert response.data[2]["name"] == "Test query"
+        assert response.data[2]["starred"] is False
+        assert response.data[2]["position"] is None
+        assert response.data[3]["name"] == "Query C"
+        assert response.data[3]["starred"] is False
+        assert response.data[3]["position"] is None
 
     def test_post_require_mode(self):
         with self.feature(self.feature_name):

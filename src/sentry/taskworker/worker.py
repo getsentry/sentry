@@ -29,6 +29,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
     TaskActivationStatus,
 )
+from sentry_sdk.consts import OP, SPANDATA, SPANSTATUS
 
 from sentry.taskworker.client import TaskworkerClient
 from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER, DEFAULT_WORKER_QUEUE_SIZE
@@ -237,14 +238,37 @@ def _execute_activation(task_func: Task[Any, Any], activation: TaskActivation) -
 
     transaction = sentry_sdk.continue_trace(
         environ_or_headers=headers,
-        op="task.taskworker",
+        op="queue.task.taskworker",
         name=f"{activation.namespace}:{activation.taskname}",
+        origin="taskworker",
     )
     with (
         track_memory_usage("taskworker.worker.memory_change"),
         sentry_sdk.start_transaction(transaction),
     ):
-        task_func(*args, **kwargs)
+        transaction.set_data(
+            "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
+        )
+        task_added_time = activation.received_at.ToDatetime().timestamp()
+        latency = time.time() - task_added_time
+
+        with sentry_sdk.start_span(
+            op=OP.QUEUE_PROCESS,
+            name=activation.taskname,
+            origin="taskworker",
+        ) as span:
+            span.set_data(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
+            span.set_data(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
+            span.set_data(SPANDATA.MESSAGING_MESSAGE_RECEIVE_LATENCY, latency)
+            span.set_data(SPANDATA.MESSAGING_MESSAGE_RETRY_COUNT, activation.retry_state.attempts)
+            span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
+
+        try:
+            task_func(*args, **kwargs)
+            transaction.set_status(SPANSTATUS.OK)
+        except Exception:
+            transaction.set_status(SPANSTATUS.INTERNAL_ERROR)
+            raise
 
 
 class TaskWorker:
