@@ -21,9 +21,11 @@ const localStoragePersister = createAsyncStoragePersister({
   key: cacheKey,
 });
 
-const isProjectsCacheEnabled = (
-  window.__initialData?.features as unknown as string[]
-)?.includes('organizations:cache-projects-ui');
+const isProjectsCacheEnabled =
+  window.indexedDB &&
+  (window.__initialData?.features as unknown as string[])?.includes(
+    'organizations:cache-projects-ui'
+  );
 
 /**
  * Attach the persister to the query client
@@ -60,6 +62,8 @@ export function restoreQueryCache() {
 }
 
 export async function clearQueryCache() {
-  await localStoragePersister.removeClient();
-  await removeItem(cacheKey);
+  if (isProjectsCacheEnabled) {
+    await localStoragePersister.removeClient();
+    await removeItem(cacheKey);
+  }
 }
