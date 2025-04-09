@@ -2,7 +2,6 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Alert} from 'sentry/components/core/alert';
 import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
@@ -10,6 +9,7 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import type {
@@ -153,7 +153,16 @@ function SpansInterface({event, affectedSpanIds}: Props) {
                   }}
                 </Observer>
                 <GuideAnchorWrapper>
-                  <GuideAnchor target="span_tree" position="bottom" />
+                  <DemoTourElement
+                    id={DemoTourStep.PERFORMANCE_SPAN_TREE}
+                    title={t('See slow fast')}
+                    description={t(
+                      `Expand the spans to see span details from start date, end date to the operation. Below you can view breadcrumbs for a play-by-play of what your users
+            did before encountering the performance issue.`
+                    )}
+                  >
+                    <Fragment />
+                  </DemoTourElement>
                 </GuideAnchorWrapper>
               </Panel>
             </Fragment>

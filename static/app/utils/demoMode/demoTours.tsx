@@ -1,13 +1,15 @@
 import {createContext, useCallback, useContext, useMemo} from 'react';
 
 import {recordFinish} from 'sentry/actionCreators/guides';
-import {TourElementContent} from 'sentry/components/tours/components';
+import {TourElementContent, type TourElementProps} from 'sentry/components/tours/components';
 import {
   type TourContextType,
   type TourState,
   useTourReducer,
 } from 'sentry/components/tours/tourContext';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import useOrganization from 'sentry/utils/useOrganization';
+import {UseOverlayProps} from 'sentry/utils/useOverlay';
 
 import {useLocalStorageState} from '../useLocalStorageState';
 
@@ -38,8 +40,8 @@ export const enum DemoTourStep {
   RELEASES_STATES = 'demo-tour-releases-states',
   // Performance steps
   PERFORMANCE_TABLE = 'demo-tour-performance-table',
-  PERFORMANCE_TRANSACTION_SUMMARY = 'demo-tour-performance-transaction-summary',
-  PERFORMANCE_TRANSACTIONS_TABLE = 'demo-tour-performance-transactions-table',
+  PERFORMANCE_USER_MISERY = 'demo-tour-performance-user-misery',
+  PERFORMANCE_TRANSACTION_SUMMARY_TABLE = 'demo-tour-performance-transaction-summary-table',
   PERFORMANCE_SPAN_TREE = 'demo-tour-performance-span-tree',
 }
 
@@ -81,10 +83,10 @@ const TOUR_STEPS: Record<DemoTour, DemoTourStep[]> = {
     DemoTourStep.RELEASES_STATES,
   ],
   [DemoTour.PERFORMANCE]: [
-    DemoTourStep.PERFORMANCE_TABLE,
-    DemoTourStep.PERFORMANCE_TRANSACTION_SUMMARY,
-    DemoTourStep.PERFORMANCE_TRANSACTIONS_TABLE,
-    DemoTourStep.PERFORMANCE_SPAN_TREE,
+    DemoTourStep.PERFORMANCE_TABLE, // done
+    DemoTourStep.PERFORMANCE_USER_MISERY, // done
+    DemoTourStep.PERFORMANCE_TRANSACTION_SUMMARY_TABLE,
+    DemoTourStep.PERFORMANCE_SPAN_TREE, // done
   ],
 };
 
@@ -119,7 +121,7 @@ const TOUR_STATE_INITIAL_VALUE: Record<DemoTour, TourState<any>> = {
 };
 
 export function DemoToursProvider({children}: {children: React.ReactNode}) {
-  const org = useOrganization();
+  // const org = useOrganization();
   const [tourState, setTourState] = useLocalStorageState<
     Record<DemoTour, TourState<any>>
   >(DEMO_TOURS_STATE_KEY, TOUR_STATE_INITIAL_VALUE);
@@ -144,9 +146,9 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
           isCompleted: true,
         },
       }));
-      recordFinish(tourKey, org.id, org.slug, org);
+      // recordFinish(tourKey, org.id, org.slug, org);
     },
-    [setTourState, org]
+    [setTourState]
   );
 
   const getTourOptions = useCallback(
@@ -201,30 +203,31 @@ const getTourFromStep = (step: DemoTourStep): DemoTour => {
   throw new Error(`Unknown tour step: ${step}`);
 };
 
+type DemoTourElementProps = Omit<TourElementProps<DemoTourStep>, 'tourContextValue'>;
+
 export function DemoTourElement({
   id,
   title,
   description,
   children,
-}: {
-  children: React.ReactNode;
-  description: string;
-  id: DemoTourStep;
-  title: string;
-}) {
+  position = 'top-start',
+  ...props
+}: DemoTourElementProps) {
   const tourKey = getTourFromStep(id);
   const tourContextValue = useDemoTours(tourKey);
 
-  if (!tourContextValue) {
+  if (!isDemoModeActive() || !tourContextValue) {
     return children;
   }
 
   return (
     <TourElementContent
+      {...props}
       id={id}
       title={title}
       description={description}
       tourContextValue={tourContextValue}
+      position={position}
     >
       {children}
     </TourElementContent>
