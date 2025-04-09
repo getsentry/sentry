@@ -35,6 +35,7 @@ from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -319,6 +320,10 @@ DEFAULT_EVENT_DATA = {
     },
     "tags": [],
     "platform": "python",
+}
+
+default_detector_config_data = {
+    MetricAlertFire.slug: {"threshold_period": 1, "detection_type": "static"}
 }
 
 
@@ -2181,7 +2186,7 @@ class Factories:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         if config is None:
-            config = {}
+            config = default_detector_config_data.get(kwargs["type"], {})
 
         return Detector.objects.create(
             name=name,
