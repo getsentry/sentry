@@ -865,9 +865,11 @@ describe('WidgetBuilder', function () {
         expect(await screen.findByText('Custom Widget')).toBeInTheDocument();
 
         // 1 in the table header, 1 in the column selector, 1 in the sort field
-        const countFields = screen.getAllByText('count()');
-        expect(countFields).toHaveLength(3);
+        await waitFor(() => {
+          expect(screen.getAllByText('count()')).toHaveLength(3);
+        });
 
+        const countFields = screen.getAllByText('count()');
         await selectEvent.select(countFields[1]!, ['p99(…)']);
         await selectEvent.select(screen.getByText('transaction.duration'), [
           'measurements.custom.measurement',
