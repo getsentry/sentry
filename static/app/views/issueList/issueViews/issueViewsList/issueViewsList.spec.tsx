@@ -164,6 +164,8 @@ describe('IssueViewsList', function () {
     await waitFor(() => {
       expect(mockStarredEndpoint).toHaveBeenCalled();
     });
-    expect(screen.getByRole('button', {name: 'Star'})).toBeInTheDocument();
+    expect(
+      await within(othersView).findByRole('button', {name: 'Star'})
+    ).toBeInTheDocument();
   });
 });
