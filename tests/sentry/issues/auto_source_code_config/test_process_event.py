@@ -671,50 +671,42 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
 
     @with_feature({"organizations:auto-source-code-config-java-enabled": True})
     def test_multiple_tlds(self) -> None:
-        # XXX: Multiple TLDs cause over in-app categorization
-        # Think of uk.co company using packages from another uk.co company
-        # They can still use their project rules to exclude the other uk.co packages
+        # We have two packages for the same domain
+        repo_trees = {REPO1: ["src/uk/co/example/foo/Bar.kt", "src/uk/co/example/bar/Baz.kt"]}
         frames = [
             self.frame(module="uk.co.example.foo.Bar", abs_path="Bar.kt", in_app=False),
+            # This does not belong to the org since it does not show up in the repos
             self.frame(module="uk.co.not-example.baz.qux", abs_path="qux.kt", in_app=False),
         ]
 
         event = self._process_and_assert_configuration_changes(
-            repo_trees={REPO1: ["src/uk/co/example/foo/Bar.kt"]},
+            repo_trees=repo_trees,
             frames=frames,
             platform=self.platform,
             expected_new_code_mappings=[
-                # XXX: Notice that we loose "example"
-                self.code_mapping(stack_root="uk/co/", source_root="src/uk/co/"),
+                self.code_mapping(stack_root="uk/co/example/", source_root="src/uk/co/example/"),
             ],
-            expected_new_in_app_stack_trace_rules=["stack.module:uk.co.** +app"],
+            expected_new_in_app_stack_trace_rules=["stack.module:uk.co.example.** +app"],
         )
         assert event.data["metadata"]["in_app_frame_mix"] == "system-only"
 
         event = self._process_and_assert_configuration_changes(
-            repo_trees={REPO1: ["src/uk/co/example/foo/Bar.kt"]},
+            repo_trees=repo_trees,
             frames=frames,
             platform=self.platform,
         )
-        # It's in-app-only because even the not-example package is in-app
-        assert event.data["metadata"]["in_app_frame_mix"] == "in-app-only"
-
-        # The developer can undo our rule
-        self.project.update_option(
-            "sentry:grouping_enhancements",
-            "stack.module:uk.co.not-example.** -app",
-        )
-        event = self._process_and_assert_configuration_changes(
-            repo_trees={REPO1: ["src/uk/co/example/foo/Bar.kt"]},
-            frames=frames,
-            platform=self.platform,
-        )
+        # It's mixed becausethe not-example package is a system frame
         assert event.data["metadata"]["in_app_frame_mix"] == "mixed"
-        event_frames = event.data["stacktrace"]["frames"]
-        assert event_frames[0]["module"] == "uk.co.example.foo.Bar"
-        assert event_frames[0]["in_app"] is True
-        assert event_frames[1]["module"] == "uk.co.not-example.baz.qux"
-        assert event_frames[1]["in_app"] is False
+
+        frames = [
+            self.frame(module="uk.co.example.bar.Baz", abs_path="Baz.kt", in_app=False),
+        ]
+        event = self._process_and_assert_configuration_changes(
+            repo_trees=repo_trees, frames=frames, platform=self.platform
+        )
+        # We already have uk/co/example and stack.module:uk.co.example.** +app in place, thus,
+        # all frames will be in-app
+        assert event.data["metadata"]["in_app_frame_mix"] == "in-app-only"
 
     @with_feature({"organizations:auto-source-code-config-java-enabled": True})
     def test_do_not_clobber_rules(self) -> None:
