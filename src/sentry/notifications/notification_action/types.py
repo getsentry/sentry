@@ -136,21 +136,17 @@ class BaseIssueAlertHandler(ABC):
         if not features.has(
             "organizations:workflow-engine-ui-links", detector.project.organization
         ):
-            # If test event, just set the legacy rule id to -1
-            if job.workflow_id == -1:
-                data["actions"][0]["legacy_rule_id"] = -1
-            else:
-                if job.workflow_id is None:
-                    raise ValueError("Workflow ID is required when triggering an action")
+            if job.workflow_id is None:
+                raise ValueError("Workflow ID is required when triggering an action")
 
-                alert_rule_workflow = AlertRuleWorkflow.objects.get(
-                    workflow_id=job.workflow_id,
-                )
+            alert_rule_workflow = AlertRuleWorkflow.objects.get(
+                workflow_id=job.workflow_id,
+            )
 
-                if alert_rule_workflow.rule_id is None:
-                    raise ValueError("Rule not found when querying for AlertRuleWorkflow")
+            if alert_rule_workflow.rule_id is None:
+                raise ValueError("Rule not found when querying for AlertRuleWorkflow")
 
-                data["actions"][0]["legacy_rule_id"] = alert_rule_workflow.rule_id
+            data["actions"][0]["legacy_rule_id"] = alert_rule_workflow.rule_id
 
         # In the new UI, we need this for to build the link to the new rule in the notification action
         else:
