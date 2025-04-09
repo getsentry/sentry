@@ -3,8 +3,8 @@ import * as qs from 'query-string';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {MetaType} from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -15,10 +15,34 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ScreensTable} from 'sentry/views/insights/mobile/common/components/tables/screensTable';
 import {SUMMARY_PAGE_BASE_URL} from 'sentry/views/insights/mobile/screenRendering/settings';
 import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
-import {ModuleName} from 'sentry/views/insights/types';
+import {
+  type MetricsResponse,
+  ModuleName,
+  type SpanMetricsResponse,
+} from 'sentry/views/insights/types';
+
+type Row =
+  | Pick<
+      SpanMetricsResponse,
+      | 'project.id'
+      | 'transaction'
+      | 'division(mobile.slow_frames,mobile.total_frames)'
+      | 'division(mobile.frozen_frames,mobile.total_frames)'
+      | 'avg(mobile.frames_delay)'
+    >
+  | Pick<
+      MetricsResponse,
+      | 'project.id'
+      | 'transaction'
+      | 'count()'
+      | 'avg(measurements.app_start_cold)'
+      | 'avg(measurements.app_start_warm)'
+      | 'avg(measurements.time_to_initial_display)'
+      | 'avg(measurements.time_to_full_display)'
+    >;
 
 type Props = {
-  data: TableData | undefined;
+  data: {data: Row[]; meta: MetaType};
   eventView: EventView;
   isLoading: boolean;
   pageLinks: string | undefined;

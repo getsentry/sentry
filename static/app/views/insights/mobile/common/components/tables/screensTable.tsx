@@ -13,7 +13,7 @@ import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -27,7 +27,7 @@ type Props = {
   columnNameMap: Record<string, string>;
   columnOrder: string[];
   columnTooltipMap: Record<string, string> | undefined;
-  data: TableData | undefined;
+  data: any | undefined;
   defaultSort: Array<GridColumnSortBy<string>>;
   eventView: EventView;
   isLoading: boolean;
