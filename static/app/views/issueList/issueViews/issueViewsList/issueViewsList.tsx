@@ -68,6 +68,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
     createdBy,
     limit,
     cursor,
+    sort,
   });
 
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
