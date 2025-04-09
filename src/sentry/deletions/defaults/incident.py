@@ -8,7 +8,7 @@ class IncidentDeletionTask(ModelDeletionTask[Incident]):
         from sentry.incidents.models.incident import IncidentProject
         from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 
-        model_relations = [
+        model_relations: list[BaseRelation] = [
             ModelRelation(IncidentProject, {"incident": instance}),
         ]
 
