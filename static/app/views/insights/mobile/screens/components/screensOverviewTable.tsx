@@ -21,7 +21,7 @@ import {
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 
-type Row =
+export type Row =
   | Pick<
       SpanMetricsResponse,
       | 'project.id'
