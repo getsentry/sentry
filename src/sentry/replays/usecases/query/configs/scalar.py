@@ -69,6 +69,8 @@ varying_search_config["error_id"] = varying_search_config["error_ids"]
 varying_search_config["trace_id"] = varying_search_config["trace_ids"]
 varying_search_config["trace"] = varying_search_config["trace_ids"]
 varying_search_config["url"] = varying_search_config["urls"]
+varying_search_config["screens"] = varying_search_config["urls"]
+varying_search_config["screen"] = varying_search_config["urls"]
 varying_search_config["*"] = TagField(query=TagScalar)
 
 
