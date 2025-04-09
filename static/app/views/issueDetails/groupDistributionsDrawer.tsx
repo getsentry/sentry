@@ -103,83 +103,84 @@ export function GroupDistributionsDrawer({
   const [search, setSearch] = useState('');
   const {tab, setTab} = useDrawerTab({enabled: includeFeatureFlagsTab});
 
-  const headerActions = tagKey ? (
-    <DropdownMenu
-      size="xs"
-      trigger={triggerProps => (
-        <Button
-          {...triggerProps}
-          borderless
-          size="xs"
-          aria-label={t('Export options')}
-          icon={<IconDownload />}
-        />
-      )}
-      items={[
-        {
-          key: 'export-page',
-          label: t('Export Page to CSV'),
-          // TODO(issues): Dropdown menu doesn't support hrefs yet
-          onAction: () => {
-            window.open(
-              `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
-              '_blank'
-            );
+  const headerActions =
+    tagKey && tab === DrawerTab.TAGS ? (
+      <DropdownMenu
+        size="xs"
+        trigger={triggerProps => (
+          <Button
+            {...triggerProps}
+            borderless
+            size="xs"
+            aria-label={t('Export options')}
+            icon={<IconDownload />}
+          />
+        )}
+        items={[
+          {
+            key: 'export-page',
+            label: t('Export Page to CSV'),
+            // TODO(issues): Dropdown menu doesn't support hrefs yet
+            onAction: () => {
+              window.open(
+                `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
+                '_blank'
+              );
+            },
           },
-        },
-        {
-          key: 'export-all',
-          label: isExportDisabled ? t('Export in progress...') : t('Export All to CSV'),
-          onAction: () => {
-            handleDataExport();
-            setIsExportDisabled(true);
+          {
+            key: 'export-all',
+            label: isExportDisabled ? t('Export in progress...') : t('Export All to CSV'),
+            onAction: () => {
+              handleDataExport();
+              setIsExportDisabled(true);
+            },
+            disabled: isExportDisabled,
           },
-          disabled: isExportDisabled,
-        },
-      ]}
-    />
-  ) : (
-    <ButtonBar gap={1}>
-      <InputGroup>
-        <SearchInput
-          size="xs"
-          value={search}
-          onChange={e => {
-            setSearch(e.target.value);
-            trackAnalytics('tags.drawer.action', {
-              control: 'search',
-              organization,
-            });
-          }}
-          aria-label={
-            includeFeatureFlagsTab
-              ? t('Search All Tags & Feature Flags')
-              : t('Search All Tags')
-          }
-        />
-        <InputGroup.TrailingItems disablePointerEvents>
-          <IconSearch size="xs" />
-        </InputGroup.TrailingItems>
-      </InputGroup>
-      {includeFeatureFlagsTab && (
-        <SegmentedControl
-          size="xs"
-          value={tab}
-          onChange={newTab => {
-            setTab(newTab as DrawerTab);
-            setSearch('');
-          }}
-        >
-          <SegmentedControl.Item key={DrawerTab.TAGS}>
-            {t('All Tags')}
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key={DrawerTab.FEATURE_FLAGS}>
-            {t('All Feature Flags')}
-          </SegmentedControl.Item>
-        </SegmentedControl>
-      )}
-    </ButtonBar>
-  );
+        ]}
+      />
+    ) : tagKey && tab === DrawerTab.FEATURE_FLAGS ? null : (
+      <ButtonBar gap={1}>
+        <InputGroup>
+          <SearchInput
+            size="xs"
+            value={search}
+            onChange={e => {
+              setSearch(e.target.value);
+              trackAnalytics('tags.drawer.action', {
+                control: 'search',
+                organization,
+              });
+            }}
+            aria-label={
+              includeFeatureFlagsTab
+                ? t('Search All Tags & Feature Flags')
+                : t('Search All Tags')
+            }
+          />
+          <InputGroup.TrailingItems disablePointerEvents>
+            <IconSearch size="xs" />
+          </InputGroup.TrailingItems>
+        </InputGroup>
+        {includeFeatureFlagsTab && (
+          <SegmentedControl
+            size="xs"
+            value={tab}
+            onChange={newTab => {
+              setTab(newTab as DrawerTab);
+              setSearch('');
+            }}
+          >
+            <SegmentedControl.Item key={DrawerTab.TAGS}>
+              {t('All Tags')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key={DrawerTab.FEATURE_FLAGS}>
+              {t('All Feature Flags')}
+            </SegmentedControl.Item>
+          </SegmentedControl>
+        )}
+      </ButtonBar>
+    );
 
   return (
     <EventDrawerContainer ref={drawerRef}>
