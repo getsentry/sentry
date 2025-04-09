@@ -23,9 +23,15 @@ __all__ = [
     "EmailActionHandler",
     "PluginActionHandler",
     "WebhookActionHandler",
+    "SentryAppActionHandler",
 ]
 
-from .action_handler_registry import EmailActionHandler, PluginActionHandler, WebhookActionHandler
+from .action_handler_registry import (
+    EmailActionHandler,
+    PluginActionHandler,
+    SentryAppActionHandler,
+    WebhookActionHandler,
+)
 from .group_type_notification_registry import IssueAlertRegistryHandler, MetricAlertRegistryHandler
 from .issue_alert_registry import (
     AzureDevopsIssueAlertHandler,
