@@ -21,6 +21,7 @@ import {getFieldDefinition} from 'sentry/utils/fields';
 
 export type FormattedQueryProps = {
   query: string;
+  className?: string;
   fieldDefinitionGetter?: FieldDefinitionGetter;
   filterKeys?: TagCollection;
 };
@@ -87,6 +88,7 @@ function QueryToken({token}: TokenProps) {
  * rendering some filter types such as dates.
  */
 export function FormattedQuery({
+  className,
   query,
   fieldDefinitionGetter = getFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
@@ -96,11 +98,11 @@ export function FormattedQuery({
   }, [fieldDefinitionGetter, filterKeys, query]);
 
   if (!parsedQuery) {
-    return <QueryWrapper />;
+    return <QueryWrapper className={className} />;
   }
 
   return (
-    <QueryWrapper aria-label={query}>
+    <QueryWrapper aria-label={query} className={className}>
       {parsedQuery.map((token: any, index: any) => {
         return <QueryToken key={index} token={token} />;
       })}
