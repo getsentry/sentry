@@ -1362,8 +1362,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
             return true;
           }
         }
-        for (const p of n.occurences) {
-          if (p.event_id === eventId) {
+        for (const o of n.occurences) {
+          if (o.event_id === eventId) {
             return true;
           }
         }
@@ -1380,8 +1380,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
             return true;
           }
         }
-        for (const p of n.occurences) {
-          if (p.event_id === eventId) {
+        for (const o of n.occurences) {
+          if (o.event_id === eventId) {
             return true;
           }
         }

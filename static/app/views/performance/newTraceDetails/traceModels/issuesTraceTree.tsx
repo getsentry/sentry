@@ -79,13 +79,13 @@ export class IssuesTraceTree extends TraceTree {
           }
         }
 
-        for (const p of n.occurences) {
+        for (const o of n.occurences) {
           if (isTransactionNode(n)) {
-            if (p.event_id === event.eventID) {
+            if (o.event_id === event.eventID) {
               return true;
             }
           } else {
-            if (p.event_id === event.occurrence?.id) {
+            if (o.event_id === event.occurrence?.id) {
               return true;
             }
           }

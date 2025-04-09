@@ -189,8 +189,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
           }
         }
 
-        for (const p of n.occurences) {
-          if (p.event_id === props.event.eventID) {
+        for (const o of n.occurences) {
+          if (o.event_id === props.event.eventID) {
             return true;
           }
         }
@@ -204,8 +204,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
             return true;
           }
         }
-        for (const p of n.occurences) {
-          if (p.event_id === props.event.eventID) {
+        for (const o of n.occurences) {
+          if (o.event_id === props.event.eventID) {
             return true;
           }
         }
