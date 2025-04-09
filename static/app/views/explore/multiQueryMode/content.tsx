@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -27,6 +28,7 @@ import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useSaveMultiQuery} from 'sentry/views/explore/hooks/useSaveMultiQuery';
+import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
   useAddQuery,
   useReadQueriesFromLocation,
@@ -46,6 +48,13 @@ function Content() {
   const addQuery = useAddQuery();
   const totalQueryRows = queries.length;
   const id = getIdFromLocation(location);
+
+  const visitQuery = useVisitQuery();
+  useEffect(() => {
+    if (id) {
+      visitQuery(id);
+    }
+  }, [id, visitQuery]);
 
   return (
     <Layout.Body>
