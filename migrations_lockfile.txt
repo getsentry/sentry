@@ -27,4 +27,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0031_translate_uptime_object_headers_to_lists_take_three
 
-workflow_engine: 0043_create_incidentgroupopenperiod_lookup_table
+workflow_engine: 0044_rm_detector_name_unique_constraint

@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.db import models
-from django.db.models import UniqueConstraint
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from jsonschema import ValidationError
@@ -61,12 +60,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
 
     class Meta(OwnerModel.Meta):
-        constraints = OwnerModel.Meta.constraints + [
-            UniqueConstraint(
-                fields=["project", "name"],
-                name="workflow_engine_detector_proj_name",
-            )
-        ]
+        constraints = OwnerModel.Meta.constraints
 
     error_detector_project_options = {
         "fingerprinting_rules": "sentry:fingerprinting_rules",
