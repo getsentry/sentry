@@ -6,16 +6,25 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
 type IssueViewsTableProps = {
+  handleStarView: (view: GroupSearchView) => void;
   isError: boolean;
   isPending: boolean;
+  type: string;
   views: GroupSearchView[];
 };
 
-export function IssueViewsTable({views, isPending, isError}: IssueViewsTableProps) {
+export function IssueViewsTable({
+  views,
+  isPending,
+  isError,
+  handleStarView,
+  type,
+}: IssueViewsTableProps) {
   const organization = useOrganization();
 
   return (
     <SavedEntityTableWithColumns
+      data-test-id={`table-${type}`}
       header={
         <SavedEntityTable.Header>
           <SavedEntityTable.HeaderCell key="star" />
@@ -42,9 +51,18 @@ export function IssueViewsTable({views, isPending, isError}: IssueViewsTableProp
       emptyMessage={t('No saved views found')}
     >
       {views.map((view, index) => (
-        <SavedEntityTable.Row key={view.id} isFirst={index === 0}>
+        <SavedEntityTable.Row
+          key={view.id}
+          isFirst={index === 0}
+          data-test-id={`table-${type}-row-${index}`}
+        >
           <SavedEntityTable.Cell>
-            <SavedEntityTable.CellStar isStarred onClick={() => {}} />
+            <SavedEntityTable.CellStar
+              isStarred={view.starred}
+              onClick={() => {
+                handleStarView(view);
+              }}
+            />
           </SavedEntityTable.Cell>
           <SavedEntityTable.Cell>
             <SavedEntityTable.CellName

@@ -498,6 +498,7 @@ export function IssueViewsStateProvider({
                 projects: tab.projects,
                 environments: tab.environments,
                 timeFilters: tab.timeFilters,
+                starred: true,
               })),
           });
         }

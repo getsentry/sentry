@@ -28,6 +28,7 @@ type SavedEntityTableProps = {
   isError: boolean;
   isLoading: boolean;
   className?: string;
+  'data-test-id'?: string;
   pageSize?: number;
 };
 
@@ -56,9 +57,10 @@ export function SavedEntityTable({
   isLoading,
   emptyMessage,
   pageSize = 20,
+  'data-test-id': dataTestId,
 }: SavedEntityTableProps) {
   return (
-    <StyledPanelTable className={className}>
+    <StyledPanelTable className={className} data-test-id={dataTestId}>
       {header}
       {isError && <LoadingError />}
       {isLoading && <LoadingSkeleton pageSize={pageSize} />}
