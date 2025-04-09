@@ -43,10 +43,11 @@ export const useUpdateGroupSearchViewStarred = (
       );
       options.onError?.(error, variables, context);
     },
-    onSettled: () => {
+    onSettled: (...args) => {
       queryClient.invalidateQueries({
         queryKey: makeFetchGroupSearchViewsKey({orgSlug: organization.slug}),
       });
+      options.onSettled?.(...args);
     },
   });
 };

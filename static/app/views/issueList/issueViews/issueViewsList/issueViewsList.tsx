@@ -50,33 +50,27 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
     cursor,
   });
 
+  const tableQueryKey = makeFetchGroupSearchViewsKey({
+    orgSlug: organization.slug,
+    createdBy,
+    limit,
+    cursor,
+  });
+
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
     onMutate: variables => {
-      setApiQueryData<GroupSearchView[]>(
-        queryClient,
-        makeFetchGroupSearchViewsKey({
-          orgSlug: organization.slug,
-          createdBy,
-          limit,
-          cursor,
-        }),
-        data => {
-          return data?.map(view =>
-            view.id === variables.id ? {...view, starred: variables.starred} : view
-          );
-        }
-      );
+      setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
+        return data?.map(view =>
+          view.id === variables.id ? {...view, starred: variables.starred} : view
+        );
+      });
     },
     onError: (_error, variables) => {
-      setApiQueryData<GroupSearchView[]>(
-        queryClient,
-        makeFetchGroupSearchViewsKey({orgSlug: organization.slug}),
-        data => {
-          return data?.map(view =>
-            view.id === variables.id ? {...view, starred: !variables.starred} : view
-          );
-        }
-      );
+      setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
+        return data?.map(view =>
+          view.id === variables.id ? {...view, starred: !variables.starred} : view
+        );
+      });
     },
   });
 

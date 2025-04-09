@@ -141,4 +141,29 @@ describe('IssueViewsList', function () {
       );
     });
   });
+
+  it('handles errors when starring views', async function () {
+    const mockStarredEndpoint = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/2/starred/',
+      method: 'POST',
+      statusCode: 500,
+    });
+
+    render(<IssueViewsList />, {organization});
+
+    expect(await screen.findByText('Foo')).toBeInTheDocument();
+
+    const tableOthers = screen.getByTestId('table-others');
+
+    // First 'others' view should be unstarred
+    const othersView = within(tableOthers).getByTestId('table-others-row-0');
+    const othersViewStarButton = within(othersView).getByRole('button', {name: 'Star'});
+
+    // Starring should result in a button that is not starred
+    await userEvent.click(othersViewStarButton);
+    await waitFor(() => {
+      expect(mockStarredEndpoint).toHaveBeenCalled();
+    });
+    expect(screen.getByRole('button', {name: 'Star'})).toBeInTheDocument();
+  });
 });
