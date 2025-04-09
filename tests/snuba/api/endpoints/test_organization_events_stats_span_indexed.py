@@ -1772,15 +1772,14 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         )
         assert response.status_code == 200, response.content
         data = response.data
-        assert data["http_response_rate(5)"]["data"][0][1][0]["count"] == 0.0
-        assert data["http_response_rate(5)"]["data"][1][1][0]["count"] == 0.5
-        assert data["http_response_rate(5)"]["data"][2][1][0]["count"] == 0.75
 
         assert data["http_response_rate(4)"]["data"][0][1][0]["count"] == 0.0
         assert data["http_response_rate(4)"]["data"][1][1][0]["count"] == 0.5
-        assert (
-            data["http_response_rate(4)"]["data"][2][1][0]["count"] == 0.25
-        )  # why is this returning 0.75 :(
+        assert data["http_response_rate(4)"]["data"][2][1][0]["count"] == 0.25
+
+        assert data["http_response_rate(5)"]["data"][0][1][0]["count"] == 0.0
+        assert data["http_response_rate(5)"]["data"][1][1][0]["count"] == 0.5
+        assert data["http_response_rate(5)"]["data"][2][1][0]["count"] == 0.75  # why is this 0.25?
 
     @pytest.mark.xfail(reason="https://github.com/getsentry/eap-planning/issues/237")
     def test_downsampling_single_series(self):
