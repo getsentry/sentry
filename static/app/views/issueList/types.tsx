@@ -46,3 +46,12 @@ export interface UpdateGroupSearchViewPayload
   id?: string;
   isAllProjects?: boolean;
 }
+
+export enum GroupSearchViewSort {
+  VISITED_DESC = '-visited',
+  VISITED_ASC = 'visited',
+  POPULARITY_DESC = '-popularity',
+  POPULARITY_ASC = 'popularity',
+  NAME_ASC = 'name',
+  NAME_DESC = '-name',
+}
