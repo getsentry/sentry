@@ -11,7 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer
-from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewDetailsPutValidator
+from sentry.api.serializers.rest_framework.groupsearchview import ViewValidator
 from sentry.issues.endpoints.organization_group_search_views import pick_default_project
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
@@ -92,9 +92,9 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
         except GroupSearchView.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = GroupSearchViewDetailsPutValidator(
+        serializer = ViewValidator(
             data=request.data,
-            context={"organization": organization, "access": request.access},
+            context={"organization": organization},
         )
 
         if not serializer.is_valid():
@@ -109,8 +109,6 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
         view.environments = validated_data["environments"]
         view.time_filters = validated_data["timeFilters"]
         view.projects.set(validated_data["projects"])
-
-        view.visibility = validated_data.get("visibility", view.visibility)
 
         view.save()
 

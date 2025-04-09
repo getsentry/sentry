@@ -1,13 +1,11 @@
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import assume_test_silo_mode
 from tests.sentry.issues.endpoints.test_organization_group_search_views import BaseGSVTestCase
 
 
@@ -221,6 +219,7 @@ class OrganizationGroupSearchViewsDeleteStarredAndLastVisitedTest(APITestCase):
             user_id=self.user_1.id,
             name="User 1's View",
             query="is:unresolved",
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -240,6 +239,7 @@ class OrganizationGroupSearchViewsDeleteStarredAndLastVisitedTest(APITestCase):
             user_id=self.user_2.id,
             name="User 2's View",
             query="is:unresolved",
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
 
         GroupSearchViewStarred.objects.create(
@@ -398,65 +398,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         updated_view = GroupSearchView.objects.get(id=self.view_id)
         assert updated_view.is_all_projects is True
         assert updated_view.projects.count() == 0
-
-    @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_put_with_visibility(self) -> None:
-        # Make the user a team admin to set the view to organization visibility
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.user.update(is_staff=True)
-
-        data = {
-            "name": "Organization View",
-            "query": "is:unresolved",
-            "querySort": "date",
-            "projects": [self.project.id],
-            "environments": [],
-            "timeFilters": {"period": "14d"},
-            "visibility": "organization",
-        }
-
-        response = self.client.put(self.url, data=data)
-        assert response.status_code == 200
-
-        # Verify visibility was updated
-        updated_view = GroupSearchView.objects.get(id=self.view_id)
-        assert updated_view.visibility == "organization"
-
-    @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_put_visibility_without_permission(self) -> None:
-        user_without_permission = self.create_user()
-        self.create_member(organization=self.organization, user=user_without_permission)
-
-        self.login_as(user=user_without_permission)
-
-        member_view = GroupSearchView.objects.create(
-            organization=self.organization,
-            user_id=user_without_permission.id,
-            name="Personal View",
-            query="is:unresolved",
-            query_sort="date",
-        )
-
-        data = {
-            "name": "Organization View",
-            "query": "is:unresolved",
-            "querySort": "date",
-            "projects": [self.project.id],
-            "environments": [],
-            "timeFilters": {"period": "14d"},
-            "visibility": "organization",
-        }
-
-        url = reverse(
-            "sentry-api-0-organization-group-search-view-details",
-            kwargs={"organization_id_or_slug": self.organization.slug, "view_id": member_view.id},
-        )
-
-        response = self.client.put(url, data=data)
-        assert response.status_code == 400
-
-        member_view.refresh_from_db()
-        assert member_view.visibility == "owner"
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_put_nonexistent_view(self) -> None:
