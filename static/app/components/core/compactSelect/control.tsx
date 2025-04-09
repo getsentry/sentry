@@ -541,7 +541,7 @@ export function Control({
                 <MenuHeader size={size}>
                   <MenuTitle>{menuTitle}</MenuTitle>
                   <MenuHeaderTrailingItems>
-                    {loading && <StyledLoadingIndicator size={12} mini />}
+                    {loading && <StyledLoadingIndicator size={12} />}
                     {typeof menuHeaderTrailingItems === 'function'
                       ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
                       : menuHeaderTrailingItems}
@@ -641,7 +641,7 @@ const MenuTitle = styled('span')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
-    margin: 0 ${space(0.5)} 0 ${space(1)};
+    margin: 0;
   }
 `;
 
