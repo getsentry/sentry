@@ -5,7 +5,7 @@ import {Alert} from 'sentry/components/core/alert';
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
@@ -14,6 +14,7 @@ import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
+import {isEnterprise} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function makeLinkToOwnersAndBillingMembers(
@@ -400,9 +401,20 @@ function ContinuousProfilingBetaAlertBannerInner({
           />
         }
       >
-        {t(
-          'Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date.'
-        )}
+        {subscription.isFree
+          ? tct(
+              '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go-budget after this date. To avoid disruptions, upgrade to a paid plan.',
+              {bold: <b />}
+            )
+          : isEnterprise(subscription)
+            ? tct(
+                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. To avoid disruptions, contact your account manager before then to add it to your plan.',
+                {bold: <b />}
+              )
+            : tct(
+                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date.',
+                {bold: <b />}
+              )}
       </StyledAlert>
     </Alert.Container>
   );
