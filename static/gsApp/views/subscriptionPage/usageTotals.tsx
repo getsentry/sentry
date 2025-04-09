@@ -584,7 +584,7 @@ function UsageTotals({
               )}
             </AcceptedSummary>
           </BaseRow>
-          <PlanUseBarContainer>
+          <PlanUseBarContainer data-test-id={`usage-bar-container-${category}`}>
             <PlanUseBarGroup style={{width: `${reservedMaxWidth}%`}}>
               {prepaidPercentUsed >= 1 && (
                 <Fragment>

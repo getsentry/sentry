@@ -1634,7 +1634,7 @@ describe('Usage Bar Rendering', function () {
 
   it('renders 100% unused width when reserved is 0 and not a trial', function () {
     subscription.categories.errors = MetricHistoryFixture({usage: 0});
-    const {container} = render(
+    render(
       <UsageTotals
         category="errors"
         totals={UsageTotalFixture({accepted: 0})}
@@ -1646,7 +1646,9 @@ describe('Usage Bar Rendering', function () {
       />
     );
 
-    const usageBarContainer = container.querySelector('[class*="PlanUseBarContainer"]');
+    expect(screen.getByTestId('usage-card-errors')).toBeInTheDocument();
+
+    const usageBarContainer = screen.getByTestId('usage-bar-container-errors');
     expect(usageBarContainer).toBeInTheDocument();
 
     const firstGroupBars = usageBarContainer?.querySelectorAll(
@@ -1662,7 +1664,7 @@ describe('Usage Bar Rendering', function () {
     const usage = reserved / 2;
     subscription.categories.errors = MetricHistoryFixture({usage});
 
-    const {container} = render(
+    render(
       <UsageTotals
         category="errors"
         totals={UsageTotalFixture({accepted: usage})}
@@ -1674,7 +1676,9 @@ describe('Usage Bar Rendering', function () {
       />
     );
 
-    const usageBarContainer = container.querySelector('[class*="PlanUseBarContainer"]');
+    expect(screen.getByTestId('usage-card-errors')).toBeInTheDocument();
+
+    const usageBarContainer = screen.getByTestId('usage-bar-container-errors');
     expect(usageBarContainer).toBeInTheDocument();
 
     const firstGroupBars = usageBarContainer?.querySelectorAll(
@@ -1690,7 +1694,7 @@ describe('Usage Bar Rendering', function () {
     subscription.isTrial = true;
     subscription.categories.errors = MetricHistoryFixture({usage: 0});
 
-    const {container} = render(
+    render(
       <UsageTotals
         category="errors"
         totals={UsageTotalFixture({accepted: 0})}
@@ -1702,7 +1706,9 @@ describe('Usage Bar Rendering', function () {
       />
     );
 
-    const usageBarContainer = container.querySelector('[class*="PlanUseBarContainer"]');
+    expect(screen.getByTestId('usage-card-errors')).toBeInTheDocument();
+
+    const usageBarContainer = screen.getByTestId('usage-bar-container-errors');
     expect(usageBarContainer).toBeInTheDocument();
 
     const firstGroupBars = usageBarContainer?.querySelectorAll(
@@ -1717,9 +1723,9 @@ describe('Usage Bar Rendering', function () {
     subscription.isTrial = true;
     const trialQuota = 100_000; // Assume trial provides some implicit quota used for % calculation
     const usage = trialQuota / 2;
-    subscription.categories.errors = MetricHistoryFixture({usage: usage});
+    subscription.categories.errors = MetricHistoryFixture({usage});
 
-    const {container} = render(
+    render(
       <UsageTotals
         category="errors"
         totals={UsageTotalFixture({accepted: usage})}
@@ -1731,7 +1737,9 @@ describe('Usage Bar Rendering', function () {
       />
     );
 
-    const usageBarContainer = container.querySelector('[class*="PlanUseBarContainer"]');
+    expect(screen.getByTestId('usage-card-errors')).toBeInTheDocument();
+
+    const usageBarContainer = screen.getByTestId('usage-bar-container-errors');
     expect(usageBarContainer).toBeInTheDocument();
 
     const firstGroupBars = usageBarContainer?.querySelectorAll(
