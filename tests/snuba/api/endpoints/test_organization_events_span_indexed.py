@@ -665,6 +665,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             )
             assert response.status_code == 200, response.content
             expected = {
+                "dataScanned": "full",
                 "dataset": mock.ANY,
                 "datasetReason": "unchanged",
                 "fields": {
@@ -1808,6 +1809,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             },
         ]
         expected = {
+            "dataScanned": "full",
             "dataset": mock.ANY,
             "datasetReason": "unchanged",
             "fields": {
@@ -3831,6 +3833,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
+        assert response.data["meta"]["dataScanned"] == "partial"
 
     def test_best_effort_request(self):
         span = self.create_span(
@@ -3863,6 +3866,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(response.data["data"]) == 2
         assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
         assert response.data["data"][1]["id"] == "b" * 16
+        assert response.data["meta"]["dataScanned"] == "full"
 
     def test_internal_fields(self):
         self.store_spans(
@@ -4022,3 +4026,66 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 "timestamp": mock.ANY,
             },
         ]
+
+    def test_sampling_weight_does_not_fail(self):
+        span = self.create_span(
+            {
+                "profile_id": None,
+                "sentry_tags": {
+                    "profiler_id": uuid4().hex,
+                    "thread.id": "123",
+                    "thread.name": "main",
+                },
+                "measurements": {"client_sample_rate": {"value": 0.5}},
+            },
+            start_ts=before_now(minutes=10),
+        )
+        self.store_spans([span], is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["sentry.sampling_weight"],
+                "query": "",
+                "orderby": "sentry.sampling_weight",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        # Sampling weight is 1 / client_sample_rate
+        assert data[0]["sentry.sampling_weight"] == 2.0
+        assert meta["dataset"] == self.dataset
+
+    def test_sampling_factor_does_not_fail(self):
+        span = self.create_span(
+            {
+                "profile_id": None,
+                "sentry_tags": {
+                    "profiler_id": uuid4().hex,
+                    "thread.id": "123",
+                    "thread.name": "main",
+                },
+                "measurements": {"client_sample_rate": {"value": 0.01}},
+            },
+            start_ts=before_now(minutes=10),
+        )
+        self.store_spans([span], is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["sentry.sampling_factor"],
+                "query": "",
+                "orderby": "sentry.sampling_factor",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["sentry.sampling_factor"] == 0.01
+        assert meta["dataset"] == self.dataset
