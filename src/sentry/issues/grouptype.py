@@ -17,7 +17,6 @@ from sentry import features
 from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.uptime.models import ProjectUptimeSubscriptionMode
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -619,12 +618,14 @@ class UptimeDomainCheckFailure(GroupType):
         "properties": {
             "mode": {
                 "type": ["integer"],
-                "enum": [mode.value for mode in ProjectUptimeSubscriptionMode],
+                # TODO: Enable this when we can move this grouptype out of this file
+                # "enum": [mode.value for mode in ProjectUptimeSubscriptionMode],
             },
             "environment": {"type": ["string"]},
         },
         "additionalProperties": False,
     }
+
 
 @dataclass(frozen=True)
 class MetricIssuePOC(GroupType):
