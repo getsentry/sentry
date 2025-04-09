@@ -289,6 +289,10 @@ def migrate_metric_data_conditions(
         type=threshold_type,
         condition_group=detector_data_condition_group,
     )
+    DataConditionAlertRuleTrigger.objects.create(
+        data_condition=detector_trigger,
+        alert_rule_trigger_id=alert_rule_trigger.id,
+    )
     # create an "action filter": if the detector's status matches a certain priority level,
     # then the condition result is set to true
     data_condition_group = DataConditionGroup.objects.create(
@@ -307,10 +311,6 @@ def migrate_metric_data_conditions(
         condition_result=True,
         type=Condition.ISSUE_PRIORITY_EQUALS,
         condition_group=data_condition_group,
-    )
-    DataConditionAlertRuleTrigger.objects.create(
-        data_condition=action_filter,
-        alert_rule_trigger_id=alert_rule_trigger.id,
     )
     return detector_trigger, action_filter
 

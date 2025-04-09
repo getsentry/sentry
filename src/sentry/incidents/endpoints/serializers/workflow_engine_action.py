@@ -22,6 +22,8 @@ from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionAlertRuleTrigger,
     DataConditionGroupAction,
+    DetectorWorkflow,
+    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 
@@ -38,9 +40,22 @@ class WorkflowEngineActionSerializer(Serializer):
             type=Condition.ISSUE_PRIORITY_EQUALS,
             condition_result=True,
         )
+        detector_dcg = DetectorWorkflow.objects.filter(
+            workflow__in=Subquery(
+                WorkflowDataConditionGroup.objects.filter(
+                    condition_group__in=Subquery(
+                        action_filter_data_condition.values("condition_group")
+                    )
+                ).values("workflow")
+            )
+        ).values("detector__workflow_condition_group")
+        detector_trigger = DataCondition.objects.filter(
+            condition_result__in=Subquery(action_filter_data_condition.values("comparison")),
+            condition_group__in=detector_dcg,
+        )
         return DataConditionAlertRuleTrigger.objects.values_list(
             "alert_rule_trigger_id", flat=True
-        ).get(data_condition__in=action_filter_data_condition)
+        ).get(data_condition__in=detector_trigger)
 
     def serialize(
         self, obj: Action, attrs: Mapping[str, Any], user: User | RpcUser | AnonymousUser, **kwargs
