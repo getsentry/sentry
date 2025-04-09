@@ -51,10 +51,7 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
       setIsLoading(true);
       updateViews({
         groupSearchViews: [
-          ...starredGroupSearchViews.map(view => ({
-            ...view,
-            starred: true,
-          })),
+          ...starredGroupSearchViews,
           {
             name: 'New View',
             query: 'is:unresolved',
@@ -62,7 +59,6 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
             projects: defaultProject,
             environments: DEFAULT_ENVIRONMENTS,
             timeFilters: DEFAULT_TIME_FILTERS,
-            starred: true,
           },
         ],
         orgSlug: organization.slug,
