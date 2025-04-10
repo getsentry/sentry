@@ -525,23 +525,6 @@ def get_notification_recipients(
     return out
 
 
-# TODO(Steve): Remove once reference is gone from getsentry
-def get_notification_recipients_v2(
-    recipients: Iterable[Actor],
-    type: NotificationSettingEnum,
-    organization_id: int | None = None,
-    project_ids: list[int] | None = None,
-    actor_type: ActorType | None = None,
-) -> Mapping[ExternalProviders, set[Actor]]:
-    return get_notification_recipients(
-        recipients=recipients,
-        type=type,
-        organization_id=organization_id,
-        project_ids=project_ids,
-        actor_type=actor_type,
-    )
-
-
 def _get_recipients_by_provider(
     project: Project,
     recipients: Iterable[Actor],
