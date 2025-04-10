@@ -120,6 +120,11 @@ function GenericBackendOverviewPage() {
 
   const segmentOp = useEap ? 'span.op' : 'transaction.op';
 
+  if (useEap) {
+    eventView.additionalConditions.removeFilter('event.type');
+    eventView.additionalConditions.addFilterValue('is_transaction', 'true');
+  }
+
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
     {field: 'team_key_transaction'},
