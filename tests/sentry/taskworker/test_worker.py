@@ -13,6 +13,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     RetryState,
     TaskActivation,
 )
+from sentry_sdk.crons import MonitorStatus
 
 from sentry.taskworker.state import current_task
 from sentry.taskworker.worker import ProcessingResult, TaskWorker, child_worker
@@ -71,6 +72,18 @@ RETRY_STATE_TASK = TaskActivation(
         max_attempts=2,
         on_attempts_exceeded=ON_ATTEMPTS_EXCEEDED_DISCARD,
     ),
+)
+
+SCHEDULED_TASK = TaskActivation(
+    id="111",
+    taskname="examples.simple_task",
+    namespace="examples",
+    parameters='{"args": [], "kwargs": {}}',
+    processing_deadline_duration=2,
+    headers={
+        "sentry-monitor-slug": "simple-task",
+        "sentry-monitor-check-in-id": "abc123",
+    },
 )
 
 
@@ -240,7 +253,8 @@ class TestTaskWorker(TestCase):
 
 
 @pytest.mark.django_db
-def test_child_worker_complete() -> None:
+@mock.patch("sentry.taskworker.worker.capture_checkin")
+def test_child_worker_complete(mock_capture_checkin) -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
     shutdown = Event()
@@ -252,6 +266,7 @@ def test_child_worker_complete() -> None:
     result = processed.get()
     assert result.task_id == SIMPLE_TASK.id
     assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
+    assert mock_capture_checkin.call_count == 0
 
 
 @pytest.mark.django_db
@@ -337,3 +352,27 @@ def test_child_worker_at_most_once() -> None:
     result = processed.get(block=False)
     assert result.task_id == SIMPLE_TASK.id
     assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
+
+
+@pytest.mark.django_db
+@mock.patch("sentry.taskworker.worker.capture_checkin")
+def test_child_worker_record_checkin(mock_capture_checkin: mock.Mock) -> None:
+    todo: queue.Queue[TaskActivation] = queue.Queue()
+    processed: queue.Queue[ProcessingResult] = queue.Queue()
+    shutdown = Event()
+
+    todo.put(SCHEDULED_TASK)
+    child_worker(todo, processed, shutdown, max_task_count=1)
+
+    assert todo.empty()
+    result = processed.get()
+    assert result.task_id == SIMPLE_TASK.id
+    assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
+
+    assert mock_capture_checkin.call_count == 1
+    mock_capture_checkin.assert_called_with(
+        monitor_slug="simple-task",
+        check_in_id="abc123",
+        duration=mock.ANY,
+        status=MonitorStatus.OK,
+    )
