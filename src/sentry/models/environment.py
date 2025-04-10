@@ -15,6 +15,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.manager.base import BaseManager
+from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -111,16 +112,24 @@ class Environment(Model):
         cache_key = f"envproj:c:{self.id}:{project.id}"
 
         if cache.get(cache_key) is None:
-            try:
-                with transaction.atomic(router.db_for_write(EnvironmentProject)):
-                    EnvironmentProject.objects.create(
-                        project=project, environment=self, is_hidden=is_hidden
-                    )
-                cache.set(cache_key, 1, 3600)
-            except IntegrityError:
-                incr_rollback_metrics(EnvironmentProject)
-                # We've already created the object, should still cache the action.
-                cache.set(cache_key, 1, 3600)
+            if in_random_rollout("environmentproject.new_get_or_create.rollout"):
+                _, created = EnvironmentProject.objects.get_or_create(
+                    project=project, environment=self, is_hidden=is_hidden
+                )
+                if not created:
+                    # We've already created the object, should still cache the action.
+                    cache.set(cache_key, 1, 3600)
+            else:
+                try:
+                    with transaction.atomic(router.db_for_write(EnvironmentProject)):
+                        EnvironmentProject.objects.create(
+                            project=project, environment=self, is_hidden=is_hidden
+                        )
+                    cache.set(cache_key, 1, 3600)
+                except IntegrityError:
+                    incr_rollback_metrics(EnvironmentProject)
+                    # We've already created the object, should still cache the action.
+                    cache.set(cache_key, 1, 3600)
 
     @staticmethod
     def get_name_from_path_segment(segment):
