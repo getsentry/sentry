@@ -209,6 +209,6 @@ export function getPageloadTransactionChildCount(
 
 export function isTraceOccurence(
   issue: TraceTree.TraceIssue
-): issue is TraceTree.TraceOccurence {
+): issue is TraceTree.TraceOccurrence {
   return 'issue_id' in issue && issue.event_type !== 'error';
 }

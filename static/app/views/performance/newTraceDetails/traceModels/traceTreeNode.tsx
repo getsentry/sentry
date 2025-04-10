@@ -69,7 +69,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
 
   // Events associated with the node, these are inferred from the node value.
   errors = new Set<TraceTree.TraceErrorIssue>();
-  occurences = new Set<TraceTree.TraceOccurence>();
+  occurrences = new Set<TraceTree.TraceOccurrence>();
   profiles: TraceTree.Profile[] = [];
 
   space: [number, number] = [0, 0];
@@ -114,7 +114,12 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       }
 
       if ('performance_issues' in value && Array.isArray(value.performance_issues)) {
-        value.performance_issues.forEach(issue => this.occurences.add(issue));
+        value.performance_issues.forEach(issue => this.occurrences.add(issue));
+      }
+
+      // EAP spans can have occurences
+      if ('occurrences' in value && Array.isArray(value.occurrences)) {
+        value.occurrences.forEach(occurence => this.occurrences.add(occurence));
       }
 
       if ('profile_id' in value && typeof value.profile_id === 'string') {
@@ -138,7 +143,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   }
 
   get hasErrors(): boolean {
-    return this.errors.size > 0 || this.occurences.size > 0;
+    return this.errors.size > 0 || this.occurrences.size > 0;
   }
 
   private _max_severity: keyof Theme['level'] | undefined;

@@ -189,15 +189,14 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
           }
         }
 
-        for (const p of n.occurences) {
-          if (p.event_id === props.event.eventID) {
+        for (const o of n.occurrences) {
+          if (o.event_id === props.event.eventID) {
             return true;
           }
         }
       }
-      if (isSpanNode(n) || isEAPSpanNode(n)) {
-        const spanId = 'span_id' in n.value ? n.value.span_id : n.value.event_id;
-        if (spanId === props.event.eventID) {
+      if (isSpanNode(n)) {
+        if (n.value.span_id === props.event.eventID) {
           return true;
         }
         for (const e of n.errors) {
@@ -205,8 +204,24 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
             return true;
           }
         }
-        for (const p of n.occurences) {
-          if (p.event_id === props.event.eventID) {
+        for (const o of n.occurrences) {
+          if (o.event_id === props.event.eventID) {
+            return true;
+          }
+        }
+      }
+
+      if (isEAPSpanNode(n)) {
+        if (n.value.event_id === props.event.eventID) {
+          return true;
+        }
+        for (const e of n.errors) {
+          if (e.event_id === props.event.eventID) {
+            return true;
+          }
+        }
+        for (const o of n.occurrences) {
+          if (o.event_id === props.event.occurrence?.id) {
             return true;
           }
         }
@@ -232,7 +247,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         if (
           isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
-          node.occurences.size > 0
+          node.occurrences.size > 0
         ) {
           preserveNodes.push(props.tree.list[start]!);
           break;
@@ -244,7 +259,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         if (
           isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
-          node.occurences.size > 0
+          node.occurrences.size > 0
         ) {
           preserveNodes.push(props.tree.list[start]!);
           break;
