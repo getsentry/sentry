@@ -1,19 +1,15 @@
 import {useEffect, useState} from 'react';
 
-interface UseSyncScrollMarginArgs {
-  overlayRef: React.RefObject<HTMLElement | null>;
-}
-
 /**
- * This effect is used to update the scroll margin of the virtualizer when the
- * code display overlay is resized. This is needed because the virtualizer
- * needs to know the offset of the code display overlay from the top of the
- * window to correctly calculate the scroll position of the virtual items.
- * We do the calculation to account for the scroll position of the window
- * incase the user has scrolled down the page, and resizes the window
- * afterwards.
+ * This effect is used to track the distance of an element from the top of the viewport
+ * as the window is resized. It accounts for both the element's position relative to
+ * the viewport and the window's scroll position to maintain an accurate measurement
+ * even when the user scrolls and resizes the window.
+ *
+ * @param overlayRef - The ref of the code display overlay.
+ * @returns The scroll margin of the code display overlay.
  */
-export const useSyncScrollMargin = ({overlayRef}: UseSyncScrollMarginArgs) => {
+export const useSyncScrollMargin = (overlayRef: React.RefObject<HTMLElement | null>) => {
   const [scrollMargin, setScrollMargin] = useState<number | undefined>(undefined);
 
   useEffect(() => {
