@@ -2,22 +2,22 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
-import useErrorFreeSessions from 'sentry/views/insights/sessions/queries/useErrorFreeSessions';
+import useErroredSessions from 'sentry/views/insights/sessions/queries/useErroredSessions';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function ErrorFreeSessionsChart() {
-  const {series, isPending, error} = useErrorFreeSessions();
+export default function ErroredSessionsChart() {
+  const {series, isPending, error} = useErroredSessions();
 
   const aliases = {
-    successful_session_rate: t('crash_free_rate(session)'),
+    successful_session_rate: t('error_rate(sessions)'),
   };
 
   return (
     <InsightsLineChartWidget
-      title={CHART_TITLES.ErrorFreeSessionsChart}
+      title={CHART_TITLES.ErroredSessionsChart}
       interactiveTitle={() => (
-        <ChartSelectionTitle title={CHART_TITLES.ErrorFreeSessionsChart} />
+        <ChartSelectionTitle title={CHART_TITLES.ErroredSessionsChart} />
       )}
       height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
