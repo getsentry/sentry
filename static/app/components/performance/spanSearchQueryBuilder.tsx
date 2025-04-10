@@ -10,6 +10,7 @@ import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
   DEVICE_CLASS_TAG_VALUES,
@@ -35,6 +36,7 @@ interface SpanSearchQueryBuilderProps {
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
+  skipProvider?: boolean;
 }
 
 export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
@@ -59,7 +61,7 @@ function getSpanFieldDefinitionFunction(tags: TagCollection) {
   };
 }
 
-export function SpanSearchQueryBuilder({
+export function useSpanSearchQueryBuilderProps({
   initialQuery,
   searchSource,
   datetime,
@@ -134,22 +136,43 @@ export function SpanSearchQueryBuilder({
     [api, organization, datetime, projects, selection.datetime, selection.projects]
   );
 
-  return (
-    <SearchQueryBuilder
-      placeholder={placeholderText}
-      filterKeys={filterTags}
-      initialQuery={initialQuery}
-      fieldDefinitionGetter={getSpanFieldDefinitionFunction(filterTags)}
-      onSearch={onSearch}
-      onBlur={onBlur}
-      searchSource={searchSource}
-      filterKeySections={filterKeySections}
-      getTagValues={getSpanFilterTagValues}
-      disallowUnsupportedFilters
-      recentSearches={SavedSearchType.SPAN}
-      showUnsubmittedIndicator
-    />
-  );
+  return {
+    placeholder: placeholderText,
+    filterKeys: filterTags,
+    initialQuery,
+    fieldDefinitionGetter: getSpanFieldDefinitionFunction(filterTags),
+    onSearch,
+    onBlur,
+    searchSource,
+    filterKeySections,
+    getTagValues: getSpanFilterTagValues,
+    disallowUnsupportedFilters: true,
+    recentSearches: SavedSearchType.SPAN,
+    showUnsubmittedIndicator: true,
+  };
+}
+
+export function SpanSearchQueryBuilder({
+  initialQuery,
+  searchSource,
+  datetime,
+  onSearch,
+  onBlur,
+  placeholder,
+  projects,
+  skipProvider,
+}: SpanSearchQueryBuilderProps) {
+  const searchQueryBuilderProps = useSpanSearchQueryBuilderProps({
+    initialQuery,
+    searchSource,
+    datetime,
+    onSearch,
+    onBlur,
+    placeholder,
+    projects,
+  });
+
+  return <SearchQueryBuilder {...searchQueryBuilderProps} skipProvider={skipProvider} />;
 }
 
 export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
@@ -160,7 +183,7 @@ export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderPr
   supportedAggregates?: AggregationKey[];
 }
 
-export function EAPSpanSearchQueryBuilder({
+export function useEAPSpanSearchQueryBuilderProps({
   initialQuery,
   placeholder,
   onSearch,
@@ -234,22 +257,59 @@ export function EAPSpanSearchQueryBuilder({
     [api, organization.slug, selection.projects, projects, selection.datetime, numberTags]
   );
 
-  return (
-    <SearchQueryBuilder
-      placeholder={placeholderText}
-      filterKeys={filterTags}
-      initialQuery={initialQuery}
-      fieldDefinitionGetter={getSpanFieldDefinitionFunction(filterTags)}
-      onSearch={onSearch}
-      onBlur={onBlur}
-      getFilterTokenWarning={getFilterTokenWarning}
-      searchSource={searchSource}
-      filterKeySections={filterKeySections}
-      getTagValues={getSpanFilterTagValues}
-      disallowUnsupportedFilters
-      recentSearches={SavedSearchType.SPAN}
-      showUnsubmittedIndicator
-      portalTarget={portalTarget}
-    />
-  );
+  return {
+    placeholder: placeholderText,
+    filterKeys: filterTags,
+    initialQuery,
+    fieldDefinitionGetter: getSpanFieldDefinitionFunction(filterTags),
+    onSearch,
+    onBlur,
+    getFilterTokenWarning,
+    searchSource,
+    filterKeySections,
+    getTagValues: getSpanFilterTagValues,
+    disallowUnsupportedFilters: true,
+    recentSearches: SavedSearchType.SPAN,
+    showUnsubmittedIndicator: true,
+    portalTarget,
+  };
+}
+
+export function EAPSpanSearchQueryBuilder({
+  initialQuery,
+  placeholder,
+  onSearch,
+  onBlur,
+  searchSource,
+  numberTags,
+  stringTags,
+  getFilterTokenWarning,
+  supportedAggregates = [],
+  projects,
+  portalTarget,
+  skipProvider,
+}: EAPSpanSearchQueryBuilderProps) {
+  const searchQueryBuilderProps = useEAPSpanSearchQueryBuilderProps({
+    initialQuery,
+    placeholder,
+    onSearch,
+    onBlur,
+    searchSource,
+    numberTags,
+    stringTags,
+    getFilterTokenWarning,
+    supportedAggregates,
+    projects,
+    portalTarget,
+  });
+
+  return <SearchQueryBuilder {...searchQueryBuilderProps} skipProvider={skipProvider} />;
+}
+
+export function getSpanPropsFromDataset(dataset: DiscoverDatasets) {
+  if (dataset === DiscoverDatasets.SPANS_INDEXED) {
+    return useSpanSearchQueryBuilderProps;
+  }
+
+  return useEAPSpanSearchQueryBuilderProps;
 }
