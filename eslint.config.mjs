@@ -372,7 +372,7 @@ export default typescript.config([
     plugins: {'no-relative-import-paths': noRelativeImportPaths},
     rules: {
       'no-relative-import-paths/no-relative-import-paths': [
-        'warn', // TODO(ryan953): Fix violations and enable this rule,
+        'error',
         {
           prefix: 'sentry',
           rootDir: 'static/app',
@@ -856,7 +856,7 @@ export default typescript.config([
     files: ['static/gsApp/**/*.{js,mjs,ts,jsx,tsx}'],
     rules: {
       'no-relative-import-paths/no-relative-import-paths': [
-        'warn', // TODO(ryan953): Fix violations and enable this rule,
+        'error',
         {
           prefix: 'getsentry',
           rootDir: 'static/gsApp',
@@ -892,7 +892,7 @@ export default typescript.config([
     files: ['static/gsAdmin/**/*.{js,mjs,ts,jsx,tsx}'],
     rules: {
       'no-relative-import-paths/no-relative-import-paths': [
-        'warn', // TODO(ryan953): Fix violations and enable this rule,
+        'error',
         {
           prefix: 'admin',
           rootDir: 'static/gsAdmin',
