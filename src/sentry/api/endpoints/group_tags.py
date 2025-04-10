@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from rest_framework.request import Request
@@ -53,7 +54,7 @@ class GroupTagsEndpoint(GroupEndpoint):
         start, end = get_date_range_from_params(request.GET, optional=True)
         if start is None or end is None:
             start = group.first_seen
-            end = group.last_seen
+            end = max(group.last_seen, group.first_seen + timedelta(seconds=1))
 
         tag_keys = backend.get_group_tag_keys_and_top_values(
             group,
