@@ -33,12 +33,12 @@ export function useGroupSuspectFlagScores({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const query = Object.fromEntries(
-    [
-      ['environment', environment ?? selection.environments],
-      ['statsPeriod', statsPeriod],
-      ['start', start],
-      ['end', end],
-    ].filter(([_, value]) => !!value)
+    Object.entries({
+      environment: environment ?? selection.environments,
+      statsPeriod,
+      start,
+      end,
+    }).filter(([_, value]) => !!value)
   );
 
   return useApiQuery<SuspectFlagScoresResponse>(
