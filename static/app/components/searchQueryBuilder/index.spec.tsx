@@ -71,6 +71,12 @@ const FILTER_KEYS: TagCollection = {
     name: 'timesSeen',
     kind: FieldKind.FIELD,
   },
+  [FieldKey.DEVICE]: {
+    key: 'device',
+    name: 'Device',
+    kind: FieldKind.FIELD,
+    predefined: false,
+  },
   custom_tag_name: {
     key: 'custom_tag_name',
     name: 'Custom_Tag_Name',
@@ -2707,6 +2713,30 @@ describe('SearchQueryBuilder', function () {
 
         expect(await screen.findByText('is on or after')).toBeInTheDocument();
         expect(screen.getByText('Oct 17, 2:00 PM UTC')).toBeInTheDocument();
+      });
+    });
+
+    describe('device', function () {
+      it('displays the readable name', async function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            getTagValues={() => Promise.resolve(['iPhone14,5', 'iPhone15,4'])}
+            initialQuery="device:"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: device'})
+        );
+        await screen.findByRole('option', {name: 'iPhone14,5'});
+
+        expect(await screen.findByText('iPhone 13')).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('option', {name: 'iPhone14,5'}));
+
+        expect(
+          screen.getByRole('row', {name: 'device:"iPhone14,5"'})
+        ).toBeInTheDocument();
       });
     });
 
