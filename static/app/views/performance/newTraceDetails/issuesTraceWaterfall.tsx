@@ -388,6 +388,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       );
     }
 
+    // If we have successfully focused on a node, we want to use the span id of the node
+    // to focus on the correct span in the trace view page
     const spanId =
       focusedNode && (isSpanNode(focusedNode) || isEAPSpanNode(focusedNode))
         ? isSpanNode(focusedNode)
