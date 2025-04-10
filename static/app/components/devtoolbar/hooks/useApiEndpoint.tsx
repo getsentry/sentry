@@ -2,9 +2,8 @@ import {useMemo} from 'react';
 import type {QueryFunctionContext} from '@tanstack/react-query';
 import {stringifyUrl} from 'query-string';
 
+import type {ApiEndpointQueryKey, ApiResult} from 'sentry/components/devtoolbar/types';
 import parseLinkHeader, {type ParsedHeader} from 'sentry/utils/parseLinkHeader';
-
-import type {ApiEndpointQueryKey, ApiResult} from '../types';
 
 import useConfiguration from './useConfiguration';
 

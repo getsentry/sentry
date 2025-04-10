@@ -4,7 +4,7 @@ import {
   type UseInfiniteQueryOptions,
 } from '@tanstack/react-query';
 
-import type {ApiEndpointQueryKey, ApiResult} from '../types';
+import type {ApiEndpointQueryKey, ApiResult} from 'sentry/components/devtoolbar/types';
 
 import useApiEndpoint, {type PageParam} from './useApiEndpoint';
 

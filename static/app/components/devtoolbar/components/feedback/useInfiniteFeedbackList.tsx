@@ -1,8 +1,11 @@
 import {useMemo} from 'react';
 
-import useConfiguration from '../../hooks/useConfiguration';
-import useFetchInfiniteApiData from '../../hooks/useFetchInfiniteApiData';
-import type {ApiEndpointQueryKey, FeedbackIssueListItem} from '../../types';
+import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
+import useFetchInfiniteApiData from 'sentry/components/devtoolbar/hooks/useFetchInfiniteApiData';
+import type {
+  ApiEndpointQueryKey,
+  FeedbackIssueListItem,
+} from 'sentry/components/devtoolbar/types';
 
 interface Props {
   query: string;

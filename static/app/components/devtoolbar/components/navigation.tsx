@@ -3,6 +3,10 @@ import {type ReactNode, useContext} from 'react';
 import {AnalyticsContext} from 'sentry/components/devtoolbar/components/analyticsProvider';
 import SessionStatusBadge from 'sentry/components/devtoolbar/components/releases/sessionStatusBadge';
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
+import usePlacementCss from 'sentry/components/devtoolbar/hooks/usePlacementCss';
+import useToolbarRoute from 'sentry/components/devtoolbar/hooks/useToolbarRoute';
+import {navigationCss} from 'sentry/components/devtoolbar/styles/navigation';
+import {resetDialogCss} from 'sentry/components/devtoolbar/styles/reset';
 import {
   IconClose,
   IconFlag,
@@ -12,11 +16,6 @@ import {
   IconReleases,
   IconSiren,
 } from 'sentry/icons';
-
-import usePlacementCss from '../hooks/usePlacementCss';
-import useToolbarRoute from '../hooks/useToolbarRoute';
-import {navigationCss} from '../styles/navigation';
-import {resetDialogCss} from '../styles/reset';
 
 import AlertBadge from './alerts/alertBadge';
 import FlagOverridesBadge from './featureFlags/flagOverridesBadge';

@@ -1,10 +1,9 @@
 import {useMemo} from 'react';
 
+import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
+import useFetchInfiniteApiData from 'sentry/components/devtoolbar/hooks/useFetchInfiniteApiData';
+import type {ApiEndpointQueryKey} from 'sentry/components/devtoolbar/types';
 import type {Incident} from 'sentry/views/alerts/types';
-
-import useConfiguration from '../../hooks/useConfiguration';
-import useFetchInfiniteApiData from '../../hooks/useFetchInfiniteApiData';
-import type {ApiEndpointQueryKey} from '../../types';
 
 export default function useInfiniteFeedbackList() {
   const {organizationSlug, projectId} = useConfiguration();

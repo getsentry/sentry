@@ -1,10 +1,9 @@
 import type {ButtonHTMLAttributes, ReactNode} from 'react';
 import {css, type Interpolation} from '@emotion/react';
 
+import {resetButtonCss} from 'sentry/components/devtoolbar/styles/reset';
+import {buttonCss} from 'sentry/components/devtoolbar/styles/typography';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-
-import {resetButtonCss} from '../../styles/reset';
-import {buttonCss} from '../../styles/typography';
 
 const iconButtonCss = css`
   border: 1px solid transparent;

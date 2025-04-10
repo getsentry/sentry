@@ -2,14 +2,17 @@ import {Fragment, Suspense} from 'react';
 import {css, Global} from '@emotion/react';
 
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
+import usePlacementCss from 'sentry/components/devtoolbar/hooks/usePlacementCss';
+import useVisibility from 'sentry/components/devtoolbar/hooks/useVisibility';
+import {fixedContainerBaseCss} from 'sentry/components/devtoolbar/styles/fixedContainer';
+import {
+  avatarCss,
+  globalCss,
+  loadingIndicatorCss,
+} from 'sentry/components/devtoolbar/styles/global';
+import {resetFlexColumnCss} from 'sentry/components/devtoolbar/styles/reset';
 import LoadingTriangle from 'sentry/components/loadingTriangle';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-
-import usePlacementCss from '../hooks/usePlacementCss';
-import useVisibility from '../hooks/useVisibility';
-import {fixedContainerBaseCss} from '../styles/fixedContainer';
-import {avatarCss, globalCss, loadingIndicatorCss} from '../styles/global';
-import {resetFlexColumnCss} from '../styles/reset';
 
 import Navigation from './navigation';
 import PanelLayout from './panelLayout';
