@@ -39,17 +39,24 @@ export default function useErroredSessions() {
     {staleTime: 0}
   );
 
+  if (isPending || !sessionData) {
+    return {
+      series: [],
+      isPending,
+      error,
+    };
+  }
+
   // Returns series data not grouped by release
-  const seriesData = getSessionStatusSeries('healthy', sessionData?.groups ?? []).map(
+  const seriesData = getSessionStatusSeries('healthy', sessionData.groups).map(
     (healthyCount, idx) => {
-      const intervalTotal =
-        sessionData?.groups.reduce(
-          (acc, group) => acc + (group.series['sum(session)']?.[idx] ?? 0),
-          0
-        ) ?? 0;
+      const intervalTotal = sessionData.groups.reduce(
+        (acc, group) => acc + (group.series['sum(session)']?.[idx] ?? 0),
+        0
+      );
 
       return {
-        name: sessionData?.intervals[idx] ?? '',
+        name: sessionData.intervals[idx] ?? '',
         value: intervalTotal > 0 ? (intervalTotal - healthyCount) / intervalTotal : 0,
       };
     }
