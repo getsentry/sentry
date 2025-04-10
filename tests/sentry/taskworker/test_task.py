@@ -270,9 +270,9 @@ def test_create_activation_headers_monitor_config_treatment(task_namespace: Task
     }
     activation = with_parameters.create_activation(["one", 22], {"org_id": 99}, headers)
 
-    headers = activation.headers
-    assert headers
-    assert headers["key"] == "value"
-    assert "sentry-monitor-config" not in headers
-    assert "sentry-monitor-slug" in headers
-    assert "sentry-monitor-check-in-id" in headers
+    result = activation.headers
+    assert result
+    assert result["key"] == "value"
+    assert "sentry-monitor-config" not in result
+    assert "sentry-monitor-slug" in result
+    assert "sentry-monitor-check-in-id" in result
