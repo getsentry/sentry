@@ -2,7 +2,7 @@ import {createContext, useContext, useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import stackedNavTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
+import exploreSpansTourSvg from 'sentry-images/spot/explore-spans-tour.svg';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
@@ -52,7 +52,7 @@ export function ExploreSpansTourModal({
 }: ExploreSpansTourModalProps) {
   return (
     <TourContainer>
-      <ModalImage src={stackedNavTourSvg} />
+      <ModalImage src={exploreSpansTourSvg} />
       <TextContainer>
         <Title>{t('How to Query')}</Title>
         <Header>{t('Debug Like a Pro')}</Header>
@@ -151,7 +151,6 @@ const TourContainer = styled('div')`
 `;
 
 const ModalImage = styled('img')`
-  height: 226px;
   width: calc(100% - ${space(1.5)} - ${space(1.5)});
   margin: ${space(1.5)} 0 0 ${space(1.5)};
   background-size: cover;
