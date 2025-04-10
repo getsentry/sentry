@@ -33,6 +33,7 @@ function mapActionsToCompactSelect(
       if (action.visible === false) {
         return null;
       }
+
       return {
         value: action.key,
         label: (
