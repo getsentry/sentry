@@ -45,12 +45,6 @@ def process_data_sources(
                     count,
                     tags={"detector_type": detector_type},
                 )
-
-            metrics.incr(
-                "workflow_engine.process_data_sources.detectors",
-                len(detectors),
-                tags={"detector_type": detectors[0].type},
-            )
         else:
             logger.warning(
                 "No detectors found",
