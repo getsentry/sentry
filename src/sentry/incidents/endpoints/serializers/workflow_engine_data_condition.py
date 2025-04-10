@@ -33,19 +33,21 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         **kwargs: Any,
     ) -> defaultdict[str, list[dict[str, Any]]]:
         data_conditions = {item.id: item for item in item_list}
-        data_condition_groups = [
-            data_condition.condition_group for data_condition in data_conditions.values()
-        ]
+        data_condition_ids = [dc.id for dc in item_list]
+
         action_filter_data_condition_groups = (
             DataCondition.objects.filter(
-                comparison__in=[DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM],
+                comparison__in=[item.condition_result for item in item_list],
                 condition_result=True,
                 type=Condition.ISSUE_PRIORITY_EQUALS,
             )
             .exclude(
                 condition_group__in=Subquery(
                     Detector.objects.filter(
-                        workflow_condition_group__in=data_condition_groups
+                        workflow_condition_group__in=[
+                            data_condition.condition_group
+                            for data_condition in data_conditions.values()
+                        ]
                     ).values("workflow_condition_group")
                 )
             )
@@ -55,18 +57,22 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         action_filter_data_condition_group_action_ids = DataConditionGroupAction.objects.filter(
             condition_group_id__in=Subquery(action_filter_data_condition_groups)
         ).values_list("id", flat=True)
+
         actions = Action.objects.filter(
-            id__in=action_filter_data_condition_group_action_ids
+            id__in=Subquery(action_filter_data_condition_group_action_ids)
         ).order_by("id")
 
         serialized_actions = serialize(
             list(actions), user, WorkflowEngineActionSerializer(), **kwargs
         )
         result: DefaultDict[DataCondition, dict[str, list[str]]] = defaultdict(dict)
-        result["actions"] = []
+        for data_condition in data_conditions:
+            result[data_conditions[data_condition]]["actions"] = []
 
         for action in serialized_actions:
-            result["actions"].append(action)
+            # in practice we only ever have 1 data condition in the item list at a time, but we may have multiple actions
+            result[data_conditions[data_condition_ids[0]]]["actions"].append(action)
+
         return result
 
     def serialize(

@@ -38,20 +38,21 @@ class TestDataConditionSerializer(TestCase):
         self.resolve_trigger_data_condition, _ = migrate_resolve_threshold_data_conditions(
             self.alert_rule
         )
-
-        self.expected_actions = {
-            "id": str(self.critical_trigger_action.id),
-            "alertRuleTriggerId": str(self.critical_trigger.id),
-            "type": "email",
-            "targetType": "user",
-            "targetIdentifier": str(self.user.id),
-            "inputChannelId": None,
-            "integrationId": None,
-            "sentryAppId": None,
-            "dateCreated": self.critical_trigger_action.date_added,
-            "desc": f"Send a notification to {self.user.email}",
-            "priority": self.critical_action.data.get("priority"),
-        }
+        self.expected_actions = [
+            {
+                "id": str(self.critical_trigger_action.id),
+                "alertRuleTriggerId": str(self.critical_trigger.id),
+                "type": "email",
+                "targetType": "user",
+                "targetIdentifier": str(self.user.id),
+                "inputChannelId": None,
+                "integrationId": None,
+                "sentryAppId": None,
+                "dateCreated": self.critical_trigger_action.date_added,
+                "desc": f"Send a notification to {self.user.email}",
+                "priority": self.critical_action.data.get("priority"),
+            },
+        ]
         self.expected_trigger = {
             "id": str(self.critical_trigger.id),
             "alertRuleId": str(self.alert_rule.id),
@@ -70,6 +71,57 @@ class TestDataConditionSerializer(TestCase):
             WorkflowEngineDataConditionSerializer(),
         )
         assert serialized_data_condition == self.expected_trigger
+
+    def test_warning_trigger(self) -> None:
+        serialized_data_condition = serialize(
+            self.warning_detector_trigger,
+            self.user,
+            WorkflowEngineDataConditionSerializer(),
+        )
+        expected_actions = self.expected_actions.copy()
+        expected_actions[0]["id"] = str(self.warning_trigger_action.id)
+        expected_actions[0]["alertRuleTriggerId"] = str(self.warning_trigger.id)
+
+        expected_trigger = self.expected_trigger.copy()
+        expected_trigger["actions"] = expected_actions
+        expected_trigger["alertThreshold"] = translate_data_condition_type(
+            self.detector.config.get("comparison_delta"),
+            self.resolve_trigger_data_condition.type,
+            self.warning_detector_trigger.comparison,
+        )
+        expected_trigger["id"] = str(self.warning_trigger.id)
+        expected_trigger["alertRuleId"] = str(self.alert_rule.id)
+        expected_trigger["label"] = "warning"
+        assert serialized_data_condition == expected_trigger
+
+    def test_multiple_actions(self) -> None:
+        self.critical_trigger_action_2 = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.critical_trigger
+        )
+        self.critical_action_2, _, _ = migrate_metric_action(self.critical_trigger_action_2)
+        serialized_data_condition = serialize(
+            self.critical_detector_trigger,
+            self.user,
+            WorkflowEngineDataConditionSerializer(),
+        )
+        expected_actions = self.expected_actions.copy()
+        actions_2 = {
+            "id": str(self.critical_trigger_action_2.id),
+            "alertRuleTriggerId": str(self.critical_trigger.id),
+            "type": "email",
+            "targetType": "user",
+            "targetIdentifier": str(self.user.id),
+            "inputChannelId": None,
+            "integrationId": None,
+            "sentryAppId": None,
+            "dateCreated": self.critical_trigger_action.date_added,
+            "desc": f"Send a notification to {self.user.email}",
+            "priority": self.critical_action.data.get("priority"),
+        }
+        expected_actions.append(actions_2)
+        expected_trigger = self.expected_trigger.copy()
+        expected_trigger["actions"] = expected_actions
+        assert serialized_data_condition == expected_trigger
 
     def test_comparison_delta(self) -> None:
         comparison_delta_rule = self.create_alert_rule(comparison_delta=60)
@@ -92,8 +144,8 @@ class TestDataConditionSerializer(TestCase):
             WorkflowEngineDataConditionSerializer(),
         )
         expected_actions = self.expected_actions.copy()
-        expected_actions["id"] = str(comparison_delta_trigger_action.id)
-        expected_actions["alertRuleTriggerId"] = str(comparison_delta_trigger.id)
+        expected_actions[0]["id"] = str(comparison_delta_trigger_action.id)
+        expected_actions[0]["alertRuleTriggerId"] = str(comparison_delta_trigger.id)
 
         expected_trigger = self.expected_trigger.copy()
         expected_trigger["actions"] = expected_actions
@@ -104,26 +156,4 @@ class TestDataConditionSerializer(TestCase):
         )
         expected_trigger["id"] = str(comparison_delta_trigger.id)
         expected_trigger["alertRuleId"] = str(comparison_delta_rule.id)
-        assert serialized_data_condition == expected_trigger
-
-    def test_warning_trigger(self) -> None:
-        serialized_data_condition = serialize(
-            self.warning_detector_trigger,
-            self.user,
-            WorkflowEngineDataConditionSerializer(),
-        )
-        expected_actions = self.expected_actions.copy()
-        expected_actions["id"] = str(self.warning_trigger_action.id)
-        expected_actions["alertRuleTriggerId"] = str(self.warning_trigger.id)
-
-        expected_trigger = self.expected_trigger.copy()
-        expected_trigger["actions"] = expected_actions
-        expected_trigger["alertThreshold"] = translate_data_condition_type(
-            self.detector.config.get("comparison_delta"),
-            self.resolve_trigger_data_condition.type,
-            self.warning_detector_trigger.comparison,
-        )
-        expected_trigger["id"] = str(self.warning_trigger.id)
-        expected_trigger["alertRuleId"] = str(self.alert_rule.id)
-        expected_trigger["label"] = "warning"
         assert serialized_data_condition == expected_trigger
