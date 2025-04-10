@@ -137,7 +137,6 @@ type TableRenderProps = Omit<React.ComponentProps<typeof Pagination>, 'size'> &
   React.ComponentProps<typeof TransactionsTable> & {
     header: React.ReactNode;
     paginationCursorSize: React.ComponentProps<typeof Pagination>['size'];
-    target?: string;
   };
 
 function TableRender({
@@ -155,7 +154,6 @@ function TableRender({
   handleCellAction,
   referrer,
   useAggregateAlias,
-  target,
   paginationCursorSize,
 }: TableRenderProps) {
   const query = decodeScalar(location.query.query, '');
@@ -382,7 +380,6 @@ class _TransactionsList extends Component<Props> {
       titles,
       generateLink,
       useAggregateAlias: false,
-      target: DemoTourStep.PERFORMANCE_TRANSACTION_SUMMARY_TABLE,
       paginationCursorSize: 'xs',
       onCursor: this.handleCursor,
     };
@@ -514,10 +511,6 @@ const StyledPagination = styled(Pagination)`
 
 const InvestigationRuleWrapper = styled('div')`
   margin-right: ${space(1)};
-`;
-
-const TableWrapper = styled('span')`
-  display: block;
 `;
 
 function TransactionsList(
