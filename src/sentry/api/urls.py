@@ -23,6 +23,9 @@ from sentry.api.endpoints.organization_member_invite.details import (
 from sentry.api.endpoints.organization_member_invite.index import (
     OrganizationMemberInviteIndexEndpoint,
 )
+from sentry.api.endpoints.organization_member_invite.reinvite import (
+    OrganizationMemberReinviteEndpoint,
+)
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
@@ -1755,6 +1758,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/invited-members/(?P<member_invite_id>[^\/]+)/$",
         OrganizationMemberInviteDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-member-invite-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/reinvite-member/(?P<member_invite_id>[^\/]+)/$",
+        OrganizationMemberReinviteEndpoint.as_view(),
+        name="sentry-api-0-organization-member-reinvite",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/external-users/$",
