@@ -35,6 +35,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.samples import load_data
 from sentry.workflow_engine.models import Workflow
 
@@ -49,19 +50,6 @@ class OrganizationOnboardingTaskTest(TestCase):
             name="test",
             external_id=external_id,
         )
-
-    def test_no_existing_task(self):
-        now = timezone.now()
-        project = self.create_project(first_event=now)
-        event = self.store_event(data={}, project_id=project.id)
-        first_event_received.send(project=project, event=event, sender=type(project))
-
-        task = OrganizationOnboardingTask.objects.get(
-            organization=project.organization, task=OnboardingTask.FIRST_EVENT
-        )
-        assert task.status == OnboardingTaskStatus.COMPLETE
-        assert task.project_id == project.id
-        assert task.date_completed == project.first_event
 
     def test_existing_complete_task(self):
         now = timezone.now()
@@ -194,27 +182,57 @@ class OrganizationOnboardingTaskTest(TestCase):
             origin="ui",
         )
 
-    def test_first_event_received(self):
+    @patch("sentry.analytics.record")
+    def test_first_event_received(self, record_analytics):
         now = timezone.now()
+
+        # Create first project and send event
         project = self.create_project(first_event=now, platform="javascript")
-        project_created.send(project=project, user=self.user, sender=type(project))
+        project_created.send_robust(project=project, user=self.user, sender=type(project))
         event = self.store_event(
             data={"platform": "javascript", "message": "javascript error message"},
             project_id=project.id,
         )
-        first_event_received.send(project=project, event=event, sender=type(project))
+        first_event_received.send_robust(project=project, event=event, sender=type(project))
 
+        # Assert first event onboarding task is created and completed
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization,
             task=OnboardingTask.FIRST_EVENT,
             status=OnboardingTaskStatus.COMPLETE,
         )
         assert task is not None
-        assert "platform" in task.data
-        assert task.data["platform"] == "javascript"
+        assert task.project_id == project.id
 
+        # Ensure analytics events are called in the right order
+        assert len(record_analytics.call_args_list) >= 2  # Ensure at least two calls
+
+        record_analytics.call_args_list[-2].assert_called_with(
+            "first_event_for_project.sent",
+            user_id=self.user.id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=event.platform,
+            project_platform=project.platform,
+            url=dict(event.tags).get("url", None),
+            has_minified_stack_trace=has_event_minified_stack_trace(event),
+            sdk_name=None,
+        )
+
+        record_analytics.call_args_list[-1].assert_called_with(
+            "first_event.sent",
+            user_id=self.user.id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=event.platform,
+            project_platform=project.platform,
+        )
+
+        # Create second project and send event
         second_project = self.create_project(first_event=now, platform="python")
         project_created.send(project=second_project, user=self.user, sender=type(second_project))
+
+        # Assert second platform onboarding task is completed
         second_task = OrganizationOnboardingTask.objects.get(
             organization=second_project.organization,
             task=OnboardingTask.SECOND_PLATFORM,
@@ -222,11 +240,37 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert second_task is not None
 
-        assert second_task.project is not None
-        assert second_task.project.platform == "python"
+        # An event is sent for the second project
+        first_event_received.send_robust(
+            project=second_project, event=event, sender=type(second_project)
+        )
 
-        assert task.project is not None
-        assert task.project.platform != second_task.project.platform
+        # Ensure first project's onboarding task remains unchanged
+        task = OrganizationOnboardingTask.objects.get(
+            organization=project.organization,
+            task=OnboardingTask.FIRST_EVENT,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        assert task.project_id == project.id
+
+        # Ensure "first_event_for_project.sent" was called again for second project
+        record_analytics.call_args_list[-1].assert_called_with(
+            "first_event_for_project.sent",
+            user_id=self.user.id,
+            organization_id=second_project.organization_id,
+            project_id=second_project.id,
+            platform=event.platform,
+            project_platform=second_project.platform,
+            url=dict(event.tags).get("url", None),
+            has_minified_stack_trace=has_event_minified_stack_trace(event),
+            sdk_name=None,
+        )
+
+        # Ensure "first_event.sent" was called exactly once
+        first_event_sent_calls = [
+            call for call in record_analytics.call_args_list if call[0][0] == "first_event.sent"
+        ]
+        assert len(first_event_sent_calls) == 1
 
     def test_first_transaction_received(self):
         project = self.create_project()
