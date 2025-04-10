@@ -13,6 +13,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
@@ -109,13 +110,20 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
   );
-  const spanDataset = useInsightsEap()
+  const useEap = useInsightsEap();
+  const spanDataset = useEap
     ? DiscoverDatasets.SPANS_EAP_RPC
     : DiscoverDatasets.SPANS_METRICS;
 
-  const spanQueryParams = useInsightsEap()
+  const metricsDataset = useEap ? DiscoverDatasets.SPANS_EAP : DiscoverDatasets.METRICS;
+
+  const spanQueryParams = useEap
     ? {useRpc: '1', dataset: DiscoverDatasets.SPANS_EAP}
     : {useRpc: '0', dataset: DiscoverDatasets.SPANS_METRICS};
+
+  const metricsQueryParams = useEap
+    ? {useRpc: '1', dataset: DiscoverDatasets.SPANS_EAP}
+    : {useRpc: '0', dataset: DiscoverDatasets.METRICS};
 
   let emptyComponent: any;
   if (props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES) {
@@ -175,8 +183,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           }
           const mutableSearch = new MutableSearch(eventView.query);
           mutableSearch.removeFilter('transaction.duration');
-          eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
-          eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
+          removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
           eventView.query = mutableSearch.formatString();
         } else if (
           props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES
@@ -201,8 +208,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
-          mutableSearch.removeFilter('event.type');
-          eventView.additionalConditions.removeFilter('event.type');
+
+          removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
           mutableSearch.addFilterValue('has', 'sentry.normalized_description');
           mutableSearch.addFilterValue('span.module', 'db');
@@ -228,10 +235,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
-          mutableSearch.removeFilter('event.type');
-          mutableSearch.removeFilter('transaction.op');
-          eventView.additionalConditions.removeFilter('event.type');
-          eventView.additionalConditions.removeFilter('transaction.op');
+          removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
           mutableSearch.addFilterValue('span.module', 'http');
           eventView.query = mutableSearch.formatString();
@@ -258,9 +262,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
-          mutableSearch.removeFilter('event.type');
+          removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
           mutableSearch.removeFilter('time_spent_percentage()');
-          eventView.additionalConditions.removeFilter('event.type');
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
           eventView.query = `${mutableSearch.formatString()} ${getResourcesEventViewQuery(
             {'resource.render_blocking_status': 'blocking'},
@@ -285,11 +288,15 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
           // Update query
           const mutableSearch = MutableSearch.fromQueryObject(BASE_FILTERS);
-          eventView.additionalConditions.removeFilter('event.type');
-          eventView.additionalConditions.removeFilter('transaction.op');
+          removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType || isFramesType) {
           eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
+          extraQueryParams = {
+            ...extraQueryParams,
+            ...metricsQueryParams,
+          };
+          eventView.dataset = metricsDataset;
           eventView.fields = [
             {field: 'transaction'},
             {field: 'project.id'},
@@ -391,8 +398,13 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               ]);
             }
 
-            eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
-            eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
+            if (useEap) {
+              eventView.additionalConditions.removeFilter('span.op');
+              eventView.additionalConditions.removeFilter('!span.op');
+            } else {
+              eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
+              eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
+            }
             const mutableSearch = new MutableSearch(eventView.query);
             mutableSearch.removeFilter('transaction.duration');
             eventView.query = mutableSearch.formatString();
@@ -420,7 +432,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             currentSeriesNames = [`avg(${SpanMetricsField.SPAN_SELF_TIME})`];
 
             // Update search query
-            eventView.additionalConditions.removeFilter('event.type');
+            removeTransactionFilterForSpanQuery({eventView, useEap});
             eventView.additionalConditions.removeFilter('transaction');
 
             if (
@@ -467,8 +479,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             currentSeriesNames = [`${SpanFunction.CACHE_MISS_RATE}()`];
 
             // Update search query
-            eventView.additionalConditions.removeFilter('event.type');
-            eventView.additionalConditions.removeFilter('transaction.op');
+            removeTransactionFilterForSpanQuery({eventView, useEap});
 
             const mutableSearch = new MutableSearch(eventView.query);
             mutableSearch.removeFilter('transaction');
@@ -874,3 +885,25 @@ const EventsRequest = withApi(_EventsRequest);
 const StyledTextOverflow = styled(TextOverflow)`
   flex: 1;
 `;
+
+const removeTransactionFilterForSpanQuery = ({
+  eventView,
+  mutableSearch,
+  useEap,
+}: {
+  eventView: EventView;
+  useEap: boolean;
+  mutableSearch?: MutableSearch;
+}) => {
+  if (useEap) {
+    eventView.additionalConditions.removeFilter('is_transaction');
+    mutableSearch?.removeFilter('is_transaction');
+    eventView.additionalConditions.removeFilter('span.op');
+    mutableSearch?.removeFilter('span.op');
+  } else {
+    eventView.additionalConditions.removeFilter('event.type');
+    mutableSearch?.removeFilter('event.type');
+    eventView.additionalConditions.removeFilter('transaction.op');
+    mutableSearch?.removeFilter('transaction.op');
+  }
+};

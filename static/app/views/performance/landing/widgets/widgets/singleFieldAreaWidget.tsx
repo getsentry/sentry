@@ -8,12 +8,14 @@ import {t} from 'sentry/locale';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {Transform} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import DurationChart from 'sentry/views/performance/charts/chart';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
@@ -33,6 +35,11 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const globalSelection = props.eventView.getPageFilters();
   const {setPageError} = usePageAlert();
   const mepSetting = useMEPSettingContext();
+  const useEap = useInsightsEap();
+
+  const queryExtras = useEap
+    ? {...getMEPQueryParams(mepSetting), useRpc: '1', dataset: DiscoverDatasets.SPANS_EAP}
+    : getMEPQueryParams(mepSetting);
 
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);
@@ -66,7 +73,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               )}
               hideError
               onError={setPageError}
-              queryExtras={getMEPQueryParams(mepSetting)}
+              queryExtras={queryExtras}
             />
           )}
         </QueryBatchNode>
@@ -95,7 +102,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
                 queryBatching={queryBatching}
                 eventView={eventView}
                 location={location}
-                queryExtras={getMEPQueryParams(mepSetting)}
+                queryExtras={queryExtras}
               />
             )}
           </QueryBatchNode>
