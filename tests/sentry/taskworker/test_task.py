@@ -84,10 +84,12 @@ def test_delay_taskrunner_immediate_mode(task_namespace: TaskNamespace) -> None:
     with TaskRunner():
         task.delay("arg", org_id=1)
         task.apply_async(args=["arg2"], kwargs={"org_id": 2})
+        task.apply_async()
 
-    assert len(calls) == 2
+    assert len(calls) == 3
     assert calls[0] == {"args": ("arg",), "kwargs": {"org_id": 1}}
     assert calls[1] == {"args": ("arg2",), "kwargs": {"org_id": 2}}
+    assert calls[2] == {"args": tuple(), "kwargs": {}}
 
 
 def test_should_retry(task_namespace: TaskNamespace) -> None:

@@ -12,17 +12,17 @@ const FLAG_HASH = '#flag-sidequest';
 export function useFeatureFlagOnboarding() {
   const location = useLocation();
   const organization = useOrganization();
-  const area = useAnalyticsArea();
+  const analyticsArea = useAnalyticsArea();
 
   useEffect(() => {
     if (location.hash === FLAG_HASH) {
       SidebarPanelStore.activatePanel(SidebarPanelKey.FEATURE_FLAG_ONBOARDING);
       trackAnalytics('flags.view-setup-sidebar', {
         organization,
-        area,
+        surface: analyticsArea,
       });
     }
-  }, [location.hash, organization, area]);
+  }, [location.hash, organization, analyticsArea]);
 
   const activateSidebar = useCallback(
     (event: React.MouseEvent) => {
@@ -31,10 +31,10 @@ export function useFeatureFlagOnboarding() {
       SidebarPanelStore.activatePanel(SidebarPanelKey.FEATURE_FLAG_ONBOARDING);
       trackAnalytics('flags.view-setup-sidebar', {
         organization,
-        area,
+        surface: analyticsArea,
       });
     },
-    [organization, area]
+    [organization, analyticsArea]
   );
 
   return {activateSidebar};

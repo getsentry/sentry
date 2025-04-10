@@ -1,5 +1,5 @@
 export type FeatureFlagEventParameters = {
-  'flags.cta_dismissed': {area: string; type: string};
+  'flags.cta_dismissed': {surface: string; type: string};
   'flags.cta_rendered': {area: string};
   'flags.drawer_details_clicked': Record<string, unknown>;
   'flags.drawer_rendered': {
@@ -11,8 +11,8 @@ export type FeatureFlagEventParameters = {
     numTotalFlags: number;
   };
   'flags.logs-paginated': {
-    area: string;
     direction: 'next' | 'prev';
+    surface: string;
   };
   'flags.sort_flags': {sortMethod: string};
   'flags.table_rendered': {
@@ -22,7 +22,7 @@ export type FeatureFlagEventParameters = {
   };
   'flags.view-all-clicked': Record<string, unknown>;
   'flags.view-setup-sidebar': {
-    area: string;
+    surface: string;
   };
 };
 

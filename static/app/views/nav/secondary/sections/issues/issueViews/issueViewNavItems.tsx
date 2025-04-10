@@ -134,6 +134,7 @@ export function IssueViewNavItems({
                 projects: tab.projects,
                 environments: tab.environments,
                 timeFilters: tab.timeFilters,
+                starred: true,
               })),
           });
         }
@@ -206,7 +207,8 @@ export function IssueViewNavItems({
           isAllProjects: isEqual(v.projects, [-1]),
           name: v.label,
           lastVisited: null,
-          visibility: GroupSearchViewVisibility.OWNER,
+          visibility: GroupSearchViewVisibility.ORGANIZATION,
+          starred: true,
         }))
       );
     },
@@ -249,7 +251,8 @@ export function IssueViewNavItems({
             isAllProjects: isEqual(v.projects, [-1]),
             name: v.label,
             lastVisited: null,
-            visibility: GroupSearchViewVisibility.OWNER,
+            visibility: GroupSearchViewVisibility.ORGANIZATION,
+            starred: true,
           }))
         );
       }

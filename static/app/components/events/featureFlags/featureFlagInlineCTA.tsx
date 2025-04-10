@@ -134,7 +134,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
                 trackAnalytics('flags.cta_dismissed', {
                   organization,
                   type: 'dismiss',
-                  area: analyticsArea,
+                  surface: analyticsArea,
                 });
               },
             },
@@ -146,7 +146,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
                 trackAnalytics('flags.cta_dismissed', {
                   organization,
                   type: 'snooze',
-                  area: analyticsArea,
+                  surface: analyticsArea,
                 });
               },
             },
