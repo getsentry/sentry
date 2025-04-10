@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -59,6 +59,14 @@ export function FlagDetailsDrawerContent() {
   const pageLinks = getResponseHeader?.('Link') ?? null;
 
   const analyticsArea = useAnalyticsArea();
+  useEffect(() => {
+    if (!isPending && !isError) {
+      trackAnalytics('flags.drawer_details_rendered', {
+        organization,
+        numLogs: flagLog.data.length,
+      });
+    }
+  }, [organization, flagLog?.data.length, isPending, isError]);
 
   if (isPending) {
     return <LoadingIndicator />;
