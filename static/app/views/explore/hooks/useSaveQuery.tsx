@@ -98,6 +98,23 @@ export function useSaveQuery() {
     return response;
   }, [api, organization.slug, id, data, invalidateSavedQueries]);
 
+  const saveQueryFromSavedQuery = useCallback(
+    async (savedQuery: SavedQuery) => {
+      const response = await api.requestPromise(
+        `/organizations/${organization.slug}/explore/saved/`,
+        {
+          method: 'POST',
+          data: {
+            ...savedQuery,
+          },
+        }
+      );
+      invalidateSavedQueries();
+      return response;
+    },
+    [api, organization.slug, invalidateSavedQueries]
+  );
+
   const updateQueryFromSavedQuery = useCallback(
     async (savedQuery: SavedQuery) => {
       const response = await api.requestPromise(
@@ -115,5 +132,5 @@ export function useSaveQuery() {
     [api, organization.slug, invalidateSavedQueries]
   );
 
-  return {saveQuery, updateQuery, updateQueryFromSavedQuery};
+  return {saveQuery, updateQuery, saveQueryFromSavedQuery, updateQueryFromSavedQuery};
 }
