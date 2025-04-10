@@ -3,12 +3,11 @@ import clamp from 'lodash/clamp';
 import {PlatformIcon} from 'platformicons';
 
 import {isEAPError} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
-
-import {TraceIcons} from '../traceIcons';
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
 
 interface ErrorIconsProps {
   errors: TraceTreeNode<TraceTree.Transaction>['errors'];

@@ -2,12 +2,14 @@ from dataclasses import dataclass
 from unittest.mock import ANY, patch
 
 from sentry.constants import SentryAppStatus
+from sentry.notifications.notification_action.action_handler_registry.base import (
+    IntegrationActionHandler,
+)
 from sentry.plugins.base.manager import PluginManager
 from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.registry import Registry
-from sentry.workflow_engine.handlers.action.notification.base import IntegrationActionHandler
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.types import ActionHandler
 from sentry_plugins.pagerduty.plugin import PagerDutyPlugin

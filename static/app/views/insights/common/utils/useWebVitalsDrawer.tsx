@@ -2,8 +2,7 @@ import {useCallback} from 'react';
 
 import useDrawer from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
-
-import type {WebVitals} from '../../browser/webVitals/types';
+import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 
 interface UseWebVitalsDrawerProps {
   Component: React.ReactNode;

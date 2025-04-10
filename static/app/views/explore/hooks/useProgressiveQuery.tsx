@@ -71,6 +71,12 @@ export function useProgressiveQuery<
   // If the time range is small enough, just go directly to the best effort request
   const isSmallRange = getDiffInMinutes(selection.datetime) < SMALL_TIME_RANGE_THRESHOLD;
 
+  let skipPreflight = isSmallRange;
+  if (organization.features.includes('visibility-explore-skip-preflight')) {
+    // Override the time range check if the feature flag is enabled
+    skipPreflight = true;
+  }
+
   const singleQueryResult = queryHookImplementation({
     ...queryHookArgs,
     enabled: queryHookArgs.enabled && !canUseProgressiveLoading,
@@ -79,7 +85,7 @@ export function useProgressiveQuery<
   const preflightRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: LOW_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled: queryHookArgs.enabled && canUseProgressiveLoading && !isSmallRange,
+    enabled: queryHookArgs.enabled && canUseProgressiveLoading && !skipPreflight,
   });
 
   const bestEffortRequest = queryHookImplementation({
@@ -90,7 +96,7 @@ export function useProgressiveQuery<
       canUseProgressiveLoading &&
       (queryMode === QUERY_MODE.PARALLEL ||
         preflightRequest.result.isFetched ||
-        isSmallRange),
+        skipPreflight),
   });
 
   if (!canUseProgressiveLoading) {

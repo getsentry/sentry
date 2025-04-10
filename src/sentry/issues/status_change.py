@@ -13,7 +13,7 @@ from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_sync
 from sentry.issues.ignored import IGNORED_CONDITION_FIELDS
 from sentry.issues.ongoing import TRANSITION_AFTER_DAYS
 from sentry.models.activity import Activity
-from sentry.models.group import Group, GroupStatus
+from sentry.models.group import Group, GroupStatus, update_group_open_period
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.project import Project
@@ -85,6 +85,7 @@ def handle_status_update(
         if new_status == GroupStatus.IGNORED
         else ActivityType.SET_UNRESOLVED.value
     )
+    update_open_period = False
     if new_status == GroupStatus.UNRESOLVED:
         for group in group_list:
             if group.status == GroupStatus.IGNORED:
@@ -96,6 +97,9 @@ def handle_status_update(
                     sender=sender,
                 )
             else:
+                # The unresolution here is a manual unresolve for a resolved issue by a user.
+                # This change should reopen the existing open period instead of creating a new one.
+                update_open_period = True
                 issue_unresolved.send_robust(
                     project=project_lookup[group.project_id],
                     user=acting_user,
@@ -147,6 +151,14 @@ def handle_status_update(
             data=activity_data,
         )
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
+
+        if update_open_period:
+            update_group_open_period(
+                group=group,
+                new_status=new_status,
+                activity=activity,
+                should_reopen_open_period=True,
+            )
 
         # TODO(dcramer): we need a solution for activity rollups
         # before sending notifications on bulk changes

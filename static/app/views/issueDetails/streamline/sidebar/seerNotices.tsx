@@ -55,6 +55,51 @@ function GithubIntegrationSetupCard() {
   );
 }
 
+function SelectReposCard() {
+  const organization = useOrganization();
+
+  return (
+    <IntegrationCard key="no-selected-repos">
+      <CardContent>
+        <CardTitle>{t('Pick Repositories to Work In')}</CardTitle>
+        <CardDescription>
+          <span>
+            {tct('Autofix is [bold:a lot better] when it has your codebase as context.', {
+              bold: <b />,
+            })}
+          </span>
+          <span>
+            {tct(
+              'Select the repos Autofix can explore in this project to allow it to go deeper when troubleshooting and fixing your issues–including writing the code and opening PRs.',
+              {
+                integrationLink: (
+                  <ExternalLink
+                    href={`/settings/${organization.slug}/integrations/github/`}
+                  />
+                ),
+              }
+            )}
+          </span>
+          <span>
+            {t(
+              'You can also configure working branches and custom instructions so Autofix acts just how you like.'
+            )}
+          </span>
+          <span>
+            {tct(
+              '[bold:Open the Project Settings menu in the top right] to get started.',
+              {
+                bold: <b />,
+              }
+            )}
+          </span>
+        </CardDescription>
+      </CardContent>
+      <CardIllustration src={onboardingInstall} alt="Install" />
+    </IntegrationCard>
+  );
+}
+
 export function SeerNotices({groupId, hasGithubIntegration}: SeerNoticesProps) {
   const organization = useOrganization();
   const {repos} = useAutofixRepos(groupId);
@@ -63,6 +108,8 @@ export function SeerNotices({groupId, hasGithubIntegration}: SeerNoticesProps) {
 
   if (!hasGithubIntegration) {
     notices.push(<GithubIntegrationSetupCard key="github-setup" />);
+  } else if (repos.length === 0) {
+    notices.push(<SelectReposCard key="repo-selection" />);
   }
 
   if (unreadableRepos.length > 1) {
@@ -127,7 +174,11 @@ export function SeerNotices({groupId, hasGithubIntegration}: SeerNoticesProps) {
     return null;
   }
 
-  return <NoticesContainer>{notices}</NoticesContainer>;
+  return (
+    <StickyNoticesContainer>
+      <NoticesContainer>{notices}</NoticesContainer>
+    </StickyNoticesContainer>
+  );
 }
 
 const NoticesContainer = styled('div')`
@@ -136,6 +187,17 @@ const NoticesContainer = styled('div')`
   gap: ${space(2)};
   align-items: stretch;
   margin-bottom: ${space(2)};
+`;
+
+const StickyNoticesContainer = styled('div')`
+  position: sticky;
+  top: 0;
+  background: ${p => p.theme.background};
+  padding-top: ${space(2)};
+  padding-left: ${space(2)};
+  padding-right: ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
 const IntegrationCard = styled('div')`

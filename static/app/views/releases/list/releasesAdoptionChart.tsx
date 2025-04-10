@@ -266,7 +266,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                                 .map(
                                   s =>
                                     `<div><span class="tooltip-label">${
-                                      s.marker
+                                      s.marker as string
                                     }<strong>${
                                       s.seriesName &&
                                       truncationFormatter(s.seriesName, 32)

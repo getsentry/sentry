@@ -75,6 +75,8 @@ import {CodecovSettingsLink} from './components/codecovSettingsLink';
 import PrimaryNavigationQuotaExceeded from './components/navBillingStatus';
 import OpenInDiscoverBtn from './components/openInDiscoverBtn';
 import {
+  ContinuousProfilingBetaAlertBanner,
+  ContinuousProfilingBetaSDKAlertBanner,
   ProfilingAM1OrMMXUpgrade,
   ProfilingBetaAlertBanner,
   ProfilingUpgradePlanButton,
@@ -213,6 +215,9 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     InsightsDateRangeQueryLimitFooter,
   'component:ai-setup-data-consent': () => AiSetupDataConsent,
   'component:codecov-integration-settings-link': () => CodecovSettingsLink,
+  'component:continuous-profiling-beta-banner': () => ContinuousProfilingBetaAlertBanner,
+  'component:continuous-profiling-beta-sdk-banner': () =>
+    ContinuousProfilingBetaSDKAlertBanner,
   /**
    * Augment the datetime picker based on plan retention days. Includes upsell interface
    */

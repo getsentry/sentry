@@ -2,6 +2,7 @@ import subprocess
 import sys
 
 modules = [
+    "django.db.models.sql.compiler",
     "sentry.identity.services.identity.impl",
     "sentry.integrations.services.integration.impl",
     "sentry.middleware.integrations.parsers.plugin",
