@@ -59,7 +59,6 @@ describe('SavedQueriesTable', () => {
     expect(screen.getByText('Projects')).toBeInTheDocument();
     expect(screen.getByText('Query')).toBeInTheDocument();
     expect(screen.getByText('Owner')).toBeInTheDocument();
-    expect(screen.getByText('Access')).toBeInTheDocument();
     expect(screen.getByText('Last Viewed')).toBeInTheDocument();
     await screen.findByText('Query Name');
   });

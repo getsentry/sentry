@@ -9,22 +9,22 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Avatar from 'sentry/components/core/avatar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import GridEditable, {
-  COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import {GridHeadCellStatic} from 'sentry/components/gridEditable/styles';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis, IconGlobe, IconStar} from 'sentry/icons';
+import TimeSince from 'sentry/components/timeSince';
+import {IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -34,7 +34,6 @@ import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
 import {StreamlineGridEditable} from 'sentry/views/issueDetails/streamline/eventListTable';
-import ProjectIcon from 'sentry/views/nav/projectIcon';
 
 import {useDeleteQuery} from '../hooks/useDeleteQuery';
 import {
@@ -45,16 +44,15 @@ import {
 
 const NO_VALUE = ' \u2014 ';
 
-const ORDER: Array<GridColumnOrder<keyof SavedQuery | 'access'>> = [
-  {key: 'name', width: COL_WIDTH_UNDEFINED, name: t('Name')},
-  {key: 'projects', width: 80, name: t('Projects')},
-  {key: 'query', width: COL_WIDTH_UNDEFINED, name: t('Query')},
-  {key: 'createdBy', width: 80, name: t('Owner')},
-  {key: 'access', width: 80, name: t('Access')},
+const ORDER: Array<GridColumnOrder<keyof SavedQuery>> = [
+  {key: 'name', width: 250, name: t('Name')},
+  {key: 'projects', width: 85, name: t('Projects')},
+  {key: 'query', width: 500, name: t('Query')},
+  {key: 'createdBy', width: 70, name: t('Owner')},
   {key: 'lastVisited', width: 120, name: t('Last Viewed')},
 ];
 
-type Column = GridColumnHeader<keyof SavedQuery | 'access'>;
+type Column = GridColumnHeader<keyof SavedQuery>;
 
 type Props = {
   cursorKey?: string;
@@ -158,29 +156,36 @@ export function SavedQueriesTable({
     }
     if (col.key === 'createdBy') {
       return (
-        <Center>
+        <AlignLeft>
           <Avatar user={row.createdBy} tooltip={row.createdBy.name} hasTooltip />
-        </Center>
+        </AlignLeft>
       );
     }
     if (col.key === 'projects') {
+      const rowProjects = row.projects
+        .map(p => projects.find(project => Number(project.id) === p))
+        .filter(p => p !== undefined)
+        .slice(0, 3);
+
       return (
-        <Center>
-          <ProjectIcon
-            projectPlatforms={projects
-              .filter(p => row.projects.map(String).includes(p.id))
-              .map(p => p.platform)
-              .filter(defined)}
-          />
-        </Center>
+        <AlignLeft>
+          <StackedProjectBadges>
+            {rowProjects.map(project => (
+              <ProjectAvatar
+                key={project.slug}
+                project={project}
+                tooltip={project.name}
+                hasTooltip
+              />
+            ))}
+          </StackedProjectBadges>
+        </AlignLeft>
       );
     }
     if (col.key === 'lastVisited') {
       return (
         <LastColumnWrapper>
-          <span>
-            {row.lastVisited ? new Date(row.lastVisited).toDateString() : NO_VALUE}
-          </span>
+          <span>{row.lastVisited ? <TimeSince date={row.lastVisited} /> : NO_VALUE}</span>
           <span>
             <DropdownMenu
               items={[
@@ -252,34 +257,12 @@ export function SavedQueriesTable({
         </LastColumnWrapper>
       );
     }
-    if (col.key === 'access') {
-      return (
-        <Center>
-          <Tooltip
-            title={
-              <span>
-                <div>
-                  {t('View')}: {t('Everyone')}
-                </div>
-                <div>
-                  {t('Edit')}: {t('Everyone')}
-                </div>
-              </span>
-            }
-          >
-            <span>
-              <IconGlobe size="sm" />
-            </span>
-          </Tooltip>
-        </Center>
-      );
-    }
     return <div>{row[col.key]}</div>;
   };
 
   const renderHeadCell = (col: Column) => {
-    if (col.key === 'projects' || col.key === 'createdBy' || col.key === 'access') {
-      return <Center>{col.name}</Center>;
+    if (col.key === 'projects' || col.key === 'createdBy') {
+      return <AlignLeft>{col.name}</AlignLeft>;
     }
     if (col.key === 'lastVisited') {
       return <div>{col.name}</div>;
@@ -311,7 +294,7 @@ export function SavedQueriesTable({
       {leading: true}
     );
     return [
-      <Center key={`starred-${row.id}`}>
+      <AlignLeft key={`starred-${row.id}`}>
         <Button
           aria-label={row.starred ? t('Unstar') : t('Star')}
           size="zero"
@@ -321,7 +304,7 @@ export function SavedQueriesTable({
           }
           onClick={debouncedOnClick}
         />
-      </Center>,
+      </AlignLeft>,
     ];
   };
   return (
@@ -340,6 +323,7 @@ export function SavedQueriesTable({
           columnSortBy={[]}
           bodyStyle={{overflow: 'visible', zIndex: 'unset'}}
           minimumColWidth={30}
+          resizable={false}
         />
       </StyledStreamlineGridEditable>
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
@@ -347,10 +331,10 @@ export function SavedQueriesTable({
   );
 }
 
-const Center = styled('div')`
+const AlignLeft = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100%;
 `;
 
@@ -385,8 +369,28 @@ const StyledStreamlineGridEditable = styled(StreamlineGridEditable)`
     height: auto;
     padding-left: ${space(1.5)};
   }
+
+  tr:hover > ${InteractionStateLayer} {
+    opacity: 0.06;
+  }
 `;
 
 const OptionsButton = styled(Button)`
-  padding: 0;
+  padding: 0 ${space(0.75)};
+`;
+
+const StackedProjectBadges = styled('div')`
+  display: flex;
+  align-items: center;
+  & * {
+    margin-left: 0;
+    margin-right: 0;
+    cursor: pointer !important;
+  }
+  & *:hover {
+    z-index: unset;
+  }
+  & > :not(:first-child) {
+    margin-left: -${space(0.5)};
+  }
 `;
