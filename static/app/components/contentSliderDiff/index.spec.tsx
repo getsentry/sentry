@@ -10,8 +10,8 @@ const beforeHelpText = 'This is before help text';
 const afterHelpText = 'This is after help text';
 
 function MockComponent({
-  onDividerMouseDown,
-}: Pick<ContentSliderDiffBodyProps, 'onDividerMouseDown'>) {
+  onDragHandleMouseDown,
+}: Pick<ContentSliderDiffBodyProps, 'onDragHandleMouseDown'>) {
   return (
     <Fragment>
       <ContentSliderDiff.Header>
@@ -21,7 +21,7 @@ function MockComponent({
       <ContentSliderDiff.Body
         before={<div>Before Content</div>}
         after={<div>After Content</div>}
-        onDividerMouseDown={onDividerMouseDown}
+        onDragHandleMouseDown={onDragHandleMouseDown}
       />
     </Fragment>
   );
@@ -45,9 +45,9 @@ describe('ContentSliderDiff', function () {
   it('divider can be dragged', async function () {
     jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 300, height: 300});
 
-    const mockOnDividerMouseDown = jest.fn();
+    const mockDragHandleMouseDown = jest.fn();
 
-    render(<MockComponent onDividerMouseDown={mockOnDividerMouseDown} />);
+    render(<MockComponent onDragHandleMouseDown={mockDragHandleMouseDown} />);
 
     // Ensure that 'Before' and 'After' labels are rendered correctly
     expect(screen.getByText('Before')).toBeInTheDocument();
@@ -61,7 +61,7 @@ describe('ContentSliderDiff', function () {
       {target: divider, coords: {x: 10, y: 5}},
     ]);
 
-    expect(mockOnDividerMouseDown).toHaveBeenCalledTimes(1);
+    expect(mockDragHandleMouseDown).toHaveBeenCalledTimes(1);
   });
 
   it('does not render content when dimensions are zero', function () {

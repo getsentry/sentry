@@ -21,7 +21,7 @@ export function ReplaySliderDiff({
   const organization = useOrganization();
   const dividerClickedRef = useRef(false); // once set, never flips back to false
 
-  const onDividerMouseDownWithAnalytics = useCallback(() => {
+  const onDragHandleMouseDownWithAnalytics = useCallback(() => {
     // tracks only the first mouseDown since the last render
     if (organization && !dividerClickedRef.current) {
       trackAnalytics('replay.hydration-modal.slider-interaction', {organization});
@@ -38,7 +38,7 @@ export function ReplaySliderDiff({
       <ReplayPlayerPluginsContextProvider>
         <ReplayReaderProvider replay={replay}>
           <ContentSliderDiff.Body
-            onDividerMouseDown={onDividerMouseDownWithAnalytics}
+            onDragHandleMouseDown={onDragHandleMouseDownWithAnalytics}
             minHeight={minHeight}
             before={
               <ReplayPlayerStateContextProvider>
