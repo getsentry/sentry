@@ -14,12 +14,13 @@ export interface WorkflowEngineEditLayoutProps {
    * Expected to include `<EditLayout.Chart>` and `<EditLayout.Panel>` components.
    */
   children: React.ReactNode;
+  onTitleChange?: (title: string) => void;
 }
 
 /**
  * Precomposed full-width layout for Automations / Monitors edit pages.
  */
-function EditLayout({children}: WorkflowEngineEditLayoutProps) {
+function EditLayout({children, onTitleChange}: WorkflowEngineEditLayoutProps) {
   const title = useDocumentTitle();
   return (
     <Layout.Page>
@@ -30,10 +31,7 @@ function EditLayout({children}: WorkflowEngineEditLayoutProps) {
             <EditableText
               isDisabled={false}
               value={title}
-              onChange={newTitle => {
-                // eslint-disable-next-line no-console
-                console.log(`Updated title to ${newTitle}`);
-              }}
+              onChange={newTitle => onTitleChange?.(newTitle)}
               errorMessage={t('Please set a title')}
             />
           </Layout.Title>

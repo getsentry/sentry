@@ -8,6 +8,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
 import {useFormField} from 'sentry/components/workflowEngine/form/hooks';
 import {t} from 'sentry/locale';
@@ -19,6 +20,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 const model = new FormModel({
   initialData: {
+    name: t('New Monitor'),
     project: undefined,
     environment: 'all',
     type: 'metric',
@@ -27,10 +29,15 @@ const model = new FormModel({
 
 export function DetectorTypeForm() {
   const {projects} = useProjects();
+  const title = useDocumentTitle();
 
+  useEffect(() => {
+    model.setValue('name', title);
+  }, [title]);
   useEffect(() => {
     const firstProject = projects.find(p => p.isMember);
     model.setInitialData({
+      name: title,
       project: firstProject?.id,
       environment: 'all',
       type: 'metric',
@@ -44,7 +51,7 @@ export function DetectorTypeForm() {
         prevHook?.(id, value);
       },
     });
-  }, [projects]);
+  }, [projects, title]);
 
   return (
     <Form hideFooter model={model}>
