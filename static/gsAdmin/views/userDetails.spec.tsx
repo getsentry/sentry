@@ -64,7 +64,7 @@ describe('User Details', function () {
       await userEvent.click(
         (await screen.findAllByRole('button', {name: 'Users Actions'}))[0]!
       );
-      expect(screen.getByTestId('action-mergeAccounts')).toBeInTheDocument();
+      expect(screen.getByText('Merge Accounts')).toBeInTheDocument();
       expect(screen.queryByTestId('action-reactivate')).not.toBeInTheDocument();
     });
 
