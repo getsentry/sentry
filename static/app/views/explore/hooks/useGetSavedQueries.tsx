@@ -36,6 +36,7 @@ export type SavedQuery = {
   interval: string;
   lastVisited: string;
   name: string;
+  position: number | null;
   projects: number[];
   query: [Query, ...Query[]];
   queryDataset: string;
