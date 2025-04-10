@@ -1,6 +1,7 @@
+import django.db.models.sql.compiler  # NOQA
 from django.conf import settings
 from django.urls import reverse
-from django.utils.translation import override
+from django.utils import translation
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -27,11 +28,24 @@ class WarmupEndpoint(Endpoint):
     rate_limits = RateLimitConfig(group="INTERNAL")
 
     def get(self, request: Request) -> Response:
+        languages = [lang for lang, _ in settings.LANGUAGES]
+        languages.append(settings.LANGUAGE_CODE)
+
         # for each possible language we support, warm up the url resolver
         # this fixes an issue we were seeing where many languages trying
         # to resolve at once would cause lock contention
-        for lang, _ in settings.LANGUAGES:
-            with override(lang):
+        for lang in languages:
+            with translation.override(lang):
                 reverse("sentry-warmup")
+
+        # for each possible language we support, warm up the translations
+        # cache for faster access
+        for lang in languages:
+            try:
+                language = translation.get_supported_language_variant(lang)
+            except LookupError:
+                pass
+            else:
+                translation.activate(language)
 
         return Response(200)

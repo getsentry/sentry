@@ -43,6 +43,8 @@ type SpansWidgetQueriesProps = {
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
+  onBestEffortDataFetched?: () => void;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
 };
 
@@ -126,9 +128,14 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
   dashboardFilters,
   onDataFetched,
   getConfidenceInformation,
+  onDataFetchStart,
 }: SpansWidgetQueriesImplProps) {
   const config = SpansConfig;
   const organization = useOrganization();
+
+  const [confidence, setConfidence] = useState<Confidence | null>(null);
+  const [sampleCount, setSampleCount] = useState<number | undefined>(undefined);
+  const [isSampled, setIsSampled] = useState<boolean | null>(null);
 
   // The best effort response props are stored to render after the preflight
   const [bestEffortChildrenProps, setBestEffortChildrenProps] =
@@ -137,6 +144,10 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
   const afterFetchSeriesData = (result: SeriesResult) => {
     const {seriesConfidence, seriesSampleCount, seriesIsSampled} =
       getConfidenceInformation(result);
+
+    setConfidence(seriesConfidence);
+    setSampleCount(seriesSampleCount);
+    setIsSampled(seriesIsSampled);
 
     onDataFetched?.({
       confidence: seriesConfidence,
@@ -158,6 +169,7 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
         dashboardFilters={dashboardFilters}
         afterFetchSeriesData={afterFetchSeriesData}
         samplingMode={SAMPLING_MODE.PREFLIGHT}
+        onDataFetchStart={onDataFetchStart}
         onDataFetched={() => {
           setBestEffortChildrenProps(null);
         }}
@@ -170,6 +182,9 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
               children({
                 ...(bestEffortChildrenProps ?? preflightProps),
                 loading: preflightProps.loading,
+                confidence,
+                sampleCount,
+                isSampled,
               })
             ) : (
               <GenericWidgetQueries<SeriesResult, TableResult>
@@ -186,10 +201,13 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
                 onDataFetched={results => {
                   setBestEffortChildrenProps({
                     ...results,
+                    confidence,
+                    sampleCount,
+                    isSampled,
                     loading: false,
                     isProgressivelyLoading: false,
                   });
-                  onDataFetched?.(results);
+                  onDataFetched?.({...results, isProgressivelyLoading: false});
                 }}
               >
                 {bestEffortProps => {
@@ -199,9 +217,17 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
                       loading: true,
                       isProgressivelyLoading:
                         !preflightProps.errorMessage && !bestEffortProps.errorMessage,
+                      confidence,
+                      sampleCount,
+                      isSampled,
                     });
                   }
-                  return children(bestEffortProps);
+                  return children({
+                    ...bestEffortProps,
+                    confidence,
+                    sampleCount,
+                    isSampled,
+                  });
                 }}
               </GenericWidgetQueries>
             )}
