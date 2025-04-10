@@ -1973,6 +1973,7 @@ function buildRoutes() {
 
   const exploreRoutes = (
     <Route path="/explore/" withOrgPath>
+      <IndexRoute component={make(() => import('sentry/views/explore/indexRedirect'))} />
       <Route path="profiling/" component={make(() => import('sentry/views/profiling'))}>
         {profilingChildRoutes}
       </Route>
