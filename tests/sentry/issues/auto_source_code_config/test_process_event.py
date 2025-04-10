@@ -675,11 +675,13 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     def test_country_code_tld(self) -> None:
         # We have two packages for the same domain
         repo_trees = {REPO1: ["src/uk/co/example/foo/Bar.kt", "src/uk/co/example/bar/Baz.kt"]}
-        frames = [
-            self.frame(module="uk.co.example.foo.Bar", abs_path="Bar.kt", in_app=False),
-            # This does not belong to the org since it does not show up in the repos
-            self.frame(module="uk.co.not-example.baz.qux", abs_path="qux.kt", in_app=False),
-        ]
+        foo_package = self.frame(module="uk.co.example.foo.Bar", abs_path="Bar.kt", in_app=False)
+        bar_package = self.frame(module="uk.co.example.bar.Baz", abs_path="Baz.kt", in_app=False)
+        third_party_package = self.frame(
+            module="uk.co.not-example.baz.qux", abs_path="qux.kt", in_app=False
+        )
+        # Only one of the packages are in the first event
+        frames = [foo_package, third_party_package]
 
         event = self._process_and_assert_configuration_changes(
             repo_trees=repo_trees,
@@ -693,6 +695,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         # The event where derivation happens does not have rules applied
         assert event.data["metadata"]["in_app_frame_mix"] == "system-only"
 
+        # The second event will have the rules applied
         event = self._process_and_assert_configuration_changes(
             repo_trees=repo_trees,
             frames=frames,
@@ -700,6 +703,24 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         )
         # It's mixed because the not-example package is a system frame
         assert event.data["metadata"]["in_app_frame_mix"] == "mixed"
+        assert event.data["stacktrace"]["frames"][0]["module"] == "uk.co.example.foo.Bar"
+        assert event.data["stacktrace"]["frames"][0]["in_app"] is True
+        assert event.data["stacktrace"]["frames"][1]["module"] == "uk.co.not-example.baz.qux"
+        assert event.data["stacktrace"]["frames"][1]["in_app"] is False
+
+        # Let's try the 2nd package in the repo
+        frames = [bar_package, third_party_package]
+        event = self._process_and_assert_configuration_changes(
+            repo_trees=repo_trees,
+            frames=frames,
+            platform=self.platform,
+        )
+        # The code mapping & in-app-rule of the first event does apply
+        assert event.data["metadata"]["in_app_frame_mix"] == "mixed"
+        assert event.data["stacktrace"]["frames"][0]["module"] == "uk.co.example.bar.Baz"
+        assert event.data["stacktrace"]["frames"][0]["in_app"] is True
+        assert event.data["stacktrace"]["frames"][1]["module"] == "uk.co.not-example.baz.qux"
+        assert event.data["stacktrace"]["frames"][1]["in_app"] is False
 
     @with_feature({"organizations:auto-source-code-config-java-enabled": True})
     def test_country_code_tld_with_old_granularity(self) -> None:
