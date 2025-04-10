@@ -2304,6 +2304,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationUptimeStatsEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-stats",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/insights/tree/$",
+        OrganizationInsightsTreeEndpoint.as_view(),
+        name="sentry-api-0-organization-insights-tree",
+    ),
     *workflow_urls.organization_urlpatterns,
 ]
 
@@ -2908,11 +2913,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-seer-preferences",
     ),
     *workflow_urls.project_urlpatterns,
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/insights/tree/$",
-        OrganizationInsightsTreeEndpoint.as_view(),
-        name="sentry-api-0-organization-insights-tree",
-    ),
 ]
 
 TEAM_URLS = [
