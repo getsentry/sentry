@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import hashlib
 import os
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
 from urllib.parse import parse_qs, urlparse
-
-from django.utils.encoding import force_bytes
 
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -51,7 +48,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.stored_problems: PerformanceProblemsMap = {}
         self.spans: list[Span] = []
-        self.span_hashes: dict[str, str | None] = {}
 
     def visit_span(self, span: Span) -> None:
         if not NPlusOneAPICallsDetector.is_span_eligible(span):
@@ -60,8 +56,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         op = span.get("op", None)
         if op not in self.settings.get("allowed_span_ops", []):
             return
-
-        self.span_hashes[span["span_id"]] = get_span_hash(span)
 
         previous_span = self.spans[-1] if len(self.spans) > 0 else None
 
@@ -250,61 +244,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     def _spans_are_similar(self, span_a: Span, span_b: Span) -> bool:
         return (
-            self.span_hashes[span_a["span_id"]] == self.span_hashes[span_b["span_id"]]
+            parameterize_url(get_url_from_span(span_a))
+            == parameterize_url(get_url_from_span(span_b))
             and span_a["parent_span_id"] == span_b["parent_span_id"]
         )
-
-
-HTTP_METHODS = {
-    "GET",
-    "HEAD",
-    "POST",
-    "PUT",
-    "DELETE",
-    "CONNECT",
-    "OPTIONS",
-    "TRACE",
-    "PATCH",
-}
-
-
-def get_span_hash(span: Span) -> str | None:
-    if span.get("op") != "http.client":
-        return span.get("hash")
-
-    parts = remove_http_client_query_string_strategy(span)
-    if not parts:
-        return None
-
-    hash = hashlib.md5()
-    for part in parts:
-        hash.update(force_bytes(part, errors="replace"))
-
-    return hash.hexdigest()[:16]
-
-
-def remove_http_client_query_string_strategy(span: Span) -> Sequence[str] | None:
-    """
-    This is an inline version of the `http.client` parameterization code in
-    `"default:2022-10-27"`, the default span grouping strategy at time of
-    writing. It's inlined here to insulate this detector from changes in the
-    strategy, which are coming soon.
-    """
-
-    # Check the description is of the form `<HTTP METHOD> <URL>`
-    description = span.get("description") or ""
-    parts = description.split(" ", 1)
-    if len(parts) != 2:
-        return None
-
-    # Ensure that this is a valid http method
-    method, url_str = parts
-    method = method.upper()
-    if method not in HTTP_METHODS:
-        return None
-
-    url = urlparse(url_str)
-    return [method, url.scheme, url.netloc, url.path]
 
 
 def without_query_params(url: str) -> str:
