@@ -3,10 +3,10 @@ import {useMemo} from 'react';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useWidgetChartVisualization} from 'sentry/views/performance/transactionSummary/transactionOverview/useWidgetChartVisualization';
 
 export enum EAPWidgetType {
@@ -77,12 +77,15 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const spanCategoryUrlParam = decodeScalar(
-    location.query?.[SpanIndexedField.SPAN_CATEGORY]
-  );
-  const selectedChartUrlParam = decodeScalar(
-    location.query?.[SELECTED_CHART_QUERY_PARAM]
-  );
+  const params = useLocationQuery({
+    fields: {
+      'span.category': decodeScalar,
+      chartDisplay: decodeScalar,
+    },
+  });
+
+  const spanCategoryUrlParam = params['span.category'];
+  const {chartDisplay: selectedChartUrlParam} = params;
 
   const selectedChart = WIDGET_OPTIONS[selectedChartUrlParam as EAPWidgetType]
     ? (selectedChartUrlParam as EAPWidgetType)
