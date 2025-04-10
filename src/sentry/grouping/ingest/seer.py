@@ -323,6 +323,30 @@ def get_seer_similar_issues(
                 seer_match_status = "match_found"
                 break
 
+    # If Seer sent back matches, that means it didn't store the incoming event's data in its
+    # database. But if we then weren't able to use any of the matches Seer sent back, we do actually
+    # want a Seer record to be created, so that future events with this fingerprint have something
+    # with which to match.
+    if seer_match_status == "no_matches_usable":
+        request_data = {
+            **request_data,
+            "referrer": "ingest_follow_up",
+            # By asking Seer to find zero matches, we can trick it into thinking there aren't
+            # any, thereby forcing it to create the record
+            "k": 0,
+            # Turn off re-ranking to speed up the process of finding nothing
+            "use_reranking": False,
+        }
+
+        # TODO: Temporary log to prove things are working as they should. This should come in a pair
+        # with the `get_similarity_data_from_seer.ingest_follow_up` log in `similar_issues.py`,
+        # which should show that no matches are returned.
+        logger.info("get_seer_similar_issues.follow_up_seer_request", extra={"hash": event_hash})
+
+        # We only want this for the side effect, and we know it'll return no matches, so we don't
+        # bother to capture the return value.
+        get_similarity_data_from_seer(request_data)
+
     is_hybrid_fingerprint_case = (
         event_has_hybrid_fingerprint
         # This means we had to reject at least one match because it was a hybrid even though the
