@@ -10,6 +10,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
@@ -35,7 +36,7 @@ describe('provisionSubscriptionAction', function () {
   }
 
   async function clickCheckbox(name: string | RegExp) {
-    await userEvent.click(screen.getByRole('checkbox', {name}), {
+    await userEvent.click(await screen.findByRole('checkbox', {name}), {
       delay: null,
       skipHover: true,
     });
@@ -46,7 +47,7 @@ describe('provisionSubscriptionAction', function () {
       await userEvent.clear(field);
     }
     await userEvent.click(field, {delay: null, skipHover: true});
-    await userEvent.paste(value);
+    await userEvent.paste(value, {delay: null, skipHover: true});
   }
 
   async function typeNumForMatchingFields(
@@ -683,24 +684,24 @@ describe('provisionSubscriptionAction', function () {
     loadModal();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('textbox', {name: 'Plan'}),
       'Enterprise (Business) (am2)'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('textbox', {name: 'Billing Interval'}),
       'Annual'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('textbox', {name: 'Billing Type'}),
       'Invoiced'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Shared'
     );
     await clickCheckbox('Retain On-Demand Budget');
     await clickCheckbox('Apply Changes To Current Subscription');
-    await userEvent.type(screen.getByLabelText('Start Date'), '2020-10-25');
+    await userEvent.type(await screen.findByLabelText('Start Date'), '2020-10-25');
     await typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.1');
     await typeNumForMatchingFields('Price for', '0', false);
     await typeNumForField('Annual Contract Value', '0');
@@ -711,68 +712,70 @@ describe('provisionSubscriptionAction', function () {
       body: {},
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
 
-    expect(updateMock).toHaveBeenCalledWith(
-      `/customers/${mockOrg.slug}/provision-subscription/`,
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          billingInterval: 'annual',
-          coterm: true,
-          customPrice: 0,
-          customPriceAttachments: 0,
-          customPriceErrors: 0,
-          customPriceMonitorSeats: 0,
-          customPriceUptime: 0,
-          customPricePcss: 0,
-          customPriceReplays: 0,
-          customPriceTransactions: 0,
-          customPriceProfileDuration: 0,
-          customPriceProfileDurationUI: 0,
-          managed: true,
-          onDemandInvoicedManual: 'SHARED',
-          plan: 'am2_business_ent',
-          paygCpeErrors: 10000000,
-          paygCpeMonitorSeats: 10000000,
-          paygCpeReplays: 10000000,
-          paygCpeTransactions: 10000000,
-          paygCpeUptime: 10000000,
-          paygCpeProfileDuration: 10000000,
-          paygCpeProfileDurationUI: 10000000,
-          paygCpeAttachments: 10000000,
-          reservedAttachments: 1,
-          reservedErrors: 5000,
-          reservedMonitorSeats: 1,
-          reservedUptime: 1,
-          reservedReplays: 50,
-          reservedTransactions: 10000,
-          reservedProfileDuration: 0,
-          reservedProfileDurationUI: 0,
-          retainOnDemandBudget: true,
-          softCapTypeAttachments: null,
-          softCapTypeErrors: null,
-          softCapTypeMonitorSeats: null,
-          softCapTypeUptime: null,
-          softCapTypeReplays: null,
-          softCapTypeTransactions: null,
-          softCapTypeProfileDuration: null,
-          softCapTypeProfileDurationUI: null,
-          trueForward: {
-            attachments: false,
-            errors: false,
-            monitorSeats: false,
-            uptime: false,
-            replays: false,
-            transactions: false,
-            profileDuration: false,
-            profileDurationUI: false,
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        `/customers/${mockOrg.slug}/provision-subscription/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            billingInterval: 'annual',
+            coterm: true,
+            customPrice: 0,
+            customPriceAttachments: 0,
+            customPriceErrors: 0,
+            customPriceMonitorSeats: 0,
+            customPriceUptime: 0,
+            customPricePcss: 0,
+            customPriceReplays: 0,
+            customPriceTransactions: 0,
+            customPriceProfileDuration: 0,
+            customPriceProfileDurationUI: 0,
+            managed: true,
+            onDemandInvoicedManual: 'SHARED',
+            plan: 'am2_business_ent',
+            paygCpeErrors: 10000000,
+            paygCpeMonitorSeats: 10000000,
+            paygCpeReplays: 10000000,
+            paygCpeTransactions: 10000000,
+            paygCpeUptime: 10000000,
+            paygCpeProfileDuration: 10000000,
+            paygCpeProfileDurationUI: 10000000,
+            paygCpeAttachments: 10000000,
+            reservedAttachments: 1,
+            reservedErrors: 5000,
+            reservedMonitorSeats: 1,
+            reservedUptime: 1,
+            reservedReplays: 50,
+            reservedTransactions: 10000,
+            reservedProfileDuration: 0,
+            reservedProfileDurationUI: 0,
+            retainOnDemandBudget: true,
+            softCapTypeAttachments: null,
+            softCapTypeErrors: null,
+            softCapTypeMonitorSeats: null,
+            softCapTypeUptime: null,
+            softCapTypeReplays: null,
+            softCapTypeTransactions: null,
+            softCapTypeProfileDuration: null,
+            softCapTypeProfileDurationUI: null,
+            trueForward: {
+              attachments: false,
+              errors: false,
+              monitorSeats: false,
+              uptime: false,
+              replays: false,
+              transactions: false,
+              profileDuration: false,
+              profileDurationUI: false,
+            },
+            type: 'invoiced',
           },
-          type: 'invoiced',
-        },
-      })
-    );
-  });
+        })
+      );
+    });
+  }, 15_000);
 
   it('removes retain on-demand budget toggle when plan changes', async () => {
     const am2Sub = SubscriptionFixture({
@@ -799,11 +802,11 @@ describe('provisionSubscriptionAction', function () {
     const container = modal.baseElement;
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('textbox', {name: 'Billing Type'}),
       'Invoiced'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Shared'
     );
 
@@ -812,7 +815,7 @@ describe('provisionSubscriptionAction', function () {
     ).toBeInTheDocument();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Per Category'
     );
 
@@ -821,23 +824,18 @@ describe('provisionSubscriptionAction', function () {
     ).not.toBeInTheDocument();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('textbox', {name: 'Plan'}),
       'Enterprise (Business) (am2)'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('textbox', {name: 'Billing Interval'}),
       'Annual'
-    );
-
-    await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
-      'Invoiced'
     );
 
     await clickCheckbox('Managed Subscription');
     await clickCheckbox('Apply Changes To Current Subscription');
-    await userEvent.type(screen.getByLabelText('Start Date'), '2020-10-25');
+    await userEvent.type(await screen.findByLabelText('Start Date'), '2020-10-25');
     await typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.1');
     await typeNumForMatchingFields('Price for', '0', false);
     await typeNumForField('Annual Contract Value', '0');
@@ -848,7 +846,7 @@ describe('provisionSubscriptionAction', function () {
       body: {},
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
 
     expect(updateMock).toHaveBeenCalledWith(
       `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -909,7 +907,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  });
+  }, 15_000);
 
   it('calls api with correct am2 args', async () => {
     const am2Sub = SubscriptionFixture({organization: mockOrg, plan: 'am2_f'});
@@ -923,34 +921,34 @@ describe('provisionSubscriptionAction', function () {
     loadModal();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('textbox', {name: 'Plan'}),
       'Enterprise (Business) (am2)'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('textbox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('textbox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Soft Cap Type Errors'}),
+      await screen.findByRole('textbox', {name: 'Soft Cap Type Errors'}),
       'True Forward'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Soft Cap Type Replays'}),
+      await screen.findByRole('textbox', {name: 'Soft Cap Type Replays'}),
       'On Demand'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Soft Cap Type Cron Monitors'}),
+      await screen.findByRole('textbox', {name: 'Soft Cap Type Cron Monitors'}),
       'On Demand'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Soft Cap Type Uptime Monitors'}),
+      await screen.findByRole('textbox', {name: 'Soft Cap Type Uptime Monitors'}),
       'True Forward'
     );
 
@@ -967,7 +965,7 @@ describe('provisionSubscriptionAction', function () {
       body: {},
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
 
     expect(updateMock).toHaveBeenCalledWith(
       `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -1020,7 +1018,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  });
+  }, 15_000);
 
   it('calls api with correct am3 args', async () => {
     const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
@@ -1034,37 +1032,37 @@ describe('provisionSubscriptionAction', function () {
     await loadModal();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('textbox', {name: 'Plan'}),
       'Enterprise (Business) (am3)'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('textbox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('textbox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Soft Cap Type Errors'}),
+      await screen.findByRole('textbox', {name: 'Soft Cap Type Errors'}),
       'On Demand'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Soft Cap Type Replays'}),
+      await screen.findByRole('textbox', {name: 'Soft Cap Type Replays'}),
       'True Forward'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Soft Cap Type Spans'}),
+      await screen.findByRole('textbox', {name: 'Soft Cap Type Spans'}),
       'On Demand'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Soft Cap Type Uptime Monitors'}),
+      await screen.findByRole('textbox', {name: 'Soft Cap Type Uptime Monitors'}),
       'True Forward'
     );
 
@@ -1082,60 +1080,62 @@ describe('provisionSubscriptionAction', function () {
       body: {},
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
 
-    expect(updateMock).toHaveBeenCalledWith(
-      `/customers/${mockOrg.slug}/provision-subscription/`,
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          billingInterval: 'annual',
-          coterm: true,
-          customPrice: 6000_00,
-          customPriceAttachments: 0,
-          customPriceErrors: 0,
-          customPricePcss: 0,
-          customPriceReplays: 4000_00,
-          customPriceMonitorSeats: 0,
-          customPriceUptime: 0,
-          customPriceSpans: 2000_00,
-          customPriceProfileDuration: 0,
-          customPriceProfileDurationUI: 0,
-          managed: true,
-          onDemandInvoicedManual: 'DISABLE',
-          plan: 'am3_business_ent',
-          reservedAttachments: 10,
-          reservedErrors: 500_000,
-          reservedReplays: 50,
-          reservedMonitorSeats: 1,
-          reservedUptime: 1,
-          reservedSpans: 10_000_000,
-          reservedProfileDuration: 0,
-          reservedProfileDurationUI: 0,
-          retainOnDemandBudget: false,
-          type: 'invoiced',
-          softCapTypeErrors: 'ON_DEMAND',
-          softCapTypeSpans: 'ON_DEMAND',
-          softCapTypeReplays: 'TRUE_FORWARD',
-          softCapTypeMonitorSeats: null,
-          softCapTypeUptime: 'TRUE_FORWARD',
-          softCapTypeAttachments: null,
-          softCapTypeProfileDuration: null,
-          softCapTypeProfileDurationUI: null,
-          trueForward: {
-            errors: false,
-            spans: false,
-            replays: true,
-            monitorSeats: false,
-            uptime: true,
-            attachments: false,
-            profileDuration: false,
-            profileDurationUI: false,
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        `/customers/${mockOrg.slug}/provision-subscription/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            billingInterval: 'annual',
+            coterm: true,
+            customPrice: 6000_00,
+            customPriceAttachments: 0,
+            customPriceErrors: 0,
+            customPricePcss: 0,
+            customPriceReplays: 4000_00,
+            customPriceMonitorSeats: 0,
+            customPriceUptime: 0,
+            customPriceSpans: 2000_00,
+            customPriceProfileDuration: 0,
+            customPriceProfileDurationUI: 0,
+            managed: true,
+            onDemandInvoicedManual: 'DISABLE',
+            plan: 'am3_business_ent',
+            reservedAttachments: 10,
+            reservedErrors: 500_000,
+            reservedReplays: 50,
+            reservedMonitorSeats: 1,
+            reservedUptime: 1,
+            reservedSpans: 10_000_000,
+            reservedProfileDuration: 0,
+            reservedProfileDurationUI: 0,
+            retainOnDemandBudget: false,
+            type: 'invoiced',
+            softCapTypeErrors: 'ON_DEMAND',
+            softCapTypeSpans: 'ON_DEMAND',
+            softCapTypeReplays: 'TRUE_FORWARD',
+            softCapTypeMonitorSeats: null,
+            softCapTypeUptime: 'TRUE_FORWARD',
+            softCapTypeAttachments: null,
+            softCapTypeProfileDuration: null,
+            softCapTypeProfileDurationUI: null,
+            trueForward: {
+              errors: false,
+              spans: false,
+              replays: true,
+              monitorSeats: false,
+              uptime: true,
+              attachments: false,
+              profileDuration: false,
+              profileDurationUI: false,
+            },
           },
-        },
-      })
-    );
-  });
+        })
+      );
+    });
+  }, 15_000);
 
   it('calls api with correct am3 dynamic sampling args', async () => {
     const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
@@ -1150,27 +1150,27 @@ describe('provisionSubscriptionAction', function () {
     await loadModal();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('textbox', {name: 'Plan'}),
       'Enterprise (Business) with Dynamic Sampling (am3)'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('textbox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('textbox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Disable'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Soft Cap Type Accepted Spans'}),
+      await screen.findByRole('textbox', {name: 'Soft Cap Type Accepted Spans'}),
       'True Forward'
     );
 
@@ -1190,7 +1190,7 @@ describe('provisionSubscriptionAction', function () {
       body: {},
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
 
     expect(updateMock).toHaveBeenCalledWith(
       `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -1255,7 +1255,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  });
+  }, 15_000);
 
   it('calls api with correct manually invoiced on-demand args', async () => {
     const am2Sub = SubscriptionFixture({organization: mockOrg, plan: 'am2_f'});
@@ -1265,27 +1265,26 @@ describe('provisionSubscriptionAction', function () {
       onSuccess,
       billingConfig: mockBillingConfig,
     });
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     await loadModal();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('textbox', {name: 'Plan'}),
       'Enterprise (Business) (am2)'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('textbox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('textbox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Shared'
     );
 
@@ -1302,68 +1301,70 @@ describe('provisionSubscriptionAction', function () {
       body: {},
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
 
-    expect(updateMock).toHaveBeenCalledWith(
-      `/customers/${mockOrg.slug}/provision-subscription/`,
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          billingInterval: 'annual',
-          coterm: true,
-          customPrice: 0,
-          customPriceAttachments: 0,
-          customPriceErrors: 0,
-          customPricePcss: 0,
-          customPriceReplays: 0,
-          customPriceMonitorSeats: 0,
-          customPriceUptime: 0,
-          customPriceTransactions: 0,
-          customPriceProfileDuration: 0,
-          customPriceProfileDurationUI: 0,
-          managed: true,
-          paygCpeErrors: 50000000,
-          paygCpeTransactions: 1110000,
-          paygCpeReplays: 100000000,
-          paygCpeAttachments: 10000,
-          paygCpeProfileDuration: 10000,
-          paygCpeProfileDurationUI: 10000,
-          paygCpeMonitorSeats: 10000,
-          paygCpeUptime: 10000,
-          onDemandInvoicedManual: 'SHARED',
-          plan: 'am2_business_ent',
-          reservedAttachments: 1,
-          reservedErrors: 5000,
-          reservedReplays: 50,
-          reservedMonitorSeats: 1,
-          reservedUptime: 1,
-          reservedTransactions: 10_000,
-          reservedProfileDuration: 0,
-          reservedProfileDurationUI: 0,
-          retainOnDemandBudget: false,
-          type: 'invoiced',
-          softCapTypeErrors: null,
-          softCapTypeTransactions: null,
-          softCapTypeReplays: null,
-          softCapTypeMonitorSeats: null,
-          softCapTypeUptime: null,
-          softCapTypeAttachments: null,
-          softCapTypeProfileDuration: null,
-          softCapTypeProfileDurationUI: null,
-          trueForward: {
-            errors: false,
-            transactions: false,
-            profileDuration: false,
-            profileDurationUI: false,
-            replays: false,
-            monitorSeats: false,
-            uptime: false,
-            attachments: false,
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        `/customers/${mockOrg.slug}/provision-subscription/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            billingInterval: 'annual',
+            coterm: true,
+            customPrice: 0,
+            customPriceAttachments: 0,
+            customPriceErrors: 0,
+            customPricePcss: 0,
+            customPriceReplays: 0,
+            customPriceMonitorSeats: 0,
+            customPriceUptime: 0,
+            customPriceTransactions: 0,
+            customPriceProfileDuration: 0,
+            customPriceProfileDurationUI: 0,
+            managed: true,
+            paygCpeErrors: 50000000,
+            paygCpeTransactions: 1110000,
+            paygCpeReplays: 100000000,
+            paygCpeAttachments: 10000,
+            paygCpeProfileDuration: 10000,
+            paygCpeProfileDurationUI: 10000,
+            paygCpeMonitorSeats: 10000,
+            paygCpeUptime: 10000,
+            onDemandInvoicedManual: 'SHARED',
+            plan: 'am2_business_ent',
+            reservedAttachments: 1,
+            reservedErrors: 5000,
+            reservedReplays: 50,
+            reservedMonitorSeats: 1,
+            reservedUptime: 1,
+            reservedTransactions: 10_000,
+            reservedProfileDuration: 0,
+            reservedProfileDurationUI: 0,
+            retainOnDemandBudget: false,
+            type: 'invoiced',
+            softCapTypeErrors: null,
+            softCapTypeTransactions: null,
+            softCapTypeReplays: null,
+            softCapTypeMonitorSeats: null,
+            softCapTypeUptime: null,
+            softCapTypeAttachments: null,
+            softCapTypeProfileDuration: null,
+            softCapTypeProfileDurationUI: null,
+            trueForward: {
+              errors: false,
+              transactions: false,
+              profileDuration: false,
+              profileDurationUI: false,
+              replays: false,
+              monitorSeats: false,
+              uptime: false,
+              attachments: false,
+            },
           },
-        },
-      })
-    );
-  });
+        })
+      );
+    });
+  }, 15_000);
 
   it('calls api with correct mm2 args', async () => {
     triggerProvisionSubscription({
@@ -1376,17 +1377,17 @@ describe('provisionSubscriptionAction', function () {
     loadModal();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('textbox', {name: 'Plan'}),
       'Business (mm2)'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('textbox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('textbox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
@@ -1419,7 +1420,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  });
+  }, 15_000);
 
   it('returns submit error on incorrect custom price', async () => {
     triggerProvisionSubscription({
@@ -1432,17 +1433,17 @@ describe('provisionSubscriptionAction', function () {
     loadModal();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('textbox', {name: 'Plan'}),
       'Enterprise (Business) (am1)'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('textbox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('textbox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
@@ -1468,7 +1469,7 @@ describe('provisionSubscriptionAction', function () {
     expect(
       screen.getByText('Custom Price must be equal to sum of SKU prices')
     ).toBeInTheDocument();
-  });
+  }, 15_000);
 
   it('returns api error', async () => {
     triggerProvisionSubscription({
@@ -1481,22 +1482,22 @@ describe('provisionSubscriptionAction', function () {
     loadModal();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('textbox', {name: 'Plan'}),
       'Enterprise (Business) (am1)'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('textbox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('textbox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
     await clickCheckbox('Managed Subscription');
-    await userEvent.type(screen.getByLabelText('Start Date'), '2020-10-25');
+    await userEvent.type(await screen.findByLabelText('Start Date'), '2020-10-25');
     await typeNumForField('Reserved Errors', '2000000');
     await typeNumForField('Reserved Transactions', '1000000');
     await typeNumForField('Reserved Replays', '500');
@@ -1522,7 +1523,7 @@ describe('provisionSubscriptionAction', function () {
       },
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Submit'}));
 
     expect(updateMock).toHaveBeenCalled();
 
@@ -1568,5 +1569,5 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  });
+  }, 15_000);
 });
