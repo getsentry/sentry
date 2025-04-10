@@ -257,20 +257,24 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
     nodeProfilingIntegration(),
-  ],
-  // Tracing must be enabled for profiling to work
-  tracesSampleRate: 1.0,${
+  ],${
     params.profilingOptions?.defaultProfilingMode === 'continuous'
-      ? `
+      ? `${
+          profilingLifecycle === 'trace'
+            ? `
+  // Tracing must be enabled for profiling to work
+  tracesSampleRate: 1.0,
   // Set sampling rate for profiling - this is evaluated only once per SDK.init call
-  profileSessionSampleRate: 1.0,${
-    profilingLifecycle === 'trace'
-      ? `
+  profileSessionSampleRate: 1.0,
   // Trace lifecycle automatically enables profiling during active traces
   profileLifecycle: 'trace',`
-      : ''
-  }`
+            : `
+  // Set sampling rate for profiling - this is evaluated only once per SDK.init call
+  profileSessionSampleRate: 1.0,`
+        }`
       : `
+  // Tracing must be enabled for profiling to work
+  tracesSampleRate: 1.0,
   // Set sampling rate for profiling - this is evaluated only once per SDK.init call
   profilesSampleRate: 1.0,`
   }
