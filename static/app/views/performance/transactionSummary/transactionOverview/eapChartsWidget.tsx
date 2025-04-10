@@ -1,9 +1,10 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useWidgetChartVisualization} from 'sentry/views/performance/transactionSummary/transactionOverview/useWidgetChartVisualization';
@@ -54,6 +55,8 @@ const WIDGET_OPTIONS: Record<
   },
 };
 
+const SELECTED_CHART_QUERY_PARAM = 'chartDisplay';
+
 function getWidgetContents(widgetType: EAPWidgetType, spanCategory?: string) {
   const {title, description, spanCategoryTitle} = WIDGET_OPTIONS[widgetType];
 
@@ -71,13 +74,19 @@ type EAPChartsWidgetProps = {
 };
 
 export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
-  const [selectedWidget, setSelectedWidget] = useState<EAPWidgetType>(
-    EAPWidgetType.DURATION_BREAKDOWN
-  );
   const location = useLocation();
+  const navigate = useNavigate();
+
   const spanCategoryUrlParam = decodeScalar(
     location.query?.[SpanIndexedField.SPAN_CATEGORY]
   );
+  const selectedChartUrlParam = decodeScalar(
+    location.query?.[SELECTED_CHART_QUERY_PARAM]
+  );
+
+  const selectedChart = WIDGET_OPTIONS[selectedChartUrlParam as EAPWidgetType]
+    ? (selectedChartUrlParam as EAPWidgetType)
+    : EAPWidgetType.DURATION_BREAKDOWN;
 
   const options = useMemo(() => {
     return Object.entries(WIDGET_OPTIONS).map(([key, value]) => ({
@@ -87,20 +96,27 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
     }));
   }, []);
 
-  const {title, description} = getWidgetContents(selectedWidget, spanCategoryUrlParam);
+  const {title, description} = getWidgetContents(selectedChart, spanCategoryUrlParam);
 
   const visualization = useWidgetChartVisualization({
-    selectedWidget,
+    selectedWidget: selectedChart,
     transactionName,
   });
+
+  const handleChartChange = (option: SelectOption<string>) => {
+    navigate({
+      ...location,
+      query: {...location.query, [SELECTED_CHART_QUERY_PARAM]: option.value},
+    });
+  };
 
   return (
     <Widget
       Title={
         <CompactSelect
           options={options}
-          value={selectedWidget}
-          onChange={option => setSelectedWidget(option.value as EAPWidgetType)}
+          value={selectedChart}
+          onChange={handleChartChange}
           triggerProps={{borderless: true, size: 'zero'}}
         />
       }
