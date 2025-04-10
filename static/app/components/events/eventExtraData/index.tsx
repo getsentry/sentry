@@ -1,6 +1,10 @@
 import {useState} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
+import {
+  getKnownData,
+  getKnownStructuredData,
+} from 'sentry/components/events/contexts/utils';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -8,8 +12,6 @@ import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-
-import {getKnownData, getKnownStructuredData} from '../contexts/utils';
 
 import {getEventExtraDataKnownDataDetails} from './getEventExtraDataKnownDataDetails';
 import type {EventExtraData as TEventExtraData, EventExtraDataType} from './types';
