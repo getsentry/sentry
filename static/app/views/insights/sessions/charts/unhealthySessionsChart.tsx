@@ -6,7 +6,7 @@ import useErroredSessions from 'sentry/views/insights/sessions/queries/useErrore
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function ErroredSessionsChart() {
+export default function UnhealthySessionsChart() {
   const {series, isPending, error} = useErroredSessions();
 
   const aliases = {
@@ -15,9 +15,9 @@ export default function ErroredSessionsChart() {
 
   return (
     <InsightsLineChartWidget
-      title={CHART_TITLES.ErroredSessionsChart}
+      title={CHART_TITLES.UnhealthySessionsChart}
       interactiveTitle={() => (
-        <ChartSelectionTitle title={CHART_TITLES.ErroredSessionsChart} />
+        <ChartSelectionTitle title={CHART_TITLES.UnhealthySessionsChart} />
       )}
       height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
