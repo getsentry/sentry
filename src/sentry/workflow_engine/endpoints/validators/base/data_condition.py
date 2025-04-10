@@ -41,14 +41,19 @@ class BaseDataConditionValidator(
     AbstractDataConditionValidator[Any, Any],
 ):
     def _get_handler(self) -> DataConditionHandler | None:
-        condition_type = self.initial_data.get("type")
-        if condition_type in CONDITION_OPS:
+        if self._is_operator_condition():
             return None
+
+        condition_type = self.initial_data.get("type")
 
         try:
             return condition_handler_registry.get(condition_type)
         except NoRegistrationExistsError:
             raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
+
+    def _is_operator_condition(self) -> bool:
+        condition_type = self.initial_data.get("type")
+        return condition_type in CONDITION_OPS
 
     def validate_comparison(self, value: Any) -> Any:
         """
@@ -58,8 +63,10 @@ class BaseDataConditionValidator(
 
         handler = self._get_handler()
 
-        if not handler:
+        if not handler and self._is_operator_condition():
             return validate_json_primitive(value)
+        else:
+            raise serializers.ValidationError("Invalid comparison value for condition type")
 
         try:
             return validate_json_schema(value, handler.comparison_json_schema)
@@ -77,8 +84,10 @@ class BaseDataConditionValidator(
         """
         handler = self._get_handler()
 
-        if not handler:
+        if not handler and self._is_operator_condition():
             return validate_json_primitive(value)
+        else:
+            raise serializers.ValidationError("Invalid condition result value for condition type")
 
         try:
             return validate_json_schema(value, handler.condition_result_schema)
