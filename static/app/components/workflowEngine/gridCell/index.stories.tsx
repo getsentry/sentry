@@ -16,15 +16,25 @@ import {
   TitleCell,
   type TitleCellProps,
 } from 'sentry/components/workflowEngine/gridCell/titleCell';
+import {
+  TypeCell,
+  type TypeCellProps,
+} from 'sentry/components/workflowEngine/gridCell/typeCell';
+import {
+  UserCell,
+  type UserCellProps,
+} from 'sentry/components/workflowEngine/gridCell/userCell';
 import {tn} from 'sentry/locale';
 import storyBook from 'sentry/stories/storyBook';
 
 type ExampleAutomation = {
   action: Action[];
+  creator: UserCellProps['user'];
   linkedItems: ConnectionCellProps;
   openIssues: number;
   timeAgo: Date | null;
   title: TitleCellProps;
+  type: TypeCellProps['type'];
 };
 
 export default storyBook('Grid Cell Components', story => {
@@ -48,6 +58,19 @@ export default storyBook('Grid Cell Components', story => {
         renderText: count => tn('%s monitor', '%s monitors', count),
       },
       openIssues: 3,
+      creator: {
+        id: '1',
+        name: 'John Doe',
+        email: 'john.doe@example.com',
+        avatar: {
+          avatarType: 'gravatar',
+          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
+          avatarUrl: 'https://sentry.io/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/',
+        },
+        ip_address: '127.0.0.1',
+        username: 'john.doe',
+      },
+      type: 'trace',
     },
     {
       title: {
@@ -79,6 +102,19 @@ export default storyBook('Grid Cell Components', story => {
         renderText: count => tn('%s monitor', '%s monitors', count),
       },
       openIssues: 1,
+      creator: {
+        id: '1',
+        name: 'John Doe',
+        email: 'john.doe@example.com',
+        avatar: {
+          avatarType: 'gravatar',
+          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
+          avatarUrl: 'https://sentry.io/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/',
+        },
+        ip_address: '127.0.0.1',
+        username: 'john.doe',
+      },
+      type: 'metric',
     },
     {
       title: {
@@ -110,6 +146,8 @@ export default storyBook('Grid Cell Components', story => {
         ],
         renderText: count => tn('%s automation', '%s automations', count),
       },
+      creator: 'sentry',
+      type: 'metric',
       openIssues: 0,
     },
     {
@@ -120,6 +158,8 @@ export default storyBook('Grid Cell Components', story => {
         disabled: true,
       },
       action: ['slack', 'discord', 'email'],
+      creator: 'sentry',
+      type: 'errors',
       timeAgo: null,
       linkedItems: {
         items: [],
@@ -133,12 +173,20 @@ export default storyBook('Grid Cell Components', story => {
     {key: 'title', name: 'Name', width: 200},
   ];
 
+  const typeTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
+    {key: 'type', name: 'Type', width: 150},
+  ];
+
   const actionTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
     {key: 'action', name: 'Action', width: 200},
   ];
 
   const timeAgoTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
     {key: 'timeAgo', name: 'Last Triggered', width: 200},
+  ];
+
+  const userTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
+    {key: 'creator', name: 'User', width: 150},
   ];
 
   const linkedGroupsTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
@@ -168,6 +216,10 @@ export default storyBook('Grid Cell Components', story => {
         );
       case 'action':
         return <ActionCell actions={dataRow.action} />;
+      case 'type':
+        return <TypeCell type={dataRow.type} />;
+      case 'creator':
+        return <UserCell user={dataRow.creator} />;
       case 'timeAgo':
         return <TimeAgoCell date={dataRow.timeAgo ?? undefined} />;
       case 'linkedItems':
@@ -245,6 +297,34 @@ export default storyBook('Grid Cell Components', story => {
       <GridEditable
         data={data}
         columnOrder={openIssuesTable}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell,
+          renderBodyCell,
+        }}
+      />
+    </Fragment>
+  ));
+
+  story('TypeCell', () => (
+    <Fragment>
+      <GridEditable
+        data={data}
+        columnOrder={typeTable}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell,
+          renderBodyCell,
+        }}
+      />
+    </Fragment>
+  ));
+
+  story('UserCell', () => (
+    <Fragment>
+      <GridEditable
+        data={data}
+        columnOrder={userTable}
         columnSortBy={[]}
         grid={{
           renderHeadCell,
