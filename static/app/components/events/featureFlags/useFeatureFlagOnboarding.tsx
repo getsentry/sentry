@@ -37,7 +37,7 @@ export function useFeatureFlagOnboarding({
       SidebarPanelStore.activatePanel(SidebarPanelKey.FEATURE_FLAG_ONBOARDING);
       trackAnalytics('flags.view-setup-sidebar', {
         organization,
-        surface: analyticsArea
+        surface: analyticsArea,
         platform: projectPlatform,
       });
     },
