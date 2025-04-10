@@ -38,7 +38,7 @@ describe('useSyncWrapperWidth', () => {
         result.current.setWrapperRefState({} as HTMLDivElement);
       });
 
-      expect(result.current.wrapperWidth).toBe(100);
+      expect(result.current.wrapperWidth).toBe('100px');
     });
   });
 });

@@ -6,7 +6,7 @@ import {useLayoutEffect, useState} from 'react';
  * @returns The width of the wrapper element and setter for the wrapper ref.
  */
 export const useSyncWrapperWidth = () => {
-  const [wrapperWidth, setWrapperWidth] = useState<number | '100%'>('100%');
+  const [wrapperWidth, setWrapperWidth] = useState<`${number}px` | '100%'>('100%');
   const [wrapperRefState, setWrapperRefState] = useState<HTMLDivElement | null>(null);
 
   useLayoutEffect(() => {
@@ -17,7 +17,7 @@ export const useSyncWrapperWidth = () => {
     const resizeObserver = new ResizeObserver(entries => {
       const entry = entries?.[0];
       if (entry) {
-        setWrapperWidth(entry.contentRect.width);
+        setWrapperWidth(`${entry.contentRect.width}px`);
       }
     });
 
