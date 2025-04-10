@@ -26,6 +26,8 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import CacheMissRateWidget from 'sentry/views/insights/common/components/widgets/cacheMissRateWidget';
+import CacheThroughputWidget from 'sentry/views/insights/common/components/widgets/cacheThroughputWidget';
 import {
   useMetrics,
   useSpanMetrics,
@@ -43,9 +45,7 @@ import {
   SpanMetricsField,
 } from 'sentry/views/insights/types';
 
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
 import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
-import {DataTitles, getThroughputChartTitle} from '../../common/views/spans/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
@@ -79,30 +79,13 @@ export function CacheLandingPage() {
     requiredParams: ['transaction'],
   });
 
-  const {
-    isPending: isCacheMissRateLoading,
-    data: cacheMissRateData,
-    error: cacheMissRateError,
-  } = useSpanMetricsSeries(
+  const {error: cacheMissRateError} = useSpanMetricsSeries(
     {
       yAxis: [`${CACHE_MISS_RATE}()`],
       search: MutableSearch.fromQueryObject(BASE_FILTERS),
       transformAliasToInputFormat: true,
     },
     Referrer.LANDING_CACHE_HIT_MISS_CHART
-  );
-
-  const {
-    isPending: isThroughputDataLoading,
-    data: throughputData,
-    error: throughputError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(BASE_FILTERS),
-      yAxis: ['epm()'],
-      transformAliasToInputFormat: true,
-    },
-    Referrer.LANDING_CACHE_THROUGHPUT_CHART
   );
 
   const {
@@ -209,20 +192,10 @@ export function CacheLandingPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.CACHE}>
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={DataTitles[`cache_miss_rate()`]}
-                    series={[cacheMissRateData[`${CACHE_MISS_RATE}()`]]}
-                    isLoading={isCacheMissRateLoading}
-                    error={cacheMissRateError}
-                  />
+                  <CacheMissRateWidget />
                 </ModuleLayout.Half>
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={getThroughputChartTitle('cache.get_item')}
-                    series={[throughputData['epm()']]}
-                    isLoading={isThroughputDataLoading}
-                    error={throughputError}
-                  />
+                  <CacheThroughputWidget />
                 </ModuleLayout.Half>
                 <ModuleLayout.Full>
                   <TransactionsTable
