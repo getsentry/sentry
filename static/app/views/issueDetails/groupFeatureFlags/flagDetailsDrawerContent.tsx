@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -36,17 +36,6 @@ export function FlagDetailsDrawerContent() {
 
   const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
 
-  const flagQuery = useMemo(() => {
-    return {
-      flag: tagKey,
-      per_page: 50,
-      queryReferrer: 'featureFlagDetailsDrawer',
-      statsPeriod: '90d',
-      sort: '-created_at',
-      cursor: location.query.flagDrawerCursor,
-    };
-  }, [tagKey, location.query.flagDrawerCursor]);
-
   const {
     data: flagLog,
     isPending,
@@ -54,7 +43,13 @@ export function FlagDetailsDrawerContent() {
     getResponseHeader,
   } = useOrganizationFlagLog({
     organization,
-    query: flagQuery,
+    query: {
+      flag: tagKey,
+      per_page: 50,
+      queryReferrer: 'featureFlagDetailsDrawer',
+      sort: '-created_at',
+      cursor: location.query.flagDrawerCursor,
+    },
   });
   const pageLinks = getResponseHeader?.('Link') ?? null;
 
