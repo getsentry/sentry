@@ -1,43 +1,43 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {EAPChartsWidget} from './eapChartsWidget';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useNavigate');
-jest.mock(
-  'sentry/views/performance/transactionSummary/transactionOverview/useWidgetChartVisualization'
-);
 
 const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
-const mockUseNavigate = useNavigate as jest.MockedFunction<typeof useNavigate>;
 
 describe('EAPChartsWidget', function () {
   const transactionName = 'test-transaction';
-  const mockNavigate = jest.fn();
 
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
     mockUseLocation.mockImplementation(() => LocationFixture());
-    mockUseNavigate.mockImplementation(() => mockNavigate);
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+      status: 200,
+    });
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    mockNavigate.mockClear();
+    MockApiClient.clearMockResponses();
   });
 
-  it('shows default widget type when no query param is provided', function () {
+  it('shows default widget type when no query param is provided', async function () {
     render(<EAPChartsWidget transactionName={transactionName} />);
 
-    // Default widget type should be DURATION_BREAKDOWN
-    expect(screen.getByText('Duration Breakdown')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Duration Breakdown')).toBeInTheDocument();
+    });
   });
 
-  it('shows default widget when invalid query param is provided', function () {
+  it('shows default widget when invalid query param is provided', async function () {
     mockUseLocation.mockImplementation(() =>
       LocationFixture({
         query: {
@@ -49,7 +49,8 @@ describe('EAPChartsWidget', function () {
 
     render(<EAPChartsWidget transactionName={transactionName} />);
 
-    // Should fallback to DURATION_BREAKDOWN
-    expect(screen.getByText('Duration Breakdown')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Duration Breakdown')).toBeInTheDocument();
+    });
   });
 });
