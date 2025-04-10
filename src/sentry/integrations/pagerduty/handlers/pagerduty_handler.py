@@ -1,8 +1,12 @@
 from sentry.integrations.pagerduty.client import PagerdutySeverity
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.notification_action.action_handler_registry.base import (
+    IntegrationActionHandler,
+)
+from sentry.notifications.notification_action.action_handler_registry.common import (
+    ONCALL_ACTION_CONFIG_SCHEMA,
+)
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
-from sentry.workflow_engine.handlers.action.notification.base import IntegrationActionHandler
-from sentry.workflow_engine.handlers.action.notification.common import ONCALL_ACTION_CONFIG_SCHEMA
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowEventData

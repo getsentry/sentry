@@ -50,9 +50,7 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
         )
         self.handler = MSTeamsMetricAlertHandler()
 
-    @mock.patch(
-        "sentry.notifications.notification_action.metric_alert_registry.handlers.msteams_metric_alert_handler.send_incident_alert_notification"
-    )
+    @mock.patch("sentry.integrations.msteams.utils.send_incident_alert_notification")
     def test_send_alert(self, mock_send_incident_alert_notification):
         notification_context = NotificationContext.from_action_model(self.action)
         assert self.group_event.occurrence is not None
