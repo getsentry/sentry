@@ -1,4 +1,8 @@
+import styled from '@emotion/styled';
+
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {IconNot} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 
@@ -31,7 +35,12 @@ function mapActionsToCompactSelect(
       }
       return {
         value: action.key,
-        label: action.name,
+        label: (
+          <div>
+            {action.name}
+            <StyledIconNot size="xs" />
+          </div>
+        ),
         details: action.help,
         disabled: action.disabled,
         tooltip: action.disabled ? action.disabledReason : undefined,
@@ -76,3 +85,9 @@ function DropdownActions({actions, label}: Props) {
 }
 
 export default DropdownActions;
+
+const StyledIconNot = styled(IconNot)`
+  color: ${p => p.theme.red200};
+  margin-left: ${space(0.5)};
+  transform: translateY(2px);
+`;
