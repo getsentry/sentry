@@ -12,6 +12,7 @@ class CurrentTaskState:
     namespace: str
     taskname: str
     attempt: int
+    processing_deadline_duration: int
     retries_remaining: bool
 
 
@@ -32,6 +33,7 @@ def set_current_task(activation: TaskActivation) -> None:
         # We subtract one, as attempts starts at 0, but `max_attempts`
         # starts at 1.
         retries_remaining=(retry_state.attempts < (retry_state.max_attempts - 1)),
+        processing_deadline_duration=activation.processing_deadline_duration,
     )
     _current_state.state = state
 
