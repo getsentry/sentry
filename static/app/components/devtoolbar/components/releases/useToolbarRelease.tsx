@@ -1,10 +1,9 @@
 import {useMemo} from 'react';
 
+import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
+import useFetchApiData from 'sentry/components/devtoolbar/hooks/useFetchApiData';
 import type {ApiEndpointQueryKey} from 'sentry/components/devtoolbar/types';
 import type {Release} from 'sentry/types/release';
-
-import useConfiguration from '../../hooks/useConfiguration';
-import useFetchApiData from '../../hooks/useFetchApiData';
 
 export default function useToolbarRelease() {
   const {organizationSlug, projectSlug} = useConfiguration();
