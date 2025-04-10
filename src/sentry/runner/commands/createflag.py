@@ -160,7 +160,7 @@ def createissueflag(
         if not slug:
             slug = click.prompt("GroupType slug", type=str)
 
-        assert slug, "Feature must have a non-empty string for 'name'"
+        assert slug, "Feature must have a non-empty string for 'slug'"
         group_type = registry.get_by_slug(slug)
         assert (
             group_type
