@@ -840,7 +840,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         <p>
           Area and line charts support showing release markers via the{' '}
           <code>releases</code> prop with two different visualizations specified by the
-          <code>showReleasesAs</code> prop: <code>"line"</code> and <code>"bubble"</code>.
+          <code>showReleaseAs</code> prop: <code>"line"</code> and <code>"bubble"</code>.
         </p>
 
         <p>
