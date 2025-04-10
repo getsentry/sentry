@@ -51,7 +51,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
   });
   const query = useMemo(() => {
     const filteredFields = Object.fromEntries(
-      Object.entries(locationQuery).filter(([_key, val]) => val !== '')
+      Object.entries(locationQuery).filter(([_key, val]) => !!val)
     );
     return {
       ...filteredFields,
