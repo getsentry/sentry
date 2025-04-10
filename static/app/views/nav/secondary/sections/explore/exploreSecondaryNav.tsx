@@ -2,15 +2,16 @@ import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
+import {ExploreSavedQueryNavItems} from 'sentry/views/nav/secondary/sections/explore/exploreSavedQueryNavItems';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
 const MAX_STARRED_QUERIES_DISPLAYED = 20;
 
 export function ExploreSecondaryNav() {
   const organization = useOrganization();
+
   const baseUrl = `/organizations/${organization.slug}/explore`;
 
   const {data: starredQueries} = useGetSavedQueries({
@@ -72,15 +73,9 @@ export function ExploreSecondaryNav() {
         </SecondaryNav.Section>
         <Feature features="performance-saved-queries">
           <SecondaryNav.Section title={t('Starred Queries')}>
-            {starredQueries?.map(query => (
-              <SecondaryNav.Item
-                key={query.id}
-                to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
-                analyticsItemName="explore_starred_item"
-              >
-                {query.name}
-              </SecondaryNav.Item>
-            )) ?? null}
+            {starredQueries && starredQueries.length > 0 && (
+              <ExploreSavedQueryNavItems queries={starredQueries} />
+            )}
           </SecondaryNav.Section>
           <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/saved-queries/`}>
