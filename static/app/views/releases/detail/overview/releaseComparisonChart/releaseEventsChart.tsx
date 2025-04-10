@@ -19,7 +19,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
@@ -55,7 +54,6 @@ function ReleaseEventsChart({
   utc,
 }: Props) {
   const location = useLocation();
-  const router = useRouter();
   const api = useApi();
   const theme = useTheme();
 
@@ -166,7 +164,7 @@ function ReleaseEventsChart({
           field={getField()}
           colors={getColors()}
           api={api}
-          router={router}
+          location={location}
           organization={organization}
           disableReleases
           disablePrevious

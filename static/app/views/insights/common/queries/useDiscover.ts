@@ -163,7 +163,7 @@ export const useDiscover = <
   };
 };
 
-function getEventView(
+export function getEventView(
   search: MutableSearch | string | undefined,
   fields: string[] = [],
   sorts: Sort[] = [],
