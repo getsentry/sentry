@@ -21,7 +21,7 @@ export default function UnhealthySessionsChart() {
       )}
       height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
-        'The percent of sessions terminating without a single error occurring. See [link:session status].',
+        'The percent of sessions ending normally and no errors occurred during its lifetime. See [link:session status].',
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/product/releases/health/#session-status" />
