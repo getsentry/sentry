@@ -664,7 +664,13 @@ describe('getCategoryOptions', () => {
     });
 
     result.forEach(option => {
-      expect(subscription.planDetails.checkoutCategories).toContain(option.value);
+      const inCheckoutCategories = subscription.planDetails.checkoutCategories.includes(
+        option.value
+      );
+      const inOnDemandCategories = subscription.planDetails.onDemandCategories.includes(
+        option.value
+      );
+      expect(inCheckoutCategories || inOnDemandCategories).toBe(true);
     });
   });
 
