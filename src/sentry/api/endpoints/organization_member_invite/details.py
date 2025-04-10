@@ -8,8 +8,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.endpoints.organization_member import get_allowed_org_roles
+from sentry.api.endpoints.organization_member import get_allowed_org_roless
 from sentry.api.endpoints.organization_member_invite.utils import MemberInviteDetailsPermission
+from sentry.api.endpoints.organization_member_invite import MISSING_FEATURE_MESSAGE
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.organizationmemberinvite import (
@@ -19,17 +20,6 @@ from sentry.api.serializers.rest_framework.organizationmemberinvite import (
 from sentry.models.organization import Organization
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.utils.audit import get_api_key_for_audit_log
-
-ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
-ERR_MEMBER_INVITE = "You cannot modify invitations sent by someone else."
-ERR_EDIT_WHEN_REINVITING = (
-    "You cannot modify member details when resending an invitation. Separate requests are required."
-)
-ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
-ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
-ERR_INVITE_UNAPPROVED = "You cannot resend an invitation that has not been approved."
-
-MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
 
 @region_silo_endpoint
