@@ -4127,6 +4127,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 "query": "",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "orderby": "-is_starred_transaction",
             }
         )
 
@@ -4134,11 +4135,11 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         data = response.data["data"]
         assert len(data) == 2
 
-        assert data[0]["is_starred_transaction"] is False
-        assert data[0]["transaction"] == "bar"
+        assert data[0]["is_starred_transaction"] is True
+        assert data[0]["transaction"] == "foo"
 
-        assert data[1]["is_starred_transaction"] is True
-        assert data[1]["transaction"] == "foo"
+        assert data[1]["is_starred_transaction"] is False
+        assert data[1]["transaction"] == "bar"
 
     @mock.patch("sentry.api.utils.sentry_sdk.capture_exception")
     @mock.patch("sentry.utils.snuba_rpc._snuba_pool.urlopen")
