@@ -63,10 +63,11 @@ class BaseDataConditionValidator(
 
         handler = self._get_handler()
 
-        if not handler and self._is_operator_condition():
-            return validate_json_primitive(value)
-        else:
-            raise serializers.ValidationError("Invalid comparison value for condition type")
+        if not handler:
+            if self._is_operator_condition():
+                return validate_json_primitive(value)
+            else:
+                raise serializers.ValidationError("Invalid comparison value for condition type")
 
         try:
             return validate_json_schema(value, handler.comparison_json_schema)
@@ -84,10 +85,13 @@ class BaseDataConditionValidator(
         """
         handler = self._get_handler()
 
-        if not handler and self._is_operator_condition():
-            return validate_json_primitive(value)
-        else:
-            raise serializers.ValidationError("Invalid condition result value for condition type")
+        if not handler:
+            if self._is_operator_condition():
+                return validate_json_primitive(value)
+            else:
+                raise serializers.ValidationError(
+                    "Invalid condition result value for condition type"
+                )
 
         try:
             return validate_json_schema(value, handler.condition_result_schema)
