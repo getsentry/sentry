@@ -26,17 +26,11 @@ const REFERRER = 'eap-sidebar-charts';
 export function EAPSidebarCharts({transactionName, hasWebVitals}: Props) {
   return (
     <ChartContainer>
-      {hasWebVitals && <Widget Title={t('Web Vitals')} />}
+      {hasWebVitals && <WebVitalsWidget transactionName={transactionName} />}
       <FailureRateWidget transactionName={transactionName} />
     </ChartContainer>
   );
 }
-
-const ChartContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
 
 type FailureRateWidgetProps = {
   transactionName: string;
@@ -116,6 +110,46 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
     />
   );
 }
+
+type WebVitalsWidgetProps = {
+  transactionName: string;
+};
+
+function WebVitalsWidget({transactionName}: WebVitalsWidgetProps) {
+  const {selection} = usePageFilters();
+
+  const {data: webVitalsData} = useEAPSpans(
+    {
+      search: new MutableSearch(`transaction:${transactionName}`),
+      fields: ['p75(measurements.lcp)', 'p75(measurements.fcp)', 'p75(measurements.cls)'],
+    },
+    REFERRER,
+    true
+  );
+
+  console.dir(webVitalsData);
+
+  return (
+    <Widget
+      Title={<SideBarWidgetTitle>{t('Web Vitals')}</SideBarWidgetTitle>}
+      Actions={
+        <Widget.WidgetToolbar>
+          <Widget.WidgetDescription
+            title={t('Web Vitals')}
+            description={t('Web Vitals')}
+          />
+        </Widget.WidgetToolbar>
+      }
+      borderless
+    />
+  );
+}
+
+const ChartContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
 
 const SideBarWidgetTitle = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
