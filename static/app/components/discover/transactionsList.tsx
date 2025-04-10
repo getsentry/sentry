@@ -208,7 +208,7 @@ function TableRender({
         description={t(
           'Select an Event ID from a list of slow transactions to uncover slow spans.'
         )}
-               >
+      >
         <TransactionsTable
           eventView={eventView}
           organization={organization}
