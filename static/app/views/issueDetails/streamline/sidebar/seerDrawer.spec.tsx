@@ -122,6 +122,13 @@ describe('SeerDrawer', () => {
         headline: 'Test headline',
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/seer/preferences/`,
+      body: {
+        code_mapping_repos: [],
+        preference: null,
+      },
+    });
   });
 
   it('renders consent state if not consented', async () => {
