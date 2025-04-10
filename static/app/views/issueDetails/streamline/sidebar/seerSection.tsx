@@ -100,7 +100,7 @@ export default function SeerSection({
   const aiConfig = useAiConfig(group, project);
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  if (!aiConfig.areAiFeaturesAllowed) {
+  if (!aiConfig.areAiFeaturesAllowed && !aiConfig.hasResources) {
     return null;
   }
 
