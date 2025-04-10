@@ -249,7 +249,9 @@ const docs: Docs = {
   performanceOnboarding,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
-  profilingOnboarding: getNodeProfilingOnboarding(),
+  profilingOnboarding: getNodeProfilingOnboarding({
+    profilingLifecycle: 'manual',
+  }),
 };
 
 export default docs;
