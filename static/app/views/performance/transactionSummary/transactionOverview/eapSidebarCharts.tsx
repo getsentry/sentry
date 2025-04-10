@@ -21,8 +21,6 @@ type Props = {
   transactionName: string;
 };
 
-const REFERRER = 'eap-sidebar-charts';
-
 export function EAPSidebarCharts({transactionName, hasWebVitals}: Props) {
   return (
     <ChartContainer>
@@ -50,7 +48,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
       search: new MutableSearch(`transaction:${transactionName}`),
       yAxis: ['failure_rate()'],
     },
-    REFERRER
+    'eap-sidebar-failure-rate'
   );
 
   const {
@@ -63,7 +61,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
       fields: ['failure_rate()'],
       pageFilters: selection,
     },
-    REFERRER,
+    'eap-sidebar-failure-rate-value',
     true
   );
 
@@ -118,12 +116,17 @@ type WebVitalsWidgetProps = {
 function WebVitalsWidget({transactionName}: WebVitalsWidgetProps) {
   const {selection} = usePageFilters();
 
-  const {data: webVitalsData} = useEAPSpans(
+  const {
+    data: webVitalsData,
+    isLoading: isWebVitalsLoading,
+    error: webVitalsError,
+  } = useEAPSpans(
     {
       search: new MutableSearch(`transaction:${transactionName}`),
       fields: ['p75(measurements.lcp)', 'p75(measurements.fcp)', 'p75(measurements.cls)'],
+      pageFilters: selection,
     },
-    REFERRER,
+    'eap-sidebar-web-vitals',
     true
   );
 
