@@ -689,7 +689,12 @@ class Quota(Service):
 
     def disable_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
         """
-        Removes an object from it's assigned seat.
+        Disables an assigned seat.
+        """
+
+    def remove_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
+        """
+        Removes an assigned seat.
         """
 
     def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):
