@@ -192,7 +192,7 @@ function ActionsButton({organization}: ActionsButtonProps) {
       trigger={triggerProps => (
         <StyledDropdownButton
           {...triggerProps}
-          size="xs"
+          size="sm"
           aria-label={t('Manage issue experience')}
         >
           <IconMegaphone />
