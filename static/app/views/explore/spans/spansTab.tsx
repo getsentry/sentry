@@ -1,4 +1,3 @@
-import type {ReactNode} from 'react';
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -15,8 +14,7 @@ import {
   EAPSpanSearchQueryBuilder,
   SpanSearchQueryBuilder,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
-import {TourContextProvider, TourElement} from 'sentry/components/tours/components';
-import {useAssistant} from 'sentry/components/tours/useAssistant';
+import {TourElement} from 'sentry/components/tours/components';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -62,10 +60,8 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
-  EXPLORE_SPANS_TOUR_GUIDE_KEY,
   ExploreSpansTour,
   ExploreSpansTourContext,
-  ORDERED_EXPLORE_SPANS_TOUR,
   useExploreSpansTourModal,
 } from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
@@ -405,33 +401,6 @@ function OnboardingContent(props: OnboardingContentProps) {
   );
 }
 
-interface SpansTabTourProps {
-  children: ReactNode;
-}
-
-function SpansTabTour({children}: SpansTabTourProps) {
-  const {data: assistantData} = useAssistant();
-  const isTourCompleted = useMemo(() => {
-    const tourData = assistantData?.find(
-      item => item.guide === EXPLORE_SPANS_TOUR_GUIDE_KEY
-    );
-
-    // Prevent tour from showing until assistant data is loaded
-    return tourData?.seen ?? true;
-  }, [assistantData]);
-
-  return (
-    <TourContextProvider<ExploreSpansTour>
-      tourKey={EXPLORE_SPANS_TOUR_GUIDE_KEY}
-      isCompleted={isTourCompleted}
-      orderedStepIds={ORDERED_EXPLORE_SPANS_TOUR}
-      TourContext={ExploreSpansTourContext}
-    >
-      {children}
-    </TourContextProvider>
-  );
-}
-
 export function SpansTabContent(props: SpanTabProps) {
   Sentry.setTag('explore.visited', 'yes');
   const onboardingProject = useOnboardingProject();
@@ -443,9 +412,7 @@ export function SpansTabContent(props: SpanTabProps) {
         {showOnboarding ? (
           <OnboardingContent {...props} onboardingProject={onboardingProject} />
         ) : (
-          <SpansTabTour>
-            <SpansTabContentImpl {...props} />
-          </SpansTabTour>
+          <SpansTabContentImpl {...props} />
         )}
       </ExploreTagsProvider>
     </PageParamsProvider>

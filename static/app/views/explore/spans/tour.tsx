@@ -92,7 +92,7 @@ export function ExploreSpansTourModal({
 // Displays the introductory tour modal when a user is entering the experience for the first time.
 export function useExploreSpansTourModal() {
   const hasOpenedTourModal = useRef(false);
-  const {startTour, endTour} = useExploreSpansTour();
+  const {isRegistered, startTour, endTour} = useExploreSpansTour();
   const {data: assistantData} = useAssistant({
     notifyOnChangeProps: ['data'],
   });
@@ -103,7 +103,7 @@ export function useExploreSpansTourModal() {
     false;
 
   useEffect(() => {
-    if (shouldShowTourModal && !hasOpenedTourModal.current) {
+    if (isRegistered && shouldShowTourModal && !hasOpenedTourModal.current) {
       hasOpenedTourModal.current = true;
       openModal(
         props => (
@@ -136,7 +136,7 @@ export function useExploreSpansTourModal() {
         }
       );
     }
-  }, [shouldShowTourModal, startTour, mutateAssistant, endTour]);
+  }, [isRegistered, shouldShowTourModal, startTour, mutateAssistant, endTour]);
 }
 
 // XXX: The negative margin is to undo the global modal styling
