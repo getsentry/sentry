@@ -1,3 +1,5 @@
+import {useEffect} from 'react';
+
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import type {DateSelectorProps} from 'sentry/components/codecov/dateSelector';
 import {DateSelector} from 'sentry/components/codecov/dateSelector';
@@ -5,6 +7,15 @@ import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+
+import {isValidCodecovRelativePeriod} from './utils';
+
+const CODECOV_DEFAULT_RELATIVE_PERIOD = '24h';
+export const CODECOV_DEFAULT_RELATIVE_PERIODS = {
+  '24h': t('Last 24 hours'),
+  '7d': t('Last 7 days'),
+  '30d': t('Last 30 days'),
+};
 
 export interface DatePickerProps
   extends Partial<Partial<Omit<DateSelectorProps, 'relative' | 'menuBody'>>> {}
@@ -20,6 +31,16 @@ export function DatePicker({
   const {selection, desyncedFilters} = usePageFilters();
   const desynced = desyncedFilters.has('datetime');
   const period = selection.datetime?.period;
+
+  // Adjusts to valid Codecov relative period
+  useEffect(() => {
+    if (!isValidCodecovRelativePeriod(period)) {
+      const newTimePeriod = {period: CODECOV_DEFAULT_RELATIVE_PERIOD};
+      updateDateTime(newTimePeriod, router, {
+        save: true,
+      });
+    }
+  }, [period, router]);
 
   return (
     <DateSelector

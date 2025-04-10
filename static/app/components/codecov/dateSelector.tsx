@@ -15,6 +15,8 @@ import {
 import {t} from 'sentry/locale';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
+import {CODECOV_DEFAULT_RELATIVE_PERIODS} from './datePicker';
+
 const SelectorItemsHook = HookOrDefault({
   hookName: 'component:header-selector-items',
   defaultComponent: SelectorItems,
@@ -22,12 +24,6 @@ const SelectorItemsHook = HookOrDefault({
 
 export type ChangeData = {
   relative: string | null;
-};
-
-export const CODECOV_DEFAULT_RELATIVE_PERIODS = {
-  '24h': t('Last 24 hours'),
-  '7d': t('Last 7 days'),
-  '30d': t('Last 30 days'),
 };
 
 export interface DateSelectorProps
@@ -150,8 +146,6 @@ const TriggerLabel = styled('span')`
 `;
 
 const OptionLabel = styled('span')`
-  /* Remove custom margin added by SelectorItemLabel. Once we update custom hooks and
-  remove SelectorItemLabel, we can delete this. */
   div {
     margin: 0;
   }
