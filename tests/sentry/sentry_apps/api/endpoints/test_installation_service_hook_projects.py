@@ -43,17 +43,28 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
     def test_put_service_hook_projects(self):
         self.login_as(user=self.user)
 
-        data = {"projects": [str(self.project.id), str(self.project2.id)]}
+        data = {"projects": [self.project.id, self.project2.id]}
 
         response = self.client.put(self.url, data=data, format="json")
         assert response.status_code == 200
         assert len(response.data) == 2
+
+        response_data = {int(response.data[0]["project_id"]), int(response.data[1]["project_id"])}
+        assert response_data == {self.project.id, self.project2.id}
 
         # Verify both projects are in the database
         hook_projects = ServiceHookProject.objects.filter(service_hook_id=self.service_hook.id)
         assert hook_projects.count() == 2
         project_ids = {hp.project_id for hp in hook_projects}
         assert project_ids == {self.project.id, self.project2.id}
+
+    def test_put_service_hook_projects_mixed_types(self):
+        self.login_as(user=self.user)
+
+        data = {"projects": [self.project.slug, self.project2.id]}
+
+        response = self.client.put(self.url, data=data, format="json")
+        assert response.status_code == 400
 
     def test_put_service_hook_projects_with_invalid_project(self):
         self.login_as(user=self.user)

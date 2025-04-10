@@ -12,8 +12,8 @@ from sentry.api.serializers.base import serialize
 from sentry.projects.services.project.service import project_service
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.api.serializers.servicehookproject import ServiceHookProjectSerializer
-from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
+from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 
 
 class ProjectAccessError(Exception):
@@ -34,12 +34,13 @@ class ServiceHookProjectsInputSerializer(serializers.Serializer):
 
         # Check the type of the first element to determine expected type
         first_elem = value[0]
-        expected_type = type(first_elem)
 
-        if expected_type not in (str, int):
+        if not isinstance(first_elem, (str, int)):
             raise serializers.ValidationError(
                 "Project identifiers must be either all strings (slugs) or all integers (IDs)"
             )
+
+        expected_type = type(first_elem)
 
         # Verify all elements are of the same type
         if not all(isinstance(x, expected_type) for x in value):
@@ -60,12 +61,8 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
         "DELETE": ApiPublishStatus.PRIVATE,
     }
 
-    def _list_hook_projects(self, installation_id: int) -> list[ServiceHookProject]:
-        hook = ServiceHook.objects.get(installation_id=installation_id)
-        return list(ServiceHookProject.objects.filter(service_hook_id=hook.id))
-
     def _replace_hook_projects(
-        self, installation: SentryAppInstallation, new_project_ids: set[int], request: Request
+        self, installation: RpcSentryAppInstallation, new_project_ids: set[int], request: Request
     ) -> list[ServiceHookProject]:
         with transaction.atomic(router.db_for_write(ServiceHookProject)):
             hook = ServiceHook.objects.get(installation_id=installation.id)
@@ -114,13 +111,19 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
             )
         return res
 
-    def _delete_all_hook_projects(self, installation_id: int) -> None:
-        hook = ServiceHook.objects.get(installation_id=installation_id)
-        hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
-        deletions.exec_sync_many(list(hook_projects))
+    def get(self, request: Request, installation: RpcSentryAppInstallation) -> Response:
+        hook = ServiceHook.objects.get(installation_id=installation.id)
+        hook_projects = list(ServiceHookProject.objects.filter(service_hook_id=hook.id))
 
-    def get(self, request: Request, installation: SentryAppInstallation) -> Response:
-        hook_projects = self._list_hook_projects(installation.id)
+        for hp in hook_projects:
+            p_obj = project_service.get_by_id(
+                organization_id=installation.organization_id, id=hp.project_id
+            )
+            if not request.access.has_project_access(p_obj):
+                return Response(
+                    status=400,
+                    data={"error": "Some projects are not accessible"},
+                )
 
         return self.paginate(
             request=request,
@@ -131,7 +134,7 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
             ),
         )
 
-    def put(self, request: Request, installation: SentryAppInstallation) -> Response:
+    def put(self, request: Request, installation: RpcSentryAppInstallation) -> Response:
 
         serializer = ServiceHookProjectsInputSerializer(data=request.data)
         if not serializer.is_valid():
@@ -143,9 +146,9 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
         org_id = installation.organization_id
         project_ids = set()
         for project in set(projects):
-            try:
-                project_obj = project_service.get_by_id(organization_id=org_id, id=int(project))
-            except ValueError:
+            if isinstance(project, int):
+                project_obj = project_service.get_by_id(organization_id=org_id, id=project)
+            else:
                 project_obj = project_service.get_by_slug(organization_id=org_id, slug=project)
             if project_obj and request.access.has_project_access(project_obj):
                 project_ids.add(project_obj.id)
@@ -172,6 +175,17 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
             ),
         )
 
-    def delete(self, request: Request, installation: SentryAppInstallation) -> Response:
-        self._delete_all_hook_projects(installation.id)
+    def delete(self, request: Request, installation: RpcSentryAppInstallation) -> Response:
+        hook = ServiceHook.objects.get(installation_id=installation.id)
+        hook_projects = ServiceHookProject.objects.filter(service_hook_id=hook.id)
+        for hp in hook_projects:
+            p_obj = project_service.get_by_id(
+                organization_id=installation.organization_id, id=hp.project_id
+            )
+            if not request.access.has_project_access(p_obj):
+                return Response(
+                    status=400,
+                    data={"error": "Some projects affected by this request are not accessible"},
+                )
+        deletions.exec_sync_many(list(hook_projects))
         return Response(status=204)
