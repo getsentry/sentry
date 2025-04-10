@@ -200,6 +200,7 @@ const StyledRadioField = styled(RadioField)`
     padding: ${space(3)} ${space(2)};
     border-radius: ${p => p.theme.borderRadius};
     border: 1px solid ${p => p.theme.border};
+    background-color: ${p => p.theme.surface400};
 
     &:empty {
       display: none;
