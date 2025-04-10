@@ -6,13 +6,17 @@ interface UseScrollSyncArgs {
   scrollingRef: React.RefObject<HTMLElement | null>;
 }
 
-// this hook syncs the scroll position of the scrollingRef with the refsToSync
+/**
+ * This hook syncs the scroll position of the scrollingRef with the refsToSync.
+ * @param direction - The direction to sync the scroll position in.
+ * @param refsToSync - An array of refs to sync the scroll position with.
+ * @param scrollingRef - The ref of the element to sync the scroll position with.
+ */
 export const useScrollSync = ({
   direction,
   refsToSync,
   scrollingRef,
 }: UseScrollSyncArgs) => {
-  // this effect syncs the scroll position of the scrollingRef with the refsToSync
   useLayoutEffect(() => {
     // if the scrollingRef is not available, return
     if (!scrollingRef.current) {
