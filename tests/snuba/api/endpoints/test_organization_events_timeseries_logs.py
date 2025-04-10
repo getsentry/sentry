@@ -1,0 +1,157 @@
+from datetime import timedelta
+from unittest import mock
+
+from django.urls import reverse
+
+from sentry.testutils.helpers.datetime import before_now
+from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
+
+
+def _timeseries(
+    start,
+    interval,
+    expected,
+    expected_comparison=None,
+    ignore_accuracy=False,
+    sample_count=None,
+    sample_rate=None,
+    confidence=None,
+):
+    if expected_comparison is not None:
+        assert len(expected_comparison) == len(expected)
+    if ignore_accuracy:
+        sample_count = [mock.ANY for val in expected]
+        sample_rate = [mock.ANY for val in expected]
+        confidence = [mock.ANY for val in expected]
+    else:
+        if sample_count is not None:
+            assert len(sample_count) == len(expected)
+        if sample_rate is not None:
+            assert len(sample_rate) == len(expected)
+        if confidence is not None:
+            assert len(confidence) == len(expected)
+
+    expected_value = []
+    for index, value in enumerate(expected):
+        current_value = {
+            "timestamp": start.timestamp() * 1000 + interval * index,
+            "value": value,
+        }
+        if expected_comparison is not None:
+            current_value["comparisonValue"] = expected_comparison[index]
+        if sample_count is not None:
+            current_value["sampleCount"] = sample_count[index]
+        if sample_rate is not None:
+            current_value["sampleRate"] = sample_rate[index]
+        if confidence is not None:
+            current_value["confidence"] = confidence[index]
+        expected_value.append(current_value)
+    return expected_value
+
+
+class AnyConfidence:
+    def __eq__(self, o: object):
+        return o in ["high", "low"]
+
+
+any_confidence = AnyConfidence()
+
+
+class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpointTestBase):
+    endpoint = "sentry-api-0-organization-events-timeseries"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.start = self.day_ago = before_now(days=1).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
+        self.end = self.start + timedelta(hours=6)
+        self.two_days_ago = self.day_ago - timedelta(days=1)
+
+        self.url = reverse(
+            self.endpoint,
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
+        )
+
+    def _do_request(self, data, url=None, features=None):
+        if features is None:
+            features = {"organizations:ourlogs": True}
+        features.update(self.features)
+        with self.feature(features):
+            return self.client.get(self.url if url is None else url, data=data, format="json")
+
+    def test_count(self):
+        event_counts = [6, 0, 6, 3, 0, 3]
+        logs = []
+        for hour, count in enumerate(event_counts):
+            logs.extend(
+                [
+                    self.create_ourlog(
+                        {"body": "foo"},
+                        timestamp=self.start + timedelta(hours=hour, minutes=minute),
+                        attributes={"status": {"string_value": "success"}},
+                    )
+                    for minute in range(count)
+                ],
+            )
+        self.store_ourlogs(logs)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": "ourlogs",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "ourlogs",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeseries"]) == 1
+        timeseries = response.data["timeseries"][0]
+        assert len(timeseries["values"]) == 6
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start,
+            3_600_000,
+            event_counts,
+            sample_count=event_counts,
+            sample_rate=[1 if val else 0 for val in event_counts],
+            confidence=[any_confidence if val else None for val in event_counts],
+        )
+        assert timeseries["meta"] == {
+            "valueType": "integer",
+            "interval": 3_600_000,
+        }
+
+    def test_zerofill(self):
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": "ourlogs",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "ourlogs",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeseries"]) == 1
+        timeseries = response.data["timeseries"][0]
+        assert len(timeseries["values"]) == 7
+        assert timeseries["values"] == _timeseries(
+            self.start,
+            3_600_000,
+            [0] * 7,
+        )
