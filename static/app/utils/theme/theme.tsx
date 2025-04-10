@@ -378,9 +378,9 @@ export const generateThemeAliases = (colors: Colors) => ({
   chartOther: colors.gray200,
 
   /**
-   * Color of the divider used in the content slider diff
+   * Hover color of the drag handle used in the content slider diff view.
    */
-  diffSliderDivider: colors.purple400,
+  diffSliderDragHandleHover: colors.purple400,
 
   /**
    * Default Progressbar color
