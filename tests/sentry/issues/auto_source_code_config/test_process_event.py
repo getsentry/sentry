@@ -5,6 +5,8 @@ from unittest.mock import patch
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.source_code_management.repo_trees import RepoAndBranch
+from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, create_code_mapping
 from sentry.issues.auto_source_code_config.constants import (
     DERIVED_ENHANCEMENTS_OPTION_KEY,
     METRIC_PREFIX,
@@ -670,7 +672,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         )
 
     @with_feature({"organizations:auto-source-code-config-java-enabled": True})
-    def test_multiple_tlds(self) -> None:
+    def test_country_code_tld(self) -> None:
         # We have two packages for the same domain
         repo_trees = {REPO1: ["src/uk/co/example/foo/Bar.kt", "src/uk/co/example/bar/Baz.kt"]}
         frames = [
@@ -688,6 +690,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             ],
             expected_new_in_app_stack_trace_rules=["stack.module:uk.co.example.** +app"],
         )
+        # The event where derivation happens does not have rules applied
         assert event.data["metadata"]["in_app_frame_mix"] == "system-only"
 
         event = self._process_and_assert_configuration_changes(
@@ -695,18 +698,49 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             frames=frames,
             platform=self.platform,
         )
-        # It's mixed becausethe not-example package is a system frame
+        # It's mixed because the not-example package is a system frame
         assert event.data["metadata"]["in_app_frame_mix"] == "mixed"
 
+    @with_feature({"organizations:auto-source-code-config-java-enabled": True})
+    def test_country_code_tld_with_old_granularity(self) -> None:
+        # We have two packages for the same domain
+        repo_trees = {REPO1: ["src/uk/co/example/foo/Bar.kt", "src/uk/co/example/bar/Baz.kt"]}
         frames = [
-            self.frame(module="uk.co.example.bar.Baz", abs_path="Baz.kt", in_app=False),
+            self.frame(module="uk.co.example.foo.Bar", abs_path="Bar.kt", in_app=False),
+            # This does not belong to the org since it does not show up in the repos
+            self.frame(module="uk.co.not-example.baz.qux", abs_path="qux.kt", in_app=False),
         ]
+
+        # Let's pretend that we have already added the two level tld rule
+        # This means that the uk.co.not-example.baz.qux will be in-app
+        repo = RepoAndBranch(name="repo1", branch="default")
+        cm = CodeMapping(repo=repo, stacktrace_root="uk.co.**", source_path="src/uk/co/")
+        create_code_mapping(self.organization, cm, self.project)
+        self.project.update_option(DERIVED_ENHANCEMENTS_OPTION_KEY, "stack.module:uk.co.** +app")
+
         event = self._process_and_assert_configuration_changes(
-            repo_trees=repo_trees, frames=frames, platform=self.platform
+            repo_trees=repo_trees,
+            frames=frames,
+            platform=self.platform,
+            expected_new_code_mappings=[
+                self.code_mapping(stack_root="uk/co/example/", source_root="src/uk/co/example/"),
+            ],
+            expected_new_in_app_stack_trace_rules=["stack.module:uk.co.example.** +app"],
         )
-        # We already have uk/co/example and stack.module:uk.co.example.** +app in place, thus,
-        # all frames will be in-app
+        # All frames are in-app because the 2-level tld rule is already in place
         assert event.data["metadata"]["in_app_frame_mix"] == "in-app-only"
+        assert RepositoryProjectPathConfig.objects.count() == 2
+        config = RepositoryProjectPathConfig.objects.get(
+            project_id=self.project.id,
+            stack_root="uk/co/example/",
+            source_root="src/uk/co/example/",
+        )
+        assert config is not None
+        # XXX: Ideally we would remove the old rule and code mapping
+        assert self.project.get_option(DERIVED_ENHANCEMENTS_OPTION_KEY).split("\n") == [
+            "stack.module:uk.co.** +app",
+            "stack.module:uk.co.example.** +app",
+        ]
 
     @with_feature({"organizations:auto-source-code-config-java-enabled": True})
     def test_do_not_clobber_rules(self) -> None:

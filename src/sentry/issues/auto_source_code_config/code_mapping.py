@@ -585,7 +585,7 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
         # Split the module at the first '$' character and take the part before it
         # If there's no '$', use the entire module
         file_path = module.split("$", 1)[0] if "$" in module else module
-        stack_root = module.rsplit(".", 1)[0].replace(".", "/")
+        stack_root = module.rsplit(".", 1)[0].replace(".", "/") + "/"
         return stack_root, file_path.replace(".", "/")
 
     if "." not in module:
