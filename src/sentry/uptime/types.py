@@ -1,6 +1,8 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum
+from typing import Literal, Required, TypedDict
 
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckStatus, CheckStatusReasonType
 
@@ -9,6 +11,84 @@ DATA_SOURCE_UPTIME_SUBSCRIPTION = "uptime_subscription"
 The workflow engine DataSource type used for registering handlers and fetching
 the uptime sbuscription data source.
 """
+
+
+RegionScheduleMode = Literal["round_robin"]
+"""
+Defines how we'll schedule checks based on other active regions.
+"""
+
+CheckInterval = Literal[60, 300, 600, 1200, 1800, 3600]
+"""
+The interval between each check run in seconds.
+"""
+
+RequestHeader = tuple[str, str]
+"""
+An individual header, consisting of a name and value as a tuple.
+"""
+
+RequestMethod = Literal["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
+"""
+The HTTP method to use for the request.
+"""
+
+
+class CheckConfig(TypedDict, total=False):
+    """
+    A message containing the configuration for a check to scheduled and
+    executed by the uptime-checker.
+    """
+
+    subscription_id: Required[str]
+    """
+    UUID of the subscription that this check config represents.
+    """
+
+    interval_seconds: Required[CheckInterval]
+    """
+    The interval between each check run in seconds.
+    """
+
+    timeout_ms: Required[int | float]
+    """
+    The total time we will allow to make the request in milliseconds.
+    """
+
+    url: Required[str]
+    """
+    The actual HTTP URL to check.
+    """
+
+    request_method: RequestMethod
+    """
+    The HTTP method to use for the request.
+    """
+
+    request_headers: Sequence[RequestHeader]
+    """
+    Additional HTTP headers to send with the request.
+    """
+
+    request_body: str
+    """
+    Additional HTTP headers to send with the request.
+    """
+
+    trace_sampling: bool
+    """
+    Whether to allow for sampled trace spans for the request.
+    """
+
+    active_regions: Sequence[str]
+    """
+    A list of region slugs the uptime check is configured to run in.
+    """
+
+    region_schedule_mode: "RegionScheduleMode"
+    """
+    Defines how we'll schedule checks based on other active regions.
+    """
 
 
 class IncidentStatus(IntEnum):
