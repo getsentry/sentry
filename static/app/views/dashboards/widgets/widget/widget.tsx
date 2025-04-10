@@ -4,8 +4,12 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {space} from 'sentry/styles/space';
-
-import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from '../common/settings';
+import {
+  MIN_HEIGHT,
+  MIN_WIDTH,
+  X_GUTTER,
+  Y_GUTTER,
+} from 'sentry/views/dashboards/widgets/common/settings';
 
 import {WidgetDescription} from './widgetDescription';
 import {WidgetError} from './widgetError';
