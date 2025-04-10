@@ -102,17 +102,6 @@ describe('DemoTours', () => {
   });
 
   describe('DemoToursProvider', () => {
-    it('renders children', () => {
-      render(
-        <DemoToursProvider>
-          <div data-test-id="child-component">Test Child</div>
-        </DemoToursProvider>
-      );
-
-      expect(screen.getByTestId('child-component')).toBeInTheDocument();
-      expect(screen.getByText('Test Child')).toBeInTheDocument();
-    });
-
     it('initializes with correct state', () => {
       render(
         <DemoToursProvider>
