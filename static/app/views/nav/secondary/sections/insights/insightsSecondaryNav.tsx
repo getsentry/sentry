@@ -14,7 +14,7 @@ import {
   AI_LANDING_SUB_PATH,
   AI_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/ai/settings';
-import {useIsLaravelInsightsEnabled} from 'sentry/views/insights/pages/backend/laravel/features';
+import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/backend/laravel/features';
 import {
   BACKEND_LANDING_SUB_PATH,
   BACKEND_SIDEBAR_LABEL,
@@ -44,7 +44,7 @@ export function InsightsSecondaryNav() {
   const organization = useOrganization();
   const location = useLocation();
   const baseUrl = `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}`;
-  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
+  const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
 
   const {projects} = useProjects();
 
@@ -63,7 +63,7 @@ export function InsightsSecondaryNav() {
     return (
       project.platform &&
       platformsUsingOverviewAsProjectDetails.includes(project.platform) &&
-      isLaravelInsightsEnabled
+      isLaravelInsightsAvailable
     );
   }
 
@@ -95,7 +95,7 @@ export function InsightsSecondaryNav() {
                 location.pathname
               ) &&
               // The starred param indicates that the overview is being accessed via the starred projects nav item
-              (!isStarredProjectSelected || !isLaravelInsightsEnabled)
+              (!isStarredProjectSelected || !isLaravelInsightsAvailable)
             }
             to={`${baseUrl}/${BACKEND_LANDING_SUB_PATH}/`}
             analyticsItemName="insights_backend"
