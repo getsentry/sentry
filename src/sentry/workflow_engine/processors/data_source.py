@@ -43,7 +43,7 @@ def process_data_sources(
                 metrics.incr(
                     "workflow_engine.process_data_sources.detectors",
                     count,
-                    tags={"detector_type": detector_type},
+                    tags={"query_type": query_type},
                 )
         else:
             logger.warning(
