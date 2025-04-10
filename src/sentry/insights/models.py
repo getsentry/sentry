@@ -24,5 +24,6 @@ class InsightsStarredSegment(DefaultFieldsModel):
     class Meta:
         app_label = "insights"
         db_table = "insights_starred_segments"
+        unique_together = (("project", "user_id", "segment_name"),)
 
     __repr__ = sane_repr("organization_id", "user_id", "segment_name")
