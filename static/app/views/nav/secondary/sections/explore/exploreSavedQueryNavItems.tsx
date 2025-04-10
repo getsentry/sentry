@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Reorder, useDragControls} from 'framer-motion';
@@ -19,13 +19,13 @@ import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 
 type Props = {
   queries: SavedQuery[];
-  sectionRef: React.RefObject<HTMLDivElement | null>;
 };
 
-export function ExploreSavedQueryNavItems({queries, sectionRef}: Props) {
+export function ExploreSavedQueryNavItems({queries}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const [savedQueries, setSavedQueries] = useState<SavedQuery[]>(queries);
+  const sectionRef = useRef<HTMLDivElement>(null);
 
   // Any time the queries prop changes (e.g. when the user stars or unstars a query),
   // we need to reset the savedQueries state.
@@ -52,12 +52,15 @@ export function ExploreSavedQueryNavItems({queries, sectionRef}: Props) {
       initial={false}
       ref={sectionRef}
       dragControls={controls}
-      onDragEnd={() => {
-        reorderStarredSavedQueries(savedQueries);
-      }}
     >
       {savedQueries?.map(query => (
-        <StyledReorderItem key={query.id} value={query}>
+        <StyledReorderItem
+          key={query.id}
+          value={query}
+          onDragEnd={() => {
+            reorderStarredSavedQueries(savedQueries);
+          }}
+        >
           <GrabHandleWrapper data-test-id={`grab-handle-${query.id}`} data-drag-icon>
             <StyledIconGrabbable color="gray300" />
             <StyledProjectIcon
