@@ -12,6 +12,7 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.serializers import serialize
+from sentry.api.utils import get_date_range_from_params
 from sentry.search.utils import DEVICE_CLASS
 
 if TYPE_CHECKING:
@@ -48,6 +49,11 @@ class GroupTagsEndpoint(GroupEndpoint):
                 value_limit = 10
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
+
+        start, end = get_date_range_from_params(request.GET, optional=True)
+        if start is None or end is None:
+            start = group.first_seen
+            end = group.last_seen
 
         tag_keys = backend.get_group_tag_keys_and_top_values(
             group,
