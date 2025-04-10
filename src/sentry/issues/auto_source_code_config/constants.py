@@ -6,6 +6,7 @@ from typing import Any
 METRIC_PREFIX = "auto_source_code_config"
 DERIVED_ENHANCEMENTS_OPTION_KEY = "sentry:derived_grouping_enhancements"
 SUPPORTED_INTEGRATIONS = ["github"]
+STACK_ROOT_MAX_LEVEL = 2
 
 # Any new languages should also require updating the stacktraceLink.tsx
 # The extensions do not need to be exhaustive but only include the ones that show up in stacktraces
