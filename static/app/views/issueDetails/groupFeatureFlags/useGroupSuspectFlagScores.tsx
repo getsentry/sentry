@@ -1,7 +1,16 @@
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {SuspectFlagScore} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
+
+type SuspectFlagScore = {
+  baseline_percent: number;
+  flag: string;
+  score: number;
+};
+
+type SuspectFlagScoresResponse = {
+  data: SuspectFlagScore[];
+};
 
 /**
  * Query all feature flags and their scores for a given issue. Defaults to page filters for datetime and environment params.
@@ -38,7 +47,3 @@ export function useGroupSuspectFlagScores({
     }
   );
 }
-
-type SuspectFlagScoresResponse = {
-  data: SuspectFlagScore[];
-};

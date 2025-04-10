@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
@@ -20,14 +20,6 @@ import {
 } from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
-/**
- * Ordering for flags in the drawer.
- */
-function getSortedTags(tags: GroupTag[]) {
-  // Alphabetical by key.
-  return tags.toSorted((t1, t2) => t1.key.localeCompare(t2.key));
-}
-
 const SHOW_SCORES_LOCAL_STORAGE_KEY = 'flag-drawer-show-suspicion-scores';
 
 export default function FlagDrawerContent({
@@ -39,7 +31,7 @@ export default function FlagDrawerContent({
   group: Group;
   search: string;
 }) {
-  // Flags use the same endpoint and response format as tags, so we reuse TagDistribution, tag types, and "tag" in variable names.
+  // Fetch data. Flags use the same endpoint and response type as tags, so we reuse some "tags" naming.
   const {
     data = [],
     isPending,
@@ -59,18 +51,7 @@ export default function FlagDrawerContent({
     [data]
   );
 
-  const displayTags = useMemo(() => {
-    const sortedTags = getSortedTags(data);
-    const searchedTags = sortedTags.filter(
-      tag =>
-        tag.key.includes(search) ||
-        tag.name.includes(search) ||
-        tagValues[tag.key]?.toLowerCase().includes(search.toLowerCase())
-    );
-    return searchedTags;
-  }, [data, search, tagValues]);
-
-  // Suspect flag scoring. This a rudimentary INTERNAL-ONLY display for testing our scoring algorithms.
+  // Suspect flag scores. This is a rudimentary INTERNAL-ONLY feature for testing our scoring algorithms.
   const [showScores, setShowScores] = useLocalStorageState(
     SHOW_SCORES_LOCAL_STORAGE_KEY,
     '0'
@@ -89,9 +70,51 @@ export default function FlagDrawerContent({
 
   const suspectScoresMap = useMemo(() => {
     return Object.fromEntries(
-      suspectScores?.data?.map(score => [score.flag, score.score]) ?? []
+      suspectScores?.data?.map(score => [score.flag, score]) ?? []
     );
   }, [suspectScores]);
+
+  const getSuspectDisplay = useCallback(
+    (flag: string) => {
+      const scoreObj = suspectScoresMap[flag];
+      return (
+        <div>
+          {`Suspicion Score: ${scoreObj?.score.toString() ?? '_'}`}
+          <br />
+          {`Baseline Percent: ${scoreObj?.baseline_percent ? `${scoreObj.baseline_percent * 100}%` : '_'}`}
+        </div>
+      );
+    },
+    [suspectScoresMap]
+  );
+
+  // Sort and filter results.
+  const sortTags = useCallback(
+    (tags: GroupTag[]) => {
+      if (scoresEnabled && showScores === '1') {
+        // Descending by score.
+        return tags.toSorted(
+          (t1, t2) =>
+            (suspectScoresMap[t2.key]?.score ?? 0) -
+            (suspectScoresMap[t1.key]?.score ?? 0)
+        );
+      }
+      // Alphabetical by key.
+      return tags.toSorted((t1, t2) => t1.key.localeCompare(t2.key));
+    },
+    [scoresEnabled, showScores, suspectScoresMap]
+  );
+
+  const displayTags = useMemo(() => {
+    const sortedTags = sortTags(data);
+    const searchedTags = sortedTags.filter(
+      tag =>
+        tag.key.includes(search) ||
+        tag.name.includes(search) ||
+        tagValues[tag.key]?.toLowerCase().includes(search.toLowerCase())
+    );
+    return searchedTags;
+  }, [data, search, sortTags, tagValues]);
 
   // CTA logic
   const {projects} = useProjects();
@@ -126,9 +149,7 @@ export default function FlagDrawerContent({
             <FlagDetailsLink tag={tag} key={tag.key}>
               <TagDistribution tag={tag} key={tag.key} />
             </FlagDetailsLink>
-            {scoresEnabled && showScores === '1' && (
-              <div>{`Suspicion Score: ${suspectScoresMap[tag.key] ?? 'unknown'}`}</div>
-            )}
+            {scoresEnabled && showScores === '1' && getSuspectDisplay(tag.key)}
           </div>
         ))}
       </Container>
