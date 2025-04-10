@@ -71,7 +71,7 @@ const FILTER_KEYS: TagCollection = {
     name: 'timesSeen',
     kind: FieldKind.FIELD,
   },
-  device: {
+  [FieldKey.DEVICE]: {
     key: 'device',
     name: 'Device',
     kind: FieldKind.FIELD,

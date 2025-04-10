@@ -55,7 +55,7 @@ import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
-import {type FieldDefinition, FieldValueType} from 'sentry/utils/fields';
+import {type FieldDefinition, FieldKey, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -387,7 +387,7 @@ function useFilterSuggestions({
         value,
         description:
           // When the key is device, we can help users by displaying the readable name
-          key?.key === 'device' ? (
+          key?.key === FieldKey.DEVICE ? (
             <DeviceName value={value}>
               {/* Prevent the same value from being displayed twice */}
               {name => (name === value ? null : name)}
