@@ -411,7 +411,9 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       },
       source: TraceViewSources.ISSUE_DETAILS,
     });
-  }, [props.event, organization, location, previouslyFocusedNodeRef]);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.event, organization, location, previouslyFocusedNodeRef.current]);
 
   return (
     <Fragment>
