@@ -21,7 +21,9 @@ export type SortOption =
   | 'dateAdded'
   | 'dateUpdated'
   | 'mostPopular'
-  | 'recentlyViewed';
+  | 'recentlyViewed'
+  | 'starred'
+  | 'mostStarred';
 
 // Comes from ExploreSavedQueryModelSerializer
 export type SavedQuery = {
@@ -47,7 +49,7 @@ type Props = {
   exclude?: 'owned' | 'shared';
   perPage?: number;
   query?: string;
-  sortBy?: SortOption;
+  sortBy?: SortOption[];
   starred?: boolean;
 };
 
@@ -61,7 +63,7 @@ export function useGetSavedQueries({
 }: Props) {
   const organization = useOrganization();
 
-  const {data, isLoading, getResponseHeader} = useApiQuery<SavedQuery[]>(
+  const {data, isLoading, getResponseHeader, ...rest} = useApiQuery<SavedQuery[]>(
     [
       `/organizations/${organization.slug}/explore/saved/`,
       {
@@ -82,7 +84,7 @@ export function useGetSavedQueries({
 
   const pageLinks = getResponseHeader?.('Link');
 
-  return {data, isLoading, pageLinks};
+  return {data, isLoading, pageLinks, ...rest};
 }
 
 export function useInvalidateSavedQueries() {

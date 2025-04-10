@@ -43,8 +43,8 @@ class OrganizationGroupSuspectFlagsEndpoint(GroupEndpoint, EnvironmentMixin):
         return Response(
             {
                 "data": [
-                    {"flag": flag, "score": score}
-                    for flag, score in get_suspect_flag_scores(
+                    {"flag": flag, "score": score, "baseline_percent": baseline_percent}
+                    for flag, score, baseline_percent in get_suspect_flag_scores(
                         organization_id,
                         project_id,
                         start,

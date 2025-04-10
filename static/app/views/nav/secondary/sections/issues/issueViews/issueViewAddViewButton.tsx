@@ -59,6 +59,7 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
             projects: defaultProject,
             environments: DEFAULT_ENVIRONMENTS,
             timeFilters: DEFAULT_TIME_FILTERS,
+            starred: true,
           },
         ],
         orgSlug: organization.slug,
@@ -90,7 +91,11 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
 }
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  margin: 0 !important;
+  && {
+    margin: 0;
+    height: 14px;
+    width: 14px;
+  }
 `;
 
 const AddViewButton = styled(Button)<{layout: NavLayout}>`
