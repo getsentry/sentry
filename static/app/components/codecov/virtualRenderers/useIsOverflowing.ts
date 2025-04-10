@@ -1,7 +1,11 @@
 import {useEffect, useState} from 'react';
 
-// this hook returns whether the element is overflowing by using a resize
-// observer on the element
+/**
+ * This hook returns a boolean value indicating whether the element is overflowing.
+ * It uses a resize observer to watch for changes in the element's size.
+ * @param ref - The ref of the element to observe
+ * @returns Whether the element is overflowing
+ */
 export const useIsOverflowing = (ref: React.RefObject<HTMLDivElement | null>) => {
   // keep track of whether the element is overflowing
   const [isOverflowing, setIsOverflowing] = useState(false);
