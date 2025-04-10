@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,10 +19,12 @@ from sentry.integrations.api.serializers.models.integration import IntegrationSe
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class IntegrationIssueSerializer(IntegrationSerializer):
@@ -29,7 +32,10 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         self.group = group
 
     def get_attrs(
-        self, item_list: list[RpcIntegration], user: User, **kwargs: Any
+        self,
+        item_list: Sequence[RpcIntegration],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> MutableMapping[RpcIntegration, MutableMapping[str, Any]]:
         external_issues = ExternalIssue.objects.filter(
             id__in=GroupLink.objects.get_group_issues(self.group).values_list(
@@ -64,7 +70,11 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         }
 
     def serialize(
-        self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+        self,
+        obj: Integration | RpcIntegration,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> MutableMapping[str, Any]:
         data = super().serialize(obj, attrs, user)
         data["externalIssues"] = attrs.get("external_issues", [])
