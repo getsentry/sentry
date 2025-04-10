@@ -123,4 +123,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
             response_state["repositories"] = repositories
 
+            # Remove unnecessary or sensitive data to reduce returned payload size
+            for key in ["request", "usage", "signals"]:
+                response_state.pop(key, None)
+
         return Response({"autofix": response_state})
