@@ -13,7 +13,7 @@ type SuspectFlagScoresResponse = {
 };
 
 /**
- * Query all feature flags and their scores for a given issue. Defaults to page filters for datetime and environment params.
+ * Query all feature flags and their scores for a given issue. Defaults to page filters if environment is not provided.
  */
 export function useGroupSuspectFlagScores({
   groupId,
@@ -32,12 +32,14 @@ export function useGroupSuspectFlagScores({
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const query = {
-    environment: environment ?? selection.environments,
-    statsPeriod: statsPeriod ?? selection.datetime.period,
-    start: start ?? selection.datetime.start?.toString(),
-    end: end ?? selection.datetime.end?.toString(),
-  };
+  const query = Object.fromEntries(
+    [
+      ['environment', environment ?? selection.environments],
+      ['statsPeriod', statsPeriod],
+      ['start', start],
+      ['end', end],
+    ].filter(([_, value]) => !!value)
+  );
 
   return useApiQuery<SuspectFlagScoresResponse>(
     [`/organizations/${organization.slug}/issues/${groupId}/suspect/flags/`, {query}],
