@@ -18,6 +18,7 @@ import prettier from 'eslint-config-prettier';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
+import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 // @ts-expect-error TS(7016): Could not find a declaration file
@@ -363,6 +364,21 @@ export default typescript.config([
       'import/no-named-as-default-member': 'off', // Disabled in favor of typescript-eslint
       'import/no-named-as-default': 'off', // TODO(ryan953): Fix violations and enable this rule
       'import/no-unresolved': 'off', // Disabled in favor of typescript-eslint
+    },
+  },
+  {
+    name: 'plugin/no-relative-import-paths',
+    // https://github.com/MelvinVermeer/eslint-plugin-no-relative-import-paths?tab=readme-ov-file#rule-options
+    plugins: {'no-relative-import-paths': noRelativeImportPaths},
+    rules: {
+      'no-relative-import-paths/no-relative-import-paths': [
+        'warn', // TODO(ryan953): Fix violations and enable this rule,
+        {
+          prefix: 'sentry',
+          rootDir: 'static/app',
+          allowSameFolder: true, // TODO(ryan953): followup and investigate `allowSameFolder`, maybe exceptions for *.spec.tsx files?
+        },
+      ],
     },
   },
   {
@@ -838,6 +854,14 @@ export default typescript.config([
     name: 'files/gsApp',
     files: ['static/gsApp/**/*.{js,mjs,ts,jsx,tsx}'],
     rules: {
+      'no-relative-import-paths/no-relative-import-paths': [
+        'warn', // TODO(ryan953): Fix violations and enable this rule,
+        {
+          prefix: 'getsentry',
+          rootDir: 'static/gsApp',
+          allowSameFolder: true, // TODO(ryan953): followup and investigate `allowSameFolder`, maybe exceptions for *.spec.tsx files?
+        },
+      ],
       'no-restricted-imports': [
         'error',
         {
@@ -866,6 +890,14 @@ export default typescript.config([
     name: 'files/gsAdmin',
     files: ['static/gsAdmin/**/*.{js,mjs,ts,jsx,tsx}'],
     rules: {
+      'no-relative-import-paths/no-relative-import-paths': [
+        'warn', // TODO(ryan953): Fix violations and enable this rule,
+        {
+          prefix: 'admin',
+          rootDir: 'static/gsAdmin',
+          allowSameFolder: true, // TODO(ryan953): followup and investigate `allowSameFolder`, maybe exceptions for *.spec.tsx files?
+        },
+      ],
       'no-restricted-imports': [
         'error',
         {

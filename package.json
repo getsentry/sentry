@@ -198,6 +198,7 @@
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-jest": "^28.11.0",
     "eslint-plugin-jest-dom": "^5.5.0",
+    "eslint-plugin-no-relative-import-paths": "^1.6.1",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "5.2.0",
     "eslint-plugin-sentry": "^2.10.0",
