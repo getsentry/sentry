@@ -54,6 +54,7 @@ const Body = styled('div')`
   flex-direction: column;
   gap: ${space(3)};
   flex-grow: 1;
+  background: ${p => p.theme.surface400};
 `;
 
 const ChartContainer = styled('div')`
