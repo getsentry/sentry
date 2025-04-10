@@ -351,7 +351,6 @@ def devserver(
 
             if settings.SENTRY_USE_UPTIME:
                 kafka_consumers.add("uptime-results")
-                kafka_consumers.add("uptime-configs")
 
             if settings.SENTRY_USE_RELAY:
                 # TODO: Remove this once we have a better way to check if relay is running for new devservices
