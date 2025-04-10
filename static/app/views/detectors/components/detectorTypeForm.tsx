@@ -7,7 +7,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import Debug from 'sentry/components/workflowEngine/form/debug';
+import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
 import {useFormField} from 'sentry/components/workflowEngine/form/hooks';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -66,7 +66,7 @@ export function DetectorTypeForm() {
             </p>
           </Header>
           <MonitorTypeField />
-          <Debug />
+          <DebugForm />
         </Group>
       </Flex>
     </Form>

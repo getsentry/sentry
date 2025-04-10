@@ -2,7 +2,7 @@ import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 import {useFormFields} from './hooks';
 
-export default function Debug() {
+export function DebugForm() {
   const form = useFormFields();
   const tokens = usePrismTokens({code: JSON.stringify(form, null, 2), language: 'json'});
   return (
