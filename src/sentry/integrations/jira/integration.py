@@ -28,6 +28,7 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
 from sentry.pipeline.views.base import PipelineView
@@ -372,10 +373,8 @@ class JiraIntegration(IssueSyncIntegration):
 
     def get_config_data(self):
         config = self.org_integration.config
-        project_mappings: Sequence[IntegrationExternalProject] = (
-            IntegrationExternalProject.objects.filter(
-                organization_integration_id=self.org_integration.id
-            )
+        project_mappings = IntegrationExternalProject.objects.filter(
+            organization_integration_id=self.org_integration.id
         )
         sync_status_forward = {}
 
@@ -437,12 +436,12 @@ class JiraIntegration(IssueSyncIntegration):
     def get_persisted_ignored_fields(self):
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
-    def get_feedback_issue_body(self, event):
+    def get_feedback_issue_body(self, occurrence: IssueOccurrence) -> str:
         messages = [
-            evidence for evidence in event.occurrence.evidence_display if evidence.name == "message"
+            evidence for evidence in occurrence.evidence_display if evidence.name == "message"
         ]
         others = [
-            evidence for evidence in event.occurrence.evidence_display if evidence.name != "message"
+            evidence for evidence in occurrence.evidence_display if evidence.name != "message"
         ]
 
         body = ""
@@ -485,7 +484,7 @@ class JiraIntegration(IssueSyncIntegration):
         if isinstance(event, GroupEvent) and event.occurrence is not None:
             body = ""
             if group.issue_category == GroupCategory.FEEDBACK:
-                body = self.get_feedback_issue_body(event)
+                body = self.get_feedback_issue_body(event.occurrence)
             else:
                 body = self.get_generic_issue_body(event)
             output.extend([body])
