@@ -46,9 +46,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
         self.handler = PagerDutyMetricAlertHandler()
 
-    @mock.patch(
-        "sentry.notifications.notification_action.metric_alert_registry.handlers.pagerduty_metric_alert_handler.send_incident_alert_notification"
-    )
+    @mock.patch("sentry.integrations.pagerduty.utils.send_incident_alert_notification")
     def test_send_alert(self, mock_send_incident_alert_notification):
         notification_context = NotificationContext.from_action_model(self.action)
         assert self.group_event.occurrence is not None

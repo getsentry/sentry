@@ -1,7 +1,8 @@
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.notifications.notification_action.utils import execute_via_group_type_registry
-from sentry.workflow_engine.handlers.action.notification.base import IntegrationActionHandler
-from sentry.workflow_engine.handlers.action.notification.common import (
+from sentry.notifications.notification_action.action_handler_registry.base import (
+    IntegrationActionHandler,
+)
+from sentry.notifications.notification_action.action_handler_registry.common import (
     MESSAGING_ACTION_CONFIG_SCHEMA,
     NOTES_SCHEMA,
     TAGS_SCHEMA,
@@ -35,4 +36,6 @@ class SlackActionHandler(IntegrationActionHandler):
         action: Action,
         detector: Detector,
     ) -> None:
+        from sentry.notifications.notification_action.utils import execute_via_group_type_registry
+
         execute_via_group_type_registry(job, action, detector)
