@@ -52,7 +52,7 @@ describe('useLeftScrollSync', () => {
       it('syncs scroll left', async () => {
         render(<TestComponent direction="left" />);
 
-        const textArea = screen.getByTestId('text-area');
+        const textArea = screen.getByRole('textbox');
         fireEvent.scroll(textArea, {
           target: {scrollLeft: 100},
         });
@@ -66,7 +66,7 @@ describe('useLeftScrollSync', () => {
       it('syncs scroll top', async () => {
         render(<TestComponent direction="top" />);
 
-        const textArea = screen.getByTestId('text-area');
+        const textArea = screen.getByRole('textbox');
         fireEvent.scroll(textArea, {
           target: {scrollTop: 100},
         });
@@ -80,14 +80,14 @@ describe('useLeftScrollSync', () => {
       it('syncs scroll left and top', async () => {
         render(<TestComponent direction="all" />);
 
-        const textArea = screen.getByTestId('text-area');
+        const textArea = screen.getByRole('textbox');
         fireEvent.scroll(textArea, {
           target: {scrollTop: 100, scrollLeft: 100},
         });
 
         const overlay = screen.getByTestId('overlay');
         await waitFor(() => expect(overlay.scrollTop).toBe(100));
-        await waitFor(() => expect(overlay.scrollLeft).toBe(100));
+        expect(overlay.scrollLeft).toBe(100);
       });
     });
   });
