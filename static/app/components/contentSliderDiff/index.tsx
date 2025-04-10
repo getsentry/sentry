@@ -23,7 +23,7 @@ export interface ContentSliderDiffBodyProps {
    * A callback function triggered when the divider is clicked (mouse down event).
    * Useful when we want to track analytics.
    */
-  onDividerMouseDown?: (e: React.MouseEvent) => void;
+  onDragHandleMouseDown?: (e: React.MouseEvent) => void;
 }
 
 /**
@@ -33,7 +33,7 @@ export interface ContentSliderDiffBodyProps {
  * (e.g. images, replays, etc).
  */
 function Body({
-  onDividerMouseDown,
+  onDragHandleMouseDown,
   after,
   before,
   minHeight = '0px',
@@ -49,7 +49,7 @@ function Body({
           <Sides
             viewDimensions={viewDimensions}
             width={width}
-            onDividerMouseDown={onDividerMouseDown}
+            onDragHandleMouseDown={onDragHandleMouseDown}
             before={before}
             after={after}
           />
@@ -93,13 +93,13 @@ function AfterLabel({help, children}: ContentSliderDiffBeforeOrAfterLabelProps) 
 const BORDER_WIDTH = 3;
 
 interface ContentSliderDiffSidesProps
-  extends Pick<ContentSliderDiffBodyProps, 'onDividerMouseDown' | 'before' | 'after'> {
+  extends Pick<ContentSliderDiffBodyProps, 'onDragHandleMouseDown' | 'before' | 'after'> {
   viewDimensions: {height: number; width: number};
   width: string | undefined;
 }
 
 function Sides({
-  onDividerMouseDown,
+  onDragHandleMouseDown,
   viewDimensions,
   width,
   before,
@@ -140,10 +140,10 @@ function Sides({
         </Placement>
       </Cover>
       <Divider
-        data-test-id="divider"
+        data-test-id="drag-handle"
         ref={dividerElem}
         onMouseDown={event => {
-          onDividerMouseDown?.(event);
+          onDragHandleMouseDown?.(event);
           onMouseDown(event);
         }}
       />
@@ -198,16 +198,16 @@ const Divider = styled('div')`
   cursor: ew-resize;
   width: var(--line-width);
   height: 100%;
-  background: ${p => p.theme.diffSliderDivider};
+  background: ${p => p.theme.diffSliderDragHandleHover};
   position: absolute;
   top: 0;
   transform: translate(-0.5px, 0);
 
   &::before,
   &::after {
-    background: ${p => p.theme.diffSliderDivider};
+    background: ${p => p.theme.diffSliderDragHandleHover};
     border-radius: var(--handle-size);
-    border: var(--line-width) solid ${p => p.theme.diffSliderDivider};
+    border: var(--line-width) solid ${p => p.theme.diffSliderDragHandleHover};
     content: '';
     height: var(--handle-size);
     position: absolute;
