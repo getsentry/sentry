@@ -3,11 +3,15 @@ from __future__ import annotations
 import abc
 import logging
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 from cronsim import CronSim, CronSimError
 from django.utils import timezone
 
 from sentry.conf.types.taskworker import crontab
+
+if TYPE_CHECKING:
+    from sentry_sdk._types import MonitorConfigScheduleUnit
 
 logger = logging.getLogger("taskworker.scheduler")
 
@@ -50,6 +54,21 @@ class TimedeltaSchedule(Schedule):
             raise ValueError("microseconds are not supported")
         if delta.total_seconds() < 0:
             raise ValueError("interval must be at least one second")
+
+    def monitor_interval(self) -> tuple[int, MonitorConfigScheduleUnit]:
+        time_units: tuple[tuple[MonitorConfigScheduleUnit, float], ...] = (
+            ("day", 60 * 60 * 24.0),
+            ("hour", 60 * 60.0),
+            ("minute", 60.0),
+        )
+
+        seconds = self._delta.total_seconds()
+        for unit, divider in time_units:
+            if seconds >= divider:
+                interval = int(seconds / divider)
+                return (interval, unit)
+
+        return (int(seconds), "second")
 
     def is_due(self, last_run: datetime | None = None) -> bool:
         """Check if the schedule is due to run again based on last_run."""
@@ -97,6 +116,10 @@ class CrontabSchedule(Schedule):
             self._cronsim = CronSim(str(crontab), timezone.now())
         except CronSimError as e:
             raise ValueError(f"crontab expression {self._crontab} is invalid") from e
+
+    def monitor_value(self) -> str:
+        """Get the crontab expression as a string"""
+        return str(self._crontab)
 
     def is_due(self, last_run: datetime | None = None) -> bool:
         """Check if the schedule is due to run again based on last_run."""
