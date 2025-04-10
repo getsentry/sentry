@@ -8,8 +8,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import type {ModuleName} from '../../types';
+import type {ModuleName} from 'sentry/views/insights/types';
 
 interface UseSamplesDrawerProps {
   Component: React.ReactNode;

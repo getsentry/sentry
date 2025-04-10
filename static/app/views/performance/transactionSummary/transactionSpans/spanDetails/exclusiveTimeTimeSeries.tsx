@@ -23,8 +23,7 @@ import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-
-import {getExclusiveTimeDisplayedValue} from '../utils';
+import {getExclusiveTimeDisplayedValue} from 'sentry/views/performance/transactionSummary/transactionSpans/utils';
 
 type Props = {
   eventView: EventView;

@@ -12,13 +12,12 @@ import type {TagCollection} from 'sentry/types/group';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {BuildStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/buildStep';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {
   getResultsLimit,
   SortDirection,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
-
-import {BuildStep} from '../buildStep';
 
 import {SortBySelectors} from './sortBySelectors';
 

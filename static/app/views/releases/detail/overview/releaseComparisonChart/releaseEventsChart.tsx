@@ -22,12 +22,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
-
 import {
   generateReleaseMarkLines,
   releaseComparisonChartTitles,
   releaseMarkLinesLabels,
-} from '../../utils';
+} from 'sentry/views/releases/detail/utils';
 
 type Props = {
   chartType: ReleaseComparisonChartType;

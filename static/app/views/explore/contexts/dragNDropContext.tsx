@@ -12,7 +12,10 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 
-import {type Column, useDragNDropColumns} from '../hooks/useDragNDropColumns';
+import {
+  type Column,
+  useDragNDropColumns,
+} from 'sentry/views/explore/hooks/useDragNDropColumns';
 
 interface DragNDropContextProps {
   children: (props: {

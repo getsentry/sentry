@@ -3,8 +3,6 @@ import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
-
-import {getStylingSliceName} from '../../../traces/utils';
 import {
   isAutogroupedNode,
   isEAPErrorNode,
@@ -13,12 +11,16 @@ import {
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
-} from '../traceGuards';
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
-import {TraceBackgroundPatterns} from '../traceRow/traceBackgroundPatterns';
-import {TraceErrorIcons, TraceOccurenceIcons} from '../traceRow/traceIcons';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import {TraceBackgroundPatterns} from 'sentry/views/performance/newTraceDetails/traceRow/traceBackgroundPatterns';
+import {
+  TraceErrorIcons,
+  TraceOccurenceIcons,
+} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
+import {getStylingSliceName} from 'sentry/views/traces/utils';
 
 export function makeTraceNodeBarColor(
   theme: Theme,

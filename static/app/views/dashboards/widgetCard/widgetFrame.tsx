@@ -7,11 +7,10 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import type {WidgetDescriptionProps} from 'sentry/views/dashboards/widgets/widget/widgetDescription';
 import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
-
-import type {StateProps} from '../widgets/common/types';
-import {Widget} from '../widgets/widget/widget';
-import type {WidgetDescriptionProps} from '../widgets/widget/widgetDescription';
 
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import {WarningsList} from './warningsList';

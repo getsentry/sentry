@@ -1,6 +1,5 @@
+import isValidDate from 'sentry/utils/date/isValidDate';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
-
-import isValidDate from '../date/isValidDate';
 
 export function shiftTabularDataToNow(tabularData: TabularData): TabularData {
   const currentTimestamp = Date.now();

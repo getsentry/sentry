@@ -2,11 +2,10 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
 import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
-
-import {InsightsAreaChartWidget} from '../../common/components/insightsAreaChartWidget';
-import {FIELD_ALIASES} from '../settings';
+import {FIELD_ALIASES} from 'sentry/views/insights/queues/settings';
 
 interface Props {
   referrer: Referrer;

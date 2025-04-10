@@ -56,7 +56,14 @@ import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constan
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
+import type {Anomaly, Incident} from 'sentry/views/alerts/types';
+import {
+  alertDetailsLink,
+  alertTooltipValueFormatter,
+  isSessionAggregate,
+} from 'sentry/views/alerts/utils';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
@@ -64,14 +71,6 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
 import {useMetricSessionStats} from 'sentry/views/issueDetails/metricIssues/useMetricSessionStats';
-
-import type {Anomaly, Incident} from '../../../types';
-import {
-  alertDetailsLink,
-  alertTooltipValueFormatter,
-  isSessionAggregate,
-} from '../../../utils';
-import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
 import type {TimePeriodType} from './constants';
 import {

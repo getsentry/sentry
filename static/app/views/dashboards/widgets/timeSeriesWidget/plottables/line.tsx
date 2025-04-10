@@ -5,8 +5,7 @@ import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 import {splitSeriesIntoCompleteAndIncomplete} from 'sentry/utils/timeSeries/splitSeriesIntoCompleteAndIncomplete';
 import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
-
-import type {TimeSeries} from '../../common/types';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {
   ContinuousTimeSeries,

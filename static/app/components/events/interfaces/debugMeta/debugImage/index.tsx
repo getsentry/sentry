@@ -1,14 +1,16 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import layout from 'sentry/components/events/interfaces/debugMeta/layout';
+import {
+  getFileName,
+  getImageAddress,
+} from 'sentry/components/events/interfaces/debugMeta/utils';
 import NotAvailable from 'sentry/components/notAvailable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
-
-import layout from '../layout';
-import {getFileName, getImageAddress} from '../utils';
 
 import Processings from './processings';
 import Status from './status';

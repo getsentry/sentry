@@ -19,9 +19,8 @@ import type {Release, ReleaseMeta} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {isReleaseArchived} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
-
-import {isReleaseArchived} from '../../utils';
 
 type Props = {
   location: Location;

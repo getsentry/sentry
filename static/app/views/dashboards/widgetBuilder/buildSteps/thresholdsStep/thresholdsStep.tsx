@@ -10,8 +10,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
-
-import {BuildStep} from '../buildStep';
+import {BuildStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/buildStep';
 
 type ThresholdErrors = Partial<Record<ThresholdMaxKeys, string>>;
 

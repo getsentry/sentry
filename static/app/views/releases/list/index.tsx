@@ -47,10 +47,9 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-
-import Header from '../components/header';
-import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
-import {isMobileRelease} from '../utils';
+import Header from 'sentry/views/releases/components/header';
+import ReleaseArchivedNotice from 'sentry/views/releases/detail/overview/releaseArchivedNotice';
+import {isMobileRelease} from 'sentry/views/releases/utils';
 
 import ReleaseCard from './releaseCard';
 import ReleasesAdoptionChart from './releasesAdoptionChart';

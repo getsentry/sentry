@@ -1,6 +1,5 @@
+import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import type {FieldKind} from 'sentry/utils/fields';
-
-import type {Token, TokenResult} from '../searchSyntax/parser';
 
 export enum ItemType {
   DEFAULT = 'default',

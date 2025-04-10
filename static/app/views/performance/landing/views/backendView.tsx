@@ -9,13 +9,15 @@ import {
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import Table from '../../table';
-import {ProjectPerformanceType} from '../../utils';
-import {BACKEND_COLUMN_TITLES} from '../data';
-import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
-import {filterAllowedChartsMetrics} from '../widgets/utils';
-import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
+import {BACKEND_COLUMN_TITLES} from 'sentry/views/performance/landing/data';
+import {
+  DoubleChartRow,
+  TripleChartRow,
+} from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
+import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import Table from 'sentry/views/performance/table';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 import type {BasePerformanceViewProps} from './types';
 

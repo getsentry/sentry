@@ -3,9 +3,8 @@ import type {TagCollection} from 'sentry/types/group';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-
-import type {DataSet} from '../../utils';
-import {BuildStep} from '../buildStep';
+import {BuildStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/buildStep';
+import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {YAxisSelector} from './yAxisSelector';
 

@@ -59,14 +59,13 @@ import {
   SENTRY_SPAN_NUMBER_TAGS,
   SENTRY_SPAN_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-
-import {traceAnalytics} from '../../traceAnalytics';
-import {useTransaction} from '../../traceApi/useTransaction';
-import {useDrawerContainerRef} from '../../traceDrawer/details/drawerContainerRefContext';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
+import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
-} from '../../traceDrawer/traceProfilingLink';
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -74,14 +73,17 @@ import {
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
-} from '../../traceGuards';
-import type {MissingInstrumentationNode} from '../../traceModels/missingInstrumentationNode';
-import type {ParentAutogroupNode} from '../../traceModels/parentAutogroupNode';
-import type {SiblingAutogroupNode} from '../../traceModels/siblingAutogroupNode';
-import {TraceTree} from '../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
-import {useTraceState, useTraceStateDispatch} from '../../traceState/traceStateProvider';
-import {useHasTraceNewUi} from '../../useHasTraceNewUi';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
+import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
+import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {
+  useTraceState,
+  useTraceStateDispatch,
+} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 import {
   getSearchInExploreTarget,

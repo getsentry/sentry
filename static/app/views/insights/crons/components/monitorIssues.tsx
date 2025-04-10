@@ -12,8 +12,7 @@ import {space} from 'sentry/styles/space';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-
-import type {Monitor, MonitorEnvironment} from '../types';
+import type {Monitor, MonitorEnvironment} from 'sentry/views/insights/crons/types';
 
 enum IssuesType {
   ALL = 'all',

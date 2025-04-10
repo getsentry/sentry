@@ -10,6 +10,7 @@ import type {PlatformKey, Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   AI_LANDING_SUB_PATH,
   AI_SIDEBAR_LABEL,
@@ -28,15 +29,13 @@ import {
   MOBILE_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+import {ModuleName} from 'sentry/views/insights/types';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-
-import {MODULE_BASE_URLS} from '../../../../insights/common/utils/useModuleURL';
-import {ModuleName} from '../../../../insights/types';
 
 const platformsUsingOverviewAsProjectDetails: PlatformKey[] = ['php-laravel'];
 

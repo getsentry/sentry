@@ -19,17 +19,19 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
+import {
+  isEventsStats,
+  isMultiSeriesEventsStats,
+} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
-import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
-
 import {
-  isEventsStats,
-  isMultiSeriesEventsStats,
-} from '../../../dashboards/utils/isEventsStats';
-import {getRetryDelay, shouldRetryHandler} from '../utils/retryHandlers';
+  getRetryDelay,
+  shouldRetryHandler,
+} from 'sentry/views/insights/common/utils/retryHandlers';
+import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
 
 type SeriesMap = Record<string, TimeSeries[]>;
 

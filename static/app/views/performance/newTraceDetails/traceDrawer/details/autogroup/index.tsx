@@ -2,13 +2,12 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import {isSiblingAutogroupedNode} from '../../../traceGuards';
-import type {ParentAutogroupNode} from '../../../traceModels/parentAutogroupNode';
-import type {SiblingAutogroupNode} from '../../../traceModels/siblingAutogroupNode';
-import {useHasTraceNewUi} from '../../../useHasTraceNewUi';
-import type {TraceTreeNodeDetailsProps} from '../../tabs/traceTreeNodeDetails';
-import {TraceDrawerComponents} from '../styles';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import {isSiblingAutogroupedNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
+import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 import {ParentAutogroupNodeDetails} from './parentAutogroup';
 import {SiblingAutogroupNodeDetails} from './siblingAutogroup';

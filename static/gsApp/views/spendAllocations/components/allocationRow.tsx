@@ -9,9 +9,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
-
-import type {BigNumUnits} from '../utils';
-import {bigNumFormatter} from '../utils';
+import type {BigNumUnits} from 'getsentry/views/spendAllocations/utils';
+import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 
 import {Centered, Divider, HalvedWithDivider} from './styles';
 import type {SpendAllocation} from './types';

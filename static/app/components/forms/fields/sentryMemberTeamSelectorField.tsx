@@ -1,10 +1,9 @@
 import {useContext, useMemo} from 'react';
 
+import FormContext from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
 import {useOwnerOptions} from 'sentry/utils/useOwnerOptions';
 import {useOwners} from 'sentry/utils/useOwners';
-
-import FormContext from '../formContext';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {SelectFieldProps} from './selectField';

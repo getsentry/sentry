@@ -26,8 +26,7 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {appendQueryDatasetParam} from 'sentry/views/dashboards/utils';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-
-import NoGroupsHandler from '../issueList/noGroupsHandler';
+import NoGroupsHandler from 'sentry/views/issueList/noGroupsHandler';
 
 enum IssuesType {
   NEW = 'new',
