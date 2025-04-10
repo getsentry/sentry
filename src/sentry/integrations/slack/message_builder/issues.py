@@ -480,9 +480,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             text = text.lstrip(" ")
             if "\n" in text:
                 text = text.strip().split("\n")[0] + "..."
-            if len(text) > 100:
-                text = text[:100] + "..."
-            headline = f"{error_type}: `{text}`"
+            if len(text) > 50:
+                text = text[:50] + "..."
+            headline = f"{error_type}: {text}" if text else error_type
 
         title = headline if headline else build_attachment_title(event_or_group)
 
