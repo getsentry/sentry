@@ -14,6 +14,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {appleFeedbackOnboarding} from 'sentry/gettingStartedDocs/apple/macos';
 import {t, tct} from 'sentry/locale';
+import {appleProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/apple';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
 
@@ -49,7 +50,7 @@ const getManualInstallSnippet = (params: Params) => `
 .package(url: "https://github.com/getsentry/sentry-cocoa", from: "${getPackageVersion(
   params,
   'sentry.cocoa',
-  '8.9.3'
+  '8.49.0'
 )}"),`;
 
 const getConfigurationSnippet = (params: Params) => `
@@ -468,6 +469,7 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding: appleFeedbackOnboarding,
   platformOptions,
   replayOnboarding,
+  profilingOnboarding: appleProfilingOnboarding,
 };
 
 export default docs;
