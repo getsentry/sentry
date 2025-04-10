@@ -45,7 +45,7 @@ export function FlagDetailsDrawerContent() {
     organization,
     query: {
       flag: tagKey,
-      per_page: 15,
+      per_page: 50,
       queryReferrer: 'featureFlagDetailsDrawer',
       sort: '-created_at',
       cursor: location.query.flagDrawerCursor,
