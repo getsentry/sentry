@@ -187,6 +187,7 @@ export function useWrappedDiscoverQuery<T>({
   initialData?: T;
   limit?: number;
   noPagination?: boolean;
+  orderby?: string;
   referrer?: string;
   samplingMode?: SamplingMode;
 }) {
@@ -239,6 +240,7 @@ export function useWrappedDiscoverQuery<T>({
 
   return {
     ...result,
+    result,
     data,
     meta,
   };
