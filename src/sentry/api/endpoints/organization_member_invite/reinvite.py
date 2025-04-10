@@ -1,4 +1,5 @@
 from typing import Any
+
 from django.db import router, transaction
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
@@ -10,7 +11,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.endpoints.organization_member import get_allowed_org_roles
 from sentry.api.endpoints.organization_member_invite import MISSING_FEATURE_MESSAGE
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -25,7 +25,7 @@ from sentry.utils import metrics
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
 ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
 ERR_INVITE_UNAPPROVED = "You cannot resend an invitation that has not been approved."
-ERR_MEMBER_INVITE = "You cannot modify invitations sent by someone else."
+ERR_MEMBER_INVITE = "You cannot resend an invitation that was sent by someone else."
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
 
 
@@ -66,6 +66,10 @@ class OrganizationMemberReinviteEndpoint(OrganizationEndpoint):
         invited_member: OrganizationMemberInvite,
         regenerate: bool,
     ) -> Response:
+        # for typing
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         if not invited_member.invite_approved:
             return Response({"detail": ERR_INVITE_UNAPPROVED}, status=400)
         if invited_member.is_scim_provisioned:
@@ -146,15 +150,6 @@ class OrganizationMemberReinviteEndpoint(OrganizationEndpoint):
                 raise PermissionDenied
             if not is_invite_from_user:
                 return Response({"detail": ERR_MEMBER_INVITE}, status=status.HTTP_403_FORBIDDEN)
-
-        allowed_roles = get_allowed_org_roles(request, organization)
-        if not {invited_member.role} and {r.id for r in allowed_roles}:
-            return Response(
-                {
-                    "detail": f"You do not have permission to approve a member invitation with the role {invited_member.role}."
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
 
         return self._reinvite(
             request, organization, invited_member, result.get("regenerate", False)
