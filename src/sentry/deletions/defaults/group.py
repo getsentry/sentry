@@ -34,6 +34,7 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupBookmark,
     models.GroupMeta,
     models.GroupEnvironment,
+    models.GroupOpenPeriod,
     models.GroupRelease,
     models.GroupRedirect,
     models.GroupResolution,

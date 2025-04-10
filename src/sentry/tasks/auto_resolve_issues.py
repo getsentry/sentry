@@ -11,7 +11,7 @@ from sentry import analytics
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues import grouptype
 from sentry.models.activity import Activity
-from sentry.models.group import Group, GroupStatus
+from sentry.models.group import Group, GroupStatus, update_group_open_period
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.options.project_option import ProjectOption
@@ -107,13 +107,19 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
 
         if happened:
-            Activity.objects.create(
+            activity = Activity.objects.create(
                 group=group,
                 project=project,
                 type=ActivityType.SET_RESOLVED_BY_AGE.value,
                 data={"age": age},
             )
             record_group_history(group, GroupHistoryStatus.AUTO_RESOLVED)
+            update_group_open_period(
+                group=group,
+                new_status=GroupStatus.RESOLVED,
+                activity=activity,
+                should_reopen_open_period=False,
+            )
 
             kick_off_status_syncs.apply_async(
                 kwargs={"project_id": group.project_id, "group_id": group.id}
