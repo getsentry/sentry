@@ -189,7 +189,7 @@ sentry-forked-djangorestframework-stubs==3.15.3.post1
 sentry-forked-email-reply-parser==0.5.12.post1
 sentry-kafka-schemas==1.1.6
 sentry-ophio==1.0.0
-sentry-protos==0.1.66
+sentry-protos==0.1.69
 sentry-redis-tools==0.5.0
 sentry-relay==0.9.8
 sentry-sdk==2.25.1

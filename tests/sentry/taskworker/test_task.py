@@ -68,6 +68,25 @@ def test_apply_async_expires(task_namespace: TaskNamespace) -> None:
     assert activation.parameters == json.dumps({"args": ["arg2"], "kwargs": {"org_id": 2}})
 
 
+def test_apply_async_countdown(task_namespace: TaskNamespace) -> None:
+    def test_func(*args, **kwargs) -> None:
+        pass
+
+    task = Task(
+        name="test.test_func",
+        func=test_func,
+        namespace=task_namespace,
+    )
+    with patch.object(task_namespace, "send_task") as mock_send:
+        task.apply_async(args=["arg2"], kwargs={"org_id": 2}, countdown=600, producer=None)
+        assert mock_send.call_count == 1
+        call_params = mock_send.call_args
+
+    activation = call_params.args[0]
+    assert activation.delay == 600
+    assert activation.parameters == json.dumps({"args": ["arg2"], "kwargs": {"org_id": 2}})
+
+
 def test_delay_taskrunner_immediate_mode(task_namespace: TaskNamespace) -> None:
     calls = []
 
