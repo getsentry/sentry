@@ -1,10 +1,8 @@
-import random
 from datetime import timedelta
 
-from django.db import IntegrityError, models, router, transaction
+from django.db import models
 from django.utils import timezone
 
-from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -16,7 +14,6 @@ from sentry.db.models import (
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 @region_silo_model
@@ -54,39 +51,16 @@ class GroupRelease(Model):
 
         instance = cache.get(cache_key)
         if instance is None:
-            if random.random() < options.get("grouprelease.new_get_or_create.rollout"):
-                instance, created = cls.objects.get_or_create(
-                    release_id=release.id,
-                    group_id=group.id,
-                    environment=environment.name,
-                    defaults={
-                        "first_seen": datetime,
-                        "last_seen": datetime,
-                        "project_id": group.project_id,
-                    },
-                )
-            else:
-                try:
-                    with transaction.atomic(router.db_for_write(cls)):
-                        instance, created = (
-                            cls.objects.create(
-                                release_id=release.id,
-                                group_id=group.id,
-                                environment=environment.name,
-                                project_id=group.project_id,
-                                first_seen=datetime,
-                                last_seen=datetime,
-                            ),
-                            True,
-                        )
-                except IntegrityError:
-                    incr_rollback_metrics(cls)
-                    instance, created = (
-                        cls.objects.get(
-                            release_id=release.id, group_id=group.id, environment=environment.name
-                        ),
-                        False,
-                    )
+            instance, created = cls.objects.get_or_create(
+                release_id=release.id,
+                group_id=group.id,
+                environment=environment.name,
+                defaults={
+                    "first_seen": datetime,
+                    "last_seen": datetime,
+                    "project_id": group.project_id,
+                },
+            )
         else:
             created = False
 
