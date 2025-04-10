@@ -28,16 +28,19 @@ class WarmupEndpoint(Endpoint):
     rate_limits = RateLimitConfig(group="INTERNAL")
 
     def get(self, request: Request) -> Response:
+        languages = [lang for lang, _ in settings.LANGUAGES]
+        languages.append(settings.LANGUAGE_CODE)
+
         # for each possible language we support, warm up the url resolver
         # this fixes an issue we were seeing where many languages trying
         # to resolve at once would cause lock contention
-        for lang, _ in settings.LANGUAGES:
+        for lang in languages:
             with translation.override(lang):
                 reverse("sentry-warmup")
 
         # for each possible language we support, warm up the translations
         # cache for faster access
-        for lang, _ in settings.LANGUAGES:
+        for lang in languages:
             try:
                 language = translation.get_supported_language_variant(lang)
             except LookupError:
