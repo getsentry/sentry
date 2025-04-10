@@ -137,6 +137,18 @@ class Task(Generic[P, R]):
             "baggage": sentry_sdk.get_baggage() or "",
             **headers,
         }
+        # Monitor config is patched in by the sentry_sdk
+        # however, taskworkers do not support the nested object,
+        # nor do they use it when creating checkins.
+        if "sentry-monitor-config" in headers:
+            del headers["sentry-monitor-config"]
+
+        for key, value in headers.items():
+            if not isinstance(value, (str, bytes, int, bool, float)):
+                raise ValueError(
+                    "Only scalar header values are supported. "
+                    f"The `{key}` header value is of type {type(value)}"
+                )
 
         return TaskActivation(
             id=uuid4().hex,
