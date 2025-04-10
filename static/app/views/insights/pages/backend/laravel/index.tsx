@@ -79,14 +79,16 @@ export function LaravelOverviewPage() {
       pathname: location.pathname,
       query: {
         ...location.query,
-        cursor: undefined,
         query: String(searchQuery).trim() || undefined,
-        isDefaultQuery: false,
       },
     });
   }
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
+
+  function handleAddTransactionFilter(value: string) {
+    handleSearch(`transaction:"${value}"`);
+  }
 
   return (
     <Feature
@@ -119,6 +121,9 @@ export function LaravelOverviewPage() {
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
+                    // Force the search bar to re-render when the derivedQuery changes
+                    // The seach bar component holds internal state that is not updated when the query prop changes
+                    key={derivedQuery}
                     organization={organization}
                     eventView={eventView}
                     onSearch={(query: string) => {
@@ -154,7 +159,10 @@ export function LaravelOverviewPage() {
                       <CachesWidget query={derivedQuery} />
                     </CachesContainer>
                   </WidgetGrid>
-                  <PathsTable query={derivedQuery} />
+                  <PathsTable
+                    handleAddTransactionFilter={handleAddTransactionFilter}
+                    query={derivedQuery}
+                  />
                 </PerformanceDisplayProvider>
               )}
               {showOnboarding && (
