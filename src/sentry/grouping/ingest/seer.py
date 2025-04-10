@@ -338,6 +338,11 @@ def get_seer_similar_issues(
             "use_reranking": False,
         }
 
+        # TODO: Temporary log to prove things are working as they should. This should come in a pair
+        # with the `get_similarity_data_from_seer.ingest_follow_up` log in `similar_issues.py`,
+        # which should show that no matches are returned.
+        logger.info("get_seer_similar_issues.follow_up_seer_request", extra={"hash": event_hash})
+
         # We only want this for the side effect, and we know it'll return no matches, so we don't
         # bother to capture the return value.
         get_similarity_data_from_seer(request_data)
