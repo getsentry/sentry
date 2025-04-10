@@ -118,16 +118,20 @@ function MonitorTypeField() {
       flexibleControlStateSize
       name="type"
       choices={[
-        ['metric', 'Metric', 'Monitor error counts, transaction duration, and more!'],
+        [
+          'metric',
+          t('Metric'),
+          t('Monitor error counts, transaction duration, and more!'),
+        ],
         [
           'crons',
-          'Crons',
-          'Monitor the uptime and performance of any scheduled, recurring jobs.',
+          t('Crons'),
+          t('Monitor the uptime and performance of any scheduled, recurring jobs.'),
         ],
         [
           'uptime',
-          'Uptime',
-          'Monitor the uptime of specific endpoint in your applications.',
+          t('Uptime'),
+          t('Monitor the uptime of specific endpoint in your applications.'),
         ],
       ]}
     />
