@@ -16,9 +16,7 @@ describe('PolicyStatus', function () {
     await userEvent.hover(icon);
 
     expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
-    expect(
-      await screen.findByText('This item is required/provided as part of your agreement.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Included with all accounts')).toBeInTheDocument();
   });
 
   it('renders checkmark with signature info when policy is signed', async function () {
@@ -30,9 +28,7 @@ describe('PolicyStatus', function () {
 
     expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
     expect(
-      await screen.findByText(
-        `${policy.consent!.userEmail} signed this policy on Jan 1, 2018`
-      )
+      await screen.findByText(`Signed by ${policy.consent!.userEmail} on Jan 1, 2018`)
     ).toBeInTheDocument();
   });
 
@@ -44,9 +40,7 @@ describe('PolicyStatus', function () {
     await userEvent.hover(icon);
 
     expect(screen.getByTestId('icon-subtract')).toBeInTheDocument();
-    expect(
-      await screen.findByText('This policy has not been signed.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Optional, not signed')).toBeInTheDocument();
   });
 
   it('renders StatusIconWithTooltip component correctly', async function () {
