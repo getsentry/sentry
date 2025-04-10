@@ -15,7 +15,7 @@ def validate_json_schema(value, schema):
 def validate_json_primitive(value):
     if isinstance(value, (dict, list)):
         raise ValidationError(
-            f"Invalid DataCondition.condition_result, {value}, must be a primitive value"
+            f"Invalid json primitive value: {value}. Must be a string, number, or boolean."
         )
 
     return value
