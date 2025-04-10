@@ -65,7 +65,7 @@ describe('Nav', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/group-search-views/`,
+      url: `/organizations/org-slug/group-search-views/starred/`,
       body: [],
     });
 
