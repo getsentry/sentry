@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
 import RepositoryStore from 'sentry/stores/repositoryStore';
@@ -58,6 +58,7 @@ export function IntegrationReposAddRepository({
     },
     retry: 0,
     staleTime: 20_000,
+    placeholderData: previousData => (debouncedSearch ? previousData : undefined),
     enabled: !!debouncedSearch,
   });
 
@@ -100,7 +101,6 @@ export function IntegrationReposAddRepository({
       repo => !repositories.has(repo.identifier)
     );
     return repositoryOptions.map(repo => ({
-      searchKey: repo.name,
       value: repo.identifier,
       label: <RepoName>{repo.name}</RepoName>,
     }));
@@ -126,22 +126,30 @@ export function IntegrationReposAddRepository({
 
   return (
     <DropdownWrapper>
-      <DropdownAutoComplete
-        items={dropdownItems}
-        onSelect={addRepo}
-        onChange={e => setSearch(e.target.value)}
-        emptyMessage={t('Please enter a repository name')}
-        noResultsMessage={t('No repositories found')}
+      <CompactSelect
+        size="xs"
+        menuWidth={250}
+        options={dropdownItems}
+        onChange={addRepo}
+        disabled={false}
+        menuTitle={t('Repositories')}
+        triggerLabel={t('Add Repository')}
+        emptyMessage={
+          query.isFetching
+            ? t('Searching\u2026')
+            : debouncedSearch
+              ? t('No repositories found')
+              : t('Please enter a repository name')
+        }
         searchPlaceholder={t('Search Repositories')}
-        busy={query.isFetching}
-        alignMenu="right"
-      >
-        {({isOpen}) => (
-          <DropdownButton isOpen={isOpen} size="xs" busy={adding}>
-            {t('Add Repository')}
-          </DropdownButton>
-        )}
-      </DropdownAutoComplete>
+        loading={query.isFetching}
+        searchable
+        onSearch={setSearch}
+        triggerProps={{
+          busy: adding,
+        }}
+        disableSearchFilter
+      />
     </DropdownWrapper>
   );
 }
