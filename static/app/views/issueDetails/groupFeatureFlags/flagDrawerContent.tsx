@@ -135,11 +135,13 @@ export default function FlagDrawerContent({
     />
   ) : showCTA ? (
     <FlagDrawerCTA />
+  ) : data.length === 0 ? (
+    <StyledEmptyStateWarning withIcon>
+      {t('No feature flags were found for this issue')}
+    </StyledEmptyStateWarning>
   ) : displayTags.length === 0 ? (
     <StyledEmptyStateWarning withIcon>
-      {data.length === 0
-        ? t('No feature flags were found for this issue')
-        : t('No feature flags were found for this search')}
+      {t('No feature flags were found for this search')}
     </StyledEmptyStateWarning>
   ) : (
     <div>

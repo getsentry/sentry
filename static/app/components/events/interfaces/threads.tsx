@@ -17,6 +17,7 @@ import {
   ThreadStates,
 } from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
+import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -40,8 +41,6 @@ import {defined} from 'sentry/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-import {TraceEventDataSection} from '../traceEventDataSection';
 
 import {ExceptionContent} from './crashContent/exception';
 import {StackTraceContent} from './crashContent/stackTrace';

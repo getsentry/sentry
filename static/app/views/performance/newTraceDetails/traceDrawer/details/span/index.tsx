@@ -27,17 +27,16 @@ import {
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {getProfileMeta} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-
-import type {TraceTreeNodeDetailsProps} from '../../../traceDrawer/tabs/traceTreeNodeDetails';
-import type {TraceTree} from '../../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
-import {useHasTraceNewUi} from '../../../useHasTraceNewUi';
-import {TraceDrawerComponents} from '.././styles';
-import {IssueList} from '../issues/issues';
-import {getProfileMeta} from '../utils';
 
 import Alerts from './sections/alerts';
 import {SpanDescription} from './sections/description';

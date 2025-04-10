@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {LinkButton} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -57,6 +58,8 @@ export function FlagDetailsDrawerContent() {
   });
   const pageLinks = getResponseHeader?.('Link') ?? null;
 
+  const analyticsArea = useAnalyticsArea();
+
   if (isPending) {
     return <LoadingIndicator />;
   }
@@ -110,7 +113,7 @@ export function FlagDetailsDrawerContent() {
           trackAnalytics('flags.logs-paginated', {
             direction: cursor?.endsWith(':1') ? 'prev' : 'next',
             organization,
-            surface: 'flag_drawer',
+            surface: analyticsArea,
           });
           navigate({
             pathname: path,

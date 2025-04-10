@@ -1,6 +1,5 @@
 import type {CheckInBucket} from 'sentry/components/checkInTimeline/types';
-
-import type {CheckInStatus, MonitorBucket} from '../types';
+import type {CheckInStatus, MonitorBucket} from 'sentry/views/insights/crons/types';
 
 export function selectCheckInData(
   stats: MonitorBucket[],

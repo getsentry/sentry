@@ -24,10 +24,9 @@ import {
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-
-import {SpanTagsProvider} from '../contexts/spanTagsContext';
 
 jest.mock('sentry/actionCreators/modal');
 

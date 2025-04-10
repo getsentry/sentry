@@ -16,8 +16,12 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {shiftTabularDataToNow} from 'sentry/utils/tabularData/shiftTabularDataToNow';
 import {shiftTimeSeriesToNow} from 'sentry/utils/timeSeries/shiftTimeSeriesToNow';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-
-import type {LegendSelection, Release, TimeSeries, TimeSeriesMeta} from '../common/types';
+import type {
+  LegendSelection,
+  Release,
+  TimeSeries,
+  TimeSeriesMeta,
+} from 'sentry/views/dashboards/widgets/common/types';
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleScoreTimeSeries} from './fixtures/sampleScoreTimeSeries';
