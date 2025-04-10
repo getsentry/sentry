@@ -114,7 +114,10 @@ export function LaravelOverviewPage() {
                   <DatePageFilter
                     maxPickableDays={maxPickableDays}
                     defaultPeriod={defaultPeriod}
-                    relativeOptions={relativeOptions}
+                    relativeOptions={({arbitraryOptions}) => ({
+                      ...arbitraryOptions,
+                      ...relativeOptions,
+                    })}
                   />
                 </PageFilterBar>
                 {!showOnboarding && (
