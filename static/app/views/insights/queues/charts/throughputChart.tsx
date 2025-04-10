@@ -9,12 +9,13 @@ import type {Referrer} from 'sentry/views/insights/queues/referrers';
 import {FIELD_ALIASES} from 'sentry/views/insights/queues/settings';
 
 interface Props {
+  id: string;
   referrer: Referrer;
   destination?: string;
   error?: Error | null;
 }
 
-export function ThroughputChart({error, destination, referrer}: Props) {
+export function ThroughputChart({id, error, destination, referrer}: Props) {
   const theme = useTheme();
   const {
     data: publishData,
@@ -36,6 +37,7 @@ export function ThroughputChart({error, destination, referrer}: Props) {
 
   return (
     <InsightsLineChartWidget
+      id={id}
       title={t('Published vs Processed')}
       series={[
         renameDiscoverSeries(

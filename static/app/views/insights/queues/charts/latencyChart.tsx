@@ -8,12 +8,13 @@ import type {Referrer} from 'sentry/views/insights/queues/referrers';
 import {FIELD_ALIASES} from 'sentry/views/insights/queues/settings';
 
 interface Props {
+  id: string;
   referrer: Referrer;
   destination?: string;
   error?: Error | null;
 }
 
-export function LatencyChart({error, destination, referrer}: Props) {
+export function LatencyChart({id, error, destination, referrer}: Props) {
   const {
     data,
     isPending,
@@ -51,6 +52,7 @@ export function LatencyChart({error, destination, referrer}: Props) {
 
   return (
     <InsightsAreaChartWidget
+      id={id}
       title={t('Average Duration')}
       series={[messageReceiveLatencySeries, data['avg(span.duration)']]}
       aliases={FIELD_ALIASES}
