@@ -30,6 +30,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivationStatus,
 )
 from sentry_sdk.consts import OP, SPANDATA, SPANSTATUS
+from sentry_sdk.crons import MonitorStatus, capture_checkin
 
 from sentry.taskworker.client import TaskworkerClient
 from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER, DEFAULT_WORKER_QUEUE_SIZE
@@ -192,41 +193,10 @@ def child_worker(
 
         # Get completion time before pushing to queue, so we can measure queue append time
         execution_complete_time = time.time()
-        processed_tasks.put(ProcessingResult(task_id=activation.id, status=next_state))
-        metrics.distribution(
-            "taskworker.worker.processed_tasks.put.duration",
-            time.time() - execution_complete_time,
-        )
+        with metrics.timer("taskworker.worker.processed_tasks.put.duration"):
+            processed_tasks.put(ProcessingResult(task_id=activation.id, status=next_state))
 
-        task_added_time = activation.received_at.ToDatetime().timestamp()
-        execution_duration = execution_complete_time - execution_start_time
-        execution_latency = execution_complete_time - task_added_time
-        logger.debug(
-            "taskworker.task_execution",
-            extra={
-                "taskname": activation.taskname,
-                "execution_duration": execution_duration,
-                "execution_latency": execution_latency,
-                "status": next_state,
-            },
-        )
-        metrics.incr(
-            "taskworker.worker.execute_task",
-            tags={
-                "namespace": activation.namespace,
-                "status": next_state,
-            },
-        )
-        metrics.distribution(
-            "taskworker.worker.execution_duration",
-            execution_duration,
-            tags={"namespace": activation.namespace, "taskname": activation.taskname},
-        )
-        metrics.distribution(
-            "taskworker.worker.execution_latency",
-            execution_latency,
-            tags={"namespace": activation.namespace, "taskname": activation.taskname},
-        )
+        record_task_execution(activation, next_state, execution_start_time, execution_complete_time)
 
 
 def _execute_activation(task_func: Task[Any, Any], activation: TaskActivation) -> None:
@@ -269,6 +239,59 @@ def _execute_activation(task_func: Task[Any, Any], activation: TaskActivation) -
         except Exception:
             transaction.set_status(SPANSTATUS.INTERNAL_ERROR)
             raise
+
+
+def record_task_execution(
+    activation: TaskActivation,
+    status: TaskActivationStatus.ValueType,
+    start_time: float,
+    completion_time: float,
+) -> None:
+    task_added_time = activation.received_at.ToDatetime().timestamp()
+    execution_duration = completion_time - start_time
+    execution_latency = completion_time - task_added_time
+
+    logger.debug(
+        "taskworker.task_execution",
+        extra={
+            "taskname": activation.taskname,
+            "execution_duration": execution_duration,
+            "execution_latency": execution_latency,
+            "status": status,
+        },
+    )
+    metrics.incr(
+        "taskworker.worker.execute_task",
+        tags={
+            "namespace": activation.namespace,
+            "status": status,
+        },
+    )
+    metrics.distribution(
+        "taskworker.worker.execution_duration",
+        execution_duration,
+        tags={"namespace": activation.namespace, "taskname": activation.taskname},
+    )
+    metrics.distribution(
+        "taskworker.worker.execution_latency",
+        execution_latency,
+        tags={"namespace": activation.namespace, "taskname": activation.taskname},
+    )
+
+    if (
+        "sentry-monitor-check-in-id" in activation.headers
+        and "sentry-monitor-slug" in activation.headers
+    ):
+        monitor_status = MonitorStatus.ERROR
+        if status == TASK_ACTIVATION_STATUS_COMPLETE:
+            monitor_status = MonitorStatus.OK
+
+        capture_checkin(
+            monitor_slug=activation.headers["sentry-monitor-slug"],
+            check_in_id=activation.headers["sentry-monitor-check-in-id"],
+            duration=execution_duration,
+            status=monitor_status,
+        )
 
 
 class TaskWorker:
