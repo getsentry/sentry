@@ -23,7 +23,7 @@ import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {useIsLaravelInsightsEnabled} from 'sentry/views/insights/pages/backend/laravel/features';
+import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/backend/laravel/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   isModuleConsideredNew,
@@ -63,7 +63,7 @@ export function DomainViewHeader({
   const location = useLocation();
   const navigate = useNavigate();
   const moduleURLBuilder = useModuleURLBuilder();
-  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
+  const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
   const useEap = useInsightsEap();
   const hasEapFlag = organization.features.includes('insights-modules-use-eap');
 
@@ -136,7 +136,7 @@ export function DomainViewHeader({
             ) : (
               <FeedbackWidgetButton
                 optionOverrides={
-                  isLaravelInsightsEnabled
+                  isLaravelInsightsAvailable
                     ? {
                         tags: {
                           ['feedback.source']: 'laravel-insights',
