@@ -109,9 +109,15 @@ export default function SeerSection({
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
 
+  const onlyHasResources =
+    !aiConfig.needsGenAIConsent &&
+    !aiConfig.hasSummary &&
+    !aiConfig.hasAutofix &&
+    aiConfig.hasResources;
+
   const titleComponent = (
     <HeaderContainer>
-      {t('Seer')}
+      {onlyHasResources ? t('Resources') : t('Seer')}
       {aiConfig.hasSummary && (
         <StyledFeatureBadge
           type="beta"

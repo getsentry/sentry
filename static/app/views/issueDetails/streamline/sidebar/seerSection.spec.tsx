@@ -91,6 +91,8 @@ describe('SeerSection', () => {
       {organization: customOrganization}
     );
 
+    expect(screen.getByText('Resources')).toBeInTheDocument();
+
     expect(
       screen.getByRole('button', {name: 'How to fix ChunkLoadErrors'})
     ).toBeInTheDocument();
