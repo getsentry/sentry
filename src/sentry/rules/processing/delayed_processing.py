@@ -213,7 +213,7 @@ def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]
 
 
 def parse_rulegroup_to_event_data(
-    rulegroup_to_event_data: dict[str, str]
+    rulegroup_to_event_data: dict[str, str],
 ) -> dict[tuple[int, int], dict[str, str]]:
     parsed_rulegroup_to_event_data = {}
     for rule_group, instance_data in rulegroup_to_event_data.items():
@@ -326,7 +326,7 @@ def get_group_to_groupevent(
 
 def get_condition_group_results(
     condition_groups: dict[UniqueConditionQuery, DataAndGroups], project: Project
-) -> dict[UniqueConditionQuery, dict[int, int]] | None:
+) -> dict[UniqueConditionQuery, dict[int, int | float]] | None:
     condition_group_results = {}
     current_time = datetime.now(tz=timezone.utc)
     project_id = project.id
@@ -377,7 +377,7 @@ def get_condition_group_results(
 
 
 def passes_comparison(
-    condition_group_results: dict[UniqueConditionQuery, dict[int, int]],
+    condition_group_results: dict[UniqueConditionQuery, dict[int, int | float]],
     condition_data: EventFrequencyConditionData,
     group_id: int,
     environment_id: int,
@@ -414,7 +414,7 @@ def passes_comparison(
 
 
 def get_rules_to_fire(
-    condition_group_results: dict[UniqueConditionQuery, dict[int, int]],
+    condition_group_results: dict[UniqueConditionQuery, dict[int, int | float]],
     rules_to_slow_conditions: DefaultDict[Rule, list[EventFrequencyConditionData]],
     rules_to_groups: DefaultDict[int, set[int]],
     project_id: int,
