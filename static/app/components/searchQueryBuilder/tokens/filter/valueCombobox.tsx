@@ -12,6 +12,7 @@ import {
   type SearchGroup,
   type SearchItem,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
+import {DeviceName} from 'sentry/components/deviceName';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
   type CustomComboboxMenu,
@@ -377,10 +378,26 @@ function useFilterSuggestions({
   );
 
   const suggestionGroups: SuggestionSection[] = useMemo(() => {
-    return shouldFetchValues
-      ? [{sectionText: '', suggestions: data?.map(value => ({value})) ?? []}]
-      : (predefinedValues ?? []);
-  }, [data, predefinedValues, shouldFetchValues]);
+    if (!shouldFetchValues) {
+      return predefinedValues ?? [];
+    }
+
+    const suggestions = data?.map(value => {
+      return {
+        value,
+        description:
+          // When the key is device, we can help users by displaying the readable name
+          key?.key === 'device' ? (
+            <DeviceName value={value}>
+              {/* Prevent the same value from being displayed twice */}
+              {name => (name === value ? null : name)}
+            </DeviceName>
+          ) : undefined,
+      };
+    });
+
+    return [{sectionText: '', suggestions: suggestions ?? []}];
+  }, [data, predefinedValues, shouldFetchValues, key?.key]);
 
   // Grouped sections for rendering purposes
   const suggestionSectionItems = useMemo<SuggestionSectionItem[]>(() => {
