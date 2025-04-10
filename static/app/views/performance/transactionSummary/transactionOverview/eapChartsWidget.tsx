@@ -78,15 +78,15 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const params = useLocationQuery({
+  const {
+    [SpanIndexedField.SPAN_CATEGORY]: spanCategoryUrlParam,
+    [SELECTED_CHART_QUERY_PARAM]: selectedChartUrlParam,
+  } = useLocationQuery({
     fields: {
       [SpanIndexedField.SPAN_CATEGORY]: decodeScalar,
       [SELECTED_CHART_QUERY_PARAM]: decodeScalar,
     },
   });
-
-  const spanCategoryUrlParam = params[SpanIndexedField.SPAN_CATEGORY];
-  const {chartDisplay: selectedChartUrlParam} = params;
 
   const selectedChart = WIDGET_OPTIONS[selectedChartUrlParam as EAPWidgetType]
     ? (selectedChartUrlParam as EAPWidgetType)
