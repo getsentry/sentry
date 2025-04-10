@@ -19,7 +19,7 @@ class InsightsStarredSegment(DefaultFieldsModel):
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
-    segment_name = models.CharField(max_length=255)
+    segment_name = models.CharField()
 
     class Meta:
         app_label = "insights"
