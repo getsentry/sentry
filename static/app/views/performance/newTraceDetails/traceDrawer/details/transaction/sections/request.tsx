@@ -21,8 +21,10 @@ import {type EntryRequest, EntryType, type EventTransaction} from 'sentry/types/
 import type {Meta} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
-
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
 type View = 'formatted' | 'curl';
 

@@ -19,9 +19,8 @@ import {defined} from 'sentry/utils';
 import {classifyTagKey, prettifyTagKey} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
-
-import {DragNDropContext} from '../contexts/dragNDropContext';
-import type {Column} from '../hooks/useDragNDropColumns';
+import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
+import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 
 interface ColumnEditorModalProps extends ModalRenderProps {
   columns: string[];

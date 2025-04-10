@@ -17,16 +17,15 @@ import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
+import {IndexedEventsSelectionAlert} from 'sentry/views/dashboards/indexedEventsSelectionAlert';
 import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
+import {displayTypes} from 'sentry/views/dashboards/widgetBuilder/utils';
+import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {WidgetCardPanel} from 'sentry/views/dashboards/widgetCard/widgetCardPanel';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
-
-import {IndexedEventsSelectionAlert} from '../../indexedEventsSelectionAlert';
-import {getDashboardFiltersFromURL} from '../../utils';
-import WidgetCard from '../../widgetCard';
-import type WidgetLegendSelectionState from '../../widgetLegendSelectionState';
-import {displayTypes} from '../utils';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 import {BuildStep} from './buildStep';
 
