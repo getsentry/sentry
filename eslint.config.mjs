@@ -160,8 +160,8 @@ export default typescript.config([
     },
     settings: {
       react: {
-        version: '19.0.0',
-        defaultVersion: '19.0',
+        version: '19.1.0',
+        defaultVersion: '19.1',
       },
       'import/parsers': {'@typescript-eslint/parser': ['.ts', '.tsx']},
       'import/resolver': {typescript: {}},
