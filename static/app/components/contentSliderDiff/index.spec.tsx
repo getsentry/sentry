@@ -53,12 +53,12 @@ describe('ContentSliderDiff', function () {
     expect(screen.getByText('Before')).toBeInTheDocument();
     expect(screen.getByText('After')).toBeInTheDocument();
 
-    const divider = screen.getByTestId('divider');
+    const dragHandle = screen.getByTestId('drag-handle');
 
     // Simulate dragging the divider
     await userEvent.pointer([
-      {keys: '[MouseLeft>]', target: divider, coords: {x: 0, y: 5}},
-      {target: divider, coords: {x: 10, y: 5}},
+      {keys: '[MouseLeft>]', target: dragHandle, coords: {x: 0, y: 5}},
+      {target: dragHandle, coords: {x: 10, y: 5}},
     ]);
 
     expect(mockDragHandleMouseDown).toHaveBeenCalledTimes(1);

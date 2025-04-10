@@ -198,16 +198,16 @@ const Divider = styled('div')`
   cursor: ew-resize;
   width: var(--line-width);
   height: 100%;
-  background: ${p => p.theme.diffSliderDivider};
+  background: ${p => p.theme.diffSliderDragHandleHover};
   position: absolute;
   top: 0;
   transform: translate(-0.5px, 0);
 
   &::before,
   &::after {
-    background: ${p => p.theme.diffSliderDivider};
+    background: ${p => p.theme.diffSliderDragHandleHover};
     border-radius: var(--handle-size);
-    border: var(--line-width) solid ${p => p.theme.diffSliderDivider};
+    border: var(--line-width) solid ${p => p.theme.diffSliderDragHandleHover};
     content: '';
     height: var(--handle-size);
     position: absolute;
