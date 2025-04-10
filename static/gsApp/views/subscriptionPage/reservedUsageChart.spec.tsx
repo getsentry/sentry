@@ -664,8 +664,12 @@ describe('getCategoryOptions', () => {
     });
 
     result.forEach(option => {
-      const inCheckoutCategories = subscription.planDetails.checkoutCategories.includes(option.value);
-      const inOnDemandCategories = subscription.planDetails.onDemandCategories.includes(option.value);
+      const inCheckoutCategories = subscription.planDetails.checkoutCategories.includes(
+        option.value
+      );
+      const inOnDemandCategories = subscription.planDetails.onDemandCategories.includes(
+        option.value
+      );
       expect(inCheckoutCategories || inOnDemandCategories).toBe(true);
     });
   });
