@@ -131,6 +131,10 @@ def translate_internal_to_public_alias(
     return mapping.get(internal_alias)
 
 
+def can_expose_attribute(attribute: str, item_type: SupportedTraceItemType) -> bool:
+    return attribute not in PRIVATE_ATTRIBUTES.get(item_type, {})
+
+
 def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
     if meta.tier in {
         DownsampledStorageMeta.SELECTED_TIER_1,
