@@ -136,13 +136,13 @@ class BaseIssueAlertHandler(ABC):
         if not features.has(
             "organizations:workflow-engine-ui-links", detector.project.organization
         ):
+            if job.workflow_id is None:
+                raise ValueError("Workflow ID is required when triggering an action")
+
             # If test event, just set the legacy rule id to -1
             if job.workflow_id == -1:
                 data["actions"][0]["legacy_rule_id"] = -1
             else:
-                if job.workflow_id is None:
-                    raise ValueError("Workflow ID is required when triggering an action")
-
                 alert_rule_workflow = AlertRuleWorkflow.objects.get(
                     workflow_id=job.workflow_id,
                 )
