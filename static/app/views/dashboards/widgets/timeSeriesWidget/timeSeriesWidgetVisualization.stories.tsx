@@ -850,30 +850,32 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           inside of the flyout.
         </p>
 
-        <MediumWidget>
-          <TimeSeriesWidgetVisualization
-            plottables={[
-              new Line({
-                ...sampleThroughputTimeSeries,
-                field: 'error_rate()',
-              }),
-            ]}
-            releases={releases}
-          />
-        </MediumWidget>
+        <SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  field: 'error_rate()',
+                }),
+              ]}
+              releases={releases}
+            />
+          </MediumWidget>
 
-        <MediumWidget>
-          <TimeSeriesWidgetVisualization
-            plottables={[
-              new Line({
-                ...sampleThroughputTimeSeries,
-                field: 'error_rate()',
-              }),
-            ]}
-            showReleaseAs="bubble"
-            releases={releases}
-          />
-        </MediumWidget>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  field: 'error_rate()',
+                }),
+              ]}
+              showReleaseAs="bubble"
+              releases={releases}
+            />
+          </MediumWidget>
+        </SideBySide>
       </Fragment>
     );
   });
