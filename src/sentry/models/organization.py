@@ -43,7 +43,6 @@ from sentry.utils.snowflake import generate_snowflake_id, save_with_snowflake_id
 if TYPE_CHECKING:
     from sentry.models.options.organization_option import OrganizationOptionManager
 
-SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 NON_MEMBER_SCOPES = frozenset(["org:write", "project:write", "team:write"])
 ORGANIZATION_NAME_MAX_LENGTH = 64
 
@@ -242,7 +241,7 @@ class Organization(ReplicatedRegionModel):
                 slugify_target = slugify_target.lower().replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
-        if SENTRY_USE_SNOWFLAKE:
+        if settings.SENTRY_USE_SNOWFLAKE:
             save_with_snowflake_id(
                 instance=self,
                 snowflake_redis_key=self.snowflake_redis_key,
