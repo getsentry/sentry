@@ -60,8 +60,7 @@ class TestDataConditionSerializer(TestCase):
             "alertThreshold": self.critical_detector_trigger.comparison,
             "resolveThreshold": AlertRuleThresholdType.BELOW,
             "dateCreated": self.critical_trigger.date_added,
-            # "actions": self.expected_actions, # use this after action serializer pr is merged
-            "actions": [],
+            "actions": self.expected_actions,
         }
 
     def test_simple(self) -> None:
@@ -97,7 +96,7 @@ class TestDataConditionSerializer(TestCase):
         expected_actions["alertRuleTriggerId"] = str(comparison_delta_trigger.id)
 
         expected_trigger = self.expected_trigger.copy()
-        # expected_trigger["actions"] = expected_actions  # use this after action serializer pr is merged
+        expected_trigger["actions"] = expected_actions
         expected_trigger["alertThreshold"] = translate_data_condition_type(
             detector.config.get("comparison_delta"),
             comparison_detector_trigger.type,
@@ -118,7 +117,7 @@ class TestDataConditionSerializer(TestCase):
         expected_actions["alertRuleTriggerId"] = str(self.warning_trigger.id)
 
         expected_trigger = self.expected_trigger.copy()
-        # expected_trigger["actions"] = expected_actions  # use this after action serializer pr is merged
+        expected_trigger["actions"] = expected_actions
         expected_trigger["alertThreshold"] = translate_data_condition_type(
             self.detector.config.get("comparison_delta"),
             self.resolve_trigger_data_condition.type,

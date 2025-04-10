@@ -3,6 +3,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, DefaultDict
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Subquery
 
 from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.workflow_engine_action import (
@@ -17,7 +18,6 @@ from sentry.workflow_engine.models import (
     AlertRuleDetector,
     DataCondition,
     DataConditionAlertRuleTrigger,
-    DataConditionGroup,
     DataConditionGroupAction,
     Detector,
 )
@@ -31,29 +31,42 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         item_list: Sequence[DataCondition],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> defaultdict[DataCondition, dict[str, list[str]]]:
+    ) -> defaultdict[str, list[dict[str, Any]]]:
         data_conditions = {item.id: item for item in item_list}
         data_condition_groups = [
             data_condition.condition_group for data_condition in data_conditions.values()
         ]
-        data_condition_group_actions = DataConditionGroupAction.objects.filter(
-            condition_group_id__in=[dcg.id for dcg in data_condition_groups]
+        action_filter_data_condition_groups = (
+            DataCondition.objects.filter(
+                comparison__in=[DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM],
+                condition_result=True,
+                type=Condition.ISSUE_PRIORITY_EQUALS,
+            )
+            .exclude(
+                condition_group__in=Subquery(
+                    Detector.objects.filter(
+                        workflow_condition_group__in=data_condition_groups
+                    ).values("workflow_condition_group")
+                )
+            )
+            .values_list("condition_group", flat=True)
         )
+
+        action_filter_data_condition_group_action_ids = DataConditionGroupAction.objects.filter(
+            condition_group_id__in=Subquery(action_filter_data_condition_groups)
+        ).values_list("id", flat=True)
         actions = Action.objects.filter(
-            id__in=[dcga.action_id for dcga in data_condition_group_actions]
+            id__in=action_filter_data_condition_group_action_ids
         ).order_by("id")
+
         serialized_actions = serialize(
             list(actions), user, WorkflowEngineActionSerializer(), **kwargs
         )
-
         result: DefaultDict[DataCondition, dict[str, list[str]]] = defaultdict(dict)
-        for action, serialized in zip(actions, serialized_actions):
-            dcga = data_condition_group_actions.get(action_id=action.id)
-            data_condition_group = DataConditionGroup.objects.get(id=dcga.condition_group.id)
-            triggers_actions = result[data_conditions[data_condition_group.id]].setdefault(
-                "actions", []
-            )
-            triggers_actions.append(serialized)
+        result["actions"] = []
+
+        for action in serialized_actions:
+            result["actions"].append(action)
         return result
 
     def serialize(
