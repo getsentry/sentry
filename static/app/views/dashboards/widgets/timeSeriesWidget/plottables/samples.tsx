@@ -4,7 +4,7 @@ import type {ScatterSeriesOption, SeriesOption} from 'echarts';
 
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import isValidDate from 'sentry/utils/date/isValidDate';
 import type {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {scaleTabularDataColumn} from 'sentry/utils/tabularData/scaleTabularDataColumn';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
@@ -168,11 +168,13 @@ export class Samples implements Plottable {
     return {
       ...this.sampleTableData,
       data: this.sampleTableData.data.filter(sample => {
-        if (!defined(sample.timestamp)) {
+        const timestampValue = sample.timestamp;
+        // @ts-expect-error: TypeScript pretends like `Date` doesn't accept `undefined`, but it does
+        const ts = new Date(timestampValue);
+
+        if (!isValidDate(ts)) {
           return false;
         }
-
-        const ts = new Date(sample.timestamp);
 
         return (
           (!boundaryStart || ts >= boundaryStart) && (!boundaryEnd || ts <= boundaryEnd)

@@ -1,25 +1,37 @@
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 
+import isValidDate from '../date/isValidDate';
+
 export function shiftTabularDataToNow(tabularData: TabularData): TabularData {
   const currentTimestamp = Date.now();
 
-  const lastDatum = tabularData.data.at(-1);
-  if (!lastDatum) {
+  const lastTimestampValue = tabularData.data.at(-1)?.timestamp;
+  // @ts-expect-error: TypeScript pretends like `Date` doesn't accept `undefined`, but it does
+  const lastDatumDate = new Date(lastTimestampValue);
+  if (!isValidDate(lastDatumDate)) {
     return tabularData;
   }
 
-  if (!tabularData.data.every(datum => !!datum.timestamp)) {
+  const diff = currentTimestamp - lastDatumDate.getTime();
+
+  if (diff === 0) {
     return tabularData;
   }
-
-  const lastTimeStampInData = new Date(lastDatum.timestamp!).getTime();
-  const diff = currentTimestamp - lastTimeStampInData;
 
   return {
     ...tabularData,
-    data: tabularData.data.map(datum => ({
-      ...datum,
-      timestamp: new Date(new Date(datum.timestamp!).getTime() + diff).toISOString(),
-    })),
+    data: tabularData.data.map(datum => {
+      const timestampValue = datum.timestamp;
+      // @ts-expect-error: TypeScript pretends like `Date` doesn't accept `undefined`, but it does
+      const timestampDate = new Date(timestampValue);
+      if (!isValidDate(timestampDate)) {
+        return datum;
+      }
+
+      return {
+        ...datum,
+        timestamp: new Date(timestampDate.getTime() + diff).toISOString(),
+      };
+    }),
   };
 }
