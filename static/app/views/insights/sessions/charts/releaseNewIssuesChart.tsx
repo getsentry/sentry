@@ -30,7 +30,9 @@ export default function ReleaseNewIssuesChart({project}: {project: Project}) {
       )}
       project={project}
       series={series}
-      description={t('New issue counts over time, grouped by release.')}
+      description={t(
+        `New issue counts over time, grouped by release. The 5 most recent releases are shown, and the rest are grouped into 'other'.`
+      )}
       isPending={isPending}
       error={error}
       legendSelection={{
