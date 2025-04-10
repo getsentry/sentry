@@ -520,15 +520,21 @@ export function SourceMapsDebuggerModal({
               'An image says more than a thousand words. Below you can see a comparison of how a bad and a good stack trace look like:'
             )}
           </p>
-          <ContentSliderDiff
-            beforeContent={
-              <img src={BadStackTraceExample} alt={t('Bad Stack Trace Example')} />
-            }
-            afterContent={
-              <img src={GoodStackTraceExample} alt={t('Good Stack Trace Example')} />
-            }
-            minHeight="300px"
-          />
+          <Fragment>
+            <ContentSliderDiff.Header>
+              <ContentSliderDiff.BeforeLabel />
+              <ContentSliderDiff.AfterLabel />
+            </ContentSliderDiff.Header>
+            <ContentSliderDiff.Body
+              before={
+                <img src={BadStackTraceExample} alt={t('Bad Stack Trace Example')} />
+              }
+              after={
+                <img src={GoodStackTraceExample} alt={t('Good Stack Trace Example')} />
+              }
+              minHeight="300px"
+            />
+          </Fragment>
         </DebuggerSection>
         <DebuggerSection title={t('Troubleshooting Your Source Maps')}>
           {metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
