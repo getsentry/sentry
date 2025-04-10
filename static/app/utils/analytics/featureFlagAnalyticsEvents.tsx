@@ -1,13 +1,13 @@
 export type FeatureFlagEventParameters = {
-  'flags.cta_dismissed': {area: string; type: string};
+  'flags.cta_dismissed': {surface: string; type: string};
   'flags.event_and_suspect_flags_found': {
     numEventFlags: number;
     numSuspectFlags: number;
     numTotalFlags: number;
   };
   'flags.logs-paginated': {
-    area: string;
     direction: 'next' | 'prev';
+    surface: string;
   };
   'flags.sort_flags': {sortMethod: string};
   'flags.table_rendered': {
@@ -17,7 +17,7 @@ export type FeatureFlagEventParameters = {
   };
   'flags.view-all-clicked': Record<string, unknown>;
   'flags.view-setup-sidebar': {
-    area: string;
+    surface: string;
   };
 };
 

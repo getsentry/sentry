@@ -113,7 +113,7 @@ export function FlagDetailsDrawerContent() {
           trackAnalytics('flags.logs-paginated', {
             direction: cursor?.endsWith(':1') ? 'prev' : 'next',
             organization,
-            area: analyticsArea,
+            surface: analyticsArea,
           });
           navigate({
             pathname: path,
