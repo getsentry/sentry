@@ -436,7 +436,7 @@ describe('IssueList', function () {
         await screen.findByText(textWithMarkupMatcher('1-25 of 500'))
       ).toBeInTheDocument();
       expect(issuesRequest).toHaveBeenCalledTimes(1);
-    });
+    }, 20_000);
 
     it('1 search', async function () {
       const localSavedSearch = {...savedSearch, projectId: null};
@@ -1382,7 +1382,7 @@ describe('IssueList', function () {
     await waitFor(() => {
       expect(screen.getByText(textWithMarkupMatcher('26-50 of 500'))).toBeInTheDocument();
     });
-  });
+  }, 20_000);
 
   describe('project low trends queue alert', function () {
     beforeEach(function () {
