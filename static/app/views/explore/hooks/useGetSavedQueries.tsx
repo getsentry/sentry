@@ -18,8 +18,8 @@ type Query = {
 
 export type SortOption =
   | 'name'
-  | 'dateAdded'
-  | 'dateUpdated'
+  | '-dateAdded'
+  | '-dateUpdated'
   | 'mostPopular'
   | 'recentlyViewed'
   | 'starred'
