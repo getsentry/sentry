@@ -1,4 +1,4 @@
-import {useContext, useEffect, useMemo, useState} from 'react';
+import {useContext, useEffect, useState} from 'react';
 
 import FormContext from 'sentry/components/forms/formContext';
 import type FormModel from 'sentry/components/forms/model';
@@ -8,7 +8,7 @@ import type {FieldValue} from 'sentry/components/forms/types';
 export function useFormFields() {
   const context = useContext(FormContext);
   const [model] = useState<FormModel>(() => context.form ?? (new MockModel({}) as any));
-  const [state, forceUpdate] = useState({});
+  const [_, forceUpdate] = useState({});
   useEffect(() => {
     const prevHook = model.options.onFieldChange;
     model.setFormOptions({
@@ -19,13 +19,8 @@ export function useFormFields() {
     });
   }, [model]);
 
-  return useMemo(() => {
-    noop(state);
-    return model.getData();
-  }, [state, model]);
+  return model.getData();
 }
-
-const noop = (_: any) => {};
 
 export function useFormField<Value extends FieldValue = FieldValue>(field: string) {
   const context = useContext(FormContext);
