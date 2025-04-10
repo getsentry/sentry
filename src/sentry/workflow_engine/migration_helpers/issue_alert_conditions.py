@@ -240,7 +240,8 @@ def create_base_event_frequency_data_condition(
     )  # this is camelCase, age comparison is snake_case
     comparison_type = ComparisonType(comparison_type)
 
-    value = max(int(data["value"]), 0)  # force to 0 if negative
+    value = int(data["value"])
+    value = max(value, 0)  # force to 0 if negative
     comparison = {
         "interval": data["interval"],
         "value": value,
@@ -285,11 +286,29 @@ def create_event_unique_user_frequency_data_condition(
 def create_percent_sessions_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
-    return create_base_event_frequency_data_condition(
-        data=data,
-        dcg=dcg,
-        count_type=Condition.PERCENT_SESSIONS_COUNT,
-        percent_type=Condition.PERCENT_SESSIONS_PERCENT,
+    comparison_type = data.get(
+        "comparisonType", ComparisonType.COUNT
+    )  # this is camelCase, age comparison is snake_case
+    comparison_type = ComparisonType(comparison_type)
+
+    value = float(data["value"])
+    value = max(value, 0)  # force to 0 if negative
+    comparison = {
+        "interval": data["interval"],
+        "value": value,
+    }
+
+    if comparison_type == ComparisonType.COUNT:
+        type = Condition.PERCENT_SESSIONS_COUNT
+    else:
+        type = Condition.PERCENT_SESSIONS_PERCENT
+        comparison["comparison_interval"] = data["comparisonInterval"]
+
+    return DataConditionKwargs(
+        type=type,
+        comparison=comparison,
+        condition_result=True,
+        condition_group=dcg,
     )
 
 
