@@ -99,6 +99,11 @@ export default function SeerSection({
 
   const aiConfig = useAiConfig(group, project);
   const issueTypeConfig = getConfigForIssueType(group, project);
+
+  if (!aiConfig.areAiFeaturesAllowed) {
+    return null;
+  }
+
   const showCtaButton =
     aiConfig.needsGenAIConsent ||
     aiConfig.hasAutofix ||
