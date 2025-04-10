@@ -14,6 +14,7 @@ from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import ForkProcess
 from multiprocessing.synchronize import Event
+from types import FrameType, TracebackType
 from typing import Any
 
 import grpc
@@ -46,6 +47,10 @@ logger = logging.getLogger("sentry.taskworker.worker")
 AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
 
 
+class ProcessingDeadlineExceeded(Exception):
+    pass
+
+
 @dataclasses.dataclass
 class ProcessingResult:
     """Result structure from child processess to parent"""
@@ -55,7 +60,9 @@ class ProcessingResult:
 
 
 @contextlib.contextmanager
-def timeout_alarm(seconds: int, handler: Callable[[int, object], None]) -> Generator[None]:
+def timeout_alarm(
+    seconds: int, handler: Callable[[int, FrameType | None], None]
+) -> Generator[None]:
     """
     Context manager to handle SIGALRM handlers
 
@@ -106,7 +113,7 @@ def child_worker(
 
     processed_task_count = 0
 
-    def handle_alarm(signum: int, frame: object) -> None:
+    def handle_alarm(signum: int, frame: FrameType | None) -> None:
         """
         Handle SIGALRM
 
@@ -118,6 +125,27 @@ def child_worker(
             processed_tasks.put(
                 ProcessingResult(task_id=current.id, status=TASK_ACTIVATION_STATUS_FAILURE)
             )
+            with sentry_sdk.isolation_scope() as scope:
+                scope.fingerprint = [
+                    "taskworker.processing_deadline_exceeded",
+                    current.namespace,
+                    current.taskname,
+                ]
+                err = ProcessingDeadlineExceeded(
+                    f"execution deadline of {current.processing_deadline_duration} seconds exceeded"
+                )
+                if frame:
+                    trace = TracebackType(None, frame, frame.f_lasti, frame.f_lineno)
+                    while frame.f_back:
+                        trace = TracebackType(
+                            trace, frame.f_back, frame.f_back.f_lasti, frame.f_back.f_lineno
+                        )
+                        frame = frame.f_back
+                    err.with_traceback(trace)
+
+                sentry_sdk.capture_exception(err)
+                sentry_sdk.flush()
+
             metrics.incr(
                 "taskworker.worker.processing_deadline_exceeded",
                 tags={
@@ -125,6 +153,7 @@ def child_worker(
                     "taskname": current.taskname,
                 },
             )
+
         sys.exit(1)
 
     while True:
@@ -184,9 +213,7 @@ def child_worker(
                 next_state = TASK_ACTIVATION_STATUS_RETRY
 
             if next_state != TASK_ACTIVATION_STATUS_RETRY:
-                logger.info(
-                    "taskworker.task.errored", extra={"type": str(err.__class__), "error": str(err)}
-                )
+                sentry_sdk.capture_exception(err)
 
         clear_current_task()
         processed_task_count += 1
