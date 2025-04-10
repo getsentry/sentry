@@ -85,7 +85,7 @@ describe('Relocation Details', function () {
     ]);
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const {router, routerProps} = initializeOrg();
     const uuid = in_progress_relocation_uuid;
     const model = get_in_progress_relocation_model();
@@ -107,7 +107,7 @@ describe('Relocation Details', function () {
       }
     );
 
-    expect(screen.getByRole('heading', {name: 'Relocation'})).toBeInTheDocument();
+    expect(await screen.findByRole('heading', {name: 'Relocation'})).toBeInTheDocument();
 
     expect(screen.getAllByText(uuid)).toHaveLength(1);
     expect(screen.getAllByText('SELF_HOSTED')).toHaveLength(1);
