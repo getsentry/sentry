@@ -11,12 +11,11 @@ type HtmlElementRef = React.RefObject<HTMLElement | null>;
  */
 export const useSyncTotalWidth = (baseRef: HtmlElementRef, targetRef: HtmlElementRef) => {
   useLayoutEffect(() => {
-    // if the text area or width div ref is not available, return
     if (!baseRef.current || !targetRef.current) {
       return undefined;
     }
 
-    // create a resize observer to watch the text area for changes in width so once the text area is resized, the width div can be updated
+    // we want a resize observer to watch for any resizing events so that we can update the width of the target element
     const resize = new ResizeObserver(entries => {
       entries.forEach(entry => {
         if (targetRef.current && entry) {
@@ -25,11 +24,9 @@ export const useSyncTotalWidth = (baseRef: HtmlElementRef, targetRef: HtmlElemen
       });
     });
 
-    // observe the text area for changes
     resize.observe(baseRef.current);
 
     return () => {
-      // disconnect the resize observer
       resize.disconnect();
     };
   }, [baseRef, targetRef]);
