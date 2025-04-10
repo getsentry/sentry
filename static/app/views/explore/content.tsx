@@ -32,12 +32,21 @@ import {
   type ExploreSpansTour,
   ExploreSpansTourContext,
   ORDERED_EXPLORE_SPANS_TOUR,
+  useExploreSpansTourModal,
 } from 'sentry/views/explore/spans/tour';
 import {useExploreSpansTour} from 'sentry/views/explore/spans/tour';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 export function ExploreContent() {
+  return (
+    <SpansTabTour>
+      <ExploreContentImpl />
+    </SpansTabTour>
+  );
+}
+
+function ExploreContentImpl() {
   const organization = useOrganization();
   const {defaultPeriod, maxPickableDays, relativeOptions} =
     limitMaxPickableDays(organization);
@@ -50,61 +59,61 @@ export function ExploreContent() {
   const title = getTitleFromLocation(location);
   const id = getIdFromLocation(location);
 
+  useExploreSpansTourModal();
+
   return (
-    <SpansTabTour>
-      <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
-        <PageFiltersContainer maxPickableDays={maxPickableDays}>
-          <Layout.Page>
-            <Layout.Header unified={prefersStackedNav}>
-              <Layout.HeaderContent unified={prefersStackedNav}>
-                {hasSavedQueries && title && defined(id) ? <ExploreBreadcrumb /> : null}
-                <Layout.Title>
-                  {hasSavedQueries && title ? title : t('Traces')}
-                  <PageHeadingQuestionTooltip
-                    docsUrl="https://github.com/getsentry/sentry/discussions/81239"
-                    title={t(
-                      'Find problematic spans/traces or compute real-time metrics via aggregation.'
-                    )}
-                    linkLabel={t('Read the Discussion')}
-                  />
-                  <FeatureBadge
-                    tooltipProps={{
-                      title: t(
-                        'This feature is available for early adopters and the UX may change'
-                      ),
-                    }}
-                    type="beta"
-                  />
-                </Layout.Title>
-              </Layout.HeaderContent>
-              <Layout.HeaderActions>
-                <ButtonBar gap={1}>
-                  {!prefersStackedNav && (
-                    <Feature
-                      organization={organization}
-                      features="performance-saved-queries"
-                    >
-                      <LinkButton
-                        to={`/organizations/${organization.slug}/explore/saved-queries/`}
-                        size="sm"
-                      >
-                        {t('Saved Queries')}
-                      </LinkButton>
-                    </Feature>
+    <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
+      <PageFiltersContainer maxPickableDays={maxPickableDays}>
+        <Layout.Page>
+          <Layout.Header unified={prefersStackedNav}>
+            <Layout.HeaderContent unified={prefersStackedNav}>
+              {hasSavedQueries && title && defined(id) ? <ExploreBreadcrumb /> : null}
+              <Layout.Title>
+                {hasSavedQueries && title ? title : t('Traces')}
+                <PageHeadingQuestionTooltip
+                  docsUrl="https://github.com/getsentry/sentry/discussions/81239"
+                  title={t(
+                    'Find problematic spans/traces or compute real-time metrics via aggregation.'
                   )}
-                  <ActionsButton organization={organization} />
-                </ButtonBar>
-              </Layout.HeaderActions>
-            </Layout.Header>
-            <SpansTabContent
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
-            />
-          </Layout.Page>
-        </PageFiltersContainer>
-      </SentryDocumentTitle>
-    </SpansTabTour>
+                  linkLabel={t('Read the Discussion')}
+                />
+                <FeatureBadge
+                  tooltipProps={{
+                    title: t(
+                      'This feature is available for early adopters and the UX may change'
+                    ),
+                  }}
+                  type="beta"
+                />
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                {!prefersStackedNav && (
+                  <Feature
+                    organization={organization}
+                    features="performance-saved-queries"
+                  >
+                    <LinkButton
+                      to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                      size="sm"
+                    >
+                      {t('Saved Queries')}
+                    </LinkButton>
+                  </Feature>
+                )}
+                <ActionsButton organization={organization} />
+              </ButtonBar>
+            </Layout.HeaderActions>
+          </Layout.Header>
+          <SpansTabContent
+            defaultPeriod={defaultPeriod}
+            maxPickableDays={maxPickableDays}
+            relativeOptions={relativeOptions}
+          />
+        </Layout.Page>
+      </PageFiltersContainer>
+    </SentryDocumentTitle>
   );
 }
 

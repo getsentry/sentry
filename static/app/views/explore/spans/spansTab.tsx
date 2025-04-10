@@ -59,11 +59,7 @@ import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTraces
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
-import {
-  ExploreSpansTour,
-  ExploreSpansTourContext,
-  useExploreSpansTourModal,
-} from 'sentry/views/explore/spans/tour';
+import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {
@@ -206,8 +202,6 @@ export function SpansTabContentImpl({
       : queryType === 'aggregate'
         ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
         : false);
-
-  useExploreSpansTourModal();
 
   return (
     <Body withToolbar={expanded}>
