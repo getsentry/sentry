@@ -334,7 +334,7 @@ def _is_project_allowed(installation: RpcSentryAppInstallation, project_id: int)
     [
         (
             ServiceHook,
-            lambda service_hook: (service_hook.organization_id or -1, service_hook.actor_id or -1),
+            lambda service_hook: (service_hook.organization_id, service_hook.actor_id),
         )
     ],
     recalculate=False,
