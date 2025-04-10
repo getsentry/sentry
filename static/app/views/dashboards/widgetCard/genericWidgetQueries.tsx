@@ -36,6 +36,7 @@ function getReferrer(displayType: DisplayType) {
 
 export type OnDataFetchedProps = {
   confidence?: Confidence;
+  isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
@@ -81,6 +82,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   limit?: number;
   loading?: boolean;
   mepSetting?: MEPState | null;
+  onDataFetchStart?: () => void;
   onDataFetched?: ({
     tableResults,
     timeseriesResults,
@@ -383,7 +385,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
   }
 
   async fetchData() {
-    const {widget} = this.props;
+    const {widget, onDataFetchStart} = this.props;
 
     const queryFetchID = Symbol('queryFetchID');
     this.setState({
@@ -393,6 +395,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       errorMessage: undefined,
       queryFetchID,
     });
+
+    onDataFetchStart?.();
 
     try {
       if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {

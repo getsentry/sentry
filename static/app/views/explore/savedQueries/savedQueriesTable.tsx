@@ -1,5 +1,6 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {
   addErrorMessage,
@@ -8,7 +9,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Avatar from 'sentry/components/core/avatar';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import GridEditable, {
@@ -24,6 +24,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconGlobe, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -33,6 +34,7 @@ import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
 import {StreamlineGridEditable} from 'sentry/views/issueDetails/streamline/eventListTable';
+import ProjectIcon from 'sentry/views/nav/projectIcon';
 
 import {useDeleteQuery} from '../hooks/useDeleteQuery';
 import {
@@ -74,8 +76,8 @@ export function SavedQueriesTable({
   const location = useLocation();
   const navigate = useNavigate();
   const cursor = decodeScalar(location.query[cursorKey]);
-  const {data, isLoading, pageLinks} = useGetSavedQueries({
-    sortBy: sort,
+  const {data, isLoading, pageLinks, isFetched} = useGetSavedQueries({
+    sortBy: ['starred', sort],
     exclude: mode === 'owned' ? 'shared' : mode === 'shared' ? 'owned' : undefined, // Inverse because this is an exclusion
     perPage,
     cursor,
@@ -85,6 +87,35 @@ export function SavedQueriesTable({
   const {deleteQuery} = useDeleteQuery();
   const {starQuery} = useStarQuery();
   const {updateQueryFromSavedQuery} = useSaveQuery();
+
+  const [starredIds, setStarredIds] = useState<number[]>([]);
+
+  // Initialize starredIds state when queries have been fetched
+  useEffect(() => {
+    if (isFetched === true) {
+      setStarredIds(data?.filter(row => row.starred).map(row => row.id) ?? []);
+    }
+  }, [isFetched, data]);
+
+  const starQueryHandler = useCallback(
+    (id: number, starred: boolean) => {
+      if (starred) {
+        setStarredIds(prev => [...prev, id]);
+      } else {
+        setStarredIds(prev => prev.filter(starredId => starredId !== id));
+      }
+      starQuery(id, starred).catch(() => {
+        // If the starQuery call fails, we need to revert the starredIds state
+        addErrorMessage(t('Unable to star query'));
+        if (starred) {
+          setStarredIds(prev => prev.filter(starredId => starredId !== id));
+        } else {
+          setStarredIds(prev => [...prev, id]);
+        }
+      });
+    },
+    [starQuery]
+  );
 
   const getHandleUpdateFromSavedQuery = useCallback(
     (savedQuery: SavedQuery) => {
@@ -126,23 +157,14 @@ export function SavedQueriesTable({
       );
     }
     if (col.key === 'projects') {
-      const rowProjects = row.projects
-        .map(p => projects.find(project => Number(project.id) === p))
-        .filter(p => p !== undefined)
-        .slice(0, 3);
-
       return (
         <Center>
-          <StackedProjectBadges>
-            {rowProjects.map(project => (
-              <ProjectAvatar
-                key={project.slug}
-                project={project}
-                tooltip={project.name}
-                hasTooltip
-              />
-            ))}
-          </StackedProjectBadges>
+          <ProjectIcon
+            projectPlatforms={projects
+              .filter(p => row.projects.map(String).includes(p.id))
+              .map(p => p.platform)
+              .filter(defined)}
+          />
         </Center>
       );
     }
@@ -181,10 +203,10 @@ export function SavedQueriesTable({
                 {
                   key: 'delete',
                   label: t('Delete'),
-                  onAction: () => {
+                  onAction: async () => {
                     addLoadingMessage(t('Deleting query...'));
                     try {
-                      deleteQuery(row.id);
+                      await deleteQuery(row.id);
                       addSuccessMessage(t('Query deleted'));
                     } catch (error) {
                       addErrorMessage(t('Unable to delete query'));
@@ -256,24 +278,32 @@ export function SavedQueriesTable({
     if (!row) {
       return [null];
     }
+
+    const debouncedOnClick = debounce(
+      () => {
+        if (row.starred) {
+          addLoadingMessage(t('Unstarring query...'));
+          starQueryHandler(row.id, false);
+          addSuccessMessage(t('Query unstarred'));
+        } else {
+          addLoadingMessage(t('Starring query...'));
+          starQueryHandler(row.id, true);
+          addSuccessMessage(t('Query starred'));
+        }
+      },
+      1000,
+      {leading: true}
+    );
     return [
       <Center key={`starred-${row.id}`}>
         <Button
           aria-label={row.starred ? t('Unstar') : t('Star')}
           size="zero"
           borderless
-          icon={<IconStar size="sm" color="gray400" isSolid={row.starred} />}
-          onClick={() => {
-            if (row.starred) {
-              addLoadingMessage(t('Unstarring query...'));
-              starQuery(row.id, false);
-              addSuccessMessage(t('Query unstarred'));
-            } else {
-              addLoadingMessage(t('Starring query...'));
-              starQuery(row.id, true);
-              addSuccessMessage(t('Query starred'));
-            }
-          }}
+          icon={
+            <IconStar size="sm" color="gray400" isSolid={starredIds.includes(row.id)} />
+          }
+          onClick={debouncedOnClick}
         />
       </Center>,
     ];
@@ -313,24 +343,6 @@ const LastColumnWrapper = styled('div')`
   align-items: center;
   width: 100%;
   justify-content: space-between;
-`;
-
-const StackedProjectBadges = styled('div')`
-  display: flex;
-  align-items: center;
-  & * {
-    margin-left: 0;
-    margin-right: 0;
-    cursor: pointer !important;
-  }
-
-  & *:hover {
-    z-index: unset;
-  }
-
-  & > :not(:first-child) {
-    margin-left: -${space(0.5)};
-  }
 `;
 
 const FormattedQueryWrapper = styled('div')`

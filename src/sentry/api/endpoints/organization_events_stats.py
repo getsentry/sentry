@@ -22,6 +22,7 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
+    ourlogs,
     spans_eap,
     spans_indexed,
     spans_metrics,
@@ -115,6 +116,9 @@ ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_TRANSACTION_THROUGHPUT_CHART.value,
     Referrer.API_EXPLORE_COMPARE_SERIES.value,
     Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TIMESERIES_SCORES.value,
+    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_REQUESTS_CHART.value,
+    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_DURATION_CHART.value,
+    Referrer.API_PERFORMANCE_BACKEND_OVERVIEW_JOBS_CHART.value,
 }
 
 
@@ -279,7 +283,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         use_rpc = request.GET.get("useRpc", "0") == "1" and dataset == spans_eap
         sampling_mode = request.GET.get("sampling")
         transform_alias_to_input_format = (
-            request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
+            request.GET.get("transformAliasToInputFormat") == "1" or use_rpc or dataset == ourlogs
         )
         sentry_sdk.set_tag("performance.use_rpc", use_rpc)
 
