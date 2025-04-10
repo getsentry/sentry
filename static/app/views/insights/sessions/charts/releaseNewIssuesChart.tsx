@@ -19,6 +19,7 @@ export default function ReleaseNewIssuesChart({project}: {project: Project}) {
       new Bars(convertSeriesToTimeseries(ts), {
         alias: ts.seriesName,
         color: colorPalette[index],
+        stack: 'all',
       })
   );
 
