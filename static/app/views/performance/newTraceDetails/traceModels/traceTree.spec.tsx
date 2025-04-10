@@ -19,7 +19,7 @@ import {
   assertEAPSpanNode,
   assertTransactionNode,
   makeEAPError,
-  makeEAPOccurence,
+  makeEAPOccurrence,
   makeEAPSpan,
   makeEAPTrace,
   makeEventTransaction,
@@ -198,7 +198,7 @@ const eapTraceWithOccurences = makeEAPTrace([
       makeEAPSpan({
         event_id: 'eap-span-2',
         is_transaction: false,
-        occurrences: [makeEAPOccurence({event_id: 'eap-occurence-1'})],
+        occurrences: [makeEAPOccurrence({event_id: 'eap-occurence-1'})],
       }),
     ],
   }),

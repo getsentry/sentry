@@ -127,7 +127,7 @@ export function makeEAPError(
   } as TraceTree.EAPError;
 }
 
-export function makeEAPOccurence(
+export function makeEAPOccurrence(
   overrides: Partial<TraceTree.EAPOccurrence> = {}
 ): TraceTree.EAPOccurrence {
   return {

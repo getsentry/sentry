@@ -84,10 +84,8 @@ export class IssuesTraceTree extends TraceTree {
             if (o.event_id === event.eventID) {
               return true;
             }
-          } else {
-            if (o.event_id === event.occurrence?.id) {
-              return true;
-            }
+          } else if (o.event_id === event.occurrence?.id) {
+            return true;
           }
         }
       }
