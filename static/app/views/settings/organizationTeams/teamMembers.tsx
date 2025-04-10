@@ -184,53 +184,6 @@ function AddMemberDropdown({
       onSearch={setMemberQuery}
     />
   );
-
-  // return (
-  //   <DropdownAutoComplete
-  //     closeOnSelect={false}
-  //     items={items}
-  //     alignMenu="right"
-  //     onSelect={
-  //       canAddMembers
-  //         ? addTeamMember
-  //         : selection =>
-  //             openTeamAccessRequestModal({
-  //               teamId,
-  //               orgId: organization.slug,
-  //               memberId: selection.value,
-  //             })
-  //     }
-  //     menuHeader={
-  //       <StyledMembersLabel>
-  //         {t('Members')}
-  //         <StyledCreateMemberLink
-  //           to=""
-  //           onClick={() => openInviteMembersModal({source: 'teams'})}
-  //           data-test-id="invite-member"
-  //         >
-  //           {t('Invite Member')}
-  //         </StyledCreateMemberLink>
-  //       </StyledMembersLabel>
-  //     }
-  //     emptyMessage={t('No members')}
-  //     onChange={handleMemberFilterChange}
-  //     onClose={() => setMemberQuery('')}
-  //     disabled={isDropdownDisabled}
-  //     data-test-id="add-member-menu"
-  //     busy={isOrgMembersFetching}
-  //   >
-  //     {({isOpen}) => (
-  //       <DropdownButton
-  //         isOpen={isOpen}
-  //         size="xs"
-  //         data-test-id="add-member"
-  //         disabled={isDropdownDisabled}
-  //       >
-  //         {t('Add Member')}
-  //       </DropdownButton>
-  //     )}
-  //   </DropdownAutoComplete>
-  // );
 }
 
 function TeamMembers({team}: TeamMembersProps) {
