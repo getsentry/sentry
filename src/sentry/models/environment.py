@@ -112,7 +112,7 @@ class Environment(Model):
         cache_key = f"envproj:c:{self.id}:{project.id}"
 
         if cache.get(cache_key) is None:
-            if in_random_rollout("environmentproject.new_get_or_create.rollout"):
+            if in_random_rollout("environmentproject.new_add_project.rollout"):
                 _, created = EnvironmentProject.objects.get_or_create(
                     project=project, environment=self, is_hidden=is_hidden
                 )

@@ -2813,7 +2813,7 @@ register(
 
 # Killswitch for EnvironmentProject.get_or_create refactor
 register(
-    "environmentproject.new_get_or_create.rollout",
+    "environmentproject.new_add_project.rollout",
     default=0.0,
     type=Float,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

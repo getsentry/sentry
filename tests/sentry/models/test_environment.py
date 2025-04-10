@@ -24,7 +24,7 @@ class GetOrCreateTest(TestCase):
         with self.assertNumQueries(0):
             assert Environment.get_for_organization_id(project.organization_id, "prod").id == env.id
 
-    @override_options({"environmentproject.new_get_or_create.rollout": 1.0})
+    @override_options({"environmentproject.new_add_project.rollout": 1.0})
     def test_simple_with_new_option(self):
         """
         Same test as test_simple, but with the new option enabled which has refactored
