@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -36,11 +35,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
-import {
-  hasLaravelInsightsFeature,
-  useIsLaravelInsightsEnabled,
-} from 'sentry/views/insights/pages/backend/laravel/features';
-import {NewLaravelExperienceButton} from 'sentry/views/insights/pages/backend/laravel/newLaravelExperienceButton';
+import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/backend/laravel/features';
 import {
   BACKEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
@@ -97,8 +92,12 @@ export const BACKEND_COLUMN_TITLES = [
 
 function BackendOverviewPage() {
   useOverviewPageTrackPageload();
-  const [isLaravelPageEnabled] = useIsLaravelInsightsEnabled();
-  return isLaravelPageEnabled ? <LaravelOverviewPage /> : <GenericBackendOverviewPage />;
+  const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
+  return isLaravelPageAvailable ? (
+    <LaravelOverviewPage />
+  ) : (
+    <GenericBackendOverviewPage />
+  );
 }
 
 function GenericBackendOverviewPage() {
@@ -242,14 +241,7 @@ function GenericBackendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader
-        headerTitle={BACKEND_LANDING_TITLE}
-        headerActions={
-          <Fragment>
-            <NewLaravelExperienceButton />
-          </Fragment>
-        }
-      />
+      <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -320,16 +312,12 @@ function GenericBackendOverviewPage() {
 
 function BackendOverviewPageWithProviders() {
   const organization = useOrganization();
-  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
+  const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
   const {maxPickableDays} = limitMaxPickableDays(organization);
 
   return (
     <DomainOverviewPageProviders
-      maxPickableDays={
-        isLaravelInsightsEnabled && hasLaravelInsightsFeature(organization)
-          ? maxPickableDays
-          : undefined
-      }
+      maxPickableDays={isLaravelPageAvailable ? maxPickableDays : undefined}
     >
       <BackendOverviewPage />
     </DomainOverviewPageProviders>

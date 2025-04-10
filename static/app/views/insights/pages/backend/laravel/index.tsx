@@ -28,7 +28,6 @@ import {CachesWidget} from 'sentry/views/insights/pages/backend/laravel/cachesWi
 import {DurationWidget} from 'sentry/views/insights/pages/backend/laravel/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/backend/laravel/issuesWidget';
 import {JobsWidget} from 'sentry/views/insights/pages/backend/laravel/jobsWidget';
-import {NewLaravelExperienceButton} from 'sentry/views/insights/pages/backend/laravel/newLaravelExperienceButton';
 import {PathsTable} from 'sentry/views/insights/pages/backend/laravel/pathsTable';
 import {QueriesWidget} from 'sentry/views/insights/pages/backend/laravel/queriesWidget';
 import {RequestsWidget} from 'sentry/views/insights/pages/backend/laravel/requestsWidget';
@@ -101,7 +100,6 @@ export function LaravelOverviewPage() {
         headerActions={
           <Fragment>
             <ViewTrendsButton />
-            <NewLaravelExperienceButton />
           </Fragment>
         }
       />
