@@ -199,6 +199,7 @@ export function PolicyRow({
         <PolicySubtext>{getPolicySubstatus()}</PolicySubtext>
       </div>
       <PolicyStatusRow>
+        <PolicyStatus policy={policy} />
         {policy.url &&
           policyUrl &&
           (policy.consent?.acceptedVersion === policy.version ? (
@@ -229,7 +230,6 @@ export function PolicyRow({
               {t('Review')}
             </LinkButton>
           ))}
-        <PolicyStatus policy={policy} />
       </PolicyStatusRow>
     </PanelItemPolicy>
   );

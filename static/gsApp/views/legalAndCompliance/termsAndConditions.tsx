@@ -165,13 +165,13 @@ export function TermsAndConditions({subscription}: TermsProps) {
               <PolicyTitle>{t('Security Overview')}</PolicyTitle>
             </div>
             <PolicyStatusRow>
-              <LinkButton size="sm" external href="https://sentry.io/security/">
-                {t('Review')}
-              </LinkButton>
               <StatusIconWithTooltip
                 icon={<IconCheckmark isCircled size="sm" color="success" />}
                 tooltip="This item is required/provided as part of your agreement."
               />
+              <LinkButton size="sm" external href="https://sentry.io/security/">
+                {t('Review')}
+              </LinkButton>
             </PolicyStatusRow>
           </PanelItemPolicy>
           {policies.pentest && (
