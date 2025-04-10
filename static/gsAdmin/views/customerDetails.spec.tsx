@@ -1233,7 +1233,7 @@ describe('Customer Details', function () {
       );
 
       await userEvent.hover(
-        within(screen.getByTestId('changeSoftCap')).getByTestId('terminateContract')
+        within(screen.getByTestId('changeSoftCap')).getByText('Add Legacy Soft Cap')
       );
 
       expect(
@@ -1811,7 +1811,7 @@ describe('Customer Details', function () {
       expect(screen.getByTestId('allowGrace')).toHaveAttribute('aria-disabled', 'true');
 
       await userEvent.hover(
-        within(screen.getByTestId('allowGrace')).getByTestId('terminateContract')
+        within(screen.getByTestId('allowGrace')).getByText('Allow Grace Period')
       );
 
       expect(
@@ -1947,10 +1947,7 @@ describe('Customer Details', function () {
         })[0]!
       );
 
-      expect(screen.getByTestId('terminateContract')).toHaveAttribute(
-        'aria-disabled',
-        'false'
-      );
+      expect(screen.getByTestId('terminateContract')).toBeEnabled();
     });
 
     it("terminates an organization's contract", async function () {
@@ -2624,7 +2621,7 @@ describe('Customer Details', function () {
           name: 'Customers Actions',
         })[0]!
       );
-      expect(screen.getByTestId('changePlan')).toHaveAttribute('aria-disabled', 'false');
+      expect(screen.getByTestId('changePlan')).toBeEnabled();
     });
 
     it('is enabled for deactivated partner account', async function () {
@@ -2676,7 +2673,7 @@ describe('Customer Details', function () {
           name: 'Customers Actions',
         })[0]!
       );
-      expect(screen.getByTestId('changePlan')).toHaveAttribute('aria-disabled', 'false');
+      expect(screen.getByTestId('changePlan')).toBeEnabled();
     });
 
     it('is disabled for active, non-XX partner account', async function () {
