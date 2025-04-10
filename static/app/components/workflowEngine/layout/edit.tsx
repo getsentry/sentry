@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
 
+import EditableText from 'sentry/components/editableText';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {ActionsFromContext} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsFromContext} from 'sentry/components/workflowEngine/layout/breadcrumbs';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 export interface WorkflowEngineEditLayoutProps {
@@ -24,7 +26,17 @@ function EditLayout({children}: WorkflowEngineEditLayoutProps) {
       <StyledHeader>
         <Layout.HeaderContent>
           <BreadcrumbsFromContext />
-          <Layout.Title>{title}</Layout.Title>
+          <Layout.Title>
+            <EditableText
+              isDisabled={false}
+              value={title}
+              onChange={newTitle => {
+                // eslint-disable-next-line no-console
+                console.log(`Updated title to ${newTitle}`);
+              }}
+              errorMessage={t('Please set a title')}
+            />
+          </Layout.Title>
         </Layout.HeaderContent>
         <ActionsFromContext />
       </StyledHeader>
