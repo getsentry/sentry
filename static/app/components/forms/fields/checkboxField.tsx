@@ -1,13 +1,12 @@
 import styled from '@emotion/styled';
 
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {FieldDescription} from 'sentry/components/forms/fieldGroup/fieldDescription';
+import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
+import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';
+import {FieldRequiredBadge} from 'sentry/components/forms/fieldGroup/fieldRequiredBadge';
+import FormField from 'sentry/components/forms/formField';
 import {space} from 'sentry/styles/space';
-
-import {FieldDescription} from '../fieldGroup/fieldDescription';
-import {FieldHelp} from '../fieldGroup/fieldHelp';
-import {FieldLabel} from '../fieldGroup/fieldLabel';
-import {FieldRequiredBadge} from '../fieldGroup/fieldRequiredBadge';
-import FormField from '../formField';
 
 type FormFieldProps = Omit<
   React.ComponentProps<typeof FormField>,

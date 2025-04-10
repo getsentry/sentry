@@ -12,8 +12,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
-
-import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
+import MissingPerformanceButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingPerformanceButtons';
 
 import {ActionWrapper} from './actionWrapper';
 

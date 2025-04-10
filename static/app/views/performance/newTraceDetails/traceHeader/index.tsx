@@ -25,18 +25,20 @@ import {
 } from 'sentry/views/explore/logs/types';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import TraceConfigurations from 'sentry/views/performance/newTraceDetails/traceConfigurations';
+import {
+  isEAPTraceNode,
+  isTraceNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import Highlights from 'sentry/views/performance/newTraceDetails/traceHeader/highlights';
 import {PlaceHolder} from 'sentry/views/performance/newTraceDetails/traceHeader/placeholder';
 import Projects from 'sentry/views/performance/newTraceDetails/traceHeader/projects';
 import ScrollToSectionLinks from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
-
-import {isRootEvent} from '../../traceDetails/utils';
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
-import TraceConfigurations from '../traceConfigurations';
-import {isEAPTraceNode, isTraceNode} from '../traceGuards';
-import type {TraceTree} from '../traceModels/traceTree';
-import {useHasTraceNewUi} from '../useHasTraceNewUi';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
+import {isRootEvent} from 'sentry/views/performance/traceDetails/utils';
 
 import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {Meta} from './meta';

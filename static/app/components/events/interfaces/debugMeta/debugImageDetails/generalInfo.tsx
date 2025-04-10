@@ -1,12 +1,11 @@
 import styled from '@emotion/styled';
 
+import Processings from 'sentry/components/events/interfaces/debugMeta/debugImage/processings';
+import {getImageAddress} from 'sentry/components/events/interfaces/debugMeta/utils';
 import NotAvailable from 'sentry/components/notAvailable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Image} from 'sentry/types/debugImage';
-
-import Processings from '../debugImage/processings';
-import {getImageAddress} from '../utils';
 
 type Props = {
   image?: Image;

@@ -2,13 +2,12 @@ import {
   StacktraceContext,
   useStacktraceContext,
 } from 'sentry/components/events/interfaces/stackTraceContext';
+import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {PlatformKey, Project} from 'sentry/types/project';
-
-import {TraceEventDataSection} from '../traceEventDataSection';
 
 import {StackTraceContent} from './crashContent/stackTrace';
 import NoStackTraceMessage from './noStackTraceMessage';

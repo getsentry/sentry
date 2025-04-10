@@ -29,8 +29,7 @@ import {
   MINIMUM_DASHBOARD_CARD_WIDTH,
 } from 'sentry/views/dashboards/manage/settings';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
-
-import {cloneDashboard} from '../utils';
+import {cloneDashboard} from 'sentry/views/dashboards/utils';
 
 import DashboardCard from './dashboardCard';
 import GridPreview from './gridPreview';

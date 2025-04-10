@@ -1,4 +1,4 @@
-import type {StatsBucket} from '../types';
+import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
 
 export function getAggregateStatus<Status extends string>(
   statusPrecedent: Status[],

@@ -6,8 +6,7 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import DiscoverLanding from 'sentry/views/discover/landing';
-
-import {OrganizationContext} from '../organizationContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('Discover > Landing', function () {
   const eventTitle = 'Oh no something bad';

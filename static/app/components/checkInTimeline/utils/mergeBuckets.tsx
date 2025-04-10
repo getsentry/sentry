@@ -1,6 +1,10 @@
 import chunk from 'lodash/chunk';
 
-import type {CheckInBucket as CheckInStats, JobTickData, RollupConfig} from '../types';
+import type {
+  CheckInBucket as CheckInStats,
+  JobTickData,
+  RollupConfig,
+} from 'sentry/components/checkInTimeline/types';
 
 import {getAggregateStatus} from './getAggregateStatus';
 import {isStatsBucketEmpty} from './isStatsBucketEmpty';

@@ -1,19 +1,21 @@
 import React from 'react';
 
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {
+  makeTraceNodeBarColor,
+  TraceBar,
+} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import {SpanProjectIcon} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
-
-import {TraceIcons} from '../traceIcons';
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import {makeTraceNodeBarColor, TraceBar} from '../traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
   TraceChildrenButton,
   TraceRowConnectors,
   type TraceRowProps,
-} from '../traceRow/traceRow';
+} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 const NO_PROFILES: any = [];
 

@@ -1,4 +1,4 @@
-import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 
 export const vertex = () => `
 attribute vec2 a_position;

@@ -1,7 +1,6 @@
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-
-import type {DiscoverSeries} from '../queries/useDiscoverSeries';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 
 export function convertSeriesToTimeseries(series: DiscoverSeries): TimeSeries {
   return {

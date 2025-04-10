@@ -13,14 +13,8 @@ import type {
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTraceSplitResult} from 'sentry/utils/performance/quickTrace/utils';
-import {collectTraceMeasurements} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
-import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
-import type {ReplayRecord} from 'sentry/views/replays/types';
-
-import {isRootEvent} from '../../traceDetails/utils';
-import {getTraceQueryParams} from '../traceApi/useTrace';
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
+import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
   getPageloadTransactionChildCount,
   isAutogroupedNode,
@@ -46,7 +40,12 @@ import {
   isTraceNode,
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
-} from '../traceGuards';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {collectTraceMeasurements} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
+import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {isRootEvent} from 'sentry/views/performance/traceDetails/utils';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {makeExampleTrace} from './makeExampleTrace';
 import {MissingInstrumentationNode} from './missingInstrumentationNode';

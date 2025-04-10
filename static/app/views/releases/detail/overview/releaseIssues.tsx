@@ -21,10 +21,9 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-
-import type {ReleaseBounds} from '../../utils';
-import {getReleaseParams} from '../../utils';
-import {EmptyState} from '../commitsAndFiles/emptyState';
+import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
+import type {ReleaseBounds} from 'sentry/views/releases/utils';
+import {getReleaseParams} from 'sentry/views/releases/utils';
 
 enum IssuesType {
   NEW = 'new',

@@ -10,8 +10,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReleaseComparisonChartType} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
-
-import {releaseComparisonChartLabels} from '../../utils';
+import {releaseComparisonChartLabels} from 'sentry/views/releases/detail/utils';
 
 import type {ReleaseComparisonRow} from '.';
 

@@ -4,12 +4,11 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 import {makeCanvasMock, makeFlamegraph} from 'sentry-test/profiling/utils';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphRendererDOM} from 'sentry/utils/profiling/renderers/flamegraphRendererDOM';
-
-import {CanvasView} from '../canvasView';
-import type {Flamegraph} from '../flamegraph';
-import {FlamegraphCanvas} from '../flamegraphCanvas';
 
 const theme = makeLightFlamegraphTheme(ThemeFixture());
 

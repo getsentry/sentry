@@ -14,15 +14,14 @@ import useApi from 'sentry/utils/useApi';
 import getPerformanceWidgetContainer, {
   type PerformanceWidgetContainerTypes,
 } from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
-
 import type {
   GenericPerformanceWidgetProps,
   WidgetDataConstraint,
   WidgetDataProps,
   WidgetDataResult,
   WidgetPropUnion,
-} from '../types';
-import type {PerformanceWidgetSetting} from '../widgetDefinitions';
+} from 'sentry/views/performance/landing/widgets/types';
+import type {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 
 import {DataStateSwitch} from './dataStateSwitch';
 import {QueryHandler} from './queryHandler';

@@ -4,12 +4,11 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DEEMPHASIS_COLOR_NAME} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
+import {X_GUTTER, Y_GUTTER} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   ErrorPropWithResponseJSON,
   StateProps,
 } from 'sentry/views/dashboards/widgets/common/types';
-
-import {X_GUTTER, Y_GUTTER} from '../common/settings';
 
 interface WidgetErrorProps {
   error: StateProps['error'];

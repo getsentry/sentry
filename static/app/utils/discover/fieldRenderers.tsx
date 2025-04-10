@@ -53,6 +53,7 @@ import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
@@ -66,8 +67,6 @@ import {
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
-
-import {decodeScalar} from '../queryString';
 
 import ArrayValue from './arrayValue';
 import {

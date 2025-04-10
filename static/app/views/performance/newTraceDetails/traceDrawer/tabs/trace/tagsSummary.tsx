@@ -17,9 +17,8 @@ import {formatTagKey} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {InfiniteData, UseInfiniteQueryResult} from 'sentry/utils/queryClient';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import StyledEmptyStateWarning from 'sentry/views/replays/detail/emptyState';
-
-import {TraceDrawerComponents} from '../../details/styles';
 
 const getTagTarget = (
   tagKey: string,

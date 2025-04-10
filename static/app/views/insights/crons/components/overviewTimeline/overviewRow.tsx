@@ -22,13 +22,16 @@ import type {ObjectStatus} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {StatusToggleButton} from 'sentry/views/insights/crons/components/statusToggleButton';
 import type {Monitor} from 'sentry/views/insights/crons/types';
+import {
+  checkInStatusPrecedent,
+  statusToText,
+  tickStyle,
+} from 'sentry/views/insights/crons/utils';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
-
-import {checkInStatusPrecedent, statusToText, tickStyle} from '../../utils';
-import {selectCheckInData} from '../../utils/selectCheckInData';
-import {useMonitorStats} from '../../utils/useMonitorStats';
-import {StatusToggleButton} from '../statusToggleButton';
+import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckInData';
+import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 
 import MonitorEnvironmentLabel from './monitorEnvironmentLabel';
 

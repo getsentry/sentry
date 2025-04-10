@@ -5,9 +5,8 @@ import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/featu
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-
-import type {ValidateWidgetResponse, Widget} from '../types';
-import {cleanWidgetForRequest} from '../widgetCard/genericWidgetQueries';
+import type {ValidateWidgetResponse, Widget} from 'sentry/views/dashboards/types';
+import {cleanWidgetForRequest} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 
 export function validateWidget(
   api: Client,

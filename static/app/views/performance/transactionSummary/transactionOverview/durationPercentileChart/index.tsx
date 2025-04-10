@@ -5,10 +5,12 @@ import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import {
+  filterToField,
+  SpanOperationBreakdownFilter,
+} from 'sentry/views/performance/transactionSummary/filter';
 import {getPercentiles} from 'sentry/views/performance/transactionSummary/transactionOverview/durationPercentileChart/utils';
-
-import type {ViewProps} from '../../../types';
-import {filterToField, SpanOperationBreakdownFilter} from '../../filter';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 import Content from './content';
 

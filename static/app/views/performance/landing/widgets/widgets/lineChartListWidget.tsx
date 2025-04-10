@@ -36,16 +36,9 @@ import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCel
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 import DurationChart from 'sentry/views/performance/charts/chart';
-import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import {
-  createUnnamedTransactionsDiscoverTarget,
-  UNPARAMETERIZED_TRANSACTION,
-} from 'sentry/views/performance/utils';
-import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-
-import {excludeTransaction} from '../../utils';
-import {Accordion} from '../components/accordion';
-import {GenericPerformanceWidget} from '../components/performanceWidget';
+import {excludeTransaction} from 'sentry/views/performance/landing/utils';
+import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import SelectableList, {
   GrowLink,
   HighestCacheMissRateTransactionsWidgetEmptyStateWarning,
@@ -56,22 +49,28 @@ import SelectableList, {
   TimeSpentInDatabaseWidgetEmptyStateWarning,
   WidgetAddInstrumentationWarning,
   WidgetEmptyStateWarning,
-} from '../components/selectableList';
-import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {transformDiscoverToList} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToList';
+import {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';
 import type {
   GenericPerformanceWidgetProps,
   PerformanceWidgetProps,
   QueryDefinition,
   WidgetDataResult,
-} from '../types';
+} from 'sentry/views/performance/landing/widgets/types';
 import {
   eventsRequestQueryProps,
   getMEPParamsIfApplicable,
   QUERY_LIMIT_PARAM,
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
-} from '../utils';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+} from 'sentry/views/performance/landing/widgets/utils';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {
+  createUnnamedTransactionsDiscoverTarget,
+  UNPARAMETERIZED_TRANSACTION,
+} from 'sentry/views/performance/utils';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;

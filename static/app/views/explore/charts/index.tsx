@@ -34,14 +34,13 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {
   ChartType,
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-
-import {CHART_HEIGHT, INGESTION_DELAY} from '../settings';
 
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;

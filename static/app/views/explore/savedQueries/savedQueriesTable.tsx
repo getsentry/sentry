@@ -30,17 +30,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
-import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
-import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
-import {StreamlineGridEditable} from 'sentry/views/issueDetails/streamline/eventListTable';
-
-import {useDeleteQuery} from '../hooks/useDeleteQuery';
+import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
   type SavedQuery,
   type SortOption,
   useGetSavedQueries,
-} from '../hooks/useGetSavedQueries';
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
+import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
+import {StreamlineGridEditable} from 'sentry/views/issueDetails/streamline/eventListTable';
 
 const NO_VALUE = ' \u2014 ';
 

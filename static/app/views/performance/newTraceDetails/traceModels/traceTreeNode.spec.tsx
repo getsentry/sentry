@@ -1,11 +1,10 @@
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   makeSpan,
   makeTraceError,
   makeTracePerformanceIssue,
   makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
-
-import type {TraceTree} from '../traceModels/traceTree';
 
 import {TraceTreeNode} from './traceTreeNode';
 

@@ -24,8 +24,7 @@ import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {defined, percent} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
-
-import {getCrashFreePercent} from '../utils';
+import {getCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 

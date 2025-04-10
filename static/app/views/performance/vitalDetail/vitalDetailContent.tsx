@@ -37,9 +37,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import Teams from 'sentry/utils/teams';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withProjects from 'sentry/utils/withProjects';
-
-import Breadcrumb from '../breadcrumb';
-import {getTransactionSearchQuery} from '../utils';
+import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 import Table from './table';
 import {

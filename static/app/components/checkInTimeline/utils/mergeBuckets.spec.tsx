@@ -1,4 +1,4 @@
-import type {CheckInBucket, RollupConfig} from '../types';
+import type {CheckInBucket, RollupConfig} from 'sentry/components/checkInTimeline/types';
 
 import {mergeBuckets} from './mergeBuckets';
 import {generateTestStats, type TestStatusCounts, testStatusPrecedent} from './testUtils';

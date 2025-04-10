@@ -8,8 +8,10 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
-
-import {isADurationUnit, isASizeUnit} from '../../common/typePredicates';
+import {
+  isADurationUnit,
+  isASizeUnit,
+} from 'sentry/views/dashboards/widgets/common/typePredicates';
 
 export function formatTooltipValue(
   value: number | typeof ECHARTS_MISSING_DATA_VALUE,

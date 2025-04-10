@@ -9,9 +9,11 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-
-import type {TraceTree} from '../traceModels/traceTree';
-import {makeTraceError, makeTransaction} from '../traceModels/traceTreeTestUtils';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {
+  makeTraceError,
+  makeTransaction,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 import type {TraceMetaQueryResults} from './useTraceMeta';
 import {useTraceTree} from './useTraceTree';

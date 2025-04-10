@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {EventTags} from 'sentry/components/events/eventTags';
 import {
   getSentryDefaultTags,
   TagFilter,
@@ -17,8 +18,6 @@ import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-
-import {EventTags} from '../eventTags';
 
 type Props = {
   event: Event;

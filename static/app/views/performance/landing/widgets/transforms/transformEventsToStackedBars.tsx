@@ -1,12 +1,11 @@
 import type {RenderProps} from 'sentry/components/charts/eventsRequest';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {defined} from 'sentry/utils';
-
 import type {
   QueryDefinitionWithKey,
   WidgetDataConstraint,
   WidgetPropUnion,
-} from '../types';
+} from 'sentry/views/performance/landing/widgets/types';
 
 export function transformEventsRequestToStackedArea<T extends WidgetDataConstraint>(
   widgetProps: WidgetPropUnion<T>,

@@ -9,6 +9,7 @@ import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
+import {LegacyProfilingOnboardingSidebar} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
@@ -74,8 +75,6 @@ import {
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
 import {OptInBanner} from 'sentry/views/nav/optInBanner';
-
-import {LegacyProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
 import {Broadcasts} from './broadcasts';
 import SidebarHelp from './help';

@@ -6,9 +6,8 @@ import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
-
-import {useDomainViewFilters} from '../../pages/useFilters';
 
 interface SampleDrawerHeaderProps {
   transaction: string;

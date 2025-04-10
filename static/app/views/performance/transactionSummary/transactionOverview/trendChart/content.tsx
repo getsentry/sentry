@@ -19,9 +19,8 @@ import {
 } from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
+import {transformEventStatsSmoothed} from 'sentry/views/performance/trends/utils';
 import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
-
-import {transformEventStatsSmoothed} from '../../../trends/utils';
 
 type Props = {
   errored: boolean;

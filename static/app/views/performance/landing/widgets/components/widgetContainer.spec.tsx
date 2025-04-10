@@ -9,10 +9,9 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
+import {QUERY_LIMIT_PARAM} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
-
-import {QUERY_LIMIT_PARAM} from '../utils';
 
 const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
   const data = _initializeData({

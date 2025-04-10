@@ -27,8 +27,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
-
-import WidgetLegendSelectionState from '../widgetLegendSelectionState';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 const defaultOrgFeatures = [
   'performance-view',

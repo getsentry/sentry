@@ -25,10 +25,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-
-import {TraceViewSources} from '../performance/newTraceDetails/traceHeader/breadcrumbs';
 
 import type {TraceResult} from './hooks/useTraces';
 import {BREAKDOWN_SLICES} from './hooks/useTraces';

@@ -3,11 +3,10 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {makeCanvasMock, makeContextMock} from 'sentry-test/profiling/utils';
 
+import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {UIFramesRendererWebGL} from 'sentry/utils/profiling/renderers/uiFramesRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
-
-import {makeLightFlamegraphTheme} from '../flamegraph/flamegraphTheme';
 
 const theme = makeLightFlamegraphTheme(ThemeFixture());
 

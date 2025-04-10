@@ -32,15 +32,14 @@ import {
 import type {Vital} from 'sentry/utils/performance/vitals/types';
 import type {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {VitalBar} from 'sentry/views/performance/landing/vitalsCards';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
-
-import {VitalBar} from '../../landing/vitalsCards';
 import {
   VitalState,
   vitalStateColors,
   webVitalMeh,
   webVitalPoor,
-} from '../../vitalDetail/utils';
+} from 'sentry/views/performance/vitalDetail/utils';
 
 import {NUM_BUCKETS, PERCENTILE} from './constants';
 import {Card, CardSectionHeading, CardSummary, Description, StatNumber} from './styles';

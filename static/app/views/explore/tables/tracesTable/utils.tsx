@@ -1,5 +1,5 @@
-import type {TraceResult} from '../../hooks/useTraces';
-import type {SpanResult} from '../../hooks/useTraceSpans';
+import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
+import type {SpanResult} from 'sentry/views/explore/hooks/useTraceSpans';
 
 import type {Field} from './data';
 

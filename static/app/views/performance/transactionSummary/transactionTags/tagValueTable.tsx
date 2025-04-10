@@ -30,9 +30,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-
-import {TagValue} from '../transactionOverview/tagExplorer';
-import {normalizeSearchConditions} from '../utils';
+import {TagValue} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
+import {normalizeSearchConditions} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {TagsTableColumn, TagsTableColumnKeys} from './tagsDisplay';
 import {TAGS_TABLE_COLUMN_ORDER} from './tagsDisplay';

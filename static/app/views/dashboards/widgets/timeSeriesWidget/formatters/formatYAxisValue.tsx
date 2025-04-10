@@ -11,8 +11,11 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
-
-import {isADurationUnit, isARateUnit, isASizeUnit} from '../../common/typePredicates';
+import {
+  isADurationUnit,
+  isARateUnit,
+  isASizeUnit,
+} from 'sentry/views/dashboards/widgets/common/typePredicates';
 
 import {formatYAxisDuration} from './formatYAxisDuration';
 

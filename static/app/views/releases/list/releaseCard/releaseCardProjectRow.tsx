@@ -23,17 +23,16 @@ import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import type {IconSize} from 'sentry/utils/theme';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
-
+import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
+import type {ReleasesRequestRenderProps} from 'sentry/views/releases/list/releasesRequest';
 import {
   ADOPTION_STAGE_LABELS,
   displayCrashFreePercent,
   getReleaseNewIssuesUrl,
   getReleaseUnhandledIssuesUrl,
   isMobileRelease,
-} from '../../utils';
-import {ReleasesDisplayOption} from '../releasesDisplayOptions';
-import type {ReleasesRequestRenderProps} from '../releasesRequest';
+} from 'sentry/views/releases/utils';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {
   AdoptionColumn,

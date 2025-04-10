@@ -21,6 +21,7 @@ import {
 } from 'sentry/views/insights/cache/components/tables/transactionsTable';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
 import {BASE_FILTERS, MODULE_DOC_LINK} from 'sentry/views/insights/cache/settings';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -34,7 +35,12 @@ import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDisc
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {
+  DataTitles,
+  getThroughputChartTitle,
+} from 'sentry/views/insights/common/views/spans/types';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {
   type MetricsProperty,
@@ -42,10 +48,6 @@ import {
   SpanFunction,
   SpanMetricsField,
 } from 'sentry/views/insights/types';
-
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
-import {DataTitles, getThroughputChartTitle} from '../../common/views/spans/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;

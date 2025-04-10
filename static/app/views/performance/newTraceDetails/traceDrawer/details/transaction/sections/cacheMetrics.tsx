@@ -3,8 +3,10 @@ import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import type {SpanMetricsResponse} from 'sentry/views/insights/types';
-
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
 export function CacheMetrics({
   cacheMetrics,

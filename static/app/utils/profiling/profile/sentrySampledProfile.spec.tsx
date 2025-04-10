@@ -1,4 +1,4 @@
-import {Frame} from '../frame';
+import {Frame} from 'sentry/utils/profiling/frame';
 
 import {SentrySampledProfile} from './sentrySampledProfile';
 import {makeSentrySampledProfile, makeTestingBoilerplate} from './testUtils';

@@ -10,39 +10,41 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import withProjects from 'sentry/utils/withProjects';
-import {
-  DisplayModes,
-  transactionSummaryRouteWithQuery,
-} from 'sentry/views/performance/transactionSummary/utils';
-import {CompareDurations} from 'sentry/views/performance/trends/changedTransactions';
-import {
-  getProjectID,
-  getSelectedProjectPlatforms,
-  handleTrendsClick,
-  trendsTargetRoute,
-} from 'sentry/views/performance/utils';
-
-import {Chart} from '../../../trends/chart';
-import {TrendChangeType, TrendFunctionField} from '../../../trends/types';
-import {excludeTransaction} from '../../utils';
-import {Accordion} from '../components/accordion';
-import {GenericPerformanceWidget} from '../components/performanceWidget';
+import {excludeTransaction} from 'sentry/views/performance/landing/utils';
+import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import SelectableList, {
   GrowLink,
   ListClose,
   RightAlignedCell,
   Subtitle,
   WidgetEmptyStateWarning,
-} from '../components/selectableList';
-import {transformTrendsDiscover} from '../transforms/transformTrendsDiscover';
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {transformTrendsDiscover} from 'sentry/views/performance/landing/widgets/transforms/transformTrendsDiscover';
 import type {
   GenericPerformanceWidgetProps,
   PerformanceWidgetProps,
   QueryDefinition,
   WidgetDataResult,
-} from '../types';
-import {QUERY_LIMIT_PARAM, TOTAL_EXPANDABLE_ROWS_HEIGHT} from '../utils';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+} from 'sentry/views/performance/landing/widgets/types';
+import {
+  QUERY_LIMIT_PARAM,
+  TOTAL_EXPANDABLE_ROWS_HEIGHT,
+} from 'sentry/views/performance/landing/widgets/utils';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {
+  DisplayModes,
+  transactionSummaryRouteWithQuery,
+} from 'sentry/views/performance/transactionSummary/utils';
+import {CompareDurations} from 'sentry/views/performance/trends/changedTransactions';
+import {Chart} from 'sentry/views/performance/trends/chart';
+import {TrendChangeType, TrendFunctionField} from 'sentry/views/performance/trends/types';
+import {
+  getProjectID,
+  getSelectedProjectPlatforms,
+  handleTrendsClick,
+  trendsTargetRoute,
+} from 'sentry/views/performance/utils';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformTrendsDiscover>;

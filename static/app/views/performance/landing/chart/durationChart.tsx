@@ -16,9 +16,8 @@ import type EventView from 'sentry/utils/discover/eventView';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-
-import Chart from '../../charts/chart';
-import {DoubleHeaderContainer} from '../../styles';
+import Chart from 'sentry/views/performance/charts/chart';
+import {DoubleHeaderContainer} from 'sentry/views/performance/styles';
 
 import {getFieldOrBackup} from './utils';
 

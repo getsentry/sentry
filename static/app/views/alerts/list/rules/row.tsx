@@ -32,10 +32,9 @@ import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadg
 import {getActor} from 'sentry/views/alerts/list/rules/utils';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
-
-import type {CombinedAlerts} from '../../types';
-import {CombinedAlertType} from '../../types';
-import {isIssueAlert} from '../../utils';
+import type {CombinedAlerts} from 'sentry/views/alerts/types';
+import {CombinedAlertType} from 'sentry/views/alerts/types';
+import {isIssueAlert} from 'sentry/views/alerts/utils';
 
 type Props = {
   hasEditAccess: boolean;

@@ -1,13 +1,12 @@
 import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import {renameDiscoverSeries} from 'sentry/views/insights/common/utils/renameDiscoverSeries';
 import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
 import {usePublishQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/usePublishQueuesTimeSeriesQuery';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
-
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {renameDiscoverSeries} from '../../common/utils/renameDiscoverSeries';
-import {FIELD_ALIASES} from '../settings';
+import {FIELD_ALIASES} from 'sentry/views/insights/queues/settings';
 
 interface Props {
   referrer: Referrer;

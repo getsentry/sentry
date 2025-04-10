@@ -12,9 +12,8 @@ import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import type {UseQueryOptions} from 'sentry/utils/queryClient';
-
-import useApi from '../useApi';
-import useOrganization from '../useOrganization';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export interface DiscoverQueryExtras {
   useOnDemandMetrics?: boolean;

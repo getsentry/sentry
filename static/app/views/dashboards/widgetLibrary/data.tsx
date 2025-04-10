@@ -2,10 +2,9 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {TOP_N} from 'sentry/utils/discover/types';
+import type {Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-
-import type {Widget} from '../types';
-import {DisplayType, WidgetType} from '../types';
 
 export type WidgetTemplate = Widget & {
   description: string;

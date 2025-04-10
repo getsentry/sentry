@@ -17,8 +17,11 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CheckInStatus, ScheduleType} from 'sentry/views/insights/crons/types';
-
-import {checkInStatusPrecedent, statusToText, tickStyle} from '../utils';
+import {
+  checkInStatusPrecedent,
+  statusToText,
+  tickStyle,
+} from 'sentry/views/insights/crons/utils';
 
 interface ScheduleConfig {
   cronSchedule?: FieldValue;

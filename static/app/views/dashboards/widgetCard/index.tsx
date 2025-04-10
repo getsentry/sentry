@@ -31,13 +31,16 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  OnDemandExtractionState,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
+import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
-
-import type {DashboardFilters, Widget} from '../types';
-import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
-import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
-import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
-import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';

@@ -10,8 +10,10 @@ import {SavedSearchType} from 'sentry/types/group';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
-
-import {SESSION_STATUSES, SESSIONS_FILTER_TAGS} from '../../releaseWidget/fields';
+import {
+  SESSION_STATUSES,
+  SESSIONS_FILTER_TAGS,
+} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
 const filterKeySections: FilterKeySection[] = [
   {value: 'session_field', label: t('Suggested'), children: SESSIONS_FILTER_TAGS},

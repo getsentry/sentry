@@ -8,10 +8,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {normalizeQueries} from 'sentry/views/dashboards/widgetBuilder/utils';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/data';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
-
-import {normalizeQueries} from '../utils';
 
 import {Card} from './card';
 

@@ -34,6 +34,10 @@ import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader'
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
+import {
+  getCurrentLandingDisplay,
+  LandingDisplayField,
+} from 'sentry/views/performance/landing/utils';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
@@ -42,8 +46,6 @@ import {spansRouteWithQuery} from 'sentry/views/performance/transactionSummary/t
 import {tagsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionTags/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
-
-import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 
 import Tab from './tabs';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';

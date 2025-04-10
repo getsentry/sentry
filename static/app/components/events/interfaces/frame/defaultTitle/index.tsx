@@ -2,6 +2,13 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import {FunctionName} from 'sentry/components/events/interfaces/frame/functionName';
+import GroupingIndicator from 'sentry/components/events/interfaces/frame/groupingIndicator';
+import {
+  getPlatform,
+  isDotnet,
+  trimPackage,
+} from 'sentry/components/events/interfaces/frame/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -16,10 +23,6 @@ import type {Meta} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
-
-import {FunctionName} from '../functionName';
-import GroupingIndicator from '../groupingIndicator';
-import {getPlatform, isDotnet, trimPackage} from '../utils';
 
 type Props = {
   frame: Frame;

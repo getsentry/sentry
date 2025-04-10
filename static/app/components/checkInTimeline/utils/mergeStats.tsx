@@ -1,4 +1,4 @@
-import type {StatsBucket} from '../types';
+import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
 
 /**
  * Combines job status counts

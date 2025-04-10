@@ -1,8 +1,7 @@
 import round from 'lodash/round';
 
 import {t, tn} from 'sentry/locale';
-
-import {DAY, HOUR, MINUTE, SECOND, WEEK} from '../formatters';
+import {DAY, HOUR, MINUTE, SECOND, WEEK} from 'sentry/utils/formatters';
 
 const SUFFIX_ABBR = {
   years: t('yr'),

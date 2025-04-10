@@ -19,9 +19,8 @@ import {
   type EventTransaction,
 } from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
-
-import {TraceDrawerComponents} from '../../styles';
 
 export function BreadCrumbs({
   event,

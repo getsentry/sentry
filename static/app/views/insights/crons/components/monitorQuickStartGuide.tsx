@@ -25,8 +25,7 @@ import {
   RubyRailsCronQuickStart,
   RubySidekiqCronQuickStart,
 } from 'sentry/views/insights/crons/components/quickStartEntries';
-
-import type {Monitor} from '../types';
+import type {Monitor} from 'sentry/views/insights/crons/types';
 
 interface Props {
   monitor: Monitor;

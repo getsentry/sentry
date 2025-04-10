@@ -11,17 +11,16 @@ import {Observer} from 'mobx-react';
 
 import type {AlertProps} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
+import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
+import FormContext from 'sentry/components/forms/formContext';
+import type FormModel from 'sentry/components/forms/model';
+import {MockModel} from 'sentry/components/forms/model';
+import type {FieldValue} from 'sentry/components/forms/types';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
-
-import FieldGroup from '../fieldGroup';
-import type {FieldGroupProps} from '../fieldGroup/types';
-import FormContext from '../formContext';
-import type FormModel from '../model';
-import {MockModel} from '../model';
-import type {FieldValue} from '../types';
 
 import FormFieldControlState from './controlState';
 

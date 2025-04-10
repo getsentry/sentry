@@ -13,9 +13,8 @@ import {
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {IncidentStatus} from 'sentry/views/alerts/types';
-
-import {withChonk} from '../../../utils/theme/withChonk';
 
 import {ChonkAlertBadgeDiamondBackground} from './alertBadge.chonk';
 

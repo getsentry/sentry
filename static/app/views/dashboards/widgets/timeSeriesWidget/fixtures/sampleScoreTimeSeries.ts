@@ -1,4 +1,4 @@
-import {TimeSeries} from '../../common/types';
+import {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 export const sampleScoreTimeSeries: TimeSeries = {
   field: 'performance_score(measurements.score.lcp)',

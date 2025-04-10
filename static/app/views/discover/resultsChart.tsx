@@ -30,8 +30,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
-
-import {isCustomMeasurement} from '../dashboards/utils';
+import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 
 import ChartFooter from './chartFooter';
 

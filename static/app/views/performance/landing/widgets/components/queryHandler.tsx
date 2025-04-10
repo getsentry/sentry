@@ -5,13 +5,12 @@ import {
   getIsMetricsDataFromResults,
   useMEPDataContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
-
 import type {
   QueryDefinitionWithKey,
   QueryHandlerProps,
   WidgetDataConstraint,
-} from '../types';
-import type {PerformanceWidgetSetting} from '../widgetDefinitions';
+} from 'sentry/views/performance/landing/widgets/types';
+import type {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 
 /**
  * Component to handle switching component-style queries over to state. This

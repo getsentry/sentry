@@ -36,6 +36,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {
   getANRRateText,
   isPlatformANRCompatible,
@@ -45,8 +46,6 @@ import {
   getSessionTermDescription,
   SessionTerm,
 } from 'sentry/views/releases/utils/sessionTerm';
-
-import {getTermHelp, PerformanceTerm} from '../performance/data';
 
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
 import ProjectBaseSessionsChart from './charts/projectBaseSessionsChart';

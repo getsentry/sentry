@@ -3,6 +3,21 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {
+  CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX,
+  CallTreeDynamicColumnsContainer,
+  CallTreeFixedColumnsContainer,
+  CallTreeTable,
+  CallTreeTableContainer,
+  CallTreeTableDynamicColumns,
+  CallTreeTableFixedColumns,
+  CallTreeTableGhostRow,
+  CallTreeTableHeader,
+  CallTreeTableHeaderButton,
+  CallTreeTableRow,
+  makeCallTreeTableSortFunction,
+  syncCallTreeTableScroll,
+} from 'sentry/components/profiling/flamegraph/callTreeTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,22 +33,6 @@ import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTre
 import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {relativeWeight} from 'sentry/utils/profiling/units/units';
-
-import {
-  CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX,
-  CallTreeDynamicColumnsContainer,
-  CallTreeFixedColumnsContainer,
-  CallTreeTable,
-  CallTreeTableContainer,
-  CallTreeTableDynamicColumns,
-  CallTreeTableFixedColumns,
-  CallTreeTableGhostRow,
-  CallTreeTableHeader,
-  CallTreeTableHeaderButton,
-  CallTreeTableRow,
-  makeCallTreeTableSortFunction,
-  syncCallTreeTableScroll,
-} from '../callTreeTable';
 
 import {FlamegraphTreeContextMenu} from './flamegraphTreeContextMenu';
 

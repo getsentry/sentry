@@ -10,6 +10,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
@@ -19,6 +20,10 @@ import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDisc
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {
+  getDurationChartTitle,
+  getThroughputChartTitle,
+} from 'sentry/views/insights/common/views/spans/types';
 import {DatabasePageFilters} from 'sentry/views/insights/database/components/databasePageFilters';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 import {
@@ -32,12 +37,6 @@ import {
 } from 'sentry/views/insights/database/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {
-  getDurationChartTitle,
-  getThroughputChartTitle,
-} from '../../common/views/spans/types';
 
 export function DatabaseLandingPage() {
   const organization = useOrganization();

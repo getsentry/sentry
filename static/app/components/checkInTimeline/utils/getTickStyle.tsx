@@ -1,6 +1,6 @@
 import {css, type Theme} from '@emotion/react';
 
-import type {TickStyle} from '../types';
+import type {TickStyle} from 'sentry/components/checkInTimeline/types';
 
 export function getTickStyle<Status extends string>(
   statusStyles: Record<Status, TickStyle>,

@@ -32,12 +32,18 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {type Range, RangeMap} from 'sentry/utils/number/rangeMap';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import {
+  NO_PLOTTABLE_VALUES,
+  X_GUTTER,
+  Y_GUTTER,
+} from 'sentry/views/dashboards/widgets/common/settings';
+import type {
+  LegendSelection,
+  Release,
+} from 'sentry/views/dashboards/widgets/common/types';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
-
-import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
-import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
-import type {LegendSelection, Release} from '../common/types';
 
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';

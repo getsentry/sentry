@@ -1,9 +1,8 @@
 import type {SeriesOption} from 'echarts';
 
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-
-import type {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from '../../common/settings';
-import type {TimeSeriesValueUnit} from '../../common/types';
+import type {PLOTTABLE_TIME_SERIES_VALUE_TYPES} from 'sentry/views/dashboards/widgets/common/settings';
+import type {TimeSeriesValueUnit} from 'sentry/views/dashboards/widgets/common/types';
 
 export type PlottableTimeSeriesValueType =
   (typeof PLOTTABLE_TIME_SERIES_VALUE_TYPES)[number];

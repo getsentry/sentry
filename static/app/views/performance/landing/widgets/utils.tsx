@@ -6,8 +6,7 @@ import {
   canUseMetricsData,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-
-import type {ProjectPerformanceType} from '../../utils';
+import type {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 import {PerformanceWidgetSetting} from './widgetDefinitions';
 
