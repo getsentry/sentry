@@ -69,12 +69,25 @@ def _(app, request, e):
         data = UserError('Custom message', f'{event_id}{e}')
         return app.make_response(request, data)`;
 
+const getInstallSnippet = () => `pip install 'sentry-sdk'`;
+
 const onboarding: OnboardingConfig = {
   introduction: () =>
     tct('The Tryton integration adds support for the [link:Tryton Framework Server].', {
       link: <ExternalLink href="https://www.tryton.org/" />,
     }),
-  install: () => [],
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: t('Install the Sentry Python SDK package:'),
+      configurations: [
+        {
+          language: 'bash',
+          code: getInstallSnippet(),
+        },
+      ],
+    },
+  ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
