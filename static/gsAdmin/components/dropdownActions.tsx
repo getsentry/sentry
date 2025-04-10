@@ -1,10 +1,37 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import DropdownButton from 'sentry/components/dropdownButton';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconNot} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
+
+const ActionName = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
+const ActionLabel = styled('div')<{isDisabled: boolean}>`
+  width: 350px;
+  ${p =>
+    p.isDisabled &&
+    css`
+      color: ${p.theme.subText};
+      svg {
+        color: ${p.theme.red200};
+      }
+    `}
+`;
+
+const HelpText = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  line-height: 1.2;
+`;
 
 type Props = {
   actions: Array<{
@@ -21,44 +48,20 @@ type Props = {
   label?: string;
 };
 
-/**
- * Map actions to a format that can be used by the CompactSelect component. This exists
- * because this used a component with a different signature, and I
- */
-function mapActionsToCompactSelect(
-  actions: Props['actions']
-): Array<SelectOption<string>> {
-  return actions
-    .map(action => {
-      if (action.visible === false) {
-        return null;
-      }
-
-      return {
-        value: action.key,
-        label: (
-          <div>
-            {action.name}
-            <StyledIconNot size="xs" />
-          </div>
-        ),
-        details: action.help,
-        disabled: action.disabled,
-        tooltip: action.disabled ? action.disabledReason : undefined,
-        help: action.help,
-      };
-    })
-    .filter(Boolean) as Array<SelectOption<string>>;
-}
-
 function DropdownActions({actions, label}: Props) {
   return (
-    <CompactSelect
-      searchable
-      options={mapActionsToCompactSelect(actions)}
-      onChange={option => {
-        const action = actions.find(a => a.key === option.value);
-        if (!action || action.disabled) {
+    <DropdownAutoComplete
+      alignMenu="right"
+      searchPlaceholder="Filter actions"
+      noResultsMessage="No actions match your filter"
+      onSelect={({value}) => {
+        const action = actions.find(a => a.key === value);
+
+        if (action === undefined) {
+          return;
+        }
+
+        if (action.disabled) {
           return;
         }
 
@@ -80,15 +83,41 @@ function DropdownActions({actions, label}: Props) {
           onConfirm: action.onAction,
         });
       }}
-      triggerLabel={label}
-    />
+      items={actions
+        .filter(action => action.visible !== false)
+        .map(action => {
+          const actionLabel = (
+            <ActionLabel
+              data-test-id={`action-${action.key}`}
+              isDisabled={!!action.disabled}
+              aria-disabled={!!action.disabled}
+            >
+              <ActionName>
+                {action.name}
+                {action.disabled && (
+                  <Tooltip skipWrapper title={action.disabledReason}>
+                    <IconNot size="xs" data-test-id="icon-not" />
+                  </Tooltip>
+                )}
+              </ActionName>
+              {action.help && <HelpText>{action.help}</HelpText>}
+            </ActionLabel>
+          );
+
+          return {
+            value: action.key,
+            searchKey: action.name,
+            label: actionLabel,
+          };
+        })}
+    >
+      {({isOpen}) => (
+        <DropdownButton data-test-id="detail-actions" size="sm" isOpen={isOpen}>
+          {label}
+        </DropdownButton>
+      )}
+    </DropdownAutoComplete>
   );
 }
 
 export default DropdownActions;
-
-const StyledIconNot = styled(IconNot)`
-  color: ${p => p.theme.red200};
-  margin-left: ${space(0.5)};
-  transform: translateY(2px);
-`;
