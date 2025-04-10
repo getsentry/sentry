@@ -9,9 +9,8 @@ import type {Organization} from 'sentry/types/organization';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
-
-import {TraceDrawerComponents} from '../../styles';
 
 const REPLAY_CLIP_OFFSETS = {
   durationAfterMs: 5_000,

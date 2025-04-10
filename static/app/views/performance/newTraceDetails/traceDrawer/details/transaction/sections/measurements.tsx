@@ -17,9 +17,11 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
-import {TraceDrawerActionValueKind} from '../../utils';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 type MeasurementsProps = {
   event: EventTransaction;

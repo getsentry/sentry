@@ -17,8 +17,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import type {BillingDetails, Invoice} from 'getsentry/types';
 import {InvoiceItemType, InvoiceStatus} from 'getsentry/types';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
-
-import {displayPriceWithCents} from '../amCheckout/utils';
+import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 import InvoiceDetailsActions from './actions';
 

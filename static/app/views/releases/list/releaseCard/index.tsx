@@ -25,10 +25,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {useUser} from 'sentry/utils/useUser';
 import useFinalizeRelease from 'sentry/views/releases/components/useFinalizeRelease';
+import type {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
+import type {ReleasesRequestRenderProps} from 'sentry/views/releases/list/releasesRequest';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
-
-import type {ReleasesDisplayOption} from '../releasesDisplayOptions';
-import type {ReleasesRequestRenderProps} from '../releasesRequest';
 
 import ReleaseCardCommits from './releaseCardCommits';
 import ReleaseCardProjectRow from './releaseCardProjectRow';
