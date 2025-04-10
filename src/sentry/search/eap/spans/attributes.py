@@ -404,6 +404,9 @@ def module_context_constructor(params: SnubaParams) -> VirtualColumnContext:
 
 
 def is_starred_segment_context_constructor(params: SnubaParams) -> VirtualColumnContext:
+    if params.user is None or params.organization_id is None:
+        raise ValueError("User and organization is required for is_starred_transaction")
+
     starred_segment_results = InsightsStarredSegment.objects.filter(
         organization_id=params.organization_id,
         project_id__in=params.project_ids,
