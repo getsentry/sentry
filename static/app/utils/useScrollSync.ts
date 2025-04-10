@@ -38,22 +38,26 @@ export const useScrollSync = ({
           return;
         }
 
-        if (direction === 'left') {
-          ref.current.scrollLeft = clonedScrollingRef.scrollLeft;
-        } else if (direction === 'top') {
-          ref.current.scrollTop = clonedScrollingRef.scrollTop;
-        } else {
-          ref.current.scrollTop = clonedScrollingRef.scrollTop;
-          ref.current.scrollLeft = clonedScrollingRef.scrollLeft;
+        switch (direction) {
+          case 'left':
+            ref.current.scrollLeft = clonedScrollingRef.scrollLeft;
+            break;
+          case 'top':
+            ref.current.scrollTop = clonedScrollingRef.scrollTop;
+            break;
+          case 'all':
+            ref.current.scrollTop = clonedScrollingRef.scrollTop;
+            ref.current.scrollLeft = clonedScrollingRef.scrollLeft;
+            break;
+          default:
+            throw new Error('Invalid direction provided to useScrollSync');
         }
       });
     };
 
-    // add the scroll event listener
     clonedScrollingRef.addEventListener('scroll', onScroll, {passive: true});
 
     return () => {
-      // remove the scroll event listener
       clonedScrollingRef.removeEventListener('scroll', onScroll);
     };
   }, [scrollingRef, refsToSync, direction]);
