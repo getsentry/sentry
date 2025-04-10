@@ -38,9 +38,9 @@ function DetectorListTable({detectors}: DetectorListTableProps) {
           isSelectAllChecked={isSelectAllChecked}
           toggleSelectAll={toggleSelectAll}
         />
-        <Flex className="last-issue">
+        <Flex className="issue">
           <HeaderDivider />
-          <Heading>{t('Last Issue')}</Heading>
+          <Heading>{t('Issue')}</Heading>
         </Flex>
         <Flex className="open-issues">
           <HeaderDivider />
