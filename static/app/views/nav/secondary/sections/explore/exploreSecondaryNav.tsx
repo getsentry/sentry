@@ -1,5 +1,3 @@
-import {useRef} from 'react';
-
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -12,7 +10,6 @@ import {PrimaryNavGroup} from 'sentry/views/nav/types';
 export function ExploreSecondaryNav() {
   const organization = useOrganization();
 
-  const sectionRef = useRef<HTMLDivElement>(null);
   const baseUrl = `/organizations/${organization.slug}/explore`;
 
   const {data: starredQueries} = useGetSavedQueries({
@@ -74,10 +71,7 @@ export function ExploreSecondaryNav() {
         <Feature features="performance-saved-queries">
           <SecondaryNav.Section title={t('Starred Queries')}>
             {starredQueries && starredQueries.length > 0 && (
-              <ExploreSavedQueryNavItems
-                queries={starredQueries}
-                sectionRef={sectionRef}
-              />
+              <ExploreSavedQueryNavItems queries={starredQueries} />
             )}
           </SecondaryNav.Section>
           <SecondaryNav.Section>
