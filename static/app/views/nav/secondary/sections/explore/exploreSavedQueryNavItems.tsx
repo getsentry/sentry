@@ -52,12 +52,15 @@ export function ExploreSavedQueryNavItems({queries, sectionRef}: Props) {
       initial={false}
       ref={sectionRef}
       dragControls={controls}
-      onDragEnd={() => {
-        reorderStarredSavedQueries(savedQueries);
-      }}
     >
       {savedQueries?.map(query => (
-        <StyledReorderItem key={query.id} value={query}>
+        <StyledReorderItem
+          key={query.id}
+          value={query}
+          onDragEnd={() => {
+            reorderStarredSavedQueries(savedQueries);
+          }}
+        >
           <GrabHandleWrapper data-test-id={`grab-handle-${query.id}`} data-drag-icon>
             <StyledIconGrabbable color="gray300" />
             <StyledProjectIcon
