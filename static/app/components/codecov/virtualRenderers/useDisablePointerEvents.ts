@@ -21,7 +21,7 @@ export const useDisablePointerEvents = (
     const onScroll = (_event: Event) => {
       /**
        * We want to disable pointer events on the ref while scrolling because as the user
-       * is scrolling the page, the browser needs to also check to see if the user if the
+       * is scrolling the page, the browser needs to also check to see if the user or the
        * pointer is over any interactive elements (like the line number indicators)
        * during the repaint. By disabling these events, we can reduce the amount of work
        * the browser needs to do during the repaint, as it does not need to check these
