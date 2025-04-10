@@ -13,7 +13,6 @@ import {
   MutableSearch,
 } from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
@@ -59,34 +58,27 @@ import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/
 import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
 import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
 
-type Query = {
-  aggregate?: string;
-  domain?: string;
-};
-
 export function HTTPDomainSummaryPage() {
-  const location = useLocation<Query>();
   const {projects} = useProjects();
   const {view} = useDomainViewFilters();
-
-  // TODO: Fetch sort information using `useLocationQuery`
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
-
-  const sort = decodeSorts(sortField).find(isAValidSort) ?? DEFAULT_SORT;
 
   const {
     domain,
     project: projectId,
-    'user.geo.subregion': subregions,
+    [QueryParameterNames.TRANSACTIONS_CURSOR]: cursor,
+    [QueryParameterNames.TRANSACTIONS_SORT]: sortField,
+    [SpanMetricsField.USER_GEO_SUBREGION]: subregions,
   } = useLocationQuery({
     fields: {
       project: decodeScalar,
       domain: decodeScalar,
+      [QueryParameterNames.TRANSACTIONS_CURSOR]: decodeScalar,
+      [QueryParameterNames.TRANSACTIONS_SORT]: decodeScalar,
       [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
       transaction: decodeScalar,
     },
   });
+  const sort = decodeSorts(sortField).find(isAValidSort) ?? DEFAULT_SORT;
 
   useSamplesDrawer({
     Component: <HTTPSamplesPanel />,
@@ -104,9 +96,6 @@ export function HTTPDomainSummaryPage() {
         }
       : {}),
   };
-
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   const {data: domainMetrics, isPending: areDomainMetricsLoading} = useSpanMetrics(
     {

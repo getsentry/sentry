@@ -36,8 +36,7 @@ describe('ExploreSavedQueryNavItems', () => {
   ] as unknown as SavedQuery[];
 
   it('should render a list of starred queries', () => {
-    const sectionRef = {current: null};
-    render(<ExploreSavedQueryNavItems queries={queries} sectionRef={sectionRef} />);
+    render(<ExploreSavedQueryNavItems queries={queries} />);
 
     expect(screen.getByText('My Saved Query')).toBeInTheDocument();
     expect(screen.getByText('Another Saved Query')).toBeInTheDocument();

@@ -48,9 +48,9 @@ const NO_VALUE = ' \u2014 ';
 
 const ORDER: Array<GridColumnOrder<keyof SavedQuery>> = [
   {key: 'name', width: 250, name: t('Name')},
-  {key: 'projects', width: 80, name: t('Projects')},
+  {key: 'projects', width: 85, name: t('Projects')},
   {key: 'query', width: 500, name: t('Query')},
-  {key: 'createdBy', width: 80, name: t('Owner')},
+  {key: 'createdBy', width: 70, name: t('Owner')},
   {key: 'lastVisited', width: 120, name: t('Last Viewed')},
 ];
 
