@@ -243,7 +243,24 @@ class OnCallDataBlob:
 
 
 action_schema_mapping: dict[str, ActionSchemas] = {
-    ActionType.EMAIL: BASIC_METRIC_ACTION_SCHEMA,
+    ActionType.EMAIL: ActionSchemas(
+        config_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "description": "The configuration schema for an email Action",
+            "type": "object",
+            "properties": {
+                "target_identifier": {"type": ["string", "null"]},
+                "target_display": {"type": ["null"]},
+                "target_type": {
+                    "type": ["integer"],
+                    "enum": [*ActionTarget],
+                },
+            },
+            "required": ["target_type"],
+            "additionalProperties": False,
+        },
+        data_schema={},
+    ),
     ActionType.PAGERDUTY: ActionSchemas(
         config_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -322,7 +339,26 @@ action_schema_mapping: dict[str, ActionSchemas] = {
             },
         },
     ),
-    ActionType.DISCORD: BASIC_METRIC_ACTION_SCHEMA,
+    ActionType.DISCORD: ActionSchemas(
+        config_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "description": "The configuration schema for a Discord Action",
+            "type": "object",
+            "properties": {
+                "target_identifier": {"type": "string"},
+                "target_display": {
+                    "type": ["string", "null"],
+                },
+                "target_type": {
+                    "type": ["integer"],
+                    "enum": [ActionTarget.SPECIFIC.value],
+                },
+            },
+            "required": ["target_identifier", "target_type"],
+            "additionalProperties": False,
+        },
+        data_schema={},
+    ),
 }
 
 
