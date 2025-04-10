@@ -1,58 +1,13 @@
 from datetime import timedelta
-from unittest import mock
 
 from django.urls import reverse
 
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
-
-
-def _timeseries(
-    start,
-    interval,
-    expected,
-    expected_comparison=None,
-    ignore_accuracy=False,
-    sample_count=None,
-    sample_rate=None,
-    confidence=None,
-):
-    if expected_comparison is not None:
-        assert len(expected_comparison) == len(expected)
-    if ignore_accuracy:
-        sample_count = [mock.ANY for val in expected]
-        sample_rate = [mock.ANY for val in expected]
-        confidence = [mock.ANY for val in expected]
-    else:
-        if sample_count is not None:
-            assert len(sample_count) == len(expected)
-        if sample_rate is not None:
-            assert len(sample_rate) == len(expected)
-        if confidence is not None:
-            assert len(confidence) == len(expected)
-
-    expected_value = []
-    for index, value in enumerate(expected):
-        current_value = {
-            "timestamp": start.timestamp() * 1000 + interval * index,
-            "value": value,
-        }
-        if expected_comparison is not None:
-            current_value["comparisonValue"] = expected_comparison[index]
-        if sample_count is not None:
-            current_value["sampleCount"] = sample_count[index]
-        if sample_rate is not None:
-            current_value["sampleRate"] = sample_rate[index]
-        if confidence is not None:
-            current_value["confidence"] = confidence[index]
-        expected_value.append(current_value)
-    return expected_value
-
-
-class AnyConfidence:
-    def __eq__(self, o: object):
-        return o in ["high", "low"]
-
+from tests.snuba.api.endpoints.test_organization_events_timeseries_spans import (
+    AnyConfidence,
+    build_expected_timeseries,
+)
 
 any_confidence = AnyConfidence()
 
@@ -117,7 +72,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 6
         assert timeseries["yaxis"] == "count()"
-        assert timeseries["values"] == _timeseries(
+        assert timeseries["values"] == build_expected_timeseries(
             self.start,
             3_600_000,
             event_counts,
@@ -150,7 +105,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
         assert len(response.data["timeseries"]) == 1
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 7
-        assert timeseries["values"] == _timeseries(
+        assert timeseries["values"] == build_expected_timeseries(
             self.start,
             3_600_000,
             [0] * 7,
