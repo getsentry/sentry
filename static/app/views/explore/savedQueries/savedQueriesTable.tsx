@@ -19,9 +19,10 @@ import GridEditable, {
 import {GridHeadCellStatic} from 'sentry/components/gridEditable/styles';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
+import {ExploreParams} from 'sentry/components/modals/explore/saveQueryModal';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
-import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -34,6 +35,7 @@ import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
 import {StreamlineGridEditable} from 'sentry/views/issueDetails/streamline/eventListTable';
+import {IconAllProjects} from 'sentry/views/nav/iconAllProjects';
 
 import {useDeleteQuery} from '../hooks/useDeleteQuery';
 import {
@@ -149,9 +151,11 @@ export function SavedQueriesTable({
     }
     if (col.key === 'query') {
       return (
-        <FormattedQueryWrapper>
-          <FormattedQuery query={row.query[0].query} />
-        </FormattedQueryWrapper>
+        <StyledExploreParams
+          query={row.query[0].query}
+          visualizes={row.query[0].visualize}
+          groupBys={row.query[0].groupby}
+        />
       );
     }
     if (col.key === 'createdBy') {
@@ -170,14 +174,22 @@ export function SavedQueriesTable({
       return (
         <AlignLeft>
           <StackedProjectBadges>
-            {rowProjects.map(project => (
-              <ProjectAvatar
-                key={project.slug}
-                project={project}
-                tooltip={project.name}
-                hasTooltip
-              />
-            ))}
+            {rowProjects.length > 0 ? (
+              rowProjects.map(project => (
+                <ProjectAvatar
+                  key={project.slug}
+                  project={project}
+                  tooltip={project.name}
+                  hasTooltip
+                />
+              ))
+            ) : (
+              <Tooltip
+                title={row.projects.length === 0 ? t('My Projects') : t('All Projects')}
+              >
+                <IconAllProjects />
+              </Tooltip>
+            )}
           </StackedProjectBadges>
         </AlignLeft>
       );
@@ -326,7 +338,11 @@ export function SavedQueriesTable({
           resizable={false}
         />
       </StyledStreamlineGridEditable>
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <Pagination
+        pageLinks={pageLinks ?? ' '} // use an empty whitespace string to prevent pagination from hiding on loading
+        onCursor={handleCursor}
+        disabled={isLoading}
+      />
     </span>
   );
 }
@@ -343,19 +359,6 @@ const LastColumnWrapper = styled('div')`
   align-items: center;
   width: 100%;
   justify-content: space-between;
-`;
-
-const FormattedQueryWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  > div {
-    flex-wrap: nowrap;
-  }
 `;
 
 const NoOverflow = styled('div')`
@@ -392,5 +395,20 @@ const StackedProjectBadges = styled('div')`
   }
   & > :not(:first-child) {
     margin-left: -${space(0.5)};
+  }
+`;
+
+const StyledExploreParams = styled(ExploreParams)`
+  overflow: hidden;
+  flex-wrap: nowrap;
+  margin-bottom: 0;
+
+  span {
+    flex-wrap: nowrap;
+    overflow: visible;
+  }
+
+  div {
+    flex-wrap: nowrap;
   }
 `;

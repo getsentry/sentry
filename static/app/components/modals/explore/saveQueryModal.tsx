@@ -20,11 +20,11 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSetExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 
 type SingleQueryProps = {
   query: string;
-  visualizes: Visualize[];
+  visualizes: BaseVisualize[];
   groupBys?: string[]; // This needs to be passed in because saveQuery relies on being within the Explore PageParamsContext to fetch params
 };
 
@@ -122,11 +122,16 @@ function SaveQueryModal({
   );
 }
 
-function ExploreParams({query, visualizes, groupBys}: SingleQueryProps) {
+export function ExploreParams({
+  query,
+  visualizes,
+  groupBys,
+  className,
+}: SingleQueryProps & {className?: string}) {
   const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
 
   return (
-    <ExploreParamsContainer>
+    <ExploreParamsContainer className={className}>
       <ExploreParamSection>
         <ExploreParamTitle>{t('Visualize')}</ExploreParamTitle>
         <ExploreParamSection>
@@ -153,7 +158,6 @@ function ExploreParams({query, visualizes, groupBys}: SingleQueryProps) {
           </ExploreParamSection>
         </ExploreParamSection>
       )}
-      <ExploreParamSection>...</ExploreParamSection>
     </ExploreParamsContainer>
   );
 }
