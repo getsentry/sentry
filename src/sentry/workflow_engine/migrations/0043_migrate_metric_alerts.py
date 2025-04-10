@@ -5,9 +5,11 @@ import logging
 from enum import Enum, IntEnum, StrEnum
 from typing import Any
 
+from attr import dataclass
 from django.apps.registry import Apps
 from django.db import migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from jsonschema import ValidationError, validate
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
@@ -119,17 +121,8 @@ class ActionType(StrEnum):
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
 
-    GITHUB = "github"
-    GITHUB_ENTERPRISE = "github_enterprise"
-    JIRA = "jira"
-    JIRA_SERVER = "jira_server"
-    AZURE_DEVOPS = "azure_devops"
-
     EMAIL = "email"
     SENTRY_APP = "sentry_app"
-
-    PLUGIN = "plugin"
-    WEBHOOK = "webhook"
 
 
 class SentryAppIdentifier(StrEnum):
@@ -167,6 +160,42 @@ PRIORITY_MAP = {
 
 OPSGENIE_DEFAULT_PRIORITY = "P3"
 PAGERDUTY_DEFAULT_SEVERITY = "default"
+
+
+class PagerdutySeverity(StrEnum):
+    DEFAULT = "default"
+    CRITICAL = "critical"
+    WARNING = "warning"
+    ERROR = "error"
+    INFO = "info"
+
+
+@dataclass
+class ActionSchemas:
+    config_schema: dict[str, Any] | None = None
+    data_schema: dict[str, Any] | None = None
+
+
+BASIC_METRIC_ACTION_SCHEMA = ActionSchemas(
+    config_schema={
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "The configuration schema for a Notification Action",
+        "type": "object",
+        "properties": {
+            "target_identifier": {
+                "type": ["string", "null"],
+            },
+            "target_display": {
+                "type": ["string", "null"],
+            },
+            "target_type": {
+                "type": ["integer", "null"],
+                "enum": [*ActionTarget] + [None],
+            },
+        },
+    },
+    data_schema={},
+)
 
 
 @dataclasses.dataclass
@@ -211,6 +240,114 @@ class OnCallDataBlob:
     """
 
     priority: str = ""
+
+
+action_schema_mapping: dict[str, ActionSchemas] = {
+    ActionType.EMAIL: BASIC_METRIC_ACTION_SCHEMA,
+    ActionType.PAGERDUTY: ActionSchemas(
+        config_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "description": "The configuration schema for a on-call Action",
+            "type": "object",
+            "properties": {
+                "target_identifier": {"type": ["string"]},
+                "target_display": {"type": ["string", "null"]},
+                "target_type": {"type": ["integer"], "enum": [0]},
+            },
+            "required": ["target_identifier", "target_type"],
+            "additionalProperties": False,
+        },
+        data_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+                "priority": {
+                    "type": "string",
+                    "description": "The priority of the pagerduty action",
+                    "enum": [*PagerdutySeverity],
+                },
+                "additionalProperties": False,
+            },
+        },
+    ),
+    ActionType.SLACK: BASIC_METRIC_ACTION_SCHEMA,
+    ActionType.MSTEAMS: BASIC_METRIC_ACTION_SCHEMA,
+    ActionType.SENTRY_APP: ActionSchemas(
+        config_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "description": "The configuration schema for a Sentry App Action",
+            "type": "object",
+            "properties": {
+                "target_identifier": {"type": ["string"]},
+                "target_display": {"type": ["string", "null"]},
+                "target_type": {"type": ["integer"], "enum": [3]},
+                "sentry_app_identifier": {"type": ["string"], "enum": [*SentryAppIdentifier]},
+            },
+            "required": ["target_type", "target_identifier", "sentry_app_identifier"],
+            "additionalProperties": False,
+        },
+        data_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {"settings": {"type": ["array", "object"]}},
+            "additionalProperties": False,
+        },
+    ),
+    ActionType.OPSGENIE: ActionSchemas(
+        config_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "description": "The configuration schema for a on-call Action",
+            "type": "object",
+            "properties": {
+                "target_identifier": {"type": ["string"]},
+                "target_display": {"type": ["string", "null"]},
+                "target_type": {
+                    "type": ["integer"],
+                    "enum": [ActionTarget.SPECIFIC.value],
+                },
+            },
+            "required": ["target_identifier", "target_type"],
+            "additionalProperties": False,
+        },
+        data_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+                "priority": {
+                    "type": "string",
+                    "description": "The priority of the opsgenie action",
+                    "enum": ["P1", "P2", "P3", "P4", "P5"],
+                },
+                "additionalProperties": False,
+            },
+        },
+    ),
+    ActionType.DISCORD: BASIC_METRIC_ACTION_SCHEMA,
+}
+
+
+def _enforce_action_json_schema(action: Any) -> None:
+    schemas = action_schema_mapping.get(action.type)
+    if not schemas:
+        logger.error(
+            "No schema found for action type",
+            extra={"action_type": action.type},
+        )
+        return
+    config_schema = schemas.config_schema
+    data_schema = schemas.data_schema
+
+    if config_schema is not None:
+        try:
+            validate(action.config, config_schema)
+        except ValidationError as e:
+            raise ValidationError(f"Invalid config: {e.message}")
+
+    if data_schema is not None:
+        try:
+            validate(action.data, data_schema)
+        except ValidationError as e:
+            raise ValidationError(f"Invalid data: {e.message}")
 
 
 def _get_trigger_action_target(apps: Apps, trigger_action: Any) -> Any:
@@ -422,6 +559,9 @@ def _migrate_trigger_action(apps: Apps, trigger_action: Any, condition_group_id:
         integration_id=trigger_action.integration_id,
         config=config,
     )
+
+    _enforce_action_json_schema(action)
+
     DataConditionGroupAction.objects.create(
         condition_group_id=condition_group_id,
         action_id=action.id,
