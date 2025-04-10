@@ -81,7 +81,7 @@ export default function FlagDrawerContent({
         <div>
           {`Suspicion Score: ${scoreObj?.score.toString() ?? '_'}`}
           <br />
-          {`Baseline Percent: ${scoreObj?.baseline_percent ? `${scoreObj.baseline_percent * 100}%` : '_'}`}
+          {`Baseline Percent: ${scoreObj?.baseline_percent === undefined ? '_' : `${scoreObj.baseline_percent * 100}%`}`}
         </div>
       );
     },
