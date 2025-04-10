@@ -7,6 +7,7 @@ import {recordFinish} from 'sentry/actionCreators/guides';
 import type {TourState} from 'sentry/components/tours/tourContext';
 import type {Organization} from 'sentry/types/organization';
 import {
+  DEMO_TOURS_STATE_KEY,
   DemoTour,
   DemoTourElement,
   DemoToursProvider,
@@ -110,7 +111,7 @@ describe('DemoTours', () => {
       );
 
       expect(mockUseLocalStorageState).toHaveBeenCalledWith(
-        'demo-mode:tours',
+        DEMO_TOURS_STATE_KEY,
         expect.any(Object)
       );
     });
