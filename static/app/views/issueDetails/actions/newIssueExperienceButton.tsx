@@ -23,7 +23,6 @@ import {
   IssueDetailsTourModal,
   IssueDetailsTourModalCss,
 } from 'sentry/views/issueDetails/issueDetailsTourModal';
-import {useIssueDetailsTourAvailable} from 'sentry/views/issueDetails/useIssueDetailsTourAvailable';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function NewIssueExperienceButton() {
@@ -76,20 +75,13 @@ export function NewIssueExperienceButton() {
     });
   }, [mutateUserOptions, organization, hasStreamlinedUI, userStreamlinePreference]);
 
-  const isTourAvailable = useIssueDetailsTourAvailable();
-
   // The promotional modal should only appear if:
-  //  - The tour is available to this user
   //  - All the steps have been registered
   //  - The tour has not been completed
   //  - The tour is not currently active
   //  - The streamline UI is enabled
   const isPromoVisible =
-    isTourAvailable &&
-    isTourRegistered &&
-    !isTourCompleted &&
-    currentStepId === null &&
-    hasStreamlinedUI;
+    isTourRegistered && !isTourCompleted && currentStepId === null && hasStreamlinedUI;
 
   useEffect(() => {
     if (isPromoVisible) {
@@ -112,7 +104,18 @@ export function NewIssueExperienceButton() {
             }}
           />
         ),
-        {modalCss: IssueDetailsTourModalCss}
+        {
+          modalCss: IssueDetailsTourModalCss,
+          onClose: reason => {
+            if (reason) {
+              mutateAssistant({
+                guide: ISSUE_DETAILS_TOUR_GUIDE_KEY,
+                status: 'dismissed',
+              });
+              endTour();
+            }
+          },
+        }
       );
     }
   }, [isPromoVisible, mutateAssistant, organization, endTour, startTour]);
@@ -137,7 +140,7 @@ export function NewIssueExperienceButton() {
     {
       key: 'take-tour',
       label: t('Take a tour'),
-      hidden: !isTourAvailable || !isTourRegistered,
+      hidden: hasStreamlinedUI && !isTourRegistered,
       onAction: () => {
         trackAnalytics('issue_details.tour.started', {organization, method: 'dropdown'});
         startTour();

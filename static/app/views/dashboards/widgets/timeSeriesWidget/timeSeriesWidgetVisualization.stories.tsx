@@ -839,21 +839,43 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       <Fragment>
         <p>
           Area and line charts support showing release markers via the{' '}
-          <code>releases</code> prop. Clicking on a release line will open the release
-          details page.
+          <code>releases</code> prop with two different visualizations specified by the
+          <code>showReleaseAs</code> prop: <code>"line"</code> and <code>"bubble"</code>.
         </p>
 
-        <MediumWidget>
-          <TimeSeriesWidgetVisualization
-            plottables={[
-              new Line({
-                ...sampleThroughputTimeSeries,
-                field: 'error_rate()',
-              }),
-            ]}
-            releases={releases}
-          />
-        </MediumWidget>
+        <p>
+          Clicking on a release bubble will open the releases flyout. Releases lines
+          should be reserved for inside the flyout when there are an appropriate number of
+          releases to display. Clicking on a release line should open the release details
+          inside of the flyout.
+        </p>
+
+        <SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  field: 'error_rate()',
+                }),
+              ]}
+              releases={releases}
+            />
+          </MediumWidget>
+
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  field: 'error_rate()',
+                }),
+              ]}
+              showReleaseAs="bubble"
+              releases={releases}
+            />
+          </MediumWidget>
+        </SideBySide>
       </Fragment>
     );
   });

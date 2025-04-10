@@ -43,14 +43,10 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
       includeInputs: true,
       callback: () => {
         removeBodyTheme();
-        if (user?.options?.prefersChonkUI) {
-          mutateUserOptions({prefersChonkUI: false});
-        } else {
-          ConfigStore.set('theme', config.theme === 'dark' ? 'light' : 'dark');
-        }
+        ConfigStore.set('theme', config.theme === 'dark' ? 'light' : 'dark');
       },
     }),
-    [user?.options?.prefersChonkUI, config.theme, mutateUserOptions]
+    [config.theme]
   );
 
   // Hotkey definition for toggling the chonk theme

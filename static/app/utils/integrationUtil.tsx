@@ -378,7 +378,7 @@ function getInstallValue({
     return 0;
   }
 
-  return integrationInstalls.find(i => i.provider.key === integration.key) ? 2 : 0;
+  return integrationInstalls.some(i => i.provider.key === integration.key) ? 2 : 0;
 }
 
 function getPopularityWeight(integration: AppOrProviderOrPlugin) {
