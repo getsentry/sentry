@@ -1,5 +1,4 @@
 import logging
-from collections import Counter
 
 import sentry_sdk
 from django.db.models import Prefetch
@@ -11,6 +10,7 @@ logger = logging.getLogger("sentry.workflow_engine.process_data_source")
 
 
 # TODO - @saponifi3d - change the text choices to an enum
+# TODO - @saponifi3d - make query_type optional override, otherwise infer from the data packet.
 def process_data_sources(
     data_packets: list[DataPacket], query_type: str
 ) -> list[tuple[DataPacket, list[Detector]]]:
@@ -38,18 +38,10 @@ def process_data_sources(
             data_packet_tuple = (packet, detectors)
             result.append(data_packet_tuple)
 
-            detector_metrics = Counter(detector.type for detector in detectors)
-            for detector_type, count in detector_metrics.items():
-                metrics.incr(
-                    "workflow_engine.process_data_sources.detectors",
-                    count,
-                    tags={"detector_type": detector_type},
-                )
-
             metrics.incr(
                 "workflow_engine.process_data_sources.detectors",
                 len(detectors),
-                tags={"detector_type": detectors[0].type},
+                tags={"query_type": query_type},
             )
         else:
             logger.warning(
