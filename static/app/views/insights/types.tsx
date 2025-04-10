@@ -363,6 +363,7 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.USER_USERNAME]: string;
   [SpanIndexedField.USER_IP]: string;
   [SpanIndexedField.USER_DISPLAY]: string;
+  [SpanIndexedField.IS_TRANSACTION]: number;
   [SpanIndexedField.INP]: number;
   [SpanIndexedField.INP_SCORE]: number;
   [SpanIndexedField.INP_SCORE_WEIGHT]: number;
