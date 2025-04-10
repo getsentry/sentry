@@ -173,6 +173,7 @@ function AddMemberDropdown({
           {t('Invite Member')}
         </StyledCreateMemberLink>
       }
+      data-test-id="add-member-menu"
       disabled={isDropdownDisabled}
       menuTitle={t('Members')}
       triggerLabel={t('Add Member')}
