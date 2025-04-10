@@ -123,7 +123,7 @@ const Flex = styled('div')`
 const PerformanceScoreLabelContainer = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   min-width: 320px;
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;
   align-items: center;
