@@ -18,8 +18,8 @@ export function SavedQueriesLandingContent() {
   const sortOptions: Option[] = [
     {value: 'recentlyViewed', label: t('Recently Viewed')},
     {value: 'name', label: t('Name')},
-    {value: 'dateAdded', label: t('Date Added')},
-    {value: 'dateUpdated', label: t('Date Updated')},
+    {value: '-dateAdded', label: t('Date Added')},
+    {value: '-dateUpdated', label: t('Date Updated')},
     {value: 'mostStarred', label: t('Most Starred')},
   ];
   return (
