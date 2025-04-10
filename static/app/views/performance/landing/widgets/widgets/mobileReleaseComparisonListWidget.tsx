@@ -116,9 +116,9 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
     ? DiscoverDatasets.SPANS_EAP_RPC
     : DiscoverDatasets.SPANS_METRICS;
 
-  const queryParams = useEap
+  const queryParams: Record<string, string> = useEap
     ? {useRpc: '1', dataset: DiscoverDatasets.SPANS_EAP}
-    : {useRpc: '0', dataset: DiscoverDatasets.SPANS_METRICS};
+    : {dataset: DiscoverDatasets.SPANS_METRICS};
 
   const segmentOp = useEap ? 'span.op' : 'transaction.op';
 
