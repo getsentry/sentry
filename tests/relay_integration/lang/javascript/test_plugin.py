@@ -170,18 +170,29 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         contexts = event.interfaces["contexts"].to_json()
+
         assert contexts.get("os") == {
             "os": "Android 4.3",
             "name": "Android",
             "type": "os",
             "version": "4.3",
         }
-        assert contexts.get("browser") == {
+
+        browser_context = contexts.get("browser")
+
+        # The `user_agent` field was added retroactively so the browser context assertion needs to be forwards and backwards compatible
+        assert browser_context.pop("user_agent", None) in (
+            None,
+            "Mozilla/5.0 (Linux; U; Android 4.3; en-us; SCH-R530U Build/JSS15J) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30 USCC-R530U",
+        )
+
+        assert browser_context == {
             "browser": "Android 4.3",
             "name": "Android",
             "type": "browser",
             "version": "4.3",
         }
+
         assert contexts.get("device") == {
             "family": "Samsung SCH-R530U",
             "type": "device",

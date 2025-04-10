@@ -85,8 +85,8 @@ class Task(Generic[P, R]):
 
     def apply_async(
         self,
-        args: Any = None,
-        kwargs: Any = None,
+        args: Any | None = None,
+        kwargs: Any | None = None,
         headers: Mapping[str, Any] | None = None,
         expires: int | datetime.timedelta | None = None,
         **options: Any,
@@ -97,6 +97,10 @@ class Task(Generic[P, R]):
         The provided parameters will be JSON encoded and stored within
         a `TaskActivation` protobuf that is appended to kafka
         """
+        if args is None:
+            args = []
+        if kwargs is None:
+            kwargs = {}
         if settings.TASK_WORKER_ALWAYS_EAGER:
             self._func(*args, **kwargs)
         else:
