@@ -1,5 +1,10 @@
 import {useLayoutEffect, useState} from 'react';
 
+/**
+ * This hook gets the width of the wrapper element and syncs it with the width of the
+ * content.
+ * @returns The width of the wrapper element and setter for the wrapper ref.
+ */
 export const useSyncWrapperWidth = () => {
   const [wrapperWidth, setWrapperWidth] = useState<number | '100%'>('100%');
   const [wrapperRefState, setWrapperRefState] = useState<HTMLDivElement | null>(null);
