@@ -758,7 +758,6 @@ export default typescript.config([
     name: 'files/devtoolbar',
     files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
     rules: {
-      'no-relative-import-paths/no-relative-import-paths': 'off',
       'no-restricted-imports': [
         'error',
         {
