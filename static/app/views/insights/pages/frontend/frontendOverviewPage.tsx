@@ -98,18 +98,14 @@ function FrontendOverviewPage() {
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateFrontendOtherPerformanceEventView(
     location,
-    withStaticFilters
+    withStaticFilters,
+    useEap
   );
   const searchBarEventView = eventView.clone();
 
   const sharedProps = {eventView, location, organization, withStaticFilters};
 
   const segmentOp = useEap ? 'span.op' : 'transaction.op';
-
-  if (useEap) {
-    eventView.additionalConditions.removeFilter('event.type');
-    eventView.additionalConditions.addFilterValue('is_transaction', 'true');
-  }
 
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [

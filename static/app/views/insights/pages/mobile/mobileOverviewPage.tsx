@@ -104,14 +104,10 @@ function MobileOverviewPage() {
     projects,
     generateGenericPerformanceEventView(location, withStaticFilters, organization),
     withStaticFilters,
-    organization
+    organization,
+    useEap
   );
   const searchBarEventView = eventView.clone();
-
-  if (useEap) {
-    eventView.additionalConditions.removeFilter('event.type');
-    eventView.additionalConditions.addFilterValue('is_transaction', 'true');
-  }
 
   let columnTitles = checkIsReactNative(eventView)
     ? REACT_NATIVE_COLUMN_TITLES

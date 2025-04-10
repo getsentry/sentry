@@ -115,15 +115,14 @@ function GenericBackendOverviewPage() {
   const useEap = useInsightsEap();
 
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
+  const eventView = generateBackendPerformanceEventView(
+    location,
+    withStaticFilters,
+    useEap
+  );
   const searchBarEventView = eventView.clone();
 
   const segmentOp = useEap ? 'span.op' : 'transaction.op';
-
-  if (useEap) {
-    eventView.additionalConditions.removeFilter('event.type');
-    eventView.additionalConditions.addFilterValue('is_transaction', 'true');
-  }
 
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
