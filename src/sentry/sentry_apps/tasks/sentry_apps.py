@@ -348,7 +348,7 @@ def _load_service_hook(organization_id: int, installation_id: int) -> ServiceHoo
         if service_hook.installation_id != service_hook.actor_id:
             logger.error(
                 "service_hook.installation_id != service_hook.actor_id",
-                extra={"service_hook": service_hook.id},
+                extra={"service_hook_id": service_hook.id},
             )
         return service_hook
     except ServiceHook.DoesNotExist:
@@ -356,7 +356,7 @@ def _load_service_hook(organization_id: int, installation_id: int) -> ServiceHoo
 
 
 @cache_func_for_models(
-    [(ServiceHookProject, lambda hook_project: (hook_project.service_hook,))],
+    [(ServiceHookProject, lambda hook_project: (hook_project.service_hook_id,))],
     recalculate=False,
 )
 def _is_project_filtering_enabled(service_hook_id: int) -> bool:
@@ -367,7 +367,7 @@ def _is_project_filtering_enabled(service_hook_id: int) -> bool:
     [
         (
             ServiceHookProject,
-            lambda hook_project: (hook_project.service_hook, hook_project.project_id),
+            lambda hook_project: (hook_project.service_hook_id, hook_project.project_id),
         )
     ],
     recalculate=False,

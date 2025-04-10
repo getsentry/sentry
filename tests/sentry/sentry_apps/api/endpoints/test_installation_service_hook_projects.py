@@ -10,6 +10,7 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
         self.project2 = self.create_project(organization=self.org)
+        self.project3 = self.create_project(organization=self.org)
 
         self.sentry_app = self.create_sentry_app(
             name="Testin", organization=self.org, webhook_url="https://example.com"
@@ -42,6 +43,13 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
 
     def test_put_service_hook_projects(self):
         self.login_as(user=self.user)
+
+        ServiceHookProject.objects.create(
+            project_id=self.project2.id, service_hook_id=self.service_hook.id
+        )
+        ServiceHookProject.objects.create(
+            project_id=self.project3.id, service_hook_id=self.service_hook.id
+        )
 
         data = {"projects": [self.project.id, self.project2.id]}
 
