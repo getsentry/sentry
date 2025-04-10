@@ -108,7 +108,11 @@ class RelocationUnpauseEndpoint(Endpoint):
                 status=400,
             )
 
-        task.delay(str(relocation.uuid))
+        transaction.on_commit(
+            lambda: task.delay(str(relocation.uuid)),
+            using=router.db_for_write(Relocation),
+        )
+
         return None
 
     def put(self, request: Request, relocation_uuid: str) -> Response:
