@@ -295,8 +295,7 @@ export const performanceOnboarding: OnboardingConfig = {
           code: `
 import sentry_sdk
 
-sentry_sdk.initimport { Context } from '@dnd-kit/sortable/dist/components';
-(
+sentry_sdk.init(
   dsn="${params.dsn.public}",
   traces_sample_rate=1.0,
 )`,
