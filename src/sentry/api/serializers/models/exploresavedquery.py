@@ -34,6 +34,7 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
     lastVisited: str
     createdBy: UserSerializerResponse
     starred: bool
+    position: int | None
 
 
 @register(ExploreSavedQuery)
@@ -41,12 +42,12 @@ class ExploreSavedQueryModelSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         result: DefaultDict[str, dict] = defaultdict(lambda: {"created_by": {}})
 
-        starred_query_ids = set(
+        starred_queries = dict(
             ExploreSavedQueryStarred.objects.filter(
                 explore_saved_query__in=item_list,
                 user_id=user.id,
                 organization=item_list[0].organization if item_list else None,
-            ).values_list("explore_saved_query_id", flat=True)
+            ).values_list("explore_saved_query_id", "position")
         )
 
         service_serialized = user_service.serialize_many(
@@ -65,7 +66,12 @@ class ExploreSavedQueryModelSerializer(Serializer):
             result[explore_saved_query]["created_by"] = serialized_users.get(
                 str(explore_saved_query.created_by_id)
             )
-            result[explore_saved_query]["starred"] = explore_saved_query.id in starred_query_ids
+            if explore_saved_query.id in starred_queries:
+                result[explore_saved_query]["starred"] = True
+                result[explore_saved_query]["position"] = starred_queries[explore_saved_query.id]
+            else:
+                result[explore_saved_query]["starred"] = False
+                result[explore_saved_query]["position"] = None
 
         return result
 
@@ -89,6 +95,7 @@ class ExploreSavedQueryModelSerializer(Serializer):
             "lastVisited": obj.last_visited,
             "createdBy": attrs.get("created_by"),
             "starred": attrs.get("starred"),
+            "position": attrs.get("position"),
         }
 
         for key in query_keys:

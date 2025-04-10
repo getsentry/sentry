@@ -144,7 +144,10 @@ export function ExploreCharts({
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 
-      const {sampleCount} = determineSeriesSampleCountAndIsSampled(data, isTopN);
+      const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(
+        data,
+        isTopN
+      );
 
       return {
         chartIcon: <IconGraph type={chartIcon} />,
@@ -157,6 +160,7 @@ export function ExploreCharts({
         loading,
         confidence: confidences[index],
         sampleCount,
+        isSampled,
       };
     });
   }, [confidences, getSeries, visualizes, isTopN]);
@@ -307,6 +311,7 @@ export function ExploreCharts({
                 dataset === DiscoverDatasets.SPANS_EAP_RPC && (
                   <ConfidenceFooter
                     sampleCount={chartInfo.sampleCount}
+                    isSampled={chartInfo.isSampled}
                     confidence={chartInfo.confidence}
                     topEvents={
                       topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
