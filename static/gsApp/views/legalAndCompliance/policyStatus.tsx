@@ -28,7 +28,7 @@ export function PolicyStatus({policy}: PolicyStatusProps) {
   if (!policy.hasSignature) {
     return (
       <StatusIconWithTooltip
-        tooltip="This item is required/provided as part of your agreement."
+        tooltip="Included with all accounts"
         icon={<IconCheckmark isCircled size="sm" color="success" />}
       />
     );
@@ -37,7 +37,7 @@ export function PolicyStatus({policy}: PolicyStatusProps) {
   if (policy.consent) {
     return (
       <StatusIconWithTooltip
-        tooltip={`${policy.consent.userEmail} signed this policy on ${moment(
+        tooltip={`Signed by ${policy.consent.userEmail} on ${moment(
           policy.consent.createdAt
         ).format('ll')}`}
         icon={<IconCheckmark size="sm" isCircled color="success" />}
@@ -47,7 +47,7 @@ export function PolicyStatus({policy}: PolicyStatusProps) {
 
   return (
     <StatusIconWithTooltip
-      tooltip="This policy has not been signed."
+      tooltip="Optional, not signed"
       icon={<IconSubtract isCircled color="gray500" size="sm" />}
     />
   );
