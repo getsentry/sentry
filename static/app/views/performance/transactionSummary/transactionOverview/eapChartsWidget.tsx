@@ -114,6 +114,7 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
     <Widget
       Title={
         <CompactSelect
+          data-test-id="eap-charts-widget-select"
           options={options}
           value={selectedChart}
           onChange={handleChartChange}
