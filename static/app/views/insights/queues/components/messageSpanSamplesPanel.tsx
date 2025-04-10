@@ -178,7 +178,7 @@ export function MessageSpanSamplesPanel() {
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.duration)`]]);
 
   const {
-    data: durationSamplesData,
+    data: spanSamplesData,
     isFetching: isDurationSamplesDataFetching,
     error: durationSamplesDataError,
     refetch: refetchDurationSpanSamples,
@@ -199,6 +199,8 @@ export function MessageSpanSamplesPanel() {
       SpanIndexedField.SPAN_DURATION,
     ],
   });
+
+  const durationSamplesData = spanSamplesData?.data ?? [];
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(
     durationSamplesData,
