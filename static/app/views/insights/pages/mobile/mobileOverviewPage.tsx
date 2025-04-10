@@ -110,6 +110,7 @@ function MobileOverviewPage() {
 
   if (useEap) {
     eventView.additionalConditions.removeFilter('event.type');
+    eventView.additionalConditions.addFilterValue('is_transaction', 'true');
   }
 
   let columnTitles = checkIsReactNative(eventView)
