@@ -106,10 +106,9 @@ export function DateSelector({
           trigger={
             trigger ??
             ((triggerProps, isOpen) => {
-              const defaultLabel =
-                items.findIndex(item => item.value === relative) > -1
-                  ? relative?.toUpperCase()
-                  : t('Invalid Period');
+              const defaultLabel = items.some(item => item.value === relative)
+                ? relative?.toUpperCase()
+                : t('Invalid Period');
 
               return (
                 <DropdownButton
