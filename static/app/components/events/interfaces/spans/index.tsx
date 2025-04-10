@@ -9,7 +9,6 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import type {
@@ -152,18 +151,6 @@ function SpansInterface({event, affectedSpanIds}: Props) {
                     );
                   }}
                 </Observer>
-                <GuideAnchorWrapper>
-                  <DemoTourElement
-                    id={DemoTourStep.PERFORMANCE_SPAN_TREE}
-                    title={t('See slow fast')}
-                    description={t(
-                      `Expand the spans to see span details from start date, end date to the operation. Below you can view breadcrumbs for a play-by-play of what your users
-            did before encountering the performance issue.`
-                    )}
-                  >
-                    <Fragment />
-                  </DemoTourElement>
-                </GuideAnchorWrapper>
               </Panel>
             </Fragment>
           );
@@ -172,12 +159,6 @@ function SpansInterface({event, affectedSpanIds}: Props) {
     </Container>
   );
 }
-
-const GuideAnchorWrapper = styled('div')`
-  height: 0;
-  width: 0;
-  margin-left: 50%;
-`;
 
 const Container = styled('div')<{hasErrors: boolean}>`
   ${p =>

@@ -6,7 +6,6 @@ import type {Location, LocationDescriptorObject} from 'history';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/core/button';
 import type {GridColumn} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -20,16 +19,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {
-  DemoTour,
-  DemoTourElement,
-  DemoTourStep,
-  useDemoTours,
-} from 'sentry/utils/demoMode/demoTours';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {MetaType} from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -607,7 +601,6 @@ class _Table extends Component<Props, State> {
 
     return (
       <div data-test-id="performance-table">
-        <StartTourButton />
         <DemoTourElement
           id={DemoTourStep.PERFORMANCE_TABLE}
           title={t('See slow transactions')}
@@ -672,13 +665,6 @@ class _Table extends Component<Props, State> {
   }
 }
 
-function StartTourButton() {
-  const {startTour} = useDemoTours(DemoTour.PERFORMANCE);
-  return (
-    <Button onClick={() => startTour(DemoTourStep.PERFORMANCE_TABLE)}>Start Tour</Button>
-  );
-}
-
 function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: string}) {
   const summaryConditions =
     props.summaryConditions ?? props.eventView.getQueryWithAdditionalConditions();
@@ -705,9 +691,5 @@ const UnparameterizedTooltipWrapper = styled('div')`
   align-items: center;
   justify-content: center;
 `;
-
-// const TableWrapper = styled('span')`
-//   display: block;
-// `;
 
 export default Table;
