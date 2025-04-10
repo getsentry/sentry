@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 import urllib3
 
+from sentry.insights.models import InsightsStarredSegment
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
@@ -4089,6 +4090,56 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(data) == 1
         assert data[0]["sentry.sampling_factor"] == 0.01
         assert meta["dataset"] == self.dataset
+
+    def test_is_starred_transaction(self):
+        InsightsStarredSegment.objects.create(
+            organization=self.organization,
+            project=self.project,
+            segment_name="foo",
+            user_id=self.user.id,
+        )
+
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success", "transaction": "foo"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success", "transaction": "bar"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["is_starred_transaction", "transaction"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "-is_starred_transaction",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+
+        assert data[0]["is_starred_transaction"] is True
+        assert data[0]["transaction"] == "foo"
+
+        assert data[1]["is_starred_transaction"] is False
+        assert data[1]["transaction"] == "bar"
 
     @mock.patch("sentry.api.utils.sentry_sdk.capture_exception")
     @mock.patch("sentry.utils.snuba_rpc._snuba_pool.urlopen")
