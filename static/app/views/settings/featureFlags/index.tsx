@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Button, LinkButton} from 'sentry/components/core/button';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -14,11 +15,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-export default function OrganizationFeatureFlagsIndex() {
+function OrganizationFeatureFlagsIndex() {
   const organization = useOrganization();
-  const {activateSidebar} = useFeatureFlagOnboarding({
-    analyticsSurface: 'org_settings',
-  });
+  const {activateSidebar} = useFeatureFlagOnboarding();
 
   return (
     <Fragment>
@@ -72,6 +71,14 @@ export default function OrganizationFeatureFlagsIndex() {
         </PanelBody>
       </Panel>
     </Fragment>
+  );
+}
+
+export default function OrganizationFeatureFlagsIndexRoute() {
+  return (
+    <AnalyticsArea name="feature_flag_org_settings">
+      <OrganizationFeatureFlagsIndex />
+    </AnalyticsArea>
   );
 }
 

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Button, LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -52,10 +53,9 @@ export function FeatureFlagCTAContent({
 
 export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
   const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea();
 
-  const {activateSidebar} = useFeatureFlagOnboarding({
-    analyticsSurface: 'issue_details.flags_section',
-  });
+  const {activateSidebar} = useFeatureFlagOnboarding();
 
   const {isLoading, isError, isPromptDismissed, dismissPrompt, snoozePrompt} = usePrompt({
     feature: 'issue_feature_flags_inline_onboarding',
@@ -124,6 +124,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
                 trackAnalytics('flags.cta_dismissed', {
                   organization,
                   type: 'dismiss',
+                  surface: analyticsArea,
                 });
               },
             },
@@ -135,6 +136,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
                 trackAnalytics('flags.cta_dismissed', {
                   organization,
                   type: 'snooze',
+                  surface: analyticsArea,
                 });
               },
             },

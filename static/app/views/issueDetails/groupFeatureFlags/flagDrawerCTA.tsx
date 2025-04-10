@@ -6,9 +6,7 @@ import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/us
 import {useDrawerContentContext} from 'sentry/components/globalDrawer/components';
 
 export default function FlagDrawerCTA() {
-  const {activateSidebar} = useFeatureFlagOnboarding({
-    analyticsSurface: 'issue_details.flags_drawer',
-  });
+  const {activateSidebar} = useFeatureFlagOnboarding();
   const {onClose: closeDrawer} = useDrawerContentContext();
 
   function handleSetupButtonClick(e: any) {
