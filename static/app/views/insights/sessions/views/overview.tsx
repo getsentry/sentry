@@ -23,6 +23,7 @@ import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/fil
 import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
+import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function SessionsOverview() {
@@ -100,20 +101,30 @@ function ViewSpecificCharts({
       return (
         <Fragment>
           <ModuleLayout.Half>
-            <ChartPlacementSlot view={view} index={0} chartProps={chartProps} />
+            <ChartHeight>
+              <ChartPlacementSlot view={view} index={0} chartProps={chartProps} />
+            </ChartHeight>
           </ModuleLayout.Half>
           <ModuleLayout.Half>
-            <ChartPlacementSlot view={view} index={1} chartProps={chartProps} />
+            <ChartHeight>
+              <ChartPlacementSlot view={view} index={1} chartProps={chartProps} />
+            </ChartHeight>
           </ModuleLayout.Half>
 
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={2} chartProps={chartProps} />
+            <ChartHeight>
+              <ChartPlacementSlot view={view} index={2} chartProps={chartProps} />
+            </ChartHeight>
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={3} chartProps={chartProps} />
+            <ChartHeight>
+              <ChartPlacementSlot view={view} index={3} chartProps={chartProps} />
+            </ChartHeight>
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={4} chartProps={chartProps} />
+            <ChartHeight>
+              <ChartPlacementSlot view={view} index={4} chartProps={chartProps} />
+            </ChartHeight>
           </ModuleLayout.Third>
         </Fragment>
       );
@@ -122,20 +133,30 @@ function ViewSpecificCharts({
       return (
         <Fragment>
           <ModuleLayout.Half>
-            <ChartPlacementSlot view={view} index={0} chartProps={chartProps} />
+            <ChartHeight>
+              <ChartPlacementSlot view={view} index={0} chartProps={chartProps} />
+            </ChartHeight>
           </ModuleLayout.Half>
           <ModuleLayout.Half>
-            <ChartPlacementSlot view={view} index={1} chartProps={chartProps} />
+            <ChartHeight>
+              <ChartPlacementSlot view={view} index={1} chartProps={chartProps} />
+            </ChartHeight>
           </ModuleLayout.Half>
 
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={2} chartProps={chartProps} />
+            <ChartHeight>
+              <ChartPlacementSlot view={view} index={2} chartProps={chartProps} />
+            </ChartHeight>
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={3} chartProps={chartProps} />
+            <ChartHeight>
+              <ChartPlacementSlot view={view} index={3} chartProps={chartProps} />
+            </ChartHeight>
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ChartPlacementSlot view={view} index={4} chartProps={chartProps} />
+            <ChartHeight>
+              <ChartPlacementSlot view={view} index={4} chartProps={chartProps} />
+            </ChartHeight>
           </ModuleLayout.Third>
 
           <ModuleLayout.Full>
@@ -171,4 +192,8 @@ const FilterWrapper = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-rows: auto auto;
   }
+`;
+
+const ChartHeight = styled('div')`
+  height: ${SESSION_HEALTH_CHART_HEIGHT};
 `;
