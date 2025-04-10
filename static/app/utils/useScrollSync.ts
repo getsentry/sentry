@@ -30,15 +30,17 @@ export const useScrollSync = ({
 
       // sync the scroll position of the scrollingRef with the refsToSync
       refsToSync.forEach(ref => {
-        if (clonedScrollingRef && ref.current) {
-          if (direction === 'left') {
-            ref.current.scrollLeft = clonedScrollingRef.scrollLeft;
-          } else if (direction === 'top') {
-            ref.current.scrollTop = clonedScrollingRef.scrollTop;
-          } else {
-            ref.current.scrollTop = clonedScrollingRef.scrollTop;
-            ref.current.scrollLeft = clonedScrollingRef.scrollLeft;
-          }
+        if (!ref.current) {
+          return;
+        }
+
+        if (direction === 'left') {
+          ref.current.scrollLeft = clonedScrollingRef.scrollLeft;
+        } else if (direction === 'top') {
+          ref.current.scrollTop = clonedScrollingRef.scrollTop;
+        } else {
+          ref.current.scrollTop = clonedScrollingRef.scrollTop;
+          ref.current.scrollLeft = clonedScrollingRef.scrollLeft;
         }
       });
     };
