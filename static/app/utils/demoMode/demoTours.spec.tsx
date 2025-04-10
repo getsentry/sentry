@@ -1,9 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, renderHook, screen} from 'sentry-test/reactTestingLibrary';
 
 import {recordFinish} from 'sentry/actionCreators/guides';
 import type {TourState} from 'sentry/components/tours/tourContext';
+import type {Organization} from 'sentry/types/organization';
 import {
   DemoTour,
   DemoTourElement,
@@ -11,8 +13,9 @@ import {
   DemoTourStep,
   useDemoTours,
 } from 'sentry/utils/demoMode/demoTours';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import * as useOrganization from 'sentry/utils/useOrganization';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/actionCreators/guides', () => ({
   recordFinish: jest.fn(),
@@ -30,6 +33,18 @@ interface MockToursState {
 }
 
 const mockUseLocalStorageState = useLocalStorageState as jest.Mock;
+
+function createWrapper(organization: Organization) {
+  return function ({children}: {children?: React.ReactNode}) {
+    return (
+      <QueryClientProvider client={makeTestQueryClient()}>
+        <OrganizationContext value={organization}>
+          <DemoToursProvider>{children}</DemoToursProvider>
+        </OrganizationContext>
+      </QueryClientProvider>
+    );
+  };
+}
 
 describe('DemoTours', () => {
   let mockState: MockToursState;
@@ -80,8 +95,6 @@ describe('DemoTours', () => {
     );
 
     mockUseLocalStorageState.mockImplementation(() => [mockState, mockSetState]);
-
-    jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
   });
 
   afterEach(() => {
@@ -127,7 +140,7 @@ describe('DemoTours', () => {
 
     it('provides tour context when used inside provider', () => {
       const {result} = renderHook(() => useDemoTours(DemoTour.SIDEBAR), {
-        wrapper: DemoToursProvider,
+        wrapper: createWrapper(organization),
       });
 
       const tour = result.current;
@@ -142,7 +155,7 @@ describe('DemoTours', () => {
 
     it('handles tour actions', () => {
       const {result} = renderHook(() => useDemoTours(DemoTour.SIDEBAR), {
-        wrapper: DemoToursProvider,
+        wrapper: createWrapper(organization),
       });
 
       const tour = result.current;
@@ -178,13 +191,13 @@ describe('DemoTours', () => {
 
     it('maintains separate state for different tours', () => {
       const {result: sideBarResult} = renderHook(() => useDemoTours(DemoTour.SIDEBAR), {
-        wrapper: DemoToursProvider,
+        wrapper: createWrapper(organization),
       });
 
       const sidebarTour = sideBarResult.current;
 
       const {result: issuesResult} = renderHook(() => useDemoTours(DemoTour.ISSUES), {
-        wrapper: DemoToursProvider,
+        wrapper: createWrapper(organization),
       });
 
       const issuesTour = issuesResult.current;
@@ -233,7 +246,7 @@ describe('DemoTours', () => {
 
     it('correctly advances through tour steps', () => {
       const {result} = renderHook(() => useDemoTours(DemoTour.SIDEBAR), {
-        wrapper: DemoToursProvider,
+        wrapper: createWrapper(organization),
       });
 
       const sidebarTour = result.current;
