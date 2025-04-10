@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
 
+import EditableText from 'sentry/components/editableText';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {ActionsFromContext} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsFromContext} from 'sentry/components/workflowEngine/layout/breadcrumbs';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 export interface WorkflowEngineEditLayoutProps {
@@ -12,19 +14,27 @@ export interface WorkflowEngineEditLayoutProps {
    * Expected to include `<EditLayout.Chart>` and `<EditLayout.Panel>` components.
    */
   children: React.ReactNode;
+  onTitleChange?: (title: string) => void;
 }
 
 /**
  * Precomposed full-width layout for Automations / Monitors edit pages.
  */
-function EditLayout({children}: WorkflowEngineEditLayoutProps) {
+function EditLayout({children, onTitleChange}: WorkflowEngineEditLayoutProps) {
   const title = useDocumentTitle();
   return (
     <Layout.Page>
       <StyledHeader>
         <Layout.HeaderContent>
           <BreadcrumbsFromContext />
-          <Layout.Title>{title}</Layout.Title>
+          <Layout.Title>
+            <EditableText
+              isDisabled={false}
+              value={title}
+              onChange={newTitle => onTitleChange?.(newTitle)}
+              errorMessage={t('Please set a title')}
+            />
+          </Layout.Title>
         </Layout.HeaderContent>
         <ActionsFromContext />
       </StyledHeader>
