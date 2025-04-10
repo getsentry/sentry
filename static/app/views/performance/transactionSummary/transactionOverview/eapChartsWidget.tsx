@@ -7,6 +7,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useWidgetChartVisualization} from 'sentry/views/performance/transactionSummary/transactionOverview/useWidgetChartVisualization';
 
 export enum EAPWidgetType {
@@ -79,12 +80,12 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
 
   const params = useLocationQuery({
     fields: {
-      'span.category': decodeScalar,
-      chartDisplay: decodeScalar,
+      [SpanIndexedField.SPAN_CATEGORY]: decodeScalar,
+      [SELECTED_CHART_QUERY_PARAM]: decodeScalar,
     },
   });
 
-  const spanCategoryUrlParam = params['span.category'];
+  const spanCategoryUrlParam = params[SpanIndexedField.SPAN_CATEGORY];
   const {chartDisplay: selectedChartUrlParam} = params;
 
   const selectedChart = WIDGET_OPTIONS[selectedChartUrlParam as EAPWidgetType]
