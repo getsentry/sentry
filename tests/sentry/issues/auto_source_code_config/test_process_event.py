@@ -5,6 +5,8 @@ from unittest.mock import patch
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.source_code_management.repo_trees import RepoAndBranch
+from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, create_code_mapping
 from sentry.issues.auto_source_code_config.constants import (
     DERIVED_ENHANCEMENTS_OPTION_KEY,
     METRIC_PREFIX,
@@ -670,51 +672,96 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         )
 
     @with_feature({"organizations:auto-source-code-config-java-enabled": True})
-    def test_multiple_tlds(self) -> None:
-        # XXX: Multiple TLDs cause over in-app categorization
-        # Think of uk.co company using packages from another uk.co company
-        # They can still use their project rules to exclude the other uk.co packages
-        frames = [
-            self.frame(module="uk.co.example.foo.Bar", abs_path="Bar.kt", in_app=False),
-            self.frame(module="uk.co.not-example.baz.qux", abs_path="qux.kt", in_app=False),
-        ]
+    def test_country_code_tld(self) -> None:
+        # We have two packages for the same domain
+        repo_trees = {REPO1: ["src/uk/co/example/foo/Bar.kt", "src/uk/co/example/bar/Baz.kt"]}
+        foo_package = self.frame(module="uk.co.example.foo.Bar", abs_path="Bar.kt", in_app=False)
+        bar_package = self.frame(module="uk.co.example.bar.Baz", abs_path="Baz.kt", in_app=False)
+        third_party_package = self.frame(
+            module="uk.co.not-example.baz.qux", abs_path="qux.kt", in_app=False
+        )
+        # Only one of the packages are in the first event
+        frames = [foo_package, third_party_package]
 
         event = self._process_and_assert_configuration_changes(
-            repo_trees={REPO1: ["src/uk/co/example/foo/Bar.kt"]},
+            repo_trees=repo_trees,
             frames=frames,
             platform=self.platform,
             expected_new_code_mappings=[
-                # XXX: Notice that we loose "example"
-                self.code_mapping(stack_root="uk/co/", source_root="src/uk/co/"),
+                self.code_mapping(stack_root="uk/co/example/", source_root="src/uk/co/example/"),
             ],
-            expected_new_in_app_stack_trace_rules=["stack.module:uk.co.** +app"],
+            expected_new_in_app_stack_trace_rules=["stack.module:uk.co.example.** +app"],
         )
+        # The event where derivation happens does not have rules applied
         assert event.data["metadata"]["in_app_frame_mix"] == "system-only"
 
+        # The second event will have the rules applied
         event = self._process_and_assert_configuration_changes(
-            repo_trees={REPO1: ["src/uk/co/example/foo/Bar.kt"]},
+            repo_trees=repo_trees,
             frames=frames,
             platform=self.platform,
         )
-        # It's in-app-only because even the not-example package is in-app
-        assert event.data["metadata"]["in_app_frame_mix"] == "in-app-only"
-
-        # The developer can undo our rule
-        self.project.update_option(
-            "sentry:grouping_enhancements",
-            "stack.module:uk.co.not-example.** -app",
-        )
-        event = self._process_and_assert_configuration_changes(
-            repo_trees={REPO1: ["src/uk/co/example/foo/Bar.kt"]},
-            frames=frames,
-            platform=self.platform,
-        )
+        # It's mixed because the not-example package is a system frame
         assert event.data["metadata"]["in_app_frame_mix"] == "mixed"
-        event_frames = event.data["stacktrace"]["frames"]
-        assert event_frames[0]["module"] == "uk.co.example.foo.Bar"
-        assert event_frames[0]["in_app"] is True
-        assert event_frames[1]["module"] == "uk.co.not-example.baz.qux"
-        assert event_frames[1]["in_app"] is False
+        assert event.data["stacktrace"]["frames"][0]["module"] == "uk.co.example.foo.Bar"
+        assert event.data["stacktrace"]["frames"][0]["in_app"] is True
+        assert event.data["stacktrace"]["frames"][1]["module"] == "uk.co.not-example.baz.qux"
+        assert event.data["stacktrace"]["frames"][1]["in_app"] is False
+
+        # Let's try the 2nd package in the repo
+        frames = [bar_package, third_party_package]
+        event = self._process_and_assert_configuration_changes(
+            repo_trees=repo_trees,
+            frames=frames,
+            platform=self.platform,
+        )
+        # The code mapping & in-app-rule of the first event does apply
+        assert event.data["metadata"]["in_app_frame_mix"] == "mixed"
+        assert event.data["stacktrace"]["frames"][0]["module"] == "uk.co.example.bar.Baz"
+        assert event.data["stacktrace"]["frames"][0]["in_app"] is True
+        assert event.data["stacktrace"]["frames"][1]["module"] == "uk.co.not-example.baz.qux"
+        assert event.data["stacktrace"]["frames"][1]["in_app"] is False
+
+    @with_feature({"organizations:auto-source-code-config-java-enabled": True})
+    def test_country_code_tld_with_old_granularity(self) -> None:
+        # We have two packages for the same domain
+        repo_trees = {REPO1: ["src/uk/co/example/foo/Bar.kt", "src/uk/co/example/bar/Baz.kt"]}
+        frames = [
+            self.frame(module="uk.co.example.foo.Bar", abs_path="Bar.kt", in_app=False),
+            # This does not belong to the org since it does not show up in the repos
+            self.frame(module="uk.co.not-example.baz.qux", abs_path="qux.kt", in_app=False),
+        ]
+
+        # Let's pretend that we have already added the two level tld rule
+        # This means that the uk.co.not-example.baz.qux will be in-app
+        repo = RepoAndBranch(name="repo1", branch="default")
+        cm = CodeMapping(repo=repo, stacktrace_root="uk.co.**", source_path="src/uk/co/")
+        create_code_mapping(self.organization, cm, self.project)
+        self.project.update_option(DERIVED_ENHANCEMENTS_OPTION_KEY, "stack.module:uk.co.** +app")
+
+        event = self._process_and_assert_configuration_changes(
+            repo_trees=repo_trees,
+            frames=frames,
+            platform=self.platform,
+            expected_new_code_mappings=[
+                self.code_mapping(stack_root="uk/co/example/", source_root="src/uk/co/example/"),
+            ],
+            expected_new_in_app_stack_trace_rules=["stack.module:uk.co.example.** +app"],
+        )
+        # All frames are in-app because the 2-level tld rule is already in place
+        assert event.data["metadata"]["in_app_frame_mix"] == "in-app-only"
+        assert RepositoryProjectPathConfig.objects.count() == 2
+        config = RepositoryProjectPathConfig.objects.get(
+            project_id=self.project.id,
+            stack_root="uk/co/example/",
+            source_root="src/uk/co/example/",
+        )
+        assert config is not None
+        # XXX: Ideally we would remove the old rule and code mapping
+        assert self.project.get_option(DERIVED_ENHANCEMENTS_OPTION_KEY).split("\n") == [
+            "stack.module:uk.co.** +app",
+            "stack.module:uk.co.example.** +app",
+        ]
 
     @with_feature({"organizations:auto-source-code-config-java-enabled": True})
     def test_do_not_clobber_rules(self) -> None:

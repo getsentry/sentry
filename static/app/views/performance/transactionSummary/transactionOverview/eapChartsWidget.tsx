@@ -1,5 +1,4 @@
 import {useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
@@ -12,8 +11,6 @@ import {useWidgetChartVisualization} from 'sentry/views/performance/transactionS
 export enum EAPWidgetType {
   DURATION_BREAKDOWN = 'duration_breakdown',
   DURATION_PERCENTILES = 'duration_percentiles',
-  DURATION_DISTRIBUTION = 'duration_distribution',
-  TRENDS = 'trends',
   WEB_VITALS = 'web_vitals',
 }
 
@@ -37,19 +34,17 @@ const WIDGET_OPTIONS: Record<
     ),
     disabled: false,
   },
-  [EAPWidgetType.DURATION_DISTRIBUTION]: {
-    title: t('Duration Distribution'),
-    spanCategoryTitle: t('Span Category Distribution'),
-    description: t(
-      'Duration Distribution reflects the volume of transactions per median duration.'
-    ),
-    disabled: true,
-  },
-  [EAPWidgetType.TRENDS]: {
-    title: t('Trends'),
-    description: t('Trends shows the smoothed value of an aggregate over time.'),
-    disabled: true,
-  },
+  // TODO: Histograms are not supported in EAP yet and will be added Post-GA.
+  // We can re-enable this once the feature is released.
+
+  // [EAPWidgetType.DURATION_DISTRIBUTION]: {
+  //   title: t('Duration Distribution'),
+  //   spanCategoryTitle: t('Span Category Distribution'),
+  //   description: t(
+  //     'Duration Distribution reflects the volume of transactions per median duration.'
+  //   ),
+  //   disabled: true,
+  // },
   [EAPWidgetType.WEB_VITALS]: {
     title: t('Web Vitals'),
     description: t(
@@ -101,28 +96,21 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={title} />}
+      Title={
+        <CompactSelect
+          options={options}
+          value={selectedWidget}
+          onChange={option => setSelectedWidget(option.value as EAPWidgetType)}
+          triggerProps={{borderless: true, size: 'zero'}}
+        />
+      }
       Actions={
         <Widget.WidgetToolbar>
           <Widget.WidgetDescription title={title} description={description} />
         </Widget.WidgetToolbar>
       }
       Visualization={visualization}
-      Footer={
-        <FooterContainer>
-          <CompactSelect
-            options={options}
-            value={selectedWidget}
-            onChange={option => setSelectedWidget(option.value as EAPWidgetType)}
-          />
-        </FooterContainer>
-      }
+      revealActions="always"
     />
   );
 }
-
-const FooterContainer = styled('div')`
-  display: flex;
-  align-items: right;
-  justify-content: right;
-`;

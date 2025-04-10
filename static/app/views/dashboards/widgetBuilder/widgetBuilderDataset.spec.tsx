@@ -875,9 +875,12 @@ describe('WidgetBuilder', function () {
         expect(await screen.findByText('Custom Widget')).toBeInTheDocument();
 
         // 1 in the table header, 1 in the column selector, 1 in the sort field
-        const countFields = await screen.findAllByText('count()');
-        expect(countFields).toHaveLength(3);
+        await waitFor(() => {
+          const countFields = screen.getAllByText('count()');
+          expect(countFields).toHaveLength(3);
+        });
 
+        const countFields = screen.getAllByText('count()');
         await selectEvent.select(countFields[1]!, ['p99(…)']);
 
         // Open dropdown

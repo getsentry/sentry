@@ -665,6 +665,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             )
             assert response.status_code == 200, response.content
             expected = {
+                "dataScanned": "full",
                 "dataset": mock.ANY,
                 "datasetReason": "unchanged",
                 "fields": {
@@ -1808,6 +1809,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             },
         ]
         expected = {
+            "dataScanned": "full",
             "dataset": mock.ANY,
             "datasetReason": "unchanged",
             "fields": {
@@ -3831,6 +3833,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
+        assert response.data["meta"]["dataScanned"] == "partial"
 
     def test_best_effort_request(self):
         span = self.create_span(
@@ -3863,6 +3866,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(response.data["data"]) == 2
         assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
         assert response.data["data"][1]["id"] == "b" * 16
+        assert response.data["meta"]["dataScanned"] == "full"
 
     def test_internal_fields(self):
         self.store_spans(
@@ -4085,3 +4089,19 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(data) == 1
         assert data[0]["sentry.sampling_factor"] == 0.01
         assert meta["dataset"] == self.dataset
+
+    @mock.patch("sentry.api.utils.sentry_sdk.capture_exception")
+    @mock.patch("sentry.utils.snuba_rpc._snuba_pool.urlopen")
+    def test_snuba_error_handles_correctly(self, mock_sdk, mock_rpc_query):
+        mock_rpc_query.side_effect = urllib3.exceptions.HTTPError()
+        response = self.do_request(
+            {
+                "field": ["count()"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 500, response.content
+        mock_sdk.assert_called_once()
