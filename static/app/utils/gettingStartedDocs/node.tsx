@@ -214,8 +214,10 @@ Sentry.startSpan({
 
 export const getNodeProfilingOnboarding = ({
   basePackage = '@sentry/node',
+  profilingLifecycle = 'trace',
 }: {
   basePackage?: string;
+  profilingLifecycle?: 'trace' | 'manual';
 } = {}): OnboardingConfig => ({
   install: params => [
     {
@@ -257,19 +259,24 @@ Sentry.init({
     nodeProfilingIntegration(),
   ],
   // Tracing must be enabled for profiling to work
-  tracesSampleRate: 1.0, //  Capture 100% of the transactions${
+  tracesSampleRate: 1.0,${
     params.profilingOptions?.defaultProfilingMode === 'continuous'
       ? `
   // Set sampling rate for profiling - this is evaluated only once per SDK.init call
-  profileSessionSampleRate: 1.0,
+  profileSessionSampleRate: 1.0,${
+    profilingLifecycle === 'trace'
+      ? `
   // Trace lifecycle automatically enables profiling during active traces
   profileLifecycle: 'trace',`
+      : ''
+  }`
       : `
   // Set sampling rate for profiling - this is evaluated only once per SDK.init call
   profilesSampleRate: 1.0,`
   }
 });${
-                params.profilingOptions?.defaultProfilingMode === 'continuous'
+                params.profilingOptions?.defaultProfilingMode === 'continuous' &&
+                profilingLifecycle === 'trace'
                   ? `
 
 // Profiling happens automatically after setting it up with \`Sentry.init()\`.
@@ -280,19 +287,32 @@ Sentry.startSpan({
   // The code executed here will be profiled
 });`
                   : ''
+              }${
+                params.profilingOptions?.defaultProfilingMode === 'continuous' &&
+                profilingLifecycle === 'manual'
+                  ? `
+
+Sentry.profiler.startProfiler();
+// Code executed between these two calls will be profiled
+Sentry.profiler.stopProfiler();
+                  `
+                  : ''
               }`,
             },
           ],
-          additionalInfo: tct(
-            'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
-            {
-              link: (
-                <ExternalLink
-                  href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling`}
-                />
-              ),
-            }
-          ),
+          additionalInfo:
+            profilingLifecycle === 'trace'
+              ? tct(
+                  'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
+                  {
+                    link: (
+                      <ExternalLink
+                        href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling`}
+                      />
+                    ),
+                  }
+                )
+              : '',
         },
         {
           description: tct(
