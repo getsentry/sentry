@@ -104,7 +104,18 @@ export function NewIssueExperienceButton() {
             }}
           />
         ),
-        {modalCss: IssueDetailsTourModalCss}
+        {
+          modalCss: IssueDetailsTourModalCss,
+          onClose: reason => {
+            if (reason) {
+              mutateAssistant({
+                guide: ISSUE_DETAILS_TOUR_GUIDE_KEY,
+                status: 'dismissed',
+              });
+              endTour();
+            }
+          },
+        }
       );
     }
   }, [isPromoVisible, mutateAssistant, organization, endTour, startTour]);
