@@ -8,11 +8,11 @@ from django.conf import settings
 from redis import StrictRedis
 from rediscluster import RedisCluster
 from sentry_kafka_schemas.codecs import Codec
-from sentry_kafka_schemas.schema_types.uptime_configs_v1 import CheckConfig
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.uptime.subscriptions.regions import get_region_config
+from sentry.uptime.types import CheckConfig
 from sentry.utils import redis
 
 logger = logging.getLogger(__name__)

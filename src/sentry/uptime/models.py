@@ -7,7 +7,6 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Count, Q
 from django.db.models.functions import Now
-from sentry_kafka_schemas.schema_types.uptime_configs_v1 import REGIONSCHEDULEMODE_ROUND_ROBIN
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -288,7 +287,7 @@ def load_regions_for_uptime_subscription(
 
 
 class UptimeRegionScheduleMode(enum.StrEnum):
-    ROUND_ROBIN = REGIONSCHEDULEMODE_ROUND_ROBIN
+    ROUND_ROBIN = "round_robin"
 
 
 @data_source_type_registry.register(DATA_SOURCE_UPTIME_SUBSCRIPTION)
