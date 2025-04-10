@@ -98,6 +98,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
         AlertRuleTrigger,
         AlertRuleTriggerAction,
     )
+    from sentry.incidents.models.incident import Incident
     from sentry.integrations.models.organization_integration import OrganizationIntegration
     from sentry.integrations.models.repository_project_path_config import (
         RepositoryProjectPathConfig,
@@ -152,6 +153,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.GroupShare, BulkModelDeletionTask)
     manager.register(models.GroupSnooze, BulkModelDeletionTask)
     manager.register(models.GroupSubscription, BulkModelDeletionTask)
+    manager.register(Incident, defaults.IncidentDeletionTask)
     manager.register(monitor_models.Monitor, defaults.MonitorDeletionTask)
     manager.register(monitor_models.MonitorEnvironment, defaults.MonitorEnvironmentDeletionTask)
     manager.register(models.Organization, defaults.OrganizationDeletionTask)
