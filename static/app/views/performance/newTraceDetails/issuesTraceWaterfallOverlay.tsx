@@ -1,18 +1,14 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
 import Link from 'sentry/components/links/link';
-import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {isCollapsedNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import type {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
@@ -28,8 +24,7 @@ interface RowPosition {
 
 interface TraceOverlayProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
-  event: Event;
-  groupId: string | undefined;
+  traceTarget: LocationDescriptor;
   tree: IssuesTraceTree;
   viewManager: VirtualizedViewManager;
 }
@@ -40,31 +35,12 @@ interface TraceOverlayProps {
  */
 export function IssueTraceWaterfallOverlay({
   containerRef,
-  event,
-  groupId,
   tree,
   viewManager,
+  traceTarget,
 }: TraceOverlayProps) {
   const organization = useOrganization();
   const [rowPositions, setRowPositions] = useState<RowPosition[] | null>(null);
-  const location = useLocation();
-
-  const traceTarget = useMemo(
-    () =>
-      generateTraceTarget(
-        event,
-        organization,
-        {
-          ...location,
-          query: {
-            ...location.query,
-            ...(groupId ? {groupId} : {}),
-          },
-        },
-        TraceViewSources.ISSUE_DETAILS
-      ),
-    [event, organization, location, groupId]
-  );
 
   useEffect(() => {
     const measurePositions = () => {

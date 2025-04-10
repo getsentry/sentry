@@ -165,6 +165,15 @@ export function generateTraceTarget(
     });
   }
 
+  return generateTraceEventsInDiscoverTarget(event, organization, traceId, dateSelection);
+}
+
+export function generateTraceEventsInDiscoverTarget(
+  event: Event,
+  organization: Organization,
+  traceId: string,
+  dateSelection: ReturnType<typeof normalizeDateTimeParams>
+): LocationDescriptor {
   const eventView = EventView.fromSavedQuery({
     id: undefined,
     name: `Events with Trace ID ${traceId}`,

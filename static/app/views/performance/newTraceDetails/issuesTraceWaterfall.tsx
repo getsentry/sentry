@@ -12,9 +12,16 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {
+  generateTraceEventsInDiscoverTarget,
+  getEventTimestamp,
+} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {IssueTraceWaterfallOverlay} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfallOverlay';
@@ -27,10 +34,12 @@ import {
   isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
 import {TraceScheduler} from './traceRenderers/traceScheduler';
@@ -66,6 +75,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const containerRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
 
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
 
@@ -362,6 +372,49 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     tree: props.tree,
   });
 
+  const traceTarget = useMemo(() => {
+    const focusedNode = previouslyFocusedNodeRef.current;
+    const traceId = props.event.contexts.trace?.trace_id ?? '';
+    const dateSelection = normalizeDateTimeParams(
+      getTraceTimeRangeFromEvent(props.event)
+    );
+
+    if (!organization.features.includes('performance-view')) {
+      return generateTraceEventsInDiscoverTarget(
+        props.event,
+        organization,
+        traceId,
+        dateSelection
+      );
+    }
+
+    const spanId =
+      focusedNode && (isSpanNode(focusedNode) || isEAPSpanNode(focusedNode))
+        ? isSpanNode(focusedNode)
+          ? focusedNode.value.span_id
+          : focusedNode.value.event_id
+        : undefined;
+
+    return getTraceDetailsUrl({
+      organization,
+      traceSlug: traceId,
+      dateSelection,
+      timestamp: getEventTimestamp(props.event),
+      eventId: props.event.eventID,
+      spanId,
+      location: {
+        ...location,
+        query: {
+          ...location.query,
+          ...(props.event.groupID && {groupId: props.event.groupID}),
+        },
+      },
+      source: TraceViewSources.ISSUE_DETAILS,
+    });
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.event, organization, location, previouslyFocusedNodeRef.current]);
+
   return (
     <Fragment>
       <TraceTypeWarnings
@@ -396,9 +449,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
             />
           </IssuesPointerDisabled>
           <IssueTraceWaterfallOverlay
+            traceTarget={traceTarget}
             containerRef={containerRef}
-            event={props.event}
-            groupId={props.event.groupID}
             tree={props.tree}
             viewManager={viewManager}
           />
