@@ -7,7 +7,6 @@ from uuid import uuid4
 from django.utils import timezone
 from sentry_kafka_schemas.schema_types.uptime_configs_v1 import CheckConfig
 
-from sentry.snuba.models import QuerySubscription
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import uptime_tasks
@@ -58,7 +57,7 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     for region in subscription.regions.all():
         send_uptime_subscription_config(region, subscription)
     subscription.update(
-        status=QuerySubscription.Status.ACTIVE.value,
+        status=UptimeSubscription.Status.ACTIVE.value,
         subscription_id=subscription.subscription_id,
     )
 
@@ -91,7 +90,7 @@ def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     for region in subscription.regions.all():
         send_uptime_subscription_config(region, subscription)
     subscription.update(
-        status=QuerySubscription.Status.ACTIVE.value,
+        status=UptimeSubscription.Status.ACTIVE.value,
         subscription_id=subscription.subscription_id,
     )
 
@@ -125,7 +124,7 @@ def delete_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     region_slugs = [s.region_slug for s in subscription.regions.all()]
 
     subscription_id = subscription.subscription_id
-    if subscription.status == QuerySubscription.Status.DELETING.value:
+    if subscription.status == UptimeSubscription.Status.DELETING.value:
         subscription.delete()
     else:
         subscription.update(subscription_id=None)
