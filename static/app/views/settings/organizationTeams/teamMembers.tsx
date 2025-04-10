@@ -121,28 +121,31 @@ function AddMemberDropdown({
     const existingMembers = new Set(teamMembers.map(member => member.id));
     return (orgMembers || [])
       .filter(m => !existingMembers.has(m.id))
-      .map(m => ({
-        labelText: `${m.name} ${m.email}`,
-        value: m.id,
-        label: (
-          <StyledUserListElement>
-            <UserAvatar
-              user={{
-                id: m.user?.id ?? m.id,
-                name: m.user?.name ?? m.name,
-                email: m.user?.email ?? m.email,
-                avatar: m.user?.avatar ?? undefined,
-                avatarUrl: m.user?.avatarUrl ?? undefined,
-                type: 'user',
-              }}
-              title={m.user?.name ?? m.name ?? m.user?.email ?? m.email}
-              size={24}
-              className="avatar"
-            />
-            <StyledNameOrEmail>{m.name || m.email}</StyledNameOrEmail>
-          </StyledUserListElement>
-        ),
-      }));
+      .map(
+        m =>
+          ({
+            textValue: `${m.name} ${m.email}`,
+            value: m.id,
+            label: (
+              <StyledUserListElement>
+                <UserAvatar
+                  user={{
+                    id: m.user?.id ?? m.id,
+                    name: m.user?.name ?? m.name,
+                    email: m.user?.email ?? m.email,
+                    avatar: m.user?.avatar ?? undefined,
+                    avatarUrl: m.user?.avatarUrl ?? undefined,
+                    type: 'user',
+                  }}
+                  title={m.user?.name ?? m.name ?? m.user?.email ?? m.email}
+                  size={24}
+                  className="avatar"
+                />
+                <StyledNameOrEmail>{m.name || m.email}</StyledNameOrEmail>
+              </StyledUserListElement>
+            ),
+          }) satisfies SelectOption<string>
+      );
   }, [teamMembers, orgMembers]);
 
   return (
