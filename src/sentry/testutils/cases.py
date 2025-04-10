@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import importlib.metadata
 import inspect
-import os.path
 import random
 import re
 import time
@@ -28,6 +27,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
 from django.db import connections
+from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
 from django.test import RequestFactory
@@ -206,9 +206,6 @@ from ..types.region import get_region_by_name
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
-DETECT_TESTCASE_MISUSE = os.environ.get("SENTRY_DETECT_TESTCASE_MISUSE") == "1"
-SILENCE_MIXED_TESTCASE_MISUSE = os.environ.get("SENTRY_SILENCE_MIXED_TESTCASE_MISUSE") == "1"
-
 SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 
 
@@ -385,6 +382,8 @@ class BaseTestCase(Fixtures):
         with open(get_fixture_path(filepath), "rb") as fp:
             return fp.read()
 
+    _pre_setup_run = False
+
     def _pre_setup(self):
         super()._pre_setup()
 
@@ -392,8 +391,34 @@ class BaseTestCase(Fixtures):
         ProjectOption.objects.clear_local_cache()
         GroupMeta.objects.clear_local_cache()
 
+        self._pre_setup_run = True
+
+    _post_teardown_started = False
+
     def _post_teardown(self):
+        self._post_teardown_started = True
+
         super()._post_teardown()
+
+    @pytest.fixture(autouse=True)
+    def _check_if_db_is_used(self) -> Generator[None]:
+        called_db = False
+
+        orig = BaseDatabaseWrapper.ensure_connection
+
+        def fake_ensure_connection(*a, **k):
+            nonlocal called_db
+
+            if self._pre_setup_run and not self._post_teardown_started:
+                called_db = True
+            return orig(*a, **k)
+
+        with mock.patch.object(BaseDatabaseWrapper, "ensure_connection", fake_ensure_connection):
+            yield
+        if not called_db:
+            pytest.fail(
+                "test did not use the database! change test to a pytest-style test or change the class to extend unittest.TestCase instead"
+            )
 
     def options(self, options):
         """
@@ -462,73 +487,6 @@ class TestCase(BaseTestCase, DjangoTestCase):
             return old_request(**request)
 
         with mock.patch.object(self.client, "request", new=request):
-            yield
-
-    # Ensure that testcases that ask for DB setup actually make use of the
-    # DB. If they don't, they're wasting CI time.
-    if DETECT_TESTCASE_MISUSE:
-
-        @pytest.fixture(autouse=True, scope="class")
-        def _require_db_usage(self, request):
-            class State:
-                used_db = {}
-                base = request.cls
-
-            state = State()
-
-            yield state
-
-            did_not_use = set()
-            did_use = set()
-            for name, used in state.used_db.items():
-                if used:
-                    did_use.add(name)
-                else:
-                    did_not_use.add(name)
-
-            if did_not_use and not did_use:
-                pytest.fail(
-                    f"none of the test functions in {state.base} used the DB! Use `unittest.TestCase` "
-                    f"instead of `sentry.testutils.TestCase` for those kinds of tests."
-                )
-            elif did_not_use and did_use and not SILENCE_MIXED_TESTCASE_MISUSE:
-                pytest.fail(
-                    f"Some of the test functions in {state.base} used the DB and some did not! "
-                    f"test functions using the db: {did_use}\n"
-                    f"Use `unittest.TestCase` instead of `sentry.testutils.TestCase` for the tests not using the db."
-                )
-
-        @pytest.fixture(autouse=True, scope="function")
-        def _check_function_for_db(self, request, monkeypatch, _require_db_usage):
-            from django.db.backends.base.base import BaseDatabaseWrapper
-
-            real_ensure_connection = BaseDatabaseWrapper.ensure_connection
-
-            state = _require_db_usage
-
-            def ensure_connection(*args, **kwargs):
-                for info in inspect.stack():
-                    frame = info.frame
-                    try:
-                        first_arg_name = frame.f_code.co_varnames[0]
-                        first_arg = frame.f_locals[first_arg_name]
-                    except LookupError:
-                        continue
-
-                    # make an exact check here for two reasons.  One is that this is
-                    # good enough as we do not expect subclasses, secondly however because
-                    # it turns out doing an isinstance check on untrusted input can cause
-                    # bad things to happen because it's hookable.  In particular this
-                    # blows through max recursion limits here if it encounters certain types
-                    # of broken lazy proxy objects.
-                    if type(first_arg) is state.base and info.function in state.used_db:
-                        state.used_db[info.function] = True
-                        break
-
-                return real_ensure_connection(*args, **kwargs)
-
-            monkeypatch.setattr(BaseDatabaseWrapper, "ensure_connection", ensure_connection)
-            state.used_db[request.function.__name__] = False
             yield
 
 
