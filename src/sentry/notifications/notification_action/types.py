@@ -147,6 +147,7 @@ class BaseIssueAlertHandler(ABC):
                 raise ValueError("Rule not found when querying for AlertRuleWorkflow")
 
             data["actions"][0]["legacy_rule_id"] = alert_rule_workflow.rule_id
+
         # In the new UI, we need this for to build the link to the new rule in the notification action
         else:
             data["actions"][0]["workflow_id"] = job.workflow_id
@@ -193,8 +194,8 @@ class BaseIssueAlertHandler(ABC):
         with sentry_sdk.start_span(
             op="workflow_engine.handlers.action.notification.issue_alert.execute_futures"
         ):
-            for callback, futures in futures:
-                safe_execute(callback, job.event, futures)
+            for callback, future in futures:
+                safe_execute(callback, job.event, future)
 
     @classmethod
     def invoke_legacy_registry(

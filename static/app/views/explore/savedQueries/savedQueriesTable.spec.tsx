@@ -9,6 +9,7 @@ describe('SavedQueriesTable', () => {
   let deleteQueryMock: jest.Mock;
   let starQueryMock: jest.Mock;
   let unstarQueryMock: jest.Mock;
+  let saveQueryMock: jest.Mock;
 
   beforeEach(() => {
     getQueriesMock = MockApiClient.addMockResponse({
@@ -42,6 +43,10 @@ describe('SavedQueriesTable', () => {
       url: `/organizations/${organization.slug}/explore/saved/2/starred/`,
       method: 'POST',
     });
+    saveQueryMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/`,
+      method: 'POST',
+    });
   });
 
   afterEach(() => {
@@ -54,7 +59,6 @@ describe('SavedQueriesTable', () => {
     expect(screen.getByText('Projects')).toBeInTheDocument();
     expect(screen.getByText('Query')).toBeInTheDocument();
     expect(screen.getByText('Owner')).toBeInTheDocument();
-    expect(screen.getByText('Access')).toBeInTheDocument();
     expect(screen.getByText('Last Viewed')).toBeInTheDocument();
     await screen.findByText('Query Name');
   });
@@ -231,6 +235,24 @@ describe('SavedQueriesTable', () => {
       expect.objectContaining({
         query: expect.objectContaining({query: 'Query Name'}),
       })
+    );
+  });
+
+  it('should duplicate a query', async () => {
+    render(<SavedQueriesTable mode="owned" />);
+    await screen.findByText('Query Name');
+    await userEvent.click(screen.getByLabelText('Query actions'));
+    await userEvent.click(screen.getByText('Duplicate'));
+    await waitFor(() =>
+      expect(saveQueryMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/explore/saved/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: expect.objectContaining({
+            name: 'Query Name (Copy)',
+          }),
+        })
+      )
     );
   });
 });
