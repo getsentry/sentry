@@ -38,7 +38,7 @@ export function useGroupSuspectFlagScores({
       statsPeriod,
       start,
       end,
-    }).filter(Boolean)
+    }).filter(([_, value]) => !!value)
   );
 
   return useApiQuery<SuspectFlagScoresResponse>(
