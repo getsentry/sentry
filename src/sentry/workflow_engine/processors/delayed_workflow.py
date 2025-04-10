@@ -31,6 +31,7 @@ from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
+    QueryResult,
     slow_condition_query_handler_registry,
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Workflow
@@ -232,7 +233,7 @@ def get_condition_query_groups(
 
 def get_condition_group_results(
     queries_to_groups: dict[UniqueConditionQuery, set[int]],
-) -> dict[UniqueConditionQuery, dict[int, int]]:
+) -> dict[UniqueConditionQuery, QueryResult]:
     condition_group_results = {}
     current_time = timezone.now()
 
@@ -266,7 +267,7 @@ def get_groups_to_fire(
     workflows_to_envs: WorkflowEnvMapping,
     dcg_to_workflow: dict[int, int],
     dcg_to_groups: DataConditionGroupGroups,
-    condition_group_results: dict[UniqueConditionQuery, dict[int, int]],
+    condition_group_results: dict[UniqueConditionQuery, QueryResult],
 ) -> dict[int, set[DataConditionGroup]]:
     groups_to_fire: dict[int, set[DataConditionGroup]] = defaultdict(set)
     for dcg in data_condition_groups:
@@ -276,7 +277,7 @@ def get_groups_to_fire(
         workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
 
         for group_id in dcg_to_groups[dcg.id]:
-            conditions_to_evaluate: list[tuple[DataCondition, list[int]]] = []
+            conditions_to_evaluate: list[tuple[DataCondition, list[int | float]]] = []
             for condition in slow_conditions:
                 unique_queries = generate_unique_queries(condition, workflow_env)
                 query_values = [
