@@ -1,4 +1,4 @@
-import {css} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
@@ -49,6 +49,7 @@ function createOrganizationMenuItem(): MenuItemProps {
 
 export function OrgDropdown({className}: {className?: string}) {
   const api = useApi();
+  const theme = useTheme();
 
   const config = useLegacyStore(ConfigStore);
   const organization = useOrganization();
@@ -77,9 +78,8 @@ export function OrgDropdown({className}: {className?: string}) {
       className={className}
       trigger={props => (
         <OrgDropdownTrigger
-          isMobile={isMobile}
-          size="zero"
-          borderless
+          borderless={!theme.isChonk}
+          width={isMobile ? 32 : 44}
           aria-label={t('Toggle organization menu')}
           {...props}
         >
@@ -187,16 +187,9 @@ export function OrgDropdown({className}: {className?: string}) {
   );
 }
 
-const OrgDropdownTrigger = styled(Button)<{isMobile: boolean}>`
-  height: 44px;
-  width: 44px;
-
-  ${p =>
-    p.isMobile &&
-    css`
-      width: 32px;
-      height: 32px;
-    `}
+const OrgDropdownTrigger = styled(Button)<{width: number}>`
+  height: ${p => p.width}px;
+  width: ${p => p.width}px;
 `;
 
 const StyledOrganizationAvatar = styled(OrganizationAvatar)`

@@ -13,6 +13,7 @@ import {
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
+import {getPythonProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -208,7 +209,7 @@ const onboarding: OnboardingConfig = {
           description:
             params.docsLocation === DocsPageLocation.PROFILING_PAGE
               ? tct(
-                  'You need a minimum version [code:1.18.0] of the [code:sentry-python] SDK for the profiling feature.',
+                  'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
                   {
                     code: <code />,
                   }
@@ -294,8 +295,7 @@ export const performanceOnboarding: OnboardingConfig = {
           code: `
 import sentry_sdk
 
-sentry_sdk.initimport { Context } from '@dnd-kit/sortable/dist/components';
-(
+sentry_sdk.init(
   dsn="${params.dsn.public}",
   traces_sample_rate=1.0,
 )`,
@@ -421,9 +421,9 @@ export const featureFlagOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   performanceOnboarding,
-  profilingOnboarding: onboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
+  profilingOnboarding: getPythonProfilingOnboarding({traceLifecycle: 'manual'}),
 };
 
 export default docs;

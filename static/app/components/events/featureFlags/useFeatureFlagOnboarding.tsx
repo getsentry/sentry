@@ -17,18 +17,18 @@ export function useFeatureFlagOnboarding({
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const area = useAnalyticsArea();
+  const analyticsArea = useAnalyticsArea();
 
   useEffect(() => {
     if (location.hash === FLAG_HASH) {
       SidebarPanelStore.activatePanel(SidebarPanelKey.FEATURE_FLAG_ONBOARDING);
       trackAnalytics('flags.view-setup-sidebar', {
         organization,
-        area,
+        surface: analyticsArea,
         platform: projectPlatform,
       });
     }
-  }, [location.hash, organization, area, projectPlatform]);
+  }, [location.hash, organization, analyticsArea, projectPlatform]);
 
   const activateSidebar = useCallback(
     (event: React.MouseEvent) => {
@@ -37,11 +37,11 @@ export function useFeatureFlagOnboarding({
       SidebarPanelStore.activatePanel(SidebarPanelKey.FEATURE_FLAG_ONBOARDING);
       trackAnalytics('flags.view-setup-sidebar', {
         organization,
-        area,
+        surface: analyticsArea
         platform: projectPlatform,
       });
     },
-    [organization, area, projectPlatform]
+    [organization, analyticsArea, projectPlatform]
   );
 
   return {activateSidebar};

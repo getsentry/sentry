@@ -21,6 +21,8 @@ import type {QueryValue} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
+import {Referrer} from 'sentry/views/insights/pages/backend/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -130,7 +132,12 @@ function useTableSortParams() {
   return {sortField, sortOrder};
 }
 
-export function PathsTable({query}: {query?: string}) {
+interface PathsTableProps {
+  handleAddTransactionFilter: (value: string) => void;
+  query?: string;
+}
+
+export function PathsTable({query, handleAddTransactionFilter}: PathsTableProps) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
   const [columnOrder, setColumnOrder] = useState(defaultColumnOrder);
@@ -155,7 +162,7 @@ export function PathsTable({query}: {query?: string}) {
             'sum(transaction.duration)',
           ],
           query: `(transaction.op:http.server) event.type:transaction ${query}`,
-          referrer: 'api.performance.landing-table',
+          referrer: Referrer.PATHS_TABLE,
           orderby: getOrderBy(sortField, sortOrder),
           useRpc: 1,
           per_page: PER_PAGE,
@@ -192,6 +199,7 @@ export function PathsTable({query}: {query?: string}) {
           sort: '-transaction',
           useRpc: 1,
           per_page: PER_PAGE,
+          referrer: Referrer.PATHS_TABLE,
         },
       },
     ],
@@ -254,9 +262,15 @@ export function PathsTable({query}: {query?: string}) {
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<SortableField>, dataRow: TableData) => {
-      return <BodyCell column={column} dataRow={dataRow} />;
+      return (
+        <BodyCell
+          column={column}
+          dataRow={dataRow}
+          handleAddTransactionFilter={handleAddTransactionFilter}
+        />
+      );
     },
-    []
+    [handleAddTransactionFilter]
   );
 
   return (
@@ -310,9 +324,11 @@ const HeadCell = memo(function HeadCell({
 const BodyCell = memo(function BodyCell({
   column,
   dataRow,
+  handleAddTransactionFilter,
 }: {
   column: GridColumnHeader<SortableField>;
   dataRow: TableData;
+  handleAddTransactionFilter: (value: string) => void;
 }) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -324,46 +340,58 @@ const BodyCell = memo(function BodyCell({
       return dataRow.method;
     case 'transaction':
       return (
-        <PathCell>
-          <Tooltip
-            title={dataRow.transaction}
-            position="top"
-            maxWidth={400}
-            showOnlyOnOverflow
-            skipWrapper
-          >
-            <Link
-              css={css`
-                ${theme.overflowEllipsis};
-                min-width: 0px;
-              `}
-              to={transactionSummaryRouteWithQuery({
-                organization,
-                transaction: dataRow.transaction,
-                view: 'backend',
-                projectID: dataRow.projectId,
-                query: {},
-              })}
+        <CellAction
+          column={{
+            ...column,
+            isSortable: true,
+            type: 'string',
+            column: {kind: 'field', field: 'transaction'},
+          }}
+          dataRow={dataRow as any}
+          allowActions={[Actions.ADD]}
+          handleCellAction={() => handleAddTransactionFilter(dataRow.transaction)}
+        >
+          <PathCell>
+            <Tooltip
+              title={dataRow.transaction}
+              position="top"
+              maxWidth={400}
+              showOnlyOnOverflow
+              skipWrapper
             >
-              {dataRow.transaction}
-            </Link>
-          </Tooltip>
-          {dataRow.isControllerLoading ? (
-            <Placeholder height={theme.fontSizeSmall} width="200px" />
-          ) : (
-            dataRow.controller && (
-              <Tooltip
-                title={dataRow.controller}
-                position="top"
-                maxWidth={400}
-                showOnlyOnOverflow
-                skipWrapper
+              <Link
+                css={css`
+                  ${theme.overflowEllipsis};
+                  min-width: 0px;
+                `}
+                to={transactionSummaryRouteWithQuery({
+                  organization,
+                  transaction: dataRow.transaction,
+                  view: 'backend',
+                  projectID: dataRow.projectId,
+                  query: {},
+                })}
               >
-                <ControllerText>{dataRow.controller}</ControllerText>
-              </Tooltip>
-            )
-          )}
-        </PathCell>
+                {dataRow.transaction}
+              </Link>
+            </Tooltip>
+            {dataRow.isControllerLoading ? (
+              <Placeholder height={theme.fontSizeSmall} width="200px" />
+            ) : (
+              dataRow.controller && (
+                <Tooltip
+                  title={dataRow.controller}
+                  position="top"
+                  maxWidth={400}
+                  showOnlyOnOverflow
+                  skipWrapper
+                >
+                  <ControllerText>{dataRow.controller}</ControllerText>
+                </Tooltip>
+              )
+            )}
+          </PathCell>
+        </CellAction>
       );
     case 'count()':
       return formatAbbreviatedNumber(dataRow.requests);

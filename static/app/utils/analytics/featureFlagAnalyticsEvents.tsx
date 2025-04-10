@@ -2,9 +2,11 @@ import type {SdkProviderEnum} from 'sentry/components/events/featureFlags/utils'
 import type {PlatformKey} from 'sentry/types/project';
 
 export type FeatureFlagEventParameters = {
-  'flags.cta_dismissed': {area: string; type: string};
+  'flags.cta_dismissed': {surface: string; type: string};
   'flags.cta_rendered': {area: string};
-  'flags.drawer_details_clicked': Record<string, unknown>;
+  'flags.drawer_details_rendered': {
+    numLogs: number;
+  };
   'flags.drawer_rendered': {
     numFlags: number;
   };
@@ -14,8 +16,8 @@ export type FeatureFlagEventParameters = {
     numTotalFlags: number;
   };
   'flags.logs-paginated': {
-    area: string;
     direction: 'next' | 'prev';
+    surface: string;
   };
   'flags.setup_sidebar_selection': {
     platform?: string;
@@ -29,7 +31,7 @@ export type FeatureFlagEventParameters = {
   };
   'flags.view-all-clicked': Record<string, unknown>;
   'flags.view-setup-sidebar': {
-    area: string;
+    surface: string;
     platform?: PlatformKey;
   };
 };
@@ -39,7 +41,7 @@ export type FeatureFlagEventKey = keyof FeatureFlagEventParameters;
 export const featureFlagEventMap: Record<FeatureFlagEventKey, string | null> = {
   'flags.cta_dismissed': 'Flag CTA Dismissed',
   'flags.cta_rendered': 'Flag CTA Rendered',
-  'flags.drawer_details_clicked': 'Feature Flag Drawer Details Clicked',
+  'flags.drawer_details_rendered': 'Feature Flag Drawer Details Rendered',
   'flags.drawer_rendered': 'Feature Flag Drawer Rendered',
   'flags.event_and_suspect_flags_found': 'Number of Event and Suspect Flags',
   'flags.logs-paginated': 'Feature Flag Logs Paginated',

@@ -2,6 +2,7 @@ import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import type {MetricsProperty, SpanMetricsProperty} from 'sentry/views/insights/types';
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 
 const formatMetricValue = (metric: MetricValue, field?: string | undefined): string => {
@@ -49,17 +50,23 @@ export type VitalStatus = {
   value: MetricValue | undefined;
 };
 
-export type VitalItem = {
-  dataset: DiscoverDatasets;
+export type GenericVitalItem<
+  T extends DiscoverDatasets.SPANS_METRICS | DiscoverDatasets.METRICS,
+> = {
+  dataset: T;
   description: string;
   docs: React.ReactNode;
-  field: string;
+  field: T extends DiscoverDatasets.SPANS_METRICS ? SpanMetricsProperty : MetricsProperty;
   getStatus: (value: MetricValue, field?: string | undefined) => VitalStatus;
   platformDocLinks: Record<string, string>;
   sdkDocLinks: Record<string, string>;
   setup: React.ReactNode | undefined;
   title: string;
 };
+
+export type VitalItem =
+  | GenericVitalItem<DiscoverDatasets.METRICS>
+  | GenericVitalItem<DiscoverDatasets.SPANS_METRICS>;
 
 export type MetricValue = {
   // the field type if defined, e.g. duration

@@ -38,7 +38,11 @@ export function CollapsedAvatars({
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   if (hasStreamlinedUI) {
-    return <CollapsedAvatarPill ref={ref}>{children}</CollapsedAvatarPill>;
+    return (
+      <CollapsedAvatarPill ref={ref} data-test-id="avatarList-collapsedavatars">
+        {children}
+      </CollapsedAvatarPill>
+    );
   }
   return (
     <CollapsedAvatarsCicle

@@ -57,7 +57,7 @@ export function getDocsLinkForEventType(
       return 'https://docs.sentry.io/product/crons/';
     case DataCategoryExact.PROFILE_DURATION:
     case DataCategoryExact.PROFILE_DURATION_UI:
-      return 'https://docs.sentry.io/product/explore/profiling/';
+      return 'https://docs.sentry.io/pricing/quotas/manage-continuous-profile-hours/';
     case DataCategoryExact.UPTIME:
       return 'https://docs.sentry.io/product/alerts/uptime-monitoring/';
     default:

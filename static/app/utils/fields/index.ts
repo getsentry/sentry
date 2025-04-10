@@ -26,6 +26,7 @@ export enum FieldKey {
   BOOKMARKS = 'bookmarks',
   BROWSER_NAME = 'browser.name',
   CULPRIT = 'culprit',
+  DEVICE = 'device',
   DEVICE_ARCH = 'device.arch',
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
   DEVICE_BRAND = 'device.brand',
@@ -1301,6 +1302,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.DEVICE]: {
+    desc: t('The device that the event was seen on'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.DEVICE_ARCH]: {
     desc: t('CPU architecture'),
     kind: FieldKind.FIELD,
@@ -2513,6 +2519,16 @@ export const getFieldDefinition = (
       if (key in LOG_FIELD_DEFINITIONS) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return LOG_FIELD_DEFINITIONS[key];
+      }
+
+      // In EAP we have numeric tags that can be passed as parameters to
+      // aggregate functions. We assign value type based on kind, so that we can filter
+      // on them when suggesting function parameters.
+      if (kind === FieldKind.MEASUREMENT) {
+        return {
+          kind: FieldKind.FIELD,
+          valueType: FieldValueType.NUMBER,
+        };
       }
 
       if (kind === FieldKind.TAG) {

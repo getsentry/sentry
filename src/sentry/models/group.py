@@ -45,6 +45,7 @@ from sentry.issues.priority import (
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -458,6 +459,10 @@ class GroupManager(BaseManager["Group"]):
             and activity_type == ActivityType.AUTO_SET_ONGOING
         )
 
+        # Track the resolved groups that are being unresolved and need to have their open period reopened
+        should_reopen_open_period = {
+            group.id: group.status == GroupStatus.RESOLVED for group in selected_groups
+        }
         updated_priority = {}
         for group in selected_groups:
             group.status = status
@@ -473,7 +478,7 @@ class GroupManager(BaseManager["Group"]):
         Group.objects.bulk_update(modified_groups_list, ["status", "substatus", "priority"])
 
         for group in modified_groups_list:
-            Activity.objects.create_group_activity(
+            activity = Activity.objects.create_group_activity(
                 group,
                 activity_type,
                 data=activity_data,
@@ -492,6 +497,8 @@ class GroupManager(BaseManager["Group"]):
                     },
                 )
                 record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
+
+            update_group_open_period(group, status, activity, should_reopen_open_period[group.id])
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
@@ -1085,9 +1092,32 @@ def get_open_periods_for_group(
     limit: int | None = None,
 ) -> list[OpenPeriod]:
     from sentry.incidents.utils.metric_issue_poc import OpenPeriod
+    from sentry.models.groupopenperiod import GroupOpenPeriod
 
     if not features.has("organizations:issue-open-periods", group.organization):
         return []
+
+    # Try to get open periods from the GroupOpenPeriod table first
+    group_open_periods = GroupOpenPeriod.objects.filter(group=group)
+    if group_open_periods.exists() and query_start:
+        group_open_periods = group_open_periods.filter(
+            date_started__gte=query_start, date_ended__lte=query_end, id__gte=offset or 0
+        ).order_by("-date_started")[:limit]
+
+        return [
+            OpenPeriod(
+                start=period.date_started,
+                end=period.date_ended,
+                duration=period.date_ended - period.date_started if period.date_ended else None,
+                is_open=period.date_ended is None,
+                last_checked=get_last_checked_for_open_period(group),
+            )
+            for period in group_open_periods
+        ]
+
+    # If there are no open periods in the table, we need to calculate them
+    # from the activity log.
+    # TODO(snigdha): This is temporary until we have backfilled the GroupOpenPeriod table
 
     if query_start is None or query_end is None:
         query_start = timezone.now() - timedelta(days=90)
@@ -1157,3 +1187,50 @@ def get_open_periods_for_group(
         return open_periods[:limit]
 
     return open_periods
+
+
+def update_group_open_period(
+    group: Group,
+    new_status: int,
+    activity: Activity | None,
+    should_reopen_open_period: bool,
+) -> None:
+    """
+    Update an existing open period when the group is resolved or unresolved.
+
+    On resolution, we set the date_ended to the resolution time and link the activity to the open period.
+    On unresolved, we clear the date_ended and resolution_activity fields. This is only done if the group
+    is unresolved manually without a regression. If the group is unresolved due to a regression, the
+    open periods will be updated during ingestion.
+    """
+    if not features.has("organizations:issue-open-periods", group.project.organization):
+        return
+
+    if new_status not in (GroupStatus.RESOLVED, GroupStatus.UNRESOLVED):
+        return
+
+    find_open = new_status != GroupStatus.UNRESOLVED
+    open_period = (
+        GroupOpenPeriod.objects.filter(group=group, date_ended__isnull=find_open)
+        .order_by("-date_started")
+        .first()
+    )
+    if not open_period:
+        logger.error(
+            "Unable to update open period, no open period found",
+            extra={"group_id": group.id},
+        )
+        return
+
+    if new_status == GroupStatus.RESOLVED:
+        open_period.update(
+            date_ended=group.resolved_at if group.resolved_at else timezone.now(),
+            resolution_activity=activity,
+            user_id=activity.user_id if activity else None,
+        )
+    elif (
+        new_status == GroupStatus.UNRESOLVED
+        and group.substatus != GroupSubStatus.REGRESSED
+        and should_reopen_open_period
+    ):
+        open_period.update(date_ended=None, resolution_activity=None)

@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import * as qs from 'query-string';
 
+import NotFound from 'sentry/components/errors/notFound';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -90,12 +91,16 @@ function StreamWrapper({children}: Props) {
 
 function IssueViewWrapper({children}: Props) {
   const organization = useOrganization();
-  const {data: groupSearchView, isLoading} = useSelectedGroupSearchView();
+  const {data: groupSearchView, isLoading, isError} = useSelectedGroupSearchView();
   useUpdateViewLastVisited({view: groupSearchView});
   useHydrateIssueViewQueryParams({view: groupSearchView});
 
   if (isLoading) {
     return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <NotFound />;
   }
 
   return (

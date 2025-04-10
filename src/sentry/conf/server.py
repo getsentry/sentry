@@ -436,6 +436,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.data_secrecy",
     "sentry.workflow_engine",
     "sentry.explore",
+    "sentry.insights",
 )
 
 # Silence internal hints from Django's system checks
@@ -2841,21 +2842,19 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "http://ctxsym.citrix.com/symbols/",
         "is_public": True,
     },
-    # Right now Symbolicator is not able to successfully download from
-    # the Intel source because the source doesn't accept custom user agents.
-    # Until we are confident we can spoof Symbolicator's user agent without
-    # abusing the source, we are disabling it. See
-    # https://github.com/getsentry/team-ingest/issues/642.
-    #
-    # "intel": {
-    #     "type": "http",
-    #     "id": "sentry:intel",
-    #     "name": "Intel",
-    #     "layout": {"type": "symstore"},
-    #     "filters": {"filetypes": ["pe", "pdb"]},
-    #     "url": "https://software.intel.com/sites/downloads/symbols/",
-    #     "is_public": True,
-    # },
+    "intel": {
+        "type": "http",
+        "id": "sentry:intel",
+        "name": "Intel",
+        "layout": {"type": "symstore"},
+        "filters": {"filetypes": ["pe", "pdb"]},
+        "url": "https://software.intel.com/sites/downloads/symbols/",
+        "headers": {
+            "User-Agent": "curl/7.72.0",
+        },
+        "is_public": True,
+        "has_index": True,
+    },
     "amd": {
         "type": "http",
         "id": "sentry:amd",
@@ -3106,6 +3105,8 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "workflow_engine",
     "tempest",
     "explore",
+    "insights",
+    "monitors",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)

@@ -36,7 +36,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const area = useAnalyticsArea();
+  const analyticsArea = useAnalyticsArea();
 
   const locationQuery = useLocationQuery({
     fields: {
@@ -134,7 +134,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
           trackAnalytics('flags.logs-paginated', {
             direction: cursor?.endsWith(':1') ? 'prev' : 'next',
             organization,
-            area,
+            surface: analyticsArea,
           });
           navigate({
             pathname: path,
