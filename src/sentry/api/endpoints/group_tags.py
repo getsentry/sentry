@@ -62,6 +62,8 @@ class GroupTagsEndpoint(GroupEndpoint):
             keys=keys,
             value_limit=value_limit,
             tenant_ids={"organization_id": group.project.organization_id},
+            start=start,
+            end=end,
         )
 
         data = serialize(tag_keys, request.user)
