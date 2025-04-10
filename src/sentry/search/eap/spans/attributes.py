@@ -2,6 +2,7 @@ from typing import Literal
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
 
+from sentry.insights.models import InsightsStarredSegment
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ResolvedAttribute,
@@ -402,6 +403,26 @@ def module_context_constructor(params: SnubaParams) -> VirtualColumnContext:
     )
 
 
+def is_starred_segment_context_constructor(params: SnubaParams) -> VirtualColumnContext:
+    if params.user is None or params.organization_id is None:
+        raise ValueError("User and organization is required for is_starred_transaction")
+
+    starred_segment_results = InsightsStarredSegment.objects.filter(
+        organization_id=params.organization_id,
+        project_id__in=params.project_ids,
+        user_id=params.user.id,
+    )
+
+    value_map = {result.segment_name: "true" for result in starred_segment_results}
+
+    return VirtualColumnContext(
+        from_column_name="sentry.segment_name",
+        to_column_name="is_starred_transaction",
+        value_map=value_map,
+        default_value="false",  # We can directly make this a boolean when https://github.com/getsentry/eap-planning/issues/224 is fixed
+    )
+
+
 SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[str, str]] = {
     "string": {
         definition.internal_name: definition.public_alias
@@ -435,6 +456,11 @@ SPAN_VIRTUAL_CONTEXTS = {
     ),
     "span.module": VirtualColumnDefinition(
         constructor=module_context_constructor,
+    ),
+    "is_starred_transaction": VirtualColumnDefinition(
+        constructor=is_starred_segment_context_constructor,
+        default_value="false",
+        processor=lambda x: True if x == "true" else False,
     ),
 }
 
