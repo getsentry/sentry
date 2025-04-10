@@ -75,6 +75,7 @@ SUPPORTED_COMMIT_PROVIDERS = (
 
 MAX_BLOCK_TEXT_LENGTH = 256
 USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
+MAX_SUMMARY_HEADLINE_LENGTH = 50
 
 
 def get_group_users_count(group: Group, rules: list[Rule] | None = None) -> int:
@@ -480,8 +481,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             text = text.lstrip(" ")
             if "\n" in text:
                 text = text.strip().split("\n")[0] + "..."
-            if len(text) > 50:
-                text = text[:50] + "..."
+            if len(text) > MAX_SUMMARY_HEADLINE_LENGTH:
+                text = text[:MAX_SUMMARY_HEADLINE_LENGTH] + "..."
             headline = f"{error_type}: {text}" if text else error_type
 
         title = headline if headline else build_attachment_title(event_or_group)
