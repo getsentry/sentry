@@ -30,6 +30,7 @@ import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -108,6 +109,13 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
   );
+  const spanDataset = useInsightsEap()
+    ? DiscoverDatasets.SPANS_EAP_RPC
+    : DiscoverDatasets.SPANS_METRICS;
+
+  const spanQueryParams = useInsightsEap()
+    ? {useRpc: '1', dataset: DiscoverDatasets.SPANS_EAP}
+    : {useRpc: '0', dataset: DiscoverDatasets.SPANS_METRICS};
 
   let emptyComponent: any;
   if (props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES) {
@@ -185,10 +193,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ];
 
           // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
@@ -212,10 +220,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ];
 
           // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
@@ -242,10 +250,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ];
 
           // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
@@ -269,10 +277,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ];
 
           // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
@@ -395,10 +403,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
           ) {
             // Update request params
-            eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+            eventView.dataset = spanDataset;
             extraQueryParams = {
               ...extraQueryParams,
-              dataset: DiscoverDatasets.SPANS_METRICS,
+              ...spanQueryParams,
               excludeOther: false,
               per_page: 50,
             };
@@ -442,10 +450,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
           ) {
             // Update request params
-            eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+            eventView.dataset = spanDataset;
             extraQueryParams = {
               ...extraQueryParams,
-              dataset: DiscoverDatasets.SPANS_METRICS,
+              ...spanQueryParams,
               excludeOther: false,
               per_page: 50,
             };
