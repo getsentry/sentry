@@ -18,7 +18,6 @@ export const useScrollSync = ({
   scrollingRef,
 }: UseScrollSyncArgs) => {
   useLayoutEffect(() => {
-    // if the scrollingRef is not available, return
     if (!scrollingRef.current) {
       return undefined;
     }
@@ -27,7 +26,6 @@ export const useScrollSync = ({
     const clonedScrollingRef = scrollingRef.current;
 
     const onScroll = () => {
-      // if there are no refs to sync, return
       if (refsToSync.length === 0) {
         return;
       }
