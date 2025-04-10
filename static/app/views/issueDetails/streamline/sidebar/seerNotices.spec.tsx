@@ -1,4 +1,6 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {ProjectFixture} from 'sentry-fixture/project';
+
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
@@ -18,7 +20,17 @@ describe('SeerNotices', function () {
     ...overrides,
   });
 
+  const project = ProjectFixture();
+
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${project.organization.slug}/${project.slug}/seer/preferences/`,
+      body: {
+        code_mapping_repos: [],
+        preference: null,
+      },
+    });
+
     // Reset mock before each test
     jest.mocked(useAutofixRepos).mockReset();
   });
@@ -30,7 +42,9 @@ describe('SeerNotices', function () {
       codebases: {},
     });
 
-    const {container} = render(<SeerNotices groupId="123" hasGithubIntegration />);
+    const {container} = render(
+      <SeerNotices groupId="123" hasGithubIntegration project={project} />
+    );
 
     expect(container).toBeEmptyDOMElement();
   });
@@ -41,7 +55,7 @@ describe('SeerNotices', function () {
       codebases: {},
     });
 
-    render(<SeerNotices groupId="123" hasGithubIntegration={false} />);
+    render(<SeerNotices groupId="123" hasGithubIntegration={false} project={project} />);
 
     expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
 
@@ -70,7 +84,7 @@ describe('SeerNotices', function () {
       codebases: {},
     });
 
-    render(<SeerNotices groupId="123" hasGithubIntegration />);
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
     expect(screen.getByText(/Autofix can't access the/)).toBeInTheDocument();
     expect(screen.getByText('org/repo')).toBeInTheDocument();
@@ -86,7 +100,7 @@ describe('SeerNotices', function () {
       codebases: {},
     });
 
-    render(<SeerNotices groupId="123" hasGithubIntegration />);
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
     expect(screen.getByText(/Autofix can't access the/)).toBeInTheDocument();
     expect(screen.getByText('org/gitlab-repo')).toBeInTheDocument();
@@ -105,7 +119,7 @@ describe('SeerNotices', function () {
       codebases: {},
     });
 
-    render(<SeerNotices groupId="123" hasGithubIntegration />);
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
     expect(
       screen.getByText(/Autofix can't access these repositories:/)
@@ -133,7 +147,7 @@ describe('SeerNotices', function () {
       codebases: {},
     });
 
-    render(<SeerNotices groupId="123" hasGithubIntegration />);
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
     expect(
       screen.getByText(/Autofix can't access these repositories:/)
@@ -154,7 +168,7 @@ describe('SeerNotices', function () {
       codebases: {},
     });
 
-    render(<SeerNotices groupId="123" hasGithubIntegration />);
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
     expect(
       screen.getByText(/Autofix can't access these repositories:/)
@@ -177,7 +191,7 @@ describe('SeerNotices', function () {
       codebases: {},
     });
 
-    render(<SeerNotices groupId="123" hasGithubIntegration={false} />);
+    render(<SeerNotices groupId="123" hasGithubIntegration={false} project={project} />);
 
     // GitHub setup card
     expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
@@ -197,7 +211,7 @@ describe('SeerNotices', function () {
       codebases: {},
     });
 
-    render(<SeerNotices groupId="123" hasGithubIntegration />);
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
     const integrationLink = screen.getByText('GitHub integration');
     expect(integrationLink).toHaveAttribute(
@@ -216,7 +230,7 @@ describe('SeerNotices', function () {
       codebases: {},
     });
 
-    render(<SeerNotices groupId="123" hasGithubIntegration={false} />);
+    render(<SeerNotices groupId="123" hasGithubIntegration={false} project={project} />);
 
     // Should have both the GitHub setup card and the unreadable repos warning
     const setupCard = screen.getByText('Set Up the GitHub Integration').closest('div');
@@ -227,5 +241,26 @@ describe('SeerNotices', function () {
     expect(setupCard).toBeInTheDocument();
     expect(warningAlert).toBeInTheDocument();
     expect(setupCard).not.toBe(warningAlert);
+  });
+
+  it('renders repository selection card when no repos are selected but GitHub integration is enabled', async function () {
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [],
+      codebases: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${project.organization.slug}/${project.slug}/seer/preferences/`,
+      body: {
+        code_mapping_repos: null,
+        preference: null,
+      },
+    });
+
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Pick Repositories to Work In')).toBeInTheDocument();
+    });
   });
 });

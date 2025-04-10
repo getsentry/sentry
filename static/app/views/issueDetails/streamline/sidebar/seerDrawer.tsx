@@ -235,6 +235,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         <SeerNotices
           groupId={group.id}
           hasGithubIntegration={aiConfig.hasGithubIntegration}
+          project={project}
         />
       )}
 
