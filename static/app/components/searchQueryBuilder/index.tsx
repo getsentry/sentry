@@ -1,9 +1,10 @@
-import {useLayoutEffect} from 'react';
+import {useContext, useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {
+  SearchQueryBuilderContext,
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
@@ -112,11 +113,6 @@ export interface SearchQueryBuilderProps {
    * This search is considered unsubmitted when query !== initialQuery.
    */
   showUnsubmittedIndicator?: boolean;
-  /**
-   * When true, will not use the SearchQueryBuilderProvider inside the component.
-   * Only use this if you are using the provider from a parent component.
-   */
-  skipProvider?: boolean;
   /**
    * Render custom content in the trailing section of the search bar, located
    * to the left of the clear button.
@@ -236,7 +232,9 @@ export function SearchQueryBuilderUI({
 }
 
 export function SearchQueryBuilder({...props}: SearchQueryBuilderProps) {
-  if (props.skipProvider) {
+  const contextValue = useContext(SearchQueryBuilderContext);
+
+  if (contextValue) {
     return <SearchQueryBuilderUI {...props} />;
   }
   return (

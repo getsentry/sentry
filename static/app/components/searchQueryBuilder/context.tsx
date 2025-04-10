@@ -44,29 +44,17 @@ export interface SearchQueryBuilderContextData {
 }
 
 export function useSearchQueryBuilder() {
-  return useContext(SearchQueryBuilderContext);
+  const context = useContext(SearchQueryBuilderContext);
+  if (!context) {
+    throw new Error(
+      'useSearchQueryBuilder must be used within a SearchQueryBuilderProvider'
+    );
+  }
+  return context;
 }
 
-export const SearchQueryBuilderContext = createContext<SearchQueryBuilderContextData>({
-  query: '',
-  focusOverride: null,
-  filterKeys: {},
-  filterKeyMenuWidth: 360,
-  filterKeySections: [],
-  getFieldDefinition: () => null,
-  getTagValues: () => Promise.resolve([]),
-  dispatch: () => {},
-  parsedQuery: null,
-  wrapperRef: {current: null},
-  handleSearch: () => {},
-  searchSource: '',
-  size: 'normal',
-  disabled: false,
-  disallowFreeText: false,
-  disallowWildcard: false,
-  portalTarget: null,
-  actionBarRef: {current: null},
-});
+export const SearchQueryBuilderContext =
+  createContext<SearchQueryBuilderContextData | null>(null);
 
 export function SearchQueryBuilderProvider({
   children,
