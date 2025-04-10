@@ -1,15 +1,24 @@
-import {createContext, type Dispatch, useContext} from 'react';
+import {createContext, type Dispatch, useContext, useMemo, useRef} from 'react';
 
-import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
+import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
+import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
+import {
+  type QueryBuilderActions,
+  useQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import type {
   FilterKeySection,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
+import {getFieldDefinition} from 'sentry/utils/fields';
+import {useDimensions} from 'sentry/utils/useDimensions';
 
 export interface SearchQueryBuilderContextData {
+  actionBarRef: React.RefObject<HTMLDivElement | null>;
   disabled: boolean;
   disallowFreeText: boolean;
   disallowWildcard: boolean;
@@ -56,4 +65,116 @@ export const SearchQueryBuilderContext = createContext<SearchQueryBuilderContext
   disallowFreeText: false,
   disallowWildcard: false,
   portalTarget: null,
+  actionBarRef: {current: null},
 });
+
+export function SearchQueryBuilderProvider({
+  children,
+  disabled = false,
+  disallowLogicalOperators,
+  disallowFreeText,
+  disallowUnsupportedFilters,
+  disallowWildcard,
+  invalidMessages,
+  initialQuery,
+  fieldDefinitionGetter = getFieldDefinition,
+  filterKeys,
+  filterKeyMenuWidth = 360,
+  filterKeySections,
+  getTagValues,
+  onSearch,
+  placeholder,
+  recentSearches,
+  searchSource,
+  getFilterTokenWarning,
+  portalTarget,
+}: SearchQueryBuilderProps & {children: React.ReactNode}) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const actionBarRef = useRef<HTMLDivElement>(null);
+  const {state, dispatch} = useQueryBuilderState({
+    initialQuery,
+    getFieldDefinition: fieldDefinitionGetter,
+    disabled,
+  });
+
+  const parsedQuery = useMemo(
+    () =>
+      parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
+        getFilterTokenWarning,
+        disallowFreeText,
+        disallowLogicalOperators,
+        disallowUnsupportedFilters,
+        disallowWildcard,
+        filterKeys,
+        invalidMessages,
+      }),
+    [
+      state.query,
+      fieldDefinitionGetter,
+      disallowFreeText,
+      disallowLogicalOperators,
+      disallowUnsupportedFilters,
+      disallowWildcard,
+      filterKeys,
+      invalidMessages,
+      getFilterTokenWarning,
+    ]
+  );
+
+  const handleSearch = useHandleSearch({
+    parsedQuery,
+    recentSearches,
+    searchSource,
+    onSearch,
+  });
+  const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
+  const size = searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
+
+  const contextValue = useMemo((): SearchQueryBuilderContextData => {
+    return {
+      ...state,
+      disabled,
+      disallowFreeText: Boolean(disallowFreeText),
+      disallowWildcard: Boolean(disallowWildcard),
+      parsedQuery,
+      filterKeySections: filterKeySections ?? [],
+      filterKeyMenuWidth,
+      filterKeys,
+      getTagValues,
+      getFieldDefinition: fieldDefinitionGetter,
+      dispatch,
+      wrapperRef,
+      actionBarRef,
+      handleSearch,
+      placeholder,
+      recentSearches,
+      searchSource,
+      size,
+      portalTarget,
+    };
+  }, [
+    state,
+    disabled,
+    disallowFreeText,
+    disallowWildcard,
+    parsedQuery,
+    filterKeySections,
+    filterKeyMenuWidth,
+    filterKeys,
+    getTagValues,
+    fieldDefinitionGetter,
+    dispatch,
+    handleSearch,
+    placeholder,
+    recentSearches,
+    searchSource,
+    size,
+    portalTarget,
+  ]);
+
+  return (
+    <SearchQueryBuilderContext.Provider value={contextValue}>
+      {children}
+    </SearchQueryBuilderContext.Provider>
+  );
+}
