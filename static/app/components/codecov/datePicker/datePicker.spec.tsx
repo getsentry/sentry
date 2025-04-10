@@ -38,12 +38,11 @@ describe('DatePicker', function () {
   });
 
   it('can change period', async function () {
-    render(<DatePicker />, {router, organization});
+    render(<DatePicker />, {router});
 
     await userEvent.click(screen.getByRole('button', {name: '7D', expanded: false}));
     await userEvent.click(screen.getByRole('option', {name: 'Last 30 days'}));
 
-    // Confirm selection changed visible text and query params
     expect(
       screen.getByRole('button', {name: '30D', expanded: false})
     ).toBeInTheDocument();
@@ -84,7 +83,7 @@ describe('DatePicker', function () {
       new Set(['datetime'])
     );
 
-    render(<DatePicker />, {router, organization});
+    render(<DatePicker />, {router});
 
     // Confirm selection changed to default Codecov period
     const button = await screen.findByRole('button', {name: '24H', expanded: false});
@@ -136,10 +135,7 @@ describe('DatePicker', function () {
       organization: desyncOrganization,
     });
 
-    // Open menu
     await userEvent.click(screen.getByRole('button', {name: '30D', expanded: false}));
-
-    // Desync message is inside the menu
     expect(screen.getByText('Filters Updated')).toBeInTheDocument();
     expect(
       screen.getByRole('button', {name: 'Restore Previous Values'})

@@ -7,16 +7,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {DateSelector} from 'sentry/components/codecov/datePicker/dateSelector';
 import ConfigStore from 'sentry/stores/configStore';
 
-const {organization, router} = initializeOrg({
-  organization: {features: ['global-views', 'open-membership']},
-  projects: [
-    {id: '1', slug: 'project-1', isMember: true},
-    {id: '2', slug: 'project-2', isMember: true},
-    {id: '3', slug: 'project-3', isMember: false},
-  ],
+const {router} = initializeOrg({
   router: {
     location: {
-      pathname: '/organizations/org-slug/issues/',
+      pathname: '/codecov/tests/',
       query: {},
     },
     params: {},
@@ -51,7 +45,7 @@ describe('DateSelector', function () {
   });
 
   it('renders when given an invalid relative period', async function () {
-    render(<DateSelector relative="1y" />, {router, organization});
+    render(<DateSelector relative="1y" />, {router});
     expect(
       await screen.findByRole('button', {name: 'Invalid Period'})
     ).toBeInTheDocument();
