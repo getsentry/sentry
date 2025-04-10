@@ -92,11 +92,14 @@ describe('Doc Integration Details', function () {
       await screen.findByRole('heading', {name: 'Doc Integrations'})
     ).toBeInTheDocument();
 
-    await userEvent.click(await screen.findByText('Doc Integrations Actions'));
+    const button = screen.getByTestId('detail-actions');
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(button);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
 
-    const deleteButton = await screen.findByText(
-      /Delete this Doc Integration FOREVER \(irreversible\)/
-    );
+    const deleteButton = screen.getByRole('option', {
+      name: 'Delete Doc Integration 🚨 Delete this Doc Integration FOREVER (irreversible) 🚨',
+    });
 
     expect(deleteButton).toBeEnabled();
     await userEvent.click(deleteButton);
@@ -147,13 +150,16 @@ describe('Doc Integration Details', function () {
       await screen.findByRole('heading', {name: 'Doc Integrations'})
     ).toBeInTheDocument();
 
-    const button = await screen.findByText('Doc Integrations Actions');
+    const button = screen.getByTestId('detail-actions');
+    expect(button).toHaveAttribute('aria-expanded', 'false');
     await userEvent.click(button);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
 
-    const deleteButton = await screen.findByText(
-      /Delete this Doc Integration FOREVER \(irreversible\)/
-    );
+    const deleteButton = screen.getByRole('option', {
+      name: 'Delete Doc Integration 🚨 Delete this Doc Integration FOREVER (irreversible) 🚨',
+    });
 
+    expect(deleteButton).toBeEnabled();
     await userEvent.click(deleteButton);
 
     renderGlobalModal();
@@ -202,12 +208,16 @@ describe('Doc Integration Details', function () {
       await screen.findByRole('heading', {name: 'Doc Integrations'})
     ).toBeInTheDocument();
 
-    await userEvent.click(await screen.findByText('Doc Integrations Actions'));
+    const button = screen.getByTestId('detail-actions');
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(button);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
 
-    const unpublishButton = await screen.findByText(
-      'Revert This Doc Integration to Draft Mode'
-    );
+    const unpublishButton = screen.getByRole('option', {
+      name: 'Unpublish App Revert This Doc Integration to Draft Mode',
+    });
 
+    expect(unpublishButton).toBeEnabled();
     await userEvent.click(unpublishButton);
 
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
