@@ -77,7 +77,7 @@ export function SavedQueriesTable({
   const navigate = useNavigate();
   const cursor = decodeScalar(location.query[cursorKey]);
   const {data, isLoading, pageLinks, isFetched} = useGetSavedQueries({
-    sortBy: sort,
+    sortBy: ['starred', sort],
     exclude: mode === 'owned' ? 'shared' : mode === 'shared' ? 'owned' : undefined, // Inverse because this is an exclusion
     perPage,
     cursor,
@@ -86,7 +86,7 @@ export function SavedQueriesTable({
   const filteredData = data?.filter(row => row.query?.length > 0) ?? [];
   const {deleteQuery} = useDeleteQuery();
   const {starQuery} = useStarQuery();
-  const {updateQueryFromSavedQuery} = useSaveQuery();
+  const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useSaveQuery();
 
   const [starredIds, setStarredIds] = useState<number[]>([]);
 
@@ -125,6 +125,13 @@ export function SavedQueriesTable({
     },
     [updateQueryFromSavedQuery]
   );
+
+  const duplicateQuery = async (savedQuery: SavedQuery) => {
+    await saveQueryFromSavedQuery({
+      ...savedQuery,
+      name: `${savedQuery.name} (Copy)`,
+    });
+  };
 
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
     navigate({
@@ -199,6 +206,15 @@ export function SavedQueriesTable({
                 {
                   key: 'duplicate',
                   label: t('Duplicate'),
+                  onAction: async () => {
+                    addLoadingMessage(t('Duplicating query...'));
+                    try {
+                      await duplicateQuery(row);
+                      addSuccessMessage(t('Query duplicated'));
+                    } catch (error) {
+                      addErrorMessage(t('Unable to duplicate query'));
+                    }
+                  },
                 },
                 {
                   key: 'delete',

@@ -223,10 +223,11 @@ Retrieve a collection of confidence scores for all feature flags associated with
 
 **Attributes**
 
-| Column | Type   | Description                           |
-| ------ | ------ | ------------------------------------- |
-| flag   | string | The name of the flag.                 |
-| score  | number | A suspicion score from 0 to infinity. |
+| Column           | Type   | Description                                                     |
+| ---------------- | ------ | --------------------------------------------------------------- |
+| flag             | string | The name of the flag.                                           |
+| score            | number | A suspicion score from 0 to infinity.                           |
+| baseline_percent | number | Percentage of events in the same project with the flag enabled. |
 
 - Response 200
 
@@ -235,11 +236,13 @@ Retrieve a collection of confidence scores for all feature flags associated with
     "data": [
       {
         "flag": "hello",
-        "score": 5.83
+        "score": 5.83,
+        "baseline_percent": 0.33
       },
       {
         "flag": "world",
-        "score": 0.0021
+        "score": 0.0021,
+        "baseline_percent": 0.491
       }
     ]
   }
