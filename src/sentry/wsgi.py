@@ -20,15 +20,12 @@ from django.core.handlers.wsgi import WSGIHandler
 # Run WSGI handler for the application
 application = WSGIHandler()
 
-
-warmup_host_name = settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS[0] != "*" else "127.0.0.1"
-
 # trigger a warmup of the application
 application(
     {
         "PATH_INFO": reverse("sentry-warmup"),
         "REQUEST_METHOD": "GET",
-        "SERVER_NAME": warmup_host_name,
+        "SERVER_NAME": "127.0.0.1",
         "SERVER_PORT": "9001",
         "wsgi.input": io.BytesIO(),
         "wsgi.url_scheme": "https",
