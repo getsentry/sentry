@@ -1,7 +1,10 @@
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
+import {
+  makePerformanceScoreColors,
+  type PerformanceScore,
+} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
   STATUS_TEXT,
@@ -20,12 +23,12 @@ export function PerformanceBadge({score}: Props) {
   );
 }
 
-export const Badge = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLORS}>`
+export const Badge = styled('div')<{status: PerformanceScore}>`
   white-space: nowrap;
   border-radius: 12px;
-  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
-  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
+  color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
+  background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
+  border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: 0 ${space(1)};
   display: inline-block;
