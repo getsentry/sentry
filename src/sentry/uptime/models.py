@@ -28,6 +28,7 @@ from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 from sentry.utils.function_cache import cache_func, cache_func_for_models
 from sentry.utils.json import JSONEncoder
 from sentry.workflow_engine.models.data_source import DataSource
+from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler
 
@@ -319,3 +320,18 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
         return [ModelRelation(UptimeSubscription, {"id": instance.source_id})]
+
+
+def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
+    """
+    Fetches a workflow_engine Detector given an existing uptime_subscription.
+    This is used during the transition period moving uptime to detector.
+    """
+    try:
+        data_source = DataSource.objects.get(
+            type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+            source_id=str(uptime_subscription.id),
+        )
+        return Detector.objects.get(data_sources=data_source)
+    except (DataSource.DoesNotExist, Detector.DoesNotExist):
+        return None
