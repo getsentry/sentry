@@ -666,6 +666,7 @@ class UptimeDomainCheckFailure(GroupType):
         },
         "additionalProperties": False,
     }
+    use_flagpole_for_all_features = True
 
 
 @dataclass(frozen=True)

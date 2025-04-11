@@ -690,7 +690,10 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
 
     @mock.patch("sentry.quotas.backend.disable_seat")
     def test_disable_failed(self, mock_disable_seat):
-        with self.tasks(), self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
+        with (
+            self.tasks(),
+            self.feature(UptimeDomainCheckFailure.build_ingest_flagpole_feature_name()),
+        ):
             proj_sub = create_project_uptime_subscription(
                 self.project,
                 self.environment,
