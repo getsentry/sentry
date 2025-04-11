@@ -244,13 +244,13 @@ class TrustedRelaySerializer(TestCase):
         task = OrganizationOnboardingTask.objects.create(
             organization_id=self.organization.id,
             task=OnboardingTask.FIRST_PROJECT,
-            status=OnboardingTaskStatus.COMPLETED,
+            status=OnboardingTaskStatus.COMPLETE,
             user_id=self.user.id,
             completion_seen=completion_seen,
         )
 
         result = serialize(task, self.user, serializer)
         assert result["task"] == "create_project"
-        assert result["status"] == "completed"
+        assert result["status"] == "complete"
         assert result["completionSeen"] == completion_seen
         assert result["data"] == {}
