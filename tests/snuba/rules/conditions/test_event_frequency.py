@@ -171,6 +171,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
                 )
                 hours += 1
                 group_id = event.group_id
+            assert group_id
             return group_id
 
         group_1_id = _store_events("group-1", 1)
