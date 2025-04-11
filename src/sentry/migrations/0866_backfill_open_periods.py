@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
@@ -15,7 +15,6 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 if TYPE_CHECKING:
     from sentry.models.activity import Activity as ActivityModelType
-    from sentry.models.groupopenperiod import GroupOpenPeriod
 
 
 logger = logging.getLogger(__name__)
@@ -45,8 +44,8 @@ def get_open_periods_for_group(
     project_id: int,
     first_seen: datetime,
     query_end: datetime | None,
-    GroupOpenPeriod: type[GroupOpenPeriod],
-) -> list[GroupOpenPeriod]:
+    GroupOpenPeriod: Any,
+) -> list[Any]:
     Activity = apps.get_model("sentry", "Activity")
 
     # Filter to REGRESSION and RESOLVED activties to find the bounds of each open period.
