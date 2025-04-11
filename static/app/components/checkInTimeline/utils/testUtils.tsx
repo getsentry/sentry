@@ -1,4 +1,4 @@
-import type {StatsBucket, TickStyle} from '../types';
+import type {StatsBucket, TickStyle} from 'sentry/components/checkInTimeline/types';
 
 export type TestStatusCounts = [
   in_progress: number,

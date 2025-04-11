@@ -49,6 +49,18 @@ import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  eventViewFromWidget,
+  getDashboardsMEPQueryParams,
+  getNumEquations,
+  getWidgetInterval,
+  hasDatasetSelector,
+} from 'sentry/views/dashboards/utils';
+import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
+import {CUSTOM_EQUATION_VALUE} from 'sentry/views/dashboards/widgetBuilder/buildSteps/sortByStep';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -60,19 +72,6 @@ import {
   DiscoverQueryPageSource,
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
-
-import type {Widget, WidgetQuery} from '../types';
-import {DisplayType, WidgetType} from '../types';
-import {
-  eventViewFromWidget,
-  getDashboardsMEPQueryParams,
-  getNumEquations,
-  getWidgetInterval,
-  hasDatasetSelector,
-} from '../utils';
-import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
-import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
-import {CUSTOM_EQUATION_VALUE} from '../widgetBuilder/buildSteps/sortByStep';
 
 import type {DatasetConfig} from './base';
 import {handleOrderByReset} from './base';

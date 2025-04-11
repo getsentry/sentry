@@ -5,7 +5,6 @@ from datetime import timedelta
 from uuid import uuid4
 
 from django.utils import timezone
-from sentry_kafka_schemas.schema_types.uptime_configs_v1 import CheckConfig
 
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -20,6 +19,7 @@ from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
+from sentry.uptime.types import CheckConfig
 from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
 
