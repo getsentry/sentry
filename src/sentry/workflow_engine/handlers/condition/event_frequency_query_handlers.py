@@ -32,6 +32,7 @@ from sentry.utils.snuba import options_override
 from sentry.workflow_engine.models.data_condition import Condition
 
 QueryFilter = dict[str, Any]
+QueryResult = dict[int, int | float]
 
 
 class TSDBFunction(Protocol):
@@ -269,7 +270,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         end: datetime,
         environment_id: int | None,
         filters: list[QueryFilter] | None = None,
-    ) -> dict[int, int]:
+    ) -> QueryResult:
         """
         Abstract method that specifies how to query Snuba for multiple groups
         depending on the condition. Must be implemented by subclasses.
@@ -284,7 +285,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         current_time: datetime,
         comparison_interval: timedelta | None,
         filters: list[QueryFilter] | None,
-    ) -> dict[int, int]:
+    ) -> QueryResult:
         """
         Make a batch query for multiple groups. The return value is a dictionary
         of group_id to the result for that group.
@@ -324,8 +325,8 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
         end: datetime,
         environment_id: int | None,
         filters: list[QueryFilter] | None = None,
-    ) -> dict[int, int]:
-        batch_sums: dict[int, int] = defaultdict(int)
+    ) -> QueryResult:
+        batch_sums: QueryResult = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
         )
@@ -369,8 +370,8 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
         end: datetime,
         environment_id: int | None,
         filters: list[QueryFilter] | None = None,
-    ) -> dict[int, int]:
-        batch_sums: dict[int, int] = defaultdict(int)
+    ) -> QueryResult:
+        batch_sums: QueryResult = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
         )
@@ -439,8 +440,8 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
         end: datetime,
         environment_id: int | None,
         filters: list[QueryFilter] | None = None,
-    ) -> dict[int, int]:
-        batch_percents: dict[int, int] = defaultdict(int)
+    ) -> QueryResult:
+        batch_percents: QueryResult = {}
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
         )
@@ -484,7 +485,7 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
                 filters=filters,
             )
             for group_id, count in results.items():
-                percent: int = int(100 * round(count / avg_sessions_in_interval, 4))
+                percent: float = 100 * round(count / avg_sessions_in_interval, 4)
                 batch_percents[group_id] = percent
 
         return batch_percents

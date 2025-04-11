@@ -22,14 +22,16 @@ import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getAdoptionSeries, getCount, getCountAtIndex} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
-
+import {
+  generateReleaseMarkLines,
+  releaseMarkLinesLabels,
+} from 'sentry/views/releases/detail/utils';
 import {
   ADOPTION_STAGE_LABELS,
   getReleaseBounds,
   getReleaseParams,
   isMobileRelease,
-} from '../../../utils';
-import {generateReleaseMarkLines, releaseMarkLinesLabels} from '../../utils';
+} from 'sentry/views/releases/utils';
 
 const sessionsAxisIndex = 0;
 const usersAxisIndex = 1;

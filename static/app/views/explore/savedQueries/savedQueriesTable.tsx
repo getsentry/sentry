@@ -21,12 +21,12 @@ import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
 
-import {useDeleteQuery} from '../hooks/useDeleteQuery';
+import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
   type SavedQuery,
   type SortOption,
   useGetSavedQueries,
-} from '../hooks/useGetSavedQueries';
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 type Props = {
   cursorKey?: string;
