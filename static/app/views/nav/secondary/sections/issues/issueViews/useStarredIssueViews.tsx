@@ -31,7 +31,7 @@ export function useStarredIssueViews() {
   return {starredViews, setStarredIssueViews};
 }
 
-const convertGSVtoIssueView = (gsv: StarredGroupSearchView): NavIssueView => {
+export const convertGSVtoIssueView = (gsv: StarredGroupSearchView): NavIssueView => {
   return {
     id: gsv.id,
     label: gsv.name,

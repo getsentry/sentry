@@ -31,16 +31,15 @@ export interface IssueViewNavItemContentProps {
    * Whether the item is active.
    */
   isActive: boolean;
-  //
-  // Whether an item is being dragged.
-  //
+  /**
+   * Whether an item is being dragged.
+   */
   isDragging: string | null;
   /**
    * Whether the item is the last view in the list.
    * This will be removed once view sharing/starring is implemented.
    */
   isLastView: boolean;
-
   /**
    * A callback function that is called when the user has completed a reorder.
    */

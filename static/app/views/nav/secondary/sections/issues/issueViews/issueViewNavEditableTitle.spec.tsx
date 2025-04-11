@@ -1,17 +1,22 @@
+import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import {convertGSVtoIssueView} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
 
 import IssueViewNavEditableTitle from './issueViewNavEditableTitle';
 
 describe('IssueViewNavEditableTitle', () => {
   const mockOnChange = jest.fn();
   const mockSetIsEditing = jest.fn();
+  const mockGroupSearchView = GroupSearchViewFixture();
   const defaultProps = {
-    label: 'Test Label',
     onChange: mockOnChange,
     isEditing: false,
-    isSelected: false,
     setIsEditing: mockSetIsEditing,
     isDragging: false,
+    isActive: false,
+    view: convertGSVtoIssueView(mockGroupSearchView),
   };
 
   beforeEach(() => {
