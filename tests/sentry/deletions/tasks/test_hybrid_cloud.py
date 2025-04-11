@@ -609,13 +609,12 @@ def reserve_model_ids(model: type[Model], minimum_id: int) -> None:
     # Utility that increments the primary key of the given model to the provided
     # minimum. This ensures we can never have an ID collision when hardcoding ID
     # values.
-    with assume_test_silo_mode_of(model):
-        with transaction.atomic(using=router.db_for_write(model)):
-            with connections[router.db_for_write(model)].cursor() as cursor:
-                last_id = None
-                while last_id is None or last_id < minimum_id:
-                    cursor.execute("SELECT nextval(%s)", [f"{model._meta.db_table}_id_seq"])
-                    last_id = cursor.fetchone()[0]
+    with assume_test_silo_mode_of(model), transaction.atomic(using=router.db_for_write(model)):
+        with connections[router.db_for_write(model)].cursor() as cursor:
+            last_id = None
+            while last_id is None or last_id < minimum_id:
+                cursor.execute("SELECT nextval(%s)", [f"{model._meta.db_table}_id_seq"])
+                last_id = cursor.fetchone()[0]
 
 
 @region_silo_test
