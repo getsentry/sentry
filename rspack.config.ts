@@ -439,17 +439,15 @@ const appConfig: Configuration = {
 };
 
 if (IS_TEST) {
-  appConfig.resolve!.alias!['sentry-fixture'] = path.join(
+  (appConfig.resolve!.alias! as Record<string, string>)['sentry-fixture'] = path.join(
     __dirname,
     'fixtures',
     'js-stubs'
   );
 }
 if (IS_TEST || IS_ACCEPTANCE_TEST) {
-  appConfig.resolve!.alias!['integration-docs-platforms'] = path.join(
-    __dirname,
-    'fixtures/integration-docs/_platforms.json'
-  );
+  (appConfig.resolve!.alias! as Record<string, string>)['integration-docs-platforms'] =
+    path.join(__dirname, 'fixtures/integration-docs/_platforms.json');
 } else {
   // const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
   // appConfig.plugins?.push(plugin);
@@ -546,7 +544,7 @@ if (
     appConfig.devServer = {
       ...appConfig.devServer,
       static: {
-        ...(appConfig.devServer!.static as Record<PropertyKey, unknown>),
+        ...(appConfig.devServer.static as Record<PropertyKey, unknown>),
         publicPath: '/_static/dist/sentry',
       },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
