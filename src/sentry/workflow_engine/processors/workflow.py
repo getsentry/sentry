@@ -184,6 +184,16 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
 
     Finally, each of the triggered workflows will have their actions evaluated and executed.
     """
+    # TODO: only fire one system. to test, fire from both systems and observe metrics
+    if event_data.event.occurrence is None and not features.has(
+        "organizations:workflow-engine-process-workflows", event_data.event.project.organization
+    ):
+        return set()
+    if event_data.event.group.occurrence is not None and not features.has(
+        "organizations:workflow-engine-process-metric-issue-workflows",
+        event_data.event.project.organization,
+    ):
+        return set()
     # Check to see if the GroupEvent has an issue occurrence
     try:
         detector = get_detector_by_event(event_data)

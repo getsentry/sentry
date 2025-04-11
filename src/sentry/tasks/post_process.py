@@ -937,10 +937,11 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
+    org = job["event"].project.organization
     # TODO: only fire one system. to test, fire from both systems and observe metrics
     if not features.has(
-        "organizations:workflow-engine-process-workflows", job["event"].project.organization
-    ):
+        "organizations:workflow-engine-process-workflows", org
+    ) and not features.has("organizations:workflow-engine-process-metric-issue-workflows", org):
         return
 
     from sentry.workflow_engine.processors.workflow import process_workflows
