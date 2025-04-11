@@ -30,9 +30,6 @@ describe('MultiQueryModeContent', function () {
   let eventsStatsRequest: any;
 
   beforeEach(function () {
-    // without this the `CompactSelect` component errors with a bunch of async updates
-    jest.spyOn(console, 'error').mockImplementation();
-
     MockApiClient.clearMockResponses();
 
     PageFiltersStore.init();
@@ -58,16 +55,48 @@ describe('MultiQueryModeContent', function () {
     eventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {},
+      body: {
+        data: [
+          {
+            id: '1',
+            'span.duration': 100,
+            'transaction.span_id': 'abc123',
+            trace: 'trace123',
+            project: '2',
+            timestamp: '2023-01-01T00:00:00.000Z',
+          },
+        ],
+      },
     });
     eventsStatsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
-      body: {},
+      body: {
+        'count(span.duration)': {
+          data: [
+            [1672531200, [{count: 5}]],
+            [1672542000, [{count: 10}]],
+            [1672552800, [{count: 15}]],
+          ],
+          order: 0,
+          start: 1672531200,
+          end: 1672552800,
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/subscriptions/${organization.slug}/`,
+      method: 'GET',
+      body: [],
     });
   });
 
-  it('disables changing fields for count', function () {
+  it('disables changing fields for count', async function () {
     function Component() {
       return <MultiQueryModeContent />;
     }
@@ -81,7 +110,7 @@ describe('MultiQueryModeContent', function () {
       {enableRouterMocks: false}
     );
 
-    const section = screen.getByTestId('section-visualize-0');
+    const section = await screen.findByTestId('section-visualize-0');
     expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
   });
 
@@ -101,7 +130,7 @@ describe('MultiQueryModeContent', function () {
       {enableRouterMocks: false}
     );
 
-    const section = screen.getByTestId('section-visualize-0');
+    const section = await screen.findByTestId('section-visualize-0');
 
     expect(queries).toEqual([
       {

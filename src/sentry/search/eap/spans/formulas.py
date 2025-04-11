@@ -280,7 +280,7 @@ def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> C
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(
-            conditional_aggregation=AttributeConditionalAggregation(
+            aggregation=AttributeAggregation(
                 aggregate=Function.FUNCTION_COUNT,
                 key=AttributeKey(
                     name="sentry.status_code",

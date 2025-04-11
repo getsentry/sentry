@@ -75,6 +75,7 @@ class IssueAlertMigrator:
         return workflow
 
     def _create_detector_lookup(self) -> Detector:
+
         if self.is_dry_run:
             created = True
             error_detector = Detector.objects.filter(
