@@ -62,6 +62,9 @@ export function getTourTask(
     // TODO(ogi): Remove this once we merge the new releases tour
     case 'release-details_v2':
       return {tour: 'releases', task: OnboardingTaskKey.RELEASE_GUIDE};
+    case 'performance':
+      return {tour: 'performance', task: OnboardingTaskKey.PERFORMANCE_GUIDE};
+
     default:
       return undefined;
   }
@@ -75,8 +78,8 @@ export function getDemoGuides() {
     {guide: 'react-release', seen: false},
     {guide: 'release-details_v2', seen: false},
     {guide: 'performance', seen: false},
-    {guide: 'transaction_summary', seen: false},
-    {guide: 'transaction_details_v2', seen: false},
+    // {guide: 'transaction_summary', seen: false},
+    // {guide: 'transaction_details_v2', seen: false},
     {guide: 'issue_stream_v3', seen: false},
   ];
 }
