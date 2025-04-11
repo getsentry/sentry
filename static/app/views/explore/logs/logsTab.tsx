@@ -117,10 +117,7 @@ export function LogsTabContent({
                 })}
               />
             </PageFilterBar>
-            <TraceItemSearchQueryBuilder
-              {...tracesItemSearchQueryBuilderProps}
-              skipProvider
-            />
+            <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
 
             <Button onClick={openColumnEditor} icon={<IconTable />}>
               {t('Edit Table')}

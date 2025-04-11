@@ -259,9 +259,9 @@ export function SpansTabContentImpl({
             />
           </StyledPageFilterBar>
           {dataset === DiscoverDatasets.SPANS_INDEXED ? (
-            <SpanSearchQueryBuilder {...spanSearchQueryBuilderProps} skipProvider />
+            <SpanSearchQueryBuilder {...spanSearchQueryBuilderProps} />
           ) : (
-            <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} skipProvider />
+            <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
           )}
         </TopSection>
         <Feature features="organizations:traces-schema-hints">

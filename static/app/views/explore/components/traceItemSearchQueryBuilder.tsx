@@ -106,7 +106,6 @@ export function TraceItemSearchQueryBuilder({
   portalTarget,
   projects: _projects,
   supportedAggregates = [],
-  skipProvider,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useSearchQueryBuilderProps({
     itemType,
@@ -121,7 +120,7 @@ export function TraceItemSearchQueryBuilder({
     supportedAggregates,
   });
 
-  return <SearchQueryBuilder {...searchQueryBuilderProps} skipProvider={skipProvider} />;
+  return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }
 
 function useFunctionTags(

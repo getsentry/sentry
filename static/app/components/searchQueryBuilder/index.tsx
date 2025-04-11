@@ -114,11 +114,6 @@ export interface SearchQueryBuilderProps {
    */
   showUnsubmittedIndicator?: boolean;
   /**
-   * When true, will not use the SearchQueryBuilderProvider inside the component.
-   * Only use this if you are using the provider from a parent component.
-   */
-  skipProvider?: boolean;
-  /**
    * Render custom content in the trailing section of the search bar, located
    * to the left of the clear button.
    */

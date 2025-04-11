@@ -36,7 +36,6 @@ interface SpanSearchQueryBuilderProps {
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
-  skipProvider?: boolean;
 }
 
 export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
@@ -160,7 +159,6 @@ export function SpanSearchQueryBuilder({
   onBlur,
   placeholder,
   projects,
-  skipProvider,
 }: SpanSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useSpanSearchQueryBuilderProps({
     initialQuery,
@@ -172,7 +170,7 @@ export function SpanSearchQueryBuilder({
     projects,
   });
 
-  return <SearchQueryBuilder {...searchQueryBuilderProps} skipProvider={skipProvider} />;
+  return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }
 
 export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
@@ -287,7 +285,6 @@ export function EAPSpanSearchQueryBuilder({
   supportedAggregates = [],
   projects,
   portalTarget,
-  skipProvider,
 }: EAPSpanSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useEAPSpanSearchQueryBuilderProps({
     initialQuery,
@@ -303,7 +300,7 @@ export function EAPSpanSearchQueryBuilder({
     portalTarget,
   });
 
-  return <SearchQueryBuilder {...searchQueryBuilderProps} skipProvider={skipProvider} />;
+  return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }
 
 export function getSpanPropsFromDataset(dataset: DiscoverDatasets) {
