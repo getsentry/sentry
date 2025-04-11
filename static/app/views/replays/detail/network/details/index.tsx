@@ -13,6 +13,7 @@ type Props = {
   isSetup: boolean;
   item: null | SpanFrame;
   onClose: () => void;
+  onDoubleClick: () => void;
   projectId: undefined | string;
   startTimestampMs: number;
 } & Omit<ReturnType<typeof useResizableDrawer>, 'size'>;
