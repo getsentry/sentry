@@ -7,6 +7,7 @@ import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
   getHighlightTagData,
+  getRuntimeLabelAndTooltip,
 } from 'sentry/components/events/highlights/util';
 
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
@@ -82,5 +83,74 @@ describe('getHighlightTagData', function () {
       td => td.originalTag.key === missingTag
     );
     expect(missingTagHighlightFromEvent?.value).toBe(EMPTY_HIGHLIGHT_DEFAULT);
+  });
+});
+
+describe('getRuntimeLabel', function () {
+  it('returns null for non-JavaScript SDK events', function () {
+    const event = EventFixture({
+      sdk: {name: 'python'},
+    });
+
+    expect(getRuntimeLabelAndTooltip(event)).toBeNull();
+  });
+
+  it('returns explicitly set runtime type', function () {
+    const backendEvent = EventFixture({
+      sdk: {name: 'javascript'},
+    });
+
+    expect(getRuntimeLabelAndTooltip(backendEvent, {isBackend: true})?.label).toBe(
+      'Backend'
+    );
+
+    const frontendEvent = EventFixture({
+      sdk: {name: 'javascript'},
+    });
+
+    expect(getRuntimeLabelAndTooltip(frontendEvent, {isFrontend: true})?.label).toBe(
+      'Frontend'
+    );
+  });
+
+  it('returns inferred runtime', function () {
+    const frontedEvent = EventFixture({
+      sdk: {name: 'javascript'},
+      contexts: {
+        browser: {name: 'Chrome'},
+      },
+    });
+
+    expect(getRuntimeLabelAndTooltip(frontedEvent)?.label).toBe('Frontend');
+
+    const serverlessEvent = EventFixture({
+      sdk: {name: 'javascript'},
+      contexts: {
+        runtime: {name: 'node'},
+        browser: {name: 'Chrome'}, // Backend events also have 'browser'
+        cloud_resource: {['cloud.provider']: 'cloudflare', type: 'default'},
+      },
+    });
+
+    expect(getRuntimeLabelAndTooltip(serverlessEvent)?.label).toBe('Backend');
+
+    const backendEvent = EventFixture({
+      sdk: {name: 'javascript'},
+      contexts: {
+        runtime: {name: 'node'},
+        browser: {name: 'Chrome'}, // Backend events also have 'browser'
+      },
+    });
+
+    expect(getRuntimeLabelAndTooltip(backendEvent)?.label).toBe('Backend');
+  });
+
+  it('returns null when no runtime can be determined', function () {
+    const event = EventFixture({
+      sdk: {name: 'javascript'},
+      contexts: {}, // No browser or runtime context
+    });
+
+    expect(getRuntimeLabelAndTooltip(event)).toBeNull();
   });
 });

@@ -10,6 +10,7 @@ import {
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
+import {t} from 'sentry/locale';
 import type {Event, EventTag} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -169,4 +170,39 @@ export function getHighlightTagData({
       : EMPTY_HIGHLIGHT_DEFAULT,
     originalTag: tagMap[tagKey]?.tag ?? {key: tagKey, value: EMPTY_HIGHLIGHT_DEFAULT},
   }));
+}
+
+/**
+ * Returns a label that can be used in the Event Highlight Summary.
+ * Currently only used for JavaScript-based events.
+ */
+export function getRuntimeLabelAndTooltip(
+  event: Event,
+  knownRuntimeType?: {isBackend?: boolean; isFrontend?: boolean}
+): {label: string; tooltip: string} | null {
+  if (!event.sdk?.name.includes('javascript')) {
+    return null;
+  }
+
+  if (knownRuntimeType?.isBackend) {
+    return {label: t('Backend'), tooltip: t('Error from Server, Edge or Worker Runtime')};
+  }
+  if (knownRuntimeType?.isFrontend) {
+    return {label: t('Frontend'), tooltip: t('Error from Client (e.g. Browser)')};
+  }
+
+  if (
+    event.contexts.cloud_resource ||
+    (event.contexts.runtime?.name &&
+      ['node', 'bun', 'deno', 'cloudflare', 'vercel-edge'].includes(
+        event.contexts.runtime.name
+      ))
+  ) {
+    return {label: t('Backend'), tooltip: t('Error from Server, Edge or Worker Runtime')};
+  }
+  if (event.contexts.browser) {
+    return {label: t('Frontend'), tooltip: t('Error from Client (e.g. Browser)')};
+  }
+
+  return null;
 }
