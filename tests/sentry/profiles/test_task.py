@@ -977,3 +977,51 @@ def test_track_latest_sdk(
         )
         is not None
     )
+
+
+@patch("sentry.profiles.task._push_profile_to_vroom")
+@patch("sentry.profiles.task._symbolicate_profile")
+@patch("sentry.models.projectsdk.get_sdk_index")
+@pytest.mark.parametrize(
+    ["platform", "sdk_name"],
+    [
+        ("python", "sentry.python"),
+        ("cocoa", "sentry.cocoa"),
+        ("node", "sentry.javascript.node"),
+    ],
+)
+@django_db_all
+def test_unknown_sdk(
+    get_sdk_index,
+    _symbolicate_profile,
+    _push_profile_to_vroom,
+    platform,
+    sdk_name,
+    organization,
+    project,
+    request,
+):
+    _push_profile_to_vroom.return_value = True
+    _symbolicate_profile.return_value = True
+    get_sdk_index.return_value = {
+        sdk_name: {},
+    }
+
+    profile = request.getfixturevalue("sample_v2_profile")
+    profile["organization_id"] = organization.id
+    profile["project_id"] = project.id
+    profile["platform"] = platform
+    del profile["client_sdk"]
+
+    with Feature("organizations:profiling-sdks"):
+        process_profile_task(profile=profile)
+
+    assert (
+        ProjectSDK.objects.get(
+            project=project,
+            event_type=EventType.PROFILE_CHUNK.value,
+            sdk_name=sdk_name,
+            sdk_version="0.0.0",
+        )
+        is not None
+    )
