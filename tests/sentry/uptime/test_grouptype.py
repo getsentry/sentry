@@ -1,8 +1,8 @@
 import pytest
 from jsonschema import ValidationError
 
-from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.testutils.cases import TestCase
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import ProjectUptimeSubscriptionMode
 
 

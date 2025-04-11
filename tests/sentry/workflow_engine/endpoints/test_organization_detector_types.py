@@ -8,10 +8,10 @@ from sentry.issues.grouptype import (
     GroupTypeRegistry,
     MonitorIncidentType,
     PerformanceSlowDBQueryGroupType,
-    UptimeDomainCheckFailure,
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult, DetectorHandler
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
