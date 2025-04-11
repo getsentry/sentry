@@ -93,7 +93,7 @@ export function DomainViewHeader({
 
   const globalQuery = {
     ...extractSelectionParameters(location?.query),
-    useEap: location.query.useEap,
+    useEap: location.query?.useEap,
   };
 
   const tabList: TabListItemProps[] = [
