@@ -6,6 +6,6 @@ from sentry.sentry_apps.models.servicehook import ServiceHookProject
 class ServiceHookProjectSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
         return {
-            "id": obj.id,
-            "project_id": obj.project_id,
+            "id": str(obj.id),
+            "project_id": str(obj.project_id),
         }

@@ -48,7 +48,7 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["project_id"] == self.project.id
+        assert response.data[0]["project_id"] == str(self.project.id)
 
     def test_put_service_hook_projects(self):
         ServiceHookProject.objects.create(
@@ -66,8 +66,8 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 2
 
-        response_data = {int(response.data[0]["project_id"]), int(response.data[1]["project_id"])}
-        assert response_data == {self.project.id, self.project2.id}
+        response_data = {response.data[0]["project_id"], response.data[1]["project_id"]}
+        assert response_data == {str(self.project.id), str(self.project2.id)}
 
         # Verify both projects are in the database
         hook_projects = ServiceHookProject.objects.filter(service_hook_id=self.service_hook.id)
