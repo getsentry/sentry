@@ -129,9 +129,6 @@ export function useTimeseries(props: UseTimeseriesProps) {
         ...props,
         start: props.start ?? pageFilterStart,
         end: props.end ?? pageFilterEnd,
-        dataset: props.dataset,
-        yAxis: props.yAxis ?? ['count()'],
-        field: props.field ?? ['count()'],
       },
     },
   ]);
