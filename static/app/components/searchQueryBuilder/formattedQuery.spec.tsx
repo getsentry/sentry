@@ -14,6 +14,12 @@ const FILTER_KEYS: TagCollection = {
   },
 };
 
+jest.mock('sentry/components/searchQueryBuilder/context', () => ({
+  useSearchQueryBuilder: () => ({
+    size: 'normal',
+  }),
+}));
+
 describe('FormattedQuery', function () {
   const defaultProps: Partial<FormattedQueryProps> = {
     filterKeys: FILTER_KEYS,

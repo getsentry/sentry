@@ -2,9 +2,8 @@ import {type MouseEvent, useContext} from 'react';
 import {stringifyUrl, type UrlObject} from 'query-string';
 
 import {AnalyticsContext} from 'sentry/components/devtoolbar/components/analyticsProvider';
-
-import useConfiguration from '../hooks/useConfiguration';
-import {inlineLinkCss} from '../styles/link';
+import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
+import {inlineLinkCss} from 'sentry/components/devtoolbar/styles/link';
 
 interface Props {
   children: React.ReactNode;

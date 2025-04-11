@@ -1,9 +1,10 @@
-import {useLayoutEffect} from 'react';
+import {useContext, useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {
+  SearchQueryBuilderContext,
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
@@ -236,7 +237,9 @@ export function SearchQueryBuilderUI({
 }
 
 export function SearchQueryBuilder({...props}: SearchQueryBuilderProps) {
-  if (props.skipProvider) {
+  const contextValue = useContext(SearchQueryBuilderContext);
+
+  if (contextValue) {
     return <SearchQueryBuilderUI {...props} />;
   }
   return (

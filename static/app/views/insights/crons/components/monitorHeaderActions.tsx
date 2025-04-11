@@ -13,8 +13,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-
-import type {Monitor} from '../types';
+import type {Monitor} from 'sentry/views/insights/crons/types';
 
 import {StatusToggleButton} from './statusToggleButton';
 

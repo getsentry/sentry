@@ -23,6 +23,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
@@ -118,10 +119,16 @@ class UpdateGroupsTest(TestCase):
         assert send_unresolved.called
 
     @patch("sentry.signals.issue_resolved.send_robust")
+    @with_feature("organizations:issue-open-periods")
     def test_resolving_unresolved_group(self, send_robust: Mock) -> None:
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
         add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
         assert unresolved_group.status == GroupStatus.UNRESOLVED
+        open_period = GroupOpenPeriod.objects.filter(
+            group=unresolved_group, date_ended__isnull=True
+        ).first()
+        assert open_period is not None
+        assert open_period.date_ended is None
 
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
@@ -136,6 +143,8 @@ class UpdateGroupsTest(TestCase):
         assert unresolved_group.status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=unresolved_group).exists()
         assert send_robust.called
+        open_period.refresh_from_db()
+        assert open_period.date_ended is not None
 
     @patch("sentry.signals.issue_ignored.send_robust")
     @patch("sentry.issues.status_change.post_save")
@@ -272,6 +281,7 @@ class UpdateGroupsTest(TestCase):
     @patch("sentry.signals.issue_resolved.send_robust")
     def test_resolving_group_with_short_id(self, send_robust: Mock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
+        assert GroupOpenPeriod.objects.filter(group=group, date_ended__isnull=True).exists()
 
         request = self.make_request(
             user=self.user,

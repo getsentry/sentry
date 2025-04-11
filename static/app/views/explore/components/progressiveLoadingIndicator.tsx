@@ -10,7 +10,16 @@ function ProgressiveLoadingIndicator() {
   const canUseProgressiveLoading = organization.features.includes(
     'visibility-explore-progressive-loading'
   );
-  if (!canUseProgressiveLoading) {
+
+  // Skipping preflight means we _only_ have one request. We do not need
+  // the loading indicator because this loader is only meant to show there is
+  // more data to load beyond the first one. If there is only one request,
+  // this loader is redundant.
+  const skipPreflight = organization.features.includes(
+    'visibility-explore-skip-preflight'
+  );
+
+  if (!canUseProgressiveLoading || skipPreflight) {
     return null;
   }
 
