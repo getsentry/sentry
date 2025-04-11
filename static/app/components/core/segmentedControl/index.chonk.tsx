@@ -55,6 +55,16 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
 
   &:has(input:focus-visible) {
     ${p => p.theme.focusRing};
+
+    /* Hide fallback ring when :has works */
+    span {
+      box-shadow: none !important;
+    }
+  }
+
+  /* Fallback ring (for Firefox, where :has doesn't work) */
+  input:focus-visible + span {
+    ${({theme}) => theme.focusRing};
   }
 
   ${p => p.isSelected && `z-index: 1;`}
