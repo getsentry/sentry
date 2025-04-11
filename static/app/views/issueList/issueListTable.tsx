@@ -6,8 +6,10 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {SavedSearch} from 'sentry/types/group';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import IssueListActions from 'sentry/views/issueList/actions';
 import AddViewPage from 'sentry/views/issueList/addViewPage';
@@ -70,42 +72,51 @@ function IssueListTable({
     />
   ) : (
     <Fragment>
-      <ContainerPanel>
-        {groupIds.length !== 0 && (
-          <IssueListActions
-            selection={selection}
-            query={query}
-            queryCount={queryCount}
-            onSelectStatsPeriod={onSelectStatsPeriod}
-            onActionTaken={onActionTaken}
-            onDelete={onDelete}
-            statsPeriod={statsPeriod}
-            groupIds={groupIds}
-            allResultsVisible={allResultsVisible}
-            displayReprocessingActions={displayReprocessingActions}
-          />
+      <DemoTourElement
+        id={DemoTourStep.ISSUES_STREAM}
+        title={t('Issues')}
+        description={t(
+          'Sentry automatically groups similar events together into an issue. Similarity is determined by stack trace and other factors. Click on an issue to learn more.'
         )}
-        <PanelBody>
-          <VisuallyCompleteWithData
-            hasData={groupIds.length > 0}
-            id="IssueList-Body"
-            isLoading={issuesLoading}
-          >
-            <GroupListBody
-              memberList={memberList}
-              groupStatsPeriod={statsPeriod}
-              groupIds={groupIds}
-              displayReprocessingLayout={displayReprocessingActions}
+        disabled={issuesLoading}
+      >
+        <ContainerPanel>
+          {groupIds.length !== 0 && (
+            <IssueListActions
+              selection={selection}
               query={query}
-              selectedProjectIds={selection.projects}
-              loading={issuesLoading}
-              error={error}
-              refetchGroups={refetchGroups}
+              queryCount={queryCount}
+              onSelectStatsPeriod={onSelectStatsPeriod}
               onActionTaken={onActionTaken}
+              onDelete={onDelete}
+              statsPeriod={statsPeriod}
+              groupIds={groupIds}
+              allResultsVisible={allResultsVisible}
+              displayReprocessingActions={displayReprocessingActions}
             />
-          </VisuallyCompleteWithData>
-        </PanelBody>
-      </ContainerPanel>
+          )}
+          <PanelBody>
+            <VisuallyCompleteWithData
+              hasData={groupIds.length > 0}
+              id="IssueList-Body"
+              isLoading={issuesLoading}
+            >
+              <GroupListBody
+                memberList={memberList}
+                groupStatsPeriod={statsPeriod}
+                groupIds={groupIds}
+                displayReprocessingLayout={displayReprocessingActions}
+                query={query}
+                selectedProjectIds={selection.projects}
+                loading={issuesLoading}
+                error={error}
+                refetchGroups={refetchGroups}
+                onActionTaken={onActionTaken}
+              />
+            </VisuallyCompleteWithData>
+          </PanelBody>
+        </ContainerPanel>
+      </DemoTourElement>
       <StyledPagination
         caption={paginationCaption}
         pageLinks={pageLinks}

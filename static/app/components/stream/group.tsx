@@ -26,7 +26,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -43,7 +42,6 @@ import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeActive} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
@@ -530,12 +528,6 @@ function StreamGroup({
     <Placeholder height="18px" />
   );
 
-  const issueStreamAnchor = isDemoModeActive() ? (
-    <GuideAnchor target="issue_stream" disabled={!DemoWalkthroughStore.get('issue')} />
-  ) : (
-    <GuideAnchor target="issue_stream" />
-  );
-
   const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (displayReprocessingLayout) {
       return;
@@ -591,7 +583,7 @@ function StreamGroup({
         <EventOrGroupHeader index={index} data={group} query={query} source={referrer} />
         <EventOrGroupExtraDetails data={group} showLifetime={false} />
       </GroupSummary>
-      {hasGuideAnchor && issueStreamAnchor}
+      {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
 
       {withColumns.includes('lastSeen') && (
         <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>

@@ -29,6 +29,7 @@ import {space} from 'sentry/styles/space';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {DemoTour, useDemoTours} from 'sentry/utils/demoMode/demoTours';
 import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -259,6 +260,8 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
   const router = useRouter();
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
+  const tours = useDemoTours();
+
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       trackAnalytics('quick_start.task_card_clicked', {
@@ -271,7 +274,15 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       e.stopPropagation();
 
       if (isDemoModeActive()) {
-        DemoWalkthroughStore.activateGuideAnchor(task.task);
+        if (task.task === OnboardingTaskKey.PERFORMANCE_GUIDE) {
+          tours?.[DemoTour.PERFORMANCE]?.startTour();
+        } else if (task.task === OnboardingTaskKey.RELEASE_GUIDE) {
+          tours?.[DemoTour.RELEASES]?.startTour();
+        } else if (task.task === OnboardingTaskKey.ISSUE_GUIDE) {
+          tours?.[DemoTour.ISSUES]?.startTour();
+        } else {
+          DemoWalkthroughStore.activateGuideAnchor(task.task);
+        }
       }
 
       if (task.actionType === 'external') {
@@ -293,7 +304,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       }
       hidePanel();
     },
-    [task, organization, router, hidePanel]
+    [task, organization, router, hidePanel, tours]
   );
 
   const handleMarkSkipped = useCallback(() => {
