@@ -8,14 +8,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import {decodeList} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 import {OtherPlatformsInfo} from 'sentry/views/projectInstall/otherPlatformsInfo';
 
 import FirstEventFooter from './components/firstEventFooter';
-import IntegrationSetup, {InstallationMode} from './integrationSetup';
 import type {StepProps} from './types';
 
 function SetupDocs({location, recentCreatedProject: project}: StepProps) {
@@ -34,45 +32,31 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
     return null;
   }
 
-  const platformName = currentPlatform.name;
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const integrationSlug = project.platform && platformToIntegrationMap[project.platform];
-  const showIntegrationOnboarding =
-    integrationSlug && location.query.installationMode !== InstallationMode.MANUAL;
-
   return (
     <Fragment>
       <Wrapper>
         <MainContent>
-          {showIntegrationOnboarding ? (
-            <IntegrationSetup
-              integrationSlug={integrationSlug}
-              project={project}
-              platform={currentPlatform}
+          <Fragment>
+            <SetupIntroduction
+              stepHeaderText={t('Configure %s SDK', currentPlatform.name)}
+              platform={currentPlatformKey}
             />
-          ) : (
-            <Fragment>
-              <SetupIntroduction
-                stepHeaderText={t('Configure %s SDK', platformName)}
-                platform={currentPlatformKey}
+            {currentPlatformKey === 'other' ? (
+              <OtherPlatformsInfo
+                projectSlug={project.slug}
+                platform={currentPlatform.name}
               />
-              {currentPlatformKey === 'other' ? (
-                <OtherPlatformsInfo
-                  projectSlug={project.slug}
-                  platform={currentPlatform.name}
-                />
-              ) : (
-                <SdkDocumentation
-                  platform={currentPlatform}
-                  organization={organization}
-                  projectSlug={project.slug}
-                  projectId={project.id}
-                  activeProductSelection={products}
-                  newOrg
-                />
-              )}
-            </Fragment>
-          )}
+            ) : (
+              <SdkDocumentation
+                platform={currentPlatform}
+                organization={organization}
+                projectSlug={project.slug}
+                projectId={project.id}
+                activeProductSelection={products}
+                newOrg
+              />
+            )}
+          </Fragment>
         </MainContent>
       </Wrapper>
       <FirstEventFooter
