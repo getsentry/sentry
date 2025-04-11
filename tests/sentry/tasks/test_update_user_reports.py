@@ -123,7 +123,7 @@ class UpdateUserReportTest(TestCase):
         assert report4.environment_id is None
 
     @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
-    def test_simple_calls_feedback_shim_if_ff_enabled(self, mock_produce_occurrence_to_kafka):
+    def test_calls_feedback_shim_if_ff_enabled(self, mock_produce_occurrence_to_kafka):
         project = self.create_project()
         event1 = self.store_event(
             data={
@@ -161,6 +161,37 @@ class UpdateUserReportTest(TestCase):
         assert mock_event_data["platform"] == "other"
         assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event1.event_id
         assert mock_event_data["level"] == "error"
+
+    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
+    def test_does_not_call_feedback_shim_if_environment_is_set(
+        self, mock_produce_occurrence_to_kafka
+    ):
+        project = self.create_project()
+        event1 = self.store_event(
+            data={
+                "environment": self.environment.name,
+                "tags": {"foo": "bar"},
+            },
+            project_id=project.id,
+        )
+        UserReport.objects.create(
+            project_id=project.id,
+            event_id=event1.event_id,
+            comments="It broke!",
+            email="foo@example.com",
+            name="Foo Bar",
+            environment_id=self.environment.id,
+        )
+        with self.tasks():
+            update_user_reports(max_events=2)
+
+        # group_id is still updated
+        report1 = UserReport.objects.get(project_id=project.id, event_id=event1.event_id)
+        assert report1.group_id == event1.group_id
+        assert report1.environment_id == event1.get_environment().id
+
+        # no shim
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
     @patch("sentry.quotas.backend.get_event_retention")
     def test_event_retention(self, mock_get_event_retention):

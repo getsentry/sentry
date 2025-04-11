@@ -160,7 +160,7 @@ def save_userreport(
                 extra={"project_id": project.id, "event_id": report["event_id"]},
             )
             shim_to_feedback(report, event, project, source)
-            # Note: the update_user_reports task will still try to shim the report after a period, unless group_id or environment is set.
+            # XXX(aliu): the update_user_reports task will still try to shim the report after a period, unless group_id or environment is set.
 
         return report_instance
 
