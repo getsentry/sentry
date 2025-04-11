@@ -10,7 +10,8 @@ from sentry.notifications.notification_action.registry import (
 )
 from sentry.notifications.notification_action.types import LegacyRegistryHandler
 from sentry.utils.registry import NoRegistrationExistsError
-from sentry.workflow_engine.models import Action, DataConditionGroupAction, Detector
+from sentry.workflow_engine import Action, Detector
+from sentry.workflow_engine.models import DataConditionGroupAction
 from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
