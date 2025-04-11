@@ -16,7 +16,7 @@ const localStoragePersister = createAsyncStoragePersister({
   // We're using indexedDB as our storage provider because projects cache can be large
   storage: {getItem, setItem, removeItem},
   // Reduce the frequency of writes to indexedDB
-  throttleTime: 15_000,
+  throttleTime: 10_000,
   // The cache is stored entirely on one key
   key: cacheKey,
 });
@@ -31,7 +31,7 @@ const isProjectsCacheEnabled =
  * Attach the persister to the query client
  * @link https://tanstack.com/query/latest/docs/framework/react/plugins/persistQueryClient
  */
-if (isProjectsCacheEnabled) {
+if (!isProjectsCacheEnabled) {
   persistQueryClient({
     queryClient: appQueryClient,
     persister: localStoragePersister,
@@ -45,9 +45,12 @@ if (isProjectsCacheEnabled) {
       shouldDehydrateQuery(query) {
         // This could be extended later to persist other queries
         return (
+          // Query is not pending or failed
+          query.state.status === 'success' &&
+          // Query is not stale
+          !query.isStale() &&
           Array.isArray(query.queryKey) &&
-          typeof query.queryKey[0] === 'string' &&
-          // Only persist queryKey bootstrap-projects for now
+          // Currently only bootstrap-projects is persisted
           query.queryKey[0] === 'bootstrap-projects'
         );
       },
@@ -56,14 +59,15 @@ if (isProjectsCacheEnabled) {
 }
 
 export function restoreQueryCache() {
-  if (isProjectsCacheEnabled) {
+  if (!isProjectsCacheEnabled) {
     localStoragePersister.restoreClient();
   }
 }
 
 export async function clearQueryCache() {
-  if (isProjectsCacheEnabled) {
-    await localStoragePersister.removeClient();
+  if (!isProjectsCacheEnabled) {
+    // Mark queries as stale so they won't be recached
+    appQueryClient.invalidateQueries({queryKey: ['bootstrap-projects']});
     await removeItem(cacheKey);
   }
 }
