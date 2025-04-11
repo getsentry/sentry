@@ -1234,7 +1234,7 @@ def update_group_open_period(
             )
 
         open_period.update(
-            date_ended=activity.datetime,
+            date_ended=group.resolved_at if group.resolved_at else activity.datetime,
             resolution_activity=activity,
             user_id=activity.user_id if activity else None,
         )
