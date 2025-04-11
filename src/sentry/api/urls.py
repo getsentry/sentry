@@ -122,6 +122,7 @@ from sentry.incidents.endpoints.team_alerts_triggered import (
     TeamAlertsTriggeredIndexEndpoint,
     TeamAlertsTriggeredTotalsEndpoint,
 )
+from sentry.insights.endpoints.starred_segments import InsightsStarredSegmentsEndpoint
 from sentry.integrations.api.endpoints.doc_integration_avatar import DocIntegrationAvatarEndpoint
 from sentry.integrations.api.endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
 from sentry.integrations.api.endpoints.doc_integrations_index import DocIntegrationsEndpoint
@@ -1324,6 +1325,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/project-transaction-threshold-override/$",
         ProjectTransactionThresholdOverrideEndpoint.as_view(),
         name="sentry-api-0-organization-project-transaction-threshold-override",
+    ),
+    # Insights
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/insights/starred-segments/$",
+        InsightsStarredSegmentsEndpoint.as_view(),
+        name="sentry-api-0-insights-starred-segments",
     ),
     # Explore
     re_path(
