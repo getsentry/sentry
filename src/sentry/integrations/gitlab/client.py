@@ -20,7 +20,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationFormError
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode, control_silo_function
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -29,8 +29,6 @@ if TYPE_CHECKING:
     from sentry.integrations.gitlab.integration import GitlabIntegration
 
 logger = logging.getLogger("sentry.integrations.gitlab")
-
-GITLAB_ISSUE_TITLE_MAX_LENGTH = 255
 
 
 class GitLabSetupApiClient(IntegrationProxyClient):
@@ -226,11 +224,6 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
         See https://docs.gitlab.com/ee/api/issues.html#new-issue
         """
-        if (title := data.get("title")) is None:
-            raise IntegrationFormError({"title": ["Title is required"]})
-        if len(title) > GITLAB_ISSUE_TITLE_MAX_LENGTH:
-            title = title[: GITLAB_ISSUE_TITLE_MAX_LENGTH - 3] + "..."
-            data["title"] = title
         return self.post(GitLabApiClientPath.issues.format(project=project), data=data)
 
     def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]):
