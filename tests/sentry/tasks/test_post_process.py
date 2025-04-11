@@ -27,7 +27,6 @@ from sentry.issues.grouptype import (
     GroupCategory,
     PerformanceNPlusOneGroupType,
     PerformanceP95EndpointRegressionGroupType,
-    ProfileFileIOGroupType,
 )
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity, ActivityIntegration
@@ -2701,17 +2700,16 @@ class PostProcessGroupGenericTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        with self.feature(ProfileFileIOGroupType.build_post_process_group_feature_name()):
-            post_process_group(
-                is_new=is_new,
-                is_regression=is_regression,
-                is_new_group_environment=is_new_group_environment,
-                cache_key=None,
-                group_id=event.group_id,
-                occurrence_id=event.occurrence.id,
-                project_id=event.group.project_id,
-                eventstream_type=EventStreamEventType.Generic,
-            )
+        post_process_group(
+            is_new=is_new,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
+            cache_key=None,
+            group_id=event.group_id,
+            occurrence_id=event.occurrence.id,
+            project_id=event.group.project_id,
+            eventstream_type=EventStreamEventType.Generic,
+        )
         return cache_key
 
     def test_issueless(self):

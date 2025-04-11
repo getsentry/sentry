@@ -17,7 +17,6 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
-    ProfileFileIOGroupType,
 )
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
@@ -3195,11 +3194,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         # give time for consumers to run and propogate changes to clickhouse
         sleep(1)
-        with self.feature([ProfileFileIOGroupType.build_visible_feature_name()]):
-            response = self.get_success_response(
-                sort="new",
-                query="user.email:myemail@example.com",
-            )
+        response = self.get_success_response(
+            sort="new",
+            query="user.email:myemail@example.com",
+        )
         assert len(response.data) == 2
         assert {r["id"] for r in response.data} == {
             str(perf_group_id),
