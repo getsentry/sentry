@@ -461,6 +461,7 @@ class ProfileFileIOGroupType(GroupType):
     description = "File I/O on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
+    released = True
 
 
 @dataclass(frozen=True)
@@ -470,6 +471,7 @@ class ProfileImageDecodeGroupType(GroupType):
     description = "Image Decoding on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
+    released = True
 
 
 @dataclass(frozen=True)
@@ -479,25 +481,7 @@ class ProfileJSONDecodeType(GroupType):
     description = "JSON Decoding on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
-
-
-@dataclass(frozen=True)
-class ProfileCoreDataExperimentalType(GroupType):
-    type_id = 2004
-    slug = "profile_core_data_main_exp"
-    description = "Core Data on Main Thread"
-    category = GroupCategory.PERFORMANCE.value
-    default_priority = PriorityLevel.LOW
-
-
-# 2005 was ProfileRegexExperimentalType
-@dataclass(frozen=True)
-class ProfileViewIsSlowExperimentalType(GroupType):
-    type_id = 2006
-    slug = "profile_view_is_slow_experimental"
-    description = "View Render/Layout/Update is slow"
-    category = GroupCategory.PERFORMANCE.value
-    default_priority = PriorityLevel.LOW
+    released = True
 
 
 @dataclass(frozen=True)
@@ -511,15 +495,6 @@ class ProfileRegexType(GroupType):
 
 
 @dataclass(frozen=True)
-class ProfileFrameDropExperimentalType(GroupType):
-    type_id = 2008
-    slug = "profile_frame_drop_experimental"
-    description = "Frame Drop"
-    category = GroupCategory.PERFORMANCE.value
-    default_priority = PriorityLevel.LOW
-
-
-@dataclass(frozen=True)
 class ProfileFrameDropType(GroupType):
     type_id = 2009
     slug = "profile_frame_drop"
@@ -528,17 +503,6 @@ class ProfileFrameDropType(GroupType):
     noise_config = NoiseConfig(ignore_limit=2000)
     released = True
     default_priority = PriorityLevel.LOW
-
-
-@dataclass(frozen=True)
-class ProfileFunctionRegressionExperimentalType(GroupType):
-    type_id = 2010
-    slug = "profile_function_regression_exp"
-    description = "Function Duration Regression (Experimental)"
-    category = GroupCategory.PERFORMANCE.value
-    enable_auto_resolve = False
-    default_priority = PriorityLevel.LOW
-    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 @dataclass(frozen=True)

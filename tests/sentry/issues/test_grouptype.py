@@ -9,9 +9,9 @@ from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
+    MetricIssuePOC,
     NoiseConfig,
     PerformanceGroupTypeDefaults,
-    ProfileJSONDecodeType,
     get_group_type_by_slug,
     get_group_types_by_category,
 )
@@ -160,7 +160,7 @@ class GroupRegistryTest(BaseGroupTypeTest):
     def test_get_visible(self) -> None:
         registry = GroupTypeRegistry()
         registry.add(UptimeDomainCheckFailure)
-        registry.add(ProfileJSONDecodeType)
+        registry.add(MetricIssuePOC)
         assert registry.get_visible(self.organization) == []
         with self.feature(UptimeDomainCheckFailure.build_visible_flagpole_feature_name()):
             assert registry.get_visible(self.organization) == [UptimeDomainCheckFailure]
