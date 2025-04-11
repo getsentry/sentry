@@ -12,7 +12,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
-import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
@@ -139,7 +139,7 @@ function ExploreParams({query, visualizes, groupBys}: SingleQueryProps) {
         <ExploreParamSection>
           <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
           <FormattedQueryWrapper>
-            <FormattedQuery query={query} />
+            <ProvidedFormattedQuery query={query} />
           </FormattedQueryWrapper>
         </ExploreParamSection>
       )}
