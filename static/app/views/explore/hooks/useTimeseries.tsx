@@ -111,7 +111,6 @@ export interface UseTimeseriesProps {
 
   // The maximum number of events to return - if you groupBy user.id, with topEvents=5,
   // this would plot count() for the top 5 users, and add a sixth row for 'other' with isOther=true
-  //
   topEvents?: number;
 
   /** The y axes to plot, e.g., count() or sum(my.value) */
