@@ -130,7 +130,7 @@ def test_save_user_report_filters_large_message(default_project, monkeypatch):
 
 
 @django_db_all
-def test_save_user_report_shims_if_event_found_and_allow_shim_true(default_project, monkeypatch):
+def test_save_user_report_shims_if_event_found(default_project, monkeypatch):
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr(
         "sentry.ingest.userreport.should_filter_user_report", Mock(return_value=(False, None))
@@ -156,20 +156,12 @@ def test_save_user_report_shims_if_event_found_and_allow_shim_true(default_proje
     save_userreport(default_project, report, FeedbackCreationSource.USER_REPORT_ENVELOPE)
     mock_shim_to_feedback.assert_called_once()
 
-    save_userreport(
-        default_project,
-        report,
-        FeedbackCreationSource.USER_REPORT_ENVELOPE,
-        allow_shim=True,
-    )
-    assert mock_shim_to_feedback.call_count == 2
-
 
 @django_db_all
-def test_save_user_report_does_not_shim_if_event_found_and_allow_shim_false(
+def test_save_user_report_does_not_shim_if_event_found_but_source_is_new_feedback(
     default_project, monkeypatch
 ):
-    # Exact same setup as test_save_user_report_shims_if_event_found_and_allow_shim_true
+    # Exact same setup as test_save_user_report_shims_if_event_found
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr(
         "sentry.ingest.userreport.should_filter_user_report", Mock(return_value=(False, None))
@@ -192,8 +184,10 @@ def test_save_user_report_does_not_shim_if_event_found_and_allow_shim_false(
         "project_id": default_project.id,
     }
 
-    # Disallow shim
+    # Source is new feedback, so no shim
     save_userreport(
-        default_project, report, FeedbackCreationSource.USER_REPORT_ENVELOPE, allow_shim=False
+        default_project,
+        report,
+        FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
     )
     assert mock_shim_to_feedback.call_count == 0

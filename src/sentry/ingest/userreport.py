@@ -37,7 +37,6 @@ def save_userreport(
     report,
     source: FeedbackCreationSource,
     start_time: datetime | None = None,
-    allow_shim: bool = True,
 ) -> UserReport | None:
     with metrics.timer("sentry.ingest.userreport.save_userreport", tags={"referrer": source.value}):
         if is_in_feedback_denylist(project.organization):
@@ -154,7 +153,7 @@ def save_userreport(
             "user_report.create_user_report.saved",
             tags={"has_event": bool(event), "referrer": source.value},
         )
-        if event and allow_shim:
+        if event and source.value in FeedbackCreationSource.old_feedback_category_values():
             logger.info(
                 "ingest.user_report.shim_to_feedback",
                 extra={"project_id": project.id, "event_id": report["event_id"]},
