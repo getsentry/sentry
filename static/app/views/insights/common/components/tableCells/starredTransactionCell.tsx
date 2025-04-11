@@ -6,7 +6,10 @@ import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {FlexContainer} from 'sentry/utils/discover/styles';
 import useProjects from 'sentry/utils/useProjects';
-import {useStarredTransactions} from 'sentry/views/insights/common/utils/useStarredTransactions';
+import {
+  type StarTransactionParams,
+  useStarredTransactions,
+} from 'sentry/views/insights/common/utils/useStarredTransactions';
 
 interface Props {
   containerProps?: React.DetailedHTMLProps<
@@ -24,27 +27,37 @@ export function StarredTransactionCell({
   projectSlug,
 }: Props) {
   const {projects} = useProjects();
-  const {starTransaction, unstarTransaction} = useStarredTransactions();
-  const [queryLoading, setQueryLoading] = useState(false);
+  const {
+    starTransaction,
+    unstarTransaction,
+    starTransactionResult,
+    unstarTransactionResult,
+  } = useStarredTransactions();
   const [isStarred, setIsStarred] = useState(initialIsStarred);
+
+  const queryLoading =
+    starTransactionResult.isPending || unstarTransactionResult.isPending;
 
   const project = projects.find(p => p.slug === projectSlug);
   const disabled = !project || !transactionName || queryLoading;
 
-  const toggleStarredTransaction = async () => {
+  const toggleStarredTransaction = () => {
     if (project && transactionName && !queryLoading) {
-      setQueryLoading(true);
       setIsStarred(!isStarred);
       addLoadingMessage();
 
+      const params: StarTransactionParams = {
+        projectId: project.id,
+        segmentName: transactionName,
+      };
+
       if (isStarred) {
-        await unstarTransaction(transactionName, project.id);
+        unstarTransaction(params);
       } else {
-        await starTransaction(transactionName, project.id);
+        starTransaction(params);
       }
 
       addSuccessMessage(t('Transaction starred'));
-      setQueryLoading(false);
     }
   };
 
