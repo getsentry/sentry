@@ -116,7 +116,7 @@ def update_migrated_issue_alert(rule: Rule) -> Workflow | None:
         if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
     except WorkflowDataConditionGroup.DoesNotExist:
         # OK state because we can recreate the IF DCG but should not happen
-        logger.exception(
+        logger.info(
             "workflow_engine.issue_alert.updated.error",
             extra={
                 "workflow_id": workflow.id,
