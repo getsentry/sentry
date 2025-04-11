@@ -17,16 +17,15 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
-import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
-import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
-
 import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
   type SavedQuery,
   type SortOption,
   useGetSavedQueries,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
+import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
 
 type Props = {
   cursorKey?: string;
