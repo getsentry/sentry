@@ -47,19 +47,17 @@ type Priority = 'default' | 'primary';
 export interface SegmentedControlProps<Value extends string>
   extends Omit<RadioGroupProps, 'value' | 'defaultValue' | 'onChange' | 'isDisabled'> {
   children: CollectionChildren<Value>;
-  defaultValue?: Value;
+  onChange: (value: Value) => void;
+  value: Value;
   disabled?: RadioGroupProps['isDisabled'];
-  onChange?: (value: Value) => void;
   priority?: Priority;
   size?: FormSize;
-  value?: Value;
 }
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
 export function SegmentedControl<Value extends string>({
   value,
-  defaultValue,
   onChange,
   size = 'md',
   priority = 'default',
@@ -72,8 +70,7 @@ export function SegmentedControl<Value extends string>({
   const ariaProps = {
     ...props,
     value,
-    defaultValue,
-    onChange: onChange && (val => onChange(val as Value)),
+    onChange: onChange as (value: string) => void,
     orientation: 'horizontal',
     isDisabled: disabled,
   } satisfies RadioGroupProps;
