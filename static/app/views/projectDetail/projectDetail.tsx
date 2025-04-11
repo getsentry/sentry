@@ -244,7 +244,6 @@ export default function ProjectDetail({router, location, organization}: Props) {
                         <ProjectCharts
                           location={location}
                           organization={organization}
-                          router={router}
                           chartId={id}
                           chartIndex={index}
                           projectId={project?.id}
