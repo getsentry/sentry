@@ -632,34 +632,6 @@ class FeedbackGroup(GroupType):
 
 
 @dataclass(frozen=True)
-class UptimeDomainCheckFailure(GroupType):
-    type_id = 7001
-    slug = "uptime_domain_failure"
-    description = "Uptime Domain Monitor Failure"
-    category = GroupCategory.UPTIME.value
-    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-    detector_config_schema = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "A representation of an uptime alert",
-        "type": "object",
-        "required": ["mode", "environment"],
-        "properties": {
-            "mode": {
-                "type": ["integer"],
-                # TODO: Enable this when we can move this grouptype out of this file
-                # "enum": [mode.value for mode in ProjectUptimeSubscriptionMode],
-            },
-            "environment": {"type": ["string"]},
-        },
-        "additionalProperties": False,
-    }
-    use_flagpole_for_all_features = True
-
-
-@dataclass(frozen=True)
 class MetricIssuePOC(GroupType):
     type_id = 8002
     slug = "metric_issue_poc"

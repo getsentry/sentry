@@ -12,7 +12,6 @@ from sentry.integrations.repository.notification_action import NotificationActio
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.service import ActionDataError, RuleDataError, SlackService
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.activity import Activity
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -24,6 +23,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.workflow_engine.models import Action
 
 
