@@ -1,6 +1,5 @@
 import {useState} from 'react';
 
-import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -44,8 +43,6 @@ export function StarredTransactionCell({
   const toggleStarredTransaction = () => {
     if (project && transactionName && !queryLoading) {
       setIsStarred(!isStarred);
-      addLoadingMessage();
-
       const params: StarTransactionParams = {
         projectId: project.id,
         segmentName: transactionName,
@@ -56,8 +53,6 @@ export function StarredTransactionCell({
       } else {
         starTransaction(params);
       }
-
-      addSuccessMessage(t('Transaction starred'));
     }
   };
 
