@@ -39,7 +39,6 @@ interface Props {
   environments: readonly string[];
   onMouseOutRelease: (release: string) => void;
   onMouseOverRelease: (release: string) => void;
-  onSelectRelease: (release: string, projectId: string) => void;
   projects: readonly number[];
   start: string;
 }
@@ -66,7 +65,6 @@ export function ReleaseDrawerTable({
   start,
   onMouseOverRelease,
   onMouseOutRelease,
-  onSelectRelease,
 }: Props) {
   const theme = useTheme();
   const location = useLocation();
@@ -79,11 +77,6 @@ export function ReleaseDrawerTable({
         query: {
           project: projects,
           environment: environments,
-          ...Object.fromEntries(
-            Object.entries(location.query).filter(([key]) =>
-              ['project', 'environment'].includes(key)
-            )
-          ),
           cursor: location.query.releaseCursor,
           ...normalizeDateTimeParams({
             start,
@@ -138,16 +131,18 @@ export function ReleaseDrawerTable({
         // Custom release renderer -- we want to keep navigation within drawer
         return (
           <ReleaseLink
-            to="#"
             onMouseOver={() => {
               onMouseOverRelease(dataRow.release);
             }}
             onMouseOut={() => {
               onMouseOutRelease(dataRow.release);
             }}
-            onClick={e => {
-              e.preventDefault();
-              onSelectRelease(String(value), String(dataRow.project_id));
+            to={{
+              query: {
+                ...location.query,
+                rdRelease: value,
+                rdReleaseProjectId: dataRow.project_id,
+              },
             }}
           >
             <ProjectBadge project={dataRow.project} disableLink hideName />
@@ -191,14 +186,7 @@ export function ReleaseDrawerTable({
         </CellWrapper>
       );
     },
-    [
-      organization,
-      location,
-      onSelectRelease,
-      onMouseOutRelease,
-      onMouseOverRelease,
-      theme,
-    ]
+    [organization, location, onMouseOutRelease, onMouseOverRelease, theme]
   );
 
   const tableEmptyMessage = (
