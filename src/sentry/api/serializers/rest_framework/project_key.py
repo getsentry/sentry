@@ -59,10 +59,7 @@ class DynamicSdkLoaderOptionSerializer(serializers.Serializer):
 
 
 @extend_schema_serializer(
-    exclude_fields=[
-        "public",
-        "secret",
-    ],
+    exclude_fields=["public", "secret", "useCase"],
 )
 class ProjectKeyPostSerializer(serializers.Serializer):
     name = serializers.CharField(
