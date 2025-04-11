@@ -4,9 +4,10 @@ from rest_framework.response import Response
 from sentry import tsdb
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
+from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.environments import get_environment_id
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.team import Team
@@ -14,7 +15,7 @@ from sentry.tsdb.base import TSDBModel
 
 
 @region_silo_endpoint
-class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMixin):
+class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
     publish_status = {
         # Deprecated APIs remain private until removed
         "GET": ApiPublishStatus.PRIVATE,
@@ -91,9 +92,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
             if group == "project":
                 stat_model = TSDBModel.project
                 try:
-                    query_kwargs["environment_id"] = self._get_environment_id_from_request(
-                        request, organization.id
-                    )
+                    query_kwargs["environment_id"] = get_environment_id(request, organization.id)
                 except Environment.DoesNotExist:
                     raise ResourceDoesNotExist
 
