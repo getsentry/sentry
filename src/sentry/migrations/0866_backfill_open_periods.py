@@ -3,6 +3,7 @@
 import logging
 from datetime import datetime
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
@@ -11,6 +12,11 @@ from django.db.models import Q
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
+
+if TYPE_CHECKING:
+    from sentry.models.activity import Activity as ActivityModelType
+    from sentry.models.groupopenperiod import GroupOpenPeriod
+
 
 logger = logging.getLogger(__name__)
 
@@ -33,14 +39,14 @@ BATCH_SIZE = 100
 
 
 def get_open_periods_for_group(
-    apps,
-    group_id,
-    status,
-    project_id,
-    first_seen,
-    query_end,
-    GroupOpenPeriod,
-):
+    apps: StateApps,
+    group_id: int,
+    status: int,
+    project_id: int,
+    first_seen: datetime,
+    query_end: datetime | None,
+    GroupOpenPeriod: type[GroupOpenPeriod],
+) -> list[GroupOpenPeriod]:
     Activity = apps.get_model("sentry", "Activity")
 
     # Filter to REGRESSION and RESOLVED activties to find the bounds of each open period.
@@ -56,7 +62,7 @@ def get_open_periods_for_group(
     open_periods = []
     start: datetime | None = None
     end: datetime | None = None
-    end_activity: Activity | None = None
+    end_activity: ActivityModelType | None = None
 
     # Handle currently open period
     if status == GroupStatus.UNRESOLVED and len(activities) > 0:
@@ -78,7 +84,7 @@ def get_open_periods_for_group(
             end_activity = activity
         elif activity.type == ActivityType.SET_REGRESSION.value:
             start = activity.datetime
-            if end is not None:
+            if start is not None and end is not None:
                 open_periods.append(
                     GroupOpenPeriod(
                         group_id=group_id,
@@ -86,7 +92,7 @@ def get_open_periods_for_group(
                         date_started=start,
                         date_ended=end,
                         resolution_activity=end_activity,
-                        user_id=end_activity.user_id,
+                        user_id=end_activity.user_id if end_activity else None,
                     )
                 )
                 end = None
