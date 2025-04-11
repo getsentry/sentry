@@ -9,7 +9,6 @@ import {ProjectInstallPlatform} from './platform';
 
 type Props = RouteComponentProps<{projectId: string}>;
 
-// TODO(ogi): rename
 function PlatformOrIntegration({params}: Props) {
   const organization = useOrganization();
 
