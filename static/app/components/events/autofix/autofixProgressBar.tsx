@@ -117,7 +117,7 @@ const ProgressBarHoverContent = styled('div')<{hasData: boolean}>`
   align-items: center;
   justify-content: space-between;
   box-shadow: ${p => p.theme.dropShadowMedium};
-  padding: 0 ${space(1.5)};
+  padding: 0 ${space(3)};
   opacity: 0;
   transition: ${p => (p.hasData ? 'opacity 0.2s ease-in-out' : 'none')};
   background: ${p => p.theme.background}
