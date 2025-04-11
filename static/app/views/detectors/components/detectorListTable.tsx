@@ -10,10 +10,8 @@ import {
 } from 'sentry/components/workflowEngine/useBulkActions';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  type Detector,
-  DetectorListRow,
-} from 'sentry/views/detectors/components/detectorListRow';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {DetectorListRow} from 'sentry/views/detectors/components/detectorListRow';
 
 type DetectorListTableProps = {
   detectors: Detector[];
@@ -55,16 +53,9 @@ function DetectorListTable({detectors}: DetectorListTableProps) {
         {detectors.map(detector => (
           <DetectorListRow
             key={detector.id}
-            automations={detector.automations}
-            groups={detector.groups}
-            id={detector.id}
-            link={detector.link}
-            name={detector.name}
-            project={detector.project}
-            details={detector.details}
+            detector={detector}
             handleSelect={handleSelect}
             selected={selectedRows.includes(detector.id)}
-            disabled={detector.disabled}
           />
         ))}
       </PanelBody>
