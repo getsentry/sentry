@@ -1,8 +1,7 @@
+import useIssueTrackingFilter from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-
-import useIssueTrackingFilter from '../useIssueTrackingFilter';
 
 import type {GroupIntegrationIssueResult} from './types';
 import {useIntegrationExternalIssues} from './useIntegrationExternalIssues';

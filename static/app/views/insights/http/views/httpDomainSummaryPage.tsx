@@ -11,6 +11,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useProjects from 'sentry/utils/useProjects';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
@@ -23,6 +24,7 @@ import HttpDomainSummaryDurationChartWidget from 'sentry/views/insights/common/c
 import HttpDomainSummaryResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryResponseCodesChartWidget';
 import HttpDomainSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryThroughputChartWidget';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
@@ -48,8 +50,6 @@ import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader'
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
-
-import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
 
 export function HTTPDomainSummaryPage() {
   const {projects} = useProjects();

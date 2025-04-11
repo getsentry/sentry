@@ -16,15 +16,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {
   convertEventsStatsToTimeSeriesData,
   transformToSeriesMap,
 } from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-
-import type {DashboardFilters, Widget} from '../types';
-import {isEventsStats} from '../utils/isEventsStats';
 
 import type {
   GenericWidgetQueriesChildrenProps,

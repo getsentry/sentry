@@ -17,8 +17,7 @@ import {
   isEAPError,
   isTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-
-import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 interface TitleProps {
   representativeEvent: TraceTree.TraceEvent | OurLogsResponseItem | null;

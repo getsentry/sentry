@@ -21,8 +21,7 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
-
-import {OrganizationContext} from '../organizationContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 type Props = RouteComponentProps<{sentryAppSlug: string}>;
 

@@ -3,9 +3,8 @@ import type {
   ColorMapFn,
   FlamegraphTheme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
-
-import type {FlamegraphFrame} from '../flamegraphFrame';
 
 function uniqueCountBy<T>(
   arr: readonly T[],

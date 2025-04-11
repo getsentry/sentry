@@ -34,7 +34,7 @@ import {
   TEMPORARY_TAB_KEY,
 } from 'sentry/views/issueList/issueViews/issueViews';
 import {IssueViewTab} from 'sentry/views/issueList/issueViews/issueViewTab';
-import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import {useFetchStarredGroupSearchViews} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
 import {IssueSortOptions} from './utils';
@@ -64,7 +64,7 @@ function IssueViewsIssueListHeader({
 
   const {newViewActive} = useContext(NewTabContext);
 
-  const {data: groupSearchViews} = useFetchGroupSearchViews({
+  const {data: starredGroupSearchViews} = useFetchStarredGroupSearchViews({
     orgSlug: organization.slug,
   });
 
@@ -77,7 +77,7 @@ function IssueViewsIssueListHeader({
       noActionWrap
       // No viewId in the URL query means that a temp view is selected, which has a dashed border
       borderStyle={
-        groupSearchViews && !router?.location.query.viewId ? 'dashed' : 'solid'
+        starredGroupSearchViews && !router?.location.query.viewId ? 'dashed' : 'solid'
       }
     >
       <Layout.HeaderContent>
@@ -106,10 +106,10 @@ function IssueViewsIssueListHeader({
         )}
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
-      {groupSearchViews ? (
+      {starredGroupSearchViews ? (
         <StyledIssueViews
           router={router}
-          initialViews={groupSearchViews.map(
+          initialViews={starredGroupSearchViews.map(
             (
               {
                 id,

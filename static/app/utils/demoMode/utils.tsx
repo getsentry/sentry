@@ -1,9 +1,8 @@
 import {setForceHide} from 'sentry/actionCreators/guides';
+import {demoSignupModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUTMState} from 'sentry/utils/demoMode/utm';
-
-import {demoSignupModal} from '../../actionCreators/modal';
 
 import {isDemoModeActive} from './index';
 
