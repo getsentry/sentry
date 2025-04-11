@@ -30,14 +30,10 @@ export function withChonk<
   function ChonkSwitch(props: LegacyProps) {
     const theme = useTheme();
 
-    if (theme.isChonk) {
+    if (isChonkTheme(theme)) {
       const ChonkComponent: any = chonkComponent;
       return (
-        <ChonkComponent
-          {...propMapping(props)}
-          ref={props.ref}
-          theme={theme as unknown as DO_NOT_USE_ChonkTheme}
-        >
+        <ChonkComponent {...propMapping(props)} ref={props.ref} theme={theme}>
           {props.children}
         </ChonkComponent>
       );
