@@ -81,8 +81,10 @@ class OrganizationTeamMemberPermission(OrganizationPermission):
         ],
         "POST": ["org:read", "org:write", "team:write"],
         "PUT": [
+            "org:read",
             "org:write",
             "org:admin",
+            "member:read",
             "member:write",
             "member:admin",
             "team:admin",
