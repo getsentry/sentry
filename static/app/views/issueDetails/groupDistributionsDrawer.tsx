@@ -178,7 +178,7 @@ function BaseGroupDistributionsDrawer({
             size="xs"
             value={tab}
             onChange={newTab => {
-              setTab(newTab as DrawerTab);
+              setTab(newTab);
               setSearch('');
             }}
           >

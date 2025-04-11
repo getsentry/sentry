@@ -8,20 +8,6 @@ import {IconStats} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
 export default storyBook('SegmentedControl', story => {
-  story('Default', () => (
-    <Fragment>
-      <p>
-        By default <JSXNode name="SegmentedControl" /> will keep track of what is
-        selected.
-      </p>
-      <SegmentedControl>
-        <SegmentedControl.Item key="one">One</SegmentedControl.Item>
-        <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
-        <SegmentedControl.Item key="three">Three</SegmentedControl.Item>
-      </SegmentedControl>
-    </Fragment>
-  ));
-
   story('Controlled Value', () => {
     const [value, setValue] = useState('two');
     return (
@@ -44,13 +30,16 @@ export default storyBook('SegmentedControl', story => {
 
   story('Props', () => (
     <Matrix
-      render={props => (
-        <SegmentedControl {...props}>
-          <SegmentedControl.Item key="one">One</SegmentedControl.Item>
-          <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
-          <SegmentedControl.Item key="three">Three</SegmentedControl.Item>
-        </SegmentedControl>
-      )}
+      render={props => {
+        const [value, setValue] = useState('two');
+        return (
+          <SegmentedControl {...props} value={value} onChange={setValue}>
+            <SegmentedControl.Item key="one">One</SegmentedControl.Item>
+            <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
+            <SegmentedControl.Item key="three">Three</SegmentedControl.Item>
+          </SegmentedControl>
+        );
+      }}
       selectedProps={['priority', 'size']}
       propMatrix={{
         size: ['md' as const, 'sm' as const, 'xs' as const],
@@ -62,31 +51,34 @@ export default storyBook('SegmentedControl', story => {
   story('SegmentedControl.Item', () => (
     <SideBySide>
       <Matrix
-        render={({showChild, ...props}) => (
-          <SegmentedControl>
-            <SegmentedControl.Item
-              key="one"
-              aria-label={showChild ? undefined : 'One'}
-              {...props}
-            >
-              {showChild ? 'One' : undefined}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item
-              key="two"
-              aria-label={showChild ? undefined : 'Two'}
-              {...props}
-            >
-              {showChild ? 'Two' : undefined}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item
-              key="three"
-              aria-label={showChild ? undefined : 'Three'}
-              {...props}
-            >
-              {showChild ? 'Three' : undefined}
-            </SegmentedControl.Item>
-          </SegmentedControl>
-        )}
+        render={({showChild, ...props}) => {
+          const [value, setValue] = useState('two');
+          return (
+            <SegmentedControl value={value} onChange={setValue}>
+              <SegmentedControl.Item
+                key="one"
+                aria-label={showChild ? undefined : 'One'}
+                {...props}
+              >
+                {showChild ? 'One' : undefined}
+              </SegmentedControl.Item>
+              <SegmentedControl.Item
+                key="two"
+                aria-label={showChild ? undefined : 'Two'}
+                {...props}
+              >
+                {showChild ? 'Two' : undefined}
+              </SegmentedControl.Item>
+              <SegmentedControl.Item
+                key="three"
+                aria-label={showChild ? undefined : 'Three'}
+                {...props}
+              >
+                {showChild ? 'Three' : undefined}
+              </SegmentedControl.Item>
+            </SegmentedControl>
+          );
+        }}
         selectedProps={['showChild', 'icon']}
         propMatrix={{
           showChild: [true, false],
@@ -94,19 +86,22 @@ export default storyBook('SegmentedControl', story => {
         }}
       />
       <Matrix
-        render={props => (
-          <SegmentedControl>
-            <SegmentedControl.Item key="one" tooltip="One">
-              One
-            </SegmentedControl.Item>
-            <SegmentedControl.Item key="two" {...props}>
-              Two
-            </SegmentedControl.Item>
-            <SegmentedControl.Item key="three" tooltip="Three">
-              Three
-            </SegmentedControl.Item>
-          </SegmentedControl>
-        )}
+        render={props => {
+          const [value, setValue] = useState('two');
+          return (
+            <SegmentedControl value={value} onChange={setValue}>
+              <SegmentedControl.Item key="one" tooltip="One">
+                One
+              </SegmentedControl.Item>
+              <SegmentedControl.Item key="two" {...props}>
+                Two
+              </SegmentedControl.Item>
+              <SegmentedControl.Item key="three" tooltip="Three">
+                Three
+              </SegmentedControl.Item>
+            </SegmentedControl>
+          );
+        }}
         selectedProps={['tooltip', 'disabled']}
         propMatrix={{
           tooltip: [undefined, 'Pick Me'],
@@ -114,19 +109,22 @@ export default storyBook('SegmentedControl', story => {
         }}
       />
       <Matrix
-        render={props => (
-          <SegmentedControl priority={props.priority}>
-            <SegmentedControl.Item key="one" disabled={props.disabled}>
-              One
-            </SegmentedControl.Item>
-            <SegmentedControl.Item key="two" disabled={props.disabled}>
-              Two
-            </SegmentedControl.Item>
-            <SegmentedControl.Item key="three" disabled={props.disabled}>
-              Three
-            </SegmentedControl.Item>
-          </SegmentedControl>
-        )}
+        render={props => {
+          const [value, setValue] = useState('two');
+          return (
+            <SegmentedControl priority={props.priority} value={value} onChange={setValue}>
+              <SegmentedControl.Item key="one" disabled={props.disabled}>
+                One
+              </SegmentedControl.Item>
+              <SegmentedControl.Item key="two" disabled={props.disabled}>
+                Two
+              </SegmentedControl.Item>
+              <SegmentedControl.Item key="three" disabled={props.disabled}>
+                Three
+              </SegmentedControl.Item>
+            </SegmentedControl>
+          );
+        }}
         selectedProps={['disabled', 'priority']}
         propMatrix={{
           disabled: [true, false],
