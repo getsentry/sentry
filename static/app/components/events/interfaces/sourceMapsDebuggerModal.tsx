@@ -1906,7 +1906,7 @@ const MonoBlock = styled('code')`
   padding: ${space(0.25)} ${space(0.5)};
   color: ${p => p.theme.gray400};
   background: ${p => p.theme.gray100};
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-weight: ${p => p.theme.fontWeightNormal};

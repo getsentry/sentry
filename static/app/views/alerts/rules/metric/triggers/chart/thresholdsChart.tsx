@@ -14,6 +14,11 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleThresholdType,
+  AlertRuleTriggerType,
+} from 'sentry/views/alerts/rules/metric/types';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {
@@ -24,9 +29,6 @@ import {
   shouldScaleAlertChart,
 } from 'sentry/views/alerts/utils';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
-
-import type {MetricRule, Trigger} from '../../types';
-import {AlertRuleThresholdType, AlertRuleTriggerType} from '../../types';
 
 type DefaultProps = {
   comparisonData: Series[];

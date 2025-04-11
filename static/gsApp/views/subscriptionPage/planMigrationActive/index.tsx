@@ -10,8 +10,7 @@ import {space} from 'sentry/styles/space';
 import ZendeskLink from 'getsentry/components/zendeskLink';
 import {ANNUAL} from 'getsentry/constants';
 import {CohortId, type PlanMigration, type Subscription} from 'getsentry/types';
-
-import {PanelBodyWithTable} from '../styles';
+import {PanelBodyWithTable} from 'getsentry/views/subscriptionPage/styles';
 
 import PlanMigrationTable from './planMigrationTable';
 
