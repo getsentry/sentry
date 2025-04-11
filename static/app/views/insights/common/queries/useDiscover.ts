@@ -137,6 +137,9 @@ export const useDiscover = <
     samplingMode = DEFAULT_SAMPLING_MODE,
   } = options;
 
+  // TODO: remove this check with eap
+  const shouldSetSamplingMode = dataset === DiscoverDatasets.SPANS_EAP_RPC;
+
   const pageFilters = usePageFilters();
 
   const eventView = getEventView(
@@ -157,7 +160,8 @@ export const useDiscover = <
     referrer,
     cursor,
     noPagination,
-    samplingMode: samplingMode === 'NONE' ? undefined : samplingMode,
+    samplingMode:
+      samplingMode === 'NONE' || !shouldSetSamplingMode ? undefined : samplingMode,
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
