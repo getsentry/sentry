@@ -72,6 +72,16 @@ export enum SpanMetricsField {
   MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
 }
 
+// TODO: This will be the final field type for eap spans
+export enum SpanFields {
+  IS_TRANSACTION = 'is_transaction',
+  IS_STARRED_TRANSACTION = 'is_starred_transaction',
+}
+
+export type SpanBooleanFields =
+  | SpanFields.IS_TRANSACTION
+  | SpanFields.IS_STARRED_TRANSACTION;
+
 export type SpanNumberFields =
   | SpanMetricsField.AI_TOTAL_COST
   | SpanMetricsField.AI_TOTAL_TOKENS_USED
@@ -222,6 +232,8 @@ export type EAPSpanResponse = {
   [Property in SpanNumberFields as `${Property}`]: number;
 } & {
   [Property in SpanStringArrayFields as `${Property}`]: string[];
+} & {} & {
+  [Property in SpanBooleanFields as `${Property}`]: boolean;
 } & {
   ['project']: string;
   ['project.id']: number;
