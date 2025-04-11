@@ -21,9 +21,9 @@ import {
   useFetchGroupSearchViews,
 } from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {
-  type GroupSearchView,
   GroupSearchViewCreatedBy,
   GroupSearchViewSort,
+  type StarredGroupSearchView,
 } from 'sentry/views/issueList/types';
 
 type IssueViewSectionProps = {
@@ -73,14 +73,14 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
 
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
     onMutate: variables => {
-      setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
+      setApiQueryData<StarredGroupSearchView[]>(queryClient, tableQueryKey, data => {
         return data?.map(view =>
           view.id === variables.id ? {...view, starred: variables.starred} : view
         );
       });
     },
     onError: (_error, variables) => {
-      setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
+      setApiQueryData<StarredGroupSearchView[]>(queryClient, tableQueryKey, data => {
         return data?.map(view =>
           view.id === variables.id ? {...view, starred: !variables.starred} : view
         );
