@@ -96,7 +96,7 @@ export function PagePerformanceTable() {
     subregions,
   });
 
-  const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
+  const tableData = data.map(row => ({
     ...row,
     opportunity: (row.opportunity ?? 0) * 100,
   }));
