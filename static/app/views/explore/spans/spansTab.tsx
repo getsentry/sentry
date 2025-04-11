@@ -307,7 +307,7 @@ export function SpansTabContentImpl({
           description={t(
             'Get your top results here. IDs will link you straight to a waterfall for debugging and aggregates will narrow samples down even further.'
           )}
-          position="left"
+          position="top"
           margin={-8}
         >
           <MainContent>

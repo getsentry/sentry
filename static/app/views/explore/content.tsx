@@ -202,7 +202,7 @@ function ActionsButton({organization}: ActionsButtonProps) {
         <StyledDropdownButton
           {...triggerProps}
           size="sm"
-          aria-label={t('Manage issue experience')}
+          aria-label={t('See Explore Spans Actions')}
         >
           <IconMegaphone />
         </StyledDropdownButton>
