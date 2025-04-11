@@ -20,10 +20,10 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {ReleaseDrawerTable} from './releasesDrawerTable';
 
 interface ReleasesDrawerListProps {
-  endTs: number;
+  end: Date;
   environments: readonly string[];
   projects: readonly number[];
-  startTs: number;
+  start: Date;
 }
 
 type MarkLineDataCallbackFn = (item: SeriesDataUnit) => boolean;
@@ -80,19 +80,17 @@ const unhighlightMarkLines = createMarkLineUpdater({});
  * Allows users to view releases of a specific timebucket.
  */
 export function ReleasesDrawerList({
-  startTs,
-  endTs,
+  start,
+  end,
   projects,
   environments,
 }: ReleasesDrawerListProps) {
-  const start = new Date(startTs);
-  const end = new Date(endTs);
   const pageFilters = usePageFilters();
   const {releases} = useReleaseStats({
     ...pageFilters.selection,
     datetime: {
-      start: startTs ? new Date(startTs).toISOString() : null,
-      end: endTs ? new Date(endTs).toISOString() : null,
+      start,
+      end,
     },
   });
   const chartRef = useRef<ReactEchartsRef | null>(null);
@@ -140,8 +138,8 @@ export function ReleasesDrawerList({
         <ReleaseDrawerTable
           projects={projects}
           environments={environments}
-          start={start.toISOString()}
-          end={end.toISOString()}
+          start={start}
+          end={end}
           onMouseOverRelease={handleMouseOverRelease}
           onMouseOutRelease={handleMouseOutRelease}
         />

@@ -434,9 +434,9 @@ export function useReleaseBubbles({
         navigate({
           query: {
             ...location.query,
-            showReleasesDrawer: 1,
-            rdStart: data.start,
-            rdEnd: data.end,
+            rd: 'show',
+            rdStart: new Date(data.start).toISOString(),
+            rdEnd: new Date(data.end).toISOString(),
             rdProject: projects ?? selection.projects,
             rdEnv: environments ?? selection.environments,
           },
