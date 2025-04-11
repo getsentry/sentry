@@ -13,6 +13,7 @@ import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/us
 import {IconClose, IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -61,11 +62,17 @@ export function FeatureFlagCTAContent({
   );
 }
 
-export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
+export default function FeatureFlagInlineCTA({
+  projectId,
+  projectPlatform,
+}: {
+  projectId: string;
+  projectPlatform?: PlatformKey;
+}) {
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
 
-  const {activateSidebar} = useFeatureFlagOnboarding();
+  const {activateSidebar} = useFeatureFlagOnboarding({projectPlatform});
 
   const {isLoading, isError, isPromptDismissed, dismissPrompt, snoozePrompt} = usePrompt({
     feature: 'issue_feature_flags_inline_onboarding',

@@ -144,7 +144,7 @@ export default function FlagDrawerContent({
       onRetry={refetch}
     />
   ) : showCTA ? (
-    <FlagDrawerCTA />
+    <FlagDrawerCTA projectPlatform={project.platform} />
   ) : data.length === 0 ? (
     <StyledEmptyStateWarning withIcon>
       {t('No feature flags were found for this issue')}
