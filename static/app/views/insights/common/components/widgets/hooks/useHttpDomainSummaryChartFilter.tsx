@@ -4,7 +4,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {BASE_FILTERS} from 'sentry/views/insights/http/settings';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
-export function useHttpDomainSummaryFilter() {
+export function useHttpDomainSummaryChartFilter() {
   const {domain, [SpanMetricsField.USER_GEO_SUBREGION]: subregions} = useLocationQuery({
     fields: {
       domain: decodeScalar,

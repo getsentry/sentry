@@ -18,7 +18,7 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {useHttpDomainSummaryFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpDomainSummaryFilter';
+import {useHttpDomainSummaryChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpDomainSummaryChartFilter';
 import HttpDomainSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget';
 import HttpDomainSummaryResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryResponseCodesChartWidget';
 import HttpDomainSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryThroughputChartWidget';
@@ -54,7 +54,7 @@ import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
 export function HTTPDomainSummaryPage() {
   const {projects} = useProjects();
   const {view} = useDomainViewFilters();
-  const filters = useHttpDomainSummaryFilter();
+  const filters = useHttpDomainSummaryChartFilter();
 
   const {
     domain,

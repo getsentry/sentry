@@ -1,13 +1,13 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import {useHttpDomainSummaryFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpDomainSummaryFilter';
+import {useHttpDomainSummaryChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpDomainSummaryChartFilter';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {Referrer} from 'sentry/views/insights/http/referrers';
 import {FIELD_ALIASES} from 'sentry/views/insights/http/settings';
 
 export default function HttpDomainSummaryResponseCodesWidget() {
-  const chartFilters = useHttpDomainSummaryFilter();
+  const chartFilters = useHttpDomainSummaryChartFilter();
   const {
     isPending: isResponseCodeDataLoading,
     data: responseCodeData,
