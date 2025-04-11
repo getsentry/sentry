@@ -1,14 +1,14 @@
 import {useEffect} from 'react';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
-import type {DateSelectorProps} from 'sentry/components/codecov/dateSelector';
-import {DateSelector} from 'sentry/components/codecov/dateSelector';
+import type {DateSelectorProps} from 'sentry/components/codecov/datePicker/dateSelector';
+import {DateSelector} from 'sentry/components/codecov/datePicker/dateSelector';
 import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 
-import {isValidCodecovRelativePeriod} from './utils';
+import {isValidCodecovRelativePeriod} from '../utils';
 
 const CODECOV_DEFAULT_RELATIVE_PERIOD = '24h';
 export const CODECOV_DEFAULT_RELATIVE_PERIODS = {
@@ -32,7 +32,7 @@ export function DatePicker({
   const desynced = desyncedFilters.has('datetime');
   const period = selection.datetime?.period;
 
-  // Adjusts to valid Codecov relative period
+  // Adjusts to valid Codecov relative period since Codecov only accepts a subset of dates other components accept, defined in CODECOV_DEFAULT_RELATIVE_PERIODS
   useEffect(() => {
     if (!isValidCodecovRelativePeriod(period)) {
       const newTimePeriod = {period: CODECOV_DEFAULT_RELATIVE_PERIOD};
