@@ -9,6 +9,7 @@ import {Button, LinkButton} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
+import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -49,8 +50,6 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-
-import {OpsDot} from '../../opsBreakdown';
 
 import {SpanEntryContext} from './context';
 import {GapSpanDetails} from './gapSpanDetails';
@@ -368,8 +367,8 @@ function SpanDetail(props: Props) {
   }
 
   function partitionSizes(data: any): {
-    nonSizeKeys: {[key: string]: unknown};
-    sizeKeys: {[key: string]: number};
+    nonSizeKeys: Record<string, unknown>;
+    sizeKeys: Record<string, number>;
   } {
     const sizeKeys = SIZE_DATA_KEYS.reduce(
       (keys, key) => {
@@ -710,7 +709,7 @@ export function Row({
 }
 
 export function Tags({span}: {span: RawSpanType}) {
-  const tags: {[tag_name: string]: string} | undefined = span?.tags;
+  const tags: Record<string, string> | undefined = span?.tags;
 
   if (!tags) {
     return null;

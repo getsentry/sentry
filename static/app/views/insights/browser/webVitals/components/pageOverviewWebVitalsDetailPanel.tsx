@@ -151,7 +151,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const webVitalData: LineChartSeries = {
     data:
       !isTimeseriesLoading && webVital
-        ? timeseriesData?.[webVital].map(({name, value}) => ({
+        ? timeseriesData?.[`p75(measurements.${webVital})`].data.map(({name, value}) => ({
             name,
             value,
           }))
@@ -160,9 +160,7 @@ export function PageOverviewWebVitalsDetailPanel({
   };
 
   const getProjectSlug = (row: TransactionSampleRowWithScore): string => {
-    return project && !Array.isArray(location.query.project)
-      ? project.slug
-      : row.projectSlug;
+    return project && !Array.isArray(location.query.project) ? project.slug : row.project;
   };
 
   const renderHeadCell = (col: Column) => {
@@ -479,7 +477,7 @@ export function PageOverviewWebVitalsDetailPanel({
             />
           ) : (
             <GridEditable
-              data={transactionsTableData}
+              data={transactionsTableData as any as TransactionSampleRowWithScore[]} // TODO: fix typing
               isLoading={isTransactionWebVitalsQueryLoading}
               columnOrder={PAGELOADS_COLUMN_ORDER}
               columnSortBy={[sort]}

@@ -33,7 +33,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import * as useOrganization from 'sentry/utils/useOrganization';
 
 import {FREE_EVENTS_KEYS} from 'admin/components/addGiftEventsAction';
 import type {StatsGroup} from 'admin/components/customers/customerStats';
@@ -598,10 +597,6 @@ function setUpMocks(
   organization: Organization,
   subscription?: Partial<MockSubscription>
 ) {
-  // We mock the useOrganization hook here instead on the top level because we call renderMocks explicitly with different orgs
-  // TODO(ogi): find a better way to do this
-  jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
-
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/`,
     body: organization,
@@ -1116,9 +1111,7 @@ describe('Customer Details', function () {
         route={{}}
         params={{orgId: organization.slug}}
       />,
-      {
-        router,
-      }
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -1136,9 +1129,7 @@ describe('Customer Details', function () {
         route={{}}
         params={{orgId: organization.slug}}
       />,
-      {
-        router,
-      }
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -1149,16 +1140,22 @@ describe('Customer Details', function () {
       })[1]!
     );
 
-    expect(screen.getByText('Start Trial')).toBeInTheDocument();
-    expect(screen.getByText('Convert to Sponsored')).toBeInTheDocument();
-    expect(screen.getByText('Gift errors')).toBeInTheDocument();
-    expect(screen.getByText('Gift transactions')).toBeInTheDocument();
-    expect(screen.getByText('Gift attachments')).toBeInTheDocument();
-    expect(screen.getByText('Change Plan')).toBeInTheDocument();
-    expect(screen.getByText('Start Enterprise Trial')).toBeInTheDocument();
-    expect(screen.getByText('Change Google Domain')).toBeInTheDocument();
-    expect(screen.getByText('Suspend Account')).toBeInTheDocument();
-    expect(screen.getByText('Add Legacy Soft Cap')).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Start Trial/})).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: /Convert to Sponsored/})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Gift errors/})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Gift transactions/})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Gift attachments/})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Change Plan/})).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: /Start Enterprise Trial/})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: /Change Google Domain/})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Suspend Account/})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Add Legacy Soft Cap/})).toBeInTheDocument();
   });
 
   it('renders and hides generic confirmation modals', async function () {
@@ -1171,7 +1168,8 @@ describe('Customer Details', function () {
         routeParams={router.params}
         route={{}}
         params={{orgId: organization.slug}}
-      />
+      />,
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -1219,7 +1217,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1254,7 +1253,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: softCapOrg.slug}}
-        />
+        />,
+        {organization: softCapOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1280,7 +1280,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: softCapOrg.slug}}
-        />
+        />,
+        {organization: softCapOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1312,7 +1313,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: softCapOrg.slug}}
-        />
+        />,
+        {organization: softCapOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1360,7 +1362,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: softCapOrg.slug}}
-        />
+        />,
+        {organization: softCapOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1415,7 +1418,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: softCapOrg.slug}}
-        />
+        />,
+        {organization: softCapOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1445,7 +1449,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: softCapOrg.slug}}
-        />
+        />,
+        {organization: softCapOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1481,7 +1486,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: softCapOrg.slug}}
-        />
+        />,
+        {organization: softCapOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1532,7 +1538,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: noNotificationsOrg.slug}}
-        />
+        />,
+        {organization: noNotificationsOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1577,7 +1584,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: pendingChangesOrg.slug}}
-        />
+        />,
+        {organization: pendingChangesOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1602,7 +1610,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1631,7 +1640,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: cannotTrialOrg.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1642,7 +1652,7 @@ describe('Customer Details', function () {
         })[1]!
       );
 
-      expect(screen.getByText('Allow Trial')).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: /Allow Trial/})).toBeInTheDocument();
     });
 
     it('hides Allow Trial in the dropdown when not eligible', async function () {
@@ -1656,7 +1666,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1667,7 +1678,7 @@ describe('Customer Details', function () {
         })[1]!
       );
 
-      expect(screen.queryByText('Allow Trial')).not.toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: /Allow Trial/})).not.toBeInTheDocument();
     });
 
     it('hides Allow Trial in the dropdown when on active trial', async function () {
@@ -1681,7 +1692,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1692,7 +1704,7 @@ describe('Customer Details', function () {
         })[1]!
       );
 
-      expect(screen.queryByText('Allow Trial')).not.toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: /Allow Trial/})).not.toBeInTheDocument();
     });
 
     it('allows an org to trial', async function () {
@@ -1712,7 +1724,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: cannotTrialOrg.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1725,7 +1738,7 @@ describe('Customer Details', function () {
 
       renderGlobalModal();
 
-      await userEvent.click(screen.getByText('Allow Trial'));
+      await userEvent.click(screen.getByRole('option', {name: /Allow Trial/}));
 
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
@@ -1757,7 +1770,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: gracePeriodOrg.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1782,7 +1796,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1824,7 +1839,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: gracePeriodOrg.slug}}
-        />
+        />,
+        {organization: gracePeriodOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1875,7 +1891,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: terminateOrg.slug}}
-        />
+        />,
+        {organization: terminateOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1921,7 +1938,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: terminateOrg.slug}}
-        />
+        />,
+        {organization: terminateOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -1965,7 +1983,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: terminateOrg.slug}}
-        />
+        />,
+        {organization: terminateOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2013,7 +2032,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2077,7 +2097,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2157,7 +2178,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2236,7 +2258,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2312,7 +2335,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2354,7 +2378,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2430,7 +2455,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2511,7 +2537,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: cancelSubOrg.slug}}
-        />
+        />,
+        {organization: cancelSubOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2588,7 +2615,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       renderGlobalModal();
@@ -2642,7 +2670,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       renderGlobalModal();
@@ -2686,7 +2715,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2723,7 +2753,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: trialOrg.slug}}
-        />
+        />,
+        {organization: trialOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2764,7 +2795,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2816,7 +2848,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: onDemandInvoicedOrg.slug}}
-        />
+        />,
+        {organization: onDemandInvoicedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2854,7 +2887,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: onDemandInvoicedOrg.slug}}
-        />
+        />,
+        {organization: onDemandInvoicedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2892,7 +2926,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: onDemandInvoicedOrg.slug}}
-        />
+        />,
+        {organization: onDemandInvoicedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2935,7 +2970,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: invoicedOrg.slug}}
-        />
+        />,
+        {organization: invoicedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -2994,7 +3030,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: onDemandInvoicedOrg.slug}}
-        />
+        />,
+        {organization: onDemandInvoicedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3043,7 +3080,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3112,7 +3150,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3164,7 +3203,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3194,7 +3234,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3232,7 +3273,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3291,7 +3333,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3354,7 +3397,8 @@ describe('Customer Details', function () {
         routeParams={router.params}
         route={{}}
         params={{orgId: organization.slug}}
-      />
+      />,
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -3414,7 +3458,8 @@ describe('Customer Details', function () {
         routeParams={router.params}
         route={{}}
         params={{orgId: organization.slug}}
-      />
+      />,
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -3473,7 +3518,8 @@ describe('Customer Details', function () {
         routeParams={router.params}
         route={{}}
         params={{orgId: organization.slug}}
-      />
+      />,
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -3501,7 +3547,8 @@ describe('Customer Details', function () {
         routeParams={router.params}
         route={{}}
         params={{orgId: organization.slug}}
-      />
+      />,
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -3531,7 +3578,8 @@ describe('Customer Details', function () {
         routeParams={router.params}
         route={{}}
         params={{orgId: organization.slug}}
-      />
+      />,
+      {organization}
     );
 
     await screen.findByRole('heading', {name: 'Customers'});
@@ -3601,7 +3649,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: invoicedOrg.slug}}
-        />
+        />,
+        {organization: invoicedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3630,7 +3679,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: invoicedOrg.slug}}
-        />
+        />,
+        {organization: invoicedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3665,7 +3715,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: suspendedOrg.slug}}
-        />
+        />,
+        {organization: suspendedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3696,7 +3747,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: suspendedOrg.slug}}
-        />
+        />,
+        {organization: suspendedOrg}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3743,7 +3795,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3803,7 +3856,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3830,7 +3884,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3863,7 +3918,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: organization.slug}}
-        />
+        />,
+        {organization}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3927,7 +3983,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: orgWithDeleteFeature.slug}}
-        />
+        />,
+        {organization: orgWithDeleteFeature}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3957,7 +4014,8 @@ describe('Customer Details', function () {
           routeParams={router.params}
           route={{}}
           params={{orgId: orgWithoutDeleteFeature.slug}}
-        />
+        />,
+        {organization: orgWithoutDeleteFeature}
       );
 
       await screen.findByRole('heading', {name: 'Customers'});

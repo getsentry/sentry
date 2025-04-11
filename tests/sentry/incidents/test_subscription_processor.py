@@ -3845,7 +3845,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
         assert data_packet_list[0].source_id == str(self.sub.id)
-        assert data_packet_list[0].packet["values"] == {"data": [{"some_col_name": 10}]}
+        assert data_packet_list[0].packet["values"] == {"value": 10}
 
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):

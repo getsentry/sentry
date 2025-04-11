@@ -8,7 +8,11 @@ from rest_framework.response import Response
 from sentry import features, options, search
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases import (
+    NoProjects,
+    OrganizationEventsEndpointBase,
+    OrganizationEventsV2EndpointBase,
+)
 from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
@@ -167,7 +171,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
 
 
 @region_silo_endpoint
-class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
+class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -180,16 +184,26 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
             return Response({})
 
         use_rpc = request.GET.get("useRpc", "0") == "1"
+        orderby = self.get_orderby(request) or ["timestamp"]
 
         if use_rpc:
-            samples_res = get_eap_span_samples(request, snuba_params)
+            result = get_eap_span_samples(request, snuba_params, orderby)
         else:
-            samples_res = get_span_samples(request, snuba_params)
+            result = get_span_samples(request, snuba_params, orderby)
 
-        return Response({"data": samples_res["data"], "meta": samples_res["meta"]})
+        return Response(
+            self.handle_results_with_meta(
+                request,
+                organization,
+                snuba_params.project_ids,
+                {"data": result["data"], "meta": result["meta"]},
+                True,
+                spans_indexed,
+            )
+        )
 
 
-def get_span_samples(request: Request, snuba_params: SnubaParams):
+def get_span_samples(request: Request, snuba_params: SnubaParams, orderby: list[str] | None):
     is_frontend = is_frontend_request(request)
     buckets = request.GET.get("intervals", 3)
     lower_bound = request.GET.get("lowerBound", 0)
@@ -259,16 +273,17 @@ def get_span_samples(request: Request, snuba_params: SnubaParams):
 
     return spans_indexed.query(
         selected_columns=selected_columns,
-        orderby=["timestamp"],
+        orderby=orderby,
         snuba_params=snuba_params,
         query=query,
         limit=9,
         referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
         query_source=(QuerySource.FRONTEND if is_frontend else QuerySource.API),
+        transform_alias_to_input_format=True,
     )
 
 
-def get_eap_span_samples(request: Request, snuba_params: SnubaParams):
+def get_eap_span_samples(request: Request, snuba_params: SnubaParams, orderby: list[str] | None):
     lower_bound = request.GET.get("lowerBound", 0)
     first_bound = request.GET.get("firstBound")
     second_bound = request.GET.get("secondBound")
@@ -331,7 +346,7 @@ def get_eap_span_samples(request: Request, snuba_params: SnubaParams):
         limit=9,
         sampling_mode=None,
         query_string=samples_query_string,
-        orderby=["timestamp"],
+        orderby=orderby,
         referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
         selected_columns=selected_columns,
     )

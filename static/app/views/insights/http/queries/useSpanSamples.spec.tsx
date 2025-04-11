@@ -6,12 +6,14 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
 import {SpanIndexedField, type SpanIndexedProperty} from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/utils/useLocation');
 
 describe('useSpanSamples', () => {
   const organization = OrganizationFixture();
@@ -39,6 +41,16 @@ describe('useSpanSamples', () => {
       environments: ['prod'],
       projects: [],
     },
+  });
+
+  jest.mocked(useLocation).mockReturnValue({
+    query: {},
+    action: 'PUSH',
+    pathname: '',
+    hash: '',
+    key: '',
+    search: '',
+    state: undefined,
   });
 
   beforeEach(() => {

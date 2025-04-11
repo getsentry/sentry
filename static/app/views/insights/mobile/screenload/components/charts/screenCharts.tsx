@@ -119,11 +119,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     Sentry.captureException(new Error('Screen summary missing releases'));
   }, [primaryRelease, isReleasesLoading]);
 
-  const transformedReleaseSeries: {
-    [yAxisName: string]: {
-      [releaseVersion: string]: Series;
-    };
-  } = {};
+  const transformedReleaseSeries: Record<string, Record<string, Series>> = {};
   yAxes.forEach(val => {
     transformedReleaseSeries[YAXIS_COLUMNS[val]] = {};
   });

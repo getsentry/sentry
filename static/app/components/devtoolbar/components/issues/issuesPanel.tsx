@@ -1,17 +1,20 @@
 import {useEffect, useState} from 'react';
 
+import InfiniteListItems from 'sentry/components/devtoolbar/components/infiniteListItems';
+import InfiniteListState from 'sentry/components/devtoolbar/components/infiniteListState';
 import IssueListItem from 'sentry/components/devtoolbar/components/issueListItem';
+import PanelLayout from 'sentry/components/devtoolbar/components/panelLayout';
+import transactionToSearchTerm from 'sentry/components/devtoolbar/components/transactionToSearchTerm';
 import {useScopeAndClient} from 'sentry/components/devtoolbar/hooks/useSentryClientAndScope';
+import {listItemPlaceholderWrapperCss} from 'sentry/components/devtoolbar/styles/listItem';
+import {
+  panelDescCss,
+  panelInsetContentCss,
+  panelSectionCss,
+} from 'sentry/components/devtoolbar/styles/panel';
+import {resetFlexColumnCss} from 'sentry/components/devtoolbar/styles/reset';
+import {smallCss} from 'sentry/components/devtoolbar/styles/typography';
 import Placeholder from 'sentry/components/placeholder';
-
-import {listItemPlaceholderWrapperCss} from '../../styles/listItem';
-import {panelDescCss, panelInsetContentCss, panelSectionCss} from '../../styles/panel';
-import {resetFlexColumnCss} from '../../styles/reset';
-import {smallCss} from '../../styles/typography';
-import InfiniteListItems from '../infiniteListItems';
-import InfiniteListState from '../infiniteListState';
-import PanelLayout from '../panelLayout';
-import transactionToSearchTerm from '../transactionToSearchTerm';
 
 import useInfiniteIssuesList from './useInfiniteIssuesList';
 

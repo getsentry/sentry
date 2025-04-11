@@ -190,7 +190,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         return current_value > value
 
     def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: dict[datetime, int]
+        self, activity: ConditionActivity, buckets: dict[datetime, int | float]
     ) -> bool:
         interval, value = self._get_options()
         if not (interval and value is not None):
@@ -221,7 +221,9 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def get_preview_aggregate(self) -> tuple[str, str]:
         raise NotImplementedError
 
-    def query(self, event: GroupEvent, start: datetime, end: datetime, environment_id: int) -> int:
+    def query(
+        self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
+    ) -> int | float:
         """
         Queries Snuba for a unique condition for a single group.
         """
@@ -229,7 +231,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
-    ) -> int:
+    ) -> int | float:
         """
         Abstract method that specifies how to query Snuba for a single group
         depending on the condition. Must be implemented by subclasses.
@@ -238,7 +240,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
     def batch_query(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
-    ) -> dict[int, int]:
+    ) -> dict[int, int | float]:
         """
         Queries Snuba for a unique condition for multiple groups.
         """
@@ -246,7 +248,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
-    ) -> dict[int, int]:
+    ) -> dict[int, int | float]:
         """
         Abstract method that specifies how to query Snuba for multiple groups
         depending on the condition. Must be implemented by subclasses.
@@ -279,7 +281,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         event: GroupEvent,
         environment_id: int,
         comparison_type: str,
-    ) -> int:
+    ) -> int | float:
         current_time = timezone.now()
         start, end = self.get_query_window(end=current_time, duration=duration)
         with self.disable_consistent_snuba_mode(duration):
@@ -302,7 +304,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         environment_id: int,
         current_time: datetime,
         comparison_interval: timedelta | None,
-    ) -> dict[int, int]:
+    ) -> dict[int, int | float]:
         """
         Make a batch query for multiple groups. The return value is a dictionary
         of group_id to the result for that group.
@@ -434,8 +436,8 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
 
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
-    ) -> dict[int, int]:
-        batch_sums: dict[int, int] = defaultdict(int)
+    ) -> dict[int, int | float]:
+        batch_sums: dict[int, int | float] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
         )
@@ -497,8 +499,8 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
 
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
-    ) -> dict[int, int]:
-        batch_totals: dict[int, int] = defaultdict(int)
+    ) -> dict[int, int | float]:
+        batch_totals: dict[int, int | float] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
         )
@@ -583,7 +585,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
 
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
-    ) -> dict[int, int]:
+    ) -> dict[int, int | float]:
         logger = logging.getLogger(
             "sentry.rules.event_frequency.EventUniqueUserFrequencyConditionWithConditions"
         )
@@ -609,7 +611,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
             raise NotImplementedError(
                 "EventUniqueUserFrequencyConditionWithConditions does not support filter_match == any"
             )
-        batch_totals: dict[int, int] = defaultdict(int)
+        batch_totals: dict[int, int | float] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
         )
@@ -723,7 +725,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
 
     @staticmethod
     def convert_rule_condition_to_snuba_condition(
-        condition: dict[str, Any]
+        condition: dict[str, Any],
     ) -> tuple[str, str, str | list[str]] | None:
         if condition["id"] != "sentry.rules.filters.tagged_event.TaggedEventFilter":
             return None
@@ -863,7 +865,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
 
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
-    ) -> int:
+    ) -> float:
         project_id = event.project_id
         session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
         avg_sessions_in_interval = self.get_session_interval(
@@ -892,14 +894,14 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                         "avg_sessions_in_interval": avg_sessions_in_interval,
                     },
                 )
-            percent: int = int(100 * round(issue_count / avg_sessions_in_interval, 4))
+            percent: float = 100 * round(issue_count / avg_sessions_in_interval, 4)
             return percent
 
         return 0
 
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
-    ) -> dict[int, int]:
+    ) -> dict[int, int | float]:
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
         )
@@ -933,19 +935,18 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             referrer_suffix="batch_alert_event_frequency_percent",
         )
 
-        batch_percents: dict[int, int] = {}
+        batch_percents: dict[int, int | float] = {}
         for group_id, count in error_issue_count.items():
-            percent: int = int(100 * round(count / avg_sessions_in_interval, 4))
+            percent: float = 100 * round(count / avg_sessions_in_interval, 4)
             batch_percents[group_id] = percent
 
         # We do not have sessions for non-error issue types
         for group in generic_issue_ids:
             batch_percents[group] = 0
-
         return batch_percents
 
     def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: dict[datetime, int]
+        self, activity: ConditionActivity, buckets: dict[datetime, int | float]
     ) -> bool:
         raise NotImplementedError
 
@@ -953,14 +954,16 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         return EventFrequencyPercentForm(self.data)
 
 
-def bucket_count(start: datetime, end: datetime, buckets: dict[datetime, int]) -> int:
+def bucket_count(
+    start: datetime, end: datetime, buckets: dict[datetime, int | float]
+) -> int | float:
     rounded_end = round_to_five_minute(end)
     rounded_start = round_to_five_minute(start)
     count = buckets.get(rounded_end, 0) - buckets.get(rounded_start, 0)
     return count
 
 
-def percent_increase(result: int, comparison_result: int) -> int:
+def percent_increase(result: int | float, comparison_result: int | float) -> int:
     return (
         int(max(0, ((result - comparison_result) / comparison_result * 100)))
         if comparison_result > 0

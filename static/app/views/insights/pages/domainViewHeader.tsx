@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Key} from '@react-types/shared';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -13,17 +13,17 @@ import {extractSelectionParameters} from 'sentry/components/organizations/pageFi
 import {TabList} from 'sentry/components/tabs';
 import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness, IconLab} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {useIsLaravelInsightsEnabled} from 'sentry/views/insights/pages/backend/laravel/features';
+import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/backend/laravel/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   isModuleConsideredNew,
@@ -63,8 +63,8 @@ export function DomainViewHeader({
   const location = useLocation();
   const navigate = useNavigate();
   const moduleURLBuilder = useModuleURLBuilder();
-  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
-  const useEap = location.query?.useEap === '1';
+  const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
+  const useEap = useInsightsEap();
   const hasEapFlag = organization.features.includes('insights-modules-use-eap');
 
   const toggleUseEap = () => {
@@ -136,7 +136,7 @@ export function DomainViewHeader({
             ) : (
               <FeedbackWidgetButton
                 optionOverrides={
-                  isLaravelInsightsEnabled
+                  isLaravelInsightsAvailable
                     ? {
                         tags: {
                           ['feedback.source']: 'laravel-insights',
@@ -200,7 +200,7 @@ function TabLabel({moduleName}: TabLabelProps) {
     return (
       <TabContainer>
         {moduleTitles[moduleName]}
-        {isModuleConsideredNew(moduleName) && <Badge type="new">{t('New')}</Badge>}
+        {isModuleConsideredNew(moduleName) && <FeatureBadge type="new" />}
         {showBusinessIcon && <IconBusiness />}
       </TabContainer>
     );

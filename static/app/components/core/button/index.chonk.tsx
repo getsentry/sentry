@@ -150,7 +150,7 @@ export function getChonkButtonStyles(
             },
           },
 
-          '&:active': {
+          '&:active, &[aria-expanded="true"]': {
             '&::after': {
               transform: 'translateY(0px)',
             },
@@ -192,7 +192,7 @@ export function getChonkButtonStyles(
           }),
         }),
 
-    // Borderdless buttons are not chonky
+    // Borderless buttons are not chonky
     ...((p.borderless || type === 'transparent' || type === 'link') && {
       border: 'none',
 

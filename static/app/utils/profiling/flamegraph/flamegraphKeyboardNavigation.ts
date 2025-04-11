@@ -1,4 +1,4 @@
-import type {FlamegraphFrame} from '../flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 export type DirectionX = 'left' | 'right';
 export type DirectionY = 'up' | 'down';

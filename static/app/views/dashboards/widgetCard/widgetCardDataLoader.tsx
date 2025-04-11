@@ -7,10 +7,9 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
 import SpansWidgetQueries from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
-
-import type {DashboardFilters, Widget} from '../types';
-import {WidgetType} from '../types';
 
 import IssueWidgetQueries from './issueWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
@@ -35,6 +34,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   dashboardFilters?: DashboardFilters;
+  onDataFetchStart?: () => void;
   onDataFetched?: (
     results: Pick<
       Results,
@@ -59,6 +59,7 @@ export function WidgetCardDataLoader({
   tableItemLimit,
   onDataFetched,
   onWidgetSplitDecision,
+  onDataFetchStart,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
@@ -110,6 +111,7 @@ export function WidgetCardDataLoader({
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
+        onDataFetchStart={onDataFetchStart}
       >
         {props => <Fragment>{children({...props})}</Fragment>}
       </SpansWidgetQueries>

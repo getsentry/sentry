@@ -1,11 +1,71 @@
 from django.urls import reverse
+from django.utils import timezone
 
-from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
+from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
-from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import assume_test_silo_mode
 from tests.sentry.issues.endpoints.test_organization_group_search_views import BaseGSVTestCase
+
+
+class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
+    endpoint = "sentry-api-0-organization-group-search-view-details"
+    method = "get"
+
+    def setUp(self) -> None:
+        self.login_as(user=self.user)
+        self.base_data = self.create_base_data()
+
+        # Get the first view's ID for testing
+        self.view_id = str(self.base_data["user_one_views"][0].id)
+
+        self.url = reverse(
+            "sentry-api-0-organization-group-search-view-details",
+            kwargs={"organization_id_or_slug": self.organization.slug, "view_id": self.view_id},
+        )
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_get_view_success(self) -> None:
+        response = self.client.get(self.url)
+        assert response.status_code == 200
+
+        # Verify correct view was returned
+        view = GroupSearchView.objects.get(id=self.view_id)
+        assert response.data["id"] == self.view_id
+        assert response.data["name"] == view.name
+        assert response.data["query"] == view.query
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_get_nonexistent_view(self) -> None:
+        nonexistent_id = "37373"
+        url = reverse(
+            "sentry-api-0-organization-group-search-view-details",
+            kwargs={"organization_id_or_slug": self.organization.slug, "view_id": nonexistent_id},
+        )
+
+        response = self.client.get(url)
+        assert response.status_code == 404
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_get_view_from_another_user(self) -> None:
+        # Get a view ID from user_two
+        view_id = str(self.base_data["user_two_views"][0].id)
+        url = reverse(
+            "sentry-api-0-organization-group-search-view-details",
+            kwargs={"organization_id_or_slug": self.organization.slug, "view_id": view_id},
+        )
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+        view = GroupSearchView.objects.get(id=view_id)
+        assert response.data["id"] == view_id
+        assert response.data["name"] == view.name
+        assert response.data["query"] == view.query
+
+    def test_get_without_feature_flag(self) -> None:
+        response = self.client.get(self.url)
+        assert response.status_code == 404
 
 
 class OrganizationGroupSearchViewsDeleteTest(BaseGSVTestCase):
@@ -54,17 +114,38 @@ class OrganizationGroupSearchViewsDeleteTest(BaseGSVTestCase):
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_delete_view_from_another_user(self) -> None:
         # Get a view ID from user_two
-        view_id = str(self.base_data["user_two_views"][0].id)
+        self.login_as(user=self.user_2)
+        view_id = str(self.base_data["user_one_views"][0].id)
         url = reverse(
             "sentry-api-0-organization-group-search-view-details",
             kwargs={"organization_id_or_slug": self.organization.slug, "view_id": view_id},
         )
 
         response = self.client.delete(url)
-        assert response.status_code == 404
+        assert response.status_code == 403
 
         # Verify the view still exists (this will error out if not)
         GroupSearchView.objects.get(id=view_id)
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_admin_can_delete_view_from_another_user(self) -> None:
+        self.admin_user = self.create_user()
+        self.create_member(
+            user=self.admin_user,
+            organization=self.organization,
+            role="admin",
+        )
+        self.login_as(user=self.admin_user)
+        view_id = str(self.base_data["user_one_views"][0].id)
+        url = reverse(
+            "sentry-api-0-organization-group-search-view-details",
+            kwargs={"organization_id_or_slug": self.organization.slug, "view_id": view_id},
+        )
+
+        response = self.client.delete(url)
+        assert response.status_code == 204
+
+        assert not GroupSearchView.objects.filter(id=view_id).exists()
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_delete_first_starred_view_decrements_succeeding_positions(self) -> None:
@@ -121,6 +202,114 @@ class OrganizationGroupSearchViewsDeleteTest(BaseGSVTestCase):
         assert response.status_code == 404
 
         GroupSearchView.objects.get(id=self.view_id)
+
+
+class OrganizationGroupSearchViewsDeleteStarredAndLastVisitedTest(APITestCase):
+    endpoint = "sentry-api-0-organization-group-search-view-details"
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.user_1 = self.user
+        self.user_2 = self.create_user()
+        self.create_member(organization=self.organization, user=self.user_2)
+
+        self.user_1_view = GroupSearchView.objects.create(
+            organization=self.organization,
+            user_id=self.user_1.id,
+            name="User 1's View",
+            query="is:unresolved",
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=self.user_1.id,
+            group_search_view=self.user_1_view,
+            position=0,
+        )
+        GroupSearchViewLastVisited.objects.create(
+            organization=self.organization,
+            user_id=self.user_1.id,
+            group_search_view=self.user_1_view,
+            last_visited=timezone.now(),
+        )
+
+        self.user_2_view = GroupSearchView.objects.create(
+            organization=self.organization,
+            user_id=self.user_2.id,
+            name="User 2's View",
+            query="is:unresolved",
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
+        )
+
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=self.user_2.id,
+            group_search_view=self.user_1_view,
+            position=0,
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=self.user_2.id,
+            group_search_view=self.user_2_view,
+            position=1,
+        )
+
+        GroupSearchViewLastVisited.objects.create(
+            organization=self.organization,
+            user_id=self.user_2.id,
+            group_search_view=self.user_1_view,
+            last_visited=timezone.now(),
+        )
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_cannot_delete_other_users_view(self) -> None:
+        self.login_as(user=self.user_2)
+
+        response = self.client.delete(
+            reverse(
+                self.endpoint,
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "view_id": self.user_1_view.id,
+                },
+            )
+        )
+
+        assert response.status_code == 403
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_deleting_my_view_deletes_from_others_starred_views(self) -> None:
+        self.login_as(user=self.user_1)
+
+        response = self.client.delete(
+            reverse(
+                self.endpoint,
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "view_id": self.user_1_view.id,
+                },
+            )
+        )
+
+        assert response.status_code == 204
+        # User 2 starred User 1's view. After User 1 deletes the view, it should not be starred for anyone anymore
+        assert not GroupSearchViewStarred.objects.filter(
+            organization_id=self.organization.id, group_search_view=self.user_1_view
+        ).exists()
+        # User 2's other starred view should be moved up to position 0
+        assert (
+            GroupSearchViewStarred.objects.get(
+                organization_id=self.organization.id,
+                user_id=self.user_2.id,
+                group_search_view=self.user_2_view,
+            ).position
+            == 0
+        )
+        # All last visited entries should be deleted as well
+        assert not GroupSearchViewLastVisited.objects.filter(
+            organization_id=self.organization.id, group_search_view=self.user_1_view
+        ).exists()
 
 
 class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
@@ -209,65 +398,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         updated_view = GroupSearchView.objects.get(id=self.view_id)
         assert updated_view.is_all_projects is True
         assert updated_view.projects.count() == 0
-
-    @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_put_with_visibility(self) -> None:
-        # Make the user a team admin to set the view to organization visibility
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.user.update(is_staff=True)
-
-        data = {
-            "name": "Organization View",
-            "query": "is:unresolved",
-            "querySort": "date",
-            "projects": [self.project.id],
-            "environments": [],
-            "timeFilters": {"period": "14d"},
-            "visibility": "organization",
-        }
-
-        response = self.client.put(self.url, data=data)
-        assert response.status_code == 200
-
-        # Verify visibility was updated
-        updated_view = GroupSearchView.objects.get(id=self.view_id)
-        assert updated_view.visibility == "organization"
-
-    @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_put_visibility_without_permission(self) -> None:
-        user_without_permission = self.create_user()
-        self.create_member(organization=self.organization, user=user_without_permission)
-
-        self.login_as(user=user_without_permission)
-
-        member_view = GroupSearchView.objects.create(
-            organization=self.organization,
-            user_id=user_without_permission.id,
-            name="Personal View",
-            query="is:unresolved",
-            query_sort="date",
-        )
-
-        data = {
-            "name": "Organization View",
-            "query": "is:unresolved",
-            "querySort": "date",
-            "projects": [self.project.id],
-            "environments": [],
-            "timeFilters": {"period": "14d"},
-            "visibility": "organization",
-        }
-
-        url = reverse(
-            "sentry-api-0-organization-group-search-view-details",
-            kwargs={"organization_id_or_slug": self.organization.slug, "view_id": member_view.id},
-        )
-
-        response = self.client.put(url, data=data)
-        assert response.status_code == 400
-
-        member_view.refresh_from_db()
-        assert member_view.visibility == "owner"
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_put_nonexistent_view(self) -> None:

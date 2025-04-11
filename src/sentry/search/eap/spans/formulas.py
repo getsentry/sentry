@@ -171,7 +171,10 @@ def get_count_of_vital(vital: str, settings: ResolverSettings) -> float:
         ),
     )
 
-    return rpc_res["data"][0]["count"]
+    if len(rpc_res["data"]) > 0 and rpc_res["data"][0]["count"] is not None:
+        return rpc_res["data"][0]["count"]
+
+    return 0
 
 
 def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
@@ -277,7 +280,7 @@ def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> C
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(
-            conditional_aggregation=AttributeConditionalAggregation(
+            aggregation=AttributeAggregation(
                 aggregate=Function.FUNCTION_COUNT,
                 key=AttributeKey(
                     name="sentry.status_code",

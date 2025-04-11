@@ -42,21 +42,20 @@ import Tags from 'sentry/views/discover/tags';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
-import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
-import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
-import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
-import {
-  makeVitalGroups,
-  PERCENTILE as VITAL_PERCENTILE,
-} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
-
-import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../../utils';
 import Filter, {
   decodeFilterFromLocation,
   filterToField,
   filterToSearchConditions,
   SpanOperationBreakdownFilter,
-} from '../filter';
+} from 'sentry/views/performance/transactionSummary/filter';
+import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
+import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
+import {EAPSidebarCharts} from 'sentry/views/performance/transactionSummary/transactionOverview/eapSidebarCharts';
+import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {
+  makeVitalGroups,
+  PERCENTILE as VITAL_PERCENTILE,
+} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 import {
   generateProfileLink,
   generateReplayLink,
@@ -65,7 +64,11 @@ import {
   normalizeSearchConditions,
   SidebarSpacer,
   TransactionFilterOptions,
-} from '../utils';
+} from 'sentry/views/performance/transactionSummary/utils';
+import {
+  isSummaryViewFrontend,
+  isSummaryViewFrontendPageLoad,
+} from 'sentry/views/performance/utils';
 
 import TransactionSummaryCharts from './charts';
 import {PerformanceAtScaleContextProvider} from './performanceAtScaleContext';
@@ -97,8 +100,6 @@ function OTelSummaryContentInner({
   spanOperationBreakdownFilter,
   organization,
   projects,
-  isLoading,
-  error,
   projectId,
   transactionName,
 }: Props) {
@@ -125,15 +126,6 @@ function OTelSummaryContentInner({
     [location, navigate]
   );
 
-  function generateTagUrl(key: string, value: string) {
-    const query = generateQueryWithTag(location.query, {key: formatTagKey(key), value});
-
-    return {
-      ...location,
-      query,
-    };
-  }
-
   function handleTransactionsListSortChange(value: string) {
     const target = {
       pathname: location.pathname,
@@ -146,8 +138,6 @@ function OTelSummaryContentInner({
   const query = useMemo(() => {
     return decodeScalar(location.query.query, '');
   }, [location]);
-
-  const totalCount = totalValues === null ? null : totalValues['count()']!;
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.
@@ -315,16 +305,6 @@ function OTelSummaryContentInner({
         />
       </Layout.Main>
       <Layout.Side>
-        <UserStats
-          organization={organization}
-          location={location}
-          isLoading={isLoading}
-          hasWebVitals={hasWebVitals}
-          error={error}
-          totals={totalValues}
-          transactionName={transactionName}
-          eventView={eventView}
-        />
         {!isFrontendView && (
           <StatusBreakdown
             eventView={eventView}
@@ -333,22 +313,8 @@ function OTelSummaryContentInner({
           />
         )}
         <SidebarSpacer />
-        <SidebarCharts
-          organization={organization}
-          isLoading={isLoading}
-          error={error}
-          totals={totalValues}
-          eventView={eventView}
-          transactionName={transactionName}
-        />
+        <EAPSidebarCharts transactionName={transactionName} hasWebVitals={hasWebVitals} />
         <SidebarSpacer />
-        <Tags
-          generateUrl={generateTagUrl}
-          totalValues={totalCount}
-          eventView={eventView}
-          organization={organization}
-          location={location}
-        />
       </Layout.Side>
     </Fragment>
   );

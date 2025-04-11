@@ -1,13 +1,23 @@
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
+import {ExploreSavedQueryNavItems} from 'sentry/views/nav/secondary/sections/explore/exploreSavedQueryNavItems';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
+
+const MAX_STARRED_QUERIES_DISPLAYED = 20;
 
 export function ExploreSecondaryNav() {
   const organization = useOrganization();
+
   const baseUrl = `/organizations/${organization.slug}/explore`;
+
+  const {data: starredQueries} = useGetSavedQueries({
+    starred: true,
+    perPage: MAX_STARRED_QUERIES_DISPLAYED,
+  });
 
   return (
     <SecondaryNav>
@@ -60,12 +70,19 @@ export function ExploreSecondaryNav() {
           >
             {t('Releases')}
           </SecondaryNav.Item>
-          <Feature features="performance-saved-queries">
+        </SecondaryNav.Section>
+        <Feature features="performance-saved-queries">
+          <SecondaryNav.Section title={t('Starred Queries')}>
+            {starredQueries && starredQueries.length > 0 && (
+              <ExploreSavedQueryNavItems queries={starredQueries} />
+            )}
+          </SecondaryNav.Section>
+          <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/saved-queries/`}>
               {t('All Queries')}
             </SecondaryNav.Item>
-          </Feature>
-        </SecondaryNav.Section>
+          </SecondaryNav.Section>
+        </Feature>
       </SecondaryNav.Body>
     </SecondaryNav>
   );

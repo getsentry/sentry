@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
@@ -229,6 +230,15 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           </ButtonBarWrapper>
         )}
       </SeerDrawerNavigator>
+
+      {!aiConfig.isAutofixSetupLoading && !aiConfig.needsGenAIConsent && (
+        <SeerNotices
+          groupId={group.id}
+          hasGithubIntegration={aiConfig.hasGithubIntegration}
+          project={project}
+        />
+      )}
+
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
@@ -238,10 +248,6 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           <AiSetupDataConsent groupId={group.id} />
         ) : (
           <Fragment>
-            <SeerNotices
-              groupId={group.id}
-              hasGithubIntegration={aiConfig.hasGithubIntegration}
-            />
             {aiConfig.hasSummary && (
               <StyledCard>
                 <GroupSummary group={group} event={event} project={project} />
@@ -283,6 +289,10 @@ export const useOpenSeerDrawer = (
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
+      drawerCss: css`
+        height: fit-content;
+        max-height: 100%;
+      `,
       shouldCloseOnInteractOutside: element => {
         const viewAllButton = buttonRef?.current;
 

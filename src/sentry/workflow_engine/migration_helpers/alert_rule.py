@@ -26,6 +26,7 @@ from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,
     DataCondition,
+    DataConditionAlertRuleTrigger,
     DataConditionGroup,
     DataConditionGroupAction,
     DataSource,
@@ -288,7 +289,10 @@ def migrate_metric_data_conditions(
         type=threshold_type,
         condition_group=detector_data_condition_group,
     )
-
+    DataConditionAlertRuleTrigger.objects.create(
+        data_condition=detector_trigger,
+        alert_rule_trigger_id=alert_rule_trigger.id,
+    )
     # create an "action filter": if the detector's status matches a certain priority level,
     # then the condition result is set to true
     data_condition_group = DataConditionGroup.objects.create(

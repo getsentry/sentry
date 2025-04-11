@@ -211,10 +211,8 @@ type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
   ...infer Rest,
 ]
   ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
-    {[K in A['length']]: Rest extends [] ? never : Rest[0]} & NextTuple<
-      Rest,
-      [...A, unknown]
-    >
+    Record<A['length'], Rest extends [] ? never : Rest[0]> &
+      NextTuple<Rest, [...A, unknown]>
   : Record<number, unknown>;
 
 type NextMap = NextTuple<TupleOf<ColorLength>>;
@@ -798,7 +796,7 @@ const generateAliases = (
    * Color of lines that flow across the background of the chart to indicate axes levels
    * (This should only be used for yAxis)
    */
-  chartLineColor: colors.gray100,
+  chartLineColor: colors.gray300,
 
   /**
    * Color for chart label text
@@ -811,9 +809,9 @@ const generateAliases = (
   chartOther: tokens.content.muted,
 
   /**
-   * Color of the divider used in the content slider diff
+   * Hover color of the drag handle used in the content slider diff view.
    */
-  diffSliderDivider: colors.blue500,
+  diffSliderDragHandleHover: colors.blue500,
 
   /**
    * Default Progressbar color
@@ -1063,8 +1061,12 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   },
 
   sidebar: {
-    // @TODO: these colors need to be ported
-    ...lightTheme.sidebar,
+    background: lightAliases.background,
+    scrollbarThumbColor: '#A0A0A0',
+    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
+    gradient: lightAliases.background,
+    border: 'transparent',
+    superuser: '#880808',
   },
 };
 
@@ -1131,8 +1133,12 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   },
 
   sidebar: {
-    // @TODO: these colors need to be ported
-    ...darkTheme.sidebar,
+    background: lightAliases.background,
+    scrollbarThumbColor: '#A0A0A0',
+    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
+    gradient: `none`,
+    border: 'transparent',
+    superuser: '#880808',
   },
 };
 
