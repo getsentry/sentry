@@ -1,11 +1,11 @@
 type TableWidgetVisualizationProps<T> = {
+  columns: Array<TableWidgetColumn<T>>;
   data: T[];
-  columns: TableWidgetColumn<T>[];
 };
 
 type TableWidgetColumn<T> = {
   key: keyof T;
   name: string;
-  sortable?: boolean;
   align?: 'left' | 'center' | 'right';
+  sortable?: boolean;
 };
