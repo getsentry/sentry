@@ -13,6 +13,7 @@ export interface NewDetector {
   name: string;
   projectId: string;
   type: DetectorType;
+  workflowIds: string[];
 }
 
 export interface Detector extends Readonly<NewDetector> {
@@ -20,6 +21,4 @@ export interface Detector extends Readonly<NewDetector> {
   readonly dateUpdated: Date;
   readonly id: string;
   readonly lastTriggered: Date;
-
-  readonly workflowIds: string[];
 }
