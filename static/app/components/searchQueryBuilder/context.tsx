@@ -116,7 +116,8 @@ export function SearchQueryBuilderProvider({
     onSearch,
   });
   const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
-  const size = searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
+  const size =
+    searchBarWidth && searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
 
   const contextValue = useMemo((): SearchQueryBuilderContextData => {
     return {

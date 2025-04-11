@@ -18,7 +18,7 @@ import GridEditable, {
 import {GridHeadCellStatic} from 'sentry/components/gridEditable/styles';
 import Link from 'sentry/components/links/link';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
-import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconGlobe, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -115,7 +115,7 @@ export function SavedQueriesTable({
     if (col.key === 'query') {
       return (
         <FormattedQueryWrapper>
-          <FormattedQuery query={row.query[0].query} />
+          <ProvidedFormattedQuery query={row.query[0].query} />
         </FormattedQueryWrapper>
       );
     }

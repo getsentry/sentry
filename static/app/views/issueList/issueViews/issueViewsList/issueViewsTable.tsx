@@ -5,7 +5,7 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {getAbsoluteSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -134,7 +134,7 @@ export function IssueViewsTable({views, isPending, isError}: IssueViewsTableProp
             <ProjectsCellContent projects={view.projects} />
           </Cell>
           <Cell>
-            <FormattedQuery query={view.query} />
+            <ProvidedFormattedQuery query={view.query} />
           </Cell>
           <Cell>
             <EnvironmentsCellContent environments={view.environments} />
