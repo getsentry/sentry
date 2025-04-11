@@ -56,7 +56,6 @@ import {
   type IssueDetailsTour,
   IssueDetailsTourContext,
   ORDERED_ISSUE_DETAILS_TOUR,
-  useIssueDetailsTour,
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
@@ -666,7 +665,6 @@ function GroupDetailsContent({
   const {currentTab, baseUrl} = useGroupDetailsRoute();
 
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const {currentStepId} = useIssueDetailsTour();
 
   useEffect(() => {
     if (!hasStreamlinedUI || isDrawerOpen) {
@@ -704,18 +702,15 @@ function GroupDetailsContent({
   ].includes(currentTab);
 
   return hasStreamlinedUI ? (
-    <Fragment>
-      <GroupDetailsLayout group={group} event={event ?? undefined} project={project}>
-        {isDisplayingEventDetails ? (
-          // The router displays a loading indicator when switching to any of these tabs
-          // Avoid lazy loading spinner by force rendering the GroupEventDetails component
-          <GroupEventDetails />
-        ) : (
-          children
-        )}
-      </GroupDetailsLayout>
-      <div>{currentStepId}</div>
-    </Fragment>
+    <GroupDetailsLayout group={group} event={event ?? undefined} project={project}>
+      {isDisplayingEventDetails ? (
+        // The router displays a loading indicator when switching to any of these tabs
+        // Avoid lazy loading spinner by force rendering the GroupEventDetails component
+        <GroupEventDetails />
+      ) : (
+        children
+      )}
+    </GroupDetailsLayout>
   ) : (
     <Tabs
       value={currentTab}
