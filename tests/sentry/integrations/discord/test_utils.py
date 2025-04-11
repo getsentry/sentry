@@ -1,4 +1,4 @@
-from unittest import mock
+from unittest import TestCase, mock
 
 from cryptography.exceptions import InvalidSignature
 from django.core.exceptions import ValidationError
@@ -9,7 +9,6 @@ from sentry.integrations.discord.utils.auth import verify_signature
 from sentry.integrations.discord.utils.channel import ChannelType, validate_channel_id
 from sentry.integrations.discord.utils.channel_from_url import get_channel_id_from_url
 from sentry.shared_integrations.exceptions import ApiError, ApiTimeoutError, IntegrationError
-from sentry.testutils.cases import TestCase
 
 
 class AuthTest(TestCase):

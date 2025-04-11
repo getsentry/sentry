@@ -7,7 +7,6 @@ from typing import Any
 
 import pytest
 
-from sentry.testutils.cases import TestCase
 from sentry.utils.safe import (
     get_path,
     safe_execute,
@@ -63,7 +62,7 @@ class TrimTest(unittest.TestCase):
         assert trm(a) == {"a": {"b": {"c": "[]"}}}
 
 
-class SafeExecuteTest(TestCase):
+class SafeExecuteTest(unittest.TestCase):
     def test_with_nameless_function(self):
         assert safe_execute(lambda a: a, 1) == 1
         assert safe_execute(lambda: eval("a")) is None

@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 from unittest.mock import patch
 
 import pytest
@@ -12,7 +11,6 @@ from sentry.new_migrations.monkey.executor import (
     SentryMigrationExecutor,
     _check_bitfield_flags,
 )
-from sentry.testutils.cases import TestCase
 
 
 class DummyGetsentryAppConfig(AppConfig):
@@ -22,27 +20,18 @@ class DummyGetsentryAppConfig(AppConfig):
     path = "/tmp/dummy_getsentry"
 
 
-@contextmanager
-def mock_getsentry_if_not_registered():
-    if "getsentry" in settings.INSTALLED_APPS:
-        yield
-        return
+class TestSentryMigrationExecutor:
+    @pytest.fixture(autouse=True)
+    def _mock_getsentry_if_not_registered(self):
+        if "getsentry" in settings.INSTALLED_APPS:
+            yield
+            return
 
-    with (
-        patch.dict(apps.app_configs, {"getsentry": DummyGetsentryAppConfig("getsentry", None)}),
-        patch.object(settings, "INSTALLED_APPS", new=settings.INSTALLED_APPS + ("getsentry",)),
-    ):
-        yield
-
-
-class SentryMigrationExecutorTest(TestCase):
-    def setUp(self):
-        super().setUp()
-        self.mock_getsentry_if_not_registered = mock_getsentry_if_not_registered()
-        self.mock_getsentry_if_not_registered.__enter__()
-
-    def tearDown(self):
-        self.mock_getsentry_if_not_registered.__exit__(None, None, None)
+        with (
+            patch.dict(apps.app_configs, {"getsentry": DummyGetsentryAppConfig("getsentry", None)}),
+            patch.object(settings, "INSTALLED_APPS", new=settings.INSTALLED_APPS + ("getsentry",)),
+        ):
+            yield
 
     def test_check_db_routing_pass(self):
         class TestMigration(migrations.Migration):
