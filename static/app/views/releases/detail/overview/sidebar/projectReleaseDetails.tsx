@@ -75,41 +75,46 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
               dateReleased ? (
                 <DateTime date={dateReleased} seconds={false} />
               ) : (
-                <Tooltip
-                  title={t(
-                    'Set release date to %s',
-                    moment
-                      .tz(
-                        release.firstEvent ?? release.dateCreated,
-                        options?.timezone ?? ''
-                      )
-                      .format(
-                        options?.clock24Hours
-                          ? 'MMMM D, YYYY HH:mm z'
-                          : 'MMMM D, YYYY h:mm A z'
-                      )
-                  )}
-                >
-                  <Button
-                    size="xs"
-                    style={{marginRight: '-8px'}}
-                    onClick={() => {
-                      finalizeRelease.mutate([release], {
-                        onSettled() {
-                          window.location.reload();
-                        },
-                      });
-                    }}
+                <ButtonContainer>
+                  <Tooltip
+                    title={t(
+                      'Set release date to %s',
+                      moment
+                        .tz(
+                          release.firstEvent ?? release.dateCreated,
+                          options?.timezone ?? ''
+                        )
+                        .format(
+                          options?.clock24Hours
+                            ? 'MMMM D, YYYY HH:mm z'
+                            : 'MMMM D, YYYY h:mm A z'
+                        )
+                    )}
                   >
-                    {t('Finalize')}
-                  </Button>
-                </Tooltip>
+                    <Button
+                      size="xs"
+                      onClick={() => {
+                        finalizeRelease.mutate([release], {
+                          onSettled() {
+                            window.location.reload();
+                          },
+                        });
+                      }}
+                    >
+                      {t('Finalize')}
+                    </Button>
+                  </Tooltip>
+                </ButtonContainer>
               )
             }
           />
           <KeyValueTableRow
             keyName={t('Version')}
-            value={<Version version={version} anchor={false} />}
+            value={
+              <StyledTextOverflow ellipsisDirection="left">
+                <Version version={version} anchor={false} />
+              </StyledTextOverflow>
+            }
           />
           <KeyValueTableRow
             keyName={t('Semver')}
@@ -159,6 +164,19 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
 const StyledTextOverflow = styled(TextOverflow)`
   line-height: inherit;
   text-align: right;
+`;
+
+const ButtonContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+  position: relative;
+  width: 100%;
+
+  & > * {
+    position: absolute;
+    right: 0;
+  }
 `;
 
 export default ProjectReleaseDetails;
