@@ -260,6 +260,8 @@ describe('HTTPLandingPage', function () {
   it('fetches module data', async function () {
     render(<HTTPLandingPage />, {organization});
 
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
     expect(throughputRequestMock).toHaveBeenNthCalledWith(
       1,
       `/organizations/${organization.slug}/events-stats/`,
@@ -388,8 +390,6 @@ describe('HTTPLandingPage', function () {
         },
       })
     );
-
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 
   it('renders a list of domains', async function () {
