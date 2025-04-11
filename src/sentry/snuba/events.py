@@ -812,3 +812,12 @@ class Columns(Enum):
         issue_platform_name=None,
         alias="num_processing_errors",
     )
+
+    SYMBOLICATED_IN_APP = Column(
+        group_name="events.symbolicated_in_app",
+        event_name="symbolicated_in_app",
+        transaction_name=None,
+        discover_name="symbolicated_in_app",
+        issue_platform_name=None,
+        alias="symbolicated_in_app",
+    )

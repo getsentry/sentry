@@ -89,6 +89,7 @@ ERROR_ONLY_FIELDS = [
     "stack.package",
     "stack.resource",
     "stack.stack_level",
+    "symbolicated_in_app",
 ]
 
 
