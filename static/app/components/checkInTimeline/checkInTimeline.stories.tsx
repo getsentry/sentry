@@ -1,9 +1,9 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import JSXNode from 'sentry/components/stories/jsxNode';

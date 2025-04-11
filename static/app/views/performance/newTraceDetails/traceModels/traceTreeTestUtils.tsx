@@ -5,16 +5,16 @@ import type {
   TracePerformanceIssue,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
   isAutogroupedNode,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
-} from '../traceGuards';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 
 import {ParentAutogroupNode} from './parentAutogroupNode';
 import {SiblingAutogroupNode} from './siblingAutogroupNode';
@@ -106,9 +106,27 @@ export function makeEAPSpan(
     transaction: 'span.transaction',
     parent_span_id: null,
     children: [],
+    errors: [],
     duration: 10,
     ...overrides,
   } as TraceTree.EAPSpan;
+}
+
+export function makeEAPError(
+  overrides: Partial<TraceTree.EAPError> = {}
+): TraceTree.EAPError {
+  return {
+    event_id: overrides.event_id ?? uuid4(),
+    description: 'Test Error',
+    start_timestamp: 0,
+    project_id: 1,
+    project_slug: 'project_slug',
+    level: 'error',
+    event_type: 'error',
+    issue_id: 1,
+    transaction: 'test error transaction',
+    ...overrides,
+  } as TraceTree.EAPError;
 }
 
 export function makeTraceError(
@@ -118,6 +136,7 @@ export function makeTraceError(
     title: 'MaybeEncodingError: Error sending result',
     level: 'error',
     event_type: 'error',
+    message: 'error message',
     data: {},
     ...overrides,
   } as TraceTree.TraceError;
@@ -209,6 +228,13 @@ export function assertTransactionNode(
   }
 }
 
+export function assertEAPSpanNode(
+  node: TraceTreeNode<TraceTree.NodeValue> | null
+): asserts node is TraceTreeNode<TraceTree.EAPSpan> {
+  if (!node || !isEAPSpanNode(node)) {
+    throw new Error('node is not a eap span');
+  }
+}
 export function assertMissingInstrumentationNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): asserts node is TraceTreeNode<TraceTree.MissingInstrumentationSpan> {

@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {defined} from 'sentry/utils';
 import {
   type ParsedFunction,

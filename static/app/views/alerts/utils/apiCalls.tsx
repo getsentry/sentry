@@ -1,7 +1,6 @@
 import {Client} from 'sentry/api';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-
-import type {Anomaly, Incident} from '../types';
+import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 
 // Use this api for requests that are getting cancelled
 const uncancellableApi = new Client();

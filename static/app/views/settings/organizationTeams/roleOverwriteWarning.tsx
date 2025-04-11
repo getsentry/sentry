@@ -70,5 +70,3 @@ export function getOverwriteString(props: Props) {
     }
   );
 }
-
-export default RoleOverwriteIcon;

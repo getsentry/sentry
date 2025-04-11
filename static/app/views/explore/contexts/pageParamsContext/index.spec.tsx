@@ -7,14 +7,35 @@ import {
   useSetExploreDataset,
   useSetExploreFields,
   useSetExploreGroupBys,
+  useSetExploreId,
   useSetExploreMode,
   useSetExplorePageParams,
   useSetExploreQuery,
   useSetExploreSortBys,
+  useSetExploreTitle,
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {
+  DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_AGGREGATE,
+  DEFAULT_VISUALIZATION_FIELD,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+describe('defaults', function () {
+  it('default', function () {
+    expect(DEFAULT_VISUALIZATION).toBe('count(span.duration)');
+  });
+
+  it('default aggregate', function () {
+    expect(DEFAULT_VISUALIZATION_AGGREGATE).toBe('count');
+  });
+
+  it('default field', function () {
+    expect(DEFAULT_VISUALIZATION_FIELD).toBe('span.duration');
+  });
+});
 
 describe('PageParamsProvider', function () {
   let pageParams: ReturnType<typeof useExplorePageParams>;
@@ -26,6 +47,8 @@ describe('PageParamsProvider', function () {
   let setQuery: ReturnType<typeof useSetExploreQuery>;
   let setSortBys: ReturnType<typeof useSetExploreSortBys>;
   let setVisualizes: ReturnType<typeof useSetExploreVisualizes>;
+  let setId: ReturnType<typeof useSetExploreId>;
+  let setTitle: ReturnType<typeof useSetExploreTitle>;
 
   function Component() {
     pageParams = useExplorePageParams();
@@ -37,6 +60,8 @@ describe('PageParamsProvider', function () {
     setQuery = useSetExploreQuery();
     setSortBys = useSetExploreSortBys();
     setVisualizes = useSetExploreVisualizes();
+    setId = useSetExploreId();
+    setTitle = useSetExploreTitle();
     return <br />;
   }
 
@@ -45,7 +70,7 @@ describe('PageParamsProvider', function () {
       <PageParamsProvider>
         <Component />
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     act(() =>
@@ -73,7 +98,7 @@ describe('PageParamsProvider', function () {
       <PageParamsProvider>
         <Component />
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     expect(pageParams).toEqual({
@@ -92,9 +117,9 @@ describe('PageParamsProvider', function () {
       sortBys: [{field: 'timestamp', kind: 'desc'}],
       visualizes: [
         {
-          chartType: ChartType.LINE,
+          chartType: ChartType.BAR,
           label: 'A',
-          yAxes: ['avg(span.duration)'],
+          yAxes: ['count(span.duration)'],
         },
       ],
     });
@@ -489,5 +514,17 @@ describe('PageParamsProvider', function () {
         },
       ],
     });
+  });
+
+  it('correctly updates id', function () {
+    renderTestComponent();
+    act(() => setId('123'));
+    expect(pageParams).toEqual(expect.objectContaining({id: '123'}));
+  });
+
+  it('correctly updates title', function () {
+    renderTestComponent();
+    act(() => setTitle('My Query'));
+    expect(pageParams).toEqual(expect.objectContaining({title: 'My Query'}));
   });
 });

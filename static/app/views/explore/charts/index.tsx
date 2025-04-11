@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -26,6 +26,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {
   useExploreDataset,
   useExploreVisualizes,
@@ -33,7 +34,7 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {showConfidence} from 'sentry/views/explore/utils';
+import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {
   ChartType,
   useSynchronizeCharts,
@@ -41,13 +42,12 @@ import {
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
-import {CHART_HEIGHT, INGESTION_DELAY} from '../settings';
-
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
   confidences: Confidence[];
   query: string;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  isProgressivelyLoading?: boolean;
 }
 
 export const EXPLORE_CHART_TYPE_OPTIONS = [
@@ -72,6 +72,7 @@ export function ExploreCharts({
   confidences,
   query,
   timeseriesResult,
+  isProgressivelyLoading,
 }: ExploreChartsProps) {
   const theme = useTheme();
   const dataset = useExploreDataset();
@@ -201,6 +202,7 @@ export function ExploreCharts({
                 Title={Title}
                 Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
                 revealActions="always"
+                TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
               />
             );
           }
@@ -244,6 +246,7 @@ export function ExploreCharts({
               key={index}
               height={CHART_HEIGHT}
               Title={Title}
+              TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
               Actions={[
                 <Tooltip
                   key="visualization"
@@ -297,13 +300,17 @@ export function ExploreCharts({
                       stack: 'all',
                     });
                   })}
+                  legendSelection={{
+                    // disable the 'Other' series by default since its large values can cause the other lines to be insignificant
+                    Other: false,
+                  }}
                 />
               }
               Footer={
-                dataset === DiscoverDatasets.SPANS_EAP_RPC &&
-                showConfidence(chartInfo.isSampled) && (
+                dataset === DiscoverDatasets.SPANS_EAP_RPC && (
                   <ConfidenceFooter
                     sampleCount={chartInfo.sampleCount}
+                    isSampled={chartInfo.isSampled}
                     confidence={chartInfo.confidence}
                     topEvents={
                       topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
@@ -363,15 +370,15 @@ export function useExtrapolationMeta({
 
 const ChartList = styled('div')`
   display: grid;
-  row-gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  row-gap: ${space(1)};
+  margin-bottom: ${space(1)};
 `;
 
 const ChartLabel = styled('div')`
   background-color: ${p => p.theme.purple100};
   border-radius: ${p => p.theme.borderRadius};
   text-align: center;
-  min-width: 32px;
+  min-width: 24px;
   color: ${p => p.theme.purple400};
   white-space: nowrap;
   font-weight: ${p => p.theme.fontWeightBold};

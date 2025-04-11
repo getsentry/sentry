@@ -10,11 +10,15 @@ import type {Tooltip} from 'sentry/components/tooltip';
 import {IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import type {BillingStatTotal, Subscription} from 'getsentry/types';
 import {formatUsageWithUnits} from 'getsentry/utils/billing';
-import {getPlanCategoryName, SINGULAR_DATA_CATEGORY} from 'getsentry/utils/dataCategory';
-import titleCase from 'getsentry/utils/titleCase';
+import {
+  getPlanCategoryName,
+  isContinuousProfiling,
+  SINGULAR_DATA_CATEGORY,
+} from 'getsentry/utils/dataCategory';
 import {StripedTable} from 'getsentry/views/subscriptionPage/styles';
 import {displayPercentage} from 'getsentry/views/subscriptionPage/usageTotals';
 
@@ -142,17 +146,20 @@ type Props = {
 function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Props) {
   function OutcomeTable({children}: {children: React.ReactNode}) {
     const categoryName = isEventBreakdown
-      ? titleCase(category)
-      : titleCase(
-          getPlanCategoryName({
-            plan: subscription.planDetails,
-            category,
-            hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-          })
-        );
+      ? toTitleCase(category, {allowInnerUpperCase: true})
+      : getPlanCategoryName({
+          plan: subscription.planDetails,
+          category,
+          hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+          title: true,
+        });
+
+    const testId = isEventBreakdown
+      ? `event-table-${category}`
+      : `category-table-${category}`;
 
     return (
-      <StyledTable>
+      <StyledTable data-test-id={testId}>
         <thead>
           <tr>
             <th>
@@ -177,6 +184,9 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
       </StyledTable>
     );
   }
+  const totalDropped = isContinuousProfiling(category)
+    ? t('Total Dropped (estimated)')
+    : t('Total Dropped');
 
   return (
     <UsageTableWrapper>
@@ -189,7 +199,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
         />
         <OutcomeSection
           isEventBreakdown={isEventBreakdown}
-          name={t('Total Dropped')}
+          name={totalDropped}
           quantity={totals.dropped}
           category={category}
           totals={totals}

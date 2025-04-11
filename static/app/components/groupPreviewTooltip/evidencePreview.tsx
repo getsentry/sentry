@@ -1,4 +1,3 @@
-import type {ReactChild} from 'react';
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
@@ -13,7 +12,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type SpanEvidencePreviewProps = {
-  children: ReactChild;
+  children: React.ReactNode;
   groupId: string;
   query?: string;
 };
@@ -48,7 +47,7 @@ function SpanEvidencePreviewBody({
   if (isPending) {
     return (
       <EmptyWrapper>
-        <LoadingIndicator hideMessage size={32} />
+        <LoadingIndicator size={32} />
       </EmptyWrapper>
     );
   }

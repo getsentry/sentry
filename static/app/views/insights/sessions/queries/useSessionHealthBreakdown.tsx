@@ -1,17 +1,23 @@
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {getSessionsInterval} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate'}) {
   const location = useLocation();
   const organization = useOrganization();
+  const {
+    selection: {datetime},
+  } = usePageFilters();
 
-  const locationWithoutWidth = {
+  const locationQuery = {
     ...location,
     query: {
       ...location.query,
+      query: undefined,
       width: undefined,
       cursor: undefined,
     },
@@ -26,7 +32,8 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...locationWithoutWidth.query,
+          ...locationQuery.query,
+          interval: getSessionsInterval(datetime),
           field: ['sum(session)'],
           groupBy: ['session.status'],
         },
@@ -45,10 +52,10 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
 
   // Create a map of status to their data
   const statusData = {
-    healthy: getSessionStatusSeries('healthy', sessionData.groups),
     crashed: getSessionStatusSeries('crashed', sessionData.groups),
     errored: getSessionStatusSeries('errored', sessionData.groups),
     abnormal: getSessionStatusSeries('abnormal', sessionData.groups),
+    healthy: getSessionStatusSeries('healthy', sessionData.groups),
   };
 
   const createDatapoints = (data: number[]) =>

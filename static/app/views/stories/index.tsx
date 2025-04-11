@@ -1,15 +1,16 @@
 import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSettings} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {space} from 'sentry/styles/space';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import OrganizationContainer from 'sentry/views/organizationContainer';
@@ -19,8 +20,6 @@ import {StoryHeader} from 'sentry/views/stories/storyHeader';
 import {StoryTableOfContents} from 'sentry/views/stories/storyTableOfContents';
 import {StoryTree, useStoryTree} from 'sentry/views/stories/storyTree';
 import {useStoriesLoader, useStoryBookFiles} from 'sentry/views/stories/useStoriesLoader';
-
-import {useLocalStorageState} from '../../utils/useLocalStorageState';
 
 export default function Stories() {
   const searchInput = useRef<HTMLInputElement>(null);
@@ -52,9 +51,12 @@ export default function Stories() {
   const navigate = useNavigate();
   const onSearchInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      navigate({
-        query: {...location.query, query: e.target.value, name: location.query.name},
-      });
+      navigate(
+        {
+          query: {...location.query, query: e.target.value, name: location.query.name},
+        },
+        {replace: true}
+      );
     },
     [location.query, navigate]
   );

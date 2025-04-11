@@ -164,9 +164,7 @@ function ResultsSearchQueryBuilder(props: Props) {
     () => normalizeDateTimeParams(selection.datetime),
     [selection.datetime]
   );
-  const includeFeatureFlags =
-    (!dataset || dataset === DiscoverDatasets.ERRORS) &&
-    organization.features.includes('feature-flag-autocomplete');
+  const includeFeatureFlags = !dataset || dataset === DiscoverDatasets.ERRORS;
 
   const tags = useTags();
   const filteredTags = useMemo(() => {

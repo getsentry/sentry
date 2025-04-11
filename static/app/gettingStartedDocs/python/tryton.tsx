@@ -40,12 +40,12 @@ sentry_sdk.init(
         : params.isProfilingSelected &&
             params.profilingOptions?.defaultProfilingMode === 'continuous'
           ? `
-    _experiments={
-        # Set continuous_profiling_auto_start to True
-        # to automatically start the profiler on when
-        # possible.
-        "continuous_profiling_auto_start": True,
-    },`
+    # Set profile_session_sample_rate to 1.0 to profile 100%
+    # of profile sessions.
+    profile_session_sample_rate=1.0,
+    # Set profile_lifecycle to "trace" to automatically
+    # run the profiler on when there is an active transaction
+    profile_lifecycle="trace",`
           : ''
     }
 )
@@ -69,12 +69,25 @@ def _(app, request, e):
         data = UserError('Custom message', f'{event_id}{e}')
         return app.make_response(request, data)`;
 
+const getInstallSnippet = () => `pip install 'sentry-sdk'`;
+
 const onboarding: OnboardingConfig = {
   introduction: () =>
     tct('The Tryton integration adds support for the [link:Tryton Framework Server].', {
       link: <ExternalLink href="https://www.tryton.org/" />,
     }),
-  install: () => [],
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: t('Install the Sentry Python SDK package:'),
+      configurations: [
+        {
+          language: 'bash',
+          code: getInstallSnippet(),
+        },
+      ],
+    },
+  ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
@@ -118,6 +131,7 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
+  profilingOnboarding: onboarding,
   crashReportOnboarding: crashReportOnboardingPython,
 };
 

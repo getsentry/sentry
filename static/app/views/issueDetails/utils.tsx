@@ -271,14 +271,9 @@ export function getGroupEventQueryKey({
 }
 
 export function useHasStreamlinedUI() {
-  const location = useLocation();
   const user = useUser();
   const organization = useOrganization();
-
-  // Allow query param to override all other settings to set the UI.
-  if (defined(location.query.streamline)) {
-    return location.query.streamline === '1';
-  }
+  const userStreamlinedUIOption = user?.options?.prefersIssueDetailsStreamlinedUI;
 
   // If the organzation option is set to true, the new UI is used.
   if (organization.streamlineOnly) {
@@ -286,12 +281,15 @@ export function useHasStreamlinedUI() {
   }
 
   // If the enforce flag is set for the organization, ignore user preferences and enable the UI
-  if (organization.features.includes('issue-details-streamline-enforce')) {
+  if (
+    userStreamlinedUIOption !== false &&
+    organization.features.includes('issue-details-streamline-enforce')
+  ) {
     return true;
   }
 
   // Apply the UI based on user preferences
-  return !!user?.options?.prefersIssueDetailsStreamlinedUI;
+  return userStreamlinedUIOption ?? false;
 }
 
 export function useIsSampleEvent(): boolean {

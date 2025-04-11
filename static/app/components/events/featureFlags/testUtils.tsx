@@ -150,7 +150,7 @@ export const EMPTY_STATE_SECTION_PROPS = {
     id: 'abc123def456ghi789jkl',
     contexts: {flags: {values: []}},
   }),
-  project: ProjectFixture(),
+  project: ProjectFixture({hasFlags: true}),
   group: GroupFixture(),
 };
 

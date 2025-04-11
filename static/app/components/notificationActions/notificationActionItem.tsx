@@ -6,11 +6,11 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import ButtonBar from 'sentry/components/buttonBar';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import OnCallServiceForm from 'sentry/components/notificationActions/forms/onCallServiceForm';
@@ -18,7 +18,7 @@ import SlackForm from 'sentry/components/notificationActions/forms/slackForm';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {
   AvailableNotificationAction,
@@ -98,7 +98,7 @@ function NotificationActionItem({
       case NotificationActionService.SENTRY_NOTIFICATION:
         return <IconMail size="sm" />;
       default:
-        return <PluginIcon pluginId={serviceType} size={16} />;
+        return <PluginIcon pluginId={serviceType ?? 'placeholder'} size={16} />;
     }
   };
 

@@ -55,10 +55,10 @@ def _find_relocation_transfer(
     scheduled_ids = model_cls.objects.filter(
         scheduled_for__lte=now,
         date_added__gte=now - MAX_AGE,
-    ).values("id")
+    ).values_list("id", flat=True)
 
     for transfer_id in scheduled_ids:
-        process_task.delay(id=transfer_id)
+        process_task.delay(transfer_id=transfer_id)
 
     if len(scheduled_ids):
         # Advance next retry time in case these deliveries fail.

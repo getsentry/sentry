@@ -91,7 +91,7 @@ const InputFields = styled('div')`
 
 const Description = styled(TextBlock)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin: 0;
 `;
 

@@ -7,12 +7,16 @@ import sortBy from 'lodash/sortBy';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import type {SelectOption, SelectOptionOrSection} from 'sentry/components/compactSelect';
 import {LinkButton} from 'sentry/components/core/button';
+import type {
+  SelectOption,
+  SelectOptionOrSection,
+} from 'sentry/components/core/compactSelect';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
+import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconOpen, IconSettings} from 'sentry/icons';
@@ -27,8 +31,6 @@ import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-
-import {DesyncedFilterMessage} from '../pageFilters/desyncedFilter';
 
 import {ProjectPageFilterMenuFooter} from './menuFooter';
 import {ProjectPageFilterTrigger} from './trigger';

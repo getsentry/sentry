@@ -15,12 +15,19 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
 import DurationChart from 'sentry/views/performance/charts/chart';
-
-import {GenericPerformanceWidget} from '../components/performanceWidget';
-import {transformDiscoverToSingleValue} from '../transforms/transformDiscoverToSingleValue';
-import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
-import type {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps, getMEPQueryParams, QUERY_LIMIT_PARAM} from '../utils';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import {transformDiscoverToSingleValue} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToSingleValue';
+import {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';
+import type {
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from 'sentry/views/performance/landing/widgets/types';
+import {
+  eventsRequestQueryProps,
+  getMEPQueryParams,
+  QUERY_LIMIT_PARAM,
+} from 'sentry/views/performance/landing/widgets/utils';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -47,6 +54,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
           {({queryBatching}) => (
             <EventsRequest
               {...pick(provided, eventsRequestQueryProps)}
+              includeAllArgs={false}
               limit={1}
               queryBatching={queryBatching}
               includePrevious
@@ -172,7 +180,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
 const EventsRequest = withApi(_EventsRequest);
 export const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

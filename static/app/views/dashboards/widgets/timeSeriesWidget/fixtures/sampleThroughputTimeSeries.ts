@@ -1,6 +1,7 @@
 import {RateUnit} from 'sentry/utils/discover/fields';
+import {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
-export const sampleThroughputTimeSeries = {
+export const sampleThroughputTimeSeries: TimeSeries = {
   field: 'eps()',
   meta: {
     type: 'rate',

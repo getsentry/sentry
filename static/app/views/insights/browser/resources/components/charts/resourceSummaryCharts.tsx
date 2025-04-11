@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
+import {DATA_TYPE, FIELD_ALIASES} from 'sentry/views/insights/browser/resources/settings';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -12,8 +13,6 @@ import {
   getThroughputChartTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
-
-import {DATA_TYPE, FIELD_ALIASES} from '../../settings';
 
 const {
   SPAN_SELF_TIME,
@@ -48,7 +47,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
     {
       search: mutableSearch,
       yAxis: [
-        `spm()`,
+        `epm()`,
         `avg(${SPAN_SELF_TIME})`,
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
         `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
@@ -74,7 +73,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
       <ModuleLayout.Third>
         <InsightsLineChartWidget
           title={getThroughputChartTitle('resource')}
-          series={[spanMetricsSeriesData?.[`spm()`]]}
+          series={[spanMetricsSeriesData?.[`epm()`]]}
           isLoading={areSpanMetricsSeriesLoading}
           error={spanMetricsSeriesError}
         />

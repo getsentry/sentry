@@ -301,11 +301,11 @@ describe('Performance > VitalDetail', function () {
     ).toBeInTheDocument();
 
     await userEvent.click(
-      screen.getByLabelText('See transaction summary of the transaction something')
+      await screen.findByLabelText('See transaction summary of the transaction something')
     );
 
     expect(newRouter.push).toHaveBeenCalledWith({
-      pathname: `/organizations/${organization.slug}/performance/summary/`,
+      pathname: `/organizations/${organization.slug}/insights/summary/`,
       query: {
         transaction: 'something',
         project: undefined,
@@ -348,7 +348,7 @@ describe('Performance > VitalDetail', function () {
     );
 
     expect(newRouter.push).toHaveBeenCalledWith({
-      pathname: `/organizations/${organization.slug}/performance/summary/`,
+      pathname: `/organizations/${organization.slug}/insights/summary/`,
       query: {
         transaction: 'something',
         project: undefined,

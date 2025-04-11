@@ -121,7 +121,7 @@ function TimeSince({
   ...props
 }: Props) {
   const user = useUser();
-  const tickerRef = useRef<number | undefined>();
+  const tickerRef = useRef<number | undefined>(undefined);
 
   const computeRelativeDate = useCallback(
     () => getRelativeDate(date, suffix, prefix, unitStyle),

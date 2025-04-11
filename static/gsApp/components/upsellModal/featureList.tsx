@@ -116,10 +116,10 @@ const Heading = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const FeatureLink = styled(motion.div)`
+const FeatureLink = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   cursor: pointer;
   transition: color 300ms;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   position: relative;
   display: grid;
   grid-template-columns: max-content auto;

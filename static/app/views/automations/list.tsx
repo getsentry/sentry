@@ -42,7 +42,11 @@ function TableHeader() {
 function Actions() {
   return (
     <Fragment>
-      <LinkButton to="/automations/new/" priority="primary" icon={<IconAdd isCircled />}>
+      <LinkButton
+        to="/issues/automations/new/"
+        priority="primary"
+        icon={<IconAdd isCircled />}
+      >
         {t('Create Automation')}
       </LinkButton>
     </Fragment>

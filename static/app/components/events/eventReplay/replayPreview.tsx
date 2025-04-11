@@ -2,15 +2,14 @@ import type {ComponentProps} from 'react';
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {Alert} from 'sentry/components/core/alert';
 import type {LinkButton} from 'sentry/components/core/button';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -91,12 +90,7 @@ function ReplayPreview({
   if (replayRecord?.is_archived) {
     return (
       <Alert.Container>
-        <Alert type="warning" data-test-id="replay-error">
-          <Flex gap={space(0.5)}>
-            <IconDelete color="gray500" size="sm" />
-            {t('The replay for this event has been deleted.')}
-          </Flex>
-        </Alert>
+        <ArchivedReplayAlert message={t('The replay for this event has been deleted.')} />
       </Alert.Container>
     );
   }

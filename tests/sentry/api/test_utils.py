@@ -3,8 +3,9 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.db import OperationalError
 from django.utils import timezone
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, Throttled
 from sentry_sdk import Scope
 
 from sentry.api.utils import (
@@ -17,6 +18,7 @@ from sentry.api.utils import (
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.snuba import (
     DatasetSelectionError,
     QueryConnectionFailed,
@@ -168,13 +170,12 @@ class FooBarError(Exception):
     pass
 
 
-class HandleQueryErrorsTest:
+class HandleQueryErrorsTest(APITestCase):
     @patch("sentry.api.utils.ParseError")
     def test_handle_query_errors(self, mock_parse_error):
         exceptions = [
             DatasetSelectionError,
             IncompatibleMetricsQuery,
-            InvalidParams,
             InvalidSearchQuery,
             QueryConnectionFailed,
             QueryExecutionError,
@@ -197,6 +198,55 @@ class HandleQueryErrorsTest:
                     raise ex
             except Exception as e:
                 assert isinstance(e, (FooBarError, APIException))
+
+    def test_handle_postgres_timeout(self):
+        class TimeoutError(OperationalError):
+            def __str__(self):
+                return "canceling statement due to statement timeout"
+
+        # Test when option is disabled (default)
+        try:
+            with handle_query_errors():
+                raise TimeoutError()
+        except Exception as e:
+            assert isinstance(e, TimeoutError)  # Should propagate original error
+
+        # Test when option is enabled
+        with override_options({"api.postgres-query-timeout-error-handling.enabled": True}):
+            try:
+                with handle_query_errors():
+                    raise TimeoutError()
+            except Exception as e:
+                assert isinstance(e, Throttled)
+                assert (
+                    str(e)
+                    == "Query timeout. Please try with a smaller date range or fewer conditions."
+                )
+
+    def test_handle_postgres_user_cancel(self):
+        class UserCancelError(OperationalError):
+            def __str__(self):
+                return "canceling statement due to user request"
+
+        # Should propagate the error regardless of the feature flag
+        with override_options({"api.postgres-query-timeout-error-handling.enabled": True}):
+            try:
+                with handle_query_errors():
+                    raise UserCancelError()
+            except Exception as e:
+                assert isinstance(e, UserCancelError)  # Should propagate original error
+
+    @patch("sentry.api.utils.ParseError")
+    def test_handle_other_operational_error(self, mock_parse_error):
+        class OtherError(OperationalError):
+            pass
+
+        try:
+            with handle_query_errors():
+                raise OtherError()
+        except Exception as e:
+            assert isinstance(e, OtherError)  # Should propagate original error
+            mock_parse_error.assert_not_called()
 
 
 class ClampDateRangeTest(unittest.TestCase):

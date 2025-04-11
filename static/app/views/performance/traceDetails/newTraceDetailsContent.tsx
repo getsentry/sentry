@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import EventVitals from 'sentry/components/events/eventVitals';
 import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
@@ -40,10 +40,9 @@ import Tags from 'sentry/views/discover/tags';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {BrowserDisplay} from 'sentry/views/performance/transactionDetails/eventMetas';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-
-import {BrowserDisplay} from '../transactionDetails/eventMetas';
 
 import NewTraceView from './newTraceDetailsTraceView';
 import TraceNotFound from './traceNotFound';

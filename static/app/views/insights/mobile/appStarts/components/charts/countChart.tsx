@@ -29,7 +29,7 @@ import {OUTPUT_TYPE, YAxis} from 'sentry/views/insights/mobile/screenload/consta
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
-  const transformedSeries: {[release: string]: Series} = {};
+  const transformedSeries: Record<string, Series> = {};
 
   // Check that 'meta' is not in the data object because that's a sign
   // that we did not get a multi-series response for comparison
@@ -83,7 +83,7 @@ export function CountChart({chartHeight}: Props) {
     query,
     primaryRelease,
     secondaryRelease
-  )} span.description:["Cold Start","Warm Start"]`;
+  )} span.description:["Cold Start","Warm Start","Cold App Start","Warm App Start"]`;
 
   const {data: series, isPending: isSeriesLoading} = useEventsStatsQuery({
     eventView: EventView.fromNewQueryWithPageFilters(

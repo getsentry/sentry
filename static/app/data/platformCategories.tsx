@@ -1,3 +1,4 @@
+import {platforms} from 'sentry/data/platforms';
 import type {PlatformKey} from 'sentry/types/project';
 
 export enum PlatformCategory {
@@ -28,6 +29,7 @@ export const frontend: PlatformKey[] = [
   'javascript-solidstart',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-tanstackstart-react',
   'javascript-vue',
   'unity',
 ];
@@ -240,6 +242,7 @@ export const platformsWithNestedInstrumentationGuides: PlatformKey[] = [
   'javascript-solid',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-tanstackstart-react',
   'javascript-vue',
   'dotnet',
   'dotnet-aspnet',
@@ -285,59 +288,72 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
 ]);
 
 export const profiling: PlatformKey[] = [
-  // mobile
   'android',
+  'apple',
   'apple-ios',
-  // go
+  'apple-macos',
+  'dotnet',
+  'dotnet-winforms',
+  'dotnet-wpf',
+  'flutter',
   'go',
-  // nodejs
-  'node',
-  'node-express',
-  'node-koa',
-  'node-connect',
+  'javascript',
+  'javascript-angular',
+  'javascript-astro',
+  'javascript-ember',
+  'javascript-gatsby',
   'javascript-nextjs',
   'javascript-nuxt',
-  'javascript-remix',
-  'javascript-solidstart',
-  'javascript-sveltekit',
-  'javascript',
   'javascript-react',
-  // react-native
-  'react-native',
-  // python
-  'python',
-  'python-django',
-  'python-flask',
-  'python-fastapi',
-  'python-starlette',
-  'python-sanic',
-  'python-celery',
-  'python-bottle',
-  'python-pylons',
-  'python-pyramid',
-  'python-tornado',
-  'python-rq',
-  'python-aiohttp',
-  'python-chalice',
-  'python-falcon',
-  'python-quart',
-  'python-tryton',
-  'python-wsgi',
-  'python-serverless',
-  // rust
-  'rust',
-  // php
+  'javascript-remix',
+  'javascript-solid',
+  'javascript-solidstart',
+  'javascript-svelte',
+  'javascript-sveltekit',
+  'javascript-tanstackstart-react',
+  'javascript-vue',
+  'node',
+  'node-awslambda',
+  'node-azurefunctions',
+  'node-connect',
+  'node-express',
+  'node-fastify',
+  'node-gcpfunctions',
+  'node-hapi',
+  'node-koa',
+  'node-nestjs',
   'php',
   'php-laravel',
   'php-symfony',
-  // ruby
-  'ruby',
-  'ruby-rails',
+  'python',
+  'python-aiohttp',
+  'python-asgi',
+  'python-awslambda',
+  'python-bottle',
+  'python-celery',
+  'python-chalice',
+  'python-django',
+  'python-falcon',
+  'python-fastapi',
+  'python-flask',
+  'python-gcpfunctions',
+  'python-pylons',
+  'python-pyramid',
+  'python-quart',
+  'python-rq',
+  'python-sanic',
+  'python-serverless',
+  'python-starlette',
+  'python-tornado',
+  'python-tryton',
+  'python-wsgi',
+  'react-native',
   'ruby-rack',
+  'ruby-rails',
+  'ruby',
 ];
 
 export const releaseHealth: PlatformKey[] = [
-  // frontend
   'javascript',
   'javascript-react',
   'javascript-angular',
@@ -354,6 +370,7 @@ export const releaseHealth: PlatformKey[] = [
   'javascript-solidstart',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-tanstackstart-react',
   'android',
   'apple-ios',
   'cordova',
@@ -461,6 +478,7 @@ export const replayFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-solidstart',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-tanstackstart-react',
   'javascript-vue',
 ];
 
@@ -571,32 +589,12 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
   ...feedbackCrashApiPlatforms,
 ];
 
-// Feature flag onboarding platforms
-export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
-  'javascript',
-  'python',
-  'javascript-angular',
-  'javascript-astro',
-  'javascript-ember',
-  'javascript-gatsby',
-  'javascript-nextjs',
-  'javascript-nuxt',
-  'javascript-react',
-  'javascript-remix',
-  'javascript-solid',
-  'javascript-solidstart',
-  'javascript-svelte',
-  'javascript-sveltekit',
-  'javascript-vue',
-  'python-aiohttp',
-  'python-bottle',
-  'python-django',
-  'python-falcon',
-  'python-fastapi',
-  'python-flask',
-  'python-pyramid',
-  'python-quart',
-  'python-sanic',
-  'python-starlette',
-  'python-tornado',
-];
+// Feature flag platforms with gettingStartedDocs. Note backend js platforms start with 'node-'.
+export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = platforms
+  .map(p => p.id)
+  .filter(id => id.startsWith('javascript') || id.startsWith('python'));
+
+// Feature flag platforms to show the issue details distribution drawer for.
+export const featureFlagDrawerPlatforms: readonly PlatformKey[] = platforms
+  .map(p => p.id)
+  .filter(id => id.startsWith('javascript') || id.startsWith('python'));

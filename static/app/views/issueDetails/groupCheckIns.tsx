@@ -20,13 +20,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import {type CheckIn, CheckInStatus} from 'sentry/views/insights/crons/types';
+import {statusToText, tickStyle} from 'sentry/views/insights/crons/utils';
+import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
+import {useMonitorCheckIns} from 'sentry/views/insights/crons/utils/useMonitorCheckIns';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
 import {useCronIssueAlertId} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
-import {type CheckIn, CheckInStatus} from 'sentry/views/monitors/types';
-import {statusToText, tickStyle} from 'sentry/views/monitors/utils';
-import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
-import {useMonitorCheckIns} from 'sentry/views/monitors/utils/useMonitorCheckIns';
 
 export default function GroupCheckIns() {
   const organization = useOrganization();
@@ -134,7 +134,7 @@ function CheckInCell({
   column,
   userOptions,
 }: {
-  column: GridColumnOrder<string>;
+  column: GridColumnOrder<string | number>;
   dataRow: CheckIn;
   userOptions: User['options'];
 }) {

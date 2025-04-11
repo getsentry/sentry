@@ -12,6 +12,7 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.db.pending_deletion import build_pending_deletion_key
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
@@ -1127,7 +1128,7 @@ class ProjectUpdateTest(APITestCase):
                 "layout": {
                     "type": "native",
                 },
-                "filetypes": ["pe"],
+                "filters": {"filetypes": ["pe"]},
                 "type": "http",
                 "url": "http://honk.beep",
                 "username": "honkhonk",
@@ -1180,7 +1181,7 @@ class ProjectUpdateTest(APITestCase):
                 "layout": {
                     "type": "native",
                 },
-                "filetypes": ["pe"],
+                "filters": {"filetypes": ["pe"]},
                 "type": "http",
                 "url": "http://honk.beep",
                 "username": "honkhonk",
@@ -1215,7 +1216,7 @@ class ProjectUpdateTest(APITestCase):
             "layout": {
                 "type": "native",
             },
-            "filetypes": ["pe"],
+            "filters": {"filetypes": ["pe"]},
             "type": "http",
             "url": "http://honk.beep",
             "username": "honkhonk",
@@ -1228,7 +1229,7 @@ class ProjectUpdateTest(APITestCase):
             "layout": {
                 "type": "native",
             },
-            "filetypes": ["pe"],
+            "filters": {"filetypes": ["pe"]},
             "type": "http",
             "url": "http://honk.beep",
             "username": "honkhonk",
@@ -1518,7 +1519,7 @@ class ProjectDeleteTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    @mock.patch("sentry.db.mixin.uuid4")
+    @mock.patch("sentry.db.pending_deletion.uuid4")
     def _delete_project_and_assert_deleted(self, mock_uuid4_mixin):
         mock_uuid4_mixin.return_value = self.get_mock_uuid()
 
@@ -1536,7 +1537,7 @@ class ProjectDeleteTest(APITestCase):
         assert project.slug == "abc123"
         assert OrganizationOption.objects.filter(
             organization_id=project.organization_id,
-            key=project.build_pending_deletion_key(),
+            key=build_pending_deletion_key(project),
         ).exists()
         deleted_project = DeletedProject.objects.get(slug=self.project.slug)
         self.assert_valid_deleted_log(deleted_project, self.project)

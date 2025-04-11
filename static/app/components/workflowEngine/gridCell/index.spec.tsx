@@ -6,6 +6,7 @@ import {ActionCell} from './actionCell';
 import {ConnectionCell} from './connectionCell';
 import {NumberCell} from './numberCell';
 import {TimeAgoCell} from './timeAgoCell';
+import {TypeCell} from './typeCell';
 
 describe('Action Cell Component', function () {
   it('renders', function () {
@@ -18,9 +19,9 @@ describe('Action Cell Component', function () {
   it('renders tooltip', async function () {
     const container = document.createElement('div');
     render(
-      <TooltipContext.Provider value={{container}}>
+      <TooltipContext value={{container}}>
         <ActionCell actions={['slack', 'discord', 'email']} />
-      </TooltipContext.Provider>
+      </TooltipContext>
     );
 
     const span = screen.getByText('Slack, Discord, Email');
@@ -86,6 +87,22 @@ describe('Number Cell Component', function () {
     render(<NumberCell number={3} />);
 
     const text = screen.getByText('3');
+    expect(text).toBeInTheDocument();
+  });
+});
+
+describe('Type Cell Component', function () {
+  it('renders', () => {
+    render(<TypeCell type="metric" />);
+
+    const text = screen.getByText('Metric');
+    expect(text).toBeInTheDocument();
+  });
+
+  it('renders disabled', () => {
+    render(<TypeCell type="metric" disabled />);
+
+    const text = screen.getByText('Metric');
     expect(text).toBeInTheDocument();
   });
 });

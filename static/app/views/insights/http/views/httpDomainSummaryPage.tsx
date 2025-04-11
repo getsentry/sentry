@@ -13,9 +13,9 @@ import {
   MutableSearch,
 } from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
@@ -25,6 +25,7 @@ import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
@@ -56,37 +57,27 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
-
-type Query = {
-  aggregate?: string;
-  domain?: string;
-};
-
 export function HTTPDomainSummaryPage() {
-  const location = useLocation<Query>();
   const {projects} = useProjects();
   const {view} = useDomainViewFilters();
-
-  // TODO: Fetch sort information using `useLocationQuery`
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
-
-  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
 
   const {
     domain,
     project: projectId,
-    'user.geo.subregion': subregions,
+    [QueryParameterNames.TRANSACTIONS_CURSOR]: cursor,
+    [QueryParameterNames.TRANSACTIONS_SORT]: sortField,
+    [SpanMetricsField.USER_GEO_SUBREGION]: subregions,
   } = useLocationQuery({
     fields: {
       project: decodeScalar,
       domain: decodeScalar,
+      [QueryParameterNames.TRANSACTIONS_CURSOR]: decodeScalar,
+      [QueryParameterNames.TRANSACTIONS_SORT]: decodeScalar,
       [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
       transaction: decodeScalar,
     },
   });
+  const sort = decodeSorts(sortField).find(isAValidSort) ?? DEFAULT_SORT;
 
   useSamplesDrawer({
     Component: <HTTPSamplesPanel />,
@@ -105,14 +96,11 @@ export function HTTPDomainSummaryPage() {
       : {}),
   };
 
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
-
   const {data: domainMetrics, isPending: areDomainMetricsLoading} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
-        `${SpanFunction.SPM}()`,
+        `${SpanFunction.EPM}()`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         'http_response_rate(3)',
@@ -131,7 +119,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(filters),
-      yAxis: ['spm()'],
+      yAxis: ['epm()'],
       transformAliasToInputFormat: true,
     },
     Referrer.DOMAIN_SUMMARY_THROUGHPUT_CHART
@@ -176,7 +164,7 @@ export function HTTPDomainSummaryPage() {
         'project.id',
         'transaction',
         'transaction.method',
-        'spm()',
+        'epm()',
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
@@ -245,7 +233,7 @@ export function HTTPDomainSummaryPage() {
                   <ReadoutRibbon>
                     <MetricReadout
                       title={getThroughputTitle('http')}
-                      value={domainMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
+                      value={domainMetrics?.[0]?.[`${SpanFunction.EPM}()`]}
                       unit={RateUnit.PER_MINUTE}
                       isLoading={areDomainMetricsLoading}
                     />
@@ -297,7 +285,7 @@ export function HTTPDomainSummaryPage() {
               <ModuleLayout.Third>
                 <InsightsLineChartWidget
                   title={getThroughputChartTitle('http')}
-                  series={[throughputData['spm()']]}
+                  series={[throughputData['epm()']]}
                   isLoading={isThroughputDataLoading}
                   error={throughputError}
                 />

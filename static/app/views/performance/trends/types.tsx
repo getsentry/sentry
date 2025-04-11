@@ -77,9 +77,7 @@ export type TrendStat = {
   order: number;
 };
 
-export type TrendsStats = {
-  [transaction: string]: TrendStat;
-};
+export type TrendsStats = Record<string, TrendStat>;
 
 export type TrendsTransaction = {
   aggregate_range_1: number;

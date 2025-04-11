@@ -44,6 +44,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_apps.services.app import app_service
@@ -192,6 +193,16 @@ class AlertRuleDetailsBase(AlertRuleBase):
         )
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug, self.alert_rule.id)
+        assert resp.status_code == 404
+
+    def test_no_project(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        project = self.alert_rule.projects.get()
+        Project.objects.get(id=project.id).delete()
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(self.organization.slug, self.alert_rule.id)
+
         assert resp.status_code == 404
 
 

@@ -6,7 +6,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -48,7 +47,7 @@ export function PerformanceScoreChart({
       : projectScore.totalScore
     : undefined;
 
-  let ringSegmentColors = getChartColorPalette(3).slice() as string[];
+  let ringSegmentColors = theme.chart.getColorPalette(3).slice() as unknown as string[];
   let ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   if (webVital) {
@@ -124,7 +123,7 @@ const Flex = styled('div')`
 const PerformanceScoreLabelContainer = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   min-width: 320px;
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;
   align-items: center;
@@ -144,7 +143,7 @@ const PerformanceScoreLabel = styled('div')`
 const PerformanceScoreSubtext = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-bottom: ${space(1)};
 `;
 

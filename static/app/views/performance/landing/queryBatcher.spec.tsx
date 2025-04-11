@@ -30,7 +30,7 @@ const BASIC_QUERY_PARAMS = {
 
 function WrappedComponent({data, ...rest}: any) {
   return (
-    <OrganizationContext.Provider value={data.organization}>
+    <OrganizationContext value={data.organization}>
       <MEPSettingProvider>
         <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
           <WidgetContainer
@@ -47,7 +47,7 @@ function WrappedComponent({data, ...rest}: any) {
           />
         </PerformanceDisplayProvider>
       </MEPSettingProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 

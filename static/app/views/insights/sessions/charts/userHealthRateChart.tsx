@@ -1,29 +1,28 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
-import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import useUserHealthBreakdown from 'sentry/views/insights/sessions/queries/useUserHealthBreakdown';
+import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
+import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function UserHealthRateChart({view}: {view: string}) {
-  const {series, isPending, error} = useUserHealthBreakdown({
-    type: 'rate',
-  });
-  const frontendPath = view === FRONTEND_LANDING_SUB_PATH;
+export default function UserHealthRateChart() {
+  const {series, isPending, error} = useUserHealthBreakdown({type: 'rate'});
 
   const aliases = {
-    healthy_user_rate: t('Healthy user rate'),
-    crashed_user_rate: frontendPath
-      ? t('Unhandled error user rate')
-      : t('Crashed user rate'),
-    errored_user_rate: frontendPath
-      ? t('Handled error user rate')
-      : t('Errored user rate'),
-    abnormal_user_rate: t('Abnormal user rate'),
+    healthy_user_rate: 'rate_healthy(user)',
+    crashed_user_rate: 'rate_crashed(user)',
+    errored_user_rate: 'rate_errored(user)',
+    abnormal_user_rate: 'rate_abnormal(user)',
   };
 
   return (
     <InsightsAreaChartWidget
-      title={t('User Health')}
+      title={CHART_TITLES.UserHealthRateChart}
+      interactiveTitle={() => (
+        <ChartSelectionTitle title={CHART_TITLES.UserHealthRateChart} />
+      )}
+      height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
         'The percent of [linkUsers:users] with each [linkStatus:health status].',
         {
@@ -39,6 +38,9 @@ export default function UserHealthRateChart({view}: {view: string}) {
       series={series}
       isLoading={isPending}
       error={error}
+      legendSelection={{
+        healthy_user_rate: false,
+      }}
     />
   );
 }

@@ -1,6 +1,5 @@
 export type FeatureFlagEventParameters = {
-  'flags.cta_dismissed': {type: string};
-  'flags.cta_setup_button_clicked': Record<string, unknown>;
+  'flags.cta_dismissed': {surface: string; type: string};
   'flags.event_and_suspect_flags_found': {
     numEventFlags: number;
     numSuspectFlags: number;
@@ -8,7 +7,7 @@ export type FeatureFlagEventParameters = {
   };
   'flags.logs-paginated': {
     direction: 'next' | 'prev';
-    surface: 'settings';
+    surface: string;
   };
   'flags.sort_flags': {sortMethod: string};
   'flags.table_rendered': {
@@ -17,18 +16,19 @@ export type FeatureFlagEventParameters = {
     projectSlug: string;
   };
   'flags.view-all-clicked': Record<string, unknown>;
-  'flags.view-setup-sidebar': Record<string, unknown>;
+  'flags.view-setup-sidebar': {
+    surface: string;
+  };
 };
 
 export type FeatureFlagEventKey = keyof FeatureFlagEventParameters;
 
 export const featureFlagEventMap: Record<FeatureFlagEventKey, string | null> = {
-  'flags.view-all-clicked': 'Clicked View All Flags',
-  'flags.sort_flags': 'Sorted Flags',
-  'flags.event_and_suspect_flags_found': 'Number of Event and Suspect Flags',
-  'flags.table_rendered': 'Flag Table Rendered',
-  'flags.cta_setup_button_clicked': 'Flag CTA Setup Button Clicked',
   'flags.cta_dismissed': 'Flag CTA Dismissed',
+  'flags.event_and_suspect_flags_found': 'Number of Event and Suspect Flags',
   'flags.logs-paginated': 'Feature Flag Logs Paginated',
+  'flags.sort_flags': 'Sorted Flags',
+  'flags.table_rendered': 'Flag Table Rendered',
+  'flags.view-all-clicked': 'Clicked View All Flags',
   'flags.view-setup-sidebar': 'Viewed Feature Flag Onboarding Sidebar',
 };

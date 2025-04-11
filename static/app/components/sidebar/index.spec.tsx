@@ -421,9 +421,12 @@ describe('Sidebar', function () {
         body: {data: null},
       });
 
-      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+      renderSidebarWithFeatures([
+        'navigation-sidebar-v2',
+        'navigation-sidebar-v2-banner',
+      ]);
 
-      expect(await screen.findByText(/Try New Navigation/)).toBeInTheDocument();
+      expect(await screen.findByText(/New Navigation/)).toBeInTheDocument();
     });
 
     it('will not render sidebar banner when collapsed', async () => {
@@ -432,7 +435,10 @@ describe('Sidebar', function () {
         body: {data: null},
       });
 
-      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+      renderSidebarWithFeatures([
+        'navigation-sidebar-v2',
+        'navigation-sidebar-v2-banner',
+      ]);
 
       await userEvent.click(screen.getByTestId('sidebar-collapse'));
 
@@ -453,7 +459,10 @@ describe('Sidebar', function () {
         body: {},
       });
 
-      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+      renderSidebarWithFeatures([
+        'navigation-sidebar-v2',
+        'navigation-sidebar-v2-banner',
+      ]);
 
       await userEvent.click(await screen.findByRole('button', {name: /Dismiss/}));
 

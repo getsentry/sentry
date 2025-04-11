@@ -1,6 +1,7 @@
 import {useState} from 'react';
+import {useTheme} from '@emotion/react';
 
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {type Group, IssueType} from 'sentry/types/group';
@@ -27,6 +28,7 @@ interface EventListProps {
 }
 
 export function EventList({group}: EventListProps) {
+  const theme = useTheme();
   const referrer = 'issue_details.streamline_list';
   const location = useLocation();
   const organization = useOrganization();
@@ -76,6 +78,7 @@ export function EventList({group}: EventListProps) {
   return (
     <EventListTable pagination={{enabled: false}}>
       <EventsTable
+        theme={theme}
         eventView={eventView}
         location={location}
         issueId={group.id}

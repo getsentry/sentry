@@ -1,11 +1,15 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {CommitRow} from 'sentry/components/commitRow';
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {
+  StacktraceContext,
+  useStacktraceContext,
+} from 'sentry/components/events/interfaces/stackTraceContext';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
 import {
   getMappedThreadState,
@@ -13,6 +17,7 @@ import {
   ThreadStates,
 } from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
+import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -27,17 +32,15 @@ import {
 } from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Thread} from 'sentry/types/event';
+import type {EntryThreads, Event, ExceptionType, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-import {TraceEventDataSection} from '../traceEventDataSection';
 
 import {ExceptionContent} from './crashContent/exception';
 import {StackTraceContent} from './crashContent/stackTrace';
@@ -48,14 +51,11 @@ import getThreadStacktrace from './threads/threadSelector/getThreadStacktrace';
 import NoStackTraceMessage from './noStackTraceMessage';
 import {inferPlatform, isStacktraceNewestFirst} from './utils';
 
-type ExceptionProps = React.ComponentProps<typeof ExceptionContent>;
-
-type Props = Pick<ExceptionProps, 'groupingCurrentLevel'> & {
-  data: {
-    values?: Thread[];
-  };
+type Props = {
+  data: EntryThreads['data'];
   event: Event;
   group: Group | undefined;
+  groupingCurrentLevel: Group['metadata']['current_level'];
   projectSlug: Project['slug'];
 };
 
@@ -64,7 +64,7 @@ function getIntendedStackView(
   exception: ReturnType<typeof getThreadException>
 ): StackView {
   if (exception) {
-    return exception.values.find(value => !!value.stacktrace?.hasSystemFrames)
+    return exception.values.some(value => !!value.stacktrace?.hasSystemFrames)
       ? StackView.APP
       : StackView.FULL;
   }
@@ -109,6 +109,66 @@ const useActiveThreadState = (
   return [activeThread, setActiveThread];
 };
 
+function ThreadStackTraceContent({
+  groupingCurrentLevel,
+  event,
+  projectSlug,
+  activeThread,
+  exception,
+  platform,
+}: {
+  activeThread: Thread | undefined;
+  event: Event;
+  exception: ExceptionType | undefined;
+  groupingCurrentLevel: Group['metadata']['current_level'];
+  platform: PlatformKey;
+  projectSlug: Project['slug'];
+}) {
+  const {stackType, stackView, isNewestFramesFirst} = useStacktraceContext();
+
+  const entryIndex = exception
+    ? event.entries.findIndex(entry => entry.type === EntryType.EXCEPTION)
+    : event.entries.findIndex(entry => entry.type === EntryType.THREADS);
+
+  const meta = event._meta?.entries?.[entryIndex]?.data?.values;
+
+  if (exception) {
+    return (
+      <ExceptionContent
+        projectSlug={projectSlug}
+        event={event}
+        values={exception.values}
+        groupingCurrentLevel={groupingCurrentLevel}
+        meta={meta}
+        threadId={activeThread?.id}
+      />
+    );
+  }
+
+  const stackTrace = getThreadStacktrace(stackType !== StackType.ORIGINAL, activeThread);
+
+  if (stackTrace) {
+    return (
+      <StackTraceContent
+        stacktrace={stackTrace}
+        event={event}
+        groupingCurrentLevel={groupingCurrentLevel}
+        meta={meta}
+        threadId={activeThread?.id}
+        platform={platform}
+        stackView={stackView}
+        newestFirst={isNewestFramesFirst}
+      />
+    );
+  }
+
+  return (
+    <NoStackTraceMessage
+      message={activeThread?.crashed ? t('Thread Errored') : undefined}
+    />
+  );
+}
+
 export function Threads({data, event, projectSlug, groupingCurrentLevel, group}: Props) {
   // Sort threads by crashed first
   const threads = useMemo(
@@ -126,12 +186,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     () => getThreadException(event, activeThread),
     [event, activeThread]
   );
-
-  const entryIndex = exception
-    ? event.entries.findIndex(entry => entry.type === EntryType.EXCEPTION)
-    : event.entries.findIndex(entry => entry.type === EntryType.THREADS);
-
-  const meta = event._meta?.entries?.[entryIndex]?.data?.values;
 
   const stackView = activeThread
     ? getIntendedStackView(activeThread, exception)
@@ -172,70 +226,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     );
   }
 
-  function renderContent({
-    display,
-    recentFirst,
-    fullStackTrace,
-  }: Parameters<React.ComponentProps<typeof TraceEventDataSection>['children']>[0]) {
-    const stackType = display.includes('minified')
-      ? StackType.MINIFIED
-      : StackType.ORIGINAL;
-
-    if (exception) {
-      return (
-        <ExceptionContent
-          stackType={stackType}
-          stackView={
-            display.includes('raw-stack-trace')
-              ? StackView.RAW
-              : fullStackTrace
-                ? StackView.FULL
-                : StackView.APP
-          }
-          projectSlug={projectSlug}
-          newestFirst={recentFirst}
-          event={event}
-          values={exception.values}
-          groupingCurrentLevel={groupingCurrentLevel}
-          meta={meta}
-          threadId={activeThread?.id}
-        />
-      );
-    }
-
-    const stackTrace = getThreadStacktrace(
-      stackType !== StackType.ORIGINAL,
-      activeThread
-    );
-
-    if (stackTrace) {
-      return (
-        <StackTraceContent
-          stacktrace={stackTrace}
-          stackView={
-            display.includes('raw-stack-trace')
-              ? StackView.RAW
-              : fullStackTrace
-                ? StackView.FULL
-                : StackView.APP
-          }
-          newestFirst={recentFirst}
-          event={event}
-          platform={platform}
-          groupingCurrentLevel={groupingCurrentLevel}
-          meta={meta}
-          threadId={activeThread?.id}
-        />
-      );
-    }
-
-    return (
-      <NoStackTraceMessage
-        message={activeThread?.crashed ? t('Thread Errored') : undefined}
-      />
-    );
-  }
-
   const platform = inferPlatform(event, activeThread);
   const threadStateDisplay = getMappedThreadState(activeThread?.state);
 
@@ -253,6 +243,12 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
 
     setActiveThread(threads[nextIndex]);
   }
+
+  const hasNonAppFrames = Boolean(
+    exception?.values?.some(value =>
+      value.stacktrace?.frames?.some(frame => !frame.inApp)
+    ) || activeThread?.stacktrace?.frames?.some(frame => !frame.inApp)
+  );
 
   const threadComponent = (
     <Fragment>
@@ -325,79 +321,83 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
           )}
         </Fragment>
       )}
-      <TraceEventDataSection
-        type={SectionKey.THREADS}
+      <StacktraceContext
         projectSlug={projectSlug}
-        eventId={event.id}
-        recentFirst={isStacktraceNewestFirst()}
-        fullStackTrace={stackView === StackView.FULL}
-        title={hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
-        platform={platform}
-        isNestedSection={hasMoreThanOneThread}
-        hasMinified={
-          !!exception?.values?.find(value => value.rawStacktrace) ||
-          !!activeThread?.rawStacktrace
+        forceFullStackTrace={hasNonAppFrames ? stackView === StackView.FULL : true}
+        defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
+        hasSystemFrames={
+          exception?.values?.some(value => value.stacktrace?.hasSystemFrames) ?? false
         }
-        hasVerboseFunctionNames={
-          !!exception?.values?.some(
-            value =>
-              !!value.stacktrace?.frames?.some(
-                frame =>
-                  !!frame.rawFunction &&
-                  !!frame.function &&
-                  frame.rawFunction !== frame.function
-              )
-          ) ||
-          !!activeThread?.stacktrace?.frames?.some(
-            frame =>
-              !!frame.rawFunction &&
-              !!frame.function &&
-              frame.rawFunction !== frame.function
-          )
-        }
-        hasAbsoluteFilePaths={
-          !!exception?.values?.some(
-            value => !!value.stacktrace?.frames?.some(frame => !!frame.filename)
-          ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.filename)
-        }
-        hasAbsoluteAddresses={
-          !!exception?.values?.some(
-            value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
-          ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
-        }
-        hasAppOnlyFrames={
-          !!exception?.values?.some(
-            value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
-          ) || !!activeThread?.stacktrace?.frames?.some(frame => frame.inApp !== true)
-        }
-        hasNewestFirst={
-          !!exception?.values?.some(
-            value => (value.stacktrace?.frames ?? []).length > 1
-          ) || (activeThread?.stacktrace?.frames ?? []).length > 1
-        }
-        stackTraceNotFound={stackTraceNotFound}
       >
-        {childrenProps => {
-          return (
-            <Fragment>
-              {renderContent(childrenProps)}
-              {hasStreamlinedUI && group && (
-                <ErrorBoundary
-                  mini
-                  message={t('There was an error loading the suspect commits')}
-                >
-                  <SuspectCommits
-                    projectSlug={projectSlug}
-                    eventId={event.id}
-                    commitRow={CommitRow}
-                    group={group}
-                  />
-                </ErrorBoundary>
-              )}
-            </Fragment>
-          );
-        }}
-      </TraceEventDataSection>
+        <TraceEventDataSection
+          type={SectionKey.THREADS}
+          projectSlug={projectSlug}
+          eventId={event.id}
+          title={hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
+          platform={platform}
+          isNestedSection={hasMoreThanOneThread}
+          hasMinified={
+            !!exception?.values?.find(value => value.rawStacktrace) ||
+            !!activeThread?.rawStacktrace
+          }
+          hasVerboseFunctionNames={
+            !!exception?.values?.some(
+              value =>
+                !!value.stacktrace?.frames?.some(
+                  frame =>
+                    !!frame.rawFunction &&
+                    !!frame.function &&
+                    frame.rawFunction !== frame.function
+                )
+            ) ||
+            !!activeThread?.stacktrace?.frames?.some(
+              frame =>
+                !!frame.rawFunction &&
+                !!frame.function &&
+                frame.rawFunction !== frame.function
+            )
+          }
+          hasAbsoluteFilePaths={
+            !!exception?.values?.some(
+              value => !!value.stacktrace?.frames?.some(frame => !!frame.filename)
+            ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.filename)
+          }
+          hasAbsoluteAddresses={
+            !!exception?.values?.some(
+              value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
+            ) ||
+            !!activeThread?.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
+          }
+          hasNewestFirst={
+            !!exception?.values?.some(
+              value => (value.stacktrace?.frames ?? []).length > 1
+            ) || (activeThread?.stacktrace?.frames ?? []).length > 1
+          }
+          stackTraceNotFound={stackTraceNotFound}
+        >
+          <ThreadStackTraceContent
+            event={event}
+            projectSlug={projectSlug}
+            activeThread={activeThread}
+            groupingCurrentLevel={groupingCurrentLevel}
+            exception={exception}
+            platform={platform}
+          />
+          {hasStreamlinedUI && group && (
+            <ErrorBoundary
+              mini
+              message={t('There was an error loading the suspect commits')}
+            >
+              <SuspectCommits
+                projectSlug={projectSlug}
+                eventId={event.id}
+                commitRow={CommitRow}
+                group={group}
+              />
+            </ErrorBoundary>
+          )}
+        </TraceEventDataSection>
+      </StacktraceContext>
     </Fragment>
   );
 
@@ -444,7 +444,7 @@ const ThreadStateWrapper = styled('div')`
 
 const LockReason = styled(TextOverflow)`
   font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const Wrapper = styled('div')`

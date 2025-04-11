@@ -652,14 +652,6 @@ describe('PlanMigrationActive cohort 8', function () {
     expect(screen.queryByTestId('new-profileDuration')).not.toBeInTheDocument();
   });
 
-  it('does render profile duration row', function () {
-    migration.cohort!.nextPlan!.reserved.profileDuration = 1;
-
-    renderSimple();
-    expect(screen.queryByTestId('current-profileDuration')).toHaveTextContent(/1 hour/);
-    expect(screen.queryByTestId('new-profileDuration')).toHaveTextContent(/1 hour/);
-  });
-
   it('renders replays credit message', function () {
     renderSimple();
     expect(screen.getByTestId('recurring-credits')).toHaveTextContent(

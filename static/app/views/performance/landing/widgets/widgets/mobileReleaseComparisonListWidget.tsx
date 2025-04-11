@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -10,7 +11,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import Truncate from 'sentry/components/truncate';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -31,14 +31,14 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
-import {Subtitle} from 'sentry/views/profiling/landing/styles';
-import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
-
-import {Accordion} from '../components/accordion';
-import {GenericPerformanceWidget} from '../components/performanceWidget';
-import {GrowLink, WidgetEmptyStateWarning} from '../components/selectableList';
-import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import type {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
+import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import {
+  GrowLink,
+  WidgetEmptyStateWarning,
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {transformDiscoverToList} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToList';
+import type {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';
 import type {
   GenericPerformanceWidgetProps,
   PerformanceWidgetProps,
@@ -47,14 +47,16 @@ import type {
   WidgetDataConstraint,
   WidgetDataResult,
   WidgetPropUnion,
-} from '../types';
+} from 'sentry/views/performance/landing/widgets/types';
 import {
   eventsRequestQueryProps,
   getMEPParamsIfApplicable,
   QUERY_LIMIT_PARAM,
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
-} from '../utils';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+} from 'sentry/views/performance/landing/widgets/utils';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {Subtitle} from 'sentry/views/profiling/landing/styles';
+import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -96,6 +98,7 @@ export function transformEventsChartRequest<T extends WidgetDataConstraint>(
 
 function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const api = useApi();
+  const theme = useTheme();
   const pageFilter = usePageFilters();
   const mepSetting = useMEPSettingContext();
   const {
@@ -267,9 +270,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
     getItems(provided).map(item => ({header: item, content: getChart(provided)}));
 
   const getChart = (provided: ComponentData) => {
-    const transformedReleaseSeries: {
-      [releaseVersion: string]: Series;
-    } = {};
+    const transformedReleaseSeries: Record<string, Series> = {};
 
     const series = provided.widgetData.chart.data;
     if (defined(series)) {
@@ -285,7 +286,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
             } as SeriesDataUnit;
           }) ?? [];
 
-        const color = isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1];
+        const color = isPrimary ? theme.chart.colors[3][0] : theme.chart.colors[3][1];
         transformedReleaseSeries[release] = {
           seriesName: formatVersion(label, true),
           color,

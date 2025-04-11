@@ -10,6 +10,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -20,6 +21,11 @@ import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
+import {
+  DataTitles,
+  getDurationChartTitle,
+  getThroughputChartTitle,
+} from 'sentry/views/insights/common/views/spans/types';
 import {
   DomainsTable,
   isAValidSort,
@@ -35,13 +41,6 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {
-  DataTitles,
-  getDurationChartTitle,
-  getThroughputChartTitle,
-} from '../../common/views/spans/types';
-
 export function HTTPLandingPage() {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -51,7 +50,7 @@ export function HTTPLandingPage() {
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
   // TODO: Pull this using `useLocationQuery` below
-  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  const sort = decodeSorts(sortField).find(isAValidSort) ?? DEFAULT_SORT;
 
   const query = useLocationQuery({
     fields: {
@@ -103,7 +102,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: ['spm()'],
+      yAxis: ['epm()'],
       transformAliasToInputFormat: true,
     },
     Referrer.LANDING_THROUGHPUT_CHART
@@ -142,7 +141,7 @@ export function HTTPLandingPage() {
         'project',
         'project.id',
         'span.domain',
-        'spm()',
+        'epm()',
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
@@ -184,7 +183,7 @@ export function HTTPLandingPage() {
                 <ModuleLayout.Third>
                   <InsightsLineChartWidget
                     title={getThroughputChartTitle('http')}
-                    series={[throughputData['spm()']]}
+                    series={[throughputData['epm()']]}
                     isLoading={isThroughputDataLoading}
                     error={throughputError}
                   />

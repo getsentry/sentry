@@ -14,6 +14,7 @@ describe('calculateTotalSpend', () => {
       plan: 'am2_f',
       onDemandSpendUsed: 0,
     });
+    subscription.planDetails.categories = ['errors'];
     subscription.categories.errors!.onDemandSpendUsed = 0;
     subscription.planDetails.planCategories.errors = [
       {events: 100_000, price: 10000, unitPrice: 0.1, onDemandPrice: 0.2},
@@ -34,6 +35,7 @@ describe('calculateTotalSpend', () => {
       planTier: 'am2',
       plan: 'am2_f',
     });
+    subscription.planDetails.categories = ['errors'];
     subscription.categories.errors!.onDemandSpendUsed = 10_000;
     subscription.planDetails.planCategories.errors = [
       {events: 100_000, price: 10000, unitPrice: 0.1, onDemandPrice: 0.2},
@@ -56,6 +58,7 @@ describe('calculateTotalSpend', () => {
       planTier: 'am2',
       plan: 'am2_f',
     });
+    subscription.planDetails.categories = ['errors'];
     subscription.planDetails.billingInterval = 'annual';
     const monthlyPrice = 10000;
     subscription.planDetails.planCategories.errors = [

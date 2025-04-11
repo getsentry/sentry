@@ -16,16 +16,26 @@ export type TracingEventParameters = {
     confidences: string[];
     dataset: string;
     has_exceeded_performance_usage_limit: boolean | null;
+    interval: string;
     page_source: 'explore' | 'compare';
     query_status: 'success' | 'error' | 'pending';
     result_length: number;
     result_missing_root: number;
     result_mode: 'trace samples' | 'span samples' | 'aggregates';
+    sample_counts: number[];
     title: string;
     user_queries: string;
     user_queries_count: number;
     visualizes: BaseVisualize[];
     visualizes_count: number;
+    empty_buckets_percentage?: number[];
+  };
+  'trace.explorer.schema_hints_click': {
+    source: 'list' | 'drawer';
+    hint_key?: string;
+  };
+  'trace.explorer.schema_hints_drawer': {
+    drawer_open: boolean;
   };
   'trace.load.empty_state': {
     source: TraceWaterFallSource;
@@ -130,7 +140,7 @@ export type TracingEventParameters = {
   };
   'trace_explorer.remove_span_condition': Record<string, unknown>;
   'trace_explorer.save_as': {
-    save_type: 'alert' | 'dashboard';
+    save_type: 'alert' | 'dashboard' | 'saved_query' | 'update_query';
     ui_source: 'toolbar' | 'chart' | 'compare chart';
   };
   'trace_explorer.search_failure': {
@@ -161,6 +171,10 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.load.empty_state': 'Trace Load Empty State',
   'trace.load.error_state': 'Trace Load Error State',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
+  'trace.explorer.schema_hints_click':
+    'Improved Trace Explorer: Schema Hints Click Events',
+  'trace.explorer.schema_hints_drawer':
+    'Improved Trace Explorer: Schema Hints Drawer Events',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',

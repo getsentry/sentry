@@ -172,7 +172,7 @@ function TimeInput({time, setTime}: TimeInputProps) {
   );
 }
 
-const SearchBarDatePickerOverlay = styled(Overlay)`
+const SearchBarDatePickerOverlay = styled(Overlay)<React.HTMLAttributes<HTMLDivElement>>`
   position: absolute;
   top: 100%;
   left: -1px;
@@ -185,7 +185,7 @@ const Input = styled('input')`
   padding: 0 ${space(1)};
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   box-shadow: none;
 `;
 
@@ -197,7 +197,7 @@ const DatePickerFooter = styled('div')`
 `;
 
 const UtcPickerLabel = styled('label')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   white-space: nowrap;
   display: flex;
   align-items: center;

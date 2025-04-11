@@ -12,7 +12,8 @@ import type {
   Subscription,
   SubscriptionOnDemandBudgets,
 } from 'getsentry/types';
-import {BillingType, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
@@ -46,6 +47,8 @@ export function parseOnDemandBudgets(
       replaysBudget: onDemandBudgets.budgets.replays ?? 0,
       monitorSeatsBudget: onDemandBudgets.budgets.monitorSeats ?? 0,
       uptimeBudget: onDemandBudgets.budgets.uptime ?? 0,
+      profileDurationBudget: onDemandBudgets.budgets.profileDuration ?? 0,
+      profileDurationUIBudget: onDemandBudgets.budgets.profileDurationUI ?? 0,
       budgets: {
         errors: onDemandBudgets.budgets.errors,
         transactions: onDemandBudgets.budgets.transactions,
@@ -53,6 +56,8 @@ export function parseOnDemandBudgets(
         replays: onDemandBudgets.budgets.replays,
         monitorSeats: onDemandBudgets.budgets.monitorSeats,
         uptime: onDemandBudgets.budgets.uptime,
+        profileDuration: onDemandBudgets.budgets.profileDuration,
+        profileDurationUI: onDemandBudgets.budgets.profileDurationUI,
       },
     };
   }
@@ -70,13 +75,17 @@ export function getTotalBudget(onDemandBudgets: OnDemandBudgets): number {
     const replaysBudget = onDemandBudgets.budgets.replays ?? 0;
     const monitorSeatsBudget = onDemandBudgets.budgets.monitorSeats ?? 0;
     const uptimeBudget = onDemandBudgets.budgets.uptime ?? 0;
+    const profileDurationBudget = onDemandBudgets.budgets.profileDuration ?? 0;
+    const profileDurationUIBudget = onDemandBudgets.budgets.profileDurationUI ?? 0;
     return (
       errorsBudget +
       transactionsBudget +
       attachmentsBudget +
       replaysBudget +
       monitorSeatsBudget +
-      uptimeBudget
+      uptimeBudget +
+      profileDurationBudget +
+      profileDurationUIBudget
     );
   }
 
@@ -108,7 +117,6 @@ function listBudgets({plan, categories, budget}: DisplayNameProps) {
 
 export function formatOnDemandBudget(
   plan: Plan,
-  planTier: string,
   budget: OnDemandBudgets,
   categories: string[] = [
     'errors',
@@ -117,14 +125,20 @@ export function formatOnDemandBudget(
     'replays',
     'monitorSeats',
     'uptime',
+    'profileDuration',
+    'profileDurationUI',
   ]
 ): React.ReactNode {
-  const budgetType = planTier === PlanTier.AM3 ? 'pay-as-you-go' : 'on-demand';
   if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-    return `per-category ${budgetType} (${listBudgets({plan, categories, budget})})`;
+    return `per-category ${displayBudgetName(plan, {
+      withBudget: true,
+      pluralOndemand: true,
+    })} (${listBudgets({plan, categories, budget})})`;
   }
 
-  return `shared ${budgetType} of ${formatCurrency(budget.sharedMaxBudget ?? 0)}`;
+  return `shared ${displayBudgetName(plan, {
+    withBudget: true,
+  })} of ${formatCurrency(budget.sharedMaxBudget ?? 0)}`;
 }
 
 export function hasOnDemandBudgetsFeature(
@@ -165,6 +179,12 @@ export function getOnDemandBudget(budget: OnDemandBudgets, dataCategory: DataCat
       }
       case DataCategory.UPTIME: {
         return budget.budgets.uptime ?? 0;
+      }
+      case DataCategory.PROFILE_DURATION: {
+        return budget.budgets.profileDuration ?? 0;
+      }
+      case DataCategory.PROFILE_DURATION_UI: {
+        return budget.budgets.profileDurationUI ?? 0;
       }
       default:
         return getTotalBudget(budget);
@@ -266,6 +286,8 @@ export function convertOnDemandBudget(
     let replaysBudget = 0;
     let monitorSeatsBudget = 0;
     let uptimeBudget = 0;
+    let profileDurationBudget = 0;
+    let profileDurationUIBudget = 0;
     if (currentOnDemandBudget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
       errorsBudget = currentOnDemandBudget.budgets.errors ?? 0;
       transactionsBudget = currentOnDemandBudget.budgets.transactions ?? 0;
@@ -273,6 +295,8 @@ export function convertOnDemandBudget(
       replaysBudget = currentOnDemandBudget.budgets.replays ?? 0;
       monitorSeatsBudget = currentOnDemandBudget.budgets.monitorSeats ?? 0;
       uptimeBudget = currentOnDemandBudget.budgets.uptime ?? 0;
+      profileDurationBudget = currentOnDemandBudget.budgets.profileDuration ?? 0;
+      profileDurationUIBudget = currentOnDemandBudget.budgets.profileDurationUI ?? 0;
     } else {
       // should split 50:50 between transactions and errors (whole dollars, remainder added to errors)
       const total = getTotalBudget(currentOnDemandBudget);
@@ -288,6 +312,8 @@ export function convertOnDemandBudget(
       replaysBudget,
       monitorSeatsBudget,
       uptimeBudget,
+      profileDurationBudget,
+      profileDurationUIBudget,
       budgets: {
         errors: errorsBudget,
         transactions: transactionsBudget,
@@ -295,6 +321,8 @@ export function convertOnDemandBudget(
         replays: replaysBudget,
         monitorSeats: monitorSeatsBudget,
         uptime: uptimeBudget,
+        profileDuration: profileDurationBudget,
+        profileDurationUI: profileDurationUIBudget,
       },
     };
   }

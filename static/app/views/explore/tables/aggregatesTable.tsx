@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -7,7 +8,6 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -20,6 +20,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {
   Table,
   TableBody,
@@ -46,9 +47,14 @@ import {FieldRenderer} from './fieldRenderer';
 
 interface AggregatesTableProps {
   aggregatesTableResult: AggregatesTableResult;
+  isProgressivelyLoading: boolean;
 }
 
-export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
+export function AggregatesTable({
+  aggregatesTableResult,
+  isProgressivelyLoading,
+}: AggregatesTableProps) {
+  const theme = useTheme();
   const location = useLocation();
   const {projects} = useProjects();
 
@@ -76,7 +82,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
-  const palette = getChartColorPalette(numberOfRowsNeedingColor - 2)!; // -2 because getColorPalette artificially adds 1, I'm not sure why
+  const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
 
   return (
     <Fragment>
@@ -84,7 +90,9 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
-              <TableHeadCellContent />
+              <TableHeadCellContent>
+                {getProgressiveLoadingIndicator(isProgressivelyLoading)}
+              </TableHeadCellContent>
             </TableHeadCell>
             {fields.map((field, i) => {
               // Hide column names before alignment is determined

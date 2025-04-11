@@ -3,9 +3,11 @@ import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -13,6 +15,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import ModalStore from 'sentry/stores/modalStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -74,7 +77,11 @@ describe('GroupEventAttachments', function () {
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/group-id/attachments/',
       expect.objectContaining({
-        query: {screenshot: '1'},
+        query: {
+          screenshot: '1',
+          environment: [],
+          statsPeriod: '14d',
+        },
       })
     );
   });
@@ -150,8 +157,13 @@ describe('GroupEventAttachments', function () {
   });
 
   it('filters by date/query when using Streamlined UI', function () {
+    ConfigStore.init();
+    const user = UserFixture();
+    user.options.prefersIssueDetailsStreamlinedUI = true;
+    act(() => ConfigStore.set('user', user));
+
     render(<GroupEventAttachments project={project} group={group} />, {
-      disableRouterMocks: true,
+      enableRouterMocks: false,
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',

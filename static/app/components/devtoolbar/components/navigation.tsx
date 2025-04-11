@@ -3,6 +3,10 @@ import {type ReactNode, useContext} from 'react';
 import {AnalyticsContext} from 'sentry/components/devtoolbar/components/analyticsProvider';
 import SessionStatusBadge from 'sentry/components/devtoolbar/components/releases/sessionStatusBadge';
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
+import usePlacementCss from 'sentry/components/devtoolbar/hooks/usePlacementCss';
+import useToolbarRoute from 'sentry/components/devtoolbar/hooks/useToolbarRoute';
+import {navigationCss} from 'sentry/components/devtoolbar/styles/navigation';
+import {resetDialogCss} from 'sentry/components/devtoolbar/styles/reset';
 import {
   IconClose,
   IconFlag,
@@ -13,12 +17,8 @@ import {
   IconSiren,
 } from 'sentry/icons';
 
-import usePlacementCss from '../hooks/usePlacementCss';
-import useToolbarRoute from '../hooks/useToolbarRoute';
-import {navigationCss} from '../styles/navigation';
-import {resetDialogCss} from '../styles/reset';
-
 import AlertBadge from './alerts/alertBadge';
+import FlagOverridesBadge from './featureFlags/flagOverridesBadge';
 import IconButton from './navigation/iconButton';
 
 export default function Navigation({
@@ -57,7 +57,9 @@ export default function Navigation({
       <NavButton panelName="alerts" label="Active Alerts" icon={<IconSiren />}>
         <AlertBadge />
       </NavButton>
-      <NavButton panelName="featureFlags" label="Feature Flags" icon={<IconFlag />} />
+      <NavButton panelName="featureFlags" label="Feature Flags" icon={<IconFlag />}>
+        <FlagOverridesBadge />
+      </NavButton>
       <NavButton panelName="releases" label="Releases" icon={<IconReleases />}>
         <SessionStatusBadge />
       </NavButton>

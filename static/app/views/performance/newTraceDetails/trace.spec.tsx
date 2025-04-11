@@ -889,7 +889,9 @@ describe('trace view', () => {
     mockEventsResponse();
 
     render(<TraceView />, {router});
-    expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Woof. We failed to load your trace./i)
+    ).toBeInTheDocument();
   });
 
   it('renders error state if meta fails to load', async () => {
@@ -906,10 +908,17 @@ describe('trace view', () => {
     mockEventsResponse();
 
     render(<TraceView />, {router});
-    expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Woof. We failed to load your trace./i)
+    ).toBeInTheDocument();
   });
 
-  it('renders empty state', async () => {
+  it('renders empty state for successfully ingested trace', async () => {
+    // set timestamp to 12 minutes ago
+    const twelveMinutesAgoInSeconds = Math.floor(
+      new Date(Date.now() - 12 * 60 * 1000).getTime() / 1000
+    );
+
     mockPerformanceSubscriptionDetailsResponse();
     mockTraceResponse({
       body: {
@@ -921,9 +930,40 @@ describe('trace view', () => {
     mockTraceTagsResponse();
     mockEventsResponse();
 
-    render(<TraceView />, {router});
+    window.location.search = `?timestamp=${twelveMinutesAgoInSeconds.toString()}`;
+    render(<TraceView />, {
+      router,
+    });
     expect(
-      await screen.findByText(/trace does not contain any data/i)
+      await screen.findByText(/This trace is so empty, even tumbleweeds don't roll here/i)
+    ).toBeInTheDocument();
+  });
+
+  it('renders empty state for yet to be ingested trace', async () => {
+    // set timestamp to 1 minute ago
+    const oneMinuteAgoInSeconds = Math.floor(
+      new Date(Date.now() - 1 * 60 * 1000).getTime() / 1000
+    );
+
+    mockPerformanceSubscriptionDetailsResponse();
+    mockTraceResponse({
+      body: {
+        transactions: [],
+        orphan_errors: [],
+      },
+    });
+    mockTraceMetaResponse();
+    mockTraceTagsResponse();
+    mockEventsResponse();
+
+    window.location.search = `?timestamp=${oneMinuteAgoInSeconds.toString()}`;
+    render(<TraceView />, {
+      router,
+    });
+    expect(
+      await screen.findByText(
+        /We're still processing this trace. Please try refreshing after a minute/i
+      )
     ).toBeInTheDocument();
   });
 
@@ -974,7 +1014,9 @@ describe('trace view', () => {
       expect(rows[4]!.textContent?.includes('Autogrouped')).toBe(true);
     });
     it('scrolls to child of parent autogroup node', async () => {
-      mockQueryString('?node=span-redis0&node=txn-1');
+      // Passing an invalid targetId to the query string will still scroll to the child of the parent autogroup node
+      // as path is prioritized over targetId/eventId
+      mockQueryString('?node=span-redis0&node=txn-1&targetId=doesnotexist');
 
       const {virtualizedContainer} = await completeTestSetup();
       await within(virtualizedContainer).findAllByText(/Autogrouped/i);
@@ -1002,7 +1044,9 @@ describe('trace view', () => {
     });
 
     it('scrolls to child of sibling autogroup node', async () => {
-      mockQueryString('?node=span-http0&node=txn-1');
+      // Passing an invalid targetId to the query string will still scroll to the child of the parent autogroup node
+      // as path is prioritized over targetId/eventId
+      mockQueryString('?node=span-http0&node=txn-1&targetId=doesnotexist');
 
       const {virtualizedContainer} = await completeTestSetup();
       await within(virtualizedContainer).findAllByText(/Autogrouped/i);
@@ -1466,7 +1510,8 @@ describe('trace view', () => {
       const {container} = await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'transaction-op');
+      await userEvent.click(searchInput);
+      await userEvent.paste('transaction-op');
 
       expect(searchInput).toHaveValue('transaction-op');
       await searchToResolve();
@@ -1502,7 +1547,8 @@ describe('trace view', () => {
       await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'transaction-op');
+      await userEvent.click(searchInput);
+      await userEvent.paste('transaction-op');
       expect(searchInput).toHaveValue('transaction-op');
 
       // Wait for the search results to resolve
@@ -1527,14 +1573,16 @@ describe('trace view', () => {
       const {container} = await searchTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
 
-      await userEvent.type(searchInput, 'transaction-op-1');
+      await userEvent.click(searchInput);
+      await userEvent.paste('transaction-op-1');
       expect(searchInput).toHaveValue('transaction-op-1');
       await searchToResolve();
 
       await assertHighlightedRowAtIndex(container, 2);
 
       await userEvent.clear(searchInput);
-      await userEvent.type(searchInput, 'transaction-op-5');
+      await userEvent.click(searchInput);
+      await userEvent.paste('transaction-op-5');
       await searchToResolve();
 
       await assertHighlightedRowAtIndex(container, 6);
@@ -1561,12 +1609,15 @@ describe('trace view', () => {
       await assertHighlightedRowAtIndex(container, 2);
 
       await userEvent.clear(searchInput);
-      await userEvent.type(searchInput, 'this wont match anything');
+      await userEvent.click(searchInput);
+      await userEvent.paste('this wont match anything');
       expect(searchInput).toHaveValue('this wont match anything');
       await searchToResolve();
 
       // When there is no match, the highlighting is removed
-      expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
+      await waitFor(() => {
+        expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
+      });
     });
 
     it('auto highlights the first result when search begins', async () => {
@@ -1744,7 +1795,8 @@ describe('trace view', () => {
     it('during search, highlighting is persisted on the row', async () => {
       const {container} = await searchTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'transaction-op');
+      await userEvent.click(searchInput);
+      await userEvent.paste('transaction-op');
       expect(searchInput).toHaveValue('transaction-op');
       await searchToResolve();
 
@@ -1773,11 +1825,14 @@ describe('trace view', () => {
       await assertHighlightedRowAtIndex(container, 6);
 
       await userEvent.clear(searchInput);
-      await userEvent.type(searchInput, 'transaction-op-none');
+      await userEvent.click(searchInput);
+      await userEvent.paste('transaction-op-none');
       await searchToResolve();
-      // eslint-disable-next-line testing-library/no-container
-      expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
-    });
+      await waitFor(() => {
+        // eslint-disable-next-line testing-library/no-container
+        expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
+      });
+    }, 20_000);
   });
 
   describe('tabbing', () => {

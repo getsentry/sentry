@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
@@ -27,6 +27,8 @@ import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useSpanMetrics,
@@ -59,9 +61,6 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-
-import {SampleDrawerBody} from '../../common/components/sampleDrawerBody';
-import {SampleDrawerHeaderTransaction} from '../../common/components/sampleDrawerHeaderTransaction';
 
 export function HTTPSamplesPanel() {
   const navigate = useNavigate();
@@ -178,7 +177,7 @@ export function HTTPSamplesPanel() {
     {
       search: MutableSearch.fromQueryObject(ribbonFilters),
       fields: [
-        `${SpanFunction.SPM}()`,
+        `${SpanFunction.EPM}()`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         'http_response_rate(3)',
@@ -306,7 +305,7 @@ export function HTTPSamplesPanel() {
             <ReadoutRibbon>
               <MetricReadout
                 title={getThroughputTitle('http')}
-                value={domainTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
+                value={domainTransactionMetrics?.[0]?.[`${SpanFunction.EPM}()`]}
                 unit={RateUnit.PER_MINUTE}
                 isLoading={areDomainTransactionMetricsFetching}
               />
@@ -396,7 +395,7 @@ export function HTTPSamplesPanel() {
                   onHighlight={highlights => {
                     const firstHighlight = highlights[0];
 
-                    if (!firstHighlight) {
+                    if (!firstHighlight || !firstHighlight.dataPoint) {
                       setHighlightedSpanId(undefined);
                       return;
                     }

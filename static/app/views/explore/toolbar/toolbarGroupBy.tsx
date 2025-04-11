@@ -3,15 +3,16 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
-import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Button} from 'sentry/components/core/button';
+import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {
   useExploreGroupBys,
   useExploreMode,
@@ -19,10 +20,8 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-
-import {DragNDropContext} from '../contexts/dragNDropContext';
-import {useSpanTags} from '../contexts/spanTagsContext';
-import type {Column} from '../hooks/useDragNDropColumns';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 
 import {
   ToolbarHeader,
@@ -217,7 +216,7 @@ const TriggerLabel = styled('span')`
 `;
 
 const Disabled = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const FullWidthTooltip = styled(Tooltip)`

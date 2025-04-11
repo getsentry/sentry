@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import NotFound from 'sentry/components/errors/notFound';
@@ -37,6 +37,7 @@ function OrgDashboards(props: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {dashboardId} = useParams<{dashboardId: string}>();
+  const dashboardRedirectRef = useRef<string | null>(null);
 
   const ENDPOINT = `/organizations/${organization.slug}/dashboards/`;
 
@@ -90,43 +91,34 @@ function OrgDashboards(props: Props) {
   }, [dashboards, dashboardId, organization.slug, location.query, navigate]);
 
   useEffect(() => {
-    if (dashboardId || selectedDashboard) {
-      const queryParamFilters = new Set([
-        'project',
-        'environment',
-        'statsPeriod',
-        'start',
-        'end',
-        'utc',
-        'release',
-      ]);
-      if (
-        selectedDashboard &&
-        // Only redirect if there are saved filters and none of the filters
-        // appear in the query params
-        hasSavedPageFilters(selectedDashboard) &&
-        Object.keys(location.query).filter(unsavedQueryParam =>
-          queryParamFilters.has(unsavedQueryParam)
-        ).length === 0
-      ) {
-        navigate(
-          {
-            ...location,
-            query: {
-              ...location.query,
-              project: selectedDashboard.projects,
-              environment: selectedDashboard.environment,
-              statsPeriod: selectedDashboard.period,
-              start: selectedDashboard.start,
-              end: selectedDashboard.end,
-              utc: selectedDashboard.utc,
-            },
-          },
-          {replace: true}
-        );
-      }
+    // Only redirect if there are saved filters and none of the filters
+    // appear in the query params
+    if (
+      !selectedDashboard ||
+      !hasSavedPageFilters(selectedDashboard) ||
+      // Apply redirect once for each dashboard id
+      dashboardRedirectRef.current === selectedDashboard.id
+    ) {
+      return;
     }
-  }, [dashboardId, location, navigate, selectedDashboard]);
+
+    dashboardRedirectRef.current = selectedDashboard.id;
+    navigate(
+      {
+        ...location,
+        query: {
+          ...location.query,
+          project: selectedDashboard.projects,
+          environment: selectedDashboard.environment,
+          statsPeriod: selectedDashboard.period,
+          start: selectedDashboard.start,
+          end: selectedDashboard.end,
+          utc: selectedDashboard.utc,
+        },
+      },
+      {replace: true}
+    );
+  }, [location, navigate, selectedDashboard]);
 
   useEffect(() => {
     if (!organization.features.includes('dashboards-basic')) {

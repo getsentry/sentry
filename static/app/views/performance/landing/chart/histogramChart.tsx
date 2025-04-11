@@ -25,8 +25,7 @@ import {
   computeBuckets,
   formatHistogramData,
 } from 'sentry/utils/performance/histogram/utils';
-
-import {DoubleHeaderContainer} from '../../styles';
+import {DoubleHeaderContainer} from 'sentry/views/performance/styles';
 
 import {getFieldOrBackup} from './utils';
 
@@ -232,5 +231,3 @@ const BarChartContainer = styled('div')<{hasPadding?: boolean}>`
 const MaskContainer = styled('div')`
   position: relative;
 `;
-
-export default HistogramChart;

@@ -50,13 +50,6 @@
 
     <div class="tab-content">
 
-        {% for field in read_only_fields %}
-            <div class="form-group">
-                <label class="control-label">{{ field.label }}</label>
-                <div>{{ field.value }}</div>
-            </div>
-        {% endfor %}
-
         <div class="tab-pane{% if op == "create" or not op %} active{% endif %}" id="create">
             <form class="form-stacked" action="" method="post">
                 {% csrf_token %}

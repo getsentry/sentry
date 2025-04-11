@@ -9,15 +9,15 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
   Dataset,
   Datasource,
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-
-import type {CombinedAlerts, Incident, IncidentStats} from '../types';
-import {AlertRuleStatus, CombinedAlertType} from '../types';
+import type {CombinedAlerts, Incident, IncidentStats} from 'sentry/views/alerts/types';
+import {AlertRuleStatus, CombinedAlertType} from 'sentry/views/alerts/types';
 
 /**
  * Gets start and end date query parameters from stats
@@ -166,12 +166,15 @@ export function shouldScaleAlertChart(aggregate: string) {
 }
 
 export function alertDetailsLink(organization: Organization, incident: Incident) {
-  return `/organizations/${organization.slug}/alerts/rules/details/${
-    incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
-    incident.alertRule.originalAlertRuleId
-      ? incident.alertRule.originalAlertRuleId
-      : incident.alertRule.id
-  }/`;
+  return makeAlertsPathname({
+    path: `/rules/details/${
+      incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+      incident.alertRule.originalAlertRuleId
+        ? incident.alertRule.originalAlertRuleId
+        : incident.alertRule.id
+    }/`,
+    organization,
+  });
 }
 
 /**

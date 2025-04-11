@@ -22,6 +22,7 @@ export const FREE_EVENTS_KEYS = {
   [DataCategory.SPANS]: 'addFreeSpans',
   [DataCategory.SPANS_INDEXED]: 'addFreeSpansIndexed',
   [DataCategory.PROFILE_DURATION]: 'addFreeProfileDuration',
+  [DataCategory.PROFILE_DURATION_UI]: 'addFreeProfileDurationUI',
 };
 
 /**
@@ -38,6 +39,7 @@ const DISPLAY_FREE_EVENTS_MULTIPLE = {
   [DataCategory.SPANS]: 100_000,
   [DataCategory.SPANS_INDEXED]: 100_000,
   [DataCategory.PROFILE_DURATION]: 1, // hours
+  [DataCategory.PROFILE_DURATION_UI]: 1, // hours
 };
 
 type Props = AdminConfirmRenderProps & {
@@ -118,7 +120,10 @@ class AddGiftEventsAction extends Component<Props, State> {
       if (dataCategory === DataCategory.ATTACHMENTS) {
         return 'How many attachments in GB?';
       }
-      if (dataCategory === DataCategory.PROFILE_DURATION) {
+      if (
+        dataCategory === DataCategory.PROFILE_DURATION ||
+        dataCategory === DataCategory.PROFILE_DURATION_UI
+      ) {
         return 'How many profile hours?';
       }
       const categoryName = getPlanCategoryName({
@@ -138,7 +143,10 @@ class AddGiftEventsAction extends Component<Props, State> {
     const total = this.calculatedTotal.toLocaleString();
     function getHelp() {
       let postFix = '';
-      if (dataCategory === DataCategory.PROFILE_DURATION) {
+      if (
+        dataCategory === DataCategory.PROFILE_DURATION ||
+        dataCategory === DataCategory.PROFILE_DURATION_UI
+      ) {
         if (total === '1') {
           postFix = ' hour';
         } else {

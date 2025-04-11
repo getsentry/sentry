@@ -6,7 +6,6 @@ import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {
@@ -83,7 +82,7 @@ function Chart({
     return null;
   }
 
-  const colors = chartColors ?? getChartColorPalette(4);
+  const colors = chartColors ?? theme.chart.getColorPalette(4);
 
   const durationOnly = data.every(
     value => aggregateOutputType(value.seriesName) === 'duration'
@@ -194,7 +193,7 @@ function Chart({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1]!],
+    colors: [colors[0], colors[1]],
     tooltip: {
       valueFormatter: (value: any, seriesName: any) => {
         return tooltipFormatter(

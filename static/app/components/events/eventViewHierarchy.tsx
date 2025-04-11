@@ -21,9 +21,10 @@ import {ViewHierarchy} from './viewHierarchy';
 type Props = {
   event: Event;
   project: Project;
+  disableCollapsePersistence?: boolean;
 };
 
-function EventViewHierarchyContent({event, project}: Props) {
+function EventViewHierarchyContent({event, project, disableCollapsePersistence}: Props) {
   const organization = useOrganization();
 
   const {data: attachments} = useFetchEventAttachments(
@@ -86,7 +87,11 @@ function EventViewHierarchyContent({event, project}: Props) {
   }
 
   return (
-    <InterimSection title={t('View Hierarchy')} type={SectionKey.VIEW_HIERARCHY}>
+    <InterimSection
+      title={t('View Hierarchy')}
+      type={SectionKey.VIEW_HIERARCHY}
+      disableCollapsePersistence={disableCollapsePersistence}
+    >
       <ErrorBoundary mini>
         <ViewHierarchy viewHierarchy={hierarchy} project={project} />
       </ErrorBoundary>

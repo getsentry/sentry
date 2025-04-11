@@ -37,6 +37,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {updateDynamicSdkLoaderOptions} from './jsLoader/updateDynamicSdkLoaderOptions';
@@ -287,6 +288,12 @@ const getInstallConfig = () => [
         language: 'bash',
         code: 'yarn add @sentry/browser',
       },
+      {
+        label: 'pnpm',
+        value: 'pnpm',
+        language: 'bash',
+        code: 'pnpm add @sentry/browser',
+      },
     ],
   },
 ];
@@ -314,7 +321,7 @@ const getVerifyConfig = () => [
 
 const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
-    tct('In this quick guide you’ll use our [strong: Loader Script] to set up:', {
+    tct("In this quick guide you'll use our [strong: Loader Script] to set up:", {
       strong: <strong />,
     }),
   install: params => [
@@ -448,14 +455,17 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
 
 const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
-    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
-      strong: <strong />,
-    }),
+    tct(
+      "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
+      {
+        strong: <strong />,
+      }
+    ),
   install: () => [
     {
       type: StepType.INSTALL,
       description: t(
-        'Sentry captures data by using an SDK within your application’s runtime.'
+        "Sentry captures data by using an SDK within your application's runtime."
       ),
       configurations: getInstallConfig(),
     },
@@ -774,10 +784,10 @@ Sentry.init({
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
-  ...onboarding,
-  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
-};
+const profilingOnboarding = getJavascriptProfilingOnboarding({
+  getInstallConfig,
+  docsLink: 'https://docs.sentry.io/platforms/javascript/profiling/browser-profiling/',
+});
 
 export const featureFlagOnboarding: OnboardingConfig = {
   install: () => [],
@@ -785,7 +795,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
     const {integrationName, makeConfigureCode, makeVerifyCode, packageName} =
       FEATURE_FLAG_CONFIGURATION_MAP[
         featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
-      ]!;
+      ];
 
     const installConfig = [
       {
@@ -802,6 +812,12 @@ export const featureFlagOnboarding: OnboardingConfig = {
             value: 'yarn',
             language: 'bash',
             code: `yarn add @sentry/browser ${packageName}`,
+          },
+          {
+            label: 'pnpm',
+            value: 'pnpm',
+            language: 'bash',
+            code: `pnpm add @sentry/browser ${packageName}`,
           },
         ],
       },
@@ -853,7 +869,6 @@ const docs: Docs<PlatformOptions> = {
   replayOnboarding,
   replayOnboardingJsLoader,
   performanceOnboarding,
-
   crashReportOnboarding,
   platformOptions,
   profilingOnboarding,

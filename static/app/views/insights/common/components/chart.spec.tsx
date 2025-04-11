@@ -8,19 +8,6 @@ import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 jest.mock('sentry/components/charts/baseChart', () => {
   return jest.fn().mockImplementation(() => <div />);
 });
-jest.mock('react', () => {
-  return {
-    ...jest.requireActual('react'),
-    useRef: jest.fn(),
-  };
-});
-// XXX: Mocking useRef throws an error for AnimatePrecense, so it must be mocked as well
-jest.mock('framer-motion', () => {
-  return {
-    ...jest.requireActual('framer-motion'),
-    AnimatePresence: jest.fn().mockImplementation(({children}) => <div>{children}</div>),
-  };
-});
 
 describe('Chart', function () {
   test('it shows an error panel if an error prop is supplied', function () {
@@ -28,8 +15,7 @@ describe('Chart', function () {
 
     render(
       <Chart error={parsingError} data={[]} loading={false} type={ChartType.LINE} />,
-      // Mocked useRef breaks router
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     expect(screen.getByTestId('chart-error-panel')).toBeInTheDocument();
@@ -58,8 +44,7 @@ describe('Chart', function () {
       },
     ];
     render(<Chart data={mockedSeries} loading={false} type={ChartType.LINE} />, {
-      // Mocked useRef breaks router
-      disableRouterMocks: true,
+      enableRouterMocks: false,
     });
     expect(jest.mocked(BaseChart).mock.calls[0]![0].series?.[0]).toHaveProperty(
       'markLine'

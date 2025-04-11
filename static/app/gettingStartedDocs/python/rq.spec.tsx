@@ -47,10 +47,10 @@ describe('rq onboarding docs', function () {
 
     // Does not render continuous profiling config
     expect(
-      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/))
+      screen.queryByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/))
+      screen.queryByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
     ).not.toBeInTheDocument();
 
     // Does render transaction profiling config
@@ -80,16 +80,15 @@ describe('rq onboarding docs', function () {
     ).not.toBeInTheDocument();
 
     // Does render continuous profiling config
-    const startMatches = screen.queryAllByText(
-      textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/)
+    const sampleRateMatches = screen.getAllByText(
+      textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/)
     );
-    expect(startMatches.length).toBeGreaterThan(0);
-    startMatches.forEach(match => expect(match).toBeInTheDocument());
-
-    const stopMatches = screen.queryAllByText(
-      textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/)
+    expect(sampleRateMatches.length).toBeGreaterThan(0);
+    sampleRateMatches.forEach(match => expect(match).toBeInTheDocument());
+    const lifecycleMatches = screen.getAllByText(
+      textWithMarkupMatcher(/profile_lifecycle="trace",/)
     );
-    expect(stopMatches.length).toBeGreaterThan(0);
-    stopMatches.forEach(match => expect(match).toBeInTheDocument());
+    expect(lifecycleMatches.length).toBeGreaterThan(0);
+    lifecycleMatches.forEach(match => expect(match).toBeInTheDocument());
   });
 });

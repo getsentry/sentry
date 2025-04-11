@@ -17,6 +17,9 @@ from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_tasks
+from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
@@ -189,6 +192,10 @@ def group_was_recently_resolved(group: Group) -> bool:
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+        retry=Retry(times=5),
+    ),
 )
 @retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation
@@ -262,10 +269,16 @@ def sync_status_inbound(
                 )
                 if not created:
                     resolution.update(datetime=django_timezone.now(), **resolution_params)
+
+            try:
+                default_user_id = str(organizations[0].get_default_owner().id)
+            except IndexError:
+                logger.exception("Error getting default user")
+                default_user_id = "<unknown>"
             analytics.record(
                 "issue.resolved",
                 project_id=group.project.id,
-                default_user_id=organizations[0].get_default_owner().id,
+                default_user_id=default_user_id,
                 organization_id=organization_id,
                 group_id=group.id,
                 resolution_type="with_third_party_app",

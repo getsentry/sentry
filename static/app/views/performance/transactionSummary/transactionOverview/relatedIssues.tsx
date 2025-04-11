@@ -17,8 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-
-import {removeTracingKeysFromSearch} from '../../utils';
+import {removeTracingKeysFromSearch} from 'sentry/views/performance/utils';
 
 type Props = {
   location: Location;
@@ -62,7 +61,7 @@ class RelatedIssues extends Component<Props> {
     });
   };
 
-  renderEmptyMessage = () => {
+  renderEmptyMessage = (isEAP: boolean) => {
     const {statsPeriod} = this.props;
 
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -76,7 +75,8 @@ class RelatedIssues extends Component<Props> {
         <PanelBody>
           <EmptyStateWarning>
             <p>
-              {tct('No new issues for this transaction for the [timePeriod].', {
+              {tct('No new issues for this [identifier] for the [timePeriod].', {
+                identifier: isEAP ? 'service entry span' : 'transaction',
                 timePeriod: displayedPeriod,
               })}
             </p>
@@ -93,6 +93,8 @@ class RelatedIssues extends Component<Props> {
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {referrer: 'performance-related-issues', ...queryParams},
     };
+
+    const isEAP = organization.features.includes('performance-transaction-summary-eap');
 
     return (
       <Fragment>
@@ -112,7 +114,7 @@ class RelatedIssues extends Component<Props> {
           <GroupList
             queryParams={queryParams}
             canSelectGroups={false}
-            renderEmptyMessage={this.renderEmptyMessage}
+            renderEmptyMessage={() => this.renderEmptyMessage(isEAP)}
             withChart={false}
             withPagination={false}
             source="performance-related-issues"

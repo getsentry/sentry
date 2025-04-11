@@ -1,4 +1,3 @@
-import type React from 'react';
 import {
   Fragment,
   useCallback,
@@ -8,15 +7,22 @@ import {
   useReducer,
   useRef,
 } from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {IssueTraceWaterfallOverlay} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfallOverlay';
 import {
+  isEAPErrorNode,
+  isEAPSpanNode,
+  isEAPTransactionNode,
+  isNonTransactionEAPSpanNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
@@ -54,15 +60,24 @@ interface IssuesTraceWaterfallProps extends Omit<TraceWaterfallProps, 'tree'> {
 }
 
 export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
+  const theme = useTheme();
   const {projects} = useProjects();
   const organization = useOrganization();
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
 
   const traceView = useMemo(() => new TraceViewModel(), []);
   const traceScheduler = useMemo(() => new TraceScheduler(), []);
+  const problemSpans = useMemo((): ReturnType<typeof getProblemSpansForSpanTree> => {
+    if (props.event.type === 'transaction') {
+      return getProblemSpansForSpanTree(props.event);
+    }
+
+    return {affectedSpanIds: [], focusedSpanIds: []};
+  }, [props.event]);
 
   const projectsRef = useRef<Project[]>(projects);
   projectsRef.current = projects;
@@ -95,7 +110,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         span_list: {width: 1 - traceState.preferences.list.width},
       },
       traceScheduler,
-      traceView
+      traceView,
+      theme
     );
     // We only care about initial state when we initialize the view manager
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -159,7 +175,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     // Find all the nodes that match the event id from the error so that we can try and
     // link the user to the most specific one.
     const nodes = IssuesTraceTree.FindAll(props.tree.root, n => {
-      if (isTraceErrorNode(n)) {
+      if (isTraceErrorNode(n) || isEAPErrorNode(n)) {
         return n.value.event_id === props.event.eventID;
       }
       if (isTransactionNode(n)) {
@@ -173,14 +189,15 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
           }
         }
 
-        for (const p of n.performance_issues) {
+        for (const p of n.occurences) {
           if (p.event_id === props.event.eventID) {
             return true;
           }
         }
       }
-      if (isSpanNode(n)) {
-        if (n.value.span_id === props.event.eventID) {
+      if (isSpanNode(n) || isEAPSpanNode(n)) {
+        const spanId = 'span_id' in n.value ? n.value.span_id : n.value.event_id;
+        if (spanId === props.event.eventID) {
           return true;
         }
         for (const e of n.errors) {
@@ -188,7 +205,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
             return true;
           }
         }
-        for (const p of n.performance_issues) {
+        for (const p of n.occurences) {
           if (p.event_id === props.event.eventID) {
             return true;
           }
@@ -202,8 +219,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     // the error may have been attributed to, otherwise we look at the transaction.
     const node =
       nodes?.find(n => isTraceErrorNode(n)) ||
-      nodes?.find(n => isSpanNode(n)) ||
-      nodes?.find(n => isTransactionNode(n));
+      nodes?.find(n => isSpanNode(n) || isNonTransactionEAPSpanNode(n)) ||
+      nodes?.find(n => isTransactionNode(n) || isEAPTransactionNode(n));
 
     const index = node ? props.tree.list.indexOf(node) : -1;
 
@@ -215,7 +232,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         if (
           isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
-          node.performance_issues.size > 0
+          node.occurences.size > 0
         ) {
           preserveNodes.push(props.tree.list[start]!);
           break;
@@ -227,14 +244,40 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         if (
           isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
-          node.performance_issues.size > 0
+          node.occurences.size > 0
         ) {
           preserveNodes.push(props.tree.list[start]!);
           break;
         }
       }
 
-      props.tree.collapseList(preserveNodes);
+      start = 0;
+      // Preserve affectedSpanIds
+      while (start < props.tree.list.length) {
+        const currentNode = props.tree.list[start]!;
+        // Add more affected spans up to the minimum number of nodes to keep
+        if (preserveNodes.length >= MIN_NODES_TO_KEEP) {
+          break;
+        }
+        if (
+          currentNode.value &&
+          'span_id' in currentNode.value &&
+          // Not already in the preserveNodes array
+          !preserveNodes.includes(currentNode) &&
+          problemSpans.affectedSpanIds.includes(currentNode.value.span_id)
+        ) {
+          preserveNodes.push(currentNode);
+        }
+        start++;
+      }
+
+      let numSurroundingNodes = TRACE_PREVIEW_SURROUNDING_NODES;
+      if (props.event.type === 'transaction') {
+        // Performance issues are tighter to focus on the suspect spans (of which there may be many)
+        numSurroundingNodes = PERFORMANCE_ISSUE_SURROUNDING_NODES;
+      }
+
+      props.tree.collapseList(preserveNodes, numSurroundingNodes, MIN_NODES_TO_KEEP);
     }
 
     if (index === -1 || !node) {
@@ -282,6 +325,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     props.event,
     isLoadingSubscriptionDetails,
     hasExceededPerformanceUsageLimit,
+    problemSpans.affectedSpanIds,
   ]);
 
   useTraceTimelineChangeSync({
@@ -318,21 +362,32 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
             : 8
         }
       >
-        <IssuesPointerDisabled>
-          <Trace
-            metaQueryResults={props.meta}
-            trace={props.tree}
-            rerender={rerender}
-            trace_id={props.traceSlug}
-            onRowClick={onRowClick}
-            onTraceSearch={noopTraceSearch}
-            previouslyFocusedNodeRef={previouslyFocusedNodeRef}
-            manager={viewManager}
-            scheduler={traceScheduler}
-            forceRerender={forceRender}
-            isLoading={props.tree.type === 'loading' || onLoadScrollStatus === 'pending'}
+        <IssuesTraceContainer ref={containerRef}>
+          <IssuesPointerDisabled>
+            <Trace
+              metaQueryResults={props.meta}
+              trace={props.tree}
+              rerender={rerender}
+              trace_id={props.traceSlug}
+              onRowClick={onRowClick}
+              onTraceSearch={noopTraceSearch}
+              previouslyFocusedNodeRef={previouslyFocusedNodeRef}
+              manager={viewManager}
+              scheduler={traceScheduler}
+              forceRerender={forceRender}
+              isLoading={
+                props.tree.type === 'loading' || onLoadScrollStatus === 'pending'
+              }
+            />
+          </IssuesPointerDisabled>
+          <IssueTraceWaterfallOverlay
+            containerRef={containerRef}
+            event={props.event}
+            groupId={props.event.groupID}
+            tree={props.tree}
+            viewManager={viewManager}
           />
-        </IssuesPointerDisabled>
+        </IssuesTraceContainer>
 
         {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
           <TraceWaterfallState.Loading />
@@ -356,8 +411,14 @@ const IssuesPointerDisabled = styled('div')`
 const ROW_HEIGHT = 24;
 const MIN_ROW_COUNT = 1;
 const HEADER_HEIGHT = 38;
-const MAX_HEIGHT = 12 * ROW_HEIGHT + HEADER_HEIGHT;
+const MAX_HEIGHT = 24 * ROW_HEIGHT + HEADER_HEIGHT;
 const MAX_ROW_COUNT = Math.floor(MAX_HEIGHT / ROW_HEIGHT);
+const PERFORMANCE_ISSUE_SURROUNDING_NODES = 2;
+const TRACE_PREVIEW_SURROUNDING_NODES = 3;
+/**
+ * After collapsing surrounding nodes, re-expand to make sure we didn't collapse everything
+ */
+const MIN_NODES_TO_KEEP = 12;
 
 const IssuesTraceGrid = styled(TraceGrid)<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
@@ -369,4 +430,10 @@ const IssuesTraceGrid = styled(TraceGrid)<{
   height: ${p =>
     Math.min(Math.max(p.rowCount, MIN_ROW_COUNT), MAX_ROW_COUNT) * ROW_HEIGHT +
     HEADER_HEIGHT}px;
+`;
+
+const IssuesTraceContainer = styled('div')`
+  position: relative;
+  height: 100%;
+  width: 100%;
 `;

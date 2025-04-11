@@ -8,7 +8,6 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
-import LatestContextStore from 'sentry/stores/latestContextStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -110,9 +109,6 @@ describe('useBootstrapOrganizationQuery', function () {
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(JSON.stringify(OrganizationStore.get().organization?.features)).toEqual(
       JSON.stringify(['enable-issues'])
-    );
-    expect(JSON.stringify(LatestContextStore.get().organization)).toEqual(
-      JSON.stringify({...org, features: ['enable-issues']})
     );
     expect(FeatureFlagOverrides.singleton().getEnabledFeatureFlagList(org)).toEqual([
       'enable-issues',

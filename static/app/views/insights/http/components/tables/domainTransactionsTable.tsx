@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import GridEditable, {
@@ -26,7 +27,7 @@ type Row = Pick<
   | 'project.id'
   | 'transaction'
   | 'transaction.method'
-  | 'spm()'
+  | 'epm()'
   | 'http_response_rate(3)'
   | 'http_response_rate(4)'
   | 'http_response_rate(5)'
@@ -37,7 +38,7 @@ type Row = Pick<
 
 type Column = GridColumnHeader<
   | 'transaction'
-  | 'spm()'
+  | 'epm()'
   | 'http_response_rate(3)'
   | 'http_response_rate(4)'
   | 'http_response_rate(5)'
@@ -52,7 +53,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
+    key: 'epm()',
     name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -85,7 +86,7 @@ const COLUMN_ORDER: Column[] = [
 
 const SORTABLE_FIELDS = [
   'avg(span.self_time)',
-  'spm()',
+  'epm()',
   'http_response_rate(3)',
   'http_response_rate(4)',
   'http_response_rate(5)',
@@ -119,6 +120,7 @@ export function DomainTransactionsTable({
   sort,
   domain,
 }: Props) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -153,7 +155,7 @@ export function DomainTransactionsTable({
               sortParameterName: QueryParameterNames.TRANSACTIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, domain, location, organization),
+            renderBodyCell(column, row, meta, domain, location, organization, theme),
         }}
       />
 
@@ -168,7 +170,8 @@ function renderBodyCell(
   meta: EventsMetaType | undefined,
   domain: string | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === 'transaction') {
     return (
@@ -193,6 +196,7 @@ function renderBodyCell(
       location,
       organization,
       unit: meta.units?.[column.key],
+      theme,
     }
   );
 }

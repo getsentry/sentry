@@ -2,6 +2,7 @@ import uuid
 from datetime import timedelta
 from unittest.mock import Mock, call, patch
 
+from django.urls import reverse
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -14,7 +15,6 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
     MonitorStatus,
-    MonitorType,
     ScheduleType,
 )
 from sentry.monitors.tasks.detect_broken_monitor_envs import detect_broken_monitor_envs
@@ -44,6 +44,12 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             status=MonitorStatus.OK,
         )
 
+    def generate_cron_monitor_url(self, org_slug: str, project_slug: str, monitor_slug: str) -> str:
+        return "http://testserver" + reverse(
+            "sentry-organization-cron-monitor-details",
+            args=[org_slug, project_slug, monitor_slug],
+        )
+
     def create_monitor_and_env(
         self, name="test monitor", organization_id=None, project_id=None, environment_id=None
     ):
@@ -58,7 +64,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             name=name,
             organization_id=organization_id,
             project_id=project_id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule": [1, "day"],
                 "schedule_type": ScheduleType.INTERVAL,
@@ -226,7 +231,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         monitor.slug,
                         self.project.slug,
-                        f"http://testserver/organizations/{self.organization.slug}/crons/{self.project.slug}/{monitor.slug}/?environment={self.environment.name}",
+                        f"{self.generate_cron_monitor_url(self.organization.slug, self.project.slug, monitor.slug)}?environment={self.environment.name}",
                         timezone.now() - timedelta(days=14),
                     )
                 ],
@@ -237,13 +242,13 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                     (
                         third_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{third_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, third_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
@@ -254,13 +259,13 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                     (
                         third_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{third_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, third_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
@@ -365,7 +370,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         monitor.slug,
                         self.project.slug,
-                        f"http://testserver/organizations/{self.organization.slug}/crons/{self.project.slug}/{monitor.slug}/?environment={self.environment.name}",
+                        f"{self.generate_cron_monitor_url(self.organization.slug, self.project.slug, monitor.slug)}?environment={self.environment.name}",
                         timezone.now() - timedelta(days=14),
                     )
                 ],
@@ -376,13 +381,13 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                     (
                         third_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{third_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, third_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
@@ -393,13 +398,13 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                     (
                         third_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{third_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, third_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
@@ -486,7 +491,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     )
                 ],
@@ -497,7 +502,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     )
                 ],

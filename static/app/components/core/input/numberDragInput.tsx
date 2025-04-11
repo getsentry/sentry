@@ -1,4 +1,4 @@
-import {forwardRef, useCallback, useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {InputGroup, type InputProps} from 'sentry/components/core/input/inputGroup';
@@ -48,7 +48,7 @@ export function NumberDragInput({
         return;
       }
 
-      const step = parseInt(props.step?.toString() ?? '1', 10);
+      const step = parseFloat(props.step?.toString() ?? '1');
 
       if (isNaN(step)) {
         throw new TypeError('Step must be of type number, got ' + props.step);
@@ -63,7 +63,7 @@ export function NumberDragInput({
       const min = props.min ?? Number.NEGATIVE_INFINITY;
       const max = props.max ?? Number.POSITIVE_INFINITY;
 
-      const value = clamp(Number(inputRef.current!.value) + deltaStep, min, max);
+      const value = clamp(Number(inputRef.current.value) + deltaStep, min, max);
       setInputValueAndDispatchChange(inputRef.current, value.toString());
     },
     [axis, props.min, props.max, props.step, shiftKeyMultiplier]
@@ -92,9 +92,29 @@ export function NumberDragInput({
     [onPointerMove, onPointerUp]
   );
 
+  const onKeyDownProp = props.onKeyDown;
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      onKeyDownProp?.(event);
+
+      if (!inputRef.current || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) {
+        return;
+      }
+
+      event.preventDefault();
+      const value = parseFloat(inputRef.current.value);
+      const step = parseFloat(props.step?.toString() ?? '1');
+      const min = props.min ?? Number.NEGATIVE_INFINITY;
+      const max = props.max ?? Number.POSITIVE_INFINITY;
+      const newValue = clamp(value + (event.key === 'ArrowUp' ? step : -step), min, max);
+      setInputValueAndDispatchChange(inputRef.current, newValue.toString());
+    },
+    [onKeyDownProp, props.min, props.max, props.step]
+  );
+
   return (
     <InputGroup>
-      <InputGroup.Input ref={inputRef} type="number" {...props} />
+      <InputGroup.Input ref={inputRef} type="text" {...props} onKeyDown={onKeyDown} />
       <InputGroup.TrailingItems>
         <Tooltip
           title={tct('Drag to adjust threshold[break]You can hold shift to fine tune', {
@@ -129,12 +149,7 @@ const VerySmallIconArrow = styled(IconArrow)`
   height: 8px;
 `;
 
-// forwardRef is required so that skipWrapper can be applied by the tooltip
-const TrailingItemsContainer = styled(
-  forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => (
-    <div {...props} ref={ref} />
-  ))
-)<{
+const TrailingItemsContainer = styled('div')<{
   layout: 'vertical' | 'horizontal';
 }>`
   display: flex;

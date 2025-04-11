@@ -24,10 +24,9 @@ import {
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-
-import {SpanTagsProvider} from '../contexts/spanTagsContext';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -65,7 +64,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
     const section = screen.queryByTestId('section-dataset');
     expect(section).not.toBeInTheDocument();
@@ -84,7 +83,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-dataset');
@@ -93,16 +92,16 @@ describe('ExploreToolbar', function () {
     const rpcSpans = within(section).getByRole('radio', {name: 'EAP RPC Spans'});
     const indexedSpans = within(section).getByRole('radio', {name: 'Indexed Spans'});
 
-    expect(eapSpans).toBeChecked();
-    expect(rpcSpans).not.toBeChecked();
-    expect(indexedSpans).not.toBeChecked();
-    expect(dataset).toEqual(DiscoverDatasets.SPANS_EAP);
-
-    await userEvent.click(rpcSpans);
     expect(eapSpans).not.toBeChecked();
     expect(rpcSpans).toBeChecked();
     expect(indexedSpans).not.toBeChecked();
     expect(dataset).toEqual(DiscoverDatasets.SPANS_EAP_RPC);
+
+    await userEvent.click(eapSpans);
+    expect(eapSpans).toBeChecked();
+    expect(rpcSpans).not.toBeChecked();
+    expect(indexedSpans).not.toBeChecked();
+    expect(dataset).toEqual(DiscoverDatasets.SPANS_EAP);
 
     await userEvent.click(indexedSpans);
     expect(eapSpans).not.toBeChecked();
@@ -124,7 +123,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-mode');
@@ -161,7 +160,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-mode');
@@ -199,6 +198,91 @@ describe('ExploreToolbar', function () {
     ]);
   });
 
+  it('disables changing visualize fields for count', function () {
+    let visualizes: any;
+    function Component() {
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {enableRouterMocks: false}
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+
+    // this is the default
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.BAR,
+        label: 'A',
+        yAxes: ['count(span.duration)'],
+      },
+    ]);
+
+    expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
+  });
+
+  it('changes to count(span.duration) when using count', async function () {
+    let visualizes: any;
+    function Component() {
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {enableRouterMocks: false}
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+
+    // this is the default
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.BAR,
+        label: 'A',
+        yAxes: ['count(span.duration)'],
+      },
+    ]);
+
+    // try changing the aggregate
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+
+    // try changing the field
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.BAR,
+        label: 'A',
+        yAxes: ['avg(span.self_time)'],
+      },
+    ]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count'}));
+
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.BAR,
+        label: 'A',
+        yAxes: ['count(span.duration)'],
+      },
+    ]);
+  });
+
   it('allows changing visualizes', async function () {
     let fields, visualizes: any;
     function Component() {
@@ -213,7 +297,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -221,9 +305,9 @@ describe('ExploreToolbar', function () {
     // this is the default
     expect(visualizes).toEqual([
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'A',
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
       },
     ]);
 
@@ -236,12 +320,23 @@ describe('ExploreToolbar', function () {
       'timestamp',
     ]); // default
 
+    // try changing the aggregate
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.BAR,
+        label: 'A',
+        yAxes: ['avg(span.duration)'],
+      },
+    ]);
+
     // try changing the field
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
     expect(visualizes).toEqual([
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'A',
         yAxes: ['avg(span.self_time)'],
       },
@@ -257,26 +352,15 @@ describe('ExploreToolbar', function () {
       'span.self_time',
     ]);
 
-    // try changing the aggregate
-    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
-    await userEvent.click(within(section).getByRole('option', {name: 'count'}));
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.LINE,
-        label: 'A',
-        yAxes: ['count(span.self_time)'],
-      },
-    ]);
-
     // try adding an overlay
     await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
-    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
-    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
     expect(visualizes).toEqual([
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'A',
-        yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
+        yAxes: ['avg(span.self_time)', 'avg(span.duration)'],
       },
     ]);
 
@@ -284,14 +368,14 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
     expect(visualizes).toEqual([
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'A',
-        yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
+        yAxes: ['avg(span.self_time)', 'avg(span.duration)'],
       },
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'B',
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
       },
     ]);
 
@@ -299,14 +383,14 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
     expect(visualizes).toEqual([
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'A',
-        yAxes: ['avg(span.self_time)'],
+        yAxes: ['avg(span.duration)'],
       },
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'B',
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
       },
     ]);
 
@@ -314,9 +398,9 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
     expect(visualizes).toEqual([
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'A',
-        yAxes: ['avg(span.self_time)'],
+        yAxes: ['avg(span.duration)'],
       },
     ]);
 
@@ -338,7 +422,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -346,9 +430,9 @@ describe('ExploreToolbar', function () {
     // this is the default
     expect(visualizes).toEqual([
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'A',
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
       },
     ]);
 
@@ -361,7 +445,7 @@ describe('ExploreToolbar', function () {
       'timestamp',
     ]); // default
 
-    let input;
+    let input: HTMLElement;
 
     // try changing the field
     input = within(section).getByRole('combobox', {
@@ -369,6 +453,7 @@ describe('ExploreToolbar', function () {
     });
     await userEvent.click(input);
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    await userEvent.keyboard('{Escape}');
 
     expect(fields).toEqual([
       'id',
@@ -383,18 +468,18 @@ describe('ExploreToolbar', function () {
     await userEvent.click(input);
     await userEvent.keyboard('{Backspace}');
 
-    await userEvent.click(within(section).getByRole('option', {name: 'count(\u2026)'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg(\u2026)'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(within(section).getByText('Visualize'));
 
     expect(visualizes).toEqual([
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'A',
-        yAxes: ['count(span.self_time)'],
+        yAxes: ['avg(span.self_time)'],
       },
     ]);
-
-    await userEvent.keyboard('{Escape}');
 
     // try adding an overlay
     await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
@@ -405,28 +490,29 @@ describe('ExploreToolbar', function () {
       .at(-1)!;
     await userEvent.click(input);
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(within(section).getByText('Visualize'));
+
     expect(visualizes).toEqual([
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'A',
-        yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
+        yAxes: ['avg(span.self_time)', 'count(span.self_time)'],
       },
     ]);
-
-    await userEvent.keyboard('{Escape}');
 
     // try adding a new chart
     await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
     expect(visualizes).toEqual([
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'A',
-        yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
+        yAxes: ['avg(span.self_time)', 'count(span.self_time)'],
       },
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'B',
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
       },
     ]);
 
@@ -434,14 +520,14 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
     expect(visualizes).toEqual([
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'A',
-        yAxes: ['avg(span.self_time)'],
+        yAxes: ['count(span.self_time)'],
       },
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'B',
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
       },
     ]);
 
@@ -449,9 +535,9 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
     expect(visualizes).toEqual([
       {
-        chartType: ChartType.LINE,
+        chartType: ChartType.BAR,
         label: 'A',
-        yAxes: ['avg(span.self_time)'],
+        yAxes: ['count(span.self_time)'],
       },
     ]);
 
@@ -472,7 +558,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     expect(screen.queryByTestId('section-group-by')).not.toBeInTheDocument();
@@ -531,7 +617,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-sort-by');
@@ -589,7 +675,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-suggested-queries');
@@ -654,8 +740,8 @@ describe('ExploreToolbar', function () {
       pathname: '/organizations/org-slug/traces/compare/',
       query: expect.objectContaining({
         queries: [
-          '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
-          '{"chartType":1,"fields":["id","span.duration"],"groupBys":[],"query":"","sortBys":["-span.duration"],"yAxes":["avg(span.duration)"]}',
+          '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
+          '{"chartType":1,"fields":["id","span.duration"],"groupBys":[],"query":"","sortBys":["-span.duration"],"yAxes":["count(span.duration)"]}',
         ],
       }),
     });
@@ -687,11 +773,11 @@ describe('ExploreToolbar', function () {
 
     await userEvent.click(within(section).getByText(/Save as/));
     await userEvent.hover(within(section).getByText('An Alert for'));
-    await userEvent.click(screen.getByText('avg(span.duration)'));
+    await userEvent.click(screen.getByText('count(spans)'));
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/alerts/new/metric/',
       query: expect.objectContaining({
-        aggregate: 'avg(span.duration)',
+        aggregate: 'count(span.duration)',
         dataset: 'events_analytics_platform',
       }),
     });
@@ -702,7 +788,9 @@ describe('ExploreToolbar', function () {
       location: {
         pathname: '/traces/',
         query: {
-          visualize: encodeURIComponent('{"chartType":1,"yAxes":["avg(span.duration)"]}'),
+          visualize: encodeURIComponent(
+            '{"chartType":1,"yAxes":["count(span.duration)"]}'
+          ),
         },
       },
     });
@@ -727,13 +815,13 @@ describe('ExploreToolbar', function () {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
           widget: expect.objectContaining({
-            displayType: 'line',
+            displayType: 'bar',
             queries: [
               {
-                aggregates: ['avg(span.duration)'],
+                aggregates: ['count(span.duration)'],
                 columns: [],
                 conditions: '',
-                fields: ['avg(span.duration)'],
+                fields: ['count(span.duration)'],
                 name: '',
                 orderby: '-timestamp',
               },
@@ -753,8 +841,8 @@ describe('ExploreToolbar', function () {
             ],
             defaultTitle: 'Custom Widget',
             defaultWidgetQuery:
-              'name=&aggregates=avg(span.duration)&columns=&fields=avg(span.duration)&conditions=&orderby=-timestamp',
-            displayType: 'line',
+              'name=&aggregates=count(span.duration)&columns=&fields=count(span.duration)&conditions=&orderby=-timestamp',
+            displayType: 'bar',
             end: undefined,
             field: [
               'id',

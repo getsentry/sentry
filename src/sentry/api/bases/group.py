@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import logging
 
+from rest_framework.permissions import SAFE_METHODS
 from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.integrations.tasks import create_comment, update_comment
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
 from sentry.models.grouplink import GroupLink
@@ -117,3 +119,35 @@ class GroupEndpoint(Endpoint):
                     "user_id": request.user.id,
                 }
             )
+
+
+class GroupAiPermission(GroupPermission):
+    scope_map = {
+        "GET": ["event:read", "event:write", "event:admin"],
+        "POST": ["event:write", "event:admin"],
+        "PUT": ["event:write", "event:admin"],
+        "DELETE": ["event:admin"],
+    }
+
+    # We want to allow POST requests in order to showcase AI features in demo mode
+    ALLOWED_METHODS = tuple(list(SAFE_METHODS) + ["POST"])
+
+    def has_permission(self, request: Request, view) -> bool:
+        if is_demo_user(request.user):
+            if not is_demo_mode_enabled() or request.method not in self.ALLOWED_METHODS:
+                return False
+
+            return True
+        return super().has_permission(request, view)
+
+    def has_object_permission(self, request: Request, view, group) -> bool:
+        if is_demo_user(request.user):
+            if not is_demo_mode_enabled() or request.method not in self.ALLOWED_METHODS:
+                return False
+
+            return True
+        return super().has_object_permission(request, view, group)
+
+
+class GroupAiEndpoint(GroupEndpoint):
+    permission_classes = (GroupAiPermission,)

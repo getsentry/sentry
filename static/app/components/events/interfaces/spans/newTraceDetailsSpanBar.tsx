@@ -1,6 +1,5 @@
-import 'intersection-observer'; // this is a polyfill
-
 import {Component, createRef, Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import type {Location} from 'history';
@@ -100,6 +99,7 @@ const SPAN_BAR_HEIGHT = 24;
 export type NewTraceDetailsSpanBarProps = SpanBarProps & {
   location: Location;
   quickTrace: QuickTraceContextChildrenProps;
+  theme: Theme;
   measurements?: Map<number, VerticalMark>;
   onRowClick?: (detailKey: SpanDetailProps | undefined) => void;
 };
@@ -618,7 +618,6 @@ export class NewTraceDetailsSpanBar extends Component<
 
     return (
       <DividerLine
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={addDividerLineRef()}
         style={{
           position: 'absolute',
@@ -662,8 +661,7 @@ export class NewTraceDetailsSpanBar extends Component<
 
     const performanceIssues = currentEvent.performance_issues.filter(
       issue =>
-        issue.span.some(id => id === span.span_id) ||
-        issue.suspect_spans.some(suspectSpanId => suspectSpanId === span.span_id)
+        issue.span.includes(span.span_id) || issue.suspect_spans.includes(span.span_id)
     );
 
     return [
@@ -883,7 +881,6 @@ export class NewTraceDetailsSpanBar extends Component<
             }}
           >
             <DividerLine
-              // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
               ref={addGhostDividerLineRef()}
               style={{
                 right: 0,
@@ -903,7 +900,7 @@ export class NewTraceDetailsSpanBar extends Component<
   }
 
   renderSpanBarRectangles() {
-    const {span, spanBarColor, spanBarType, generateBounds} = this.props;
+    const {span, spanBarColor, spanBarType, generateBounds, theme} = this.props;
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
     const duration = Math.abs(endTimestamp - startTimestamp);
@@ -914,7 +911,7 @@ export class NewTraceDetailsSpanBar extends Component<
       return null;
     }
 
-    const subTimings = getSpanSubTimings(span);
+    const subTimings = getSpanSubTimings(span, theme);
     const hasSubTimings = !!subTimings;
 
     const subSpans = hasSubTimings
@@ -929,7 +926,8 @@ export class NewTraceDetailsSpanBar extends Component<
               style={{
                 backgroundColor: lightenBarColor(
                   getSpanOperation(span),
-                  timing.colorLighten
+                  timing.colorLighten,
+                  theme
                 ),
                 left: `min(${toPercent(timingBounds.left || 0)}, calc(100% - 1px))`,
                 width: toPercent(timingBounds.width || 0),

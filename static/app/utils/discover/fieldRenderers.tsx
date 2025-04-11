@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
@@ -52,6 +53,7 @@ import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
@@ -65,8 +67,6 @@ import {
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
-
-import {decodeScalar} from '../queryString';
 
 import ArrayValue from './arrayValue';
 import {
@@ -82,13 +82,13 @@ import {
   VersionContainer,
 } from './styles';
 import TeamKeyTransactionField from './teamKeyTransactionField';
-
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */
 export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
+  theme: Theme;
   eventView?: EventView;
   projectSlug?: string;
   unit?: string;
@@ -131,7 +131,7 @@ type FieldFormatters = {
 export type FieldTypes = keyof FieldFormatters;
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
 const emptyStringValue = <EmptyValueContainer>{t('(empty string)')}</EmptyValueContainer>;
@@ -650,7 +650,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   user: {
     sortField: 'user',
     renderFunc: data => {
-      if (data.user) {
+      if (data.user?.split) {
         const [key, value] = data.user.split(':');
         const userObj = {
           id: '',
@@ -902,7 +902,11 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
   },
   time_spent_percentage: fieldName => data => {
     const parsedFunction = parseFunction(fieldName);
-    const column = parsedFunction?.arguments?.[1] ?? SpanMetricsField.SPAN_SELF_TIME;
+    let column = parsedFunction?.arguments?.[1] ?? SpanMetricsField.SPAN_SELF_TIME;
+    // TODO - remove with eap, in eap this function only has one arg
+    if (parsedFunction?.arguments?.[0] === SpanMetricsField.SPAN_DURATION) {
+      column = SpanMetricsField.SPAN_DURATION;
+    }
     return (
       <TimeSpentCell
         percentage={data[fieldName]}
@@ -956,7 +960,7 @@ const isDurationValue = (data: EventData, field: string): boolean => {
 
 export const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
-  {location, organization, eventView}: RenderFunctionBaggage,
+  {location, organization, eventView, theme}: RenderFunctionBaggage,
   options?: RenderFunctionOptions
 ): React.ReactNode => {
   const {enableOnClick = true} = options ?? {};
@@ -1019,7 +1023,7 @@ export const spanOperationRelativeBreakdownRenderer = (
             >
               <RectangleRelativeOpsBreakdown
                 style={{
-                  backgroundColor: pickBarColor(operationName),
+                  backgroundColor: pickBarColor(operationName, theme),
                   cursor: enableOnClick ? 'pointer' : 'default',
                 }}
                 onClick={event => {

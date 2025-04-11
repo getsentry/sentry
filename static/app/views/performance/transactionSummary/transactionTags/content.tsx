@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Radio} from 'sentry/components/core/radio';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -23,10 +23,9 @@ import type {TableData} from 'sentry/utils/performance/segmentExplorer/segmentEx
 import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {getTransactionField} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
-
-import {SpanOperationBreakdownFilter} from '../filter';
-import {getTransactionField} from '../transactionOverview/tagExplorer';
 
 import {X_AXIS_SELECT_OPTIONS} from './constants';
 import TagsDisplay, {TAG_PAGE_TABLE_CURSOR} from './tagsDisplay';

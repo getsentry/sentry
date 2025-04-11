@@ -6,7 +6,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 
 const ActionMetadata = {

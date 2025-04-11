@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from django.db.models import Case, IntegerField, When
+import sentry_sdk
+from django.db.models import Case, Count, Exists, IntegerField, OuterRef, Subquery, When
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -28,7 +29,7 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
-from sentry.explore.models import ExploreSavedQuery
+from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
 from sentry.search.utils import tokenize_query
 
 
@@ -89,45 +90,86 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
                 else:
                     queryset = queryset.none()
 
-        sort_by = request.query_params.get("sortBy")
-        if sort_by and sort_by.startswith("-"):
-            sort_by, desc = sort_by[1:], True
-        else:
-            desc = False
+        order_by: list[Case | str] = []
 
-        if sort_by == "name":
-            order_by: list[Case | str] = [
-                "-lower_name" if desc else "lower_name",
-                "-date_added",
-            ]
+        sort_by_list = request.query_params.getlist("sortBy")
+        if sort_by_list and len(sort_by_list) > 0:
+            for sort_by in sort_by_list:
+                if sort_by.startswith("-"):
+                    sort_by, desc = sort_by[1:], True
+                else:
+                    desc = False
 
-        elif sort_by == "dateAdded":
-            order_by = ["-date_added" if desc else "date_added"]
+                if sort_by == "name":
+                    order_by.append("-lower_name" if desc else "lower_name")
 
-        elif sort_by == "dateUpdated":
-            order_by = ["-date_updated" if desc else "date_updated"]
+                elif sort_by == "dateAdded":
+                    order_by.append("-date_added" if desc else "date_added")
 
-        elif sort_by == "mostPopular":
-            order_by = [
-                "visits" if desc else "-visits",
-                "-date_updated",
-            ]
+                elif sort_by == "dateUpdated":
+                    order_by.append("-date_updated" if desc else "date_updated")
 
-        elif sort_by == "recentlyViewed":
-            order_by = ["last_visited" if desc else "-last_visited"]
+                elif sort_by == "mostPopular":
+                    order_by.append("visits" if desc else "-visits")
 
-        elif sort_by == "myqueries":
-            order_by = [
-                Case(
-                    When(created_by_id=request.user.id, then=-1),
-                    default="created_by_id",
-                    output_field=IntegerField(),
-                ),
-                "-date_added",
-            ]
+                elif sort_by == "recentlyViewed":
+                    order_by.append("last_visited" if desc else "-last_visited")
 
-        else:
-            order_by = ["lower_name"]
+                elif sort_by == "myqueries":
+                    order_by.append(
+                        Case(
+                            When(created_by_id=request.user.id, then=-1),
+                            default="created_by_id",
+                            output_field=IntegerField(),
+                        ),
+                    )
+
+                elif sort_by == "mostStarred":
+                    queryset = queryset.annotate(starred_count=Count("exploresavedquerystarred"))
+                    order_by.append("-starred_count")
+
+                elif sort_by == "starred":
+                    queryset = queryset.annotate(
+                        is_starred=Exists(
+                            ExploreSavedQueryStarred.objects.filter(
+                                explore_saved_query_id=OuterRef("id"), user_id=request.user.id
+                            )
+                        )
+                    )
+                    order_by.append("-is_starred")
+
+        if len(order_by) == 0:
+            order_by.append("lower_name")
+
+        #  Finally we always at least secondarily sort by dateAdded
+        if "dateAdded" not in sort_by_list and "-dateAdded" not in sort_by_list:
+            order_by.append("-date_added")
+
+        exclude = request.query_params.get("exclude")
+        if exclude == "shared":
+            queryset = queryset.filter(created_by_id=request.user.id)
+        elif exclude == "owned":
+            queryset = queryset.exclude(created_by_id=request.user.id)
+
+        starred = request.query_params.get("starred")
+
+        if starred == "1":
+            queryset = (
+                queryset.filter(
+                    id__in=ExploreSavedQueryStarred.objects.filter(
+                        organization=organization, user_id=request.user.id
+                    ).values_list("explore_saved_query_id", flat=True)
+                )
+                .annotate(
+                    position=Subquery(
+                        ExploreSavedQueryStarred.objects.filter(
+                            explore_saved_query_id=OuterRef("id"), user_id=request.user.id
+                        ).values("position")[:1]
+                    )
+                )
+                .order_by("position")
+            )
+            order_by = ["position", "-date_added"]
 
         queryset = queryset.order_by(*order_by)
 
@@ -186,5 +228,13 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         )
 
         model.set_projects(data["project_ids"])
+
+        try:
+            if "starred" in request.data and request.data["starred"]:
+                ExploreSavedQueryStarred.objects.insert_starred_query(
+                    organization, request.user.id, model
+                )
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
 
         return Response(serialize(model), status=201)

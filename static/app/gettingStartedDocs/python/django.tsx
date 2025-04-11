@@ -16,6 +16,7 @@ import {
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {getPythonProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -46,12 +47,12 @@ sentry_sdk.init(
         : params.isProfilingSelected &&
             params.profilingOptions?.defaultProfilingMode === 'continuous'
           ? `
-    _experiments={
-        # Set continuous_profiling_auto_start to True
-        # to automatically start the profiler on when
-        # possible.
-        "continuous_profiling_auto_start": True,
-    },`
+    # Set profile_session_sample_rate to 1.0 to profile 100%
+    # of profile sessions.
+    profile_session_sample_rate=1.0,
+    # Set profile_lifecycle to "trace" to automatically
+    # run the profiler on when there is an active transaction
+    profile_lifecycle="trace",`
           : ''
     }
 )
@@ -72,7 +73,7 @@ const onboarding: OnboardingConfig = {
           description:
             params.docsLocation === DocsPageLocation.PROFILING_PAGE
               ? tct(
-                  'You need a minimum version [code:1.18.0] of the [code:sentry-python] SDK for the profiling feature.',
+                  'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
                   {
                     code: <code />,
                   }
@@ -176,7 +177,7 @@ const performanceOnboarding: OnboardingConfig = {
             {code: <code />}
           ),
           code: `
-import sentry-sdk
+import sentry_sdk
 
 sentry_sdk.init(
   dsn: "${params.dsn.public}",
@@ -222,7 +223,7 @@ sentry_sdk.init(
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-
+  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[django]'}),
   performanceOnboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,

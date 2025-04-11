@@ -152,25 +152,25 @@ class TestFrameInfo:
         [
             pytest.param(
                 {"module": "foo.bar.Baz$handle$1", "abs_path": "baz.java"},
-                "foo/bar",
+                "foo/bar/",
                 "foo/bar/baz.java",
                 id="dollar_symbol_in_module",
             ),
             pytest.param(
                 {"module": "foo.bar.Baz", "abs_path": "baz.extra.java"},
-                "foo/bar",
+                "foo/bar/",
                 "foo/bar/baz.extra.java",
                 id="two_dots_in_abs_path",
             ),
             pytest.param(
                 {"module": "foo.bar.Baz", "abs_path": "no_extension"},
-                "foo/bar",
+                "foo/bar/",
                 "foo/bar/Baz",  # The path does not use the abs_path
                 id="invalid_abs_path_no_extension",
             ),
             pytest.param(
                 {"module": "foo.bar.Baz", "abs_path": "foo$bar"},
-                "foo/bar",
+                "foo/bar/",
                 "foo/bar/Baz",  # The path does not use the abs_path
                 id="invalid_abs_path_dollar_sign",
             ),
@@ -320,9 +320,9 @@ class TestDerivedCodeMappings(TestCase):
         assert code_mappings == []
         logger.warning.assert_called_with("More than one repo matched %s", "sentry/web/urls.py")
 
-    def test_list_file_matches_single(self) -> None:
+    def test_get_file_and_repo_matches_single(self) -> None:
         frame_filename = FrameInfo({"filename": "sentry_plugins/slack/client.py"})
-        matches = self.code_mapping_helper.list_file_matches(frame_filename)
+        matches = self.code_mapping_helper.get_file_and_repo_matches(frame_filename)
         expected_matches = [
             {
                 "filename": "src/sentry_plugins/slack/client.py",
@@ -334,9 +334,9 @@ class TestDerivedCodeMappings(TestCase):
         ]
         assert matches == expected_matches
 
-    def test_list_file_matches_multiple(self) -> None:
+    def test_get_file_and_repo_matches_multiple(self) -> None:
         frame_filename = FrameInfo({"filename": "sentry/web/urls.py"})
-        matches = self.code_mapping_helper.list_file_matches(frame_filename)
+        matches = self.code_mapping_helper.get_file_and_repo_matches(frame_filename)
         expected_matches = [
             {
                 "filename": "src/sentry/web/urls.py",

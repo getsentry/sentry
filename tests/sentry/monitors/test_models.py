@@ -9,7 +9,6 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
     MonitorLimitsExceeded,
-    MonitorType,
     ScheduleType,
 )
 from sentry.monitors.validators import ConfigValidator
@@ -111,7 +110,6 @@ class MonitorTestCase(TestCase):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="My Awesome Monitor",
             config={
                 "schedule": [1, "month"],
@@ -127,7 +125,6 @@ class MonitorTestCase(TestCase):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="My Awesome Monitor",
             slug="my-awesome-monitor",
             config={
@@ -144,7 +141,6 @@ class MonitorTestCase(TestCase):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="My Awesome Monitor",
             config={
                 "schedule": [1, "month"],
@@ -162,7 +158,6 @@ class MonitorTestCase(TestCase):
             Monitor.objects.create(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
-                type=MonitorType.CRON_JOB,
                 name=f"Unicron-{i}",
                 slug=f"unicron-{i}",
                 config={
@@ -180,7 +175,6 @@ class MonitorTestCase(TestCase):
             Monitor.objects.create(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
-                type=MonitorType.CRON_JOB,
                 name=f"Unicron-{settings.MAX_MONITORS_PER_ORG}",
                 slug=f"unicron-{settings.MAX_MONITORS_PER_ORG}",
                 config={
@@ -198,7 +192,6 @@ class MonitorEnvironmentTestCase(TestCase):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="Unicron",
             slug="unicron",
             config={
@@ -224,7 +217,6 @@ class MonitorEnvironmentTestCase(TestCase):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="Unicron",
             slug="unicron",
             config={
@@ -261,7 +253,6 @@ class MonitorEnvironmentTestCase(TestCase):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="Unicron",
             slug="unicron",
             config={

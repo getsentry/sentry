@@ -11,6 +11,7 @@ import omit from 'lodash/omit';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
+import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
@@ -21,7 +22,6 @@ import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -51,18 +51,15 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import type {Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
-import {showConfidence} from 'sentry/views/explore/utils';
-
-import {getFormatter} from '../../../components/charts/components/tooltip';
-import {getDatasetConfig} from '../datasetConfig/base';
-import type {Widget} from '../types';
-import {DisplayType} from '../types';
-import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
-import {BigNumberWidgetVisualization} from '../widgets/bigNumberWidget/bigNumberWidgetVisualization';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -88,7 +85,6 @@ type WidgetCardChartProps = Pick<
   confidence?: Confidence;
   expandNumbers?: boolean;
   isMobile?: boolean;
-  isSampled?: boolean | null;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: string;
   noPadding?: boolean;
@@ -168,7 +164,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             location={location}
             fields={fields}
             title={tableResults.length > 1 ? result.title : ''}
-            loading={loading}
+            // Bypass the loading state for span widgets because this renders the loading placeholder
+            // and we want to show the underlying data during preflight instead
+            loading={widget.widgetType === WidgetType.SPANS ? false : loading}
             loader={<LoadingPlaceholder />}
             metadata={result.meta}
             data={result.data}
@@ -225,10 +223,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
           key={i}
           field={field}
           value={value}
-          meta={{
-            type: meta.fields?.[field] ?? null,
-            unit: (meta.units?.[field] as DataUnit) ?? null,
-          }}
+          type={meta.fields?.[field] ?? null}
+          unit={(meta.units?.[field] as DataUnit) ?? null}
           thresholds={widget.thresholds ?? undefined}
           preferredPolarity="-"
         />
@@ -285,7 +281,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       confidence,
       showConfidenceWarning,
       sampleCount,
-      isSampled,
     } = this.props;
 
     if (errorMessage) {
@@ -327,9 +322,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       seriesName?.match(otherRegex)
     );
     const colors = timeseriesResults
-      ? (getChartColorPalette(
-          timeseriesResults.length - (shouldColorOther ? 3 : 2)
-        ).slice() as string[])
+      ? (theme.chart
+          .getColorPalette(timeseriesResults.length - (shouldColorOther ? 3 : 2))
+          .slice() as string[])
       : [];
     // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
     if (shouldColorOther) {
@@ -491,7 +486,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       },
     };
 
-    const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
+    const ref = this.props.chartGroup ? this.handleRef : undefined;
 
     // Excluding Other uses a slightly altered regex to match the Other series name
     // because the series names are formatted with widget IDs to avoid conflicts
@@ -546,21 +541,19 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                             legend,
                             series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
                             onLegendSelectChanged,
-                            forwardedRef,
+                            ref,
                           }),
                           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                         })}
                       </RenderedChartContainer>
 
-                      {showConfidenceWarning &&
-                        confidence &&
-                        showConfidence(isSampled) && (
-                          <ConfidenceFooter
-                            confidence={confidence}
-                            sampleCount={sampleCount}
-                            topEvents={topEventsCountExcludingOther}
-                          />
-                        )}
+                      {showConfidenceWarning && confidence && (
+                        <ConfidenceFooter
+                          confidence={confidence}
+                          sampleCount={sampleCount}
+                          topEvents={topEventsCountExcludingOther}
+                        />
+                      )}
                     </ChartWrapper>
                   </TransitionChart>
                 );

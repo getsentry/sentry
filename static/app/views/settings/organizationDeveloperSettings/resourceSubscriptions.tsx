@@ -26,8 +26,7 @@ export default class Subscriptions extends Component<Props> {
     webhookDisabled: false,
   };
 
-  constructor(props: Props, context: any) {
-    super(props, context);
+  UNSAFE_componentWillMount(): void {
     this.context.form.setValue('events', this.props.events);
   }
 

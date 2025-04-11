@@ -19,7 +19,6 @@ export function AggregateParameterField({
 }) {
   if (parameter.kind === 'value') {
     const inputProps = {
-      required: parameter.required,
       value:
         currentValue ?? ('defaultValue' in parameter && parameter?.defaultValue) ?? '',
       onUpdate: (value: any) => {

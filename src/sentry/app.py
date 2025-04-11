@@ -1,19 +1,30 @@
 from __future__ import annotations
 
+import contextlib
+from collections.abc import Generator
 from threading import local
-from typing import Any
 
 from django.http.request import HttpRequest
 
 
 class State(local):
-    request: HttpRequest | None = None
-    request_stack: list[HttpRequest] | None = None
-    data: dict[str, Any] = {}
+    def __init__(self) -> None:
+        self.request_stack: list[HttpRequest] = []
 
-    def clear(self) -> None:
-        self.request = None
-        self.request_stack = None
+    @property
+    def request(self) -> HttpRequest | None:
+        if self.request_stack:
+            return self.request_stack[-1]
+        else:
+            return None
+
+    @contextlib.contextmanager
+    def active_request(self, request: HttpRequest) -> Generator[None]:
+        self.request_stack.append(request)
+        try:
+            yield
+        finally:
+            self.request_stack.pop()
 
 
 env = State()

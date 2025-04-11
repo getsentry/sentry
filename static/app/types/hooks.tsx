@@ -3,7 +3,6 @@ import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/core/button';
 import type {FormPanelProps} from 'sentry/components/forms/formPanel';
 import type {JsonFormObject} from 'sentry/components/forms/types';
-import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
@@ -104,6 +103,10 @@ type ProfilingBetaAlertBannerProps = {
   organization: Organization;
 };
 
+type ContinuousProfilingBetaAlertBannerProps = {
+  organization: Organization;
+};
+
 type ProfilingUpgradePlanButtonProps = ButtonProps & {
   children: React.ReactNode;
   fallback: React.ReactNode;
@@ -144,13 +147,6 @@ type CodecovLinkProps = {
   organization: Organization;
 };
 
-// on-create-project-product-selection
-type CreateProjectProductSelectionChangedCallback = (options: {
-  defaultProducts: ProductSolution[];
-  organization: Organization;
-  selectedProducts: ProductSolution[];
-}) => void;
-
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
 type MonitorCreatedCallback = (organization: Organization) => void;
@@ -183,6 +179,8 @@ export type ComponentHooks = {
   'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
+  'component:continuous-profiling-beta-banner': () => React.ComponentType<ContinuousProfilingBetaAlertBannerProps>;
+  'component:continuous-profiling-beta-sdk-banner': () => React.ComponentType;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
@@ -295,11 +293,12 @@ export type FeatureDisabledHooks = {
 export type InterfaceChromeHooks = {
   footer: GenericComponentHook;
   'help-modal:footer': HelpModalFooterHook;
-  'sidebar:bottom-items': SidebarBottomItemsHook;
+  'sidebar:billing-status': GenericOrganizationComponentHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:item-label': SidebarItemLabelHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
+  'sidebar:try-business': SidebarTryBusinessHook;
 };
 
 /**
@@ -351,7 +350,6 @@ export type ReactHooks = {
  * and perform some sort of callback logic
  */
 type CallbackHooks = {
-  'callback:on-create-project-product-selection': CreateProjectProductSelectionChangedCallback;
   'callback:on-guide-update': GuideUpdateCallback;
   'callback:on-monitor-created': MonitorCreatedCallback;
 };
@@ -531,7 +529,7 @@ type SidebarProps = Pick<
 /**
  * Returns an additional list of sidebar items.
  */
-type SidebarBottomItemsHook = (
+type SidebarTryBusinessHook = (
   opts: SidebarProps & {organization: Organization}
 ) => React.ReactNode;
 

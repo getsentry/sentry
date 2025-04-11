@@ -11,5 +11,5 @@ export const MODULE_DESCRIPTION = t(
 );
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/crons/';
 
-export const MODULE_FEATURES = ['insights-crons'];
-export const MODULE_VISIBLE_FEATURES = ['insights-crons'];
+export const MODULE_FEATURES = [];
+export const MODULE_VISIBLE_FEATURES = [];

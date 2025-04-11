@@ -30,21 +30,15 @@ import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 import DurationChart from 'sentry/views/performance/charts/chart';
-import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import {
-  createUnnamedTransactionsDiscoverTarget,
-  UNPARAMETERIZED_TRANSACTION,
-} from 'sentry/views/performance/utils';
-import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-
-import {excludeTransaction} from '../../utils';
-import {Accordion} from '../components/accordion';
-import {GenericPerformanceWidget} from '../components/performanceWidget';
+import {excludeTransaction} from 'sentry/views/performance/landing/utils';
+import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import SelectableList, {
   GrowLink,
   HighestCacheMissRateTransactionsWidgetEmptyStateWarning,
@@ -55,22 +49,28 @@ import SelectableList, {
   TimeSpentInDatabaseWidgetEmptyStateWarning,
   WidgetAddInstrumentationWarning,
   WidgetEmptyStateWarning,
-} from '../components/selectableList';
-import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {transformDiscoverToList} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToList';
+import {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';
 import type {
   GenericPerformanceWidgetProps,
   PerformanceWidgetProps,
   QueryDefinition,
   WidgetDataResult,
-} from '../types';
+} from 'sentry/views/performance/landing/widgets/types';
 import {
   eventsRequestQueryProps,
   getMEPParamsIfApplicable,
   QUERY_LIMIT_PARAM,
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
-} from '../utils';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+} from 'sentry/views/performance/landing/widgets/utils';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {
+  createUnnamedTransactionsDiscoverTarget,
+  UNPARAMETERIZED_TRANSACTION,
+} from 'sentry/views/performance/utils';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -108,6 +108,13 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
   );
+  const spanDataset = useInsightsEap()
+    ? DiscoverDatasets.SPANS_EAP_RPC
+    : DiscoverDatasets.SPANS_METRICS;
+
+  const spanQueryParams = useInsightsEap()
+    ? {useRpc: '1', dataset: DiscoverDatasets.SPANS_EAP}
+    : {useRpc: '0', dataset: DiscoverDatasets.SPANS_METRICS};
 
   let emptyComponent: any;
   if (props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES) {
@@ -178,17 +185,17 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             {field: SpanMetricsField.SPAN_OP},
             {field: SpanMetricsField.SPAN_GROUP},
             {field: 'project.id'},
-            {field: SpanMetricsField.SPAN_DESCRIPTION},
+            {field: SpanMetricsField.NORMALIZED_DESCRIPTION},
             {field: `sum(${SpanMetricsField.SPAN_SELF_TIME})`},
             {field: `avg(${SpanMetricsField.SPAN_SELF_TIME})`},
             {field},
           ];
 
           // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
@@ -196,7 +203,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           mutableSearch.removeFilter('event.type');
           eventView.additionalConditions.removeFilter('event.type');
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
-          mutableSearch.addFilterValue('has', 'span.description');
+          mutableSearch.addFilterValue('has', 'sentry.normalized_description');
           mutableSearch.addFilterValue('span.module', 'db');
           eventView.query = mutableSearch.formatString();
         } else if (
@@ -212,10 +219,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ];
 
           // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
@@ -232,7 +239,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         ) {
           // Set fields
           eventView.fields = [
-            {field: SpanMetricsField.SPAN_DESCRIPTION},
+            {field: SpanMetricsField.NORMALIZED_DESCRIPTION},
             {field: SpanMetricsField.SPAN_OP},
             {field: 'project.id'},
             {field: SpanMetricsField.SPAN_GROUP},
@@ -242,10 +249,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ];
 
           // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
@@ -269,10 +276,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ];
 
           // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
@@ -351,7 +358,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           if (
             !provided.widgetData.list.data[selectedListIndex]?.transaction &&
             !provided.widgetData.list.data[selectedListIndex]?.[
-              SpanMetricsField.SPAN_DESCRIPTION
+              SpanMetricsField.NORMALIZED_DESCRIPTION
             ] &&
             !provided.widgetData.list.data[selectedListIndex]?.[
               SpanMetricsField.SPAN_DOMAIN
@@ -395,10 +402,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
           ) {
             // Update request params
-            eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+            eventView.dataset = spanDataset;
             extraQueryParams = {
               ...extraQueryParams,
-              dataset: DiscoverDatasets.SPANS_METRICS,
+              ...spanQueryParams,
               excludeOther: false,
               per_page: 50,
             };
@@ -442,10 +449,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
           ) {
             // Update request params
-            eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+            eventView.dataset = spanDataset;
             extraQueryParams = {
               ...extraQueryParams,
-              dataset: DiscoverDatasets.SPANS_METRICS,
+              ...spanQueryParams,
               excludeOther: false,
               per_page: 50,
             };
@@ -472,6 +479,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           return (
             <EventsRequest
               {...pick(provided, eventsRequestQueryProps)}
+              includeAllArgs={false}
               yAxis={yAxis}
               limit={1}
               includePrevious={includePreviousParam}
@@ -645,7 +653,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           );
         case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
         case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES: {
-          const description = listItem[SpanMetricsField.SPAN_DESCRIPTION] as string;
+          const description = listItem[SpanMetricsField.NORMALIZED_DESCRIPTION] as string;
           const group = listItem[SpanMetricsField.SPAN_GROUP] as string;
           const projectID = listItem['project.id'] as number;
           const timeSpentPercentage = listItem[fieldString] as number;

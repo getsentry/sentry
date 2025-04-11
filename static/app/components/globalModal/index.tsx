@@ -141,7 +141,7 @@ function GlobalModal({onClose}: Props) {
   );
 
   const portal = getModalPortal();
-  const focusTrap = useRef<FocusTrap>();
+  const focusTrap = useRef<FocusTrap | null>(null);
   // SentryApp might be missing on tests
   if (window.SentryApp) {
     window.SentryApp.modalFocusTrap = focusTrap;
@@ -224,7 +224,7 @@ function GlobalModal({onClose}: Props) {
         style={{pointerEvents: visible ? 'auto' : 'none'}}
         onClick={backdrop ? clickClose : undefined}
       >
-        <TooltipContext.Provider
+        <TooltipContext
           value={{
             // To ensure tooltips within the modal remain interactive (e.g., clickable or selectable),
             // they need to be rendered inside the modal's DOM node.
@@ -250,7 +250,7 @@ function GlobalModal({onClose}: Props) {
               </Modal>
             )}
           </AnimatePresence>
-        </TooltipContext.Provider>
+        </TooltipContext>
       </Container>
     </Fragment>,
     portal
@@ -284,7 +284,7 @@ const Container = styled('div')`
   overflow-y: auto;
 `;
 
-const Modal = styled(motion.div)`
+const Modal = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   max-width: 100%;
   width: 640px;
   pointer-events: auto;

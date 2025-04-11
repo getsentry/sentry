@@ -6,7 +6,6 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 
 import type {Organization} from './organization';
 import type {PlatformIntegration, PlatformKey, Project} from './project';
-import type {AvatarUser} from './user';
 
 export enum OnboardingTaskGroup {
   GETTING_STARTED = 'getting_started',
@@ -97,9 +96,8 @@ export interface OnboardingTaskStatus {
   status: 'skipped' | 'pending' | 'complete';
   task: OnboardingTaskKey;
   completionSeen?: string | boolean;
-  data?: {[key: string]: string};
+  data?: Record<string, string>;
   dateCompleted?: string;
-  user?: AvatarUser | null;
 }
 
 interface OnboardingTaskWithAction
@@ -126,12 +124,6 @@ export interface UpdatedTask extends Partial<Pick<OnboardingTask, 'status' | 'da
    * completionSeen type as that returns the date completion was seen.
    */
   completionSeen?: boolean;
-}
-
-export enum OnboardingProjectStatus {
-  WAITING = 'waiting',
-  PROCESSING = 'processing',
-  PROCESSED = 'processed',
 }
 
 export interface OnboardingSelectedSDK
