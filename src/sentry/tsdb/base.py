@@ -450,7 +450,7 @@ class BaseTSDB(Service):
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
         group_on_time: bool = True,
-    ) -> dict[int, int]:
+    ) -> dict[int, int] | dict[int, list[tuple[int, int]]]:
         range_set = self.get_range(
             model,
             keys,
