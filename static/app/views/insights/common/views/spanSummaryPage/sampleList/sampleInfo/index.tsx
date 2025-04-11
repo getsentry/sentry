@@ -51,7 +51,7 @@ function SampleInfo(props: Props) {
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
         'time_spent_percentage()',
       ],
-      enabled: Object.values(ribbonFilters).every(value => Boolean(value)),
+      enabled: Object.values(ribbonFilters).every(Boolean),
     },
     'api.starfish.span-summary-panel-metrics'
   );

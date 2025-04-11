@@ -660,7 +660,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         !validRule && t('name'),
         !validRule && !validTriggers && t('and'),
         !validTriggers && t('critical threshold'),
-      ].filter(x => x);
+      ].filter(Boolean);
 
       addErrorMessage(t('Alert not valid: missing %s', missingFields.join(' ')));
       return false;

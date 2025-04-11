@@ -84,7 +84,7 @@ export function toggleKeyTransaction(
     {
       method: isKeyTransaction ? 'DELETE' : 'POST',
       query: {
-        project: projects.map(id => String(id)),
+        project: projects.map(String),
       },
       data: {
         transaction: transactionName,

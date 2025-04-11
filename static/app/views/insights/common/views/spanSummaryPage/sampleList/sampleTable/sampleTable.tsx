@@ -81,9 +81,7 @@ function SampleTable({
     {
       search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
       fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
-      enabled: Object.values({...filters, ...additionalFilters}).every(value =>
-        Boolean(value)
-      ),
+      enabled: Object.values({...filters, ...additionalFilters}).every(Boolean),
     },
     'api.starfish.span-summary-panel-samples-table-avg'
   );

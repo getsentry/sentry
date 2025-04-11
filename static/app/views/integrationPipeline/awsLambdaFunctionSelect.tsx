@@ -70,7 +70,7 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
   get allStatesToggled() {
     // check if any of the lambda functions have a falsy value
     // no falsy values means everything is enabled
-    return Object.values(this.model.getData()).every(val => val);
+    return Object.values(this.model.getData()).every(Boolean);
   }
 
   get formFields() {

@@ -654,7 +654,7 @@ export default typescript.config([
       'unicorn/prefer-export-from': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-includes': 'error',
       'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-native-coercion-functions': 'error',
       'unicorn/prefer-negative-index': 'error',
       'unicorn/prefer-node-protocol': 'error',
       'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule

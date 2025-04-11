@@ -58,7 +58,7 @@ function DebounceSearch({
       if (value) {
         try {
           const queryParams = {
-            query: [queryParam, value].filter(v => v).join(':'),
+            query: [queryParam, value].filter(Boolean).join(':'),
             per_page: 10,
           };
           const results = await api.requestPromise(path, {

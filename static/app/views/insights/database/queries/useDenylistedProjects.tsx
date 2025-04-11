@@ -27,7 +27,7 @@ export function useDenylistedProjects(options: Options = {}) {
     .filter(project => {
       return !project.features.includes('span-metrics-extraction');
     })
-    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+    .filter(Boolean);
 
   return {
     projects: denylistedProjects,

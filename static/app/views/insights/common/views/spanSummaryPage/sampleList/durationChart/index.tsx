@@ -90,9 +90,7 @@ function DurationChart({
     {
       search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
       yAxis: [`avg(${SPAN_SELF_TIME})`],
-      enabled: Object.values({...filters, ...additionalFilters}).every(value =>
-        Boolean(value)
-      ),
+      enabled: Object.values({...filters, ...additionalFilters}).every(Boolean),
     },
     'api.starfish.sidebar-span-metrics-chart'
   );
@@ -101,7 +99,7 @@ function DurationChart({
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
-      enabled: Object.values(filters).every(value => Boolean(value)),
+      enabled: Object.values(filters).every(Boolean),
     },
     'api.starfish.span-summary-panel-samples-table-avg'
   );

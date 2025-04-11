@@ -595,7 +595,7 @@ export function getMetricChartTooltipFormatter({
       `</div>`,
       '<div class="tooltip-arrow"></div>',
     ]
-      .filter(e => e)
+      .filter(Boolean)
       .join('');
   }
 

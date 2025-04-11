@@ -157,7 +157,7 @@ class WaterfallModel {
 
         const basicValues: string[] = Object.values(pickedSpan)
           .filter(value => !!value)
-          .map(value => String(value));
+          .map(String);
 
         indexed.push(...basicValues);
 

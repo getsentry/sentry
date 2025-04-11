@@ -301,7 +301,7 @@ function CreateProject() {
     isMissingProjectName,
     isMissingAlertThreshold,
     isMissingMessagingIntegrationChannel,
-  ].filter(value => value).length;
+  ].filter(Boolean).length;
 
   const canSubmitForm = !inFlight && canUserCreateProject && formErrorCount === 0;
 

@@ -47,7 +47,7 @@ const useApdex = (props: Props) => {
 
   const commonQuery = {
     environment: environments,
-    project: projects.map(proj => String(proj)),
+    project: projects.map(String),
     field: ['apdex()'],
     query: ['event.type:transaction count():>0', query].join(' ').trim(),
   };
