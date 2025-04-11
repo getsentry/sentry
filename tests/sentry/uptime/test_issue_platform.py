@@ -4,12 +4,12 @@ from hashlib import md5
 from itertools import cycle
 from unittest.mock import patch
 
-from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.issue_platform import (
     build_event_data_for_occurrence,
     build_occurrence_from_result,
