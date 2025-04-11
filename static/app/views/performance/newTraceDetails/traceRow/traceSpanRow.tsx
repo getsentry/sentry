@@ -72,6 +72,7 @@ export function TraceSpanRow(
           </div>
           <SpanProjectIcon
             platform={props.projects[props.node.metadata.project_slug ?? ''] ?? 'default'}
+            span={props.node.value}
           />
           {props.node.value.op && props.node.value.op !== 'default' && (
             <React.Fragment>

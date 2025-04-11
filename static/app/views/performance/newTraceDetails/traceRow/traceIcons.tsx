@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 import clamp from 'lodash/clamp';
 import {PlatformIcon} from 'platformicons';
 
+import {getSpanPlatformIcon} from 'sentry/utils/spanPlatformIcons';
 import {isEAPError} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -95,12 +96,21 @@ export function TraceOccurenceIcons(props: TraceOccurenceIconsProps) {
   );
 }
 
-export function SpanProjectIcon({platform}: {platform: string}) {
+export function SpanProjectIcon({
+  platform,
+  span,
+}: {
+  platform: string;
+  span?: TraceTree.Span | TraceTree.EAPSpan;
+}) {
   const hasTraceNewUi = useHasTraceNewUi();
 
   if (!hasTraceNewUi) {
     return null;
   }
 
-  return <PlatformIcon platform={platform} />;
+  // Use the utility function to determine the appropriate platform icon
+  const iconPlatform = getSpanPlatformIcon(span, platform);
+
+  return <PlatformIcon platform={iconPlatform} />;
 }
