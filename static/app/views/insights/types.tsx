@@ -500,13 +500,11 @@ export type MetricsNumberFields =
 export type MetricsStringFields =
   | MetricsFields.TRANSACTION
   | MetricsFields.PROJECT
-  | MetricsFields.PROJECT_ID
   | MetricsFields.ID
   | MetricsFields.TRACE
   | MetricsFields.USER_DISPLAY
   | MetricsFields.REPLAY_ID
-  | MetricsFields.TIMESTAMP
-  | MetricsFields.PROFILE_ID;
+  | MetricsFields.TIMESTAMP;
 
 export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
 
@@ -520,6 +518,8 @@ export type MetricsResponse = {
   [Property in MetricsStringFields as `${Property}`]: string;
 } & {
   [Property in MetricsNumberFields as `count_web_vitals(${Property}, any)`]: string[];
+} & {
+  ['project.id']: number;
 };
 
 export enum DiscoverFields {

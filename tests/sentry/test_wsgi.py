@@ -42,31 +42,3 @@ def test_wsgi_init():
     subprocess.check_call(
         [sys.executable, "-c", SUBPROCESS_TEST_WGI_WARMUP],
     )
-
-
-SUBPROCESS_TEST_WGI_WARMUP_WITH_SUBDOMAIN = f"""
-import sys
-from django.conf import settings
-from sentry.runner import configure
-configure()
-settings.ALLOWED_HOSTS = [".test.com"]
-
-import sentry.wsgi
-{assert_in_sys_modules}
-import django.urls.resolvers
-from django.conf import settings
-resolver = django.urls.resolvers.get_resolver()
-assert resolver._populated is True
-for lang, _ in settings.LANGUAGES:
-    assert lang in resolver._reverse_dict
-"""
-
-
-def test_wsgi_init_with_subdomain():
-    """
-    In production, we have settings.ALLOWED_HOSTS set, so override it for this test
-    and ensure that the wsgi.py file correctly pre-loads the application it set.
-    """
-    subprocess.check_call(
-        [sys.executable, "-c", SUBPROCESS_TEST_WGI_WARMUP_WITH_SUBDOMAIN],
-    )

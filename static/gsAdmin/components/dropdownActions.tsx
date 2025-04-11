@@ -39,7 +39,7 @@ function mapActionsToCompactSelect(
         label: (
           <div>
             {action.name}
-            <StyledIconNot size="xs" />
+            {action.disabled && <StyledIconNot size="xs" />}
           </div>
         ),
         details: action.help,
