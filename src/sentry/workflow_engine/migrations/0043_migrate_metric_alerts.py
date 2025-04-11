@@ -176,28 +176,6 @@ class ActionSchemas:
     data_schema: dict[str, Any] | None = None
 
 
-BASIC_METRIC_ACTION_SCHEMA = ActionSchemas(
-    config_schema={
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "The configuration schema for a Notification Action",
-        "type": "object",
-        "properties": {
-            "target_identifier": {
-                "type": ["string", "null"],
-            },
-            "target_display": {
-                "type": ["string", "null"],
-            },
-            "target_type": {
-                "type": ["integer", "null"],
-                "enum": [*ActionTarget] + [None],
-            },
-        },
-    },
-    data_schema={},
-)
-
-
 @dataclasses.dataclass
 class SentryAppFormConfigDataBlob:
     """
@@ -287,8 +265,42 @@ action_schema_mapping: dict[str, ActionSchemas] = {
             },
         },
     ),
-    ActionType.SLACK: BASIC_METRIC_ACTION_SCHEMA,
-    ActionType.MSTEAMS: BASIC_METRIC_ACTION_SCHEMA,
+    ActionType.SLACK: ActionSchemas(
+        config_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "description": "The configuration schema for a Messaging Action",
+            "type": "object",
+            "properties": {
+                "target_identifier": {"type": ["string"]},
+                "target_display": {"type": ["string"]},
+                "target_type": {
+                    "type": ["integer"],
+                    "enum": [ActionTarget.SPECIFIC.value],
+                },
+            },
+            "required": ["target_identifier", "target_display", "target_type"],
+            "additionalProperties": False,
+        },
+        data_schema={},
+    ),
+    ActionType.MSTEAMS: ActionSchemas(
+        config_schema={
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "description": "The configuration schema for a Messaging Action",
+            "type": "object",
+            "properties": {
+                "target_identifier": {"type": ["string"]},
+                "target_display": {"type": ["string"]},
+                "target_type": {
+                    "type": ["integer"],
+                    "enum": [ActionTarget.SPECIFIC.value],
+                },
+            },
+            "required": ["target_identifier", "target_display", "target_type"],
+            "additionalProperties": False,
+        },
+        data_schema={},
+    ),
     ActionType.SENTRY_APP: ActionSchemas(
         config_schema={
             "$schema": "https://json-schema.org/draft/2020-12/schema",
