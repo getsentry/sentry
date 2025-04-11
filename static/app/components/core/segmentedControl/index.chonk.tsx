@@ -53,5 +53,9 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
 
   ${p => ({...getChonkButtonStyles(p)})}
 
+  &:has(input:focus-visible) {
+    ${p => p.theme.focusRing};
+  }
+
   ${p => p.isSelected && `z-index: 1;`}
 `;
