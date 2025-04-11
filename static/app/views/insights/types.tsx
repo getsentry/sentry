@@ -72,7 +72,7 @@ export enum SpanMetricsField {
   MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
 }
 
-// TODO: This will be fine Field type for eap spans
+// TODO: This will be the final field type for eap spans
 export enum SpanFields {
   IS_TRANSACTION = 'is_transaction',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
