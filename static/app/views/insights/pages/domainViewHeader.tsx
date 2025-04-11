@@ -91,7 +91,10 @@ export function DomainViewHeader({
   const tabValue =
     hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
 
-  const globalQuery = extractSelectionParameters(location?.query);
+  const globalQuery = {
+    ...extractSelectionParameters(location?.query),
+    useEap: location.query?.useEap,
+  };
 
   const tabList: TabListItemProps[] = [
     ...(hasOverviewPage
