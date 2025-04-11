@@ -29,7 +29,10 @@ type State = {
  */
 class TrialSubscriptionAction extends Component<Props, State> {
   state: State = {
-    trialDays: 14,
+    trialDays:
+      this.props.subscription.isEnterpriseTrial || this.props.startEnterpriseTrial
+        ? 28
+        : 14,
     trialTier: PlanTier.AM3,
     trialPlanOverride: undefined,
   };
