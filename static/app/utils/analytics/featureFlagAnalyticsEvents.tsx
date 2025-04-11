@@ -40,9 +40,9 @@ export type FeatureFlagEventKey = keyof FeatureFlagEventParameters;
 
 export const featureFlagEventMap: Record<FeatureFlagEventKey, string | null> = {
   'flags.cta_dismissed': 'Flag CTA Dismissed',
-  'flags.cta_rendered': 'Flag CTA Rendered',
-  'flags.drawer_details_rendered': 'Feature Flag Drawer Details Rendered',
-  'flags.drawer_rendered': 'Feature Flag Drawer Rendered',
+  'flags.cta_rendered': 'Flag CTA Viewed',
+  'flags.drawer_details_rendered': 'Viewed Feature Flag Drawer Details',
+  'flags.drawer_rendered': 'Viewed Feature Flag Drawer',
   'flags.event_and_suspect_flags_found': 'Number of Event and Suspect Flags',
   'flags.logs-paginated': 'Feature Flag Logs Paginated',
   'flags.setup_sidebar_selection':

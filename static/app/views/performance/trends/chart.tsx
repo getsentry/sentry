@@ -22,9 +22,8 @@ import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
+import type {ViewProps} from 'sentry/views/performance/types';
 import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
-
-import type {ViewProps} from '../types';
 
 import type {
   NormalizedTrendsTransaction,
