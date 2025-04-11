@@ -9,6 +9,8 @@ from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 
+__all__ = ("RuleSnooze",)
+
 
 class RuleSnoozeManager(BaseManager["RuleSnooze"]):
     def is_snoozed_for_all(self, rule=None, alert_rule=None):

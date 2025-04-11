@@ -8,6 +8,8 @@ from sentry.db.models import (
     sane_repr,
 )
 
+__all__ = ("ProjectTemplate",)
+
 
 @region_silo_model
 class ProjectTemplate(DefaultFieldsModelExisting):
