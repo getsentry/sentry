@@ -3,7 +3,6 @@ export interface NewDetector {
   config: Record<string, unknown>;
   dataCondition: DataConditionGroup;
   dataSource: DataSource;
-  detectorType: DetectorType;
   disabled: boolean;
   name: string;
   projectId: string;

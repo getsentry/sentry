@@ -10,7 +10,7 @@ import {
 } from 'sentry/components/workflowEngine/useBulkActions';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Detector} from 'sentry/types/detectors';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {DetectorListRow} from 'sentry/views/detectors/components/detectorListRow';
 
 type DetectorListTableProps = {

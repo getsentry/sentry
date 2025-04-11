@@ -10,9 +10,9 @@ import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {TypeCell} from 'sentry/components/workflowEngine/gridCell/typeCell';
 import {UserCell} from 'sentry/components/workflowEngine/gridCell/userCell';
 import {space} from 'sentry/styles/space';
-import type {Detector} from 'sentry/types/detectors';
 import type {Group} from 'sentry/types/group';
 import type {AvatarProject} from 'sentry/types/project';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 
 interface DetectorListRowProps {
   detector: Detector;
