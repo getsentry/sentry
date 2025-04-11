@@ -15,7 +15,7 @@ SECOND_LEVEL_TLDS = ("com", "co", "org", "gov", "net", "edu")
 # Any new languages should also require updating the stacktraceLink.tsx
 # The extensions do not need to be exhaustive but only include the ones that show up in stacktraces
 PLATFORMS_CONFIG: dict[str, Mapping[str, Any]] = {
-    "csharp": {"extensions": ["cs"]},
+    "csharp": {"extensions": ["cs","fs","vb"]},
     "go": {"extensions": ["go"]},
     "java": {
         # e.g. com.foo.bar.Baz$handle$1, Baz.kt -> com/foo/bar/Baz.kt
