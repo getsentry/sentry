@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
 
-import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import Matrix from 'sentry/components/stories/matrix';
 import SideBySide from 'sentry/components/stories/sideBySide';

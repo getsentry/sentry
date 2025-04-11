@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {SegmentedControl} from './';
 
 describe('SegmentedControl', function () {
   it('renders with uncontrolled value', async function () {

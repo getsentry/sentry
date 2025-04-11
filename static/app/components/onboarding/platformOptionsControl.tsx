@@ -1,12 +1,12 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import type {
   BasePlatformOptions,
   PlatformOption,
   SelectedPlatformOptions,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
