@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router-dom';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -71,9 +70,9 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
           'Some of your projects have been omitted from query performance analysis. Please [supportLink]. Omitted projects: [projectList].',
           {
             supportLink: (
-              <Button priority="link" onClick={() => openHelpSearchModal({organization})}>
+              <Link to="" onClick={() => openHelpSearchModal({organization})}>
                 {t('Contact Support')}
-              </Button>
+              </Link>
             ),
             projectList: <ProjectList projects={denylistedProjects} />,
           }
