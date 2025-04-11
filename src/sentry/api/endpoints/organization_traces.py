@@ -392,7 +392,7 @@ class TracesExecutor:
 
         rpc_request = self.get_traces_rpc(all_projects)
 
-        rpc_response = snuba_rpc.traces_rpc(rpc_request)
+        rpc_response = snuba_rpc.get_traces_rpc(rpc_request)
 
         if not rpc_response.traces:
             return []

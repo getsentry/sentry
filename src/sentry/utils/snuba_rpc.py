@@ -167,7 +167,7 @@ def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttri
     return response
 
 
-def traces_rpc(req: GetTracesRequest) -> GetTracesResponse:
+def get_traces_rpc(req: GetTracesRequest) -> GetTracesResponse:
     resp = _make_rpc_request("EndpointGetTraces", "v1", req.meta.referrer, req)
     response = GetTracesResponse()
     response.ParseFromString(resp.data)
