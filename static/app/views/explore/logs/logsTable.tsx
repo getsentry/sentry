@@ -79,7 +79,7 @@ export function LogsTable({
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles}>
+      <Table ref={tableRef} styles={initialTableStyles} data-test-id="logs-table">
         {showHeader ? (
           <TableHead>
             <LogTableRow>
