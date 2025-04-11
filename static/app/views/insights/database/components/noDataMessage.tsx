@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {Link} from 'react-router-dom';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
@@ -97,14 +98,14 @@ function ProjectList({projects, limit = MAX_LISTED_PROJECTS}: ProjectListProps) 
       {visibleProjects.slice(0, limit).map((project, projectIndex) => {
         return (
           <span key={project.id}>
-            <a
-              href={makeProjectsPathname({
+            <Link
+              to={makeProjectsPathname({
                 path: `/${project.slug}/`,
                 orgSlug: organization.slug,
               })}
             >
               {project.name}
-            </a>
+            </Link>
             {projectIndex < visibleProjects.length - 1 && ', '}
           </span>
         );
