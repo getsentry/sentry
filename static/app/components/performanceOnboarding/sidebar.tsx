@@ -13,6 +13,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {shouldShowPerformanceTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
@@ -269,6 +270,10 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     projSlug: currentProject.slug,
     productType: 'performance',
   });
+
+  const {isPending: isLoadingRegistry, data: registryData} =
+    useSourcePackageRegistries(organization);
+
   const performanceDocs = docs?.performanceOnboarding;
 
   if (isLoading) {
@@ -332,8 +337,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     isProfilingSelected: false,
     isReplaySelected: false,
     sourcePackageRegistries: {
-      isLoading: false,
-      data: undefined,
+      isLoading: isLoadingRegistry,
+      data: registryData,
     },
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
     newOrg: false,
