@@ -1,3 +1,6 @@
+import type {SdkProviderEnum} from 'sentry/components/events/featureFlags/utils';
+import type {PlatformKey} from 'sentry/types/project';
+
 export type FeatureFlagEventParameters = {
   'flags.cta_dismissed': {surface: string; type: string};
   'flags.cta_rendered': {area: string};
@@ -16,6 +19,10 @@ export type FeatureFlagEventParameters = {
     direction: 'next' | 'prev';
     surface: string;
   };
+  'flags.setup_sidebar_selection': {
+    platform?: string;
+    provider?: SdkProviderEnum;
+  };
   'flags.sort_flags': {sortMethod: string};
   'flags.table_rendered': {
     numFlags: number;
@@ -25,6 +32,7 @@ export type FeatureFlagEventParameters = {
   'flags.view-all-clicked': Record<string, unknown>;
   'flags.view-setup-sidebar': {
     surface: string;
+    platform?: PlatformKey;
   };
 };
 
@@ -37,6 +45,8 @@ export const featureFlagEventMap: Record<FeatureFlagEventKey, string | null> = {
   'flags.drawer_rendered': 'Viewed Feature Flag Drawer',
   'flags.event_and_suspect_flags_found': 'Number of Event and Suspect Flags',
   'flags.logs-paginated': 'Feature Flag Logs Paginated',
+  'flags.setup_sidebar_selection':
+    'Selected Provider or Project in Feature Flag Onboarding Sidebar',
   'flags.sort_flags': 'Sorted Flags',
   'flags.table_rendered': 'Flag Table Rendered',
   'flags.view-all-clicked': 'Clicked View All Flags',

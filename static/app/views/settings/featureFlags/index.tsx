@@ -17,7 +17,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 function OrganizationFeatureFlagsIndex() {
   const organization = useOrganization();
-  const {activateSidebar} = useFeatureFlagOnboarding();
+  const {activateSidebar} = useFeatureFlagOnboarding({projectPlatform: undefined});
 
   return (
     <Fragment>
