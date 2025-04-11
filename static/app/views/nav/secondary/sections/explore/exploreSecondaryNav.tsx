@@ -39,6 +39,15 @@ export function ExploreSecondaryNav() {
               {t('Logs')}
             </SecondaryNav.Item>
           </Feature>
+          <Feature features="discover-basic">
+            <SecondaryNav.Item
+              to={`${baseUrl}/discover/homepage/`}
+              activeTo={`${baseUrl}/discover/`}
+              analyticsItemName="explore_discover"
+            >
+              {t('Discover')}
+            </SecondaryNav.Item>
+          </Feature>
           <Feature features="profiling">
             <SecondaryNav.Item
               to={`${baseUrl}/profiling/`}
@@ -53,15 +62,6 @@ export function ExploreSecondaryNav() {
               analyticsItemName="explore_replays"
             >
               {t('Replays')}
-            </SecondaryNav.Item>
-          </Feature>
-          <Feature features="discover-basic">
-            <SecondaryNav.Item
-              to={`${baseUrl}/discover/homepage/`}
-              activeTo={`${baseUrl}/discover/`}
-              analyticsItemName="explore_discover"
-            >
-              {t('Discover')}
             </SecondaryNav.Item>
           </Feature>
           <SecondaryNav.Item
