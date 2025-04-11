@@ -10,7 +10,7 @@ from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.registry import Registry
-from sentry.workflow_engine.models.action import Action
+from sentry.workflow_engine import Action
 from sentry.workflow_engine.types import ActionHandler
 from sentry_plugins.pagerduty.plugin import PagerDutyPlugin
 from sentry_plugins.slack.plugin import SlackPlugin

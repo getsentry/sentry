@@ -54,8 +54,7 @@ from sentry.uptime.models import (
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.workflow_engine.models import DataSource, Detector, DetectorState, Workflow
-from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine import Condition, DataSource, Detector, DetectorState, Workflow
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 

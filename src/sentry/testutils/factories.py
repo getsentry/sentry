@@ -170,23 +170,25 @@ from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
-from sentry.workflow_engine.models import (
+from sentry.workflow_engine import (
     Action,
     ActionAlertRuleTriggerAction,
-    AlertRuleDetector,
-    AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
-    DataConditionGroupAction,
     DataSource,
-    DataSourceDetector,
     Detector,
+    Workflow,
+    data_source_type_registry,
+)
+from sentry.workflow_engine.models import (
+    AlertRuleDetector,
+    AlertRuleWorkflow,
+    DataConditionGroupAction,
+    DataSourceDetector,
     DetectorState,
     DetectorWorkflow,
-    Workflow,
     WorkflowDataConditionGroup,
 )
-from sentry.workflow_engine.registry import data_source_type_registry
 from social_auth.models import UserSocialAuth
 
 
