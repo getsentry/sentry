@@ -145,9 +145,11 @@ export function LogsTabContent({
             />
           </SchemaHintsSection>
         </Feature>
-        <LogsItemContainer>
-          <LogsChart eventView={eventView} />
-        </LogsItemContainer>
+        <Feature features="organizations:ourlogs-graph">
+          <LogsItemContainer>
+            <LogsChart eventView={eventView} />
+          </LogsItemContainer>
+        </Feature>
         <LogsItemContainer>
           <LogsTable
             tableData={tableData}

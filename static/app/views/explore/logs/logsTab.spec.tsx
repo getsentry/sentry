@@ -14,7 +14,11 @@ jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
 
 describe('LogsTabContent', function () {
-  const {organization, project} = initializeOrg();
+  const {organization, project} = initializeOrg({
+    organization: {
+      features: ['ourlogs', 'ourlogs-graph'],
+    },
+  });
 
   let eventTableMock: jest.Mock;
   let eventStatsMock: jest.Mock;
