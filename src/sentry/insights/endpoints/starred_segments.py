@@ -1,3 +1,4 @@
+from django.db import router
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,6 +10,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.insights.models import InsightsStarredSegment
 from sentry.models.organization import Organization
+from sentry.utils.db import atomic_transaction
 
 
 class StarSegmentSerializer(serializers.Serializer):
@@ -50,23 +52,16 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
 
         segment_name = serializer.validated_data["segment_name"]
         project_id = serializer.validated_data["project_id"]
+        with atomic_transaction(using=router.db_for_write(InsightsStarredSegment)):
+            _, created = InsightsStarredSegment.objects.get_or_create(
+                organization=organization,
+                project_id=project_id,
+                user_id=request.user.id,
+                segment_name=segment_name,
+            )
 
-        does_exist = InsightsStarredSegment.objects.filter(
-            organization=organization,
-            user_id=request.user.id,
-            project_id=project_id,
-            segment_name=segment_name,
-        ).exists()
-
-        if does_exist:
-            return Response(status=status.HTTP_403_FORBIDDEN)
-
-        InsightsStarredSegment.objects.create(
-            organization=organization,
-            project_id=project_id,
-            user_id=request.user.id,
-            segment_name=segment_name,
-        )
+            if not created:
+                return Response(status=status.HTTP_403_FORBIDDEN)
 
         return Response(status=status.HTTP_200_OK)
 
