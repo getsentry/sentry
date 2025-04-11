@@ -12,6 +12,7 @@ from sentry import options
 from sentry.api.issue_search import convert_query_values, issue_search_config, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.grouptype import MetricAlertFire
 from sentry.issues.grouptype import (
     FeedbackGroup,
     NoiseConfig,
@@ -3482,7 +3483,25 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         self.error_group_2 = error_event_2.group
 
     def test_no_feature(self):
-        results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
+        event_id = uuid.uuid4().hex
+
+        with self.feature(MetricAlertFire.build_ingest_feature_name()):
+            _, group_info = self.process_occurrence(
+                event_id=event_id,
+                project_id=self.project.id,
+                type=MetricAlertFire.type_id,
+                fingerprint=["some perf issue"],
+                event_data={
+                    "title": "some problem",
+                    "platform": "python",
+                    "tags": {"my_tag": "1"},
+                    "timestamp": before_now(minutes=1).isoformat(),
+                    "received": before_now(minutes=1).isoformat(),
+                },
+            )
+            assert group_info is not None
+
+        results = self.make_query(search_filter_query="issue.category:metric_alert my_tag:1")
         assert list(results) == []
 
     def test_generic_query(self):
@@ -3513,7 +3532,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
                     event_data={
                         "title": "some problem",
                         "platform": "python",
-                        "tags": {"my_tag": "2"},
+                        "tags": {"my_tag": "3"},
                         "timestamp": before_now(minutes=1).isoformat(),
                         "received": before_now(minutes=1).isoformat(),
                     },
@@ -3526,7 +3545,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
                     "organizations:performance-issues-search",
                 ]
             ):
-                results = self.make_query(search_filter_query="issue.category:performance my_tag:2")
+                results = self.make_query(search_filter_query="issue.category:performance my_tag:3")
         assert list(results) == [group_info.group]
 
     def test_error_generic_query(self):
@@ -3671,9 +3690,11 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
                     "platform": "python",
                     "timestamp": before_now(minutes=1).isoformat(),
                     "received": before_now(minutes=1).isoformat(),
+                    "tags": {"my_tag": "50"},
                 },
             )
             results = self.make_query(
+                search_filter_query="my_tag:50",
                 date_from=self.base_datetime,
                 date_to=self.base_datetime + timedelta(days=10),
             )
