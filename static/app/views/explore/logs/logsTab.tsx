@@ -13,21 +13,23 @@ import {IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {useSchemaHintsOnLargeScreen} from 'sentry/views/explore/components/schemaHintsDrawer';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
+  type LogPageParamsUpdate,
   useLogsFields,
   useLogsSearch,
   useSetLogsFields,
+  useSetLogsPageParams,
   useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {HiddenLogDetailFields} from 'sentry/views/explore/logs/constants';
+import {HiddenColumnEditorLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -49,12 +51,12 @@ export function LogsTabContent({
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const setFields = useSetLogsFields();
+  const setLogsPageParams = useSetLogsPageParams();
   const tableData = useExploreLogsTable({});
-  const isSchemaHintsDrawerOpenOnLargeScreen = useSchemaHintsOnLargeScreen();
 
-  const {attributes: stringTags, isLoading: stringTagsLoading} =
+  const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');
-  const {attributes: numberTags, isLoading: numberTagsLoading} =
+  const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributes('number');
 
   useLogAnalytics({
@@ -69,14 +71,18 @@ export function LogsTabContent({
           {...modalProps}
           columns={fields}
           onColumnsChange={setFields}
-          stringTags={stringTags}
-          numberTags={numberTags}
-          hiddenKeys={HiddenLogDetailFields}
+          stringTags={stringAttributes}
+          numberTags={numberAttributes}
+          hiddenKeys={HiddenColumnEditorLogFields}
+          handleReset={() => {
+            setFields(defaultLogFields());
+          }}
+          isDocsButtonHidden
         />
       ),
       {closeEvents: 'escape-key'}
     );
-  }, [fields, setFields, stringTags, numberTags]);
+  }, [fields, setFields, stringAttributes, numberAttributes]);
   return (
     <Layout.Body noRowGap>
       <Layout.Main fullWidth>
@@ -97,8 +103,8 @@ export function LogsTabContent({
             initialQuery={logsSearch.formatString()}
             searchSource="ourlogs"
             onSearch={setLogsQuery}
-            numberAttributes={numberTags}
-            stringAttributes={stringTags}
+            numberAttributes={numberAttributes}
+            stringAttributes={stringAttributes}
             itemType={TraceItemDataset.LOGS}
           />
 
@@ -107,24 +113,29 @@ export function LogsTabContent({
           </Button>
         </FilterBarContainer>
         <Feature features="organizations:traces-schema-hints">
-          <SchemaHintsSection
-            withSchemaHintsDrawer={isSchemaHintsDrawerOpenOnLargeScreen}
-          >
+          <SchemaHintsSection>
             <SchemaHintsList
               supportedAggregates={[]}
-              numberTags={numberTags}
-              stringTags={stringTags}
-              isLoading={numberTagsLoading || stringTagsLoading}
+              numberTags={numberAttributes}
+              stringTags={stringAttributes}
+              isLoading={numberAttributesLoading || stringAttributesLoading}
               exploreQuery={logsSearch.formatString()}
-              setExploreQuery={setLogsQuery}
               source={SchemaHintsSources.LOGS}
+              setPageParams={pageParams =>
+                setLogsPageParams(pageParams as LogPageParamsUpdate)
+              }
+              tableColumns={fields}
             />
           </SchemaHintsSection>
         </Feature>
       </Layout.Main>
 
       <LogsTableContainer fullWidth>
-        <LogsTable tableData={tableData} />
+        <LogsTable
+          tableData={tableData}
+          stringAttributes={stringAttributes}
+          numberAttributes={numberAttributes}
+        />
       </LogsTableContainer>
     </Layout.Body>
   );

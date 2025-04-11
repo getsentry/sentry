@@ -188,6 +188,7 @@ function NoteInput({
                 data={suggestTeams}
                 onAdd={handleAddTeam}
                 markup="**[sentry.strip:team]__display__**"
+                displayTransform={(_id, display) => display}
                 appendSpaceOnAdd
               />
             </MentionsInput>

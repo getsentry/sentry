@@ -12,6 +12,7 @@ import type {
 import type EChartsReactCore from 'echarts-for-react/lib/core';
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
+import sum from 'lodash/sum';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
@@ -19,19 +20,30 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echarts';
+import type {
+  EChartClickHandler,
+  EChartDataZoomHandler,
+  EChartHighlightHandler,
+  ReactEchartsRef,
+} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {type Range, RangeMap} from 'sentry/utils/number/rangeMap';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import {
+  NO_PLOTTABLE_VALUES,
+  X_GUTTER,
+  Y_GUTTER,
+} from 'sentry/views/dashboards/widgets/common/settings';
+import type {
+  LegendSelection,
+  Release,
+} from 'sentry/views/dashboards/widgets/common/types';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
-
-import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
-import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
-import type {LegendSelection, Release} from '../common/types';
 
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
@@ -83,7 +95,6 @@ export interface TimeSeriesWidgetVisualizationProps {
    * Default: `auto`
    */
   showLegend?: 'auto' | 'never';
-
   /**
    * Show releases as either lines per release or a bubble for a group of releases.
    */
@@ -121,7 +132,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const {
     connectReleaseBubbleChartRef,
-    releaseBubbleEventHandlers,
     releaseBubbleSeries,
     releaseBubbleXAxis,
     releaseBubbleGrid,
@@ -178,6 +188,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         return;
       }
 
+      for (const plottable of props.plottables) {
+        plottable.handleChartRef?.(e);
+      }
+
       const echartsInstance = e.getEchartsInstance();
       registerWithWidgetSyncContext(echartsInstance);
 
@@ -185,7 +199,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         connectReleaseBubbleChartRef(e);
       }
     },
-    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, registerWithWidgetSyncContext]
+    [
+      hasReleaseBubblesSeries,
+      connectReleaseBubbleChartRef,
+      registerWithWidgetSyncContext,
+      props.plottables,
+    ]
   );
 
   const {onDataZoom, ...chartZoomProps} = useChartZoom({
@@ -429,7 +448,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   // Keep track of what color in the chosen palette we're assigning
   let seriesColorIndex = 0;
-  const series: SeriesOption[] = props.plottables.flatMap(plottable => {
+  const seriesFromPlottables: SeriesOption[] = props.plottables.flatMap(plottable => {
     let color: string | undefined;
 
     if (plottable.needsColor) {
@@ -486,12 +505,51 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     seriesIndexToPlottableMapRanges
   );
 
+  const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
+
+  const handleClick: EChartClickHandler = event => {
+    const affectedRange = seriesIndexToPlottableRangeMap.getRange(event.seriesIndex);
+    const affectedPlottable = affectedRange?.value;
+
+    if (
+      !defined(affectedRange) ||
+      !defined(affectedPlottable) ||
+      !defined(affectedPlottable.onClick)
+    ) {
+      return;
+    }
+
+    affectedPlottable.onClick(
+      getPlottableEventDataIndex(allSeries, event, affectedRange)
+    );
+  };
+
+  const handleHighlight: EChartHighlightHandler = event => {
+    // Unlike click events, highlights happen to potentially more than one
+    // series at a time. We have to iterate each item in the batch
+    for (const batch of event.batch ?? []) {
+      const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
+      const affectedPlottable = affectedRange?.value;
+
+      if (
+        !defined(affectedRange) ||
+        !defined(affectedPlottable) ||
+        !defined(affectedPlottable.onHighlight)
+      ) {
+        continue;
+      }
+
+      affectedPlottable.onHighlight(
+        getPlottableEventDataIndex(allSeries, batch, affectedRange)
+      );
+    }
+  };
+
   return (
     <BaseChart
       ref={mergeRefs(props.ref, chartRef, handleChartRef)}
-      {...releaseBubbleEventHandlers}
       autoHeightResize
-      series={[...series, releaseSeries].filter(defined)}
+      series={allSeries}
       grid={{
         // NOTE: Adding a few pixels of left padding prevents ECharts from
         // incorrectly truncating long labels. See
@@ -558,6 +616,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       end={end ? new Date(end) : undefined}
       period={period}
       utc={utc ?? undefined}
+      onHighlight={handleHighlight}
+      onClick={handleClick}
     />
   );
 }
@@ -569,6 +629,35 @@ function LoadingPanel() {
       <LoadingIndicator mini />
     </LoadingPlaceholder>
   );
+}
+
+/**
+ * Each plottable creates anywhere from 1 to N `Series` objects. When an event fires on a `Series` object, ECharts reports a `dataIndex`. This index won't match the data inside inside the original `Plottable`, since it produced more than on `Series`. To map backwards, we need to calculate an offset, based on how many other `Series` this plottable produced.
+ *
+ * e.g., If this is the third series of the plottable, the data index in the plottable needs to be offset by the data counts of the first two.
+ *
+ * @param series All series plotted on the chart
+ * @param affectedRange The range of series that the plottable is responsible for
+ * @param seriesIndex The index of the series where the event fires
+ * @returns The offset, as a number, of how many points the previous series are responsible for
+ */
+function getPlottableEventDataIndex(
+  series: SeriesOption[],
+  event: {
+    dataIndex: number;
+    seriesIndex: number;
+  },
+  affectedRange: Range<Plottable>
+): number {
+  const {dataIndex, seriesIndex} = event;
+
+  const dataIndexOffset = sum(
+    series.slice(affectedRange.min ?? 0, seriesIndex).map(seriesOfPlottable => {
+      return Array.isArray(seriesOfPlottable.data) ? seriesOfPlottable.data.length : 0;
+    })
+  );
+
+  return dataIndexOffset + dataIndex;
 }
 
 const LoadingPlaceholder = styled('div')`

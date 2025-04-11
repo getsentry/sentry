@@ -14,8 +14,6 @@ describe('ProjectDetail', function () {
     PageFiltersStore.reset();
     ProjectsStore.reset();
 
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -28,7 +26,7 @@ describe('ProjectDetail', function () {
   });
 
   describe('project low priority queue alert', function () {
-    it('does not render alert', function () {
+    it('does not render alert', async function () {
       const projects = [
         {
           ...project,
@@ -65,6 +63,8 @@ describe('ProjectDetail', function () {
           organization,
         }
       );
+
+      expect(await screen.findByText('Project Details')).toBeInTheDocument();
 
       expect(
         screen.queryByText(

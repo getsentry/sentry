@@ -29,6 +29,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
+import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -115,7 +116,14 @@ export default app;
 `;
 };
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (isVersion5: boolean) =>
+  isVersion5
+    ? `
+// SomeComponent.svelte
+<button type="button" onclick="{() => {throw new Error("This is your first error!");}}">
+  Break the world
+</button>`
+    : `
 // SomeComponent.svelte
 <button type="button" on:click="{() => {throw new Error("This is your first error!");}}">
   Break the world
@@ -215,10 +223,16 @@ const onboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getVerifySnippet(),
+              label: 'Svelte v5',
+              value: 'svelte v5',
+              language: 'html',
+              code: getVerifySnippet(true),
+            },
+            {
+              label: 'Svelte v3/v4',
+              value: 'svelte v3/v4',
+              language: 'html',
+              code: getVerifySnippet(false),
             },
           ],
         },
@@ -348,16 +362,16 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig = {
-  ...onboarding,
-  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
-};
+const profilingOnboarding = getJavascriptProfilingOnboarding({
+  getInstallConfig,
+  docsLink:
+    'https://docs.sentry.io/platforms/javascript/guides/svelte/profiling/browser-profiling/',
+});
 
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-
   crashReportOnboarding,
   profilingOnboarding,
   featureFlagOnboarding,

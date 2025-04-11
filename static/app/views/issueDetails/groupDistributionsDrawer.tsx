@@ -1,10 +1,12 @@
 import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
@@ -17,7 +19,6 @@ import {
   SearchInput,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {IconDownload, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -47,13 +48,12 @@ function useDrawerTab({enabled}: {enabled: boolean}) {
     DrawerTab.TAGS
   );
 
-  if (!enabled) {
-    return {tab: DrawerTab.TAGS, setTab: (_tab: string) => {}};
-  }
-  return {
-    tab: enabled ? (getTabParam() as DrawerTab) : DrawerTab.TAGS,
-    setTab: setTabParam,
-  };
+  return enabled
+    ? {
+        tab: getTabParam() as DrawerTab,
+        setTab: setTabParam,
+      }
+    : {tab: DrawerTab.TAGS, setTab: (_tab: string) => {}};
 }
 
 function getHeaderTitle(
@@ -73,13 +73,23 @@ function getHeaderTitle(
 /**
  * Shared tags and feature flags distributions drawer, used by streamlined issue details UI.
  */
-export function GroupDistributionsDrawer({
-  group,
-  includeFeatureFlagsTab,
-}: {
+export function GroupDistributionsDrawer(props: GroupDistributionsDrawerProps) {
+  return (
+    <AnalyticsArea name="distributions_drawer">
+      <BaseGroupDistributionsDrawer {...props} />
+    </AnalyticsArea>
+  );
+}
+
+type GroupDistributionsDrawerProps = {
   group: Group;
   includeFeatureFlagsTab: boolean;
-}) {
+};
+
+function BaseGroupDistributionsDrawer({
+  group,
+  includeFeatureFlagsTab,
+}: GroupDistributionsDrawerProps) {
   const location = useLocation();
   const organization = useOrganization();
   const environments = useEnvironmentsFromUrl();
@@ -104,83 +114,84 @@ export function GroupDistributionsDrawer({
   const [search, setSearch] = useState('');
   const {tab, setTab} = useDrawerTab({enabled: includeFeatureFlagsTab});
 
-  const headerActions = tagKey ? (
-    <DropdownMenu
-      size="xs"
-      trigger={triggerProps => (
-        <Button
-          {...triggerProps}
-          borderless
-          size="xs"
-          aria-label={t('Export options')}
-          icon={<IconDownload />}
-        />
-      )}
-      items={[
-        {
-          key: 'export-page',
-          label: t('Export Page to CSV'),
-          // TODO(issues): Dropdown menu doesn't support hrefs yet
-          onAction: () => {
-            window.open(
-              `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
-              '_blank'
-            );
+  const headerActions =
+    tagKey && tab === DrawerTab.TAGS ? (
+      <DropdownMenu
+        size="xs"
+        trigger={triggerProps => (
+          <Button
+            {...triggerProps}
+            borderless
+            size="xs"
+            aria-label={t('Export options')}
+            icon={<IconDownload />}
+          />
+        )}
+        items={[
+          {
+            key: 'export-page',
+            label: t('Export Page to CSV'),
+            // TODO(issues): Dropdown menu doesn't support hrefs yet
+            onAction: () => {
+              window.open(
+                `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
+                '_blank'
+              );
+            },
           },
-        },
-        {
-          key: 'export-all',
-          label: isExportDisabled ? t('Export in progress...') : t('Export All to CSV'),
-          onAction: () => {
-            handleDataExport();
-            setIsExportDisabled(true);
+          {
+            key: 'export-all',
+            label: isExportDisabled ? t('Export in progress...') : t('Export All to CSV'),
+            onAction: () => {
+              handleDataExport();
+              setIsExportDisabled(true);
+            },
+            disabled: isExportDisabled,
           },
-          disabled: isExportDisabled,
-        },
-      ]}
-    />
-  ) : (
-    <ButtonBar gap={1}>
-      <InputGroup>
-        <SearchInput
-          size="xs"
-          value={search}
-          onChange={e => {
-            setSearch(e.target.value);
-            trackAnalytics('tags.drawer.action', {
-              control: 'search',
-              organization,
-            });
-          }}
-          aria-label={
-            includeFeatureFlagsTab
-              ? t('Search All Tags & Feature Flags')
-              : t('Search All Tags')
-          }
-        />
-        <InputGroup.TrailingItems disablePointerEvents>
-          <IconSearch size="xs" />
-        </InputGroup.TrailingItems>
-      </InputGroup>
-      {includeFeatureFlagsTab && (
-        <SegmentedControl
-          size="xs"
-          value={tab}
-          onChange={newTab => {
-            setTab(newTab as DrawerTab);
-            setSearch('');
-          }}
-        >
-          <SegmentedControl.Item key={DrawerTab.TAGS}>
-            {t('All Tags')}
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key={DrawerTab.FEATURE_FLAGS}>
-            {t('All Feature Flags')}
-          </SegmentedControl.Item>
-        </SegmentedControl>
-      )}
-    </ButtonBar>
-  );
+        ]}
+      />
+    ) : tagKey && tab === DrawerTab.FEATURE_FLAGS ? null : (
+      <ButtonBar gap={1}>
+        <InputGroup>
+          <SearchInput
+            size="xs"
+            value={search}
+            onChange={e => {
+              setSearch(e.target.value);
+              trackAnalytics('tags.drawer.action', {
+                control: 'search',
+                organization,
+              });
+            }}
+            aria-label={
+              includeFeatureFlagsTab
+                ? t('Search All Tags & Feature Flags')
+                : t('Search All Tags')
+            }
+          />
+          <InputGroup.TrailingItems disablePointerEvents>
+            <IconSearch size="xs" />
+          </InputGroup.TrailingItems>
+        </InputGroup>
+        {includeFeatureFlagsTab && (
+          <SegmentedControl
+            size="xs"
+            value={tab}
+            onChange={newTab => {
+              setTab(newTab as DrawerTab);
+              setSearch('');
+            }}
+          >
+            <SegmentedControl.Item key={DrawerTab.TAGS}>
+              {t('All Tags')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key={DrawerTab.FEATURE_FLAGS}>
+              {t('All Feature Flags')}
+            </SegmentedControl.Item>
+          </SegmentedControl>
+        )}
+      </ButtonBar>
+    );
 
   return (
     <EventDrawerContainer ref={drawerRef}>
@@ -226,9 +237,17 @@ export function GroupDistributionsDrawer({
         {tagKey && tab === DrawerTab.TAGS ? (
           <TagDetailsDrawerContent group={group} />
         ) : tagKey && tab === DrawerTab.FEATURE_FLAGS ? (
-          <FlagDetailsDrawerContent />
+          <AnalyticsArea name="feature_flag_details">
+            <FlagDetailsDrawerContent />
+          </AnalyticsArea>
         ) : tab === DrawerTab.FEATURE_FLAGS ? (
-          <FlagDrawerContent group={group} environments={environments} search={search} />
+          <AnalyticsArea name="feature_flag_distributions">
+            <FlagDrawerContent
+              group={group}
+              environments={environments}
+              search={search}
+            />
+          </AnalyticsArea>
         ) : (
           <TagDrawerContent
             group={group}

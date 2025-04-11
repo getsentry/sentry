@@ -14,9 +14,9 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization.service import organization_service
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.tasks.auth import auth_control_tasks, auth_tasks
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import auth_control_tasks, auth_tasks
 from sentry.types.region import RegionMappingNotFound
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service

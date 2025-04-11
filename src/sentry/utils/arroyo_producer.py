@@ -3,13 +3,13 @@ from __future__ import annotations
 import atexit
 from collections import deque
 from collections.abc import Callable
-from concurrent import futures
 from typing import Deque
 
+from arroyo.backends.abstract import ProducerFuture
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import BrokerValue, Partition, Topic
 
-ProducerFuture = futures.Future[BrokerValue[KafkaPayload]]
+_ProducerFuture = ProducerFuture[BrokerValue[KafkaPayload]]
 
 
 class SingletonProducer:
@@ -26,10 +26,10 @@ class SingletonProducer:
     ) -> None:
         self._producer: KafkaProducer | None = None
         self._factory = kafka_producer_factory
-        self._futures: Deque[ProducerFuture] = deque()
+        self._futures: Deque[_ProducerFuture] = deque()
         self.max_futures = max_futures
 
-    def produce(self, destination: Topic | Partition, payload: KafkaPayload) -> ProducerFuture:
+    def produce(self, destination: Topic | Partition, payload: KafkaPayload) -> _ProducerFuture:
         future = self._get().produce(destination, payload)
         self._track_futures(future)
         return future
@@ -41,7 +41,7 @@ class SingletonProducer:
 
         return self._producer
 
-    def _track_futures(self, future: ProducerFuture) -> None:
+    def _track_futures(self, future: _ProducerFuture) -> None:
         self._futures.append(future)
         if len(self._futures) >= self.max_futures:
             try:
@@ -52,6 +52,11 @@ class SingletonProducer:
                 future.result()
 
     def _shutdown(self) -> None:
-        futures.wait(self._futures)
+        for future in self._futures:
+            try:
+                future.result()
+            except Exception:
+                pass
+
         if self._producer:
             self._producer.close()

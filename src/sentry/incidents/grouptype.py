@@ -8,7 +8,7 @@ from uuid import uuid4
 from sentry import features
 from sentry.incidents.metric_alert_detector import MetricAlertsDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.incidents.utils.types import MetricDetectorUpdate, QuerySubscriptionUpdate
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.organization import Organization
@@ -63,10 +63,9 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         return int(data_packet.packet.get("timestamp", datetime.now(UTC)).timestamp())
 
     def get_group_key_values(
-        self, data_packet: DataPacket[QuerySubscriptionUpdate]
+        self, data_packet: DataPacket[MetricDetectorUpdate]
     ) -> dict[DetectorGroupKey, int]:
-        # This is for testing purposes, we'll need to update the values inspected.
-        return {None: data_packet.packet["values"]["foo"]}
+        return {None: data_packet.packet["values"]["value"]}
 
 
 # Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something

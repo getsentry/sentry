@@ -14,6 +14,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
+import {Referrer} from 'sentry/views/insights/pages/backend/laravel/referrers';
 import {
   ModalChartContainer,
   ModalTableWrapper,
@@ -54,6 +55,7 @@ export function CachesWidget({query}: {query?: string}) {
           sort: '-cache_miss_rate()',
           useRpc: 1,
           per_page: 4,
+          referrer: Referrer.CACHE_CHART,
         },
       },
     ],
@@ -168,7 +170,11 @@ export function CachesWidget({query}: {query?: string}) {
             </div>
             <div>
               <Link
-                to={`/insights/backend/caches?project=${item['project.id']}&transaction=${item.transaction}`}
+                to={
+                  organization.features.includes('insights-addon-modules')
+                    ? `/insights/backend/caches?project=${item['project.id']}&transaction=${item.transaction}`
+                    : `/insights/backend/caches`
+                }
               >
                 {item.transaction}
               </Link>

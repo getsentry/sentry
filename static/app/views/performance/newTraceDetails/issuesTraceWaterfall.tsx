@@ -19,6 +19,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {IssueTraceWaterfallOverlay} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfallOverlay';
 import {
+  isEAPErrorNode,
   isEAPSpanNode,
   isEAPTransactionNode,
   isNonTransactionEAPSpanNode,
@@ -72,16 +73,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
   const traceScheduler = useMemo(() => new TraceScheduler(), []);
   const problemSpans = useMemo((): ReturnType<typeof getProblemSpansForSpanTree> => {
     if (props.event.type === 'transaction') {
-      const result = getProblemSpansForSpanTree(props.event);
-      if (result.affectedSpanIds.length > 4) {
-        // Too many spans to focus on, instead let them click into the preview
-        // n+1 will have hundreds of affected spans
-        return {
-          affectedSpanIds: result.affectedSpanIds.slice(0, 4),
-          focusedSpanIds: result.focusedSpanIds.slice(0, 4),
-        };
-      }
-      return result;
+      return getProblemSpansForSpanTree(props.event);
     }
 
     return {affectedSpanIds: [], focusedSpanIds: []};
@@ -183,7 +175,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     // Find all the nodes that match the event id from the error so that we can try and
     // link the user to the most specific one.
     const nodes = IssuesTraceTree.FindAll(props.tree.root, n => {
-      if (isTraceErrorNode(n)) {
+      if (isTraceErrorNode(n) || isEAPErrorNode(n)) {
         return n.value.event_id === props.event.eventID;
       }
       if (isTransactionNode(n)) {
@@ -197,7 +189,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
           }
         }
 
-        for (const p of n.performance_issues) {
+        for (const p of n.occurences) {
           if (p.event_id === props.event.eventID) {
             return true;
           }
@@ -213,7 +205,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
             return true;
           }
         }
-        for (const p of n.performance_issues) {
+        for (const p of n.occurences) {
           if (p.event_id === props.event.eventID) {
             return true;
           }
@@ -240,7 +232,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         if (
           isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
-          node.performance_issues.size > 0
+          node.occurences.size > 0
         ) {
           preserveNodes.push(props.tree.list[start]!);
           break;
@@ -252,7 +244,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         if (
           isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
-          node.performance_issues.size > 0
+          node.occurences.size > 0
         ) {
           preserveNodes.push(props.tree.list[start]!);
           break;
@@ -263,6 +255,10 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       // Preserve affectedSpanIds
       while (start < props.tree.list.length) {
         const currentNode = props.tree.list[start]!;
+        // Add more affected spans up to the minimum number of nodes to keep
+        if (preserveNodes.length >= MIN_NODES_TO_KEEP) {
+          break;
+        }
         if (
           currentNode.value &&
           'span_id' in currentNode.value &&
@@ -276,15 +272,12 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       }
 
       let numSurroundingNodes = TRACE_PREVIEW_SURROUNDING_NODES;
-      let minShownNodes = MIN_NODES_TO_KEEP;
       if (props.event.type === 'transaction') {
         // Performance issues are tighter to focus on the suspect spans (of which there may be many)
         numSurroundingNodes = PERFORMANCE_ISSUE_SURROUNDING_NODES;
-        // Performance issues have multiple collapse sections already, keep smaller
-        minShownNodes = 0;
       }
 
-      props.tree.collapseList(preserveNodes, numSurroundingNodes, minShownNodes);
+      props.tree.collapseList(preserveNodes, numSurroundingNodes, MIN_NODES_TO_KEEP);
     }
 
     if (index === -1 || !node) {

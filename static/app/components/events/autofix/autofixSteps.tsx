@@ -14,7 +14,6 @@ import {
   type AutofixData,
   type AutofixFeedback,
   type AutofixProgressItem,
-  type AutofixRepository,
   AutofixStatus,
   type AutofixStep,
   AutofixStepType,
@@ -35,7 +34,6 @@ interface StepProps {
   hasErroredStepBefore: boolean;
   hasStepAbove: boolean;
   hasStepBelow: boolean;
-  repos: AutofixRepository[];
   runId: string;
   step: AutofixStep;
   feedback?: AutofixFeedback;
@@ -63,7 +61,6 @@ export function Step({
   step,
   groupId,
   runId,
-  repos,
   hasStepBelow,
   hasStepAbove,
   hasErroredStepBefore,
@@ -105,7 +102,6 @@ export function Step({
                   rootCauseSelection={step.selection}
                   terminationReason={step.termination_reason}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
-                  repos={repos}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   feedback={feedback}
@@ -120,7 +116,6 @@ export function Step({
                   description={step.description}
                   solutionSelected={step.solution_selected}
                   customSolution={step.custom_solution}
-                  repos={repos}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
@@ -149,7 +144,6 @@ export function Step({
 
 export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   const steps = data.steps;
-  const repos = data.repositories;
   const isMountedRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -167,11 +161,42 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     const errorStep = steps.find(step => step.status === AutofixStatus.ERROR);
     const errorMessage = errorStep?.completedMessage || t('Something went wrong.');
 
+    // sugar coat common errors
+    let customErrorMessage = '';
+    if (errorMessage.toLowerCase().includes('overloaded')) {
+      customErrorMessage = t(
+        'The robots are having a moment. Our LLM provider is overloaded - please try again soon.'
+      );
+    } else if (
+      errorMessage.toLowerCase().includes('prompt') ||
+      errorMessage.toLowerCase().includes('tokens')
+    ) {
+      customErrorMessage = t(
+        "Autofix worked so hard that it couldn't fit all its findings in its own memory. Please try again."
+      );
+    } else if (errorMessage.toLowerCase().includes('iterations')) {
+      customErrorMessage = t(
+        'Autofix was taking a ton of iterations, so we pulled the plug out of fear it might go rogue. Please try again.'
+      );
+    } else if (errorMessage.toLowerCase().includes('timeout')) {
+      customErrorMessage = t(
+        'Autofix was taking way too long, so we pulled the plug to put it out of its misery. Please try again.'
+      );
+    } else {
+      customErrorMessage = t(
+        "Oops, Autofix went kaput. We've dispatched Autofix to fix Autofix. In the meantime, try again?"
+      );
+    }
+
     return (
       <ErrorContainer>
         <StyledArrow direction="down" size="sm" />
         <ErrorMessage>
-          <strong>{t('Something went wrong with Autofix:')}</strong> {errorMessage}
+          {customErrorMessage || (
+            <Fragment>
+              {t('Something went wrong with Autofix:')} {errorMessage}
+            </Fragment>
+          )}
         </ErrorMessage>
       </ErrorContainer>
     );
@@ -227,7 +252,6 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
               hasStepAbove
               groupId={groupId}
               runId={runId}
-              repos={repos}
               hasErroredStepBefore={previousStepErrored}
               shouldCollapseByDefault={
                 step.type === AutofixStepType.DEFAULT &&
@@ -252,15 +276,16 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           </div>
         );
       })}
-      {((activeLog && lastStep!.status === 'PROCESSING') || lastStep!.output_stream) && (
-        <AutofixOutputStream
-          stream={lastStep!.output_stream ?? ''}
-          activeLog={activeLog}
-          groupId={groupId}
-          runId={runId}
-          responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
-        />
-      )}
+      {((activeLog && lastStep!.status === 'PROCESSING') || lastStep!.output_stream) &&
+        lastStep!.type !== AutofixStepType.CHANGES && (
+          <AutofixOutputStream
+            stream={lastStep!.output_stream ?? ''}
+            activeLog={activeLog}
+            groupId={groupId}
+            runId={runId}
+            responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
+          />
+        )}
     </StepsContainer>
   );
 }

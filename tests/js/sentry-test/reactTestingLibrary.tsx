@@ -176,11 +176,9 @@ function makeAllTheProviders(options: ProviderOptions) {
 
     return (
       <CacheProvider value={{...cache, compat: true}}>
-        <ThemeProvider theme={ThemeFixture()}>
-          <QueryClientProvider client={makeTestQueryClient()}>
-            {wrappedContent}
-          </QueryClientProvider>
-        </ThemeProvider>
+        <QueryClientProvider client={makeTestQueryClient()}>
+          <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
+        </QueryClientProvider>
       </CacheProvider>
     );
   };
@@ -231,7 +229,10 @@ function makeRouter({
   const routes = createRoutesFromConfig(children, config);
 
   const router = createRouter({
-    future: {v7_prependBasename: true},
+    future: {
+      v7_prependBasename: true,
+      v7_relativeSplatPath: true,
+    },
     history,
     routes,
   }).initialize();
@@ -357,7 +358,10 @@ function render<T extends boolean = true>(
     DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
   }
 
-  const renderResult = rtl.render(<RouterProvider router={memoryRouter} />, options);
+  const renderResult = rtl.render(
+    <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />,
+    options
+  );
 
   const rerender = (newUi: React.ReactElement) => {
     const newRouter = makeRouter({
@@ -366,7 +370,11 @@ function render<T extends boolean = true>(
       config,
     });
 
-    renderResult.rerender(<RouterProvider router={newRouter} />);
+    renderResult.rerender(
+      <RouterProvider router={newRouter} future={{v7_startTransition: true}} />
+    );
+    // Force the router to update children
+    rtl.act(() => newRouter.revalidate());
   };
 
   const testRouter = new TestRouter(memoryRouter);
@@ -423,6 +431,12 @@ instrumentUserEvent();
 // eslint-disable-next-line no-restricted-imports, import/export
 export * from '@testing-library/react';
 
+/**
+ * @deprecated Cleanup is called for you between each test.
+ * If you are getting act errors in afterEach, try moving them to beforeEach.
+ */
+const cleanup = rtl.cleanup;
+
 export {
   // eslint-disable-next-line import/export
   render,
@@ -432,4 +446,6 @@ export {
   fireEvent,
   waitForDrawerToHide,
   makeAllTheProviders,
+  // eslint-disable-next-line import/export
+  cleanup,
 };

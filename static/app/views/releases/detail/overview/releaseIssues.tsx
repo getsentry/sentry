@@ -8,10 +8,10 @@ import type {Client} from 'sentry/api';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import GroupList from 'sentry/components/issues/groupList';
 import Pagination from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,10 +21,9 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-
-import type {ReleaseBounds} from '../../utils';
-import {getReleaseParams} from '../../utils';
-import {EmptyState} from '../commitsAndFiles/emptyState';
+import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
+import type {ReleaseBounds} from 'sentry/views/releases/utils';
+import {getReleaseParams} from 'sentry/views/releases/utils';
 
 enum IssuesType {
   NEW = 'new',
@@ -406,7 +405,6 @@ class ReleaseIssues extends Component<Props, State> {
             canSelectGroups={false}
             queryFilterDescription={queryFilterDescription}
             withChart={withChart}
-            narrowGroups
             renderEmptyMessage={this.renderEmptyMessage}
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}

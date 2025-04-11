@@ -12,7 +12,6 @@ import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixH
 import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
   type AutofixFeedback,
-  type AutofixRepository,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
   AutofixStatus,
@@ -38,7 +37,6 @@ import {AutofixTimeline} from './autofixTimeline';
 type AutofixRootCauseProps = {
   causes: AutofixRootCauseData[];
   groupId: string;
-  repos: AutofixRepository[];
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
   agentCommentThread?: CommentThread;
@@ -141,7 +139,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
           };
         }
       );
-      addSuccessMessage("Great, let's move forward with this root cause.");
+      addSuccessMessage('On it.');
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when selecting the root cause.'));

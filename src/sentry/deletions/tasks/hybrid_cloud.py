@@ -27,11 +27,11 @@ from django.utils import timezone
 from sentry import options
 from sentry.db.models import Model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.deletions.tasks import deletioncontroltasks, deletiontasks
 from sentry.models.tombstone import TombstoneBase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
 from sentry.utils import json, metrics, redis
 
 
@@ -118,7 +118,7 @@ def _chunk_watermark_batch(
     queue="cleanup.control",
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=deletioncontroltasks),
+    taskworker_config=TaskworkerConfig(namespace=deletion_control_tasks),
 )
 def schedule_hybrid_cloud_foreign_key_jobs_control() -> None:
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
@@ -134,7 +134,7 @@ def schedule_hybrid_cloud_foreign_key_jobs_control() -> None:
     queue="cleanup",
     acks_late=True,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=deletiontasks),
+    taskworker_config=TaskworkerConfig(namespace=deletion_tasks),
 )
 def schedule_hybrid_cloud_foreign_key_jobs() -> None:
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
@@ -172,7 +172,7 @@ def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task) 
     queue="cleanup.control",
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
-    taskworker_config=TaskworkerConfig(namespace=deletioncontroltasks),
+    taskworker_config=TaskworkerConfig(namespace=deletion_control_tasks),
 )
 def process_hybrid_cloud_foreign_key_cascade_batch_control(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
@@ -194,7 +194,7 @@ def process_hybrid_cloud_foreign_key_cascade_batch_control(
     queue="cleanup",
     acks_late=True,
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=deletiontasks),
+    taskworker_config=TaskworkerConfig(namespace=deletion_tasks),
 )
 def process_hybrid_cloud_foreign_key_cascade_batch(
     app_name: str, model_name: str, field_name: str, **kwargs: Any

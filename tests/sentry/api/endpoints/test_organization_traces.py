@@ -331,6 +331,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         assert response.data == {
             "data": [],
             "meta": {
+                "dataScanned": "full",
                 "dataset": "unknown",
                 "datasetReason": "unchanged",
                 "fields": {},
@@ -380,6 +381,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         assert response.status_code == 200, response.data
 
         assert response.data["meta"] == {
+            "dataScanned": "full",
             "dataset": "unknown",
             "datasetReason": "unchanged",
             "fields": {},
@@ -715,6 +717,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 assert response.status_code == 200, response.data
 
                 assert response.data["meta"] == {
+                    "dataScanned": "full",
                     "dataset": "unknown",
                     "datasetReason": "unchanged",
                     "fields": {},
@@ -878,6 +881,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
         response = self.do_request(trace_id, query)
         assert response.status_code == 200, response.data
         assert response.data["meta"] == {
+            "dataScanned": "full",
             "dataset": "unknown",
             "datasetReason": "unchanged",
             "fields": {
@@ -917,6 +921,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             response = self.do_request(trace_id, query)
             assert response.status_code == 200, response.data
             assert response.data["meta"] == {
+                "dataScanned": "full",
                 "dataset": "unknown",
                 "datasetReason": "unchanged",
                 "fields": {

@@ -5,14 +5,17 @@ import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button';
-import type {AutofixRepository} from 'sentry/components/events/autofix/types';
+import {useProjectPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectPreferences';
+import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface SeerNoticesProps {
-  autofixRepositories: AutofixRepository[];
+  groupId: string;
+  project: Project;
   hasGithubIntegration?: boolean;
 }
 
@@ -55,20 +58,72 @@ function GithubIntegrationSetupCard() {
   );
 }
 
-export function SeerNotices({
-  autofixRepositories,
-  hasGithubIntegration,
-}: SeerNoticesProps) {
+function SelectReposCard() {
   const organization = useOrganization();
-  const unreadableRepos = autofixRepositories.filter(repo => repo.is_readable === false);
-  const notices: React.JSX.Element[] = [];
 
-  const integrationId = autofixRepositories.find(repo =>
-    repo.provider.includes('github')
-  )?.integration_id;
+  return (
+    <IntegrationCard key="no-selected-repos">
+      <CardContent>
+        <CardTitle>{t('Pick Repositories to Work In')}</CardTitle>
+        <CardDescription>
+          <span>
+            {tct('Autofix is [bold:a lot better] when it has your codebase as context.', {
+              bold: <b />,
+            })}
+          </span>
+          <span>
+            {tct(
+              'Select the repos Autofix can explore in this project to allow it to go deeper when troubleshooting and fixing your issues–including writing the code and opening PRs.',
+              {
+                integrationLink: (
+                  <ExternalLink
+                    href={`/settings/${organization.slug}/integrations/github/`}
+                  />
+                ),
+              }
+            )}
+          </span>
+          <span>
+            {t(
+              'You can also configure working branches and custom instructions so Autofix acts just how you like.'
+            )}
+          </span>
+          <span>
+            {tct(
+              '[bold:Open the Project Settings menu in the top right] to get started.',
+              {
+                bold: <b />,
+              }
+            )}
+          </span>
+        </CardDescription>
+      </CardContent>
+      <CardIllustration src={onboardingInstall} alt="Install" />
+    </IntegrationCard>
+  );
+}
+
+export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
+  const organization = useOrganization();
+  const {repos} = useAutofixRepos(groupId);
+  const {
+    preference,
+    codeMappingRepos,
+    isLoading: isLoadingPreferences,
+  } = useProjectPreferences(project);
+
+  const unreadableRepos = repos.filter(repo => repo.is_readable === false);
+  const notices: React.JSX.Element[] = [];
 
   if (!hasGithubIntegration) {
     notices.push(<GithubIntegrationSetupCard key="github-setup" />);
+  } else if (
+    repos.length === 0 &&
+    !preference?.repositories &&
+    !codeMappingRepos &&
+    !isLoadingPreferences
+  ) {
+    notices.push(<SelectReposCard key="repo-selection" />);
   }
 
   if (unreadableRepos.length > 1) {
@@ -86,22 +141,13 @@ export function SeerNotices({
           <Fragment>
             {' '}
             {tct(
-              'For best performance, enable the [integrationLink:GitHub integration] and its [codeMappingsLink:code mappings].',
+              'For best performance, enable the [integrationLink:GitHub integration].',
               {
                 integrationLink: (
                   <ExternalLink
-                    href={
-                      integrationId
-                        ? `/settings/${organization.slug}/integrations/github/${integrationId}/`
-                        : `/settings/${organization.slug}/integrations/github/`
-                    }
+                    href={`/settings/${organization.slug}/integrations/github/`}
                   />
                 ),
-                codeMappingsLink: integrationId ? (
-                  <ExternalLink
-                    href={`/settings/${organization.slug}/integrations/github/${integrationId}/?tab=codeMappings`}
-                  />
-                ) : null,
               }
             )}
           </Fragment>
@@ -120,17 +166,12 @@ export function SeerNotices({
       <Alert type="warning" showIcon key="single-repo">
         {unreadableRepo.provider.includes('github')
           ? tct(
-              "Autofix can't access the [repo] repository, make sure the [integrationLink:GitHub integration] and its [codeMappingsLink:code mappings] are correctly set up.",
+              "Autofix can't access the [repo] repository, make sure the [integrationLink:GitHub integration] is correctly set up.",
               {
                 repo: <b>{unreadableRepo.name}</b>,
                 integrationLink: (
                   <ExternalLink
-                    href={`/settings/${organization.slug}/integrations/github/${unreadableRepo.integration_id}`}
-                  />
-                ),
-                codeMappingsLink: (
-                  <ExternalLink
-                    href={`/settings/${organization.slug}/integrations/github/${unreadableRepo.integration_id}/?tab=codeMappings`}
+                    href={`/settings/${organization.slug}/integrations/github/`}
                   />
                 ),
               }
@@ -147,7 +188,11 @@ export function SeerNotices({
     return null;
   }
 
-  return <NoticesContainer>{notices}</NoticesContainer>;
+  return (
+    <StickyNoticesContainer>
+      <NoticesContainer>{notices}</NoticesContainer>
+    </StickyNoticesContainer>
+  );
 }
 
 const NoticesContainer = styled('div')`
@@ -156,6 +201,17 @@ const NoticesContainer = styled('div')`
   gap: ${space(2)};
   align-items: stretch;
   margin-bottom: ${space(2)};
+`;
+
+const StickyNoticesContainer = styled('div')`
+  position: sticky;
+  top: 0;
+  background: ${p => p.theme.background};
+  padding-top: ${space(2)};
+  padding-left: ${space(2)};
+  padding-right: ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
 const IntegrationCard = styled('div')`

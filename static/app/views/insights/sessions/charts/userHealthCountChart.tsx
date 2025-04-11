@@ -1,7 +1,10 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import useUserHealthBreakdown from 'sentry/views/insights/sessions/queries/useUserHealthBreakdown';
+import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
+import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function UserHealthCountChart() {
   const {series, isPending, error} = useUserHealthBreakdown({type: 'count'});
@@ -15,7 +18,11 @@ export default function UserHealthCountChart() {
 
   return (
     <InsightsLineChartWidget
-      title={t('User Counts')}
+      title={CHART_TITLES.UserHealthCountChart}
+      interactiveTitle={() => (
+        <ChartSelectionTitle title={CHART_TITLES.UserHealthCountChart} />
+      )}
+      height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
         'Breakdown of total [linkUsers:users], grouped by [linkStatus:health status].',
         {
@@ -32,7 +39,7 @@ export default function UserHealthCountChart() {
       isLoading={isPending}
       error={error}
       legendSelection={{
-        [aliases.healthy_user_count]: false,
+        healthy_user_count: false,
       }}
     />
   );

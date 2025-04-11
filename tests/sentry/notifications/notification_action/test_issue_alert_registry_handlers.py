@@ -48,7 +48,7 @@ from sentry.workflow_engine.typings.notification_action import (
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-def pop_keys_from_data_blob(data_blob: dict, action_type: Action.Type) -> dict:
+def pop_keys_from_data_blob(data_blob: dict, action_type: str) -> dict:
     """
     Remove standard action fields from each dictionary in the data blob.
 
@@ -76,7 +76,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         self.workflow = self.create_workflow(environment=self.environment)
         self.rule = self.create_project_rule(project=self.project)
         self.alert_rule_workflow = self.create_alert_rule_workflow(
-            workflow=self.workflow, rule=self.rule
+            workflow=self.workflow, rule_id=self.rule.id
         )
         self.action = self.create_action(
             type=Action.Type.DISCORD,
@@ -118,7 +118,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
     def test_create_rule_instance_from_action_missing_rule_raises_value_error(self):
         job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
         alert_rule = self.create_alert_rule(projects=[self.project], organization=self.organization)
-        self.create_alert_rule_workflow(workflow=self.workflow, alert_rule=alert_rule)
+        self.create_alert_rule_workflow(workflow=self.workflow, alert_rule_id=alert_rule.id)
         with pytest.raises(ValueError):
             self.handler.create_rule_instance_from_action(self.action, self.detector, job)
 

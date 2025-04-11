@@ -96,7 +96,7 @@ export interface OnboardingTaskStatus {
   status: 'skipped' | 'pending' | 'complete';
   task: OnboardingTaskKey;
   completionSeen?: string | boolean;
-  data?: {[key: string]: string};
+  data?: Record<string, string>;
   dateCompleted?: string;
 }
 

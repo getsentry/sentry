@@ -436,6 +436,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.data_secrecy",
     "sentry.workflow_engine",
     "sentry.explore",
+    "sentry.insights",
 )
 
 # Silence internal hints from Django's system checks
@@ -785,6 +786,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.beacon",
+    "sentry.tasks.ping",
     "sentry.tasks.auth.check_auth",
     "sentry.tasks.check_new_issue_threshold_met",
     "sentry.tasks.clear_expired_snoozes",
@@ -800,7 +802,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.groupowner",
     "sentry.tasks.merge",
     "sentry.tasks.options",
-    "sentry.tasks.ping",
     "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
     "sentry.tasks.relay",
@@ -1398,6 +1399,51 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # Like celery, taskworkers need to import task modules to make tasks
 # accessible to the worker.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.deletions.tasks.hybrid_cloud",
+    "sentry.deletions.tasks.scheduled",
+    "sentry.hybridcloud.tasks.deliver_from_outbox",
+    "sentry.hybridcloud.tasks.deliver_webhooks",
+    "sentry.incidents.tasks",
+    "sentry.integrations.github.tasks.link_all_repos",
+    "sentry.integrations.github.tasks.open_pr_comment",
+    "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.jira.tasks",
+    "sentry.integrations.opsgenie.tasks",
+    "sentry.integrations.slack.tasks.find_channel_id_for_alert_rule",
+    "sentry.integrations.slack.tasks.find_channel_id_for_rule",
+    "sentry.integrations.slack.tasks.link_slack_user_identities",
+    "sentry.integrations.slack.tasks.post_message",
+    "sentry.integrations.slack.tasks.send_notifications_on_activity",
+    "sentry.integrations.tasks.create_comment",
+    "sentry.integrations.tasks.kick_off_status_syncs",
+    "sentry.integrations.tasks.migrate_repo",
+    "sentry.integrations.tasks.sync_assignee_outbound",
+    "sentry.integrations.tasks.sync_status_inbound",
+    "sentry.integrations.tasks.sync_status_outbound",
+    "sentry.integrations.tasks.update_comment",
+    "sentry.integrations.vsts.tasks.kickoff_subscription_check",
+    "sentry.integrations.vsts.tasks.subscription_check",
+    "sentry.middleware.integrations.tasks",
+    "sentry.monitors.tasks.clock_pulse",
+    "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.notifications.utils.tasks",
+    "sentry.replays.tasks",
+    "sentry.sentry_apps.tasks.sentry_apps",
+    "sentry.snuba.tasks",
+    "sentry.tasks.auth.auth",
+    "sentry.tasks.auth.check_auth",
+    "sentry.tasks.auto_enable_codecov",
+    "sentry.tasks.digests",
+    "sentry.tasks.email",
+    "sentry.tasks.release_registry",
+    "sentry.tempest.tasks",
+    "sentry.tasks.beacon",
+    "sentry.tasks.options",
+    "sentry.tasks.ping",
+    "sentry.tasks.repository",
+    "sentry.uptime.detectors.tasks",
+    "sentry.uptime.subscriptions.tasks",
+    "sentry.uptime.rdap.tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -2796,21 +2842,19 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "http://ctxsym.citrix.com/symbols/",
         "is_public": True,
     },
-    # Right now Symbolicator is not able to successfully download from
-    # the Intel source because the source doesn't accept custom user agents.
-    # Until we are confident we can spoof Symbolicator's user agent without
-    # abusing the source, we are disabling it. See
-    # https://github.com/getsentry/team-ingest/issues/642.
-    #
-    # "intel": {
-    #     "type": "http",
-    #     "id": "sentry:intel",
-    #     "name": "Intel",
-    #     "layout": {"type": "symstore"},
-    #     "filters": {"filetypes": ["pe", "pdb"]},
-    #     "url": "https://software.intel.com/sites/downloads/symbols/",
-    #     "is_public": True,
-    # },
+    "intel": {
+        "type": "http",
+        "id": "sentry:intel",
+        "name": "Intel",
+        "layout": {"type": "symstore"},
+        "filters": {"filetypes": ["pe", "pdb"]},
+        "url": "https://software.intel.com/sites/downloads/symbols/",
+        "headers": {
+            "User-Agent": "curl/7.72.0",
+        },
+        "is_public": True,
+        "has_index": True,
+    },
     "amd": {
         "type": "http",
         "id": "sentry:amd",
@@ -3061,6 +3105,8 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "workflow_engine",
     "tempest",
     "explore",
+    "insights",
+    "monitors",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
