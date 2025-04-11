@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
@@ -33,8 +32,3 @@ class UptimeDomainCheckFailure(GroupType):
         },
         "additionalProperties": False,
     }
-    use_flagpole_for_all_features = True
-
-
-# XXX: Temporary hack to work around pickling issues
-grouptype.UptimeDomainCheckFailure = UptimeDomainCheckFailure  # type: ignore[attr-defined]
