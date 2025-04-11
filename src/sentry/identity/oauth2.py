@@ -18,6 +18,7 @@ from requests.exceptions import SSLError
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.exceptions import NotRegistered
 from sentry.http import safe_urlopen, safe_urlread
+from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineErrorReason,
@@ -205,7 +206,7 @@ class OAuth2Provider(Provider):
             )
             raise ApiError(formatted_error)
 
-    def refresh_identity(self, identity: Identity, **kwargs: Any) -> None:
+    def refresh_identity(self, identity: Identity | RpcIdentity, **kwargs: Any) -> None:
         refresh_token = identity.data.get("refresh_token")
 
         if not refresh_token:
