@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
+import {Flex} from 'sentry/components/container/flex';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Select} from 'sentry/components/core/select';
@@ -49,8 +50,10 @@ const addUsernameDisplay = (logEntryUser: User | undefined) => {
   if (logEntryUser?.isSuperuser) {
     return (
       <Name data-test-id="actor-name">
-        {logEntryUser.name}
-        <StaffTag>{t('Sentry Staff')}</StaffTag>
+        <Flex align="center" gap={space(1)}>
+          {logEntryUser.name}
+          <Tag>{t('Sentry Staff')}</Tag>
+        </Flex>
       </Name>
     );
   }
@@ -331,10 +334,6 @@ const SentryAvatar = styled(ActivityAvatar)`
 
 const Name = styled('strong')`
   font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const StaffTag = styled(Tag)`
-  padding: ${space(1)};
 `;
 
 const EventSelector = styled(Select)`
