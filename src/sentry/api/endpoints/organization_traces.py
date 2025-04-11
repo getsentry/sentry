@@ -50,10 +50,10 @@ from sentry.search.events.types import QueryBuilderConfig, SnubaParams, WhereTyp
 from sentry.snuba import discover, spans_indexed, spans_rpc
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.utils import snuba_rpc
 from sentry.utils.numbers import clip
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries_with_referrers
+from sentry.utils.snuba_rpc import get_traces_rpc
 
 MAX_SNUBA_RESULTS = 10_000
 
@@ -392,7 +392,7 @@ class TracesExecutor:
 
         rpc_request = self.get_traces_rpc(all_projects)
 
-        rpc_response = snuba_rpc.get_traces_rpc(rpc_request)
+        rpc_response = get_traces_rpc(rpc_request)
 
         if not rpc_response.traces:
             return []

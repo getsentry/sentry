@@ -5,12 +5,16 @@ from uuid import uuid4
 import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import GetTracesResponse, TraceAttribute
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 
-from sentry.api.endpoints.organization_traces import process_breakdowns
+from sentry.api.endpoints.organization_traces import TracesExecutor, process_breakdowns
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
+from sentry.utils.snuba import _snuba_query
 
 
 class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
@@ -643,10 +647,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         ]
 
     def test_use_separate_referrers(self):
-        from sentry.api.endpoints.organization_traces import TracesExecutor
-        from sentry.snuba.referrer import Referrer
-        from sentry.utils.snuba import _snuba_query
-
         now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
         start = now - timedelta(days=2)
         end = now - timedelta(days=1)
@@ -2558,10 +2558,57 @@ class OrganizationTracesEAPRPCEndpointTest(OrganizationTracesEAPEndpointTest):
     use_rpc = True
     allow_multiple_user_queries: bool = False
 
-    @pytest.mark.skip
     def test_use_separate_referrers(self):
-        # TODO: detect the referrers correctly for RPC calls
-        pass
+        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        start = now - timedelta(days=2)
+        end = now - timedelta(days=1)
+        trace_id = uuid4().hex
+
+        with (
+            patch(
+                "sentry.api.endpoints.organization_traces.get_traces_rpc",
+                return_value=GetTracesResponse(
+                    traces=[
+                        GetTracesResponse.Trace(
+                            attributes=[
+                                TraceAttribute(
+                                    key=TraceAttribute.Key.KEY_TRACE_ID,
+                                    value=AttributeValue(val_str=trace_id),
+                                    type=AttributeKey.Type.TYPE_STRING,
+                                ),
+                                TraceAttribute(
+                                    key=TraceAttribute.Key.KEY_START_TIMESTAMP,
+                                    value=AttributeValue(val_double=start.timestamp()),
+                                    type=AttributeKey.Type.TYPE_DOUBLE,
+                                ),
+                                TraceAttribute(
+                                    key=TraceAttribute.Key.KEY_END_TIMESTAMP,
+                                    value=AttributeValue(val_double=end.timestamp()),
+                                    type=AttributeKey.Type.TYPE_DOUBLE,
+                                ),
+                            ],
+                        )
+                    ],
+                ),
+            ),
+            patch("sentry.utils.snuba._snuba_query", wraps=_snuba_query) as mock_snuba_query,
+        ):
+            query = {
+                "project": [self.project.id],
+                "field": ["id", "parent_span", "span.duration"],
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+
+            actual_referrers = {
+                call[0][0][2].headers["referer"] for call in mock_snuba_query.call_args_list
+            }
+
+        assert {
+            Referrer.API_TRACE_EXPLORER_TRACES_ERRORS.value,
+            Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES.value,
+        } == actual_referrers
 
 
 class OrganizationTraceSpansEAPEndpointTest(OrganizationTraceSpansEndpointTest):
