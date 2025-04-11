@@ -276,7 +276,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       if (isDemoModeActive()) {
         // Performance guide is updated to use the new tour
         if (task.task === OnboardingTaskKey.PERFORMANCE_GUIDE) {
-          tours[DemoTour.PERFORMANCE].startTour(DemoTourStep.PERFORMANCE_TABLE);
+          tours?.[DemoTour.PERFORMANCE]?.startTour(DemoTourStep.PERFORMANCE_TABLE);
         } else {
           DemoWalkthroughStore.activateGuideAnchor(task.task);
         }

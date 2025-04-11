@@ -54,18 +54,19 @@ type DemoToursContextType = {
 
 const DemoToursContext = createContext<DemoToursContextType | null>(null);
 
-export function useDemoTours(): DemoToursContextType {
+export function useDemoTours(): DemoToursContextType | null {
   const tourContext = useContext(DemoToursContext);
-
-  if (!tourContext) {
-    throw new Error('Must be used within a TourContextProvider');
-  }
 
   return tourContext;
 }
 
-export function useDemoTour(tourKey: DemoTour): TourContextType<DemoTourStep> {
+export function useDemoTour(tourKey: DemoTour): TourContextType<DemoTourStep> | null {
   const tourContext = useDemoTours();
+
+  if (!tourContext) {
+    return null;
+  }
+
   return tourContext[tourKey];
 }
 
