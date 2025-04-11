@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from typing import Any, Protocol
 from urllib.parse import urlencode
 
 from requests import PreparedRequest
@@ -11,14 +12,21 @@ from sentry.integrations.models import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode, control_silo_function
 
 # five minutes which is industry standard clock skew tolerance
 CLOCK_SKEW = 60 * 5
 
 
+class ApiClientProtocol(Protocol):
+    def get(self, path: str, params: dict[str, Any] | None = None, **kwargs) -> dict[str, Any]: ...
+    def post(self, path: str, data: dict[str, Any] | None = None, **kwargs) -> dict[str, Any]: ...
+    def put(self, path: str, data: dict[str, Any] | None = None, **kwargs) -> dict[str, Any]: ...
+
+
 # MsTeamsClientMixin abstract client does not handle setting the base url or auth token
-class MsTeamsClientMixin:
+class MsTeamsClientMixin(ApiClientProtocol):
     integration_name = "msteams"
     TEAM_URL = "/v3/teams/%s"
     CHANNEL_URL = "/v3/teams/%s/conversations"
@@ -33,7 +41,7 @@ class MsTeamsClientMixin:
 
     def get_member_list(self, team_id: str, continuation_token: str | None = None):
         url = self.MEMBER_URL % team_id
-        params = {"pageSize": 500}
+        params: dict[str, int | str] = {"pageSize": 500}
         if continuation_token:
             params["continuationToken"] = continuation_token
         return self.get(url, params=params)
@@ -117,10 +125,16 @@ class MsTeamsClient(IntegrationProxyClient, MsTeamsClientMixin):
                 access_token = token_data["access_token"]
                 new_metadata.update(token_data)
 
-                self.integration = integration_service.update_integration(
-                    integration_id=self.integration.id,
-                    metadata=new_metadata,
-                )
+                if (
+                    updated_integration := integration_service.update_integration(
+                        integration_id=self.integration.id,
+                        metadata=new_metadata,
+                    )
+                ) is None:
+                    # This should never happen, but if it does, fail loudly
+                    raise IntegrationError("Integration not found, failed to refresh access token")
+
+                self.integration = updated_integration
         return access_token
 
     @control_silo_function
