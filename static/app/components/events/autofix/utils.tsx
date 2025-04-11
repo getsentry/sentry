@@ -299,7 +299,7 @@ export function getAutofixProgressDetails(
       );
       icon = 'loading';
     } else if (changesStep) {
-      displayText = t('Code changes ready.');
+      displayText = t('Code changes ready. All work is saved.');
       icon = 'waiting';
     }
   } else {
@@ -330,7 +330,7 @@ export function getAutofixProgressDetails(
       solutionStep &&
       (solutionStep.status === AutofixStatus.COMPLETED || solutionStep.solution_selected)
     ) {
-      displayText = t('Found a solution.');
+      displayText = t('Found a solution. All work so far is saved.');
       icon = 'waiting';
     } else if (
       rootCauseStep &&
