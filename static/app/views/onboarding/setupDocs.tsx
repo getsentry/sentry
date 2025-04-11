@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import {decodeList} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
@@ -35,8 +34,8 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   }
 
   const platformName = currentPlatform.name;
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const integrationSlug = project.platform && platformToIntegrationMap[project.platform];
+
+  const integrationSlug = project.platform;
   const showIntegrationOnboarding =
     integrationSlug && location.query.installationMode !== InstallationMode.MANUAL;
 
