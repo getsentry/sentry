@@ -59,9 +59,9 @@ export function getTourTask(
       return {tour: 'issues', task: OnboardingTaskKey.ISSUE_GUIDE};
     case 'releases':
       return {tour: 'releases', task: OnboardingTaskKey.RELEASE_GUIDE};
-    // // TODO(ogi): Remove this once we merge the new releases tour
-    // case 'release-details_v2':
-    //   return {tour: 'releases', task: OnboardingTaskKey.RELEASE_GUIDE};
+    case 'performance':
+      return {tour: 'performance', task: OnboardingTaskKey.PERFORMANCE_GUIDE};
+
     default:
       return undefined;
   }
