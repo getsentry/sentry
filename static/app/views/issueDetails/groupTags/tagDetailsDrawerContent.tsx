@@ -18,7 +18,7 @@ import {IconArrow, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
-import {percent} from 'sentry/utils';
+import {escapeIssueTagKey, generateQueryWithTag, percent} from 'sentry/utils';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -251,8 +251,13 @@ function TagValueActionsMenu({
   const {onClick: handleCopy} = useCopyToClipboard({
     text: tagValue.value,
   });
-  const key = tagValue.key ?? tag.key;
-  const query = {query: tagValue.query || `${key}:"${tagValue.value}"`};
+  const referrer = 'tag-details-drawer';
+  const key = escapeIssueTagKey(tagValue.key ?? tag.key);
+  const query = tagValue.query
+    ? {
+        query: tagValue.query,
+      }
+    : generateQueryWithTag({referrer}, {key, value: tagValue.value});
   const eventView = useIssueDetailsEventView({group, queryProps: query});
   const [isVisible, setIsVisible] = useState(false);
 
