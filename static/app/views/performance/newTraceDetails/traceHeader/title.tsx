@@ -17,8 +17,7 @@ import {
   isEAPError,
   isTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-
-import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 interface TitleProps {
   representativeEvent: TraceTree.TraceEvent | OurLogsResponseItem | null;
@@ -37,7 +36,7 @@ function getTitle(event: TraceTree.TraceEvent | OurLogsResponseItem | null): {
   if (OurLogKnownFieldKey.SEVERITY_TEXT in event) {
     return {
       title: t('Trace'),
-      subtitle: event[OurLogKnownFieldKey.BODY],
+      subtitle: event[OurLogKnownFieldKey.MESSAGE],
     };
   }
 

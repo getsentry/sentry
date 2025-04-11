@@ -13,14 +13,8 @@ import type {
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTraceSplitResult} from 'sentry/utils/performance/quickTrace/utils';
-import {collectTraceMeasurements} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
-import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
-import type {ReplayRecord} from 'sentry/views/replays/types';
-
-import {isRootEvent} from '../../traceDetails/utils';
-import {getTraceQueryParams} from '../traceApi/useTrace';
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
+import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
   getPageloadTransactionChildCount,
   isAutogroupedNode,
@@ -46,7 +40,12 @@ import {
   isTraceNode,
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
-} from '../traceGuards';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {collectTraceMeasurements} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
+import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {isRootEvent} from 'sentry/views/performance/traceDetails/utils';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {makeExampleTrace} from './makeExampleTrace';
 import {MissingInstrumentationNode} from './missingInstrumentationNode';
@@ -177,9 +176,9 @@ export declare namespace TraceTree {
   type TraceError = TraceErrorType;
   type TraceErrorIssue = TraceError | EAPError;
 
-  type TracePerformanceIssue = TracePerformanceIssueType;
+  type TraceOccurence = TracePerformanceIssueType;
 
-  type TraceIssue = TraceErrorIssue | TracePerformanceIssue;
+  type TraceIssue = TraceErrorIssue | TraceOccurence;
 
   type Profile = {profile_id: string} | {profiler_id: string};
   type Project = {
@@ -433,7 +432,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       if (isTransactionNode(c)) {
         for (const performanceIssue of c.value.performance_issues) {
-          traceNode.performance_issues.add(performanceIssue);
+          traceNode.occurences.add(performanceIssue);
         }
       }
 
@@ -604,7 +603,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           c.value,
           node
         )) {
-          c.performance_issues.add(performanceIssue);
+          c.occurences.add(performanceIssue);
         }
         for (const error of getRelatedSpanErrorsFromTransaction(c.value, node)) {
           c.errors.add(error);
@@ -653,8 +652,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       baseTraceNode.errors.add(error);
     }
 
-    for (const performanceIssue of additionalTraceNode.performance_issues) {
-      baseTraceNode.performance_issues.add(performanceIssue);
+    for (const occurence of additionalTraceNode.occurences) {
+      baseTraceNode.occurences.add(occurence);
     }
 
     for (const profile of additionalTraceNode.profiles) {
@@ -828,7 +827,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       let groupMatchCount = 0;
 
       let errors: TraceTree.TraceErrorIssue[] = [];
-      let performance_issues: TraceTree.TracePerformanceIssue[] = [];
+      let occurences: TraceTree.TraceOccurence[] = [];
 
       let start = head.space[0];
       let end = head.space[0] + head.space[1];
@@ -845,9 +844,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         end = Math.max(end, tail.space[0] + tail.space[1]);
 
         errors = errors.concat(Array.from(tail.errors));
-        performance_issues = performance_issues.concat(
-          Array.from(tail.performance_issues)
-        );
+        occurences = occurences.concat(Array.from(tail.occurences));
 
         groupMatchCount++;
         tail = tail.children[0];
@@ -897,14 +894,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
       // Checking the tail node for errors as it is not included in the grouping
       // while loop, but is hidden when the autogrouped node is collapsed
       errors = errors.concat(Array.from(tail.errors));
-      performance_issues = performance_issues.concat(Array.from(tail.performance_issues));
+      occurences = occurences.concat(Array.from(tail.occurences));
 
       start = Math.min(start, tail.space[0]);
       end = Math.max(end, tail.space[0] + tail.space[1]);
 
       autoGroupedNode.space = [start, end - start];
       autoGroupedNode.errors = new Set(errors);
-      autoGroupedNode.performance_issues = new Set(performance_issues);
+      autoGroupedNode.occurences = new Set(occurences);
 
       for (const c of tail.children) {
         c.parent = autoGroupedNode;
@@ -1035,8 +1032,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
                 autoGroupedNode.errors.add(error);
               }
 
-              for (const performanceIssue of child.performance_issues) {
-                autoGroupedNode.performance_issues.add(performanceIssue);
+              for (const occurence of child.occurences) {
+                autoGroupedNode.occurences.add(occurence);
               }
             }
 
@@ -1339,7 +1336,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
             return true;
           }
         }
-        for (const p of n.performance_issues) {
+        for (const p of n.occurences) {
           if (p.event_id === eventId) {
             return true;
           }
@@ -1357,7 +1354,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
             return true;
           }
         }
-        for (const p of n.performance_issues) {
+        for (const p of n.occurences) {
           if (p.event_id === eventId) {
             return true;
           }
@@ -2295,26 +2292,26 @@ function getRelatedSpanErrorsFromTransaction(
 function getRelatedPerformanceIssuesFromTransaction(
   span: TraceTree.Span,
   node: TraceTreeNode<TraceTree.NodeValue>
-): TraceTree.TracePerformanceIssue[] {
+): TraceTree.TraceOccurence[] {
   if (!isTransactionNode(node) || !node.value?.performance_issues?.length) {
     return [];
   }
 
-  const performanceIssues: TraceTree.TracePerformanceIssue[] = [];
+  const occurences: TraceTree.TraceOccurence[] = [];
 
   for (const perfIssue of node.value.performance_issues) {
     for (const s of perfIssue.span) {
       if (s === span.span_id) {
-        performanceIssues.push(perfIssue);
+        occurences.push(perfIssue);
       }
     }
 
     for (const suspect of perfIssue.suspect_spans) {
       if (suspect === span.span_id) {
-        performanceIssues.push(perfIssue);
+        occurences.push(perfIssue);
       }
     }
   }
 
-  return performanceIssues;
+  return occurences;
 }

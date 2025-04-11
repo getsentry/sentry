@@ -27,6 +27,8 @@ import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useSpanMetrics,
@@ -59,9 +61,6 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-
-import {SampleDrawerBody} from '../../common/components/sampleDrawerBody';
-import {SampleDrawerHeaderTransaction} from '../../common/components/sampleDrawerHeaderTransaction';
 
 export function HTTPSamplesPanel() {
   const navigate = useNavigate();

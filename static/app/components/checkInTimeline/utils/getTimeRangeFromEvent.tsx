@@ -1,8 +1,7 @@
 import moment from 'moment-timezone';
 
+import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import type {Event} from 'sentry/types/event';
-
-import type {TimeWindow} from '../types';
 
 // Stores the elapsed minutes for each selectable resolution
 export const resolutionElapsedMinutes: Record<TimeWindow, number> = {

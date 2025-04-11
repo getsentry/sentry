@@ -75,6 +75,11 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       },
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdks/`,
+      method: 'GET',
+    });
+
     const statusPageData: StatuspageIncident[] = [];
     jest
       .spyOn(incidentsHook, 'useServiceIncidents')
