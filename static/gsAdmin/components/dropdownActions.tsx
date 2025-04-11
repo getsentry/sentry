@@ -81,6 +81,11 @@ function DropdownActions({actions, label}: Props) {
         });
       }}
       triggerLabel={label}
+      triggerProps={
+        {
+          'data-test-id': 'detail-actions',
+        } as any
+      }
     />
   );
 }

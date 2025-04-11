@@ -25,6 +25,7 @@ from sentry.integrations.messaging.message_builder import (
 from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import (
+    MAX_SUMMARY_HEADLINE_LENGTH,
     SlackIssuesMessageBuilder,
     build_actions,
     format_release_tag,
@@ -97,12 +98,18 @@ def build_test_message_blocks(
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
     if rule:
-        title_link += f"&alert_rule_id={rule.id}&alert_type=issue"
+        if legacy_rule_id:
+            title_link += f"&alert_rule_id={legacy_rule_id}&alert_type=issue"
+        else:
+            title_link += f"&alert_rule_id={rule.id}&alert_type=issue"
 
     title_text = f":red_circle: <{title_link}|*{formatted_title}*>"
 
     if rule:
-        block_id = f'{{"issue":{group.id},"rule":{rule.id}}}'
+        if legacy_rule_id:
+            block_id = f'{{"issue":{group.id},"rule":{legacy_rule_id}}}'
+        else:
+            block_id = f'{{"issue":{group.id},"rule":{rule.id}}}'
     else:
         block_id = f'{{"issue":{group.id}}}'
 
@@ -1024,6 +1031,99 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             mock_get_summary.assert_not_called()
             blocks = SlackIssuesMessageBuilder(group).build()
             assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
+
+    @override_options({"alerts.issue_summary_timeout": 5})
+    @with_feature({"organizations:gen-ai-features", "projects:trigger-issue-summary-on-alerts"})
+    def test_build_group_block_with_ai_summary_text_truncation(self):
+        # Test case for multi-line exception text
+        multiline_text = "First line of text\nSecond line of text\nThird line of text"
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-1"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": multiline_text,
+                        }
+                    ]
+                },
+                "level": "error",
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        assert event1.group
+        group1 = event1.group
+        group1.type = ErrorGroupType.type_id
+        group1.save()
+
+        # Test case for long exception text (over 50 characters)
+        long_text = (
+            "This is a very long text that exceeds the 50 character limit and should be truncated"
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-2"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": long_text,
+                        }
+                    ]
+                },
+                "level": "error",
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        assert event2.group
+        group2 = event2.group
+        group2.type = ErrorGroupType.type_id
+        group2.save()
+
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+
+        mock_summary = {
+            "headline": "Custom AI Title",
+            "whatsWrong": "Some issue description",
+            "trace": "This is trace information",
+            "possibleCause": "This is a possible cause",
+        }
+
+        patch_path = "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary"
+        serializer_path = "sentry.api.serializers.models.event.EventSerializer.serialize"
+        serializer_mock = Mock(return_value={})
+
+        # Test multi-line text truncation
+        with (
+            patch(patch_path) as mock_get_summary,
+            patch(serializer_path, serializer_mock),
+        ):
+            mock_get_summary.return_value = (mock_summary, 200)
+            blocks = SlackIssuesMessageBuilder(group1, event1.for_group(group1)).build()
+            title_text = blocks["blocks"][0]["text"]["text"]
+
+            assert "First line of text..." in title_text
+            assert "Second line" not in title_text
+
+        # Test long text truncation
+        with (
+            patch(patch_path) as mock_get_summary,
+            patch(serializer_path, serializer_mock),
+        ):
+            mock_get_summary.return_value = (mock_summary, 200)
+            blocks = SlackIssuesMessageBuilder(group2, event2.for_group(group2)).build()
+            title_text = blocks["blocks"][0]["text"]["text"]
+
+            expected_truncated = long_text[:MAX_SUMMARY_HEADLINE_LENGTH] + "..."
+            assert expected_truncated in title_text
 
 
 class BuildGroupAttachmentReplaysTest(TestCase):
