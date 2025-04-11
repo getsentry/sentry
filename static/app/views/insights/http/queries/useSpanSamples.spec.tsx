@@ -93,6 +93,16 @@ describe('useSpanSamples', () => {
             'span.id': '3aab8a77fe231',
           },
         ],
+        meta: {
+          fields: {
+            'transaction.id': 'string',
+            'span.id': 'string',
+          },
+          units: {
+            'transaction.id': null,
+            'span.id': null,
+          },
+        },
       },
     });
 
@@ -138,17 +148,30 @@ describe('useSpanSamples', () => {
           firstBound: 300,
           secondBound: 600,
           upperBound: 900,
+          sort: '-timestamp',
           utc: false,
         },
       })
     );
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
-    expect(result.current.data).toEqual([
-      {
-        'transaction.id': '7663aab8a',
-        'span.id': '3aab8a77fe231',
+    expect(result.current.data).toEqual({
+      data: [
+        {
+          'transaction.id': '7663aab8a',
+          'span.id': '3aab8a77fe231',
+        },
+      ],
+      meta: {
+        fields: {
+          'transaction.id': 'string',
+          'span.id': 'string',
+        },
+        units: {
+          'transaction.id': null,
+          'span.id': null,
+        },
       },
-    ]);
+    });
   });
 });

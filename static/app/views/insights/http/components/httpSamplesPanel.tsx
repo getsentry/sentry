@@ -225,7 +225,7 @@ export function HTTPSamplesPanel() {
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
 
   const {
-    data: durationSamplesData,
+    data: spanSamplesData,
     isFetching: isDurationSamplesDataFetching,
     error: durationSamplesDataError,
     refetch: refetchDurationSpanSamples,
@@ -242,6 +242,8 @@ export function HTTPSamplesPanel() {
     enabled: isPanelOpen && query.panel === 'duration' && durationAxisMax > 0,
     referrer: Referrer.SAMPLES_PANEL_DURATION_SAMPLES,
   });
+
+  const durationSamplesData = spanSamplesData?.data ?? [];
 
   const {
     data: responseCodeSamplesData,
