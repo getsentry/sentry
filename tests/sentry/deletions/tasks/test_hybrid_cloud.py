@@ -359,6 +359,10 @@ def setup_cross_db_deletion_data(
 class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
     def setUp(self) -> None:
         super().setUp()
+        Monitor.objects.all().delete()
+        with assume_test_silo_mode_of(User):
+            User.objects.all().delete()
+
         reset_watermarks()
 
     def assert_monitors_unchanged(self, unaffected_data: list[_CrossDbDeletionData]) -> None:
@@ -470,6 +474,12 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
 
 @region_silo_test
 class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        Monitor.objects.all().delete()
+        with assume_test_silo_mode_of(User):
+            User.objects.all().delete()
+
     def test_get_ids_for_tombstone_cascade_cross_db(self):
         data = setup_cross_db_deletion_data()
 
@@ -619,6 +629,12 @@ def reserve_model_ids(model: type[Model], minimum_id: int) -> None:
 
 @region_silo_test
 class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        Monitor.objects.all().delete()
+        with assume_test_silo_mode_of(User):
+            User.objects.all().delete()
+
     def test_with_simple_tombstone_intersection(self):
         reserve_model_ids(Monitor, 43)
         reserve_model_ids(User, 11)
