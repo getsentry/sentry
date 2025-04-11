@@ -1,6 +1,6 @@
-import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Fragment, useCallback, useMemo} from 'react';
 
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
@@ -73,7 +73,7 @@ export function ReleaseDrawerTable({
         query: {
           project: projects,
           environment: environments,
-          cursor: location.query.releaseCursor,
+          cursor: location.query.rdListCursor,
           ...normalizeDateTimeParams(datetime),
           per_page: 15,
         },
@@ -209,7 +209,7 @@ export function ReleaseDrawerTable({
         onCursor={(cursor, path, searchQuery) => {
           navigate({
             pathname: path,
-            query: {...searchQuery, releaseCursor: cursor},
+            query: {...searchQuery, rdListCursor: cursor},
           });
         }}
       />

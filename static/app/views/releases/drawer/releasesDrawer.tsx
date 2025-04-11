@@ -10,18 +10,21 @@ import {t} from 'sentry/locale';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
 import {ReleasesDrawerList} from 'sentry/views/releases/drawer/releasesDrawerList';
 
 const RELEASES_DRAWER_FIELD_MAP = {
   rd: decodeScalar,
   rdChart: decodeScalar,
+  rdCiCursor: decodeScalar,
   rdEnd: decodeScalar,
-  rdStart: decodeScalar,
   rdEnv: decodeList,
+  rdListCursor: decodeScalar,
   rdProject: decodeList,
   rdRelease: decodeScalar,
   rdReleaseProjectId: decodeScalar,
+  rdStart: decodeScalar,
 };
 
 /**
@@ -29,12 +32,30 @@ const RELEASES_DRAWER_FIELD_MAP = {
  * releases list or details.
  */
 export function ReleasesDrawer() {
-  const {rd, rdEnd, rdEnv, rdStart, rdProject, rdRelease, rdReleaseProjectId} =
+  const {rd, rdChart, rdEnd, rdEnv, rdStart, rdProject, rdRelease, rdReleaseProjectId} =
     useLocationQuery({
       fields: RELEASES_DRAWER_FIELD_MAP,
     });
   const start = getDateFromTimestamp(rdStart);
   const end = getDateFromTimestamp(rdEnd);
+  const defaultPageFilters = usePageFilters();
+  const subPageFilters = {
+    projects: Array.isArray(rdProject)
+      ? rdProject.map(Number)
+      : defaultPageFilters.selection.projects,
+    environments: Array.isArray(rdEnv)
+      ? rdEnv
+      : defaultPageFilters.selection.environments,
+    datetime:
+      start && end
+        ? {
+            start,
+            end,
+            period: null,
+            utc: null,
+          }
+        : defaultPageFilters.selection.datetime,
+  };
 
   useEffect(() => {
     if (rd === 'show' && !rdRelease && !rdStart && !rdEnd) {
@@ -51,14 +72,7 @@ export function ReleasesDrawer() {
   }
 
   if (start && end) {
-    return (
-      <ReleasesDrawerList
-        environments={rdEnv}
-        projects={rdProject.map(Number)}
-        start={start}
-        end={end}
-      />
-    );
+    return <ReleasesDrawerList chart={rdChart} subPageFilters={subPageFilters} />;
   }
 
   return (

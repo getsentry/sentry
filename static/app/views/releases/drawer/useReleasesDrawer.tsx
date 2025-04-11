@@ -11,6 +11,7 @@ import {ReleasesDrawer} from 'sentry/views/releases/drawer/releasesDrawer';
 
 const RELEASES_DRAWER_FIELD_MAP = {
   rd: decodeScalar,
+  rdChart: decodeScalar,
   rdEnd: decodeScalar,
   rdStart: decodeScalar,
   rdEnv: decodeList,

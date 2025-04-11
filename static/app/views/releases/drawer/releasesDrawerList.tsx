@@ -1,8 +1,10 @@
 import {useCallback, useRef} from 'react';
+import styled from '@emotion/styled';
 import type {SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
 import type {EChartsInstance} from 'echarts-for-react';
 
+import {ChartWidgetLoader} from 'sentry/components/charts/chartWidgetLoader';
 import {
   EventDrawerBody,
   EventDrawerContainer,
@@ -12,18 +14,17 @@ import {
   NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
 import {t, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 
 import {ReleaseDrawerTable} from './releasesDrawerTable';
 
 interface ReleasesDrawerListProps {
-  end: Date;
-  environments: readonly string[];
-  projects: readonly number[];
-  start: Date;
+  subPageFilters: PageFilters;
+  chart?: string;
 }
 
 type MarkLineDataCallbackFn = (item: SeriesDataUnit) => boolean;
@@ -79,20 +80,8 @@ const unhighlightMarkLines = createMarkLineUpdater({});
  * Renders the a chart + releases table for use in the Global Drawer.
  * Allows users to view releases of a specific timebucket.
  */
-export function ReleasesDrawerList({
-  start,
-  end,
-  projects,
-  environments,
-}: ReleasesDrawerListProps) {
-  const pageFilters = usePageFilters();
-  const {releases} = useReleaseStats({
-    ...pageFilters.selection,
-    datetime: {
-      start,
-      end,
-    },
-  });
+export function ReleasesDrawerList({chart, subPageFilters}: ReleasesDrawerListProps) {
+  const {releases} = useReleaseStats(subPageFilters);
   const chartRef = useRef<ReactEchartsRef | null>(null);
 
   const handleMouseOverRelease = useCallback((release: string) => {
@@ -135,11 +124,18 @@ export function ReleasesDrawerList({
         <Header>{title}</Header>
       </EventNavigator>
       <EventDrawerBody>
+        {chart ? (
+          <ChartContainer>
+            <ChartWidgetLoader
+              id={chart}
+              subPageFilters={subPageFilters}
+              showReleaseAs="line"
+            />
+          </ChartContainer>
+        ) : null}
+
         <ReleaseDrawerTable
-          projects={projects}
-          environments={environments}
-          start={start}
-          end={end}
+          {...subPageFilters}
           onMouseOverRelease={handleMouseOverRelease}
           onMouseOutRelease={handleMouseOutRelease}
         />
@@ -147,3 +143,7 @@ export function ReleasesDrawerList({
     </EventDrawerContainer>
   );
 }
+
+const ChartContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;

@@ -248,6 +248,7 @@ interface UseReleaseBubblesParams {
    * starting timestamp
    */
   alignInMiddle?: boolean;
+
   /**
    * The whitespace around the bubbles.
    */
@@ -256,6 +257,10 @@ interface UseReleaseBubblesParams {
    * The size (height) of the bubble
    */
   bubbleSize?: number;
+  /**
+   * Unique ID for chart, used to load and render chart
+   */
+  chartId?: string;
   datetime?: Parameters<typeof normalizeDateTimeParams>[0];
   /**
    * Number of desired bubbles/buckets to create
@@ -280,6 +285,7 @@ interface UseReleaseBubblesParams {
 }
 
 export function useReleaseBubbles({
+  chartId,
   releases,
   minTime,
   maxTime,
@@ -435,6 +441,7 @@ export function useReleaseBubbles({
           query: {
             ...location.query,
             rd: 'show',
+            rdChart: chartId,
             rdStart: new Date(data.start).toISOString(),
             rdEnd: new Date(data.end).toISOString(),
             rdProject: projects ?? selection.projects,
@@ -564,6 +571,7 @@ export function useReleaseBubbles({
     },
     [
       location.query,
+      chartId,
       navigate,
       alignInMiddle,
       buckets,
