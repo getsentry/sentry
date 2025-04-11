@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect} from 'react';
 import omit from 'lodash/omit';
 
 import useDrawer from 'sentry/components/globalDrawer';
@@ -12,7 +12,6 @@ import {ReleasesDrawerList} from 'sentry/views/releases/drawer/releasesDrawerLis
 
 const RELEASES_DRAWER_FIELD_MAP = {
   showReleasesDrawer: decodeScalar,
-  rdChart: decodeScalar,
   rdEnd: decodeScalar,
   rdStart: decodeScalar,
   rdEnv: decodeList,
@@ -30,7 +29,6 @@ export function useReleasesDrawer() {
   const {
     releaseProjectId,
     showReleasesDrawer,
-    rdChart,
     rdEnd,
     rdEnv,
     rdProject,
@@ -42,17 +40,11 @@ export function useReleasesDrawer() {
   const navigate = useNavigate();
   const location = useLocation();
   const {closeDrawer, openDrawer} = useDrawer();
-  const isRenderedFromClick = useRef(false);
-  const {rdChart: _rdChart, ...queryWithoutChart} = location.query;
 
   useEffect(() => {
     if (showReleasesDrawer !== '1') {
       closeDrawer();
-    }
-  }, [closeDrawer, showReleasesDrawer]);
-
-  useEffect(() => {
-    if (showReleasesDrawer === '1' && release) {
+    } else if (release) {
       openDrawer(
         () => <ReleasesDrawerDetails release={release} projectId={releaseProjectId} />,
         {
@@ -68,46 +60,7 @@ export function useReleasesDrawer() {
           },
         }
       );
-    }
-  }, [
-    location.query,
-    navigate,
-    openDrawer,
-    release,
-    releaseProjectId,
-    showReleasesDrawer,
-  ]);
-
-  useEffect(() => {
-    if (rdChart) {
-      isRenderedFromClick.current = true;
-
-      // `rdChart` is a temp hack so that we can render the charts onClick by
-      // passing the render function to openDrawer, while at the same time
-      // writing a URL entry that gets ignored by `useReleasesDrawer` due to
-      // `rdChart` being present in the URL params. This hook then removes
-      // `rdChart` so that on reload, this hook will render the drawer (without
-      // chart) due to the URL params. Note that it might be possible (but
-      // unprobable?) that this `rdChart` clearing call gets interrupted and
-      // the user copies a URL with the param, in which case, the drawer won't
-      // open on next load.
-      navigate(
-        {
-          query: queryWithoutChart,
-        },
-        {replace: true}
-      );
-    }
-  }, [navigate, queryWithoutChart, rdChart]);
-
-  useEffect(() => {
-    if (
-      showReleasesDrawer === '1' &&
-      !rdChart &&
-      rdStart &&
-      rdEnd &&
-      !isRenderedFromClick.current
-    ) {
+    } else if (rdStart && rdEnd) {
       openDrawer(
         () => (
           <ReleasesDrawerList
@@ -131,15 +84,21 @@ export function useReleasesDrawer() {
         }
       );
     }
+
+    return () => {
+      closeDrawer();
+    };
   }, [
+    closeDrawer,
+    openDrawer,
     location.query,
     navigate,
-    openDrawer,
-    showReleasesDrawer,
-    rdChart,
     rdEnd,
     rdEnv,
     rdProject,
     rdStart,
+    release,
+    releaseProjectId,
+    showReleasesDrawer,
   ]);
 }
