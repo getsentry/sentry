@@ -339,7 +339,7 @@ def _is_project_allowed(installation: RpcSentryAppInstallation, project_id: int)
     ],
     recalculate=False,
 )
-def _load_service_hook(organization_id: int, installation_id: int) -> ServiceHook | None:
+def _load_service_hook(organization_id: int | None, installation_id: int) -> ServiceHook | None:
     try:
         service_hook = ServiceHook.objects.get(
             organization_id=organization_id,

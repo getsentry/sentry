@@ -20,6 +20,10 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
             organization=self.org, slug=self.sentry_app.slug, user=self.user
         )
 
+        self.api_token = self.create_internal_integration_token(
+            install=self.install, user=self.user  # using same install for auth token and webhooks
+        )
+
         self.service_hook = ServiceHook.objects.get(
             installation_id=self.install.id,
         )
@@ -29,21 +33,19 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         )
 
     def test_get_service_hook_projects(self):
-        self.login_as(user=self.user)
-
         # Create a service hook project
         ServiceHookProject.objects.create(
             project_id=self.project.id, service_hook_id=self.service_hook.id
         )
 
-        response = self.client.get(self.url, format="json")
+        response = self.client.get(
+            self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["project_id"] == self.project.id
 
     def test_put_service_hook_projects(self):
-        self.login_as(user=self.user)
-
         ServiceHookProject.objects.create(
             project_id=self.project2.id, service_hook_id=self.service_hook.id
         )
@@ -53,7 +55,9 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
 
         data = {"projects": [self.project.id, self.project2.id]}
 
-        response = self.client.put(self.url, data=data, format="json")
+        response = self.client.put(
+            self.url, data=data, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
         assert response.status_code == 200
         assert len(response.data) == 2
 
@@ -67,30 +71,28 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         assert project_ids == {self.project.id, self.project2.id}
 
     def test_put_service_hook_projects_mixed_types(self):
-        self.login_as(user=self.user)
-
         data = {"projects": [self.project.slug, self.project2.id]}
 
-        response = self.client.put(self.url, data=data, format="json")
+        response = self.client.put(
+            self.url, data=data, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
         assert response.status_code == 400
 
     def test_put_service_hook_projects_with_invalid_project(self):
-        self.login_as(user=self.user)
-
         data = {"projects": ["invalid-project"]}
 
-        response = self.client.put(self.url, data=data, format="json")
+        response = self.client.put(
+            self.url, data=data, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
         assert response.status_code == 400
 
     def test_put_service_hook_projects_without_projects(self):
-        self.login_as(user=self.user)
-
-        response = self.client.put(self.url, data={}, format="json")
+        response = self.client.put(
+            self.url, data={}, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
         assert response.status_code == 400
 
     def test_delete_service_hook_projects(self):
-        self.login_as(user=self.user)
-
         # Create some service hook projects first
         ServiceHookProject.objects.create(
             project_id=self.project.id, service_hook_id=self.service_hook.id
@@ -99,7 +101,7 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
             project_id=self.project2.id, service_hook_id=self.service_hook.id
         )
 
-        response = self.client.delete(self.url)
+        response = self.client.delete(self.url, HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}")
         assert response.status_code == 204
 
         # Verify all hook projects were deleted
