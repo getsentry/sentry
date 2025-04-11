@@ -13,7 +13,12 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         self.project3 = self.create_project(organization=self.org)
 
         self.sentry_app = self.create_sentry_app(
-            name="Testin", organization=self.org, webhook_url="https://example.com"
+            name="Testin",
+            organization=self.org,
+            webhook_url="https://example.com",
+            scopes=[
+                "org:write",
+            ],
         )
 
         self.install = self.create_sentry_app_installation(
