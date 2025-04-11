@@ -12,7 +12,7 @@ from sentry.types.group import GroupSubStatus, PriorityLevel
 from tests.sentry.issues.test_occurrence_consumer import IssueOccurrenceTestBase
 
 
-@apply_feature_flag_on_cls("organizations:metric-issue-poc-ingest")
+@apply_feature_flag_on_cls(MetricIssuePOC.build_ingest_flagpole_feature_name())
 @apply_feature_flag_on_cls("projects:metric-issue-creation")
 class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
     def setUp(self):
