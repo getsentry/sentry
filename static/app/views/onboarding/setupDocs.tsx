@@ -34,10 +34,8 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   }
 
   const platformName = currentPlatform.name;
-
-  const integrationSlug = project.platform;
   const showIntegrationOnboarding =
-    integrationSlug && location.query.installationMode !== InstallationMode.MANUAL;
+    location.query.installationMode !== InstallationMode.MANUAL;
 
   return (
     <Fragment>
@@ -45,7 +43,7 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
         <MainContent>
           {showIntegrationOnboarding ? (
             <IntegrationSetup
-              integrationSlug={integrationSlug}
+              integrationSlug={currentPlatformKey}
               project={project}
               platform={currentPlatform}
             />
