@@ -703,7 +703,9 @@ def filter_exceptions_for_exception_groups(
         else:
             # At least one exception is missing mechanism ids, so we can't continue with the filter.
             # Exit early to not waste perf.
-            return exceptions
+            # Reversing it will cause splitting groups :(
+            # We are going to need a project transition to fix this
+            return list(reversed(exceptions))
 
     # This gets the child exceptions for an exception using the exception_id from the mechanism.
     # That data is guaranteed to exist at this point.
