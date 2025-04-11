@@ -39,7 +39,7 @@ class OnboardingTask:
 
 class OnboardingTaskStatus:
     COMPLETE = 1
-    PENDING = 2
+    PENDING = 2  # no longer in use
     SKIPPED = 3
 
 
@@ -71,6 +71,7 @@ class AbstractOnboardingTask(Model):
 
     STATUS_CHOICES = (
         (OnboardingTaskStatus.COMPLETE, "complete"),
+        # Pending status is no longer in use
         (OnboardingTaskStatus.PENDING, "pending"),
         (OnboardingTaskStatus.SKIPPED, "skipped"),
     )
