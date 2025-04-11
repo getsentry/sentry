@@ -146,6 +146,8 @@ function StepRenderer({
           </EventWaiter>
         )}
       </GuidedSteps.ButtonWrapper>
+      {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
+      {isLastStep && <PulseSpacer />}
     </GuidedSteps.Step>
   );
 }
@@ -361,14 +363,20 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   position: relative;
   padding: 0 ${space(1)};
   z-index: 10;
+  gap: ${space(1)};
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.pink400};
+  padding-right: ${space(4)};
+`;
+
+const PulseSpacer = styled('div')`
+  height: ${space(4)};
 `;
 
 const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
-  margin-left: ${space(1)};
+  flex-shrink: 0;
 `;
 
 const SubTitle = styled('div')`
