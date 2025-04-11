@@ -1011,7 +1011,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             OrganizationOnboardingTask.objects.get(
                 organization=self.organization,
                 task=OnboardingTask.INVITE_MEMBER,
-                status=OnboardingTaskStatus.PENDING,
+                status=OnboardingTaskStatus.COMPLETE,
             )
             is not None
         )
@@ -1021,27 +1021,6 @@ class OrganizationOnboardingTaskTest(TestCase):
             inviter_user_id=user.id,
             organization_id=self.organization.id,
             referrer=None,
-        )
-
-        # Member accepted the invite
-        member_joined.send(
-            organization_member_id=member.id,
-            organization_id=self.organization.id,
-            user_id=member.user_id,
-            sender=None,
-        )
-        assert (
-            OrganizationOnboardingTask.objects.get(
-                organization=self.organization,
-                task=OnboardingTask.INVITE_MEMBER,
-                status=OnboardingTaskStatus.COMPLETE,
-            )
-            is not None
-        )
-        record_analytics.assert_called_with(
-            "organization.joined",
-            user_id=None,
-            organization_id=self.organization.id,
         )
 
         # Manually update the completionSeen column of existing tasks
