@@ -46,7 +46,11 @@ export function ReleasesDrawerDetails({release, projectId}: ReleasesDrawerDetail
   const releaseDetailsQuery = useReleaseDetails({release});
   const project = useProjectFromId({project_id: projectId});
   const projectSlug = project?.slug;
-  const {release: _, ...locationQueryWithoutRelease} = location.query;
+  const {
+    rdRelease: _release,
+    rdReleaseProjectId: _releaseProject,
+    ...locationQueryWithoutRelease
+  } = location.query;
 
   if (!projectId || !projectSlug) {
     // TODO: Error handling... not sure when this would happen

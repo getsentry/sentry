@@ -140,8 +140,8 @@ export function ReleaseDrawerTable({
             to={{
               query: {
                 ...location.query,
-                release: value,
-                releaseProjectId: dataRow.project_id,
+                rdRelease: value,
+                rdReleaseProjectId: dataRow.project_id,
               },
             }}
           >
