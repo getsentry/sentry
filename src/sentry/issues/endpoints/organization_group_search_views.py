@@ -1,6 +1,6 @@
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -53,6 +53,10 @@ class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
         choices=list(SORT_MAP.keys()),
         required=False,
     )
+    query = serializers.CharField(required=False)
+
+    def validate_query(self, value: str | None) -> str | None:
+        return value.strip() if value else None
 
 
 @region_silo_endpoint
@@ -98,11 +102,19 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         createdBy = serializer.validated_data.get("createdBy", "me")
         sort = SORT_MAP[serializer.validated_data.get("sort", "-visited")]
+        query = serializer.validated_data.get("query")
+        base_queryset = (
+            GroupSearchView.objects.filter(organization=organization)
+            if not query
+            else GroupSearchView.objects.filter(
+                Q(query__icontains=query) | Q(name__icontains=query),
+                organization=organization,
+            )
+        )
 
         if createdBy == "me":
             starred_query = (
-                GroupSearchView.objects.filter(
-                    organization=organization,
+                base_queryset.filter(
                     user_id=request.user.id,
                     id__in=starred_view_ids,
                 )
@@ -111,8 +123,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 .order_by(sort)
             )
             non_starred_query = (
-                GroupSearchView.objects.filter(
-                    organization=organization,
+                base_queryset.filter(
                     user_id=request.user.id,
                 )
                 .exclude(id__in=starred_view_ids)
@@ -122,8 +133,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             )
         elif createdBy == "others":
             starred_query = (
-                GroupSearchView.objects.filter(
-                    organization=organization,
+                base_queryset.filter(
                     visibility=GroupSearchViewVisibility.ORGANIZATION,
                     id__in=starred_view_ids,
                 )
@@ -133,8 +143,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 .order_by(sort)
             )
             non_starred_query = (
-                GroupSearchView.objects.filter(
-                    organization=organization,
+                base_queryset.filter(
                     visibility=GroupSearchViewVisibility.ORGANIZATION,
                 )
                 .exclude(user_id=request.user.id)
