@@ -29,6 +29,7 @@ import {space} from 'sentry/styles/space';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {DemoTour, DemoTourStep, useDemoTours} from 'sentry/utils/demoMode/demoTours';
 import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -259,6 +260,8 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
   const router = useRouter();
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
+  const tours = useDemoTours();
+
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       trackAnalytics('quick_start.task_card_clicked', {
@@ -271,7 +274,12 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       e.stopPropagation();
 
       if (isDemoModeActive()) {
-        DemoWalkthroughStore.activateGuideAnchor(task.task);
+        // Performance guide is updated to use the new tour
+        if (task.task === OnboardingTaskKey.PERFORMANCE_GUIDE) {
+          tours?.[DemoTour.PERFORMANCE]?.startTour(DemoTourStep.PERFORMANCE_TABLE);
+        } else {
+          DemoWalkthroughStore.activateGuideAnchor(task.task);
+        }
       }
 
       if (task.actionType === 'external') {
@@ -293,7 +301,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       }
       hidePanel();
     },
-    [task, organization, router, hidePanel]
+    [task, organization, router, hidePanel, tours]
   );
 
   const handleMarkSkipped = useCallback(() => {

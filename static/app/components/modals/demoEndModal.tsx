@@ -10,15 +10,16 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 
 // tour is a string that tells which tour the user is completing in the walkthrough
-type Props = ModalRenderProps & {orgSlug: Organization['slug'] | null; tour: string};
+type Props = ModalRenderProps & {tour: string};
 
-export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}: Props) {
+export default function DemoEndingModal({tour, closeModal, CloseButton}: Props) {
   const navigate = useNavigate();
+  const org = useOrganization();
 
   const {cardTitle, body, path} = useMemo(() => {
     switch (tour) {
@@ -29,7 +30,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
             'Thank you for completing the Issues tour. Learn about other Sentry features by starting another tour.'
           ),
           guides: ['issues_v3', 'issue_stream_v3'],
-          path: `/organizations/${orgSlug}/issues/`,
+          path: `/organizations/${org.slug}/issues/`,
         };
 
       case 'performance':
@@ -39,7 +40,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
             'Thank you for completing the Performance tour. Learn about other Sentry features by starting another tour.'
           ),
           guides: ['performance', 'transaction_summary', 'transaction_details_v2'],
-          path: `/organizations/${orgSlug}/performance/`,
+          path: `/organizations/${org.slug}/performance/`,
         };
 
       case 'releases':
@@ -49,7 +50,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
             'Thank you for completing the Releases tour. Learn about other Sentry features by starting another tour.'
           ),
           guides: ['releases_v2', 'react-release', 'release-details_v2'],
-          path: `/organizations/${orgSlug}/releases/`,
+          path: `/organizations/${org.slug}/releases/`,
         };
 
       case 'tabs':
@@ -59,7 +60,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
             'Thank you for checking out the different tabs. Learn about other Sentry features by starting another tour.'
           ),
           guides: ['sidebar_v2'],
-          path: `/organizations/${orgSlug}/projects/`,
+          path: `/organizations/${org.slug}/projects/`,
         };
 
       default:
@@ -70,7 +71,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
           path: '',
         };
     }
-  }, [orgSlug, tour]);
+  }, [org.slug, tour]);
 
   const navigation = useCallback(() => {
     navigate(path);
