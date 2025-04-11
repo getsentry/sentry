@@ -108,7 +108,6 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   const releaseTag = event.tags?.find(tag => tag.key === 'release');
   const environmentTag = event.tags?.find(tag => tag.key === 'environment');
 
-  const runtimeLabel = getRuntimeLabel(event, {isBackend: isMetaFrameworkBackendIssue});
   const runtimeInfo = getRuntimeLabelAndTooltip(event, {
     isBackend: isMetaFrameworkBackendIssue,
   });
