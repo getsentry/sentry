@@ -346,8 +346,9 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         referrer_suffix: str,
         group_on_time: bool = True,
     ) -> Mapping[int, int]:
+        result: Mapping[int, int] = {}
         if tsdb_function == tsdb.get_sums:
-            result: Mapping[int, int] = tsdb_function(
+            result = tsdb_function(
                 model=model,
                 keys=keys,
                 start=start,
@@ -360,7 +361,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 group_on_time=group_on_time,
             )
         else:
-            result: Mapping[int, int] = tsdb_function(
+            result = tsdb_function(
                 model=model,
                 keys=keys,
                 start=start,
@@ -685,7 +686,6 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_uniq_user_frequency",
                 conditions=conditions,
-                group_on_time=group_on_time,
             )
             batch_totals.update(error_totals)
 
@@ -700,7 +700,6 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_uniq_user_frequency",
                 conditions=conditions,
-                group_on_time=group_on_time,
             )
             batch_totals.update(error_totals)
 
@@ -721,6 +720,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
+        group_on_time: bool = True,
         conditions: list[tuple[str, str, str | list[str]]] | None = None,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
@@ -747,6 +747,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
+        group_on_time: bool = True,
         conditions: list[tuple[str, str, str | list[str]]] | None = None,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
