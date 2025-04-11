@@ -46,7 +46,7 @@ export function useGroupDistributionsDrawer({
                 flagDrawerCursor: undefined,
               },
             },
-            {replace: true}
+            {preventScrollReset: true}
           );
         },
         shouldCloseOnLocationChange: newLocation => {

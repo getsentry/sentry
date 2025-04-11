@@ -8,6 +8,7 @@ import {locationDescriptorToTo} from './reactRouter6Compat/location';
 import {useTestRouteContext} from './useRouteContext';
 
 type NavigateOptions = {
+  preventScrollReset?: boolean;
   replace?: boolean;
   state?: any;
 };
