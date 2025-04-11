@@ -55,7 +55,9 @@ def get_crash_rate_alert_metrics_aggregation_value_helper(
 def get_aggregation_value_helper(
     subscription_update: QuerySubscriptionUpdate, rule: AlertRule | None = None
 ) -> float:
+
     aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
+    print("AGGREGATION VALUE", aggregation_value)
     # In some cases Snuba can return a None value for an aggregation. This means
     # there were no rows present when we made the query for certain types of aggregations
     # like avg. Defaulting this to 0 for now. It might turn out that we'd prefer to skip
@@ -73,3 +75,26 @@ def get_aggregation_value_helper(
         aggregation_value = 0
 
     return aggregation_value
+
+
+def get_aggregation_value_helper_group_by(
+    subscription_update: QuerySubscriptionUpdate,
+) -> list[tuple[str, float]]:
+    """
+    Processes subscription updates that contain grouped data, returning a list of tuples
+    containing the group by key's value and the count.
+
+    Example input:
+    {"version": 3, "payload": {"subscription_id": "0/a138ae380b2911f0a0efd256082ad19d",
+    "request": {"query": "MATCH (events) SELECT count() AS `count` BY <any_key>"},
+    "result": {"data": [{"<any_key>": "value1", "count": 1}, {"<any_key>": "value2", "count": 2}]}}}
+
+    Returns a list of tuples: [("value1", 1), ("value2", 2)]
+    """
+    data = subscription_update["values"]["data"]
+    if not data:
+        return 0
+
+    # Get the group by key by finding the key that isn't "count"
+    group_by_key = next(key for key in data[0].keys() if key != "count")
+    return [(row[group_by_key], row["count"]) for row in data]

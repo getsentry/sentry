@@ -585,6 +585,7 @@ class FeedbackGroup(GroupType):
 
 @dataclass(frozen=True)
 class MetricIssuePOC(GroupType):
+    released = True
     type_id = 8002
     slug = "metric_issue_poc"
     description = "Metric Issue POC"

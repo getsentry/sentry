@@ -45,6 +45,7 @@ class SnubaQuery(Model):
     time_window = models.IntegerField()
     resolution = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
+    group_by = models.TextField(null=True)
 
     class Meta:
         app_label = "sentry"
