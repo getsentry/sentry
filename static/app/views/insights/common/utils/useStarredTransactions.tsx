@@ -8,8 +8,8 @@ export function useStarredTransactions() {
   const api = useApi();
 
   const starTransaction = useCallback(
-    async (segmentName: string, projectId: string) => {
-      await api.requestPromise(
+    (segmentName: string, projectId: string) =>
+      api.requestPromise(
         `/organizations/${organization.slug}/insights/starred-segments/`,
         {
           method: 'POST',
@@ -18,14 +18,13 @@ export function useStarredTransactions() {
             segment_name: segmentName,
           },
         }
-      );
-    },
+      ),
     [api, organization.slug]
   );
 
   const unstarTransaction = useCallback(
-    async (segmentName: string, projectId: string) => {
-      await api.requestPromise(
+    (segmentName: string, projectId: string) =>
+      api.requestPromise(
         `/organizations/${organization.slug}/insights/starred-segments/`,
         {
           method: 'DELETE',
@@ -34,8 +33,7 @@ export function useStarredTransactions() {
             segment_name: segmentName,
           },
         }
-      );
-    },
+      ),
     [api, organization.slug]
   );
 
