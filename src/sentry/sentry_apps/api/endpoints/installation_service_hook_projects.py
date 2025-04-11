@@ -57,7 +57,7 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
         "DELETE": ApiPublishStatus.PRIVATE,
     }
 
