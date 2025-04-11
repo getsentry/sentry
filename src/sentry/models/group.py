@@ -1223,14 +1223,20 @@ def update_group_open_period(
         return
 
     if new_status == GroupStatus.RESOLVED:
+        if activity is None:
+            activity = (
+                Activity.objects.filter(
+                    group=group,
+                    type=ActivityType.SET_RESOLVED.value,
+                )
+                .order_by("-datetime")
+                .first()
+            )
+
         open_period.update(
-            date_ended=group.resolved_at if group.resolved_at else timezone.now(),
+            date_ended=activity.datetime,
             resolution_activity=activity,
             user_id=activity.user_id if activity else None,
         )
-    elif (
-        new_status == GroupStatus.UNRESOLVED
-        and group.substatus != GroupSubStatus.REGRESSED
-        and should_reopen_open_period
-    ):
+    elif new_status == GroupStatus.UNRESOLVED and should_reopen_open_period:
         open_period.update(date_ended=None, resolution_activity=None)
