@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -9,11 +9,11 @@ import FormModel from 'sentry/components/forms/model';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
 import CollapsibleSection from 'sentry/components/workflowEngine/ui/collapsibleSection';
-import {IconAdd, IconDelete, IconEdit, IconMail} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {IconAdd, IconEdit} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
-import RuleNodeList from 'sentry/views/automations/components/ruleNodeList';
 
 const FREQUENCY_OPTIONS = [
   {value: '5', label: t('5 minutes')},
@@ -27,89 +27,17 @@ const FREQUENCY_OPTIONS = [
   {value: '43200', label: t('30 days')},
 ];
 
-const TRIGGER_MATCH_OPTIONS = [
-  {value: 'all', label: t('all')},
-  {value: 'any', label: t('any')},
-];
-
-const FILTER_MATCH_OPTIONS = [
-  {value: 'all', label: t('all')},
-  {value: 'any', label: t('any')},
-  {value: 'none', label: t('none')},
-];
-
 const model = new FormModel({
   initialData: {
     name: t('New Monitor'),
     'when.action_match': 'any',
-    'if_0.action_match': 'any',
+    'if[0].action_match': 'any',
     frequency: '10',
   },
 });
 
-function IfThenBlock({
-  id,
-  onDelete,
-}: {
-  id: number;
-  onDelete: () => void;
-  totalBlocks: number;
-}) {
-  return (
-    <IfThenWrapper key={id}>
-      <Flex column gap={space(1)}>
-        <Flex justify="space-between">
-          <StepLead>
-            {tct('[if:If] [selector] of these filters match', {
-              if: <Badge />,
-              selector: (
-                <EmbeddedWrapper>
-                  <EmbeddedSelectField
-                    styles={{
-                      control: (provided: any) => ({
-                        ...provided,
-                        minHeight: '21px',
-                        height: '21px',
-                      }),
-                    }}
-                    inline={false}
-                    isSearchable={false}
-                    isClearable={false}
-                    name={`if_${id}.action_match`}
-                    required
-                    flexibleControlStateSize
-                    options={FILTER_MATCH_OPTIONS}
-                    size="xs"
-                  />
-                </EmbeddedWrapper>
-              ),
-            })}
-          </StepLead>
-          <DeleteButton
-            aria-label={t('Delete If/Then Block')}
-            size="sm"
-            icon={<IconDelete />}
-            borderless
-            onClick={onDelete}
-          />
-        </Flex>
-        <RuleNodeList placeholder={t('Filter by...')} groupId={`if_${id}`} />
-      </Flex>
-      <Flex column gap={space(1)}>
-        <StepLead>
-          {tct('[then:Then] perform these actions', {
-            then: <Badge />,
-          })}
-        </StepLead>
-        <RuleNodeList placeholder={t('Select an action...')} groupId={`if_${id}`} />
-      </Flex>
-    </IfThenWrapper>
-  );
-}
-
 export default function AutomationForm() {
   const title = useDocumentTitle();
-  const [ifThenBlocks, setIfThenBlocks] = useState<number[]>([0]);
 
   useEffect(() => {
     model.setValue('name', title);
@@ -149,22 +77,6 @@ export default function AutomationForm() {
   //   });
   // }, [title]);
 
-  const handleAddBlock = () => {
-    const newIndex = Math.max(...ifThenBlocks, -1) + 1;
-    model.setValue(`if_${newIndex}.action_match`, 'any', {quiet: true});
-    setIfThenBlocks(prev => [...prev, newIndex]);
-  };
-
-  const handleDeleteBlock = (id: number) => {
-    const data = model.getData();
-    Object.keys(data)
-      .filter(key => key.startsWith(`if_${id}`))
-      .forEach(key => {
-        model.removeField(key);
-      });
-    setIfThenBlocks(prev => prev.filter(i => i !== id));
-  };
-
   return (
     <Form hideFooter model={model}>
       <Flex column gap={space(1.5)} style={{padding: space(2)}}>
@@ -177,56 +89,7 @@ export default function AutomationForm() {
           </ButtonWrapper>
         </CollapsibleSection>
         <CollapsibleSection title={t('Automation Builder')} open>
-          <Flex column gap={space(1)}>
-            <StepLead>
-              {tct('[when:When] [selector] of the following occur', {
-                when: <Badge />,
-                selector: (
-                  <EmbeddedWrapper>
-                    <EmbeddedSelectField
-                      styles={{
-                        control: (provided: any) => ({
-                          ...provided,
-                          minHeight: '21px',
-                          height: '21px',
-                        }),
-                      }}
-                      inline={false}
-                      isSearchable={false}
-                      isClearable={false}
-                      name="when.action_match"
-                      required
-                      flexibleControlStateSize
-                      options={TRIGGER_MATCH_OPTIONS}
-                      size="xs"
-                    />
-                  </EmbeddedWrapper>
-                ),
-              })}
-            </StepLead>
-            <RuleNodeList placeholder={t('Select a trigger...')} groupId="when" />
-          </Flex>
-          {ifThenBlocks.map(i => (
-            <IfThenBlock
-              key={i}
-              id={i}
-              totalBlocks={ifThenBlocks.length}
-              onDelete={() => handleDeleteBlock(i)}
-            />
-          ))}
-          <span>
-            <PurpleTextButton
-              borderless
-              icon={<IconAdd />}
-              size={'xs'}
-              onClick={handleAddBlock}
-            >
-              {t('If/Then Block')}
-            </PurpleTextButton>
-          </span>
-          <span>
-            <Button icon={<IconMail />}>{t('Send Test Notification')}</Button>
-          </span>
+          <AutomationBuilder model={model} />
         </CollapsibleSection>
         <CollapsibleSection
           title={t('Action Interval')}
@@ -256,54 +119,8 @@ const ButtonWrapper = styled(Flex)`
   margin: -${space(2)};
 `;
 
-const PurpleTextButton = styled(Button)`
-  color: ${p => p.theme.purple300};
-  font-weight: normal;
-`;
-
-const StepLead = styled(Flex)`
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const Badge = styled('span')`
-  display: inline-block;
-  background-color: ${p => p.theme.purple300};
-  padding: 0 ${space(0.75)};
-  border-radius: ${p => p.theme.borderRadius};
-  color: ${p => p.theme.white};
-  text-transform: uppercase;
-  text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
-  line-height: 1.5;
-`;
-
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;
   font-weight: ${p => p.theme.fontWeightNormal};
   text-transform: none;
-`;
-
-const EmbeddedWrapper = styled('div')`
-  width: 80px;
-`;
-
-const IfThenWrapper = styled(Flex)`
-  flex-direction: column;
-  gap: ${space(1)};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1.5)};
-  padding-top: ${space(1)};
-  margin-top: ${space(1)};
-`;
-
-const DeleteButton = styled(Button)`
-  flex-shrink: 0;
-  opacity: 0;
-
-  ${IfThenWrapper}:hover & {
-    opacity: 1;
-  }
 `;
