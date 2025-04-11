@@ -244,10 +244,15 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         """
         Queries Snuba for a unique condition for multiple groups.
         """
-        return self.batch_query_hook(group_ids, start, end, environment_id)
+        return self.batch_query_hook(group_ids, start, end, environment_id, True)
 
     def batch_query_hook(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+        self,
+        group_ids: set[int],
+        start: datetime,
+        end: datetime,
+        environment_id: int,
+        group_on_time: bool,
     ) -> dict[int, int | float]:
         """
         Abstract method that specifies how to query Snuba for multiple groups
@@ -339,18 +344,34 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
+        group_on_time: bool = True,
     ) -> Mapping[int, int]:
-        result: Mapping[int, int] = tsdb_function(
-            model=model,
-            keys=keys,
-            start=start,
-            end=end,
-            environment_id=environment_id,
-            use_cache=True,
-            jitter_value=group_id,
-            tenant_ids={"organization_id": organization_id},
-            referrer_suffix=referrer_suffix,
-        )
+        result: Mapping[int, int] = {}
+        if tsdb_function == tsdb.get_sums:
+            result = tsdb_function(
+                model=model,
+                keys=keys,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                use_cache=True,
+                jitter_value=group_id,
+                tenant_ids={"organization_id": organization_id},
+                referrer_suffix=referrer_suffix,
+                group_on_time=group_on_time,
+            )
+        else:
+            result = tsdb_function(
+                model=model,
+                keys=keys,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                use_cache=True,
+                jitter_value=group_id,
+                tenant_ids={"organization_id": organization_id},
+                referrer_suffix=referrer_suffix,
+            )
         return result
 
     def get_chunked_result(
@@ -363,6 +384,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
+        group_on_time: bool = True,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
@@ -377,6 +399,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix=referrer_suffix,
+                group_on_time=group_on_time,
             )
             batch_totals.update(result)
         return batch_totals
@@ -431,11 +454,17 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             end=end,
             environment_id=environment_id,
             referrer_suffix="alert_event_frequency",
+            group_on_time=False,
         )
         return sums[event.group_id]
 
     def batch_query_hook(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+        self,
+        group_ids: set[int],
+        start: datetime,
+        end: datetime,
+        environment_id: int,
+        group_on_time: bool = True,
     ) -> dict[int, int | float]:
         batch_sums: dict[int, int | float] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
@@ -454,6 +483,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_frequency",
+                group_on_time=group_on_time,
             )
             batch_sums.update(error_sums)
 
@@ -468,6 +498,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_frequency",
+                group_on_time=group_on_time,
             )
             batch_sums.update(generic_sums)
 
@@ -498,7 +529,12 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         return totals[event.group_id]
 
     def batch_query_hook(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+        self,
+        group_ids: set[int],
+        start: datetime,
+        end: datetime,
+        environment_id: int,
+        group_on_time: bool = True,
     ) -> dict[int, int | float]:
         batch_totals: dict[int, int | float] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
@@ -517,6 +553,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_uniq_user_frequency",
+                group_on_time=group_on_time,
             )
             batch_totals.update(error_totals)
 
@@ -531,6 +568,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_uniq_user_frequency",
+                group_on_time=group_on_time,
             )
             batch_totals.update(generic_totals)
 
@@ -584,7 +622,12 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         return total[event.group.id]
 
     def batch_query_hook(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+        self,
+        group_ids: set[int],
+        start: datetime,
+        end: datetime,
+        environment_id: int,
+        group_on_time: bool = True,
     ) -> dict[int, int | float]:
         logger = logging.getLogger(
             "sentry.rules.event_frequency.EventUniqueUserFrequencyConditionWithConditions"
@@ -677,6 +720,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
+        group_on_time: bool = True,
         conditions: list[tuple[str, str, str | list[str]]] | None = None,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
@@ -703,6 +747,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
+        group_on_time: bool = True,
         conditions: list[tuple[str, str, str | list[str]]] | None = None,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
@@ -900,7 +945,12 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         return 0
 
     def batch_query_hook(
-        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+        self,
+        group_ids: set[int],
+        start: datetime,
+        end: datetime,
+        environment_id: int,
+        group_on_time: bool = True,
     ) -> dict[int, int | float]:
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
@@ -933,6 +983,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             end=end,
             environment_id=environment_id,
             referrer_suffix="batch_alert_event_frequency_percent",
+            group_on_time=group_on_time,
         )
 
         batch_percents: dict[int, int | float] = {}

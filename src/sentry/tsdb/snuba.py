@@ -38,6 +38,8 @@ from sentry.utils.snuba import (
     raw_snql_query,
 )
 
+LIMIT = 10000
+
 
 @dataclasses.dataclass
 class SnubaModelQuerySettings:
@@ -390,7 +392,7 @@ class SnubaTSDB(BaseTSDB):
         if keys:
             start = to_datetime(series[0])
             end = to_datetime(series[-1] + rollup)
-            limit = min(10000, int(len(keys) * ((end - start).total_seconds() / rollup)))
+            limit = min(LIMIT, int(len(keys) * ((end - start).total_seconds() / rollup)))
 
             # build up order by
             orderby: list[OrderBy] = []
@@ -566,7 +568,7 @@ class SnubaTSDB(BaseTSDB):
 
         start = to_datetime(series[0])
         end = to_datetime(series[-1] + rollup)
-        limit = min(10000, int(len(keys) * ((end - start).total_seconds() / rollup)))
+        limit = min(LIMIT, int(len(keys) * ((end - start).total_seconds() / rollup)))
 
         conditions = conditions if conditions is not None else []
         if model_query_settings.conditions is not None:
@@ -716,6 +718,7 @@ class SnubaTSDB(BaseTSDB):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
+        group_on_time: bool = True,
     ) -> dict[TSDBKey, list[tuple[int, int]]]:
         model_query_settings = self.model_query_settings.get(model)
         assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
@@ -733,13 +736,15 @@ class SnubaTSDB(BaseTSDB):
             rollup,
             environment_ids,
             aggregation=aggregate_function,
-            group_on_time=True,
+            group_on_time=group_on_time,
             conditions=conditions,
             use_cache=use_cache,
             jitter_value=jitter_value,
             tenant_ids=tenant_ids,
             referrer_suffix=referrer_suffix,
         )
+        if not group_on_time:
+            return result
         # convert
         #    {group:{timestamp:count, ...}}
         # into
