@@ -427,19 +427,6 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
     default_priority = PriorityLevel.LOW
 
 
-# experimental
-@dataclass(frozen=True)
-class PerformanceDurationRegressionGroupType(GroupType):
-    type_id = 1017
-    slug = "performance_duration_regression"
-    description = "Transaction Duration Regression (Experimental)"
-    category = GroupCategory.PERFORMANCE.value
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-    default_priority = PriorityLevel.LOW
-    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
-
-
 @dataclass(frozen=True)
 class PerformanceP95EndpointRegressionGroupType(GroupType):
     type_id = 1018
