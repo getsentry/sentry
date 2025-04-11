@@ -114,6 +114,9 @@ export function SpansTabContentImpl({
     ...(organization?.features?.includes('visibility-explore-equations')
       ? ['equations' as const]
       : []),
+    ...(organization?.features?.includes('visibility-explore-tabs')
+      ? ['tabs' as const]
+      : []),
   ];
 
   const queryType: 'aggregate' | 'samples' | 'traces' =
@@ -332,6 +335,7 @@ export function SpansTabContentImpl({
               samplesTab={samplesTab}
               setSamplesTab={setSamplesTab}
               isProgressivelyLoading={tableIsProgressivelyLoading}
+              useTabs={organization.features.includes('visibility-explore-tabs')}
             />
             <Toggle>
               <StyledButton
