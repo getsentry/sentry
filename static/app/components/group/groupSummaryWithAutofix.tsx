@@ -343,13 +343,14 @@ const CardTitleSpacer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(0.75)};
 `;
 
 const CardTitleText = styled('p')`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
+  margin-top: 1px;
 `;
 
 const CardTitleIcon = styled('div')`
