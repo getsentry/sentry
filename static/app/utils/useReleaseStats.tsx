@@ -70,6 +70,6 @@ export function useReleaseStats(
     isPending,
     isError,
     error,
-    releases: data?.pages.flatMap(([pageData]) => pageData) || [],
+    releases: data?.pages.flatMap(([pageData]) => pageData),
   };
 }
