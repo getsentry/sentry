@@ -3,10 +3,6 @@ import type {SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
 import type {EChartsInstance} from 'echarts-for-react';
 
-<<<<<<< HEAD
-=======
-import {DateTime} from 'sentry/components/dateTime';
->>>>>>> 18d80c7d98b (feat(releases): Use routing for Releases Drawer)
 import {
   EventDrawerBody,
   EventDrawerContainer,
@@ -16,32 +12,15 @@ import {
   NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
 import {t, tn} from 'sentry/locale';
-<<<<<<< HEAD
 import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-=======
-import {space} from 'sentry/styles/space';
-import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
-import type {ReleaseMetaBasic} from 'sentry/types/release';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import type {ChartRendererProps} from 'sentry/views/releases/releaseBubbles/types';
->>>>>>> 18d80c7d98b (feat(releases): Use routing for Releases Drawer)
 
 import {ReleaseDrawerTable} from './releasesDrawerTable';
 
 interface ReleasesDrawerListProps {
-<<<<<<< HEAD
   end: Date;
-=======
-  endTs: number;
->>>>>>> 18d80c7d98b (feat(releases): Use routing for Releases Drawer)
   environments: readonly string[];
   projects: readonly number[];
   start: Date;
@@ -101,51 +80,19 @@ const unhighlightMarkLines = createMarkLineUpdater({});
  * Allows users to view releases of a specific timebucket.
  */
 export function ReleasesDrawerList({
-<<<<<<< HEAD
   start,
   end,
   projects,
   environments,
 }: ReleasesDrawerListProps) {
-=======
-  startTs,
-  endTs,
-  chartRenderer,
-  projects,
-  environments,
-}: ReleasesDrawerListProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const start = new Date(startTs);
-  const end = new Date(endTs);
->>>>>>> 18d80c7d98b (feat(releases): Use routing for Releases Drawer)
   const pageFilters = usePageFilters();
   const {releases} = useReleaseStats({
     ...pageFilters.selection,
     datetime: {
-<<<<<<< HEAD
       start,
       end,
     },
   });
-=======
-      start: startTs ? new Date(startTs).toISOString() : null,
-      end: endTs ? new Date(endTs).toISOString() : null,
-    },
-  });
-  const handleSelectRelease = useCallback(
-    (nextSelectedRelease: string, projectId: string) => {
-      navigate({
-        query: {
-          ...location.query,
-          release: nextSelectedRelease,
-          projectId,
-        },
-      });
-    },
-    [navigate, location.query]
-  );
->>>>>>> 18d80c7d98b (feat(releases): Use routing for Releases Drawer)
   const chartRef = useRef<ReactEchartsRef | null>(null);
 
   const handleMouseOverRelease = useCallback((release: string) => {
