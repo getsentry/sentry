@@ -1,5 +1,5 @@
 import logging
-from dataclasses import replace
+from dataclasses import asdict, replace
 from enum import StrEnum
 
 import sentry_sdk
@@ -184,8 +184,16 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         detector = get_detector_by_event(event_data)
     except Detector.DoesNotExist:
         metrics.incr("workflow_engine.process_workflows.error")
+        evt = event_data.event
+        detector_id = evt.occurrence.evidence_data.get("detector_id") if evt.occurrence else None
+
         logger.exception(
-            "Detector not found for event", extra={"event_id": event_data.event.event_id}
+            "Detector not found for event",
+            extra={
+                "event_id": evt.event_id,
+                "group_id": evt.group_id,
+                "detector_id": detector_id,
+            },
         )
         return set()
 
@@ -241,7 +249,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             logger.info(
                 "workflow_engine.process_workflows.triggered_workflows",
                 extra={
-                    "event_data": event_data,
+                    "event_data": asdict(event_data),
                     "event_environment_id": environment.id,
                     "triggered_workflows": [workflow.id for workflow in triggered_workflows],
                 },
@@ -258,8 +266,12 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         )
 
         logger.info(
-            "workflow_engine.process_workflows.actions",
-            extra={"actions": [action.id for action in actions]},
+            "workflow_engine.process_workflows.actions (all)",
+            extra={
+                "workflow_ids": [workflow.id for workflow in triggered_workflows],
+                "action_ids": [action.id for action in actions],
+                "detector_type": detector.type,
+            },
         )
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
@@ -276,8 +288,12 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             tags={"detector_type": detector.type},
         )
         logger.info(
-            "workflow_engine.process_workflows.triggered_actions",
-            extra={"actions": [action.id for action in actions]},
+            "workflow_engine.process_workflows.triggered_actions (batch)",
+            extra={
+                "workflow_ids": [workflow.id for workflow in triggered_workflows],
+                "action_ids": [action.id for action in actions],
+                "detector_type": detector.type,
+            },
         )
 
     return triggered_workflows
