@@ -1,4 +1,4 @@
-import {type ReactElement, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import type {
   CustomSeriesOption,
@@ -256,11 +256,6 @@ interface UseReleaseBubblesParams {
    * The size (height) of the bubble
    */
   bubbleSize?: number;
-  /**
-   * This is a callback function that is used in ReleasesDrawer when rendering
-   * the chart inside of the drawer.
-   */
-  chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
   datetime?: Parameters<typeof normalizeDateTimeParams>[0];
   /**
    * Number of desired bubbles/buckets to create
@@ -285,7 +280,6 @@ interface UseReleaseBubblesParams {
 }
 
 export function useReleaseBubbles({
-  chartRenderer,
   releases,
   minTime,
   maxTime,
@@ -598,9 +592,9 @@ export function useReleaseBubbles({
   return {
     connectReleaseBubbleChartRef: handleChartRef,
 
-    //
-    // Series to append to a chart's existing `series`
-    //
+    /**
+     * Series to append to a chart's existing `series`
+     */
     releaseBubbleSeries: ReleaseBubbleSeries({
       alignInMiddle,
       buckets,
