@@ -140,6 +140,7 @@ describe('WebVitalsDetailPanel', function () {
             'count_scores(measurements.score.cls)',
             'count_scores(measurements.score.inp)',
             'count_scores(measurements.score.ttfb)',
+            'count_scores(measurements.score.total)',
             'total_opportunity_score()',
           ],
           query:

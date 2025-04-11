@@ -61,25 +61,17 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
     'api.performance.browser.web-vitals.timeseries-scores'
   );
 
+  const multiplyBy100 = (data: SeriesDataUnit[]) =>
+    data.map(({name, value}) => ({name, value: value * 100}));
+
   const data: WebVitalsScoreBreakdown = {
-    lcp: [],
-    fcp: [],
-    cls: [],
-    ttfb: [],
-    inp: [],
-    total: [],
+    lcp: multiplyBy100(result.data['performance_score(measurements.score.lcp)'].data),
+    fcp: multiplyBy100(result.data['performance_score(measurements.score.fcp)'].data),
+    cls: multiplyBy100(result.data['performance_score(measurements.score.cls)'].data),
+    ttfb: multiplyBy100(result.data['performance_score(measurements.score.ttfb)'].data),
+    inp: multiplyBy100(result.data['performance_score(measurements.score.inp)'].data),
+    total: result.data['count()'].data,
   };
 
-  if (result?.data) {
-    Object.entries(result?.data).forEach(([key, value]) => {
-      const vital = key
-        .split('performance_score(measurements.score.')?.[1]
-        ?.split(')')[0];
-      if (vital) {
-        data[vital as keyof WebVitalsScoreBreakdown] = value.data;
-      }
-    });
-  }
-
-  return {data, isLoading: result.isPending};
+  return {...result, data};
 };
