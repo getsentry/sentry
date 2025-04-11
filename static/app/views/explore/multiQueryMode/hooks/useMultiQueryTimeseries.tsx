@@ -135,7 +135,7 @@ function useMultiQueryTimeseriesImpl({
   const timeseriesResult = useSortedTimeSeries(
     options,
     'api.explorer.stats',
-    DiscoverDatasets.SPANS_EAP_RPC
+    DiscoverDatasets.SPANS_EAP
   );
 
   return {result: timeseriesResult, canUsePreviousResults};

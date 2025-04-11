@@ -298,7 +298,6 @@ describe('Incident Rules Create', () => {
           referrer: 'api.organization-event-stats',
           dataset: 'spans',
           sampling: SAMPLING_MODE.BEST_EFFORT,
-          useRpc: '1',
         },
       })
     );

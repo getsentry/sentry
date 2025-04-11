@@ -47,7 +47,7 @@ export function getExploreUrl({
   const {start, end, period: statsPeriod, utc} = selection.datetime;
   const {environments, projects} = selection;
   const queryParams = {
-    dataset: DiscoverDatasets.SPANS_EAP_RPC,
+    dataset: DiscoverDatasets.SPANS_EAP,
     project: projects,
     environment: environments,
     statsPeriod,
@@ -144,7 +144,7 @@ export function getExploreMultiQueryUrl({
   const {start, end, period: statsPeriod, utc} = selection.datetime;
   const {environments, projects} = selection;
   const queryParams = {
-    dataset: DiscoverDatasets.SPANS_EAP_RPC,
+    dataset: DiscoverDatasets.SPANS_EAP,
     project: projects,
     environment: environments,
     statsPeriod,

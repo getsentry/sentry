@@ -133,7 +133,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
       interval: eventView.interval,
       cursor,
       sampling:
-        eventView.dataset === DiscoverDatasets.SPANS_EAP_RPC && samplingMode
+        eventView.dataset === DiscoverDatasets.SPANS_EAP && samplingMode
           ? samplingMode
           : undefined,
     }),
@@ -195,7 +195,7 @@ export function useWrappedDiscoverQuery<T>({
   const {isReady: pageFiltersReady} = usePageFilters();
 
   const queryExtras: Record<string, string> = {};
-  if (eventView.dataset === DiscoverDatasets.SPANS_EAP_RPC && samplingMode) {
+  if (eventView.dataset === DiscoverDatasets.SPANS_EAP && samplingMode) {
     queryExtras.sampling = samplingMode;
   }
 

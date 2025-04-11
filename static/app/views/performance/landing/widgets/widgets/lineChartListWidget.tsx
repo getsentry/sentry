@@ -109,12 +109,12 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     props.chartSetting
   );
   const spanDataset = useInsightsEap()
-    ? DiscoverDatasets.SPANS_EAP_RPC
+    ? DiscoverDatasets.SPANS_EAP
     : DiscoverDatasets.SPANS_METRICS;
 
   const spanQueryParams = useInsightsEap()
-    ? {useRpc: '1', dataset: DiscoverDatasets.SPANS_EAP}
-    : {useRpc: '0', dataset: DiscoverDatasets.SPANS_METRICS};
+    ? {dataset: DiscoverDatasets.SPANS_EAP}
+    : {dataset: DiscoverDatasets.SPANS_METRICS};
 
   let emptyComponent: any;
   if (props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES) {

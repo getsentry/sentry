@@ -150,7 +150,7 @@ export function useExploreDataset(): DiscoverDatasets {
     return pageParams.dataset;
   }
 
-  return DiscoverDatasets.SPANS_EAP_RPC;
+  return DiscoverDatasets.SPANS_EAP;
 }
 
 export function useExploreFields(): string[] {

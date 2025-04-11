@@ -89,23 +89,14 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-dataset');
 
     const eapSpans = within(section).getByRole('radio', {name: 'EAP Spans'});
-    const rpcSpans = within(section).getByRole('radio', {name: 'EAP RPC Spans'});
     const indexedSpans = within(section).getByRole('radio', {name: 'Indexed Spans'});
 
     expect(eapSpans).not.toBeChecked();
-    expect(rpcSpans).toBeChecked();
-    expect(indexedSpans).not.toBeChecked();
-    expect(dataset).toEqual(DiscoverDatasets.SPANS_EAP_RPC);
-
-    await userEvent.click(eapSpans);
-    expect(eapSpans).toBeChecked();
-    expect(rpcSpans).not.toBeChecked();
     expect(indexedSpans).not.toBeChecked();
     expect(dataset).toEqual(DiscoverDatasets.SPANS_EAP);
 
     await userEvent.click(indexedSpans);
     expect(eapSpans).not.toBeChecked();
-    expect(rpcSpans).not.toBeChecked();
     expect(indexedSpans).toBeChecked();
     expect(dataset).toEqual(DiscoverDatasets.SPANS_INDEXED);
   });

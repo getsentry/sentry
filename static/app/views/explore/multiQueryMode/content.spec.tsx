@@ -509,7 +509,6 @@ describe('MultiQueryModeContent', function () {
             referrer: 'api.explorer.stats',
             statsPeriod: '7d',
             topEvents: undefined,
-            useRpc: '1',
             yAxis: 'count(span.duration)',
           }),
         })
@@ -537,7 +536,6 @@ describe('MultiQueryModeContent', function () {
             referrer: 'api.explore.multi-query-spans-table',
             sort: '-span.duration',
             statsPeriod: '7d',
-            useRpc: '1',
           }),
         })
       )
@@ -561,7 +559,6 @@ describe('MultiQueryModeContent', function () {
             sort: '-count_span_duration',
             statsPeriod: '7d',
             topEvents: '5',
-            useRpc: '1',
             yAxis: 'count(span.duration)',
           }),
         })
@@ -582,7 +579,6 @@ describe('MultiQueryModeContent', function () {
             referrer: 'api.explore.multi-query-spans-table',
             sort: '-count_span_duration',
             statsPeriod: '7d',
-            useRpc: '1',
           }),
         })
       )

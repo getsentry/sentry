@@ -133,7 +133,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
           upperBound: max,
           additionalFields,
           sort: `-${SPAN_SELF_TIME}`,
-          useRpc: useInsightsEap() ? '1' : undefined,
+          dataset: useInsightsEap() ? 'spans' : 'events',
         },
       },
     ],

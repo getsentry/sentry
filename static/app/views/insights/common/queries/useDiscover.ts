@@ -50,7 +50,7 @@ export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
   // Indexed spans dataset always returns an `id`
   return useDiscover<Fields | [SpanIndexedField.ID], SpanIndexedResponse>(
     options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_INDEXED,
+    useEap ? DiscoverDatasets.SPANS_EAP : DiscoverDatasets.SPANS_INDEXED,
     referrer
   );
 };
@@ -70,12 +70,11 @@ export const useOurlogs = <Fields extends OurLogFieldKey[]>(
 
 export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
-  referrer: string,
-  useRpc?: boolean
+  referrer: string
 ) => {
   return useDiscover<Fields, EAPSpanResponse>(
     options,
-    useRpc ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_EAP,
+    DiscoverDatasets.SPANS_EAP,
     referrer
   );
 };
@@ -87,7 +86,7 @@ export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
   const useEap = useInsightsEap();
   return useDiscover<Fields, SpanMetricsResponse>(
     options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
+    useEap ? DiscoverDatasets.SPANS_EAP : DiscoverDatasets.SPANS_METRICS,
     referrer
   );
 };
@@ -99,7 +98,7 @@ export const useMetrics = <Fields extends MetricsProperty[]>(
   const useEap = useInsightsEap();
   return useDiscover<Fields, MetricsResponse>(
     options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
+    useEap ? DiscoverDatasets.SPANS_EAP : DiscoverDatasets.METRICS,
     referrer
   );
 };
@@ -111,7 +110,7 @@ export const useDiscoverOrEap = <Fields extends DiscoverProperty[]>(
   const useEap = useInsightsEap();
   return useDiscover<Fields, DiscoverResponse>(
     options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.DISCOVER,
+    useEap ? DiscoverDatasets.SPANS_EAP : DiscoverDatasets.DISCOVER,
     referrer
   );
 };
@@ -138,7 +137,7 @@ export const useDiscover = <
   } = options;
 
   // TODO: remove this check with eap
-  const shouldSetSamplingMode = dataset === DiscoverDatasets.SPANS_EAP_RPC;
+  const shouldSetSamplingMode = dataset === DiscoverDatasets.SPANS_EAP;
 
   const pageFilters = usePageFilters();
 

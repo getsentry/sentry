@@ -164,7 +164,6 @@ export function PathsTable({query, handleAddTransactionFilter}: PathsTableProps)
           query: `(transaction.op:http.server) event.type:transaction ${query}`,
           referrer: Referrer.PATHS_TABLE,
           orderby: getOrderBy(sortField, sortOrder),
-          useRpc: 1,
           per_page: PER_PAGE,
         },
       },
@@ -197,7 +196,6 @@ export function PathsTable({query, handleAddTransactionFilter}: PathsTableProps)
             transactionPaths.map(transactions => `"${transactions}"`).join(',') || '""'
           }]`,
           sort: '-transaction',
-          useRpc: 1,
           per_page: PER_PAGE,
           referrer: Referrer.PATHS_TABLE,
         },

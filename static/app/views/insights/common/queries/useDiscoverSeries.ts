@@ -56,7 +56,7 @@ export const useSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
   const useEap = useInsightsEap();
   return useDiscoverSeries<Fields>(
     options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
+    useEap ? DiscoverDatasets.SPANS_EAP : DiscoverDatasets.SPANS_METRICS,
     referrer
   );
 };
@@ -72,7 +72,7 @@ export const useEAPSeries = <
   options: UseMetricsSeriesOptions<Fields> = {},
   referrer: string
 ) => {
-  return useDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_EAP_RPC, referrer);
+  return useDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_EAP, referrer);
 };
 
 export const useMetricsSeries = <Fields extends MetricsProperty[]>(
@@ -82,7 +82,7 @@ export const useMetricsSeries = <Fields extends MetricsProperty[]>(
   const useEap = useInsightsEap();
   return useDiscoverSeries<Fields>(
     options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
+    useEap ? DiscoverDatasets.SPANS_EAP : DiscoverDatasets.METRICS,
     referrer
   );
 };
@@ -100,7 +100,7 @@ export const useSpanIndexedSeries = <
   const useEap = useInsightsEap();
   return useDiscoverSeries<Fields>(
     options,
-    useEap ? DiscoverDatasets.SPANS_EAP_RPC : (dataset ?? DiscoverDatasets.SPANS_INDEXED),
+    useEap ? DiscoverDatasets.SPANS_EAP : (dataset ?? DiscoverDatasets.SPANS_INDEXED),
     referrer
   );
 };
@@ -122,7 +122,7 @@ const useDiscoverSeries = <T extends string[]>(
   const organization = useOrganization();
 
   // TODO: remove this check with eap
-  const shouldSetSamplingMode = dataset === DiscoverDatasets.SPANS_EAP_RPC;
+  const shouldSetSamplingMode = dataset === DiscoverDatasets.SPANS_EAP;
 
   const eventView = getSeriesEventView(
     search,

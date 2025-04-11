@@ -371,7 +371,7 @@ class TriggersChart extends PureComponent<Props, State> {
       fields: ['count_sample()', 'min(sampling_rate)'],
       query: search.formatString(),
       version: 2,
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
     };
 
     const eventView = EventView.fromNewQueryWithPageFilters(discoverQuery, {
@@ -700,8 +700,6 @@ class TriggersChart extends PureComponent<Props, State> {
       );
     }
 
-    const useRpc = dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
-
     const baseProps = {
       api,
       organization,
@@ -716,7 +714,6 @@ class TriggersChart extends PureComponent<Props, State> {
       includePrevious: false,
       currentSeriesNames: [formattedAggregate || aggregate],
       partial: false,
-      useRpc,
     };
 
     return (

@@ -2,7 +2,7 @@ import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
-import {ToolbarHeader, ToolbarLabel, ToolbarSection} from './styles';
+import {ToolbarControlRow, ToolbarHeader, ToolbarLabel, ToolbarSection} from './styles';
 
 interface ToolbarDatasetProps {
   dataset: DiscoverDatasets;
@@ -15,17 +15,16 @@ export function ToolbarDataset({dataset, setDataset}: ToolbarDatasetProps) {
       <ToolbarHeader>
         <ToolbarLabel>{t('Dataset')}</ToolbarLabel>
       </ToolbarHeader>
-      <SegmentedControl aria-label={t('Dataset')} value={dataset} onChange={setDataset}>
-        <SegmentedControl.Item key={DiscoverDatasets.SPANS_EAP}>
-          {t('EAP Spans')}
-        </SegmentedControl.Item>
-        <SegmentedControl.Item key={DiscoverDatasets.SPANS_EAP_RPC}>
-          {t('EAP RPC Spans')}
-        </SegmentedControl.Item>
-        <SegmentedControl.Item key={DiscoverDatasets.SPANS_INDEXED}>
-          {t('Indexed Spans')}
-        </SegmentedControl.Item>
-      </SegmentedControl>
+      <ToolbarControlRow>
+        <SegmentedControl aria-label={t('Dataset')} value={dataset} onChange={setDataset}>
+          <SegmentedControl.Item key={DiscoverDatasets.SPANS_EAP}>
+            {t('EAP Spans')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key={DiscoverDatasets.SPANS_INDEXED}>
+            {t('Indexed Spans')}
+          </SegmentedControl.Item>
+        </SegmentedControl>
+      </ToolbarControlRow>
     </ToolbarSection>
   );
 }

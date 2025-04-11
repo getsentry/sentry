@@ -1,10 +1,8 @@
-import styled from '@emotion/styled';
-
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {t} from 'sentry/locale';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
-import {ToolbarRow, ToolbarSection} from './styles';
+import {ToolbarControlRow, ToolbarSection} from './styles';
 
 interface ToolbarModeProps {
   mode: Mode;
@@ -14,24 +12,14 @@ interface ToolbarModeProps {
 export function ToolbarMode({mode, setMode}: ToolbarModeProps) {
   return (
     <ToolbarSection data-test-id="section-mode">
-      <StyledToolbarRow>
+      <ToolbarControlRow>
         <SegmentedControl aria-label={t('Result Mode')} value={mode} onChange={setMode}>
           <SegmentedControl.Item key={Mode.SAMPLES}>{t('Samples')}</SegmentedControl.Item>
           <SegmentedControl.Item key={Mode.AGGREGATE}>
             {t('Aggregates')}
           </SegmentedControl.Item>
         </SegmentedControl>
-      </StyledToolbarRow>
+      </ToolbarControlRow>
     </ToolbarSection>
   );
 }
-
-const StyledToolbarRow = styled(ToolbarRow)`
-  > div {
-    flex-grow: 1;
-
-    > label > :last-child {
-      flex-grow: 1;
-    }
-  }
-`;

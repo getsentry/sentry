@@ -58,12 +58,12 @@ export function useAddCompareQueryToDashboard(query: ReadableExploreQueryParts) 
       orderby: sortBys.map(formatSort),
       query: search.formatString(),
       version: 2,
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       yAxis: yAxes,
     };
 
     const newEventView = EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-    newEventView.dataset = DiscoverDatasets.SPANS_EAP_RPC;
+    newEventView.dataset = DiscoverDatasets.SPANS_EAP;
     return newEventView;
   }, [
     groupBys,

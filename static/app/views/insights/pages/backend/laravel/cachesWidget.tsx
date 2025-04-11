@@ -53,7 +53,6 @@ export function CachesWidget({query}: {query?: string}) {
           field: ['transaction', 'project.id', 'cache_miss_rate()', 'count()'],
           query: `span.op:[cache.get_item,cache.get] ${query}`,
           sort: '-cache_miss_rate()',
-          useRpc: 1,
           per_page: 4,
           referrer: Referrer.CACHE_CHART,
         },
@@ -85,7 +84,6 @@ export function CachesWidget({query}: {query?: string}) {
               .map(item => `"${item.transaction}"`)
               .join(', ')}]`,
           sort: '-cache_miss_rate()',
-          useRpc: 1,
           topEvents: 4,
         },
       },

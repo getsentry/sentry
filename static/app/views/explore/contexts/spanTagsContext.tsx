@@ -34,8 +34,7 @@ export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderP
     enabled: dataset === DiscoverDatasets.SPANS_INDEXED && enabled,
   });
 
-  const isEAP =
-    dataset === DiscoverDatasets.SPANS_EAP || dataset === DiscoverDatasets.SPANS_EAP_RPC;
+  const isEAP = dataset === DiscoverDatasets.SPANS_EAP;
 
   const {tags: numberTags, isLoading: numberTagsLoading} = useTypedSpanTags({
     enabled: isEAP && enabled,

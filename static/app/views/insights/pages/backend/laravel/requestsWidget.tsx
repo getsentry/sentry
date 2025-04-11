@@ -38,7 +38,6 @@ export function RequestsWidget({query}: {query?: string}) {
           yAxis: ['trace_status_rate(internal_error)', 'count(span.duration)'],
           partial: 1,
           query: fullQuery,
-          useRpc: 1,
           referrer: Referrer.REQUESTS_CHART,
         },
       },

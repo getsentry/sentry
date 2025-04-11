@@ -81,7 +81,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
           additionalFields: fields,
           sort: '-timestamp',
           referrer,
-          useRpc: useInsightsEap() ? '1' : undefined,
+          dataset: useInsightsEap() ? 'spans' : 'events',
         },
       },
     ],

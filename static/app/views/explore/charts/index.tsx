@@ -307,7 +307,7 @@ export function ExploreCharts({
                 />
               }
               Footer={
-                dataset === DiscoverDatasets.SPANS_EAP_RPC && (
+                dataset === DiscoverDatasets.SPANS_EAP && (
                   <ConfidenceFooter
                     sampleCount={chartInfo.sampleCount}
                     isSampled={chartInfo.isSampled}
@@ -363,7 +363,7 @@ export function useExtrapolationMeta({
     referrer: 'api.explore.spans-extrapolation-meta',
     enabled:
       (defined(isAllowedSelection) ? isAllowedSelection : true) &&
-      dataset === DiscoverDatasets.SPANS_EAP_RPC,
+      dataset === DiscoverDatasets.SPANS_EAP,
     trackResponseAnalytics: false,
   });
 }

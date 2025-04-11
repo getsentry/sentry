@@ -75,7 +75,7 @@ describe('PageParamsProvider', function () {
 
     act(() =>
       setPageParams({
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS_EAP,
         fields: ['id', 'timestamp'],
         groupBys: ['span.op'],
         mode: Mode.AGGREGATE,
@@ -153,7 +153,7 @@ describe('PageParamsProvider', function () {
     act(() => setFields(['id', 'span.op', 'timestamp']));
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       fields: ['id', 'span.op', 'timestamp'],
       groupBys: ['span.op'],
       mode: Mode.AGGREGATE,
@@ -175,7 +175,7 @@ describe('PageParamsProvider', function () {
     act(() => setGroupBys(['browser.name', 'sdk.name']));
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       fields: ['id', 'timestamp'],
       groupBys: ['browser.name', 'sdk.name'],
       mode: Mode.AGGREGATE,
@@ -197,7 +197,7 @@ describe('PageParamsProvider', function () {
     act(() => setGroupBys([]));
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       fields: ['id', 'timestamp'],
       groupBys: ['span.op'],
       mode: Mode.AGGREGATE,
@@ -219,7 +219,7 @@ describe('PageParamsProvider', function () {
     act(() => setGroupBys(['']));
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       fields: ['id', 'timestamp'],
       groupBys: [''],
       mode: Mode.AGGREGATE,
@@ -241,7 +241,7 @@ describe('PageParamsProvider', function () {
     act(() => setMode(Mode.AGGREGATE));
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       fields: ['id', 'timestamp'],
       groupBys: ['span.op'],
       mode: Mode.AGGREGATE,
@@ -263,7 +263,7 @@ describe('PageParamsProvider', function () {
     act(() => setMode(Mode.SAMPLES));
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       fields: ['id', 'timestamp'],
       groupBys: [''],
       mode: Mode.SAMPLES,
@@ -290,7 +290,7 @@ describe('PageParamsProvider', function () {
     act(() => setMode(Mode.SAMPLES));
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       fields: ['id', 'sdk.name', 'sdk.version', 'timestamp', 'span.op'],
       groupBys: ['sdk.name', 'sdk.version', 'span.op', ''],
       mode: Mode.SAMPLES,
@@ -312,7 +312,7 @@ describe('PageParamsProvider', function () {
     act(() => setQuery('foo:bar'));
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       fields: ['id', 'timestamp'],
       groupBys: ['span.op'],
       mode: Mode.AGGREGATE,
@@ -334,7 +334,7 @@ describe('PageParamsProvider', function () {
     act(() => setSortBys([{field: 'id', kind: 'desc'}]));
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       fields: ['id', 'timestamp'],
       groupBys: ['span.op'],
       mode: Mode.SAMPLES,
@@ -356,7 +356,7 @@ describe('PageParamsProvider', function () {
     act(() => setSortBys([{field: 'span.op', kind: 'desc'}]));
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       fields: ['id', 'timestamp'],
       groupBys: ['span.op'],
       mode: Mode.SAMPLES,
@@ -387,7 +387,7 @@ describe('PageParamsProvider', function () {
     act(() => setSortBys([{field: 'max(span.duration)', kind: 'desc'}]));
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       fields: ['id', 'timestamp'],
       groupBys: ['span.op'],
       mode: Mode.AGGREGATE,
@@ -418,7 +418,7 @@ describe('PageParamsProvider', function () {
     act(() => setSortBys([{field: 'avg(span.duration)', kind: 'desc'}]));
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       fields: ['id', 'timestamp'],
       groupBys: ['span.op'],
       mode: Mode.AGGREGATE,
@@ -440,7 +440,7 @@ describe('PageParamsProvider', function () {
     act(() => setSortBys([{field: 'sdk.name', kind: 'desc'}]));
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       fields: ['id', 'timestamp'],
       groupBys: ['sdk.name'],
       mode: Mode.AGGREGATE,
@@ -462,7 +462,7 @@ describe('PageParamsProvider', function () {
     act(() => setSortBys([{field: 'sdk.version', kind: 'desc'}]));
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       fields: ['id', 'timestamp'],
       groupBys: ['sdk.name'],
       mode: Mode.AGGREGATE,
@@ -495,7 +495,7 @@ describe('PageParamsProvider', function () {
     );
 
     expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP_RPC,
+      dataset: DiscoverDatasets.SPANS_EAP,
       fields: ['id', 'timestamp'],
       groupBys: ['span.op'],
       mode: Mode.AGGREGATE,

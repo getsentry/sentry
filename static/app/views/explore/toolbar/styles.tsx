@@ -50,3 +50,13 @@ export const ToolbarRow = styled('div')`
     margin-bottom: ${space(0.5)};
   }
 `;
+
+export const ToolbarControlRow = styled(ToolbarRow)`
+  > div {
+    flex-grow: 1;
+
+    > label > :last-child {
+      flex-grow: 1;
+    }
+  }
+`;

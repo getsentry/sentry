@@ -380,7 +380,7 @@ function generateEventView({
       fields,
       query: conditions.formatString(),
       projects: [],
-      dataset: isEAP ? DiscoverDatasets.SPANS_EAP_RPC : undefined,
+      dataset: isEAP ? DiscoverDatasets.SPANS_EAP : undefined,
     },
     location
   );

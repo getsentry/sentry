@@ -19,7 +19,7 @@ export function parseDataset(rawDataset: string | undefined) {
   }
 
   if (rawDataset === 'spansRpc') {
-    return DiscoverDatasets.SPANS_EAP_RPC;
+    return DiscoverDatasets.SPANS_EAP;
   }
 
   if (rawDataset === 'spans') {
