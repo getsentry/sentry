@@ -6,6 +6,7 @@ import {
   AutofixStatus,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
+import {t} from 'sentry/locale';
 
 export const AUTOFIX_ROOT_CAUSE_STEP_ID = 'root_cause_analysis';
 
@@ -132,31 +133,23 @@ export const isSupportedAutofixProvider = (provider: string) => {
   return provider.toLowerCase().includes('github');
 };
 
-/**
- * Calculates the progress percentage for the autofix process based on steps.
- * Progress percentages:
- * - 0%: haven't started
- * - 0-32%: root cause processing (increases by 2% per iteration)
- * - 33%: root cause present
- * - 33-66%: solution processing (increases by 2% per iteration)
- * - 67%: solution present
- * - 67-99%: coding / planning (increases by 2% per iteration)
- * - 100%: code changes present
- */
-export function getAutofixProgressPercentage(autofixData?: AutofixData): number {
-  if (!autofixData) {
-    return 0;
-  }
+export interface AutofixProgressDetails {
+  displayText: string;
+  icon: 'loading' | 'waiting' | null;
+  overallProgress: number; // Overall progress (0-100)
+}
 
-  // Find key steps if they exist
+/**
+ * Calculate progress for the root cause and solution analysis steps
+ * 0-50%: Root cause analysis
+ * 50-100%: Solution generation
+ */
+function calculateAnalysisProgress(autofixData: AutofixData): number {
   const steps = autofixData.steps ?? [];
   const rootCauseStep = steps.find(
     step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS
   );
   const solutionStep = steps.find(step => step.type === AutofixStepType.SOLUTION);
-  const changesStep = steps.find(step => step.type === AutofixStepType.CHANGES);
-
-  // Find potential processing steps (assuming default type and specific keys)
   const rootCauseProcessingStep = steps.find(
     step =>
       step.key === 'root_cause_analysis_processing' &&
@@ -165,92 +158,204 @@ export function getAutofixProgressPercentage(autofixData?: AutofixData): number 
   const solutionProcessingStep = steps.find(
     step => step.key === 'solution_processing' && step.type === AutofixStepType.DEFAULT
   );
-  const planStep = steps.find(
-    step => step.key === 'plan' && step.type === AutofixStepType.DEFAULT
+
+  // Solution processing started or completed?
+  const solutionStarted = !!(
+    solutionStep?.status === AutofixStatus.PROCESSING ||
+    solutionProcessingStep?.status === AutofixStatus.PROCESSING ||
+    (solutionStep &&
+      (solutionStep.status === AutofixStatus.COMPLETED || solutionStep.solution_selected))
   );
 
-  // Code changes complete
-  if (changesStep && changesStep.status === AutofixStatus.COMPLETED) {
-    return 100;
-  }
-  // Coding / Planning in progress
-  if (planStep && planStep.status === AutofixStatus.PROCESSING) {
-    const basePercentage = 67;
-    const maxPercentage = 99;
-    const progressCount = planStep.progress?.length || 0;
-    const calculatedPercentage = basePercentage + progressCount * 2;
-    return Math.min(calculatedPercentage, maxPercentage);
-  }
-
-  // Solution present
+  // Solution complete or selected?
   if (
     solutionStep &&
     (solutionStep.status === AutofixStatus.COMPLETED || solutionStep.solution_selected)
   ) {
-    return 67;
-  }
-  // Solution processing
-  if (
-    solutionProcessingStep &&
-    solutionProcessingStep.status === AutofixStatus.PROCESSING
-  ) {
-    const basePercentage = 33;
-    const maxPercentage = 66;
-    const progressCount = solutionProcessingStep.progress?.length || 0;
-    const calculatedPercentage = basePercentage + progressCount * 2;
-    return Math.min(calculatedPercentage, maxPercentage);
-  }
-  // Fallback for solution processing if key step missing
-  if (
-    solutionStep &&
-    solutionStep.status === AutofixStatus.PROCESSING &&
-    !solutionProcessingStep
-  ) {
-    const basePercentage = 33;
-    const maxPercentage = 66;
-    const progressCount = solutionStep.progress?.length || 0;
-    const calculatedPercentage = basePercentage + progressCount * 2;
-    return Math.min(calculatedPercentage, maxPercentage);
-  }
-  // Root cause present
-  if (
-    rootCauseStep &&
-    (rootCauseStep.status === AutofixStatus.COMPLETED || rootCauseStep.selection)
-  ) {
-    return 33;
-  }
-  // Root cause processing
-  if (
-    rootCauseProcessingStep &&
-    rootCauseProcessingStep.status === AutofixStatus.PROCESSING
-  ) {
-    const basePercentage = 0;
-    const maxPercentage = 32;
-    const progressCount = rootCauseProcessingStep.progress?.length || 0;
-    const calculatedPercentage = basePercentage + progressCount * 2;
-    return progressCount > 0
-      ? Math.min(Math.max(calculatedPercentage, 1), maxPercentage)
-      : 0;
+    return 100; // Solution complete = 100%
   }
 
-  // No steps match specific phases, use overall status as fallback
-  switch (autofixData.status) {
-    case AutofixStatus.PROCESSING:
-      return 1; // Assume just started processing if no specific steps
-    case AutofixStatus.COMPLETED:
-      return 100;
-    case AutofixStatus.NEED_MORE_INFORMATION:
-    case AutofixStatus.WAITING_FOR_USER_RESPONSE:
-      if (rootCauseStep && !rootCauseStep.selection) {
-        return 33;
-      }
-      if (solutionStep && !solutionStep.solution_selected) {
-        return 67;
-      }
-      return 50;
-    case AutofixStatus.ERROR:
-    case AutofixStatus.CANCELLED:
-    default:
-      return 0;
+  // Solution processing?
+  if (
+    solutionProcessingStep?.status === AutofixStatus.PROCESSING ||
+    (solutionStep?.status === AutofixStatus.PROCESSING && !solutionProcessingStep)
+  ) {
+    const processingStep = solutionProcessingStep ?? solutionStep;
+    const progressCount = processingStep?.progress?.length || 0;
+    // Start at 50% (root cause complete) and add 5% per progress log, max 99%
+    return Math.min(50 + progressCount * 5, 99);
   }
+
+  // Root cause complete or selected, but solution not started?
+  if (
+    rootCauseStep &&
+    (rootCauseStep.status === AutofixStatus.COMPLETED || rootCauseStep.selection) &&
+    !solutionStarted
+  ) {
+    return 50; // Root cause complete, waiting for solution = exactly 50%
+  }
+
+  // Root cause processing?
+  if (
+    rootCauseProcessingStep?.status === AutofixStatus.PROCESSING ||
+    (rootCauseStep?.status === AutofixStatus.PROCESSING && !rootCauseProcessingStep)
+  ) {
+    const processingStep = rootCauseProcessingStep ?? rootCauseStep;
+    const progressCount = processingStep?.progress?.length || 0;
+    // Start at 0% and add 3% per progress log, max 49%
+    return Math.min(progressCount * 3, 49);
+  }
+
+  // Default: no clear progress identified
+  return 0;
+}
+
+/**
+ * Calculate progress for the coding step (0-100%)
+ * Increments by 7% per progress log
+ */
+function calculateCodingProgress(autofixData: AutofixData): number {
+  const steps = autofixData.steps ?? [];
+  const changesStep = steps.find(step => step.type === AutofixStepType.CHANGES);
+  const planStep = steps.find(
+    step => step.key === 'plan' && step.type === AutofixStepType.DEFAULT
+  );
+
+  // Changes complete?
+  if (changesStep?.status === AutofixStatus.COMPLETED) {
+    return 100;
+  }
+
+  // Changes exist but not completed?
+  if (changesStep) {
+    return 100; // Assume coding is complete if changes exist
+  }
+
+  // Plan processing?
+  if (planStep?.status === AutofixStatus.PROCESSING) {
+    const progressCount = planStep.progress?.length || 0;
+    // Add 7% per progress log, max 99%
+    return Math.min((progressCount - 1) * 7 + 1, 99);
+  }
+
+  // Default: no coding progress
+  return 0;
+}
+
+/**
+ * Determines the current specific status text, icon, and overall progress
+ * based on the active step in the Autofix process.
+ *
+ * Progress is tracked separately for analysis (0-50% root cause, 50-100% solution)
+ * and coding (0-100%).
+ */
+export function getAutofixProgressDetails(
+  autofixData?: AutofixData
+): AutofixProgressDetails {
+  if (!autofixData) {
+    return {displayText: t('Initializing...'), icon: null, overallProgress: 0};
+  }
+
+  const steps = autofixData.steps ?? [];
+  const rootCauseStep = steps.find(
+    step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS
+  );
+  const solutionStep = steps.find(step => step.type === AutofixStepType.SOLUTION);
+  const changesStep = steps.find(step => step.type === AutofixStepType.CHANGES);
+  const planStep = steps.find(
+    step => step.key === 'plan' && step.type === AutofixStepType.DEFAULT
+  );
+  const rootCauseProcessingStep = steps.find(
+    step =>
+      step.key === 'root_cause_analysis_processing' &&
+      step.type === AutofixStepType.DEFAULT
+  );
+  const solutionProcessingStep = steps.find(
+    step => step.key === 'solution_processing' && step.type === AutofixStepType.DEFAULT
+  );
+
+  // Terminal states first
+  if (autofixData.status === AutofixStatus.ERROR) {
+    return {displayText: t('Something broke.'), icon: null, overallProgress: 0};
+  }
+
+  if (autofixData.status === AutofixStatus.CANCELLED) {
+    return {displayText: t('Cancelled.'), icon: null, overallProgress: 0};
+  }
+
+  // Determine which phase we're in (coding or analysis)
+  const isCodingPhase = !!(planStep?.status === AutofixStatus.PROCESSING || changesStep);
+
+  let displayText = t('Initializing...');
+  let icon: 'loading' | 'waiting' | null = null;
+  let overallProgress = 0;
+
+  if (isCodingPhase) {
+    overallProgress = calculateCodingProgress(autofixData);
+
+    if (planStep?.status === AutofixStatus.PROCESSING) {
+      displayText = t(
+        "Autofix is coding with gusto. Feel free to leave - it'll continue in the background."
+      );
+      icon = 'loading';
+    } else if (changesStep) {
+      displayText = t('Code changes ready. All work is saved.');
+      icon = 'waiting';
+    }
+  } else {
+    overallProgress = calculateAnalysisProgress(autofixData);
+
+    // Set appropriate text/icon based on current step
+    if (solutionProcessingStep?.status === AutofixStatus.PROCESSING) {
+      displayText = t(
+        "Autofix is working hard on a solution. Feel free to leave - it'll continue in the background."
+      );
+      icon = 'loading';
+    } else if (rootCauseProcessingStep?.status === AutofixStatus.PROCESSING) {
+      displayText = t(
+        "Autofix is working hard on the root cause. Feel free to leave - it'll continue in the background."
+      );
+      icon = 'loading';
+    } else if (solutionStep?.status === AutofixStatus.PROCESSING) {
+      displayText = t(
+        "Autofix is working hard on a solution. Feel free to leave - it'll continue in the background."
+      );
+      icon = 'loading';
+    } else if (rootCauseStep?.status === AutofixStatus.PROCESSING) {
+      displayText = t(
+        "Autofix is working hard on the root cause. Feel free to leave - it'll continue in the background."
+      );
+      icon = 'loading';
+    } else if (
+      solutionStep &&
+      (solutionStep.status === AutofixStatus.COMPLETED || solutionStep.solution_selected)
+    ) {
+      displayText = t('Found a solution. All work so far is saved.');
+      icon = 'waiting';
+    } else if (
+      rootCauseStep &&
+      (rootCauseStep.status === AutofixStatus.COMPLETED || rootCauseStep.selection)
+    ) {
+      displayText = t('Root cause identified.');
+      icon = 'waiting';
+    } else if (autofixData.status === AutofixStatus.PROCESSING) {
+      // Initial processing, but STILL use calculated progress
+      displayText = t('Starting up...');
+      icon = 'loading';
+      overallProgress = 1;
+    }
+  }
+
+  if (
+    autofixData.status === AutofixStatus.NEED_MORE_INFORMATION ||
+    autofixData.status === AutofixStatus.WAITING_FOR_USER_RESPONSE
+  ) {
+    icon = 'waiting';
+  }
+
+  return {
+    displayText,
+    icon,
+    overallProgress,
+  };
 }
