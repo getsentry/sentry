@@ -61,7 +61,7 @@ import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCe
 import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
 import {StarredTransactionCell} from 'sentry/views/insights/common/components/tableCells/starredTransactionCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
@@ -376,7 +376,7 @@ type SpecialFields = {
   device: SpecialField;
   'error.handled': SpecialField;
   id: SpecialField;
-  is_starred_transaction: SpecialField;
+  [SpanFields.IS_STARRED_TRANSACTION]: SpecialField;
   issue: SpecialField;
   'issue.id': SpecialField;
   minidump: SpecialField;
@@ -764,7 +764,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       );
     },
   },
-  is_starred_transaction: {
+  [SpanFields.IS_STARRED_TRANSACTION]: {
     sortField: null,
     renderFunc: data => (
       <StarredTransactionCell
