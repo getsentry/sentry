@@ -425,19 +425,7 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
     noise_config = NoiseConfig(ignore_limit=20)
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
-
-
-# experimental
-@dataclass(frozen=True)
-class PerformanceDurationRegressionGroupType(GroupType):
-    type_id = 1017
-    slug = "performance_duration_regression"
-    description = "Transaction Duration Regression (Experimental)"
-    category = GroupCategory.PERFORMANCE.value
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-    default_priority = PriorityLevel.LOW
-    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
+    released = True
 
 
 @dataclass(frozen=True)
@@ -595,16 +583,6 @@ class MonitorCheckInMissed(MonitorIncidentType):
 
 
 @dataclass(frozen=True)
-class ReplayDeadClickType(ReplayGroupTypeDefaults, GroupType):
-    # This is not currently used
-    type_id = 5001
-    slug = "replay_click_dead"
-    description = "Dead Click Detected"
-    category = GroupCategory.REPLAY.value
-    default_priority = PriorityLevel.MEDIUM
-
-
-@dataclass(frozen=True)
 class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     type_id = 5002
     slug = "replay_click_rage"
@@ -639,34 +617,6 @@ class FeedbackGroup(GroupType):
     released = True
     enable_auto_resolve = False
     enable_escalation_detection = False
-
-
-@dataclass(frozen=True)
-class UptimeDomainCheckFailure(GroupType):
-    type_id = 7001
-    slug = "uptime_domain_failure"
-    description = "Uptime Domain Monitor Failure"
-    category = GroupCategory.UPTIME.value
-    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-    detector_config_schema = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "A representation of an uptime alert",
-        "type": "object",
-        "required": ["mode", "environment"],
-        "properties": {
-            "mode": {
-                "type": ["integer"],
-                # TODO: Enable this when we can move this grouptype out of this file
-                # "enum": [mode.value for mode in ProjectUptimeSubscriptionMode],
-            },
-            "environment": {"type": ["string"]},
-        },
-        "additionalProperties": False,
-    }
-    use_flagpole_for_all_features = True
 
 
 @dataclass(frozen=True)
