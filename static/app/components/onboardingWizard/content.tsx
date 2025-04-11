@@ -29,7 +29,7 @@ import {space} from 'sentry/styles/space';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {DemoTour, DemoTourStep, useDemoToursAll} from 'sentry/utils/demoMode/demoTours';
+import {DemoTour, DemoTourStep, useDemoTours} from 'sentry/utils/demoMode/demoTours';
 import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -260,7 +260,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
   const router = useRouter();
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
-  const tours = useDemoToursAll();
+  const tours = useDemoTours();
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {

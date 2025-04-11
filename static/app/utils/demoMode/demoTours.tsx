@@ -54,7 +54,7 @@ type DemoToursContextType = {
 
 const DemoToursContext = createContext<DemoToursContextType | null>(null);
 
-export function useDemoToursAll(): DemoToursContextType {
+export function useDemoTours(): DemoToursContextType {
   const tourContext = useContext(DemoToursContext);
 
   if (!tourContext) {
@@ -64,8 +64,8 @@ export function useDemoToursAll(): DemoToursContextType {
   return tourContext;
 }
 
-export function useDemoTours(tourKey: DemoTour): TourContextType<DemoTourStep> {
-  const tourContext = useDemoToursAll();
+export function useDemoTour(tourKey: DemoTour): TourContextType<DemoTourStep> {
+  const tourContext = useDemoTours();
   return tourContext[tourKey];
 }
 
@@ -221,7 +221,7 @@ export function DemoTourElement({
   ...props
 }: DemoTourElementProps) {
   const tourKey = getTourFromStep(id);
-  const tourContextValue = useDemoTours(tourKey);
+  const tourContextValue = useDemoTour(tourKey);
 
   if (!isDemoModeActive() || !tourContextValue) {
     return children;
