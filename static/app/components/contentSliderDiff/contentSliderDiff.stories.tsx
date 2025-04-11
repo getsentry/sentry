@@ -8,11 +8,7 @@ import storyBook from 'sentry/stories/storyBook';
 
 import {ContentSliderDiff} from '.';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
-import types from '!!type-loader!sentry/components/contentSliderDiff';
-
-export default storyBook('ContentSliderDiff', (story, APIReference) => {
-  APIReference(types.ContentSliderDiff);
+export default storyBook('ContentSliderDiff', story => {
   story('Comparing images', function () {
     return (
       <Fragment>
@@ -28,13 +24,17 @@ export default storyBook('ContentSliderDiff', (story, APIReference) => {
         <p>
           An example <JSXNode name="ContentSliderDiff" /> using images looks like this:
         </p>
-        <ContentSliderDiff
-          beforeContent={<img src={BadStackTraceExample} />}
-          afterContent={<img src={GoodStackTraceExample} />}
-          beforeHelp="This is the before image"
-          afterHelp="This is the after image"
-          minHeight="300px"
-        />
+        <div>
+          <ContentSliderDiff.Header>
+            <ContentSliderDiff.BeforeLabel help="This is the before image" />
+            <ContentSliderDiff.AfterLabel help="This is the after image" />
+          </ContentSliderDiff.Header>
+          <ContentSliderDiff.Body
+            before={<img src={BadStackTraceExample} />}
+            after={<img src={GoodStackTraceExample} />}
+            minHeight="300px"
+          />
+        </div>
       </Fragment>
     );
   });

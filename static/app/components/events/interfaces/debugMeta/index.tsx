@@ -11,6 +11,7 @@ import {
   DebugImageDetails,
   modalCss,
 } from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
+import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
@@ -27,8 +28,6 @@ import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-import SearchBarAction from '../searchBarAction';
 
 import Status from './debugImage/status';
 import DebugImage from './debugImage';

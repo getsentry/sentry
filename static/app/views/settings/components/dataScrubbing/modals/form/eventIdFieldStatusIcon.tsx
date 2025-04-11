@@ -4,8 +4,7 @@ import {ControlState} from 'sentry/components/forms/fieldGroup/controlState';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-
-import {EventIdStatus} from '../../types';
+import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
 
 type Props = {
   onClickIconClose: () => void;

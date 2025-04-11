@@ -1,4 +1,6 @@
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Matrix, {type PropMatrix} from 'sentry/components/stories/matrix';
+import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
 import type {Actor} from 'sentry/types/core';
 import type {Member} from 'sentry/types/organization';
@@ -6,9 +8,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
-
-import Matrix, {type PropMatrix} from '../stories/matrix';
-import SideBySide from '../stories/sideBySide';
 
 import type {OrganizationBadgeProps} from './organizationBadge';
 import IdBadge from '.';

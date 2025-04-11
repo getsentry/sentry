@@ -5,7 +5,7 @@ import {getSessionsInterval} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useSessionAdoptionRate from 'sentry/views/insights/sessions/queries/useSessionProjectTotal';
+import useSessionProjectTotal from 'sentry/views/insights/sessions/queries/useSessionProjectTotal';
 import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function useCrashFreeSessions() {
@@ -44,7 +44,7 @@ export default function useCrashFreeSessions() {
     {staleTime: 0}
   );
 
-  const projectTotal = useSessionAdoptionRate();
+  const projectTotal = useSessionProjectTotal();
 
   if (isPending || !sessionData) {
     return {
@@ -108,7 +108,7 @@ export default function useCrashFreeSessions() {
     }
   });
 
-  // Get top 5 releases
+  // Get top 5 releases based on highest adoption rate (most sessions out of the project total)
   const topReleases = Array.from(releaseAdoptionMap.entries())
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5)

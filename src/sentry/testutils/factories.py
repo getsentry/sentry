@@ -35,6 +35,7 @@ from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -319,6 +320,10 @@ DEFAULT_EVENT_DATA = {
     },
     "tags": [],
     "platform": "python",
+}
+
+default_detector_config_data = {
+    MetricAlertFire.slug: {"threshold_period": 1, "detection_type": "static"}
 }
 
 
@@ -1049,8 +1054,10 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_group(project, **kwargs):
+    def create_group(project, create_open_period=True, **kwargs):
         from sentry.models.group import GroupStatus
+        from sentry.models.groupopenperiod import GroupOpenPeriod
+        from sentry.testutils.helpers.datetime import before_now
         from sentry.types.group import GroupSubStatus
 
         kwargs.setdefault("message", "Hello world")
@@ -1066,7 +1073,19 @@ class Factories:
             kwargs["status"] = GroupStatus.UNRESOLVED
             kwargs["substatus"] = GroupSubStatus.NEW
 
-        return Group.objects.create(project=project, **kwargs)
+        group = Group.objects.create(project=project, **kwargs)
+        if create_open_period:
+            open_period = GroupOpenPeriod.objects.create(
+                group=group,
+                project=project,
+                date_started=group.first_seen or before_now(minutes=5),
+            )
+            if group.status == GroupStatus.RESOLVED:
+                open_period.update(
+                    date_ended=group.resolved_at if group.resolved_at else timezone.now()
+                )
+
+        return group
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2187,7 +2206,7 @@ class Factories:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         if config is None:
-            config = {}
+            config = default_detector_config_data.get(kwargs["type"], {})
 
         return Detector.objects.create(
             name=name,
