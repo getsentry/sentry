@@ -16,6 +16,8 @@ import {
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
@@ -99,6 +101,8 @@ export function ReleasesDrawerList({
   projects,
   environments,
 }: ReleasesDrawerListProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const start = new Date(startTs);
   const end = new Date(endTs);
   const pageFilters = usePageFilters();
@@ -110,6 +114,18 @@ export function ReleasesDrawerList({
     },
   });
 
+  const handleSelectRelease = useCallback(
+    (nextSelectedRelease: string, projectId: string) => {
+      navigate({
+        query: {
+          ...location.query,
+          release: nextSelectedRelease,
+          projectId,
+        },
+      });
+    },
+    [navigate, location.query]
+  );
   const chartRef = useRef<ReactEchartsRef | null>(null);
 
   const handleMouseOverRelease = useCallback((release: string) => {
