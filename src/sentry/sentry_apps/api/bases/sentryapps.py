@@ -380,7 +380,6 @@ class SentryAppInstallationPermission(SentryPermission):
         # nested endpoints will probably need different scopes - figure out how
         # to deal with that when it happens.
         "POST": ("org:integrations", "event:write", "event:admin"),
-        "PUT": ("org:integrations", "org:write", "org:admin"),
     }
 
     def has_permission(self, request: Request, *args, **kwargs) -> bool:

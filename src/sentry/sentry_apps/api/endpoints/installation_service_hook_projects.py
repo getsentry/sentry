@@ -134,7 +134,11 @@ class SentryAppInstallationServiceHookProjectsEndpoint(SentryAppInstallationBase
             ),
         )
 
-    def put(self, request: Request, installation: RpcSentryAppInstallation) -> Response:
+    """
+        POST will replace all existing project filters with the new set.
+    """
+
+    def post(self, request: Request, installation: RpcSentryAppInstallation) -> Response:
 
         serializer = ServiceHookProjectsInputSerializer(data=request.data)
         if not serializer.is_valid():

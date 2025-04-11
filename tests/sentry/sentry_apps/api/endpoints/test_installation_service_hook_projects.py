@@ -16,9 +16,7 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
             name="Testin",
             organization=self.org,
             webhook_url="https://example.com",
-            scopes=[
-                "org:write",
-            ],
+            scopes=["org:admin", "org:integrations", "event:admin"],
         )
 
         self.install = self.create_sentry_app_installation(
@@ -50,7 +48,7 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["project_id"] == str(self.project.id)
 
-    def test_put_service_hook_projects(self):
+    def test_post_service_hook_projects(self):
         ServiceHookProject.objects.create(
             project_id=self.project2.id, service_hook_id=self.service_hook.id
         )
@@ -60,7 +58,7 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
 
         data = {"projects": [self.project.id, self.project2.id]}
 
-        response = self.client.put(
+        response = self.client.post(
             self.url, data=data, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
         )
         assert response.status_code == 200
@@ -75,24 +73,24 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         project_ids = {hp.project_id for hp in hook_projects}
         assert project_ids == {self.project.id, self.project2.id}
 
-    def test_put_service_hook_projects_mixed_types(self):
+    def test_post_service_hook_projects_mixed_types(self):
         data = {"projects": [self.project.slug, self.project2.id]}
 
-        response = self.client.put(
+        response = self.client.post(
             self.url, data=data, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
         )
         assert response.status_code == 400
 
-    def test_put_service_hook_projects_with_invalid_project(self):
+    def test_post_service_hook_projects_with_invalid_project(self):
         data = {"projects": ["invalid-project"]}
 
-        response = self.client.put(
+        response = self.client.post(
             self.url, data=data, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
         )
         assert response.status_code == 400
 
-    def test_put_service_hook_projects_without_projects(self):
-        response = self.client.put(
+    def test_post_service_hook_projects_without_projects(self):
+        response = self.client.post(
             self.url, data={}, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
         )
         assert response.status_code == 400
