@@ -1,12 +1,11 @@
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {GenericChildrenProps} from 'sentry/utils/discover/genericDiscoverQuery';
-
 import type {
   QueryDefinitionWithKey,
   WidgetDataConstraint,
   WidgetDataResult,
   WidgetPropUnion,
-} from '../types';
+} from 'sentry/views/performance/landing/widgets/types';
 
 export function transformDiscoverToSingleValue<T extends WidgetDataConstraint>(
   _widgetProps: WidgetPropUnion<T>,

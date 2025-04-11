@@ -212,7 +212,7 @@ interface TourElementContentProps<T extends TourEnumType>
   tourContextValue: TourContextType<T>;
 }
 
-function TourElementContent<T extends TourEnumType>({
+export function TourElementContent<T extends TourEnumType>({
   children,
   id,
   title,

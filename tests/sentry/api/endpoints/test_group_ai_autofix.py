@@ -42,6 +42,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["autofix"] is not None
         assert response.data["autofix"]["status"] == "PROCESSING"
+        assert "issue" not in response.data["autofix"]["request"]
 
         mock_get_autofix_state.assert_called_once_with(group_id=group.id, check_repo_access=True)
 

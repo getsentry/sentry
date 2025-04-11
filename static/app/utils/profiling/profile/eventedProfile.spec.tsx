@@ -1,7 +1,6 @@
+import {Frame} from 'sentry/utils/profiling/frame';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
-
-import {Frame} from '../frame';
 
 import {firstCallee, makeTestingBoilerplate} from './testUtils';
 
