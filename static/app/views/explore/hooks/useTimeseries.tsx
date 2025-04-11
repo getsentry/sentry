@@ -121,14 +121,17 @@ export function useTimeseries(props: UseTimeseriesProps) {
   const {selection} = usePageFilters();
   const {start: pageFilterStart, end: pageFilterEnd} = selection.datetime;
   const organization = useOrganization();
-  return useApiQuery<StatsResponse>([
-    `/${organization.slug}/events-timeseries/`,
-    {
-      query: {
-        ...props,
-        start: props.start ?? pageFilterStart,
-        end: props.end ?? pageFilterEnd,
+  return useApiQuery<StatsResponse>(
+    [
+      `/${organization.slug}/events-timeseries/`,
+      {
+        query: {
+          ...props,
+          start: props.start ?? pageFilterStart,
+          end: props.end ?? pageFilterEnd,
+        },
       },
-    },
-  ]);
+    ],
+    {}
+  );
 }
