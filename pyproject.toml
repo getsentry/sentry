@@ -245,7 +245,6 @@ module = [
     "sentry.identity.vsts_extension.*",
     "sentry.incidents.utils.*",
     "sentry.ingest.slicing",
-    "sentry.integrations.discord.actions.*",
     "sentry.integrations.discord.message_builder.base.component.*",
     "sentry.integrations.discord.message_builder.base.embed.*",
     "sentry.integrations.discord.utils.*",
