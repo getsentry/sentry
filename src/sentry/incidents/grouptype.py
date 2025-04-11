@@ -14,8 +14,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
-from sentry.workflow_engine.models.data_source import DataPacket
+from sentry.workflow_engine import DataPacket, StatefulDetectorHandler
 from sentry.workflow_engine.types import DetectorGroupKey
 
 COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in ComparisonDeltaChoices]

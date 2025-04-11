@@ -16,7 +16,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group, GroupStatus, get_open_periods_for_group
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine import Action, Detector
 
 
 @dataclass

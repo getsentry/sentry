@@ -63,8 +63,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import metrics, redis, snuba_rpc
 from sentry.utils.dates import to_datetime
-from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.processors.data_packet import process_data_packets
+from sentry.workflow_engine import DataPacket, process_data_packets
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())

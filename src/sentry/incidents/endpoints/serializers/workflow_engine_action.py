@@ -16,16 +16,18 @@ from sentry.notifications.notification_action.group_type_notification_registry.h
 )
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.workflow_engine.models import (
+from sentry.workflow_engine import (
     Action,
     ActionAlertRuleTriggerAction,
     DataCondition,
     DataConditionAlertRuleTrigger,
+)
+from sentry.workflow_engine.models import (
+    Condition,
     DataConditionGroupAction,
     DetectorWorkflow,
     WorkflowDataConditionGroup,
 )
-from sentry.workflow_engine.models.data_condition import Condition
 
 
 class WorkflowEngineActionSerializer(Serializer):
