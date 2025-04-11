@@ -108,6 +108,21 @@ def get_relocation_storage(config=None) -> Storage:
     return storage(**relocation)
 
 
+def get_profiles_storage(config=None) -> Storage:
+    from sentry import options as options_store
+
+    backend = options_store.get("filestore.profiles-backend")
+    relocation = options_store.get("filestore.profiles-options")
+
+    try:
+        backend = settings.SENTRY_FILESTORE_ALIASES[backend]
+    except KeyError:
+        pass
+
+    storage = import_string(backend)
+    return storage(**relocation)
+
+
 def clear_cached_files(cache_path):
     try:
         cache_folders = os.listdir(cache_path)
