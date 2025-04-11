@@ -368,7 +368,7 @@ first_insight_span_received.connect(record_first_insight_span, weak=False)
 
 @member_invited.connect(weak=False, dispatch_uid="onboarding.record_member_invited")
 def record_member_invited(member, user, **kwargs):
-    OrganizationOnboardingTask.objects.update_or_create(
+    OrganizationOnboardingTask.objects.get_or_create(
         organization_id=member.organization_id,
         task=OnboardingTask.INVITE_MEMBER,
         defaults={
