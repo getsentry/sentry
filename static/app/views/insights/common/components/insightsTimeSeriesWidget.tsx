@@ -40,6 +40,7 @@ export interface InsightsTimeSeriesWidgetProps extends WidgetTitleProps {
   aliases?: Record<string, string>;
   description?: React.ReactNode;
   height?: string | number;
+  id?: string;
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
