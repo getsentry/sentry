@@ -11,8 +11,7 @@ import {
   useTourReducer,
 } from 'sentry/components/tours/tourContext';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-
-import {useLocalStorageState} from '../useLocalStorageState';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 export const DEMO_TOURS_STATE_KEY = 'demo-mode:tours';
 

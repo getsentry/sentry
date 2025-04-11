@@ -140,7 +140,7 @@ const VitalPillValue = styled('div')`
 
   height: 100%;
   padding: 0 ${space(0.5)};
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   border-left: none;
   border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
 

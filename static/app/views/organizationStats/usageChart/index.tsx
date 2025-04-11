@@ -23,8 +23,7 @@ import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types/c
 import {Outcome} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
-
-import {formatUsageWithUnits} from '../utils';
+import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelVisibility} from './utils';
 

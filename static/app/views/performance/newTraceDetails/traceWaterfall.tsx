@@ -1026,7 +1026,7 @@ export const TraceGrid = styled('div')<{
   --unknown: ${p => p.theme.gray300};
   --profile: ${p => p.theme.purple300};
   --autogrouped: ${p => p.theme.blue300};
-  --performance-issue: ${p => p.theme.blue300};
+  --occurence: ${p => p.theme.blue300};
   --panel-height: ${DEFAULT_HEIGHT}px;
 
   background-color: ${p => p.theme.background};

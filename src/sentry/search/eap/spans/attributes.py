@@ -2,6 +2,7 @@ from typing import Literal
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
 
+from sentry.insights.models import InsightsStarredSegment
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ResolvedAttribute,
@@ -88,6 +89,12 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="span.op",
             internal_name="sentry.op",
             search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="span.name",
+            internal_name="sentry.op",
+            search_type="string",
+            secondary_alias=True,
         ),
         ResolvedAttribute(
             public_alias="span.category",
@@ -302,6 +309,16 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             secondary_alias=True,
         ),
+        ResolvedAttribute(
+            public_alias="sentry.sampling_weight",
+            internal_name="sentry.sampling_weight",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="sentry.sampling_factor",
+            internal_name="sentry.sampling_factor",
+            search_type="number",
+        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("environment"),
         simple_sentry_field("messaging.destination.name"),
@@ -392,6 +409,26 @@ def module_context_constructor(params: SnubaParams) -> VirtualColumnContext:
     )
 
 
+def is_starred_segment_context_constructor(params: SnubaParams) -> VirtualColumnContext:
+    if params.user is None or params.organization_id is None:
+        raise ValueError("User and organization is required for is_starred_transaction")
+
+    starred_segment_results = InsightsStarredSegment.objects.filter(
+        organization_id=params.organization_id,
+        project_id__in=params.project_ids,
+        user_id=params.user.id,
+    )
+
+    value_map = {result.segment_name: "true" for result in starred_segment_results}
+
+    return VirtualColumnContext(
+        from_column_name="sentry.segment_name",
+        to_column_name="is_starred_transaction",
+        value_map=value_map,
+        default_value="false",  # We can directly make this a boolean when https://github.com/getsentry/eap-planning/issues/224 is fixed
+    )
+
+
 SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[str, str]] = {
     "string": {
         definition.internal_name: definition.public_alias
@@ -425,6 +462,11 @@ SPAN_VIRTUAL_CONTEXTS = {
     ),
     "span.module": VirtualColumnDefinition(
         constructor=module_context_constructor,
+    ),
+    "is_starred_transaction": VirtualColumnDefinition(
+        constructor=is_starred_segment_context_constructor,
+        default_value="false",
+        processor=lambda x: True if x == "true" else False,
     ),
 }
 

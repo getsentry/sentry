@@ -75,6 +75,7 @@ SUPPORTED_COMMIT_PROVIDERS = (
 
 MAX_BLOCK_TEXT_LENGTH = 256
 USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
+MAX_SUMMARY_HEADLINE_LENGTH = 50
 
 
 def get_group_users_count(group: Group, rules: list[Rule] | None = None) -> int:
@@ -470,10 +471,19 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             rule_environment_id,
             notification_uuid=notification_uuid,
         )
-        # Use summary headline if available, otherwise use default title
+        # If using summary, put the body in the headline as well
         headline = None
         if self.issue_summary is not None:
-            headline = self.issue_summary.get("headline")
+            error_type = build_attachment_title(event_or_group)
+            text = build_attachment_text(self.group, self.event) or ""
+            text = text.strip(" \n")
+            text = escape_slack_markdown_text(text)
+            text = text.lstrip(" ")
+            if "\n" in text:
+                text = text.strip().split("\n")[0] + "..."
+            if len(text) > MAX_SUMMARY_HEADLINE_LENGTH:
+                text = text[:MAX_SUMMARY_HEADLINE_LENGTH] + "..."
+            headline = f"{error_type}: {text}" if text else error_type
 
         title = headline if headline else build_attachment_title(event_or_group)
 
@@ -633,16 +643,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # Use issue summary if available, otherwise use the default text
         if summary_text := self.get_issue_summary_text():
-            original_title = build_attachment_title(event_or_group)
-            original_message = text.lstrip(" ")
-            if "\n" in original_message:
-                original_message = original_message.strip().split("\n")[0] + "..."
-
-            original_text = f"*{original_title}*"
-            if original_message:
-                original_text += f": `{original_message}`"
-
-            blocks.append(self.get_text_block(original_text, small=True))
             blocks.append(self.get_text_block(summary_text, small=True))
         else:
             text = text.lstrip(" ")

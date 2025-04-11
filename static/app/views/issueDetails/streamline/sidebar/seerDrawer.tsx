@@ -230,6 +230,15 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           </ButtonBarWrapper>
         )}
       </SeerDrawerNavigator>
+
+      {!aiConfig.isAutofixSetupLoading && !aiConfig.needsGenAIConsent && (
+        <SeerNotices
+          groupId={group.id}
+          hasGithubIntegration={aiConfig.hasGithubIntegration}
+          project={project}
+        />
+      )}
+
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
@@ -239,10 +248,6 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           <AiSetupDataConsent groupId={group.id} />
         ) : (
           <Fragment>
-            <SeerNotices
-              groupId={group.id}
-              hasGithubIntegration={aiConfig.hasGithubIntegration}
-            />
             {aiConfig.hasSummary && (
               <StyledCard>
                 <GroupSummary group={group} event={event} project={project} />

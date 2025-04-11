@@ -1,6 +1,5 @@
 import {t} from 'sentry/locale';
-
-import type {Rule} from '../types';
+import type {Rule} from 'sentry/views/settings/components/dataScrubbing/types';
 
 import ModalManager from './modalManager';
 

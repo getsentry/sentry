@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
+import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
-import {After, Before, DiffHeader} from 'sentry/components/replays/diff/utils';
+import {After, Before} from 'sentry/components/replays/diff/utils';
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
 import {space} from 'sentry/styles/space';
@@ -15,10 +16,10 @@ export function ReplaySideBySideImageDiff() {
 
   return (
     <Flex column>
-      <DiffHeader>
+      <ContentSliderDiff.Header>
         <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs} />
         <After startTimestampMs={replay.getStartTimestampMs()} offset={rightOffsetMs} />
-      </DiffHeader>
+      </ContentSliderDiff.Header>
 
       <ReplayGrid>
         <ReplayPlayerPluginsContextProvider>

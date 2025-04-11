@@ -1,6 +1,5 @@
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
-
-import {assertValidProfilingUnit} from '../units/units';
+import {assertValidProfilingUnit} from 'sentry/utils/profiling/units/units';
 
 import {Frame} from './../frame';
 import {Profile} from './profile';
