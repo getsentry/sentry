@@ -1705,7 +1705,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
                 }
             )
 
-        Activity.objects.create_group_activity(
+        activity = Activity.objects.create_group_activity(
             group,
             ActivityType.SET_REGRESSION,
             data=activity_data,
@@ -1719,7 +1719,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             GroupOpenPeriod.objects.create(
                 group=group,
                 project_id=group.project_id,
-                date_started=event.datetime,
+                date_started=activity.datetime,
                 date_ended=None,
             )
 
