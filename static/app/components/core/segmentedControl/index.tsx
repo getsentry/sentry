@@ -1,5 +1,5 @@
 import {useMemo, useRef} from 'react';
-import type {Theme} from '@emotion/react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaRadioProps} from '@react-aria/radio';
 import {useRadio, useRadioGroup} from '@react-aria/radio';
@@ -17,6 +17,9 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {FormSize} from 'sentry/utils/theme';
+import {withChonk} from 'sentry/utils/theme/withChonk';
+
+import {ChonkStyledGroupWrap, ChonkStyledSegmentWrap, type Priority} from './index.chonk';
 
 export interface SegmentedControlItemProps<Value extends string> {
   key: Value;
@@ -43,7 +46,6 @@ export interface SegmentedControlItemProps<Value extends string> {
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
 }
 
-type Priority = 'default' | 'primary';
 export interface SegmentedControlProps<Value extends string>
   extends Omit<RadioGroupProps, 'value' | 'defaultValue' | 'onChange' | 'isDisabled'> {
   children: CollectionChildren<Value>;
@@ -133,6 +135,7 @@ function Segment<Value extends string>({
   ...props
 }: SegmentProps<Value>) {
   const ref = useRef<HTMLInputElement>(null);
+  const theme = useTheme();
 
   const {inputProps} = useRadio(props, state, ref);
 
@@ -149,15 +152,16 @@ function Segment<Value extends string>({
       isSelected={isSelected}
       isDisabled={isDisabled}
       data-test-id={props.value}
+      aria-checked={isSelected}
     >
       <SegmentInput {...inputProps} ref={ref} />
-      {!isDisabled && (
+      {!isDisabled && !theme.isChonk && (
         <SegmentInteractionStateLayer
           nextOptionIsSelected={nextOptionIsSelected}
           prevOptionIsSelected={prevOptionIsSelected}
         />
       )}
-      {isSelected && (
+      {isSelected && !theme.isChonk && (
         <SegmentSelectionIndicator
           layoutId={layoutGroupId}
           transition={{type: 'tween', ease: 'easeOut', duration: 0.2}}
@@ -168,7 +172,9 @@ function Segment<Value extends string>({
         />
       )}
 
-      <Divider visible={showDivider} role="separator" aria-hidden />
+      {theme.isChonk ? null : (
+        <Divider visible={showDivider} role="separator" aria-hidden />
+      )}
 
       <LabelWrap size={size} role="presentation">
         {icon}
@@ -208,39 +214,43 @@ function Segment<Value extends string>({
   return content;
 }
 
-const GroupWrap = styled('div')<{priority: Priority; size: FormSize}>`
-  position: relative;
-  display: inline-grid;
-  grid-auto-flow: column;
-  background: ${p =>
-    p.priority === 'primary' ? p.theme.background : p.theme.backgroundTertiary};
-  border: solid 1px ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  min-width: 0;
+const GroupWrap = withChonk(
+  styled('div')<{priority: Priority; size: FormSize}>`
+    position: relative;
+    display: inline-grid;
+    grid-auto-flow: column;
+    background: ${p =>
+      p.priority === 'primary' ? p.theme.background : p.theme.backgroundTertiary};
+    border: solid 1px ${p => p.theme.border};
+    border-radius: ${p => p.theme.borderRadius};
+    min-width: 0;
 
-  ${p => p.theme.form[p.size]}
-`;
+    ${p => p.theme.form[p.size]}
+  `,
+  ChonkStyledGroupWrap
+);
 
-const SegmentWrap = styled('label')<{
-  isSelected: boolean;
-  size: FormSize;
-  isDisabled?: boolean;
-}>`
-  position: relative;
-  display: flex;
-  align-items: center;
-  margin: 0;
-  border-radius: calc(${p => p.theme.borderRadius} - 1px);
-  cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
-  min-height: 0;
-  min-width: 0;
+const SegmentWrap = withChonk(
+  styled('label')<{
+    isSelected: boolean;
+    size: FormSize;
+    isDisabled?: boolean;
+  }>`
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 0;
+    border-radius: calc(${p => p.theme.borderRadius} - 1px);
+    cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
+    min-height: 0;
+    min-width: 0;
 
-  ${p => p.theme.buttonPadding[p.size]}
-  font-weight: ${p => p.theme.fontWeightNormal};
+    ${p => p.theme.buttonPadding[p.size]}
+    font-weight: ${p => p.theme.fontWeightNormal};
 
-  ${p =>
-    !p.isDisabled &&
-    `
+    ${p =>
+      !p.isDisabled &&
+      `
     &:hover {
       background-color: inherit;
 
@@ -250,8 +260,10 @@ const SegmentWrap = styled('label')<{
     }
   `}
 
-  ${p => p.isSelected && `z-index: 1;`}
-`;
+    ${p => p.isSelected && `z-index: 1;`}
+  `,
+  ChonkStyledSegmentWrap
+);
 
 const SegmentInput = styled('input')`
   appearance: none;
