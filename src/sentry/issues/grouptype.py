@@ -629,6 +629,7 @@ class MetricIssuePOC(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
+    use_flagpole_for_all_features = True
 
 
 def should_create_group(
