@@ -35,7 +35,7 @@ export default function CollapsibleSection({
 export const Body = styled('details')`
   display: flex;
   flex-direction: column;
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.backgroundElevated};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)} ${space(2)};
