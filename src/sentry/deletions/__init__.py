@@ -88,6 +88,23 @@ if TYPE_CHECKING:
 
 from .manager import DeletionTaskManager
 
+# When models are moved, scheduled deletions will fail using the old model's
+# fully qualified name and will never be deleted. This mapping maps the old
+# names to the new name.
+RELOCATED_MODELS: dict[tuple[str, str], tuple[str, str]] = {
+    # Example, the Monitor model was moved from the `sentry` app to `monitors`:
+    # ("sentry", "Monitor"): ("monitors", "Monitor"),
+    #
+    # The changes inside of this mapping only need to be temporray to flush out
+    # old scheduled deletions, as new scheduled deletions will have the
+    # correctly qualified name.
+    ("sentry", "Monitor"): ("monitors", "Monitor"),
+    ("sentry", "MonitorEnvironment"): ("monitors", "MonitorEnvironment"),
+    ("sentry", "MonitorCheckIn"): ("monitors", "MonitorCheckIn"),
+    ("sentry", "MonitorIncident"): ("monitors", "MonitorIncident"),
+    ("sentry", "MonitorEnvBrokenDetection"): ("monitors", "MonitorEnvBrokenDetection"),
+}
+
 
 def load_defaults(manager: DeletionTaskManager) -> None:
     from sentry import models
