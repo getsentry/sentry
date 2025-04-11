@@ -156,11 +156,17 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     @patch("sentry.tsdb.snuba.LIMIT", 3)
     def test_batch_query_group_on_time(self):
-        def _store_events(fingerprint: str, hours: int) -> int:
-            hours = hours
+        """
+        Test that if we hit the snuba query limit we get incorrect results when group_on_time is enabled
+        """
+
+        def _store_events(fingerprint: str, offset=True) -> int:
+            hours = 1
             group_id = None
 
             for i in range(4):
+                if offset:
+                    hours += 1
                 event = self.store_event(
                     data={
                         "event_id": str(i) * 32,
@@ -174,8 +180,8 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             assert group_id
             return group_id
 
-        group_1_id = _store_events("group-1", 1)
-        group_2_id = _store_events("group-2", 1)
+        group_1_id = _store_events("group-1")
+        group_2_id = _store_events("group-2", offset=False)
 
         condition_inst = self.get_rule(
             data={"interval": "1w", "value": 1},
@@ -194,8 +200,8 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             group_on_time=True,
         )
         assert batch_query == {
-            group_1_id: 2,
-            group_2_id: 1,
+            group_1_id: 1,
+            group_2_id: 2,
         }
 
         # data is not missing when we do not group on time
