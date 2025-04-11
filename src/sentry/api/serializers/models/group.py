@@ -454,6 +454,7 @@ class GroupSerializerBase(Serializer, ABC):
             - first_seen
             - last_seen
             - user_count
+            - total_user_count
         """
         if self._collapse("stats"):
             return None
@@ -744,6 +745,7 @@ class GroupSerializerBase(Serializer, ABC):
             "userCount": attrs["user_count"],
             "firstSeen": attrs["first_seen"],
             "lastSeen": attrs["last_seen"],
+            "totalUserCount": attrs["total_user_count"],
         }
 
 
@@ -1012,6 +1014,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
     def _seen_stats_error(
         self, error_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
+
         return self._parse_seen_stats_results(
             self._execute_error_seen_stats_query(
                 item_list=error_issue_list,
@@ -1019,6 +1022,13 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 end=self.end,
                 conditions=self.conditions,
                 environment_ids=self.environment_ids,
+            ),
+            self._execute_total_user_count_query(
+                item_list=error_issue_list,
+                dataset=Dataset.Events,
+                start=self.start,
+                end=self.end,
+                conditions=self.conditions,
             ),
             error_issue_list,
             bool(self.start or self.end or self.conditions),
@@ -1035,6 +1045,13 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 end=self.end,
                 conditions=self.conditions,
                 environment_ids=self.environment_ids,
+            ),
+            self._execute_total_user_count_query(
+                item_list=generic_issue_list,
+                dataset=Dataset.IssuePlatform,
+                start=self.start,
+                end=self.end,
+                conditions=self.conditions,
             ),
             generic_issue_list,
             bool(self.start or self.end or self.conditions),
@@ -1072,6 +1089,38 @@ class GroupSerializerSnuba(GroupSerializerBase):
         )
 
     @staticmethod
+    def _execute_total_user_count_query(
+        item_list,
+        dataset,
+        start=None,
+        end=None,
+        conditions=None,
+    ):
+        project_ids = list({item.project_id for item in item_list})
+        group_ids = [item.id for item in item_list]
+
+        project_ids = list({item.project_id for item in item_list})
+        group_ids = [item.id for item in item_list]
+        aggregations = [
+            ["uniq", "tags[sentry:user]", "count"],
+        ]
+        filters = {"project_id": project_ids, "group_id": group_ids}
+
+        return aliased_query(
+            dataset=dataset,
+            start=start,
+            end=end,
+            groupby=["group_id"],
+            conditions=conditions,
+            filter_keys=filters,
+            aggregations=aggregations,
+            referrer="serializers.GroupSerializerSnuba._execute_total_user_count_query",
+            tenant_ids=(
+                {"organization_id": item_list[0].project.organization_id} if item_list else None
+            ),
+        )
+
+    @staticmethod
     def _execute_generic_seen_stats_query(
         item_list, start=None, end=None, conditions=None, environment_ids=None
     ):
@@ -1102,7 +1151,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
     @staticmethod
     def _parse_seen_stats_results(
-        result, item_list, use_result_first_seen_times_seen, environment_ids=None
+        result,
+        total_user_count_result,
+        item_list,
+        use_result_first_seen_times_seen,
+        environment_ids=None,
     ):
         seen_data = {
             issue["group_id"]: fix_tag_value_data(
@@ -1110,7 +1163,16 @@ class GroupSerializerSnuba(GroupSerializerBase):
             )
             for issue in result["data"]
         }
+
+        user_count_data = {
+            issue["group_id"]: fix_tag_value_data(
+                dict(filter(lambda key: key[0] != "group_id", issue.items()))
+            )
+            for issue in total_user_count_result["data"]
+        }
+
         user_counts = {item_id: value["count"] for item_id, value in seen_data.items()}
+        total_user_counts = {item_id: value["count"] for item_id, value in user_count_data.items()}
         last_seen = {item_id: value["last_seen"] for item_id, value in seen_data.items()}
         if use_result_first_seen_times_seen:
             first_seen = {item_id: value["first_seen"] for item_id, value in seen_data.items()}
@@ -1136,6 +1198,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 "first_seen": first_seen.get(item.id),
                 "last_seen": last_seen.get(item.id),
                 "user_count": user_counts.get(item.id, 0),
+                "total_user_count": total_user_counts.get(item.id, 0),
             }
             for item in item_list
         }
