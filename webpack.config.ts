@@ -363,10 +363,11 @@ const appConfig: webpack.Configuration = {
       ? [
           new ForkTsCheckerWebpackPlugin({
             typescript: {
-              configFile: path.resolve(__dirname, './config/tsconfig.build.json'),
-              configOverwrite: {
-                compilerOptions: {incremental: true},
-              },
+              configFile: path.resolve(__dirname, './tsconfig.json'),
+              // Required for incremental builds
+              build: true,
+              // Required for incremental builds
+              mode: 'write-references',
               memoryLimit: 4096,
             },
             devServer: false,
