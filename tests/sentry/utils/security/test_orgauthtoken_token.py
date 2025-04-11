@@ -1,4 +1,5 @@
-from sentry.testutils.cases import TestCase
+from unittest import TestCase
+
 from sentry.utils import json
 from sentry.utils.security.orgauthtoken_token import (
     SENTRY_ORG_AUTH_TOKEN_PREFIX,
