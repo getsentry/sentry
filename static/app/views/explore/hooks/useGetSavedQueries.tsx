@@ -18,10 +18,11 @@ type Query = {
 
 export type SortOption =
   | 'name'
-  | 'dateAdded'
-  | 'dateUpdated'
+  | '-dateAdded'
+  | '-dateUpdated'
   | 'mostPopular'
   | 'recentlyViewed'
+  | 'starred'
   | 'mostStarred';
 
 // Comes from ExploreSavedQueryModelSerializer
@@ -35,6 +36,7 @@ export type SavedQuery = {
   interval: string;
   lastVisited: string;
   name: string;
+  position: number | null;
   projects: number[];
   query: [Query, ...Query[]];
   queryDataset: string;
@@ -48,7 +50,7 @@ type Props = {
   exclude?: 'owned' | 'shared';
   perPage?: number;
   query?: string;
-  sortBy?: SortOption;
+  sortBy?: SortOption[];
   starred?: boolean;
 };
 
