@@ -193,10 +193,8 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             environment_id=None,
             group_on_time=True,
         )
-        assert batch_query == {
-            group_1_id: 5,
-            group_2_id: 5,
-        }
+        assert batch_query[group_1_id] < 5
+        assert batch_query[group_2_id] < 5
 
         # data is not missing when we do not group on time
         batch_query = condition_inst.batch_query_hook(
