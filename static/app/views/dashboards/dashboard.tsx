@@ -202,11 +202,7 @@ class Dashboard extends Component<Props, State> {
   fetchMemberList() {
     const {api, selection} = this.props;
     // Stores MemberList in MemberListStore for use in modals and sets state for use is child components
-    fetchOrgMembers(
-      api,
-      this.props.organization.slug,
-      selection.projects?.map(projectId => String(projectId))
-    );
+    fetchOrgMembers(api, this.props.organization.slug, selection.projects?.map(String));
   }
 
   async addNewWidget() {

@@ -88,9 +88,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
     {
       search: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
       yAxis: [`avg(${SPAN_SELF_TIME})`],
-      enabled: Object.values({'span.group': groupId, ...filters}).every(value =>
-        Boolean(value)
-      ),
+      enabled: Object.values({'span.group': groupId, ...filters}).every(Boolean),
     },
     'api.starfish.sidebar-span-metrics'
   );

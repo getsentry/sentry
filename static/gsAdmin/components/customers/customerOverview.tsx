@@ -81,7 +81,7 @@ function SoftCapTypeDetail({
       }
       return null;
     })
-    .filter(i => i);
+    .filter(Boolean);
   return <Fragment>{softCapTypes.length ? softCapTypes : <span>None</span>}</Fragment>;
 }
 
