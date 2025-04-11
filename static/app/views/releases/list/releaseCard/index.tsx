@@ -144,10 +144,10 @@ function ReleaseCard({
         </ReleaseInfoHeader>
         <ReleaseInfoSubheader>
           <ReleaseInfoSubheaderUpper>
-            <div>
+            <PackageContainer>
               <PackageName>
                 {versionInfo?.package && (
-                  <TextOverflow ellipsisDirection="left">
+                  <TextOverflow ellipsisDirection="right">
                     {versionInfo.package}
                   </TextOverflow>
                 )}
@@ -155,7 +155,7 @@ function ReleaseCard({
               <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
               {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
               &nbsp;
-            </div>
+            </PackageContainer>
             <FinalizeWrapper>
               {release.dateReleased ? (
                 <Tooltip
@@ -345,6 +345,14 @@ const FinalizeWrapper = styled('div')`
   flex-direction: row;
   align-items: flex-end;
   flex: initial;
+  position: relative;
+  width: 80px;
+  margin-left: auto;
+
+  & > * {
+    position: absolute;
+    right: 0;
+  }
 `;
 
 export const PackageName = styled('div')`
@@ -353,6 +361,14 @@ export const PackageName = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+  max-width: 100%;
+`;
+
+const PackageContainer = styled('div')`
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  margin-right: ${space(1)};
 `;
 
 const ReleaseProjects = styled('div')`
