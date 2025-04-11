@@ -59,6 +59,7 @@ import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
+import {StarredTransactionCell} from 'sentry/views/insights/common/components/tableCells/starredTransactionCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 import {
@@ -375,6 +376,7 @@ type SpecialFields = {
   device: SpecialField;
   'error.handled': SpecialField;
   id: SpecialField;
+  is_starred_transaction: SpecialField;
   issue: SpecialField;
   'issue.id': SpecialField;
   minidump: SpecialField;
@@ -761,6 +763,16 @@ const SPECIAL_FIELDS: SpecialFields = {
         </Container>
       );
     },
+  },
+  is_starred_transaction: {
+    sortField: null,
+    renderFunc: data => (
+      <StarredTransactionCell
+        projectSlug={data.project}
+        transactionName={data.transaction}
+        isStarred={data.is_starred_transaction}
+      />
+    ),
   },
   team_key_transaction: {
     sortField: null,
