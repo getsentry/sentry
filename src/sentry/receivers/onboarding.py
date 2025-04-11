@@ -97,7 +97,7 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
         ),
     )
 
-    _, created = OrganizationOnboardingTask.objects.update_or_create(
+    _, created = OrganizationOnboardingTask.objects.get_or_create(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_PROJECT,
         defaults={
@@ -106,9 +106,10 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
             "project_id": project.id,
         },
     )
-    # if we updated the task "first project", it means that it already exists and now we want to create the task "second platform"
+
+    # if a "first project" task already exists, it means that now we want to create the task "second platform"
     if not created:
-        OrganizationOnboardingTask.objects.update_or_create(
+        _, created = OrganizationOnboardingTask.objects.get_or_create(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
             defaults={
@@ -117,12 +118,13 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
                 "project_id": project.id,
             },
         )
-        analytics.record(
-            "second_platform.added",
-            user_id=default_user_id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-        )
+        if created:
+            analytics.record(
+                "second_platform.added",
+                user_id=default_user_id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+            )
 
 
 @first_event_received.connect(weak=False, dispatch_uid="onboarding.record_first_event")
