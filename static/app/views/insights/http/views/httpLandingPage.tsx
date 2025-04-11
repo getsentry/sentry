@@ -16,10 +16,10 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useHttpLandingFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpLandingFilter';
-import HttpDurationWidget from 'sentry/views/insights/common/components/widgets/httpDurationWidget';
-import HttpResponseCodesWidget from 'sentry/views/insights/common/components/widgets/httpResponseCodesWidget';
-import HttpThroughputWidget from 'sentry/views/insights/common/components/widgets/httpThroughputWidget';
+import {useHttpLandingChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpLandingChartFilter';
+import HttpDurationChartWidget from 'sentry/views/insights/common/components/widgets/httpDurationChartWidget';
+import HttpResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpResponseCodesChartWidget';
+import HttpThroughputChartWidget from 'sentry/views/insights/common/components/widgets/httpThroughputChartWidget';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
@@ -53,7 +53,7 @@ export function HTTPLandingPage() {
     decodeSorts(QueryParameterNames.DOMAINS_SORT).find(isAValidSort) ?? DEFAULT_SORT;
   const cursor = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_CURSOR]);
 
-  const chartFilters = useHttpLandingFilter();
+  const chartFilters = useHttpLandingChartFilter();
 
   const tableFilters = {
     ...chartFilters,
@@ -123,15 +123,15 @@ export function HTTPLandingPage() {
 
               <ModulesOnboarding moduleName={ModuleName.HTTP}>
                 <ModuleLayout.Third>
-                  <HttpThroughputWidget />
+                  <HttpThroughputChartWidget />
                 </ModuleLayout.Third>
 
                 <ModuleLayout.Third>
-                  <HttpDurationWidget />
+                  <HttpDurationChartWidget />
                 </ModuleLayout.Third>
 
                 <ModuleLayout.Third>
-                  <HttpResponseCodesWidget />
+                  <HttpResponseCodesChartWidget />
                 </ModuleLayout.Third>
 
                 <ModuleLayout.Full>

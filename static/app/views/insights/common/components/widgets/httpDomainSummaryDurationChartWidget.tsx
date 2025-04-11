@@ -2,31 +2,32 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useHttpDomainSummaryFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpDomainSummaryFilter';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {getThroughputChartTitle} from 'sentry/views/insights/common/views/spans/types';
+import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {Referrer} from 'sentry/views/insights/http/referrers';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 
-export default function HttpDomainSummaryThroughputChart() {
+export default function HttpDomainSummaryDurationChartWidget() {
   const chartFilters = useHttpDomainSummaryFilter();
   const {
-    isPending: isThroughputDataLoading,
-    data: throughputData,
-    error: throughputError,
+    isPending: isDurationDataLoading,
+    data: durationData,
+    error: durationError,
   } = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: ['epm()'],
+      yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
       transformAliasToInputFormat: true,
     },
-    Referrer.DOMAIN_SUMMARY_THROUGHPUT_CHART
+    Referrer.DOMAIN_SUMMARY_DURATION_CHART
   );
 
   return (
     <InsightsLineChartWidget
-      id="httpDomainSummaryThroughputWidget"
-      title={getThroughputChartTitle('http')}
-      series={[throughputData['epm()']]}
-      isLoading={isThroughputDataLoading}
-      error={throughputError}
+      id="httpDomainSummaryDurationChartWidget"
+      title={getDurationChartTitle('http')}
+      series={[durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
+      isLoading={isDurationDataLoading}
+      error={durationError}
     />
   );
 }

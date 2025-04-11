@@ -3,7 +3,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {BASE_FILTERS} from 'sentry/views/insights/http/settings';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
-export function useHttpLandingFilter() {
+export function useHttpLandingChartFilter() {
   const query = useLocationQuery({
     fields: {
       'span.domain': decodeScalar,

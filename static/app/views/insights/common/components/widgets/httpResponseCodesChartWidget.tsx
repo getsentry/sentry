@@ -1,13 +1,13 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import {useHttpLandingFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpLandingFilter';
+import {useHttpLandingChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpLandingChartFilter';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {Referrer} from 'sentry/views/insights/http/referrers';
 import {FIELD_ALIASES} from 'sentry/views/insights/http/settings';
 
-export default function HttpResponseCodesWidget() {
-  const chartFilters = useHttpLandingFilter();
+export default function HttpResponseCodesChartWidget() {
+  const chartFilters = useHttpLandingChartFilter();
   const {
     isPending: isResponseCodeDataLoading,
     data: responseCodeData,
@@ -23,7 +23,7 @@ export default function HttpResponseCodesWidget() {
 
   return (
     <InsightsLineChartWidget
-      id="httpResponseCodesWidget"
+      id="httpResponseCodesChartWidget"
       title={DataTitles.unsuccessfulHTTPCodes}
       series={[
         responseCodeData[`http_response_rate(3)`],

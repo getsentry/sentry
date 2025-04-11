@@ -1,12 +1,12 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
-import {useHttpLandingFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpLandingFilter';
+import {useHttpLandingChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpLandingChartFilter';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {Referrer} from 'sentry/views/insights/http/referrers';
 
-export default function HttpDurationWidget() {
-  const chartFilters = useHttpLandingFilter();
+export default function HttpDurationChartWidget() {
+  const chartFilters = useHttpLandingChartFilter();
   const {
     isPending: isDurationDataLoading,
     data: durationData,
@@ -22,7 +22,7 @@ export default function HttpDurationWidget() {
 
   return (
     <InsightsLineChartWidget
-      id="httpDurationWidget"
+      id="httpDurationChartWidget"
       title={getDurationChartTitle('http')}
       series={[durationData['avg(span.self_time)']]}
       isLoading={isDurationDataLoading}
