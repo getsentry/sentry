@@ -780,7 +780,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "allowJoinRequests": False,
             "issueAlertsThreadFlag": False,
             "metricAlertsThreadFlag": False,
-            "uptimeAutodetection": False,
             "targetSampleRate": 0.1,
             "samplingMode": "organization",
             "rollbackEnabled": True,
@@ -821,7 +820,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
 
-        assert options.get("sentry:uptime_autodetection") is False
         assert options.get("sentry:target_sample_rate") == 0.1
         assert options.get("sentry:sampling_mode") == "organization"
         assert options.get("sentry:rollback_enabled") is True
@@ -860,7 +858,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
-        assert "to {}".format(data["uptimeAutodetection"]) in log.data["uptimeAutodetection"]
         assert "to Default Mode" in log.data["samplingMode"]
 
     @responses.activate

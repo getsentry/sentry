@@ -174,7 +174,6 @@ DETAILED_PROJECT = {
     "secondaryGroupingExpiry": 1687010243,
     "secondaryGroupingConfig": LEGACY_GROUPING_CONFIG,
     "fingerprintingRules": "",
-    "uptimeAutodetection": True,
     "organization": {
         "id": "1",
         "slug": "sentry",
