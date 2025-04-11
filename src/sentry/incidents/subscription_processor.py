@@ -436,7 +436,11 @@ class SubscriptionProcessor:
                 logger.info(
                     "dual processing results for alert rule %s",
                     self.alert_rule.id,
-                    extra={"results": results},
+                    extra={
+                        "results": results,
+                        "num_results": len(results),
+                        "value": aggregation_value,
+                    },
                 )
 
         has_anomaly_detection = features.has(

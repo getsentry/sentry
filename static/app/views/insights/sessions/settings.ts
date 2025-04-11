@@ -12,7 +12,7 @@ export const MODULE_VISIBLE_FEATURES = ['insights-session-health-tab-ui'];
 
 export const CHART_TITLES = {
   CrashFreeSessionsChart: t('Crash Free Sessions'),
-  ErroredSessionsChart: t('Errored Sessions'),
+  UnhealthySessionsChart: t('Unhealthy Sessions'),
   NewAndResolvedIssueChart: t('Issues'),
   ReleaseNewIssuesChart: t('New Issues by Release'),
   ReleaseSessionCountChart: t('Total Sessions by Release'),
