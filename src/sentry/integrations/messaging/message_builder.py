@@ -133,7 +133,6 @@ def get_rule_environment_param(
 def get_title_link(
     group: Group,
     event: Event | GroupEvent | None,
-    link_to_event: bool,
     issue_details: bool,
     notification: BaseNotification | None,
     provider: ExternalProviders,
@@ -151,7 +150,7 @@ def get_title_link(
         other_params["alert_rule_id"] = str(rule_id)
         other_params["alert_type"] = "issue"
 
-    if event and link_to_event:
+    if event:
         url = group.get_absolute_url(
             params={"referrer": EXTERNAL_PROVIDERS[provider], **other_params},
             event_id=event.event_id,

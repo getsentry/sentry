@@ -226,9 +226,7 @@ class UnfurlTest(TestCase):
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
             unfurls[links[1].url]
-            == SlackIssuesMessageBuilder(
-                group2, event.for_group(group2), link_to_event=True
-            ).build()
+            == SlackIssuesMessageBuilder(group2, event.for_group(group2)).build()
         )
 
     def test_unfurl_issues_block_kit(self):
@@ -255,9 +253,7 @@ class UnfurlTest(TestCase):
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
             unfurls[links[1].url]
-            == SlackIssuesMessageBuilder(
-                group2, event.for_group(group2), link_to_event=True
-            ).build()
+            == SlackIssuesMessageBuilder(group2, event.for_group(group2)).build()
         )
 
     def test_escape_issue(self):

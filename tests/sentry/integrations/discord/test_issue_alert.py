@@ -134,7 +134,6 @@ class DiscordIssueAlertTest(RuleTestCase):
                 self.event.group,
                 self.event,
                 False,
-                False,
                 None,
                 ExternalProviders.DISCORD,
                 notification_uuid=notification_uuid,
