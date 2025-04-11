@@ -996,3 +996,39 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
         clean_rule = Rule.objects.get(id=response.data.get("id"))
         assert not clean_rule.data.get("comparisonInterval")
+
+    def test_condition_zero_values(self):
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "comparisonType": "count",
+                "value": 0,
+                "interval": "5m",
+            },
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "comparisonType": "percent",
+                "value": 0,
+                "comparisonInterval": "1w",
+                "interval": "5m",
+            },
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
+                "comparisonType": "count",
+                "value": 0,
+                "interval": "5m",
+            },
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
+                "comparisonType": "percent",
+                "value": 0,
+                "comparisonInterval": "1w",
+                "interval": "5m",
+            },
+        ]
+
+        self.run_test(
+            actions=self.notify_event_action,
+            conditions=conditions,
+            environment=None,
+        )
