@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router-dom';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import ExternalLink from 'sentry/components/links/externalLink';
