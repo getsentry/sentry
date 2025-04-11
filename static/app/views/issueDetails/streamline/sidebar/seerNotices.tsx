@@ -119,8 +119,8 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     notices.push(<GithubIntegrationSetupCard key="github-setup" />);
   } else if (
     repos.length === 0 &&
-    !preference?.repositories &&
-    !codeMappingRepos &&
+    !preference?.repositories?.length &&
+    !codeMappingRepos?.length &&
     !isLoadingPreferences
   ) {
     notices.push(<SelectReposCard key="repo-selection" />);
@@ -188,11 +188,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     return null;
   }
 
-  return (
-    <StickyNoticesContainer>
-      <NoticesContainer>{notices}</NoticesContainer>
-    </StickyNoticesContainer>
-  );
+  return <NoticesContainer>{notices}</NoticesContainer>;
 }
 
 const NoticesContainer = styled('div')`
@@ -201,17 +197,6 @@ const NoticesContainer = styled('div')`
   gap: ${space(2)};
   align-items: stretch;
   margin-bottom: ${space(2)};
-`;
-
-const StickyNoticesContainer = styled('div')`
-  position: sticky;
-  top: 0;
-  background: ${p => p.theme.background};
-  padding-top: ${space(2)};
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
 const IntegrationCard = styled('div')`
