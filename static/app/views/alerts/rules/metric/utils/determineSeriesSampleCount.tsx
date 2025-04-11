@@ -34,7 +34,7 @@ export function determineSeriesSampleCountAndIsSampled(
     if (defined(data[i]?.sampleCount)) {
       for (let j = 0; j < data[i]!.sampleCount!.length; j++) {
         if (i > 0) {
-          series[j] = merge(series[j]!, data[i]!.sampleCount![j]!.value);
+          series[j] = merge(series[j] || 0, data[i]!.sampleCount![j]!.value);
         }
         const sampleRate = data[i]?.samplingRate?.[j]?.value;
         if (sampleRate === 1) {
