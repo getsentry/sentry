@@ -4,6 +4,7 @@ import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indica
 import {Button} from 'sentry/components/core/button';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {FlexContainer} from 'sentry/utils/discover/styles';
 import useProjects from 'sentry/utils/useProjects';
 import {useStarredTransactions} from 'sentry/views/insights/common/utils/useStarredTransactions';
 
@@ -48,19 +49,21 @@ export function StarredTransactionCell({
   };
 
   return (
-    <Button
-      onClick={() => toggleStarredTransaction()}
-      disabled={disabled}
-      borderless
-      size="zero"
-      icon={
-        <IconStar
-          color={isStarred ? 'yellow300' : 'gray200'}
-          isSolid={isStarred}
-          data-test-id="starred-transaction-column"
-        />
-      }
-      aria-label={t('Toggle star for transaction')}
-    />
+    <FlexContainer>
+      <Button
+        onClick={() => toggleStarredTransaction()}
+        disabled={disabled}
+        borderless
+        size="zero"
+        icon={
+          <IconStar
+            color={isStarred ? 'yellow300' : 'gray200'}
+            isSolid={isStarred}
+            data-test-id="starred-transaction-column"
+          />
+        }
+        aria-label={t('Toggle star for transaction')}
+      />
+    </FlexContainer>
   );
 }
