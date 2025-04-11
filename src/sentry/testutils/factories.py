@@ -1387,13 +1387,7 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_service_hook(
-        actor=None, org=None, project=None, events=None, url=None, project_ids=None, **kwargs
-    ):
-        if project:
-            if project_ids is not None:
-                raise ValueError("Cannot provide both project and project_ids")
-            project_ids = [project.id]
+    def create_service_hook(actor=None, org=None, project=None, events=None, url=None, **kwargs):
         if not actor:
             actor = Factories.create_user()
         if not org:
@@ -1401,8 +1395,8 @@ class Factories:
                 org = project.organization
             else:
                 org = Factories.create_organization(owner=actor)
-        if project_ids is None:  # empty list for project_ids is valid and means no project filter
-            project_ids = [Factories.create_project(organization=org).id]
+        if not project:
+            project = Factories.create_project(organization=org)
         if events is None:
             events = ["event.created"]
         if not url:
@@ -1419,7 +1413,7 @@ class Factories:
             actor_id=actor.id,
             installation_id=installation_id,
             organization_id=org.id,
-            project_ids=project_ids,
+            project_ids=[project.id],
             events=events,
             url=url,
         ).id

@@ -19,16 +19,12 @@ Ts = TypeVarTuple("Ts")
 R = TypeVar("R")
 S = TypeVar("S", bound=models.Model)
 
-_NONE_HASHABLE = "DD47DB9F-6165-42E1-A719-D0CF702E1788"
-
 
 def arg_to_hashable(arg: object) -> object:
     if isinstance(arg, (int, float, str, Decimal, uuid.UUID)):
         return arg
     elif isinstance(arg, models.Model):
         return f"{arg._meta.label}:{arg.pk}"
-    elif arg is None:
-        return _NONE_HASHABLE  # won't change across runs/interpreter versions
     else:
         raise ValueError(
             "Can only cache functions whose parameters can be hashed in a consistent way"
