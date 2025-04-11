@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 
 import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
@@ -6,6 +6,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -125,6 +126,15 @@ export default function FlagDrawerContent({
     project &&
     !project.hasFlags &&
     featureFlagOnboardingPlatforms.includes(project.platform ?? 'other');
+
+  useEffect(() => {
+    if (!isPending && !isError && !showCTA) {
+      trackAnalytics('flags.drawer_rendered', {
+        organization,
+        numFlags: data.length,
+      });
+    }
+  }, [organization, data.length, isPending, isError, showCTA]);
 
   return isPending ? (
     <LoadingIndicator />
