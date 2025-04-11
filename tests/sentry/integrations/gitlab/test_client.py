@@ -29,6 +29,7 @@ from sentry.shared_integrations.exceptions import (
     ApiHostError,
     ApiRateLimitedError,
     ApiRetryError,
+    IntegrationFormError,
 )
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
@@ -684,3 +685,85 @@ class GitLabUnhappyPathTest(GitLabClientTest):
         # Assert integration is disabled.
         integration = Integration.objects.get(id=self.integration.id)
         assert integration.status == ObjectStatus.DISABLED
+
+
+@control_silo_test
+class GitLabCreateIssueTest(GitLabClientTest):
+    def setUp(self):
+        super().setUp()
+        self.project_id = "123"
+        self.issues_url = f"https://example.gitlab.com/api/v4/projects/{self.project_id}/issues"
+        self.issue_data = {
+            "title": "Test Issue Title",
+            "description": "This is a test issue description",
+        }
+        self.gitlab_response = {
+            "id": 1,
+            "iid": 101,
+            "title": "Test Issue Title",
+            "description": "This is a test issue description",
+            "web_url": "https://example.gitlab.com/test-group/test-project/issues/101",
+        }
+
+    @responses.activate
+    def test_create_issue_success(self):
+        """Test successful issue creation with valid data"""
+        responses.add(responses.POST, self.issues_url, json=self.gitlab_response, status=201)
+
+        response = self.gitlab_client.create_issue(project=self.project_id, data=self.issue_data)
+
+        assert response == self.gitlab_response
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.url == self.issues_url
+        assert responses.calls[0].response.status_code == 201
+
+        # Verify the request payload
+        request_data = orjson.loads(responses.calls[0].request.body)
+        assert request_data["title"] == self.issue_data["title"]
+        assert request_data["description"] == self.issue_data["description"]
+
+    @responses.activate
+    def test_create_issue_missing_title(self):
+        """Test that an error is raised when title is missing"""
+        data_without_title = {"description": "This is a test issue description"}
+
+        with pytest.raises(IntegrationFormError):
+            self.gitlab_client.create_issue(project=self.project_id, data=data_without_title)
+
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_create_issue_title_too_long(self):
+        """Test that title is truncated when it exceeds max length"""
+        long_title = "A" * 300  # Title longer than GITLAB_ISSUE_TITLE_MAX_LENGTH (255)
+        expected_truncated_title = "A" * 252 + "..."  # 255 - 3 chars for ellipsis
+
+        data_with_long_title = {
+            "title": long_title,
+            "description": "This is a test issue description",
+        }
+
+        modified_response = self.gitlab_response.copy()
+        modified_response["title"] = expected_truncated_title
+
+        responses.add(responses.POST, self.issues_url, json=modified_response, status=201)
+
+        self.gitlab_client.create_issue(project=self.project_id, data=data_with_long_title)
+
+        assert len(responses.calls) == 1
+        request_data = orjson.loads(responses.calls[0].request.body)
+        assert request_data["title"] == expected_truncated_title
+        assert len(request_data["title"]) == 255
+
+    @responses.activate
+    def test_create_issue_api_error(self):
+        """Test handling of API errors during issue creation"""
+        error_response = {"message": "Project not found"}
+
+        responses.add(responses.POST, self.issues_url, json=error_response, status=404)
+
+        with pytest.raises(ApiError):
+            self.gitlab_client.create_issue(project=self.project_id, data=self.issue_data)
+
+        assert len(responses.calls) == 1
+        assert responses.calls[0].response.status_code == 404
