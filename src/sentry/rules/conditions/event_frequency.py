@@ -482,7 +482,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_frequency",
-                group_on_time=False,
+                group_on_time=group_on_time,
             )
             batch_sums.update(error_sums)
 
