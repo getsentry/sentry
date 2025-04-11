@@ -913,6 +913,7 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
 
         resp = self.get_response(self.org.slug, other_member.id, self.team.slug, teamRole="admin")
         assert resp.status_code == 400
+        assert resp.data["detail"] == ERR_INSUFFICIENT_ROLE
 
         target_omt = OrganizationMemberTeam.objects.get(
             team=self.team, organizationmember=other_member
