@@ -425,6 +425,7 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
     noise_config = NoiseConfig(ignore_limit=20)
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
+    released = True
 
 
 @dataclass(frozen=True)
