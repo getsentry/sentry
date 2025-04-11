@@ -189,7 +189,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         "organizations:workflow-engine-process-workflows", event_data.event.project.organization
     ):
         return set()
-    if event_data.event.group.occurrence is not None and not features.has(
+    if event_data.event.occurrence is not None and not features.has(
         "organizations:workflow-engine-process-metric-issue-workflows",
         event_data.event.project.organization,
     ):
