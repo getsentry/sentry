@@ -19,7 +19,11 @@ import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSampl
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
-import type {SpanMetricsQueryFilters, SubregionCode} from 'sentry/views/insights/types';
+import type {
+  SpanIndexedProperty,
+  SpanMetricsQueryFilters,
+  SubregionCode,
+} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
@@ -27,7 +31,7 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 type Props = {
   groupId: string;
   transactionName: string;
-  additionalFields?: string[];
+  additionalFields?: SpanIndexedProperty[];
   additionalFilters?: Record<string, string>;
   highlightedSpanId?: string;
   onClickSample?: (sample: SpanSample) => void;
@@ -112,7 +116,7 @@ function DurationChart({
   const avg = spanMetrics?.[`avg(${SPAN_SELF_TIME})`] || 0;
 
   const {
-    data: spans,
+    data: spanSamplesData,
     isPending: areSpanSamplesLoading,
     isRefetching: areSpanSamplesRefetching,
   } = useSpanSamples({
@@ -123,6 +127,8 @@ function DurationChart({
     spanSearch,
     additionalFields,
   });
+
+  const spans = spanSamplesData?.data ?? [];
 
   const baselineAvgSeries: Series = {
     seriesName: 'Average',

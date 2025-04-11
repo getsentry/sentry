@@ -29,6 +29,7 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
   SpanIndexedField,
+  type SpanIndexedProperty,
   SpanMetricsField,
 } from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
@@ -107,7 +108,7 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
 
   let columnOrder = DEFAULT_COLUMN_ORDER;
 
-  const additionalFields: SpanIndexedField[] = [
+  const additionalFields: SpanIndexedProperty[] = [
     SpanIndexedField.TRACE,
     SpanIndexedField.TRANSACTION_ID,
   ];

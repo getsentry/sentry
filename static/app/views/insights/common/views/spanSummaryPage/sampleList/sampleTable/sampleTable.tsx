@@ -17,6 +17,7 @@ import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSample
 import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
 import type {
   ModuleName,
+  SpanIndexedProperty,
   SpanMetricsQueryFilters,
   SubregionCode,
 } from 'sentry/views/insights/types';
@@ -31,7 +32,7 @@ type Props = {
   groupId: string;
   moduleName: ModuleName;
   transactionName: string;
-  additionalFields?: string[];
+  additionalFields?: SpanIndexedProperty[];
   additionalFilters?: Record<string, string>;
   columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
@@ -95,9 +96,9 @@ function SampleTable({
   const {setPageError} = usePageAlert();
 
   const {
-    data: spans,
+    data: spanSamplesData,
     isFetching: isFetchingSamples,
-    isEnabled: isSamplesEnabled,
+    isPending: isPendingSamples,
     error: sampleError,
     refetch,
   } = useSpanSamples({
@@ -109,6 +110,8 @@ function SampleTable({
     spanSearch,
     additionalFields,
   });
+
+  const spans = spanSamplesData?.data ?? [];
 
   const {
     data: transactions,
@@ -151,7 +154,7 @@ function SampleTable({
   const isLoading =
     isFetchingSpanMetrics ||
     isFetchingSamples ||
-    !isSamplesEnabled ||
+    isPendingSamples ||
     (!areNoSamples && isFetchingTransactions && !isTransactionsEnabled);
 
   if (sampleError || transactionError) {
