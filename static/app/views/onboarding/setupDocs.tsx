@@ -14,7 +14,6 @@ import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduct
 import {OtherPlatformsInfo} from 'sentry/views/projectInstall/otherPlatformsInfo';
 
 import FirstEventFooter from './components/firstEventFooter';
-import IntegrationSetup, {InstallationMode} from './integrationSetup';
 import type {StepProps} from './types';
 
 function SetupDocs({location, recentCreatedProject: project}: StepProps) {
@@ -33,43 +32,31 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
     return null;
   }
 
-  const platformName = currentPlatform.name;
-  const showIntegrationOnboarding =
-    location.query.installationMode !== InstallationMode.MANUAL;
-
   return (
     <Fragment>
       <Wrapper>
         <MainContent>
-          {showIntegrationOnboarding ? (
-            <IntegrationSetup
-              integrationSlug={currentPlatformKey}
-              project={project}
-              platform={currentPlatform}
+          <Fragment>
+            <SetupIntroduction
+              stepHeaderText={t('Configure %s SDK', currentPlatform.name)}
+              platform={currentPlatformKey}
             />
-          ) : (
-            <Fragment>
-              <SetupIntroduction
-                stepHeaderText={t('Configure %s SDK', platformName)}
-                platform={currentPlatformKey}
+            {currentPlatformKey === 'other' ? (
+              <OtherPlatformsInfo
+                projectSlug={project.slug}
+                platform={currentPlatform.name}
               />
-              {currentPlatformKey === 'other' ? (
-                <OtherPlatformsInfo
-                  projectSlug={project.slug}
-                  platform={currentPlatform.name}
-                />
-              ) : (
-                <SdkDocumentation
-                  platform={currentPlatform}
-                  organization={organization}
-                  projectSlug={project.slug}
-                  projectId={project.id}
-                  activeProductSelection={products}
-                  newOrg
-                />
-              )}
-            </Fragment>
-          )}
+            ) : (
+              <SdkDocumentation
+                platform={currentPlatform}
+                organization={organization}
+                projectSlug={project.slug}
+                projectId={project.id}
+                activeProductSelection={products}
+                newOrg
+              />
+            )}
+          </Fragment>
         </MainContent>
       </Wrapper>
       <FirstEventFooter
