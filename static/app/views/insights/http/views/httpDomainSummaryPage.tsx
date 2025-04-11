@@ -19,9 +19,9 @@ import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/modu
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useHttpDomainSummaryFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpDomainSummaryFilter';
-import HttpDomainSummaryDurationWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationWidget';
-import HttpDomainSummaryResponseCodesWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryResponseCodesWidget';
-import HttpDomainSummaryThroughputChart from 'sentry/views/insights/common/components/widgets/httpDomainSummaryThroughputWidget';
+import HttpDomainSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget';
+import HttpDomainSummaryResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryResponseCodesChartWidget';
+import HttpDomainSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryThroughputChartWidget';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
@@ -229,15 +229,15 @@ export function HTTPDomainSummaryPage() {
               </ModuleLayout.Full>
 
               <ModuleLayout.Third>
-                <HttpDomainSummaryThroughputChart />
+                <HttpDomainSummaryThroughputChartWidget />
               </ModuleLayout.Third>
 
               <ModuleLayout.Third>
-                <HttpDomainSummaryDurationWidget />
+                <HttpDomainSummaryDurationChartWidget />
               </ModuleLayout.Third>
 
               <ModuleLayout.Third>
-                <HttpDomainSummaryResponseCodesWidget />
+                <HttpDomainSummaryResponseCodesChartWidget />
               </ModuleLayout.Third>
 
               <ModuleLayout.Full>
