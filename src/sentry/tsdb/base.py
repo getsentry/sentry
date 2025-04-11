@@ -422,6 +422,7 @@ class BaseTSDB(Service):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
+        group_on_time: bool = True,
     ) -> dict[TSDBKey, list[tuple[int, int]]]:
         """
         To get a range of data for group ID=[1, 2, 3]:
@@ -448,6 +449,7 @@ class BaseTSDB(Service):
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
+        group_on_time: bool = True,
     ) -> dict[int, int]:
         range_set = self.get_range(
             model,
@@ -461,7 +463,11 @@ class BaseTSDB(Service):
             tenant_ids=tenant_ids,
             referrer_suffix=referrer_suffix,
             conditions=conditions,
+            group_on_time=group_on_time,
         )
+        if not group_on_time:
+            return range_set
+
         sum_set = {key: sum(p for _, p in points) for (key, points) in range_set.items()}
         return sum_set
 

@@ -154,6 +154,62 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         )
         assert batch_query == {self.event3.group_id: 1}
 
+    @patch("sentry.tsdb.snuba.LIMIT", 3)
+    def test_batch_query_group_on_time(self):
+        def _store_events(fingerprint: str, hours: int) -> int:
+            hours = hours
+            group_id = None
+
+            for i in range(4):
+                event = self.store_event(
+                    data={
+                        "event_id": str(i) * 32,
+                        "timestamp": before_now(hours=hours).isoformat(),
+                        "fingerprint": [fingerprint],
+                    },
+                    project_id=self.project.id,
+                )
+                hours += 1
+                group_id = event.group_id
+            return group_id
+
+        group_1_id = _store_events("group-1", 1)
+        group_2_id = _store_events("group-2", 1)
+
+        condition_inst = self.get_rule(
+            data={"interval": "1w", "value": 1},
+            project=self.project.id,
+            rule=Rule(),
+        )
+        start = before_now(days=7)
+        end = timezone.now()
+
+        # data is missing when we group on time
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[group_1_id, group_2_id],
+            start=start,
+            end=end,
+            environment_id=None,
+            group_on_time=True,
+        )
+        assert batch_query == {
+            group_1_id: 5,
+            group_2_id: 5,
+        }
+
+        # data is not missing when we do not group on time
+        batch_query = condition_inst.batch_query_hook(
+            group_ids=[group_1_id, group_2_id],
+            start=start,
+            end=end,
+            environment_id=None,
+            group_on_time=False,
+        )
+        assert batch_query == {
+            group_1_id: 5,
+            group_2_id: 5,
+        }
+
     def test_get_error_and_generic_group_ids(self):
         groups = Group.objects.filter(
             id__in=[self.event.group_id, self.event2.group_id, self.perf_event.group_id]
