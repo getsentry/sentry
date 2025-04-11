@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';

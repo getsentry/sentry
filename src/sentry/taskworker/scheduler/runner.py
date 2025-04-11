@@ -4,12 +4,13 @@ import heapq
 import logging
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.utils import timezone
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 from sentry_sdk import capture_exception
+from sentry_sdk.crons import MonitorStatus, capture_checkin
 
 from sentry.conf.types.taskworker import ScheduleConfig, crontab
 from sentry.taskworker.registry import TaskRegistry
@@ -18,6 +19,9 @@ from sentry.taskworker.task import Task
 from sentry.utils import metrics
 
 logger = logging.getLogger("taskworker.scheduler")
+
+if TYPE_CHECKING:
+    from sentry_sdk._types import MonitorConfig
 
 
 class RunStorage:
@@ -76,7 +80,8 @@ class RunStorage:
 class ScheduleEntry:
     """An individual task that can be scheduled to be run."""
 
-    def __init__(self, *, task: Task[Any, Any], schedule: timedelta | crontab) -> None:
+    def __init__(self, *, key: str, task: Task[Any, Any], schedule: timedelta | crontab) -> None:
+        self._key = key
         self._task = task
         scheduler: Schedule
         if isinstance(schedule, crontab):
@@ -94,7 +99,7 @@ class ScheduleEntry:
         last_run = self._last_run.isoformat() if self._last_run else None
         remaining_seconds = self.remaining_seconds()
 
-        return f"<ScheduleEntry fullname={self.fullname} last_run={last_run} remaining_seconds={remaining_seconds}>"
+        return f"<ScheduleEntry key={self._key} fullname={self.fullname} last_run={last_run} remaining_seconds={remaining_seconds}>"
 
     @property
     def fullname(self) -> str:
@@ -114,7 +119,40 @@ class ScheduleEntry:
 
     def delay_task(self) -> None:
         logger.info("taskworker.scheduler.delay_task", extra={"task": self._task.fullname})
-        self._task.delay()
+        monitor_config = self.monitor_config()
+        headers: dict[str, Any] | None = None
+        if monitor_config:
+            check_in_id = capture_checkin(
+                monitor_slug=self._key,
+                monitor_config=monitor_config,
+                status=MonitorStatus.IN_PROGRESS,
+            )
+            headers = {
+                "sentry-monitor-check-in-id": check_in_id,
+                "sentry-monitor-slug": self._key,
+            }
+
+        self._task.apply_async(headers=headers)
+
+    def monitor_config(self) -> MonitorConfig | None:
+        checkin_config: MonitorConfig = {
+            "schedule": {},
+            "timezone": timezone.get_current_timezone_name(),
+        }
+        if isinstance(self._schedule, CrontabSchedule):
+            checkin_config["schedule"]["type"] = "crontab"
+            checkin_config["schedule"]["value"] = self._schedule.monitor_value()
+        elif isinstance(self._schedule, TimedeltaSchedule):
+            (interval_value, interval_units) = self._schedule.monitor_interval()
+            # Monitors does not support intervals less than 1 minute.
+            if interval_units == "second":
+                return None
+
+            checkin_config["schedule"]["type"] = "interval"
+            checkin_config["schedule"]["value"] = interval_value
+            checkin_config["schedule"]["unit"] = interval_units
+
+        return checkin_config
 
 
 class ScheduleRunner:
@@ -133,15 +171,15 @@ class ScheduleRunner:
         self._run_storage = run_storage
         self._heap: list[tuple[int, ScheduleEntry]] = []
 
-    def add(self, task_config: ScheduleConfig) -> None:
-        """Add a task to the runner."""
+    def add(self, key: str, task_config: ScheduleConfig) -> None:
+        """Add a scheduled task to the runner."""
         try:
             (namespace, taskname) = task_config["task"].split(":")
         except ValueError:
             raise ValueError("Invalid task name. Must be in the format namespace:taskname")
 
         task = self._registry.get_task(namespace, taskname)
-        entry = ScheduleEntry(task=task, schedule=task_config["schedule"])
+        entry = ScheduleEntry(key=key, task=task, schedule=task_config["schedule"])
         self._entries.append(entry)
         self._heap = []
 

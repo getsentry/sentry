@@ -187,7 +187,10 @@ class Feature:
         return {self.name: dict_data}
 
     def to_yaml_str(self) -> str:
-        return yaml.dump(self.to_dict())
+        # Add an extra level of indentation by adding a top level dummy config.
+        # This makes it easier to paste the results into options automator
+        dump = yaml.dump({"dummy": self.to_dict()})
+        return "\n".join(dump.split("\n")[1:])
 
     def to_json_str(self) -> str:
         return orjson.dumps(self.to_dict()).decode()

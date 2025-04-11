@@ -24,6 +24,7 @@ import {
 import {
   type BillingMetricHistory,
   type BillingStatTotal,
+  type DataCategories,
   type EventBucket,
   PlanTier,
   type ProductTrial,
@@ -184,9 +185,9 @@ export function calculateCategoryPrepaidUsage(
   prepaidSpend: number;
   prepaidUsage: number;
 } {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const categoryInfo: BillingMetricHistory = subscription.categories[category];
-  const usage = accepted ?? categoryInfo.usage;
+  const categoryInfo: BillingMetricHistory | undefined =
+    subscription.categories[category as DataCategories];
+  const usage = accepted ?? categoryInfo?.usage ?? 0;
 
   // Calculate the prepaid total
   let prepaidTotal: any;
@@ -439,8 +440,9 @@ function UsageTotals({
     onDemandCategoryMax,
   } = calculateCategoryOnDemandUsage(category, subscription);
   const unusedOnDemandWidth = 100 - ondemandPercentUsed;
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const categoryInfo: BillingMetricHistory = subscription.categories[category];
+  const categoryInfo: BillingMetricHistory | undefined =
+    subscription.categories[category as DataCategories];
+  const usage = categoryInfo?.usage ?? 0;
   const {prepaidPrice, prepaidPercentUsed, prepaidUsage, onDemandUsage} =
     calculateCategoryPrepaidUsage(
       category,
@@ -451,7 +453,7 @@ function UsageTotals({
       reservedSpend
     );
   const unusedPrepaidWidth =
-    reserved !== 0 || subscription.isTrial ? 100 - prepaidPercentUsed : 0;
+    reserved !== 0 || subscription.isTrial ? 100 - prepaidPercentUsed : 100;
   const totalCategorySpend =
     (hasReservedBudget
       ? (subscription.reservedBudgets?.find(budget => category in budget.categories)
@@ -496,11 +498,7 @@ function UsageTotals({
     return t('usage this period');
   }
 
-  const formattedUnitsUsed = formatUsageWithUnits(
-    categoryInfo.usage,
-    category,
-    usageOptions
-  );
+  const formattedUnitsUsed = formatUsageWithUnits(usage, category, usageOptions);
 
   // use dropped profile chunks to estimate dropped continuous profiling
   // for AM3 plans, include profiles category to estimate dropped continuous profile hours
@@ -512,9 +510,9 @@ function UsageTotals({
             ? (eventTotals[DataCategory.PROFILES] ?? EMPTY_STAT_TOTAL)
             : EMPTY_STAT_TOTAL,
         ]),
-        accepted: categoryInfo.usage,
+        accepted: usage,
       }
-    : {...totals, accepted: categoryInfo.usage};
+    : {...totals, accepted: usage};
 
   const hasReservedQuota: boolean =
     reserved !== null && (reserved === UNLIMITED_RESERVED || reserved > 0);
@@ -586,7 +584,7 @@ function UsageTotals({
               )}
             </AcceptedSummary>
           </BaseRow>
-          <PlanUseBarContainer>
+          <PlanUseBarContainer data-test-id={`usage-bar-container-${category}`}>
             <PlanUseBarGroup style={{width: `${reservedMaxWidth}%`}}>
               {prepaidPercentUsed >= 1 && (
                 <Fragment>

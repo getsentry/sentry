@@ -42,6 +42,12 @@ import Tags from 'sentry/views/discover/tags';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
+import Filter, {
+  decodeFilterFromLocation,
+  filterToField,
+  filterToSearchConditions,
+  SpanOperationBreakdownFilter,
+} from 'sentry/views/performance/transactionSummary/filter';
 import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
 import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
 import {EAPSidebarCharts} from 'sentry/views/performance/transactionSummary/transactionOverview/eapSidebarCharts';
@@ -50,14 +56,6 @@ import {
   makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
-
-import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../../utils';
-import Filter, {
-  decodeFilterFromLocation,
-  filterToField,
-  filterToSearchConditions,
-  SpanOperationBreakdownFilter,
-} from '../filter';
 import {
   generateProfileLink,
   generateReplayLink,
@@ -66,7 +64,11 @@ import {
   normalizeSearchConditions,
   SidebarSpacer,
   TransactionFilterOptions,
-} from '../utils';
+} from 'sentry/views/performance/transactionSummary/utils';
+import {
+  isSummaryViewFrontend,
+  isSummaryViewFrontendPageLoad,
+} from 'sentry/views/performance/utils';
 
 import TransactionSummaryCharts from './charts';
 import {PerformanceAtScaleContextProvider} from './performanceAtScaleContext';

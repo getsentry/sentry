@@ -43,7 +43,7 @@ export function useConfigureSdk({
         return;
       }
 
-      const createProjectForPlatform: OnboardingSelectedSDK | undefined = projects.find(
+      const createProjectForPlatform: OnboardingSelectedSDK | undefined = projects.some(
         p => p.slug === selectedPlatform.key
       )
         ? undefined

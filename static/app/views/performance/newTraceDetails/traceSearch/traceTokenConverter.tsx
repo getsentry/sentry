@@ -3,8 +3,7 @@ import {
   parseSearch,
   type SearchConfig,
 } from 'sentry/components/searchSyntax/parser';
-
-import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 // Span keys
 type TransactionPrefix = 'Transaction';

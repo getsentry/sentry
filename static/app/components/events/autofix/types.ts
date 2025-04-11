@@ -175,6 +175,7 @@ export type AutofixCodebaseChange = {
 export interface AutofixChangesStep extends BaseStep {
   changes: AutofixCodebaseChange[];
   type: AutofixStepType.CHANGES;
+  termination_reason?: string;
 }
 
 export type AutofixRelevantCodeFile = {

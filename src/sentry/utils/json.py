@@ -5,7 +5,7 @@ from __future__ import annotations
 import datetime
 import decimal
 import uuid
-from collections.abc import Callable, Collection, Generator, Mapping
+from collections.abc import Generator, Mapping
 from enum import Enum
 from typing import IO, Any, NoReturn, TypeVar, overload
 
@@ -165,37 +165,6 @@ def prune_empty_keys(obj: Mapping[TKey, TValue | None] | None) -> dict[TKey, TVa
     return {k: v for k, v in obj.items() if v is not None}
 
 
-def apply_key_filter(
-    obj: Mapping[TKey, TValue],
-    *,
-    keep_keys: Collection[TKey] | None = None,
-    key_filter: Callable[[TKey], bool] | None = None,
-) -> dict[TKey, TValue]:
-    """
-    A version of the built-in `filter` function which works on dictionaries, returning a (filtered)
-    shallow copy of the original.
-
-    If `keep_keys` is given, any key-value pair whose key isn't in `keep_keys` will be excluded from
-    the result.
-
-    If a `key_filter` function is given, any key-value pair for which `key_filter(key)` is False
-    will be excluded from the result.
-
-    If both are given, `keep_keys` takes precedence. If neither is given, an unfiltered shallow copy
-    of the original is returned.
-    """
-
-    if keep_keys:
-        key_filter = lambda key: key in keep_keys
-    elif not keep_keys and not key_filter:
-        key_filter = lambda _key: True
-
-    # `key_filter` can't be None by now, but mypy still thinks it might
-    assert key_filter
-
-    return {key: obj[key] for key in obj if key_filter(key)}
-
-
 __all__ = (
     "JSONDecodeError",
     "JSONEncoder",
@@ -205,5 +174,4 @@ __all__ = (
     "load",
     "loads",
     "prune_empty_keys",
-    "apply_key_filter",
 )

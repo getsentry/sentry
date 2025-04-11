@@ -25,7 +25,7 @@ export default function CrashFreeSessionsChart() {
       )}
       height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
-        'The percent of sessions terminating without a crash. See [link:session status].',
+        'The percent of sessions terminating without a crash. See [link:session status]. The 5 most adopted releases are shown.',
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/product/releases/health/#session-status" />

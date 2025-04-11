@@ -718,7 +718,10 @@ class SearchResolver:
         if column in self.definitions.contexts:
             column_context = self.definitions.contexts[column]
             column_definition = ResolvedAttribute(
-                public_alias=column, internal_name=column, search_type="string"
+                public_alias=column,
+                internal_name=column,
+                search_type="string",
+                processor=column_context.processor,
             )
         elif column in self.definitions.columns:
             column_context = None

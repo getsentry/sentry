@@ -48,9 +48,8 @@ def generate_rule_for_code_mapping(code_mapping: CodeMapping) -> str:
     if stacktrace_root == "":
         raise ValueError("Stacktrace root is empty")
 
-    parts = stacktrace_root.rstrip("/").split("/", 2)
-    # We only want the first two parts
-    module = ".".join(parts[:2])
+    parts = stacktrace_root.rstrip("/").split("/")
+    module = ".".join(parts)
 
     if module == "":
         raise ValueError("Module is empty")
@@ -58,5 +57,6 @@ def generate_rule_for_code_mapping(code_mapping: CodeMapping) -> str:
     # a/ -> a.**
     # x/y/ -> x.y.**
     # com/example/foo/bar/ -> com.example.**
-    # uk/co/example/foo/bar/ -> uk.co.**
+    # We add an extra level of granularity
+    # uk/co/example/foo/bar/ -> uk.co.example.**
     return f"stack.module:{module}.** +app"

@@ -45,12 +45,11 @@ import {appendTagCondition, decodeScalar} from 'sentry/utils/queryString';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import TraceDetailsRouting from 'sentry/views/performance/traceDetails/TraceDetailsRouting';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-
-import TraceDetailsRouting from '../traceDetails/TraceDetailsRouting';
-import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
-import {getSelectedProjectPlatforms} from '../utils';
 
 import EventMetas from './eventMetas';
 import FinishSetupAlert from './finishSetupAlert';

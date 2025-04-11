@@ -17,8 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-
-import {removeTracingKeysFromSearch} from '../../utils';
+import {removeTracingKeysFromSearch} from 'sentry/views/performance/utils';
 
 type Props = {
   location: Location;

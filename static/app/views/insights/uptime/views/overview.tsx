@@ -39,9 +39,12 @@ import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageH
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
-
-import {MODULE_DESCRIPTION, MODULE_DOC_LINK, MODULE_TITLE} from '../../uptime/settings';
-import {OverviewTimeline} from '../components/overviewTimeline';
+import {OverviewTimeline} from 'sentry/views/insights/uptime/components/overviewTimeline';
+import {
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
+  MODULE_TITLE,
+} from 'sentry/views/insights/uptime/settings';
 
 export default function UptimeOverview() {
   const organization = useOrganization();

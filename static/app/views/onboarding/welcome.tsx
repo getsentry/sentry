@@ -165,7 +165,7 @@ const ActionItem = styled(motion.div)`
   padding: ${space(2)};
   margin-bottom: ${space(2)};
   justify-content: space-around;
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: grid;
     grid-template-columns: 125px auto 125px;

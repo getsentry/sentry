@@ -55,7 +55,6 @@ class Topic(Enum):
     MONITORS_INCIDENT_OCCURRENCES = "monitors-incident-occurrences"
     UPTIME_RESULTS = "uptime-results"
     SNUBA_UPTIME_RESULTS = "snuba-uptime-results"
-    UPTIME_CONFIGS = "uptime-configs"
     EVENTSTREAM_GENERIC = "generic-events"
     GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
     GROUP_ATTRIBUTES = "group-attributes"

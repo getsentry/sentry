@@ -40,10 +40,9 @@ import Tags from 'sentry/views/discover/tags';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {BrowserDisplay} from 'sentry/views/performance/transactionDetails/eventMetas';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-
-import {BrowserDisplay} from '../transactionDetails/eventMetas';
 
 import NewTraceView from './newTraceDetailsTraceView';
 import TraceNotFound from './traceNotFound';

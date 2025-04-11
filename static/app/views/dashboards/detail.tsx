@@ -68,11 +68,10 @@ import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetB
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {DATA_SET_TO_WIDGET_TYPE} from 'sentry/views/dashboards/widgetBuilder/widgetBuilder';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import {generatePerformanceEventView} from 'sentry/views/performance/data';
+import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
-
-import {generatePerformanceEventView} from '../performance/data';
-import {MetricsDataSwitcher} from '../performance/landing/metricsDataSwitcher';
-import {DiscoverQueryPageSource} from '../performance/utils';
+import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 
 import type {WidgetViewerContextProps} from './widgetViewer/widgetViewerContext';
 import {WidgetViewerContext} from './widgetViewer/widgetViewerContext';

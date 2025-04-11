@@ -25,8 +25,7 @@ import {
   computeBuckets,
   formatHistogramData,
 } from 'sentry/utils/performance/histogram/utils';
-
-import {DoubleHeaderContainer} from '../../styles';
+import {DoubleHeaderContainer} from 'sentry/views/performance/styles';
 
 import {getFieldOrBackup} from './utils';
 

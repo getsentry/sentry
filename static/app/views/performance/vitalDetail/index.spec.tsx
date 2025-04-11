@@ -301,7 +301,7 @@ describe('Performance > VitalDetail', function () {
     ).toBeInTheDocument();
 
     await userEvent.click(
-      screen.getByLabelText('See transaction summary of the transaction something')
+      await screen.findByLabelText('See transaction summary of the transaction something')
     );
 
     expect(newRouter.push).toHaveBeenCalledWith({

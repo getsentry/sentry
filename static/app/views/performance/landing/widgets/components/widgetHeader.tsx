@@ -6,12 +6,11 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
 import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
-
 import type {
   GenericPerformanceWidgetProps,
   WidgetDataConstraint,
   WidgetDataProps,
-} from '../types';
+} from 'sentry/views/performance/landing/widgets/types';
 
 export function WidgetHeader<T extends WidgetDataConstraint>(
   props: GenericPerformanceWidgetProps<T> & WidgetDataProps<T>

@@ -3,6 +3,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import EventView from 'sentry/utils/discover/eventView';
 
@@ -34,11 +35,12 @@ describe('FieldRenderer tests', function () {
 
   beforeAll(() => {
     const mockTimestamp = new Date('2024-10-06T00:00:00').getTime();
-    jest.spyOn(global.Date, 'now').mockImplementation(() => mockTimestamp);
+    setMockDate(mockTimestamp);
   });
 
   afterAll(() => {
     jest.restoreAllMocks();
+    resetMockDate();
   });
 
   it('renders span.op', function () {

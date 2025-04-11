@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -246,7 +246,9 @@ describe('spansWidgetQueries', () => {
     );
 
     // Best effort data is eventually returned
-    expect(await screen.findByText('400')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('400')).toBeInTheDocument();
+    });
 
     expect(rerenderedPreflightMock).toHaveBeenCalledTimes(1);
     expect(rerenderedBestEffortMock).toHaveBeenCalledTimes(1);
@@ -314,7 +316,9 @@ describe('spansWidgetQueries', () => {
     );
 
     // Best effort data is eventually returned
-    expect(await screen.findByText('best effort')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('best effort')).toBeInTheDocument();
+    });
 
     expect(preflightMock).toHaveBeenCalledTimes(1);
     expect(bestEffortMock).toHaveBeenCalledTimes(1);

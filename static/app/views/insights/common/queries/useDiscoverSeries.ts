@@ -11,7 +11,9 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
+import {DEFAULT_SAMPLING_MODE} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   getRetryDelay,
   shouldRetryHandler,
@@ -40,7 +42,9 @@ interface UseMetricsSeriesOptions<Fields> {
   interval?: string;
   overriddenRoute?: string;
   referrer?: string;
-  search?: MutableSearch | string; // TODO: Remove string type and always require MutableSearch
+  samplingMode?: SamplingMode | 'NONE';
+  search?: MutableSearch | string;
+  // TODO: Remove string type and always require MutableSearch
   transformAliasToInputFormat?: boolean;
   yAxis?: Fields;
 }
@@ -106,11 +110,19 @@ const useDiscoverSeries = <T extends string[]>(
   dataset: DiscoverDatasets,
   referrer: string
 ) => {
-  const {search = undefined, yAxis = [], interval = undefined} = options;
+  const {
+    search = undefined,
+    yAxis = [],
+    interval = undefined,
+    samplingMode = DEFAULT_SAMPLING_MODE,
+  } = options;
 
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
+
+  // TODO: remove this check with eap
+  const shouldSetSamplingMode = dataset === DiscoverDatasets.SPANS_EAP_RPC;
 
   const eventView = getSeriesEventView(
     search,
@@ -145,6 +157,8 @@ const useDiscoverSeries = <T extends string[]>(
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
       transformAliasToInputFormat: options.transformAliasToInputFormat ? '1' : '0',
+      sampling:
+        samplingMode === 'NONE' || !shouldSetSamplingMode ? undefined : samplingMode,
     }),
     options: {
       enabled: options.enabled && pageFilters.isReady,

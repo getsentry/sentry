@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 
+import ProcessingItem from 'sentry/components/events/interfaces/debugMeta/processing/item';
+import ProcessingList from 'sentry/components/events/interfaces/debugMeta/processing/list';
 import {space} from 'sentry/styles/space';
 import type {ImageStatus} from 'sentry/types/debugImage';
-
-import ProcessingItem from '../processing/item';
-import ProcessingList from '../processing/list';
 
 import ProcessingIcon from './processingIcon';
 

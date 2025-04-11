@@ -137,7 +137,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         """
         subscription_update: QuerySubscriptionUpdate = {
             "subscription_id": "123",
-            "values": {"foo": 1},
+            "values": {"value": 1},
             "timestamp": datetime.now(UTC),
             "entity": "test-entity",
         }

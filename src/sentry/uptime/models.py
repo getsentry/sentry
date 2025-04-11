@@ -1,4 +1,5 @@
 import enum
+import logging
 from datetime import timedelta
 from typing import ClassVar, Literal, Self, cast
 
@@ -6,7 +7,6 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Count, Q
 from django.db.models.functions import Now
-from sentry_kafka_schemas.schema_types.uptime_configs_v1 import REGIONSCHEDULEMODE_ROUND_ROBIN
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -20,11 +20,18 @@ from sentry.db.models import (
 from sentry.db.models.fields.bounded import BoundedPositiveBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
+from sentry.deletions.base import ModelRelation
 from sentry.models.organization import Organization
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.types.actor import Actor
+from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 from sentry.utils.function_cache import cache_func, cache_func_for_models
 from sentry.utils.json import JSONEncoder
+from sentry.workflow_engine.models.data_source import DataSource
+from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.types import DataSourceTypeHandler
+
+logger = logging.getLogger(__name__)
 
 headers_json_encoder = JSONEncoder(
     separators=(",", ":"),
@@ -280,4 +287,35 @@ def load_regions_for_uptime_subscription(
 
 
 class UptimeRegionScheduleMode(enum.StrEnum):
-    ROUND_ROBIN = REGIONSCHEDULEMODE_ROUND_ROBIN
+    ROUND_ROBIN = "round_robin"
+
+
+@data_source_type_registry.register(DATA_SOURCE_UPTIME_SUBSCRIPTION)
+class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscription]):
+    @staticmethod
+    def bulk_get_query_object(
+        data_sources: list[DataSource],
+    ) -> dict[int, UptimeSubscription | None]:
+        uptime_subscription_ids: list[int] = []
+
+        for ds in data_sources:
+            try:
+                uptime_subscription_id = int(ds.source_id)
+                uptime_subscription_ids.append(uptime_subscription_id)
+            except ValueError:
+                logger.exception(
+                    "Invalid DataSource.source_id fetching UptimeSubscription",
+                    extra={"id": ds.id, "source_id": ds.source_id},
+                )
+
+        qs_lookup = {
+            str(uptime_subscription.id): uptime_subscription
+            for uptime_subscription in UptimeSubscription.objects.filter(
+                id__in=uptime_subscription_ids
+            )
+        }
+        return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
+
+    @staticmethod
+    def related_model(instance) -> list[ModelRelation]:
+        return [ModelRelation(UptimeSubscription, {"id": instance.source_id})]

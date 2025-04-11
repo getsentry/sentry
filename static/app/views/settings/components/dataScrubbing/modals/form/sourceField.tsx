@@ -6,10 +6,12 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-
-import type {SourceSuggestion} from '../../types';
-import {SourceSuggestionType} from '../../types';
-import {binarySuggestions, unarySuggestions} from '../../utils';
+import type {SourceSuggestion} from 'sentry/views/settings/components/dataScrubbing/types';
+import {SourceSuggestionType} from 'sentry/views/settings/components/dataScrubbing/types';
+import {
+  binarySuggestions,
+  unarySuggestions,
+} from 'sentry/views/settings/components/dataScrubbing/utils';
 
 import SourceSuggestionExamples from './sourceSuggestionExamples';
 

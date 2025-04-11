@@ -13,13 +13,21 @@ function IconFocus({isFocused = true, ...props}: Props) {
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
-        <Fragment>
-          <path d="m3.25,6.25v-2c0-.55.45-1,1-1h2" />
-          <path d="m9.75,3.25h2c.55,0,1,.45,1,1v2" />
-          <path d="m12.75,9.75v2c0,.55-.45,1-1,1h-2" />
-          <path d="m6.25,12.75h-2c-.55,0-1-.45-1-1v-2" />
-          <circle cx="8" cy="8" r=".5" />
-        </Fragment>
+        isFocused ? (
+          <Fragment>
+            <path d="m3.25,6.25v-2c0-.55.45-1,1-1h2" />
+            <path d="m9.75,3.25h2c.55,0,1,.45,1,1v2" />
+            <path d="m12.75,9.75v2c0,.55-.45,1-1,1h-2" />
+            <path d="m6.25,12.75h-2c-.55,0-1-.45-1-1v-2" />
+            <circle cx="8" cy="8" r=".5" />
+          </Fragment>
+        ) : (
+          <Fragment>
+            <path d="M9.75,3.25h2c.55,0,1,.45,1,1v2" />
+            <path d="M6.25,12.75h-2c-.55,0-1-.45-1-1v-2" />
+            <line x1="2.81" y1="2.75" x2="13.31" y2="13.25" />
+          </Fragment>
+        )
       ) : isFocused ? (
         <Fragment>
           <path d="M8,15.97C3.6,15.97.03,12.4.03,8S3.6.03,8,.03s7.97,3.58,7.97,7.97-3.58,7.97-7.97,7.97ZM8,1.53c-3.57,0-6.47,2.9-6.47,6.47s2.9,6.47,6.47,6.47,6.47-2.9,6.47-6.47S11.57,1.53,8,1.53Z" />

@@ -2803,14 +2803,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for GroupRelease.get_or_create refactor
-register(
-    "grouprelease.new_get_or_create.rollout",
-    default=0.0,
-    type=Float,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Killswitch for Postgres query timeout error handling
 register(
     "api.postgres-query-timeout-error-handling.enabled",

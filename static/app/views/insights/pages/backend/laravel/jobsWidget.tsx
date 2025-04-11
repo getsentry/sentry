@@ -160,6 +160,7 @@ export function JobsWidget({query}: {query?: string}) {
       Title={<Widget.WidgetTitle title={t('Jobs')} />}
       Visualization={visualization}
       Actions={
+        organization.features.includes('visibility-explore-view') &&
         !isEmpty && (
           <Toolbar
             exploreParams={{

@@ -181,7 +181,7 @@ function ChangePlanAction({
   ) => {
     addLoadingMessage('Updating plan\u2026');
 
-    if (!data.plan || !planList.find(p => p.id === data.plan)) {
+    if (!data.plan || !planList.some(p => p.id === data.plan)) {
       onSubmitError('Plan not found');
       return;
     }

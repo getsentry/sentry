@@ -14,6 +14,7 @@ from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import ForkProcess
 from multiprocessing.synchronize import Event
+from types import FrameType, TracebackType
 from typing import Any
 
 import grpc
@@ -29,6 +30,8 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
     TaskActivationStatus,
 )
+from sentry_sdk.consts import OP, SPANDATA, SPANSTATUS
+from sentry_sdk.crons import MonitorStatus, capture_checkin
 
 from sentry.taskworker.client import TaskworkerClient
 from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER, DEFAULT_WORKER_QUEUE_SIZE
@@ -44,6 +47,10 @@ logger = logging.getLogger("sentry.taskworker.worker")
 AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
 
 
+class ProcessingDeadlineExceeded(Exception):
+    pass
+
+
 @dataclasses.dataclass
 class ProcessingResult:
     """Result structure from child processess to parent"""
@@ -53,7 +60,9 @@ class ProcessingResult:
 
 
 @contextlib.contextmanager
-def timeout_alarm(seconds: int, handler: Callable[[int, object], None]) -> Generator[None]:
+def timeout_alarm(
+    seconds: int, handler: Callable[[int, FrameType | None], None]
+) -> Generator[None]:
     """
     Context manager to handle SIGALRM handlers
 
@@ -104,7 +113,7 @@ def child_worker(
 
     processed_task_count = 0
 
-    def handle_alarm(signum: int, frame: object) -> None:
+    def handle_alarm(signum: int, frame: FrameType | None) -> None:
         """
         Handle SIGALRM
 
@@ -116,6 +125,27 @@ def child_worker(
             processed_tasks.put(
                 ProcessingResult(task_id=current.id, status=TASK_ACTIVATION_STATUS_FAILURE)
             )
+            with sentry_sdk.isolation_scope() as scope:
+                scope.fingerprint = [
+                    "taskworker.processing_deadline_exceeded",
+                    current.namespace,
+                    current.taskname,
+                ]
+                err = ProcessingDeadlineExceeded(
+                    f"execution deadline of {current.processing_deadline_duration} seconds exceeded"
+                )
+                if frame:
+                    trace = TracebackType(None, frame, frame.f_lasti, frame.f_lineno)
+                    while frame.f_back:
+                        trace = TracebackType(
+                            trace, frame.f_back, frame.f_back.f_lasti, frame.f_back.f_lineno
+                        )
+                        frame = frame.f_back
+                    err.with_traceback(trace)
+
+                sentry_sdk.capture_exception(err)
+                sentry_sdk.flush()
+
             metrics.incr(
                 "taskworker.worker.processing_deadline_exceeded",
                 tags={
@@ -123,6 +153,7 @@ def child_worker(
                     "taskname": current.taskname,
                 },
             )
+
         sys.exit(1)
 
     while True:
@@ -182,50 +213,17 @@ def child_worker(
                 next_state = TASK_ACTIVATION_STATUS_RETRY
 
             if next_state != TASK_ACTIVATION_STATUS_RETRY:
-                logger.info(
-                    "taskworker.task.errored", extra={"type": str(err.__class__), "error": str(err)}
-                )
+                sentry_sdk.capture_exception(err)
 
         clear_current_task()
         processed_task_count += 1
 
         # Get completion time before pushing to queue, so we can measure queue append time
         execution_complete_time = time.time()
-        processed_tasks.put(ProcessingResult(task_id=activation.id, status=next_state))
-        metrics.distribution(
-            "taskworker.worker.processed_tasks.put.duration",
-            time.time() - execution_complete_time,
-        )
+        with metrics.timer("taskworker.worker.processed_tasks.put.duration"):
+            processed_tasks.put(ProcessingResult(task_id=activation.id, status=next_state))
 
-        task_added_time = activation.received_at.ToDatetime().timestamp()
-        execution_duration = execution_complete_time - execution_start_time
-        execution_latency = execution_complete_time - task_added_time
-        logger.debug(
-            "taskworker.task_execution",
-            extra={
-                "taskname": activation.taskname,
-                "execution_duration": execution_duration,
-                "execution_latency": execution_latency,
-                "status": next_state,
-            },
-        )
-        metrics.incr(
-            "taskworker.worker.execute_task",
-            tags={
-                "namespace": activation.namespace,
-                "status": next_state,
-            },
-        )
-        metrics.distribution(
-            "taskworker.worker.execution_duration",
-            execution_duration,
-            tags={"namespace": activation.namespace, "taskname": activation.taskname},
-        )
-        metrics.distribution(
-            "taskworker.worker.execution_latency",
-            execution_latency,
-            tags={"namespace": activation.namespace, "taskname": activation.taskname},
-        )
+        record_task_execution(activation, next_state, execution_start_time, execution_complete_time)
 
 
 def _execute_activation(task_func: Task[Any, Any], activation: TaskActivation) -> None:
@@ -237,14 +235,90 @@ def _execute_activation(task_func: Task[Any, Any], activation: TaskActivation) -
 
     transaction = sentry_sdk.continue_trace(
         environ_or_headers=headers,
-        op="task.taskworker",
+        op="queue.task.taskworker",
         name=f"{activation.namespace}:{activation.taskname}",
+        origin="taskworker",
     )
     with (
         track_memory_usage("taskworker.worker.memory_change"),
         sentry_sdk.start_transaction(transaction),
     ):
-        task_func(*args, **kwargs)
+        transaction.set_data(
+            "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
+        )
+        task_added_time = activation.received_at.ToDatetime().timestamp()
+        latency = time.time() - task_added_time
+
+        with sentry_sdk.start_span(
+            op=OP.QUEUE_PROCESS,
+            name=activation.taskname,
+            origin="taskworker",
+        ) as span:
+            span.set_data(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
+            span.set_data(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
+            span.set_data(SPANDATA.MESSAGING_MESSAGE_RECEIVE_LATENCY, latency)
+            span.set_data(SPANDATA.MESSAGING_MESSAGE_RETRY_COUNT, activation.retry_state.attempts)
+            span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
+
+        try:
+            task_func(*args, **kwargs)
+            transaction.set_status(SPANSTATUS.OK)
+        except Exception:
+            transaction.set_status(SPANSTATUS.INTERNAL_ERROR)
+            raise
+
+
+def record_task_execution(
+    activation: TaskActivation,
+    status: TaskActivationStatus.ValueType,
+    start_time: float,
+    completion_time: float,
+) -> None:
+    task_added_time = activation.received_at.ToDatetime().timestamp()
+    execution_duration = completion_time - start_time
+    execution_latency = completion_time - task_added_time
+
+    logger.debug(
+        "taskworker.task_execution",
+        extra={
+            "taskname": activation.taskname,
+            "execution_duration": execution_duration,
+            "execution_latency": execution_latency,
+            "status": status,
+        },
+    )
+    metrics.incr(
+        "taskworker.worker.execute_task",
+        tags={
+            "namespace": activation.namespace,
+            "status": status,
+        },
+    )
+    metrics.distribution(
+        "taskworker.worker.execution_duration",
+        execution_duration,
+        tags={"namespace": activation.namespace, "taskname": activation.taskname},
+    )
+    metrics.distribution(
+        "taskworker.worker.execution_latency",
+        execution_latency,
+        tags={"namespace": activation.namespace, "taskname": activation.taskname},
+    )
+
+    if (
+        "sentry-monitor-check-in-id" in activation.headers
+        and "sentry-monitor-slug" in activation.headers
+    ):
+        monitor_status = MonitorStatus.ERROR
+        if status == TASK_ACTIVATION_STATUS_COMPLETE:
+            monitor_status = MonitorStatus.OK
+
+        capture_checkin(
+            monitor_slug=activation.headers["sentry-monitor-slug"],
+            check_in_id=activation.headers["sentry-monitor-check-in-id"],
+            duration=execution_duration,
+            status=monitor_status,
+        )
 
 
 class TaskWorker:

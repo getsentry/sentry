@@ -13,8 +13,11 @@ import {useMetricsResultsMeta} from 'sentry/utils/performance/contexts/metricsEn
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-
-import {type DashboardFilters, type Widget, WidgetType} from '../types';
+import {
+  type DashboardFilters,
+  type Widget,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import type {

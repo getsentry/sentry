@@ -23,7 +23,7 @@ export function FormSection({title, description, children}: FormSectionProps) {
 }
 
 const Container = styled('section')`
-  background: ${p => p.theme.surface300};
+  background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1.5)} ${space(2)} ${space(1)} ${space(2)};

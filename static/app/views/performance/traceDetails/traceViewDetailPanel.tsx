@@ -63,10 +63,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-
-import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
 import type {EventDetail} from './newTraceDetailsContent';
 import {Row, Tags} from './styles';

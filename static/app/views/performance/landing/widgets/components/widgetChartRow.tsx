@@ -7,10 +7,9 @@ import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {space} from 'sentry/styles/space';
 import type EventView from 'sentry/utils/discover/eventView';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {getChartSetting} from 'sentry/views/performance/landing/widgets/utils';
+import type {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import type {ProjectPerformanceType} from 'sentry/views/performance/utils';
-
-import {getChartSetting} from '../utils';
-import type {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 import WidgetContainer from './widgetContainer';
 

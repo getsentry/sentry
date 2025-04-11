@@ -20,8 +20,7 @@ import {
 import WidgetBuilder, {
   type WidgetBuilderProps,
 } from 'sentry/views/dashboards/widgetBuilder';
-
-import WidgetLegendSelectionState from '../widgetLegendSelectionState';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 const defaultOrgFeatures = [
   'performance-view',

@@ -4,10 +4,9 @@ import type {Organization} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {Dataset, type MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
 import {getDiscoverDataset} from 'sentry/views/alerts/wizard/options';
-
-import {Dataset, type MetricRule} from '../types';
 
 export function getMetricDatasetQueryExtras({
   organization,

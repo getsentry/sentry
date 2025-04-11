@@ -319,7 +319,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team2} />, {router, organization});
 
     expect(
-      (await screen.findAllByRole('button', {name: 'Add Member'})).at(1)
+      (await screen.findAllByRole('button', {name: 'Add Member'})).at(0)
     ).toBeDisabled();
     expect((await screen.findAllByRole('button', {name: 'Remove'})).at(0)).toBeDisabled();
   });
@@ -361,7 +361,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team2} />, {router, organization});
 
     expect(
-      (await screen.findAllByRole('button', {name: 'Add Member'})).at(1)
+      (await screen.findAllByRole('button', {name: 'Add Member'})).at(0)
     ).toBeEnabled();
     expect((await screen.findAllByRole('button', {name: 'Remove'})).at(0)).toBeEnabled();
   });

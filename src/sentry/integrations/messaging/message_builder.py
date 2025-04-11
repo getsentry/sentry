@@ -104,7 +104,7 @@ def fetch_environment_name(rule_env: int) -> str | None:
         return env.name
 
 
-def get_rule_environment_param(
+def get_rule_environment_param_from_rule(
     rule_id: int, rule_environment_id: int | None, organization: Organization
 ) -> dict[str, str]:
     params = {}
@@ -145,7 +145,7 @@ def get_title_link(
     # add in rule id if we have it
     if rule_id:
         other_params.update(
-            get_rule_environment_param(rule_id, rule_environment_id, group.organization)
+            get_rule_environment_param_from_rule(rule_id, rule_environment_id, group.organization)
         )
         # hard code for issue alerts
         other_params["alert_rule_id"] = str(rule_id)
@@ -186,10 +186,48 @@ def get_title_link_workflow_engine_ui(
     issue_details: bool,
     notification: BaseNotification | None,
     provider: ExternalProviders,
-    rule_id: int | None = None,
+    workflow_id: int | None = None,
+    environment_id: int | None = None,
     notification_uuid: str | None = None,
 ) -> str:
-    raise NotImplementedError("Link building for workflow engine UI is not implemented")
+    other_params = {}
+    # add in rule id if we have it
+    if workflow_id:
+        if (
+            environment_id is not None
+            and (environment_name := fetch_environment_name(environment_id)) is not None
+        ):
+            other_params["environment"] = environment_name
+        # hard code for issue alerts
+        other_params["workflow_id"] = str(workflow_id)
+        other_params["alert_type"] = "issue"
+
+    if event and link_to_event:
+        url = group.get_absolute_url(
+            params={"referrer": EXTERNAL_PROVIDERS[provider], **other_params},
+            event_id=event.event_id,
+        )
+
+    elif issue_details and notification:
+        referrer = notification.get_referrer(provider)
+        notification_uuid = notification.notification_uuid
+        url = group.get_absolute_url(
+            params={"referrer": referrer, "notification_uuid": notification_uuid, **other_params}
+        )
+    elif notification_uuid:
+        url = group.get_absolute_url(
+            params={
+                "referrer": EXTERNAL_PROVIDERS[provider],
+                "notification_uuid": notification_uuid,
+                **other_params,
+            }
+        )
+    else:
+        url = group.get_absolute_url(
+            params={"referrer": EXTERNAL_PROVIDERS[provider], **other_params}
+        )
+
+    return url
 
 
 def build_attachment_text(group: Group, event: Event | GroupEvent | None = None) -> Any | None:

@@ -63,10 +63,19 @@ class ActionHandler:
 class DataSourceTypeHandler(Generic[T]):
     @staticmethod
     def bulk_get_query_object(data_sources) -> dict[int, T | None]:
+        """
+        Bulk fetch related data-source models reutrning a dict of the
+        `DataSource.id -> T`.
+        """
         raise NotImplementedError
 
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
+        """
+        A list of deletion ModelRelations. The model relation query should map
+        the source_id field within the related model to the
+        `instance.source_id`.
+        """
         raise NotImplementedError
 
 

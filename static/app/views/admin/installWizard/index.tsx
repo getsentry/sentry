@@ -11,9 +11,8 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
-
-import type {Field} from '../options';
-import {getForm, getOptionDefault, getOptionField} from '../options';
+import type {Field} from 'sentry/views/admin/options';
+import {getForm, getOptionDefault, getOptionField} from 'sentry/views/admin/options';
 
 export type InstallWizardProps = {
   onConfigured: () => void;

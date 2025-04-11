@@ -117,7 +117,7 @@ export const RadioItem = styled('label', {shouldForwardProp})<{
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   outline: none;
   font-weight: ${p => p.theme.fontWeightNormal};
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   margin: 0;
 
   &[aria-checked='true'] {

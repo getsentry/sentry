@@ -56,7 +56,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
 
   const [selectedMonitors, setSelectedMonitors] = useState<Monitor[]>([]);
   const isMonitorSelected = (monitor: Monitor): boolean => {
-    return !!selectedMonitors.find(m => m.slug === monitor.slug);
+    return selectedMonitors.some(m => m.slug === monitor.slug);
   };
 
   const handleSearch = (query: string) => {

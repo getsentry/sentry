@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import useMedia from 'sentry/utils/useMedia';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
-const MIN_WIDTH_PERCENT = 30;
+const MIN_WIDTH_PERCENT = 20;
 const MAX_WIDTH_PERCENT = 85;
 const DEFAULT_WIDTH_PERCENT = 50;
 

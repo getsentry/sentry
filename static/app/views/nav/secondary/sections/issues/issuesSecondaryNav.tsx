@@ -5,7 +5,7 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
-import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import {useFetchStarredGroupSearchViews} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {IssueViewNavItems} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
@@ -15,7 +15,7 @@ export function IssuesSecondaryNav() {
   const organization = useOrganization();
   const sectionRef = useRef<HTMLDivElement>(null);
 
-  const {data: groupSearchViews} = useFetchGroupSearchViews({
+  const {data: starredGroupSearchViews} = useFetchStarredGroupSearchViews({
     orgSlug: organization.slug,
   });
 
@@ -38,9 +38,9 @@ export function IssuesSecondaryNav() {
             {t('Feedback')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        {groupSearchViews && (
+        {starredGroupSearchViews && (
           <IssueViewNavItems
-            loadedViews={groupSearchViews.map(
+            loadedViews={starredGroupSearchViews.map(
               (
                 {
                   id,

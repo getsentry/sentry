@@ -1,12 +1,11 @@
-import {useLocation} from 'sentry/utils/useLocation';
 import {
   DEFAULT_EAP_QUERY_FILTER,
   DEFAULT_QUERY_FILTER,
 } from 'sentry/views/insights/browser/webVitals/settings';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 
 export const useDefaultWebVitalsQuery = () => {
-  const location = useLocation();
-  const useEap = location.query?.useEap === '1';
+  const useEap = useInsightsEap();
 
   if (useEap) {
     return DEFAULT_EAP_QUERY_FILTER;

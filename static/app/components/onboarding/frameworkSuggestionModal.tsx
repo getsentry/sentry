@@ -356,7 +356,7 @@ const TopFrameworkIcon = styled(PlatformIcon, {
   position: absolute;
   top: 50%;
   left: 50%;
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 const TopFrameworksImageWrapper = styled('div')`

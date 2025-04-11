@@ -33,14 +33,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {isMissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
-
-import {isMissingInstrumentationNode} from '../../../traceGuards';
-import type {MissingInstrumentationNode} from '../../../traceModels/missingInstrumentationNode';
-import {TraceTree} from '../../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
-import {useHasTraceNewUi} from '../../../useHasTraceNewUi';
 
 interface SpanProfileProps {
   event: Readonly<EventTransaction>;

@@ -22,7 +22,7 @@ ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
 HALF_DAY = timedelta(hours=12)
 
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
-MAX_FILE_SIZE = 2**31  # 2GB is the maximum offset supported by fileblob
+MAX_FILE_SIZE = 2**32  # 4GB is the maximum size/offset supported by `File/Blob/Index`
 
 
 class nooplogger:

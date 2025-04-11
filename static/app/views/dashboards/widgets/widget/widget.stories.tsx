@@ -7,10 +7,9 @@ import {Button} from 'sentry/components/core/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
-
-import {sampleDurationTimeSeries} from '../timeSeriesWidget/fixtures/sampleDurationTimeSeries';
-import {Line} from '../timeSeriesWidget/plottables/line';
-import {TimeSeriesWidgetVisualization} from '../timeSeriesWidget/timeSeriesWidgetVisualization';
+import {sampleDurationTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 import {Widget} from './widget';
 

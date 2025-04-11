@@ -5,11 +5,10 @@ import {Button} from 'sentry/components/core/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
-
-import {sampleDurationTimeSeries} from '../widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
-import {sampleThroughputTimeSeries} from '../widgets/timeSeriesWidget/fixtures/sampleThroughputTimeSeries';
-import {Line} from '../widgets/timeSeriesWidget/plottables/line';
-import {TimeSeriesWidgetVisualization} from '../widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {sampleDurationTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
+import {sampleThroughputTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/fixtures/sampleThroughputTimeSeries';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 import {WidgetSyncContextProvider} from './widgetSyncContext';
 

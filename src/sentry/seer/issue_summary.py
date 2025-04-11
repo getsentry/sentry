@@ -24,6 +24,7 @@ from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
@@ -46,11 +47,10 @@ def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, aut
             logger.warning("_trigger_autofix_task.group_not_found", extra={"group_id": group_id})
             return
 
-        user: User | AnonymousUser | None = None
+        user: User | AnonymousUser | RpcUser | None = None
         if user_id:
-            try:
-                user = User.objects.get(id=user_id)
-            except User.DoesNotExist:
+            user = user_service.get_user(user_id=user_id)
+            if user is None:
                 logger.warning(
                     "_trigger_autofix_task.user_not_found",
                     extra={"group_id": group_id, "user_id": user_id},

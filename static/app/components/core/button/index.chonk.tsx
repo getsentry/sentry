@@ -192,7 +192,7 @@ export function getChonkButtonStyles(
           }),
         }),
 
-    // Borderdless buttons are not chonky
+    // Borderless buttons are not chonky
     ...((p.borderless || type === 'transparent' || type === 'link') && {
       border: 'none',
 

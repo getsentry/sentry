@@ -1,5 +1,3 @@
-import pytest
-
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseDataConditionGroupValidator
 from sentry.workflow_engine.models import Condition, DataConditionGroup
@@ -37,12 +35,58 @@ class TestBaseDataConditionGroupValidator(TestCase):
 
         assert validator.is_valid() is True
 
-    @pytest.mark.skip(reason="Disabling this test to address in a future PR")
     def test_conditions__invalid_condition(self):
-        self.valid_data["conditions"] = [
-            {
-                "comparison": 0,
-            }
-        ]
+        self.valid_data["conditions"] = [{"comparison": 0}]
         validator = BaseDataConditionGroupValidator(data=self.valid_data)
         assert validator.is_valid() is False
+
+    def test_conditions__custom_handler__invalid_to_schema(self):
+        self.valid_data["conditions"] = [
+            {
+                "type": Condition.AGE_COMPARISON,
+                "comparison": {
+                    "comparison_type": "older",
+                    "value": 1,
+                    "time": "days",  # Invalid
+                },
+                "conditionResult": True,
+                "conditionGroupId": 1,
+            }
+        ]
+
+        validator = BaseDataConditionGroupValidator(data=self.valid_data)
+        assert validator.is_valid() is False
+
+    def test_conditions__custom_handler__invalid__missing_group_id(self):
+        self.valid_data["conditions"] = [
+            {
+                "type": Condition.AGE_COMPARISON,
+                "comparison": {
+                    "comparison_type": "older",
+                    "value": 1,
+                    "time": "day",
+                },
+                "conditionResult": True,
+                # conditionGroupId missing
+            }
+        ]
+
+        validator = BaseDataConditionGroupValidator(data=self.valid_data)
+        assert validator.is_valid() is False
+
+    def test_conditions__custom_handler(self):
+        self.valid_data["conditions"] = [
+            {
+                "type": Condition.AGE_COMPARISON,
+                "comparison": {
+                    "comparison_type": "older",
+                    "value": 1,
+                    "time": "day",
+                },
+                "conditionResult": True,
+                "conditionGroupId": 1,
+            }
+        ]
+
+        validator = BaseDataConditionGroupValidator(data=self.valid_data)
+        assert validator.is_valid() is True

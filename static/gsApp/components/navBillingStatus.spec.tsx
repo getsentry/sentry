@@ -13,6 +13,10 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
 describe('PrimaryNavigationQuotaExceeded', function () {
   const organization = OrganizationFixture();
+  const subscription = SubscriptionFixture({
+    organization,
+    plan: 'am3_business',
+  });
   let promptMock: jest.Mock;
   let requestUpgradeMock: jest.Mock;
   let customerPutMock: jest.Mock;
@@ -20,13 +24,11 @@ describe('PrimaryNavigationQuotaExceeded', function () {
   beforeEach(() => {
     organization.access = [];
     MockApiClient.clearMockResponses();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_business',
-    });
     subscription.categories.errors!.usageExceeded = true;
     subscription.categories.replays!.usageExceeded = true;
     subscription.categories.spans!.usageExceeded = true;
+    subscription.categories.monitorSeats!.usageExceeded = true;
+    subscription.categories.profileDuration!.usageExceeded = true;
     SubscriptionStore.set(organization.slug, subscription);
     ConfigStore.set(
       'user',
@@ -91,12 +93,47 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     // open the alert
     await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
     expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
+    // doesn't show categories with <1 reserved tier and no PAYG
     expect(
       screen.getByText(
         /You’ve run out of errors, replays, and spans for this billing cycle./
       )
     ).toBeInTheDocument();
+    expect(screen.queryByText(/cron monitors/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/continuous profile hours/)).not.toBeInTheDocument();
     expect(screen.getByRole('checkbox')).not.toBeChecked();
+  });
+
+  it('should render PAYG categories when there is PAYG', async function () {
+    subscription.onDemandMaxSpend = 100;
+    SubscriptionStore.set(organization.slug, subscription);
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+    // open the alert
+    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+    expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /You’ve run out of errors, replays, spans, cron monitors, and continuous profile hours for this billing cycle./
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
+
+    // reset
+    subscription.onDemandMaxSpend = 0;
+  });
+
+  it('should not render for managed orgs', function () {
+    subscription.canSelfServe = false;
+    SubscriptionStore.set(organization.slug, subscription);
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(
+      screen.queryByRole('button', {name: 'Billing Status'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Quota Exceeded')).not.toBeInTheDocument();
+
+    // reset
+    subscription.canSelfServe = true;
   });
 
   it('should update prompts when checkbox is toggled', async function () {

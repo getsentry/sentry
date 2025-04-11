@@ -47,12 +47,22 @@ export function getTourTask(
   guide: string
 ): {task: OnboardingTaskKey; tour: string} | undefined {
   switch (guide) {
+    case 'sidebar':
+      return {tour: 'tabs', task: OnboardingTaskKey.SIDEBAR_GUIDE};
+    // TODO(ogi): Remove this once we merge the new sidebar tour
     case 'sidebar_v2':
       return {tour: 'tabs', task: OnboardingTaskKey.SIDEBAR_GUIDE};
+    case 'issues':
+      return {tour: 'issues', task: OnboardingTaskKey.ISSUE_GUIDE};
+    // TODO(ogi): Remove this once we merge the new issues tour
     case 'issues_v3':
       return {tour: 'issues', task: OnboardingTaskKey.ISSUE_GUIDE};
+    case 'releases':
+      return {tour: 'releases', task: OnboardingTaskKey.RELEASE_GUIDE};
+    // TODO(ogi): Remove this once we merge the new releases tour
     case 'release-details_v2':
       return {tour: 'releases', task: OnboardingTaskKey.RELEASE_GUIDE};
+
     case 'performance':
       return {tour: 'performance', task: OnboardingTaskKey.PERFORMANCE_GUIDE};
     default:

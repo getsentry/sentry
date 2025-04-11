@@ -8,10 +8,17 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import type {EventId, KeysOfUnion, Rule, SourceSuggestion} from '../../types';
-import {MethodType, RuleType} from '../../types';
-import {getMethodLabel, getRuleLabel} from '../../utils';
+import type {
+  EventId,
+  KeysOfUnion,
+  Rule,
+  SourceSuggestion,
+} from 'sentry/views/settings/components/dataScrubbing/types';
+import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
+import {
+  getMethodLabel,
+  getRuleLabel,
+} from 'sentry/views/settings/components/dataScrubbing/utils';
 
 import EventIdField from './eventIdField';
 import SelectField from './selectField';

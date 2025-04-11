@@ -3,9 +3,12 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.workflow_engine.models import DataConditionGroup
+from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFireHistory
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
-from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
+from sentry.workflow_engine.processors.action import (
+    filter_recently_fired_workflow_actions,
+    update_workflow_fire_histories,
+)
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -36,7 +39,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         status_2 = ActionGroupStatus.objects.create(action=action, group=self.group)
 
         triggered_actions = filter_recently_fired_workflow_actions(
-            set(DataConditionGroup.objects.all()), self.group
+            set(DataConditionGroup.objects.all()), self.event_data
         )
         assert set(triggered_actions) == {self.action}
 
@@ -58,10 +61,32 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         status_3.update(date_updated=timezone.now() - timedelta(days=2))
 
         triggered_actions = filter_recently_fired_workflow_actions(
-            set(DataConditionGroup.objects.all()), self.group
+            set(DataConditionGroup.objects.all()), self.event_data
         )
         assert set(triggered_actions) == {self.action, action_3}
 
         for status in [status_1, status_2, status_3]:
             status.refresh_from_db()
             assert status.date_updated == timezone.now()
+
+    def test_update_workflow_fire_histories(self):
+        WorkflowFireHistory.objects.create(
+            workflow=self.workflow,
+            group=self.group,
+            event_id=self.group_event.event_id,
+            has_fired_actions=False,
+        )
+
+        actions = Action.objects.all()
+        assert actions.count() == 1
+
+        update_workflow_fire_histories(actions, self.event_data)
+        assert (
+            WorkflowFireHistory.objects.filter(
+                workflow=self.workflow,
+                group=self.group,
+                event_id=self.group_event.event_id,
+                has_fired_actions=True,
+            ).count()
+            == 1
+        )

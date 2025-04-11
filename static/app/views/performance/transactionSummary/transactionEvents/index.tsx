@@ -20,16 +20,18 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
-
 import {
   decodeFilterFromLocation,
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
-} from '../filter';
-import type {ChildProps} from '../pageLayout';
-import PageLayout from '../pageLayout';
-import Tab from '../tabs';
-import {ZOOM_END, ZOOM_START} from '../transactionOverview/latencyChart/utils';
+} from 'sentry/views/performance/transactionSummary/filter';
+import type {ChildProps} from 'sentry/views/performance/transactionSummary/pageLayout';
+import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import {
+  ZOOM_END,
+  ZOOM_START,
+} from 'sentry/views/performance/transactionSummary/transactionOverview/latencyChart/utils';
 
 import EventsContent from './content';
 import {

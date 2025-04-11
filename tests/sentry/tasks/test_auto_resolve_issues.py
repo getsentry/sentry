@@ -9,8 +9,10 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.tasks.auto_resolve_issues import schedule_auto_resolution
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class ScheduleAutoResolutionTest(TestCase):
@@ -22,6 +24,7 @@ class ScheduleAutoResolutionTest(TestCase):
     @patch("sentry.analytics.record")
     @patch("sentry.tasks.auto_ongoing_issues.backend")
     @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
+    @with_feature("organizations:issue-open-periods")
     def test_simple(self, mock_kick_off_status_syncs, mock_backend, mock_record):
         project = self.create_project()
         project2 = self.create_project()
@@ -40,16 +43,19 @@ class ScheduleAutoResolutionTest(TestCase):
             status=GroupStatus.UNRESOLVED,
             last_seen=timezone.now() - timedelta(days=1),
         )
+        assert GroupOpenPeriod.objects.get(group=group1).date_ended is None
 
         group2 = self.create_group(
             project=project, status=GroupStatus.UNRESOLVED, last_seen=timezone.now()
         )
+        assert GroupOpenPeriod.objects.get(group=group2).date_ended is None
 
         group3 = self.create_group(
             project=project3,
             status=GroupStatus.UNRESOLVED,
             last_seen=timezone.now() - timedelta(days=1),
         )
+        assert GroupOpenPeriod.objects.get(group=group3).date_ended is None
 
         mock_backend.get_size.return_value = 0
 
@@ -57,10 +63,13 @@ class ScheduleAutoResolutionTest(TestCase):
             schedule_auto_resolution()
 
         assert Group.objects.get(id=group1.id).status == GroupStatus.RESOLVED
+        assert GroupOpenPeriod.objects.get(group=group1).date_ended is not None
 
         assert Group.objects.get(id=group2.id).status == GroupStatus.UNRESOLVED
+        assert GroupOpenPeriod.objects.get(group=group2).date_ended is None
 
         assert Group.objects.get(id=group3.id).status == GroupStatus.UNRESOLVED
+        assert GroupOpenPeriod.objects.get(group=group3).date_ended is None
 
         mock_kick_off_status_syncs.apply_async.assert_called_once_with(
             kwargs={"project_id": group1.project_id, "group_id": group1.id}

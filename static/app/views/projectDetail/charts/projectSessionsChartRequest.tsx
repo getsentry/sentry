@@ -22,9 +22,8 @@ import {
   getSessionsInterval,
   initSessionsChart,
 } from 'sentry/utils/sessions';
+import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';
 import {getCrashFreePercent} from 'sentry/views/releases/utils';
-
-import {DisplayModes} from '../projectCharts';
 
 const omitIgnoredProps = (props: ProjectSessionsChartRequestProps) =>
   omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);

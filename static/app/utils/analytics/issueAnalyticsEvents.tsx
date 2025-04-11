@@ -303,6 +303,9 @@ export type IssueEventParameters = {
     query: string;
   };
   'issue_views.switched_views': Record<string, unknown>;
+  'issue_views.table.sort_changed': {
+    sort: string;
+  };
   'issue_views.temp_view_discarded': Record<string, unknown>;
   'issue_views.temp_view_saved': Record<string, unknown>;
   'issues_stream.archived': {
@@ -479,6 +482,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.temp_view_discarded': 'Issue Views: Temporary View Discarded',
   'issue_views.temp_view_saved': 'Issue Views: Temporary View Saved',
   'issue_views.page_filters_logged': 'Issue Views: Page Filters Logged',
+  'issue_views.table.sort_changed': 'Issue Views: Changed Sort',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',

@@ -8,11 +8,12 @@ import type {
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import * as useApi from 'sentry/utils/useApi';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-
-import type {TraceTree} from '../traceModels/traceTree';
-import {makeTraceError, makeTransaction} from '../traceModels/traceTreeTestUtils';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {
+  makeTraceError,
+  makeTransaction,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 import type {TraceMetaQueryResults} from './useTraceMeta';
 import {useTraceTree} from './useTraceTree';
@@ -41,12 +42,6 @@ const contextWrapper = (org: Organization) => {
 };
 
 describe('useTraceTree', () => {
-  beforeEach(function () {
-    jest.restoreAllMocks();
-    const api = new MockApiClient();
-    jest.spyOn(useApi, 'default').mockReturnValue(api);
-  });
-
   it('returns tree for error case', async () => {
     const {result} = renderHook(
       () =>

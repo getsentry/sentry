@@ -17,6 +17,7 @@ import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/modu
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
@@ -27,8 +28,6 @@ import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {DESTINATION_TITLE} from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
-
-import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
 
 function DestinationSummaryPage() {
   const organization = useOrganization();

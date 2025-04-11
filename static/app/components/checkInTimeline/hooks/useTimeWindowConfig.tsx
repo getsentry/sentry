@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {getConfigFromTimeRange} from '../utils/getConfigFromTimeRange';
+import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 
 import {usePageFilterDates} from './useMonitorDates';
 

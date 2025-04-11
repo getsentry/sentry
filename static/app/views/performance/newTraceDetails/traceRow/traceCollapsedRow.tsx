@@ -5,11 +5,10 @@ import {
   isCollapsedNode,
   isTraceErrorNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {CollapsedNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceCollapsedNode';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-
-import type {CollapsedNode} from '../traceModels/traceCollapsedNode';
-import {TraceTree} from '../traceModels/traceTree';
-import type {TraceRowProps} from '../traceRow/traceRow';
+import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 export function TraceCollapsedRow(props: TraceRowProps<CollapsedNode>) {
   const stats = useMemo(() => {

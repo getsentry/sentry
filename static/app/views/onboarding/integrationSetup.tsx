@@ -12,6 +12,7 @@ import type {
   BasePlatformOptions,
   DocsParams,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {
   PlatformOptionsControl,
@@ -80,6 +81,9 @@ function IntegrationSetup({project, integrationSlug, platform}: Props) {
     projSlug: project.slug,
     platform,
   });
+
+  const {isPending: isLoadingRegistry, data: registryData} =
+    useSourcePackageRegistries(organization);
 
   const selectedPlatformOptions = useUrlPlatformOptions(docsConfig?.platformOptions);
 
@@ -234,8 +238,8 @@ function IntegrationSetup({project, integrationSlug, platform}: Props) {
     isSelfHosted,
     platformOptions: selectedPlatformOptions,
     sourcePackageRegistries: {
-      isLoading: false,
-      data: undefined,
+      isLoading: isLoadingRegistry,
+      data: registryData,
     },
     urlPrefix,
   };

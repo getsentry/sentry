@@ -29,7 +29,7 @@ from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import translate_internal_to_public_alias
+from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
@@ -161,7 +161,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 [
                     as_attribute_key(attribute.name, serialized["attribute_type"], trace_item_type)
                     for attribute in rpc_response.attributes
-                    if attribute.name
+                    if attribute.name and can_expose_attribute(attribute.name, trace_item_type)
                 ],
             ],
             max_limit=max_attributes,

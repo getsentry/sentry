@@ -3,6 +3,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import ArchiveActions from 'sentry/components/actions/archive';
@@ -11,7 +12,7 @@ import {GroupStatus} from 'sentry/types/group';
 describe('ArchiveActions', () => {
   const onUpdate = jest.fn();
   afterEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   it('archives the issue', async () => {
@@ -59,13 +60,15 @@ describe('ArchiveActions', () => {
     });
   });
 
-  it('disables button and dropdown', () => {
+  it('disables button and dropdown', async () => {
     render(<ArchiveActions onUpdate={onUpdate} disabled />);
     expect(screen.getByRole('button', {name: 'Archive'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Archive options'})).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
+    expect(onUpdate).not.toHaveBeenCalled();
   });
 
-  it('has ignore actions', async () => {
+  it('archives until a custom date/time', async () => {
     render(<ArchiveActions onUpdate={onUpdate} />);
     await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'For\u2026'}));
@@ -102,5 +105,69 @@ describe('ArchiveActions', () => {
         name: 'Until this affects an additional\u2026',
       })
     ).not.toBeInTheDocument();
+  });
+
+  it('displays unarchive button', async function () {
+    render(<ArchiveActions onUpdate={onUpdate} isArchived />);
+    const button = screen.getByRole('button', {name: 'Unarchive'});
+    expect(button).toBeInTheDocument();
+    // Shows icon only
+    expect(button).toHaveTextContent('');
+
+    await userEvent.click(button);
+    expect(onUpdate).toHaveBeenCalledWith({
+      status: 'unresolved',
+      statusDetails: {},
+      substatus: 'ongoing',
+    });
+  });
+
+  it('displays confirmation modal with message provided', async function () {
+    render(
+      <ArchiveActions
+        onUpdate={onUpdate}
+        shouldConfirm
+        confirmMessage={() => 'confirm me'}
+      />
+    );
+    renderGlobalModal();
+    const button = screen.getByRole('button', {name: 'Archive'});
+    await userEvent.click(button);
+
+    expect(screen.getByText('confirm me')).toBeInTheDocument();
+    expect(onUpdate).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByTestId('confirm-button'));
+
+    expect(onUpdate).toHaveBeenCalled();
+  });
+
+  it('can archive until a custom date/time', async function () {
+    render(
+      <ArchiveActions
+        onUpdate={onUpdate}
+        shouldConfirm
+        confirmMessage={() => 'confirm me'}
+      />
+    );
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'For…'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: /Custom/}));
+
+    // opens modal
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: 'Archive'})
+    );
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      status: 'ignored',
+      statusDetails: {
+        ignoreDuration: expect.any(Number),
+      },
+      substatus: 'archived_until_condition_met',
+    });
   });
 });

@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-
-import KeyValueList from '../interfaces/keyValueList';
 
 import type {ViewHierarchyWindow} from '.';
 

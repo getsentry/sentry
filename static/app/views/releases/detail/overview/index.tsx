@@ -46,8 +46,12 @@ import {
   platformToPerformanceType,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
+import {
+  getReleaseParams,
+  isReleaseArchived,
+  searchReleaseVersion,
+} from 'sentry/views/releases/utils';
 
-import {getReleaseParams, isReleaseArchived, searchReleaseVersion} from '../../utils';
 import {ReleaseContext} from '..';
 
 import CommitAuthorBreakdown from './sidebar/commitAuthorBreakdown';

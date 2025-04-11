@@ -5,14 +5,25 @@ from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Cast, Coalesce
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.plugins.base import plugins
+from sentry.plugins.bases.notify import NotificationPlugin
+from sentry.rules.actions.services import PluginService
 from sentry.workflow_engine.models import (
     Action,
     ActionGroupStatus,
     DataCondition,
     DataConditionGroup,
+    WorkflowDataConditionGroup,
+    WorkflowFireHistory,
 )
+from sentry.workflow_engine.registry import action_handler_registry
+from sentry.workflow_engine.types import WorkflowEventData
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 
@@ -52,14 +63,34 @@ def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action
     return statuses
 
 
+def update_workflow_fire_histories(
+    actions_to_fire: BaseQuerySet[Action], event_data: WorkflowEventData
+) -> int:
+    # Update WorkflowFireHistory objects for workflows with actions to fire
+    fired_workflows = set(
+        WorkflowDataConditionGroup.objects.filter(
+            condition_group__dataconditiongroupaction__action__in=actions_to_fire
+        ).values_list("workflow_id", flat=True)
+    )
+
+    updated_rows = WorkflowFireHistory.objects.filter(
+        workflow_id__in=fired_workflows,
+        group=event_data.event.group,
+        event_id=event_data.event.event_id,
+    ).update(has_fired_actions=True)
+
+    return updated_rows
+
+
 # TODO(cathy): only reinforce workflow frequency for certain issue types
 def filter_recently_fired_workflow_actions(
-    filtered_action_groups: set[DataConditionGroup], group: Group
+    filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
 ) -> BaseQuerySet[Action]:
     # get the actions for any of the triggered data condition groups
     actions = Action.objects.filter(
         dataconditiongroupaction__condition_group__in=filtered_action_groups
     ).distinct()
+    group = event_data.event.group
 
     now = timezone.now()
     statuses = get_action_last_updated_statuses(now, actions, group)
@@ -84,4 +115,41 @@ def filter_recently_fired_workflow_actions(
     actions_without_statuses_ids = {action.id for action in actions_without_statuses}
     filtered_actions = actions.filter(id__in=actions_to_include | actions_without_statuses_ids)
 
+    update_workflow_fire_histories(filtered_actions, event_data)
+
     return filtered_actions
+
+
+def get_available_action_integrations_for_org(organization: Organization) -> list[RpcIntegration]:
+    providers = [
+        handler.provider_slug
+        for handler in action_handler_registry.registrations.values()
+        if hasattr(handler, "provider_slug")
+    ]
+    return integration_service.get_integrations(
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+        organization_id=organization.id,
+        providers=providers,
+    )
+
+
+def get_notification_plugins_for_org(organization: Organization) -> list[PluginService]:
+    """
+    Get all plugins for an organization.
+    This method returns a deduplicated list of plugins that are enabled for any project in the organization.
+    """
+
+    projects = Project.objects.filter(organization_id=organization.id)
+
+    # Need to use a map to deduplicate plugins by slug because the same plugin can be enabled for multiple projects
+    plugin_map = {}
+
+    for project in projects:
+        for plugin in plugins.for_project(project, version=1):
+            if not isinstance(plugin, NotificationPlugin):
+                continue
+
+            plugin_map[plugin.slug] = PluginService(plugin)
+
+    return list(plugin_map.values())

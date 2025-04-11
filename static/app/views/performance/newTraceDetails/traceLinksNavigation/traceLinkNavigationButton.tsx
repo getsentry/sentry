@@ -15,32 +15,32 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {isEmptyTrace} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
+import {useFindNextTrace} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/useFindNextTrace';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-// Currently, we only support previous but component can be used for 'next trace' in the future
-type ConnectedTraceConnection = 'previous'; // | 'next';
+export type ConnectedTraceConnection = 'previous' | 'next';
 
 const LINKED_TRACE_MAX_DURATION = 3600; // 1h in seconds
 
 function useIsTraceAvailable(
-  traceLink?: SpanLink,
-  previousTraceTimestamp?: number
+  traceID?: SpanLink['trace_id'],
+  linkedTraceTimestamp?: number
 ): {
   isAvailable: boolean;
   isLoading: boolean;
 } {
   const trace = useTrace({
-    traceSlug: traceLink?.trace_id,
-    timestamp: previousTraceTimestamp,
+    traceSlug: traceID,
+    timestamp: linkedTraceTimestamp,
   });
 
   const isAvailable = useMemo(() => {
-    if (!traceLink) {
+    if (!traceID) {
       return false;
     }
 
     return Boolean(trace.data && !isEmptyTrace(trace.data));
-  }, [traceLink, trace]);
+  }, [traceID, trace]);
 
   return {
     isAvailable,
@@ -52,6 +52,7 @@ type TraceLinkNavigationButtonProps = {
   currentTraceTimestamps: {end?: number; start?: number};
   direction: ConnectedTraceConnection;
   isLoading?: boolean;
+  projectID?: string;
   traceContext?: TraceContextType;
 };
 
@@ -59,22 +60,31 @@ export function TraceLinkNavigationButton({
   direction,
   traceContext,
   isLoading,
+  projectID,
   currentTraceTimestamps,
 }: TraceLinkNavigationButtonProps) {
   const organization = useOrganization();
   const location = useLocation();
 
-  const traceLink = traceContext?.links?.find(
-    link => link.attributes?.['sentry.link.type'] === `${direction}_trace`
-  );
-
   // We connect traces over a 1h period - As we don't have timestamps of the linked trace, it is calculated based on this timeframe
   const linkedTraceTimestamp =
     direction === 'previous' && currentTraceTimestamps.start
-      ? currentTraceTimestamps.start - LINKED_TRACE_MAX_DURATION // Earliest start times of previous trace
-      : // : direction === 'next' && currentTraceTimestamps.end
-        // ? currentTraceTimestamps.end + LINKED_TRACE_MAX_DURATION
-        undefined;
+      ? currentTraceTimestamps.start - LINKED_TRACE_MAX_DURATION // Earliest start time of previous trace (- 1h)
+      : direction === 'next' && currentTraceTimestamps.end
+        ? currentTraceTimestamps.end + LINKED_TRACE_MAX_DURATION // Latest end time of next trace (+ 1h)
+        : undefined;
+
+  const previousTraceLink = traceContext?.links?.find(
+    link => link.attributes?.['sentry.link.type'] === `${direction}_trace`
+  );
+
+  const nextTraceData = useFindNextTrace({
+    direction,
+    currentTraceID: traceContext?.trace_id,
+    linkedTraceStartTimestamp: currentTraceTimestamps.end,
+    linkedTraceEndTimestamp: linkedTraceTimestamp,
+    projectID,
+  });
 
   const dateSelection = useMemo(
     () => normalizeDateTimeParams(location.query),
@@ -82,7 +92,7 @@ export function TraceLinkNavigationButton({
   );
 
   const {isAvailable: isLinkedTraceAvailable} = useIsTraceAvailable(
-    traceLink,
+    direction === 'previous' ? previousTraceLink?.trace_id : nextTraceData?.trace_id,
     linkedTraceTimestamp
   );
 
@@ -92,13 +102,13 @@ export function TraceLinkNavigationButton({
     return null;
   }
 
-  if (traceLink && isLinkedTraceAvailable) {
+  if (previousTraceLink && isLinkedTraceAvailable) {
     return (
       <TraceLink
         color="gray500"
         to={getTraceDetailsUrl({
-          traceSlug: traceLink.trace_id,
-          spanId: traceLink.span_id,
+          traceSlug: previousTraceLink.trace_id,
+          spanId: previousTraceLink.span_id,
           dateSelection,
           timestamp: linkedTraceTimestamp,
           location,
@@ -111,7 +121,26 @@ export function TraceLinkNavigationButton({
     );
   }
 
-  if (traceLink?.sampled === false) {
+  if (nextTraceData?.trace_id && nextTraceData.span_id && isLinkedTraceAvailable) {
+    return (
+      <TraceLink
+        color="gray500"
+        to={getTraceDetailsUrl({
+          traceSlug: nextTraceData.trace_id,
+          spanId: nextTraceData.span_id,
+          dateSelection,
+          timestamp: linkedTraceTimestamp,
+          location,
+          organization,
+        })}
+      >
+        <TraceLinkText>{t('Go to Next Trace')}</TraceLinkText>
+        <IconChevron direction="right" />
+      </TraceLink>
+    );
+  }
+
+  if (previousTraceLink?.sampled === false) {
     return (
       <StyledTooltip
         position="right"

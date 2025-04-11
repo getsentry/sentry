@@ -40,17 +40,4 @@ describe('aspnetcore onboarding docs', function () {
       await screen.findByText(textWithMarkupMatcher(/o.TracesSampleRate/))
     ).toBeInTheDocument();
   });
-
-  it('renders profiling onboarding docs correctly', async function () {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.PERFORMANCE_MONITORING,
-        ProductSolution.PROFILING,
-      ],
-    });
-
-    expect(
-      await screen.findByText(textWithMarkupMatcher(/o.ProfilesSampleRate/))
-    ).toBeInTheDocument();
-  });
 });

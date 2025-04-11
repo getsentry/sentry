@@ -49,11 +49,11 @@ class LatestAdoptedReleaseForm(forms.Form):
         return environment
 
 
-def get_first_last_release_for_env(
+def get_first_last_release_for_event(
     event: GroupEvent, release_age_type: str, order_type: LatestReleaseOrders
 ) -> Release | None:
     """
-    Fetches the first/last release for the group associated with this group
+    Fetches the first/last release for the group associated with this group event
     """
     group = event.group
     cache_key = get_first_last_release_for_group_cache_key(group.id, release_age_type, order_type)
@@ -77,7 +77,7 @@ def get_first_last_release_for_env(
 
 class LatestAdoptedReleaseFilter(EventFilter):
     id = "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter"
-    label = "The {oldest_or_newest} adopted release associated with the event's issue is {older_or_newer} than the latest adopted release in {environment}"
+    label = "The {oldest_or_newest} release associated with the event's issue is {older_or_newer} than the latest adopted release in {environment}"
 
     form_fields = {
         "oldest_or_newest": {"type": "choice", "choices": list(model_age_choices)},
@@ -133,7 +133,7 @@ class LatestAdoptedReleaseFilter(EventFilter):
         if not latest_project_release:
             return False
 
-        release = get_first_last_release_for_env(event, release_age_type, order_type)
+        release = get_first_last_release_for_event(event, release_age_type, order_type)
         if not release:
             return False
 

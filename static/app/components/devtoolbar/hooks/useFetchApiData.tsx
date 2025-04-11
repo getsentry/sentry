@@ -1,7 +1,7 @@
 import type {UseQueryOptions} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
-import type {ApiEndpointQueryKey, ApiResult} from '../types';
+import type {ApiEndpointQueryKey, ApiResult} from 'sentry/components/devtoolbar/types';
 
 import useApiEndpoint from './useApiEndpoint';
 

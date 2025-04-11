@@ -28,7 +28,6 @@ import {CachesWidget} from 'sentry/views/insights/pages/backend/laravel/cachesWi
 import {DurationWidget} from 'sentry/views/insights/pages/backend/laravel/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/backend/laravel/issuesWidget';
 import {JobsWidget} from 'sentry/views/insights/pages/backend/laravel/jobsWidget';
-import {NewLaravelExperienceButton} from 'sentry/views/insights/pages/backend/laravel/newLaravelExperienceButton';
 import {PathsTable} from 'sentry/views/insights/pages/backend/laravel/pathsTable';
 import {QueriesWidget} from 'sentry/views/insights/pages/backend/laravel/queriesWidget';
 import {RequestsWidget} from 'sentry/views/insights/pages/backend/laravel/requestsWidget';
@@ -79,14 +78,16 @@ export function LaravelOverviewPage() {
       pathname: location.pathname,
       query: {
         ...location.query,
-        cursor: undefined,
         query: String(searchQuery).trim() || undefined,
-        isDefaultQuery: false,
       },
     });
   }
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
+
+  function handleAddTransactionFilter(value: string) {
+    handleSearch(`transaction:"${value}"`);
+  }
 
   return (
     <Feature
@@ -99,7 +100,6 @@ export function LaravelOverviewPage() {
         headerActions={
           <Fragment>
             <ViewTrendsButton />
-            <NewLaravelExperienceButton />
           </Fragment>
         }
       />
@@ -114,11 +114,17 @@ export function LaravelOverviewPage() {
                   <DatePageFilter
                     maxPickableDays={maxPickableDays}
                     defaultPeriod={defaultPeriod}
-                    relativeOptions={relativeOptions}
+                    relativeOptions={({arbitraryOptions}) => ({
+                      ...arbitraryOptions,
+                      ...relativeOptions,
+                    })}
                   />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
+                    // Force the search bar to re-render when the derivedQuery changes
+                    // The seach bar component holds internal state that is not updated when the query prop changes
+                    key={derivedQuery}
                     organization={organization}
                     eventView={eventView}
                     onSearch={(query: string) => {
@@ -154,7 +160,10 @@ export function LaravelOverviewPage() {
                       <CachesWidget query={derivedQuery} />
                     </CachesContainer>
                   </WidgetGrid>
-                  <PathsTable query={derivedQuery} />
+                  <PathsTable
+                    handleAddTransactionFilter={handleAddTransactionFilter}
+                    query={derivedQuery}
+                  />
                 </PerformanceDisplayProvider>
               )}
               {showOnboarding && (

@@ -18,7 +18,10 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
+import {
+  makePerformanceScoreColors,
+  type PerformanceScore,
+} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
   STATUS_TEXT,
@@ -291,14 +294,14 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 20px 65px;
 `;
 
-const ScoreBadge = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLORS}>`
+const ScoreBadge = styled('div')<{status: PerformanceScore}>`
   display: flex;
   justify-content: center;
   align-items: center;
   flex-direction: column;
-  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
-  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
+  color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
+  background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
+  border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   padding: ${space(0.5)};
   text-align: center;
   height: 60px;

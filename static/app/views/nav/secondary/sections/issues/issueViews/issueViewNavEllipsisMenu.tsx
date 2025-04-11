@@ -188,7 +188,7 @@ const TriggerWrapper = styled(Button)`
   position: relative;
   width: 24px;
   height: 20px;
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   align-items: center;
   justify-content: center;

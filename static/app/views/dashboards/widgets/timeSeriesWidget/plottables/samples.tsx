@@ -4,21 +4,20 @@ import type {ScatterSeriesOption, SeriesOption} from 'echarts';
 
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import isValidDate from 'sentry/utils/date/isValidDate';
 import type {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {scaleTabularDataColumn} from 'sentry/utils/tabularData/scaleTabularDataColumn';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
-import {getSampleChartSymbol} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
-import {crossIconPath} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/symbol';
-
-import {isAPlottableTimeSeriesValueType} from '../../common/typePredicates';
+import {isAPlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/common/typePredicates';
 import type {
   TabularData,
   TabularRow,
   TabularValueUnit,
   TimeSeriesValueUnit,
-} from '../../common/types';
-import {FALLBACK_TYPE} from '../settings';
+} from 'sentry/views/dashboards/widgets/common/types';
+import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
+import {getSampleChartSymbol} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
+import {crossIconPath} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/symbol';
 
 import {BaselineMarkLine} from './baselineMarkline';
 import type {Plottable, PlottableTimeSeriesValueType} from './plottable';
@@ -168,11 +167,13 @@ export class Samples implements Plottable {
     return {
       ...this.sampleTableData,
       data: this.sampleTableData.data.filter(sample => {
-        if (!defined(sample.timestamp)) {
+        const timestampValue = sample.timestamp;
+        // @ts-expect-error: TypeScript pretends like `Date` doesn't accept `undefined`, but it does
+        const ts = new Date(timestampValue);
+
+        if (!isValidDate(ts)) {
           return false;
         }
-
-        const ts = new Date(sample.timestamp);
 
         return (
           (!boundaryStart || ts >= boundaryStart) && (!boundaryEnd || ts <= boundaryEnd)

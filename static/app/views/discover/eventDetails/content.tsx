@@ -43,14 +43,13 @@ import {
 } from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import DiscoverBreadcrumb from 'sentry/views/discover/breadcrumb';
+import {generateTitle, getExpandedResults} from 'sentry/views/discover/utils';
 import TraceDetailsRouting from 'sentry/views/performance/traceDetails/TraceDetailsRouting';
 import EventMetas from 'sentry/views/performance/transactionDetails/eventMetas';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-
-import DiscoverBreadcrumb from '../breadcrumb';
-import {generateTitle, getExpandedResults} from '../utils';
 
 import LinkedIssue from './linkedIssue';
 

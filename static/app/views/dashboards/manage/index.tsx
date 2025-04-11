@@ -13,6 +13,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Switch} from 'sentry/components/core/switch';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -21,7 +22,6 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -38,14 +38,16 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getDashboardTemplates} from 'sentry/views/dashboards/data';
+import {
+  assignDefaultLayout,
+  getInitialColumnDepths,
+} from 'sentry/views/dashboards/layoutUtils';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
+import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import RouteError from 'sentry/views/routeError';
-
-import {getDashboardTemplates} from '../data';
-import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
-import type {DashboardDetails, DashboardListItem} from '../types';
 
 import DashboardGrid from './dashboardGrid';
 import {

@@ -9,50 +9,21 @@ import toPixels from 'sentry/utils/number/toPixels';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
-interface BeforeAfterProps {
-  label: React.ReactNode;
-  children?: React.ReactNode;
-  /**
-   * Provides additional info about what the diff is showing
-   */
-  help?: React.ReactNode;
-}
-
-function BeforeAfter({children, label, help}: BeforeAfterProps) {
-  return (
-    <Fragment>
-      <Label>
-        {label}
-        {help && <QuestionTooltip title={help} size="xs" />}
-      </Label>
-      {children}
-    </Fragment>
-  );
-}
-
-interface ContentSliderDiffProps {
+export interface ContentSliderDiffBodyProps {
   /**
    * The content to display after the divider. Usually an image or replay.
    */
-  afterContent: React.ReactNode;
+  after: React.ReactNode;
   /**
    * The content to display before the divider. Usually an image or replay.
    */
-  beforeContent: React.ReactNode;
-  /**
-   * Provides additional info in the label's header about what the after diff is showing
-   */
-  afterHelp?: React.ReactNode;
-  /**
-   * Provides additional info in the label's header about what the before diff is showing
-   */
-  beforeHelp?: React.ReactNode;
+  before: React.ReactNode;
   minHeight?: `${number}px` | `${number}%`;
   /**
    * A callback function triggered when the divider is clicked (mouse down event).
    * Useful when we want to track analytics.
    */
-  onDividerMouseDown?: (e: React.MouseEvent) => void;
+  onDragHandleMouseDown?: (e: React.MouseEvent) => void;
 }
 
 /**
@@ -61,61 +32,79 @@ interface ContentSliderDiffProps {
  * The before and after contents are not directly defined here and have to be provided, so it can be very flexible
  * (e.g. images, replays, etc).
  */
-export function ContentSliderDiff({
-  beforeHelp,
-  afterHelp,
-  onDividerMouseDown,
-  beforeContent,
-  afterContent,
+function Body({
+  onDragHandleMouseDown,
+  after,
+  before,
   minHeight = '0px',
-}: ContentSliderDiffProps) {
+}: ContentSliderDiffBodyProps) {
   const positionedRef = useRef<HTMLDivElement>(null);
   const viewDimensions = useDimensions({elementRef: positionedRef});
   const width = toPixels(viewDimensions.width);
 
   return (
-    <Fragment>
-      <DiffHeader>
-        <BeforeAfter label={t('Before')} help={beforeHelp} />
-        <BeforeAfter label={t('After')} help={afterHelp} />
-      </DiffHeader>
-      <OverflowVisibleContainer>
-        <Positioned style={{minHeight}} ref={positionedRef}>
-          {viewDimensions.width ? (
-            <DiffSides
-              viewDimensions={viewDimensions}
-              width={width}
-              onDividerMouseDown={onDividerMouseDown}
-              beforeContent={beforeContent}
-              afterContent={afterContent}
-            />
-          ) : (
-            <div />
-          )}
-        </Positioned>
-      </OverflowVisibleContainer>
-    </Fragment>
+    <OverflowVisibleContainer>
+      <Positioned style={{minHeight}} ref={positionedRef}>
+        {viewDimensions.width ? (
+          <Sides
+            viewDimensions={viewDimensions}
+            width={width}
+            onDragHandleMouseDown={onDragHandleMouseDown}
+            before={before}
+            after={after}
+          />
+        ) : (
+          <div />
+        )}
+      </Positioned>
+    </OverflowVisibleContainer>
+  );
+}
+
+export interface ContentSliderDiffBeforeOrAfterLabelProps {
+  children?: React.ReactNode;
+  help?: React.ReactNode;
+}
+
+function BeforeLabel({help, children}: ContentSliderDiffBeforeOrAfterLabelProps) {
+  return (
+    <div>
+      <Label>
+        {t('Before')}
+        {help && <QuestionTooltip title={help} size="xs" />}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
+function AfterLabel({help, children}: ContentSliderDiffBeforeOrAfterLabelProps) {
+  return (
+    <div>
+      <Label>
+        {t('After')}
+        {help && <QuestionTooltip title={help} size="xs" />}
+      </Label>
+      {children}
+    </div>
   );
 }
 
 const BORDER_WIDTH = 3;
 
-interface DiffSidesProps
-  extends Pick<
-    ContentSliderDiffProps,
-    'onDividerMouseDown' | 'beforeContent' | 'afterContent'
-  > {
+interface ContentSliderDiffSidesProps
+  extends Pick<ContentSliderDiffBodyProps, 'onDragHandleMouseDown' | 'before' | 'after'> {
   viewDimensions: {height: number; width: number};
   width: string | undefined;
 }
 
-function DiffSides({
-  onDividerMouseDown,
+function Sides({
+  onDragHandleMouseDown,
   viewDimensions,
   width,
-  beforeContent,
-  afterContent,
-}: DiffSidesProps) {
+  before,
+  after,
+}: ContentSliderDiffSidesProps) {
   const beforeElemRef = useRef<HTMLDivElement>(null);
   const dividerElem = useRef<HTMLDivElement>(null);
 
@@ -142,19 +131,19 @@ function DiffSides({
     <Fragment>
       <Cover style={{width}} data-test-id="after-content">
         <Placement style={{width}}>
-          <FullHeightContainer>{afterContent}</FullHeightContainer>
+          <FullHeightContainer>{after}</FullHeightContainer>
         </Placement>
       </Cover>
       <Cover ref={beforeElemRef} data-test-id="before-content">
         <Placement style={{width}}>
-          <FullHeightContainer>{beforeContent}</FullHeightContainer>
+          <FullHeightContainer>{before}</FullHeightContainer>
         </Placement>
       </Cover>
       <Divider
-        data-test-id="divider"
+        data-test-id="drag-handle"
         ref={dividerElem}
         onMouseDown={event => {
-          onDividerMouseDown?.(event);
+          onDragHandleMouseDown?.(event);
           onMouseDown(event);
         }}
       />
@@ -162,7 +151,7 @@ function DiffSides({
   );
 }
 
-const DiffHeader = styled('div')`
+const Header = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -209,16 +198,16 @@ const Divider = styled('div')`
   cursor: ew-resize;
   width: var(--line-width);
   height: 100%;
-  background: ${p => p.theme.diffSliderDivider};
+  background: ${p => p.theme.diffSliderDragHandleHover};
   position: absolute;
   top: 0;
   transform: translate(-0.5px, 0);
 
   &::before,
   &::after {
-    background: ${p => p.theme.diffSliderDivider};
+    background: ${p => p.theme.diffSliderDragHandleHover};
     border-radius: var(--handle-size);
-    border: var(--line-width) solid ${p => p.theme.diffSliderDivider};
+    border: var(--line-width) solid ${p => p.theme.diffSliderDragHandleHover};
     content: '';
     height: var(--handle-size);
     position: absolute;
@@ -262,3 +251,10 @@ const Placement = styled('div')`
   top: 0;
   place-items: center;
 `;
+
+export const ContentSliderDiff = {
+  Body,
+  Header,
+  BeforeLabel,
+  AfterLabel,
+};

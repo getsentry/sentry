@@ -14,6 +14,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -33,12 +34,6 @@ const trendsViewQuery = {
 jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
-
-jest.mock('moment-timezone', () => {
-  const moment = jest.requireActual('moment-timezone');
-  moment.now = jest.fn().mockReturnValue(1601251200000);
-  return moment;
-});
 
 async function getTrendDropdown() {
   const dropdown = await screen.findByRole('button', {name: /Percentile.+/});
@@ -165,6 +160,7 @@ function initializeTrendsData(
 describe('Performance > Trends', function () {
   let trendsStatsMock: jest.Mock;
   beforeEach(function () {
+    setMockDate(1601251200000);
     mockUseLocation.mockReturnValue({
       pathname: '/organizations/org-slug/performance/trends/',
       action: 'PUSH',
@@ -274,6 +270,7 @@ describe('Performance > Trends', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
+    resetMockDate();
   });
 
   it('renders basic UI elements', async function () {

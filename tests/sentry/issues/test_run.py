@@ -19,7 +19,7 @@ from sentry.issues.producer import (
 )
 from sentry.issues.run import OccurrenceStrategyFactory
 from sentry.issues.status_change_message import StatusChangeMessage
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.types.group import PriorityLevel
@@ -159,7 +159,12 @@ class TestOccurrenceConsumer(TestCase, OccurrenceTestMixin):
         mock_logger.exception.assert_called_once_with("failed to process message payload")
 
 
-class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin, StatusChangeTestMixin):
+# XXX: this is a TransactionTestCase because it creates database objects in a
+# background thread which otherwise do not get cleaned up by django's
+# transaction-based cleanup
+class TestBatchedOccurrenceConsumer(
+    TransactionTestCase, OccurrenceTestMixin, StatusChangeTestMixin
+):
     def build_mock_message(
         self, data: MutableMapping[str, Any] | None, topic: ArroyoTopic | None = None
     ) -> mock.Mock:

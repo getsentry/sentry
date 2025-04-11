@@ -6,7 +6,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
+import {makePerformanceScoreColors} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {
@@ -78,12 +78,12 @@ const VitalDetailTitle = styled('h4')`
   margin-bottom: ${space(1)};
 `;
 
-const Badge = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLORS}>`
+const Badge = styled('div')<{status: PerformanceScore}>`
   white-space: nowrap;
   border-radius: 12px;
-  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
-  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
+  color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
+  background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
+  border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   font-size: ${p => p.theme.fontSizeSmall};
   padding: 0 ${space(1)};
   display: inline-block;

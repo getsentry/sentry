@@ -26,6 +26,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         help_text="Name of the uptime monitor",
     )
     detector_type = serializers.CharField()
+    config = serializers.JSONField(default={})
 
     def validate_detector_type(self, value: str) -> type[GroupType]:
         detector_type = grouptype.registry.get_by_slug(value)

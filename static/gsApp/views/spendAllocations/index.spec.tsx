@@ -7,7 +7,6 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  cleanup,
   render,
   renderGlobalModal,
   screen,
@@ -48,9 +47,6 @@ describe('SpendAllocations feature enable flow', () => {
       statusCode: 403,
       match: [MockApiClient.matchQuery({timestamp: dateTs})],
     });
-  });
-  afterEach(() => {
-    cleanup();
   });
 
   it('renders enable button for owners/billing in an org that has not enabled spend allocations', async () => {

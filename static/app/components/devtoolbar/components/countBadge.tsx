@@ -1,6 +1,6 @@
 import {css} from '@emotion/react';
 
-import {smallCss} from '../styles/typography';
+import {smallCss} from 'sentry/components/devtoolbar/styles/typography';
 
 /**
  * If you want more variants/colors then add to this record:

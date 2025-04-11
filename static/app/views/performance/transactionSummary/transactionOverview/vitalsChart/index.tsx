@@ -15,8 +15,7 @@ import {WebVital} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-
-import type {ViewProps} from '../../../types';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 import Content from './content';
 

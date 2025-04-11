@@ -54,16 +54,15 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
-
 import {
   getExpandedResults,
   getTargetForTransactionSummaryLink,
   pushEventViewToLocation,
-} from '../utils';
+} from 'sentry/views/discover/utils';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
 import {ContextType} from './quickContext/utils';

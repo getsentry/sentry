@@ -277,7 +277,7 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${space(2)};
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
 

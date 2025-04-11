@@ -401,8 +401,7 @@ function Visualize({error, setError}: VisualizeProps) {
                 const isOnlyFieldOrAggregate =
                   fields.length === 2 &&
                   field.kind !== FieldValueKind.EQUATION &&
-                  fields.filter(fieldItem => fieldItem.kind === FieldValueKind.EQUATION)
-                    .length > 0;
+                  fields.some(fieldItem => fieldItem.kind === FieldValueKind.EQUATION);
 
                 // Depending on the dataset and the display type, we use different options for
                 // displaying in the column select.

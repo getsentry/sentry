@@ -94,6 +94,7 @@ export function DurationWidget({query}: {query?: string}) {
       Title={<Widget.WidgetTitle title={t('Duration')} />}
       Visualization={visualization}
       Actions={
+        organization.features.includes('visibility-explore-view') &&
         !isEmpty && (
           <Toolbar
             exploreParams={{

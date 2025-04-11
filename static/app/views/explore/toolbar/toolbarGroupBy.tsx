@@ -12,6 +12,7 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {
   useExploreGroupBys,
   useExploreMode,
@@ -19,10 +20,8 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-
-import {DragNDropContext} from '../contexts/dragNDropContext';
-import {useSpanTags} from '../contexts/spanTagsContext';
-import type {Column} from '../hooks/useDragNDropColumns';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 
 import {
   ToolbarHeader,

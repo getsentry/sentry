@@ -22,12 +22,11 @@ import type {
   SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import SpanSummaryCharts from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryCharts';
 import SpanSummaryTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryTable';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
-
-import Tab from '../../tabs';
 
 import SpanSummaryControls from './spanSummaryControls';
 import SpanSummaryHeader from './spanSummaryHeader';

@@ -150,7 +150,6 @@ from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
-from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
@@ -302,7 +301,6 @@ class BaseTestCase(Fixtures):
 
     # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
     # a lot of tests changing
-    @TimedRetryPolicy.wrap(timeout=5)
     def login_as(
         self,
         user,
@@ -1382,6 +1380,8 @@ class BaseSpansTestCase(SnubaTestCase):
         if timestamp is None:
             timestamp = timezone.now()
 
+        transaction = transaction or "/hello"
+
         payload: SpanEvent = {
             "project_id": project_id,
             "organization_id": organization_id,
@@ -1391,11 +1391,11 @@ class BaseSpansTestCase(SnubaTestCase):
             "start_timestamp_precise": timestamp.timestamp(),
             "end_timestamp_precise": timestamp.timestamp() + duration / 1000,
             "exclusive_time_ms": int(exclusive_time),
-            "description": transaction or "",
+            "description": transaction,
             "is_segment": True,
             "received": timezone.now().timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
-            "sentry_tags": {"transaction": transaction or "/hello"},
+            "sentry_tags": {"transaction": transaction},
             "retention_days": 90,
         }
 
@@ -3364,6 +3364,9 @@ class SpanTestCase(BaseTestCase):
         # coerce to string
         for tag, value in dict(span["tags"]).items():
             span["tags"][tag] = str(value)
+        if "sentry_tags" not in span:
+            span["sentry_tags"] = {}
+        span["sentry_tags"].update({"sdk.name": "sentry.test.sdk", "sdk.version": "1.0"})
         if measurements:
             span["measurements"] = measurements
         return span
@@ -3519,7 +3522,12 @@ class TraceTestCase(SpanTestCase):
                 spans_to_store = []
                 for span in data["spans"]:
                     if span:
-                        span.update({"segment_id": event.event_id[:16], "event_id": event.event_id})
+                        span.update(
+                            {
+                                "segment_id": event.event_id[:16],
+                                "event_id": event.event_id,
+                            }
+                        )
                         spans_to_store.append(
                             self.create_span(
                                 span,
@@ -3567,6 +3575,8 @@ class TraceTestCase(SpanTestCase):
 
         span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
         span_data["sentry_tags"]["transaction"] = event.data["transaction"]
+        span_data["sentry_tags"]["sdk.name"] = event.data["sdk"]["name"]
+        span_data["sentry_tags"]["sdk.version"] = event.data["sdk"]["version"]
 
         return span_data
 

@@ -5,8 +5,7 @@ import type {
   TracePerformanceIssue,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
   isAutogroupedNode,
   isEAPSpanNode,
@@ -15,7 +14,7 @@ import {
   isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
-} from '../traceGuards';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 
 import {ParentAutogroupNode} from './parentAutogroupNode';
 import {SiblingAutogroupNode} from './siblingAutogroupNode';

@@ -15,11 +15,10 @@ import type {Organization} from 'sentry/types/organization';
 import {IssueAssignee} from 'sentry/utils/dashboards/issueAssignee';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
+import {Container, FieldShortId, OverflowLink} from 'sentry/utils/discover/styles';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
-
-import {Container, FieldShortId, OverflowLink} from '../discover/styles';
 
 /**
  * Types, functions and definitions for rendering fields in discover results.

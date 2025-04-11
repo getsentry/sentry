@@ -27,27 +27,13 @@ const getInstallSnippetPackageManager = (params: Params) => `
 Install-Package Sentry.AspNetCore -Version ${getPackageVersion(
   params,
   'sentry.dotnet.aspnetcore',
-  params.isProfilingSelected ? '4.3.0' : '3.34.0'
+  '4.3.0'
 )}`;
 
 const getInstallSnippetCoreCli = (params: Params) => `
 dotnet add package Sentry.AspNetCore -v ${getPackageVersion(
   params,
   'sentry.dotnet.aspnetcore',
-  params.isProfilingSelected ? '4.3.0' : '3.34.0'
-)}`;
-
-const getInstallProfilingSnippetPackageManager = (params: Params) => `
-Install-Package Sentry.Profiling -Version ${getPackageVersion(
-  params,
-  'sentry.dotnet.profiling',
-  '4.3.0'
-)}`;
-
-const getInstallProfilingSnippetCoreCli = (params: Params) => `
-dotnet add package Sentry.Profiling -v ${getPackageVersion(
-  params,
-  'sentry.dotnet.profiling',
   '4.3.0'
 )}`;
 
@@ -68,23 +54,6 @@ public static IHostBuilder CreateHostBuilder(string[] args) =>
               // of transactions for tracing.
               // We recommend adjusting this value in production
               o.TracesSampleRate = 1.0;`
-                  : ''
-              }${
-                params.isProfilingSelected
-                  ? `
-              // Sample rate for profiling, applied on top of othe TracesSampleRate,
-              // e.g. 0.2 means we want to profile 20 % of the captured transactions.
-              // We recommend adjusting this value in production.
-              o.ProfilesSampleRate = 1.0;
-              // Requires NuGet package: Sentry.Profiling
-              // Note: By default, the profiler is initialized asynchronously. This can
-              // be tuned by passing a desired initialization timeout to the constructor.
-              o.AddIntegration(new ProfilingIntegration(
-                  // During startup, wait up to 500ms to profile the app startup code.
-                  // This could make launching the app a bit slower so comment it out if you
-                  // prefer profiling to start asynchronously.
-                  TimeSpan.FromMilliseconds(500)
-              ));`
                   : ''
               }
           });
@@ -144,26 +113,6 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
-        ...(params.isProfilingSelected
-          ? [
-              {
-                code: [
-                  {
-                    language: 'shell',
-                    label: 'Package Manager',
-                    value: 'packageManager',
-                    code: getInstallProfilingSnippetPackageManager(params),
-                  },
-                  {
-                    language: 'shell',
-                    label: '.NET Core CLI',
-                    value: 'coreCli',
-                    code: getInstallProfilingSnippetCoreCli(params),
-                  },
-                ],
-              },
-            ]
-          : []),
       ],
     },
   ],

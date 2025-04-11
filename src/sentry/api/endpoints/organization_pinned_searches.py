@@ -66,7 +66,14 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
                 "visibility": GroupSearchViewVisibility.ORGANIZATION,
             },
         )
-        default_view_id = default_view.id if created else default_view
+        if created:
+            default_view_id = default_view.id
+        else:
+            default_view_id = GroupSearchView.objects.get(
+                organization=organization,
+                user_id=request.user.id,
+            ).id
+
         GroupSearchViewStarred.objects.create_or_update(
             organization=organization,
             user_id=request.user.id,

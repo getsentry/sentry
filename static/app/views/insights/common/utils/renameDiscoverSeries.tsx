@@ -1,4 +1,4 @@
-import type {DiscoverSeries} from '../queries/useDiscoverSeries';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 
 export function renameDiscoverSeries(
   series: DiscoverSeries,

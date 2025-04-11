@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import ExternalIssueForm from 'sentry/components/externalIssues/externalIssueForm';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -14,8 +15,6 @@ import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import IntegrationItem from 'sentry/views/settings/organizationIntegrations/integrationItem';
-
-import ExternalIssueForm from '../../externalIssues/externalIssueForm';
 
 type Props = {
   configurations: GroupIntegration[];

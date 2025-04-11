@@ -28,8 +28,7 @@ import {setBodyUserSelect} from 'sentry/utils/userselect';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-
-import type {generateFieldOptions} from '../utils';
+import type {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import type {FieldValueOption} from './queryField';
 import {QueryField} from './queryField';

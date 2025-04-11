@@ -1,8 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import localStorage from 'sentry/utils/localStorage';
-
-import type {SourceSuggestion} from '../types';
+import type {SourceSuggestion} from 'sentry/views/settings/components/dataScrubbing/types';
 
 const ADVANCED_DATA_SCRUBBING_LOCALSTORAGE_KEY = 'advanced-data-scrubbing';
 

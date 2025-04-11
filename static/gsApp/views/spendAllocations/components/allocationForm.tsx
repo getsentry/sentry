@@ -32,8 +32,7 @@ import type {Subscription} from 'getsentry/types';
 import {SINGULAR_DATA_CATEGORY} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
-
-import {bigNumFormatter, BigNumUnits} from '../utils';
+import {bigNumFormatter, BigNumUnits} from 'getsentry/views/spendAllocations/utils';
 
 import ProjectSelectControl from './projectSelectControl';
 import {HalvedGrid} from './styles';

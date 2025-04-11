@@ -11,7 +11,10 @@ const getPrimaryRoutePath = (path: string): string | undefined => {
     return path.match(CUSTOMER_DOMAIN_PRIMARY_PATH_REGEX)?.[1];
   }
 
-  return path.match(NON_CUSTOMER_DOMAIN_PRIMARY_PATH_REGEX)?.[1];
+  return (
+    path.match(NON_CUSTOMER_DOMAIN_PRIMARY_PATH_REGEX)?.[1] ??
+    path.match(CUSTOMER_DOMAIN_PRIMARY_PATH_REGEX)?.[1]
+  );
 };
 
 export function useActiveNavGroup(): PrimaryNavGroup {

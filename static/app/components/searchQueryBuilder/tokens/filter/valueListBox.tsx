@@ -71,7 +71,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
       <SectionedOverlay ref={popoverRef}>
         {isLoading && hiddenOptions.size >= totalOptions ? (
           <LoadingWrapper>
-            <LoadingIndicator mini />
+            <LoadingIndicator size={24} />
           </LoadingWrapper>
         ) : (
           <Fragment>

@@ -7,10 +7,10 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-
-import type {StateProps} from '../widgets/common/types';
-import {Widget} from '../widgets/widget/widget';
-import type {WidgetDescriptionProps} from '../widgets/widget/widgetDescription';
+import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import type {WidgetDescriptionProps} from 'sentry/views/dashboards/widgets/widget/widgetDescription';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import {WarningsList} from './warningsList';
@@ -22,6 +22,7 @@ export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   badgeProps?: string | string[];
   borderless?: boolean;
   children?: React.ReactNode;
+  isProgressivelyLoading?: boolean;
   noVisualizationPadding?: boolean;
   onFullScreenViewClick?: () => void | Promise<void>;
   revealActions?: 'always' | 'hover';
@@ -81,6 +82,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
       revealActions={
         props.revealTooltip === 'always' ? 'always' : (props.revealActions ?? 'hover')
       }
+      TitleBadges={getProgressiveLoadingIndicator(props.isProgressivelyLoading)}
       Actions={
         <Fragment>
           {props.description && (

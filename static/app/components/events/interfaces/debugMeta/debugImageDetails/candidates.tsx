@@ -6,6 +6,7 @@ import pick from 'lodash/pick';
 
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
+import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -16,8 +17,6 @@ import {CandidateDownloadStatus, ImageStatus} from 'sentry/types/debugImage';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-
-import SearchBarAction from '../../searchBarAction';
 
 import Status from './candidate/status';
 import Candidate from './candidate';

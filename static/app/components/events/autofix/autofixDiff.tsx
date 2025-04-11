@@ -452,7 +452,7 @@ function DiffHunkContent({
         : 's',
       linesWithChanges
         .slice(index, lineGroups.find(g => g.start === index)?.end)
-        .filter(l => l.line_type === DiffLineType.REMOVED).length > 0
+        .some(l => l.line_type === DiffLineType.REMOVED)
         ? t(' from line %s', getStartLineNumber(index, DiffLineType.REMOVED))
         : ''
     );
@@ -522,7 +522,7 @@ function DiffHunkContent({
                   <SectionTitle>{getDeletedLineTitle(index)}</SectionTitle>
                   {linesWithChanges
                     .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
-                    .filter(l => l.line_type === DiffLineType.REMOVED).length > 0 ? (
+                    .some(l => l.line_type === DiffLineType.REMOVED) ? (
                     <RemovedLines>
                       {linesWithChanges
                         .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)

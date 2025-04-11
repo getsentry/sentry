@@ -5,17 +5,16 @@ import {useSeparator} from '@react-aria/separator';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import type {FormSize} from 'sentry/utils/theme';
-
 import {
   SectionGroup,
   SectionHeader,
   SectionSeparator,
   SectionTitle,
   SectionWrap,
-} from '../styles';
-import type {SelectKey, SelectSection} from '../types';
-import {SectionToggle} from '../utils';
+} from 'sentry/components/core/compactSelect/styles';
+import type {SelectKey, SelectSection} from 'sentry/components/core/compactSelect/types';
+import {SectionToggle} from 'sentry/components/core/compactSelect/utils';
+import type {FormSize} from 'sentry/utils/theme';
 
 import {ListBoxOption} from './option';
 

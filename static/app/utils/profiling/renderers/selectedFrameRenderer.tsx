@@ -1,8 +1,7 @@
 import type {mat3} from 'gl-matrix';
 
+import {getContext} from 'sentry/utils/profiling/gl/utils';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
-
-import {getContext} from '../gl/utils';
 
 class SelectedFrameRenderer {
   canvas: HTMLCanvasElement;

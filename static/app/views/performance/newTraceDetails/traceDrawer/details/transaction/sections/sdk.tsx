@@ -2,8 +2,10 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
 export function hasSDKContext(event: EventTransaction) {
   return !!event.sdk && !isEmptyObject(event.sdk);

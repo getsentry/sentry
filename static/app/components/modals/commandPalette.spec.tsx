@@ -14,9 +14,8 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import CommandPaletteModal from 'sentry/components/modals/commandPalette';
+import {setSearchMap} from 'sentry/components/search/sources/formSource';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-
-import {setSearchMap} from '../search/sources/formSource';
 
 jest.mock('sentry/actionCreators/navigation');
 

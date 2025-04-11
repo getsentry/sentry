@@ -54,6 +54,16 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
               end: rootEvent.data?.endTimestamp,
             }}
           />
+          <TraceLinkNavigationButton
+            direction={'next'}
+            isLoading={rootEvent.isLoading}
+            projectID={rootEvent.data?.projectID ?? ''}
+            traceContext={rootEvent.data?.contexts.trace}
+            currentTraceTimestamps={{
+              start: rootEvent.data?.startTimestamp,
+              end: rootEvent.data?.endTimestamp,
+            }}
+          />
         </TraceLinksNavigationContainer>
       )}
 

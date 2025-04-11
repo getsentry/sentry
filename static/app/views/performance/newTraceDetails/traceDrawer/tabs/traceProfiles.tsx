@@ -14,10 +14,12 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-
-import {isSpanNode, isTransactionNode} from '../../traceGuards';
-import {TraceTree} from '../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
+import {
+  isSpanNode,
+  isTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 export function TraceProfiles({
   tree,

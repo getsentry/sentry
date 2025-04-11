@@ -5,8 +5,7 @@ import {Button} from 'sentry/components/core/button';
 import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import {DRAG_HANDLE_CLASS} from '../dashboard';
+import {DRAG_HANDLE_CLASS} from 'sentry/views/dashboards/dashboard';
 
 type ToolbarProps = {
   isMobile?: boolean;

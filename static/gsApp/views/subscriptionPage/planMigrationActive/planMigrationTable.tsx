@@ -15,8 +15,7 @@ import {
 } from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
-
-import {AlertStripedTable} from '../styles';
+import {AlertStripedTable} from 'getsentry/views/subscriptionPage/styles';
 
 import PlanMigrationRow from './planMigrationRow';
 

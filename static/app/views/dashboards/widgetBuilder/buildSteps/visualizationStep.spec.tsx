@@ -16,9 +16,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 import {VisualizationStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/visualizationStep';
-
-import {DashboardsMEPProvider} from '../../widgetCard/dashboardsMEPContext';
-import WidgetLegendSelectionState from '../../widgetLegendSelectionState';
+import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 jest.unmock('lodash/debounce');
 

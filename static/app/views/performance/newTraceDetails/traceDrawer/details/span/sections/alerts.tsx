@@ -1,9 +1,8 @@
 import {Alert} from 'sentry/components/core/alert';
 import {isOrphanSpan} from 'sentry/components/events/interfaces/spans/utils';
 import {t} from 'sentry/locale';
-
-import type {TraceTree} from '../../../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 function Alerts({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   if (!isOrphanSpan(node.value)) {

@@ -189,7 +189,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
           }
         }
 
-        for (const p of n.performance_issues) {
+        for (const p of n.occurences) {
           if (p.event_id === props.event.eventID) {
             return true;
           }
@@ -205,7 +205,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
             return true;
           }
         }
-        for (const p of n.performance_issues) {
+        for (const p of n.occurences) {
           if (p.event_id === props.event.eventID) {
             return true;
           }
@@ -232,7 +232,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         if (
           isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
-          node.performance_issues.size > 0
+          node.occurences.size > 0
         ) {
           preserveNodes.push(props.tree.list[start]!);
           break;
@@ -244,7 +244,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         if (
           isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
-          node.performance_issues.size > 0
+          node.occurences.size > 0
         ) {
           preserveNodes.push(props.tree.list[start]!);
           break;

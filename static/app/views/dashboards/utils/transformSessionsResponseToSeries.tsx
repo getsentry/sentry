@@ -2,13 +2,12 @@ import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-
-import type {WidgetQuery} from '../types';
-import {DERIVED_STATUS_METRICS_PATTERN} from '../widgetBuilder/releaseWidget/fields';
+import type {WidgetQuery} from 'sentry/views/dashboards/types';
+import {DERIVED_STATUS_METRICS_PATTERN} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {
   derivedMetricsToField,
   resolveDerivedStatusFields,
-} from '../widgetCard/releaseWidgetQueries';
+} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 
 export function getSeriesName(
   field: string,

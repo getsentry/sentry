@@ -236,4 +236,33 @@ describe('useProgressiveQuery', function () {
       }
     }
   );
+
+  it('skips the preflight request if the feature flag is enabled', function () {
+    renderHook(
+      () =>
+        useProgressiveQuery({
+          queryHookImplementation: useMockHookImpl,
+          queryHookArgs: {enabled: true, query: 'test value'},
+          queryMode: QUERY_MODE.SERIAL,
+        }),
+      {
+        wrapper: createWrapper(
+          OrganizationFixture({
+            features: [
+              'visibility-explore-skip-preflight',
+              'visibility-explore-progressive-loading',
+            ],
+          })
+        ),
+      }
+    );
+
+    expect(mockRequestUrl).toHaveBeenCalledTimes(1);
+    expect(mockRequestUrl).toHaveBeenCalledWith(
+      '/test',
+      expect.objectContaining({
+        query: {samplingMode: SAMPLING_MODE.BEST_EFFORT, query: 'test value'},
+      })
+    );
+  });
 });

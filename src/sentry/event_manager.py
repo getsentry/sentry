@@ -88,6 +88,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -1499,6 +1500,13 @@ def _create_group(
             logger.exception("Error after unsticking project counter")
             raise
 
+    if features.has("organizations:issue-open-periods", project.organization):
+        GroupOpenPeriod.objects.create(
+            group=group,
+            project_id=project.id,
+            date_started=group.first_seen,
+            date_ended=None,
+        )
     return group
 
 
@@ -1707,6 +1715,13 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
+        if features.has("organizations:issue-open-periods", group.project.organization):
+            GroupOpenPeriod.objects.create(
+                group=group,
+                project_id=group.project_id,
+                date_started=event.datetime,
+                date_ended=None,
+            )
 
     return is_regression
 

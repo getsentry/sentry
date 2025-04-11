@@ -232,6 +232,8 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
             {"name": "parent_span", "type": "str", "value": span_1["parent_span_id"]},
             {"name": "profile.id", "type": "str", "value": span_1["profile_id"]},
             {"name": "raw_description", "type": "str", "value": "foo"},
+            {"name": "sdk.name", "type": "str", "value": "sentry.test.sdk"},
+            {"name": "sdk.version", "type": "str", "value": "1.0"},
             {"name": "span.status", "type": "str", "value": "success"},
             {"name": "trace", "type": "str", "value": self.trace_uuid},
             {"name": "transaction.span_id", "type": "str", "value": span_1["segment_id"]},

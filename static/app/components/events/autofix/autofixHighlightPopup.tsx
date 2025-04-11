@@ -299,7 +299,7 @@ function AutofixHighlightPopupContent({
       {commentThread?.is_completed !== true && (
         <InputWrapper onSubmit={handleSubmit}>
           <StyledInput
-            placeholder={t('Questions or comments?')}
+            placeholder={t('Questions? Instructions?')}
             value={comment}
             onChange={e => setComment(e.target.value)}
             maxLength={4096}

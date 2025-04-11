@@ -37,8 +37,7 @@ import type {
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
-
-import {cloneDashboard} from '../utils';
+import {cloneDashboard} from 'sentry/views/dashboards/utils';
 
 type Props = {
   api: Client;

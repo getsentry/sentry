@@ -51,6 +51,9 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {DEFAULT_STATS_PERIOD} from 'sentry/views/dashboards/data';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
   assignTempId,
   enforceWidgetHeightValues,
@@ -63,18 +66,14 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
-
-import {DEFAULT_STATS_PERIOD} from '../data';
-import {getDatasetConfig} from '../datasetConfig/base';
-import {useValidateWidgetQuery} from '../hooks/useValidateWidget';
-import {hasThresholdMaxValue} from '../utils';
+import {hasThresholdMaxValue} from 'sentry/views/dashboards/utils';
 import {
   DashboardsMEPConsumer,
   DashboardsMEPProvider,
-} from '../widgetCard/dashboardsMEPContext';
-import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
+} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {BuildStep} from './buildSteps/buildStep';
 import {ColumnsStep} from './buildSteps/columnsStep';

@@ -161,12 +161,12 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           break;
         case StackedNavigationTour.INSIGHTS:
           if (activeGroup !== PrimaryNavGroup.INSIGHTS) {
-            navigate(normalizeUrl(`/${prefix}/insights/`), {replace: true});
+            navigate(normalizeUrl(`/${prefix}/insights/frontend/`), {replace: true});
           }
           break;
         case StackedNavigationTour.SETTINGS:
           if (activeGroup !== PrimaryNavGroup.SETTINGS) {
-            navigate(normalizeUrl(`/${prefix}/settings/organization/`), {
+            navigate(normalizeUrl(`/settings/${organization.slug}/`), {
               replace: true,
             });
           }

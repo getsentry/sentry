@@ -12,10 +12,12 @@ import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVita
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-
-import {GenericPerformanceWidget} from '../components/performanceWidget';
-import {Subtitle, WidgetEmptyStateWarning} from '../components/selectableList';
-import type {PerformanceWidgetProps} from '../types';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import {
+  Subtitle,
+  WidgetEmptyStateWarning,
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import type {PerformanceWidgetProps} from 'sentry/views/performance/landing/widgets/types';
 
 export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const theme = useTheme();

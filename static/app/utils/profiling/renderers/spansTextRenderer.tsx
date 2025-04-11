@@ -1,6 +1,7 @@
 import type {mat3} from 'gl-matrix';
 
 import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
   computeHighlightedBounds,
   ELLIPSIS,
@@ -11,10 +12,8 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
-
-import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import type {Rect} from '../speedscope';
-import {findRangeBinarySearch, trimTextCenter} from '../speedscope';
+import type {Rect} from 'sentry/utils/profiling/speedscope';
+import {findRangeBinarySearch, trimTextCenter} from 'sentry/utils/profiling/speedscope';
 
 class SpansTextRenderer extends TextRenderer {
   spanChart: SpanChart;

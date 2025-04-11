@@ -13,8 +13,7 @@ import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
-
-import {OrganizationContext} from '../organizationContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import SharedGroupHeader from './sharedGroupHeader';
 

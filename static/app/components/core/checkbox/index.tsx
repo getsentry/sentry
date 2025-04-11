@@ -107,7 +107,7 @@ const NativeHiddenCheckbox = withChonk(
     & + * {
       box-shadow: ${p => p.theme.dropShadowMedium} inset;
       color: ${p => p.theme.textColor};
-      border: 1px solid ${p => p.theme.gray200};
+      border: 1px solid ${p => p.theme.border};
 
       svg {
         stroke: ${p => p.theme.white};

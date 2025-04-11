@@ -3,8 +3,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import Trace, {NewTraceView} from 'sentry/views/replays/detail/trace/trace';
-
-import type {ReplayRecord} from '../../types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 const features = ['organizations:performance-view'];
 

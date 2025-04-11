@@ -1,3 +1,4 @@
+import {ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import DemoHeader from 'sentry/components/demo/demoHeader';
@@ -59,6 +60,7 @@ function OrganizationLayout({children}: Props) {
       <OrganizationContainer>
         <App organization={organization}>{children}</App>
       </OrganizationContainer>
+      <ScrollRestoration />
     </SentryDocumentTitle>
   );
 }

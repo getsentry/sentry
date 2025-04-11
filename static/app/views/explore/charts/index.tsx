@@ -34,14 +34,13 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {
   ChartType,
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-
-import {CHART_HEIGHT, INGESTION_DELAY} from '../settings';
 
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
@@ -144,7 +143,10 @@ export function ExploreCharts({
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 
-      const {sampleCount} = determineSeriesSampleCountAndIsSampled(data, isTopN);
+      const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(
+        data,
+        isTopN
+      );
 
       return {
         chartIcon: <IconGraph type={chartIcon} />,
@@ -157,6 +159,7 @@ export function ExploreCharts({
         loading,
         confidence: confidences[index],
         sampleCount,
+        isSampled,
       };
     });
   }, [confidences, getSeries, visualizes, isTopN]);
@@ -307,6 +310,7 @@ export function ExploreCharts({
                 dataset === DiscoverDatasets.SPANS_EAP_RPC && (
                   <ConfidenceFooter
                     sampleCount={chartInfo.sampleCount}
+                    isSampled={chartInfo.isSampled}
                     confidence={chartInfo.confidence}
                     topEvents={
                       topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined

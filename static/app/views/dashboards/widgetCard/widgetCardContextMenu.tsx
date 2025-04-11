@@ -25,6 +25,8 @@ import {
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {Widget} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
 import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
@@ -33,10 +35,7 @@ import {
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
 import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
-
-import type {Widget} from '../types';
-import {WidgetType} from '../types';
-import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
+import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 

@@ -8,6 +8,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
   CHART_MAP,
+  CHART_RENAMES,
   DEFAULT_LAYOUTS,
   PAGE_CHART_OPTIONS,
 } from 'sentry/views/insights/sessions/components/chartMap';
@@ -57,7 +58,7 @@ export function ChartPlacementSlot({view, index, chartProps}: Props) {
     [chartsByIndex, index, setChartsByIndex]
   );
 
-  const chartName = chartsByIndex[index];
+  const chartName = CHART_RENAMES[chartsByIndex[index] as string] ?? chartsByIndex[index];
   const Chart = chartName && CHART_MAP[chartName];
   if (Chart) {
     return (

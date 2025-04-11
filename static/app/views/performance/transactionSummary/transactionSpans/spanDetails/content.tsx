@@ -18,12 +18,11 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import SpanSummary from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/content';
+import {SpanSortOthers} from 'sentry/views/performance/transactionSummary/transactionSpans/types';
+import {getTotalsView} from 'sentry/views/performance/transactionSummary/transactionSpans/utils';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
-
-import Tab from '../../tabs';
-import {SpanSortOthers} from '../types';
-import {getTotalsView} from '../utils';
 
 import SpanChart from './chart';
 import SpanDetailsControls from './spanDetailsControls';

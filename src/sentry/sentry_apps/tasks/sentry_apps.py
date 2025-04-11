@@ -49,6 +49,7 @@ from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.function_cache import cache_func_for_models
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 from sentry.utils.sentry_apps.service_hook_manager import (
@@ -310,10 +311,71 @@ def _process_resource_change(
                 data[name] = serialize(instance)
 
             for installation in installations:
-                # Trigger a new task for each webhook
-                send_resource_change_webhook.delay(
-                    installation_id=installation.id, event=str(event), data=data
-                )
+
+                if _is_project_allowed(installation, instance.project_id):
+                    # Trigger a new task for each webhook
+                    send_resource_change_webhook.delay(
+                        installation_id=installation.id, event=str(event), data=data
+                    )
+
+
+def _is_project_allowed(installation: RpcSentryAppInstallation, project_id: int) -> bool:
+    service_hook = _load_service_hook(installation.organization_id, installation.id)
+    if not service_hook:
+        logger.info("send_webhooks.missing_servicehook", extra={"installation_id": installation.id})
+        return False
+    # must use 2 separate helpers for cache invalidation to work correctly in [] <-> [project1, ...] scenarios
+    return not _is_project_filtering_enabled(service_hook.id) or _does_project_filter_allow_project(
+        service_hook.id, project_id
+    )
+
+
+@cache_func_for_models(
+    [
+        (
+            ServiceHook,
+            lambda service_hook: (service_hook.organization_id, service_hook.actor_id),
+        )
+    ],
+    recalculate=False,
+)
+def _load_service_hook(organization_id: int | None, installation_id: int) -> ServiceHook | None:
+    try:
+        service_hook = ServiceHook.objects.get(
+            organization_id=organization_id,
+            actor_id=installation_id,
+        )
+        if service_hook.installation_id != service_hook.actor_id:
+            logger.error(
+                "service_hook.installation_id != service_hook.actor_id",
+                extra={"service_hook_id": service_hook.id},
+            )
+        return service_hook
+    except ServiceHook.DoesNotExist:
+        return None
+
+
+@cache_func_for_models(
+    [(ServiceHookProject, lambda hook_project: (hook_project.service_hook_id,))],
+    recalculate=False,
+)
+def _is_project_filtering_enabled(service_hook_id: int) -> bool:
+    return ServiceHookProject.objects.filter(service_hook_id=service_hook_id).exists()
+
+
+@cache_func_for_models(
+    [
+        (
+            ServiceHookProject,
+            lambda hook_project: (hook_project.service_hook_id, hook_project.project_id),
+        )
+    ],
+    recalculate=False,
+)
+def _does_project_filter_allow_project(service_hook_id: int, project_id: int) -> bool:
+    return ServiceHookProject.objects.filter(
+        service_hook_id=service_hook_id, project_id=project_id
+    ).exists()
 
 
 @instrumented_task(
@@ -557,12 +619,10 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
         operation_type=SentryAppInteractionType.SEND_WEBHOOK,
         event_type=SentryAppEventType(event),
     ).capture() as lifecycle:
-        servicehook: ServiceHook
-        try:
-            servicehook = ServiceHook.objects.get(
-                organization_id=installation.organization_id, actor_id=installation.id
-            )
-        except ServiceHook.DoesNotExist:
+        servicehook: ServiceHook | None = _load_service_hook(
+            installation.organization_id, installation.id
+        )
+        if not servicehook:
             lifecycle.add_extra("events", installation.sentry_app.events)
             lifecycle.add_extras(
                 {
@@ -580,11 +640,6 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
                 message=SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK
             )
 
-        # The service hook applies to all projects if there are no
-        # ServiceHookProject records. Otherwise we want check if
-        # the event is within the allowed projects.
-        project_limited = ServiceHookProject.objects.filter(service_hook_id=servicehook.id).exists()
-
         # TODO(nola): This is disabled for now, because it could potentially affect internal integrations w/ error.created
         # # If the event is error.created & the request is going out to the Org that owns the Sentry App,
         # # Make sure we don't send the request, to prevent potential infinite loops
@@ -600,14 +655,13 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
         #     )
         #     return
 
-        if not project_limited:
-            resource, action = event.split(".")
+        resource, action = event.split(".")
 
-            kwargs["resource"] = resource
-            kwargs["action"] = action
-            kwargs["install"] = installation
+        kwargs["resource"] = resource
+        kwargs["action"] = action
+        kwargs["install"] = installation
 
-            request_data = AppPlatformEvent(**kwargs)
+        request_data = AppPlatformEvent(**kwargs)
 
     send_and_save_webhook_request(
         installation.sentry_app,

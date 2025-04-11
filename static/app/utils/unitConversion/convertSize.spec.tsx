@@ -1,4 +1,4 @@
-import {SizeUnit} from '../discover/fields';
+import {SizeUnit} from 'sentry/utils/discover/fields';
 
 import {convertSize} from './convertSize';
 

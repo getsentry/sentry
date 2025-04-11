@@ -3,6 +3,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
 import {
@@ -25,7 +26,7 @@ export function useQueuesByTransactionQuery({
   referrer,
 }: Props) {
   const location = useLocation();
-  const useEap = location.query?.useEap === '1';
+  const useEap = useInsightsEap();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   const mutableSearch = new MutableSearch(DEFAULT_QUERY_FILTER);

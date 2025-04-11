@@ -3,8 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -23,9 +21,11 @@ describe('DisabledSelectorItems', function () {
         handleSelectRelative={handleSelectRelative}
       >
         {items => (
-          <DropdownAutoComplete isOpen items={items}>
-            {() => null}
-          </DropdownAutoComplete>
+          <div>
+            {items.map(item => (
+              <div key={item.value}>{item.label}</div>
+            ))}
+          </div>
         )}
       </DisabledSelectorItems>
     );
@@ -57,9 +57,11 @@ describe('DisabledSelectorItems', function () {
         handleSelectRelative={handleSelectRelative}
       >
         {items => (
-          <DropdownAutoComplete isOpen items={items}>
-            {() => null}
-          </DropdownAutoComplete>
+          <div>
+            {items.map(item => (
+              <div key={item.value}>{item.label}</div>
+            ))}
+          </div>
         )}
       </DisabledSelectorItems>,
       {organization}
@@ -92,9 +94,11 @@ describe('DisabledSelectorItems', function () {
         handleSelectRelative={handleSelectRelative}
       >
         {items => (
-          <DropdownAutoComplete isOpen items={items}>
-            {() => null}
-          </DropdownAutoComplete>
+          <div>
+            {items.map(item => (
+              <div key={item.value}>{item.label}</div>
+            ))}
+          </div>
         )}
       </DisabledSelectorItems>,
       {organization}
@@ -134,9 +138,11 @@ describe('DisabledSelectorItems', function () {
         }}
       >
         {items => (
-          <DropdownAutoComplete isOpen items={items}>
-            {() => null}
-          </DropdownAutoComplete>
+          <div>
+            {items.map(item => (
+              <div key={item.value}>{item.label}</div>
+            ))}
+          </div>
         )}
       </DisabledSelectorItems>,
       {organization}

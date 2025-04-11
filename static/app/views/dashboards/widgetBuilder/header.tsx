@@ -5,8 +5,7 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-
-import type {DashboardDetails} from '../types';
+import type {DashboardDetails} from 'sentry/views/dashboards/types';
 
 interface Props {
   dashboardTitle: DashboardDetails['title'];

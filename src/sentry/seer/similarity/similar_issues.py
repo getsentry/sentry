@@ -24,7 +24,7 @@ from sentry.seer.similarity.types import (
 from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
 from sentry.utils import json, metrics
 from sentry.utils.circuit_breaker2 import CircuitBreaker
-from sentry.utils.json import JSONDecodeError, apply_key_filter
+from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +49,11 @@ def get_similarity_data_from_seer(
     referrer = similar_issues_request.get("referrer")
     metric_tags = {**(metric_tags or {}), **({"referrer": referrer} if referrer else {})}
 
-    logger_extra = apply_key_filter(
-        similar_issues_request,
-        keep_keys=["event_id", "project_id", "hash", "referrer", "use_reranking"],
-    )
+    logger_extra = {
+        k: v
+        for k, v in similar_issues_request.items()
+        if k in {"event_id", "project_id", "hash", "referrer", "use_reranking"}
+    }
     logger.info(
         "get_seer_similar_issues.request",
         extra=logger_extra,
@@ -199,10 +200,6 @@ def get_similarity_data_from_seer(
         except SimilarHashMissingGroupError:
             parent_hash = raw_similar_issue_data.get("parent_hash")
 
-            # Tell Seer to delete the hash from its database, so it doesn't keep suggesting a group
-            # which doesn't exist
-            delete_seer_grouping_records_by_hash.delay(project_id, [parent_hash])
-
             # Figure out how old the parent grouphash is, to determine how often this error is
             # caused by a race condition.
             parent_grouphash_age = None
@@ -233,6 +230,18 @@ def get_similarity_data_from_seer(
                     "event_id": event_id,
                 },
             )
+
+            # If we're not in a race condition, tell Seer to delete the hash from its database, so
+            # it doesn't keep suggesting a group which doesn't exist. (The only grouphashes without
+            # a creation date are ones created before we were collecting metadata, so we know
+            # they're old. The 60-sec cutoff is probably higher than it needs to be - in 99.9% of
+            # race conditions, the value is under a second - but stuff happens.)
+            if not parent_grouphash_age or parent_grouphash_age > 60:
+                delete_seer_grouping_records_by_hash.delay(project_id, [parent_hash])
+            else:
+                # TODO: If we *are* in a race condition, we should consider retrying getting the
+                # group id here, now that a few more milliseconds have elapsed
+                pass
 
     metrics.incr(
         "seer.similar_issues_request",

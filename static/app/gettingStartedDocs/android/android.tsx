@@ -475,7 +475,7 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Android profiling is available starting in SDK version [code:6.16.0] and is supported on API level 22 and up. App start profiling is available starting in SDK version [code:7.3.0].',
+        'Android UI Profiling is available starting in SDK version [code:8.7.0].',
         {
           code: <code />,
         }

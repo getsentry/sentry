@@ -36,8 +36,7 @@ import {
   TransactionFilterOptions,
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
-
-import {getProjectID, getSelectedProjectPlatforms} from '../utils';
+import {getProjectID, getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import {
   getVitalDetailTableMehStatusFunction,

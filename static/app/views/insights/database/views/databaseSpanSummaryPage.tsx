@@ -11,6 +11,7 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import InsightIssuesList from 'sentry/views/insights/common/components/issues';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -25,6 +26,7 @@ import {
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   DataTitles,
@@ -45,9 +47,6 @@ import {
   SpanMetricsField,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
 
 type Query = {
   transaction: string;

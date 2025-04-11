@@ -3,8 +3,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
-
-import {Widget} from '../widget/widget';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 
 describe('BigNumberWidgetVisualization', () => {
   describe('Visualization', () => {
