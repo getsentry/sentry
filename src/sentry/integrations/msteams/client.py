@@ -26,7 +26,7 @@ class ApiClientProtocol(Protocol):
 
 
 # MsTeamsClientMixin abstract client does not handle setting the base url or auth token
-class MsTeamsClientMixin(ApiClientProtocol):
+class MsTeamsClientABC(ApiClient):
     integration_name = "msteams"
     TEAM_URL = "/v3/teams/%s"
     CHANNEL_URL = "/v3/teams/%s/conversations"
@@ -78,7 +78,7 @@ class MsTeamsClientMixin(ApiClientProtocol):
 
 # MsTeamsPreInstallClient is used with the access token and service url as arguments to the constructor
 # It will not handle token refreshing
-class MsTeamsPreInstallClient(ApiClient, MsTeamsClientMixin):
+class MsTeamsPreInstallClient(MsTeamsClientABC):
     integration_name = "msteams"
 
     def __init__(self, access_token: str, service_url: str):
@@ -92,7 +92,7 @@ class MsTeamsPreInstallClient(ApiClient, MsTeamsClientMixin):
 
 
 # MsTeamsClient is used with an existing integration object and handles token refreshing
-class MsTeamsClient(IntegrationProxyClient, MsTeamsClientMixin):
+class MsTeamsClient(IntegrationProxyClient, MsTeamsClientABC):
     integration_name = "msteams"
 
     def __init__(self, integration: Integration | RpcIntegration):
