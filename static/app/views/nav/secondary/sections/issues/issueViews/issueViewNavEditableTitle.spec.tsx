@@ -7,11 +7,9 @@ import {convertGSVtoIssueView} from 'sentry/views/nav/secondary/sections/issues/
 import IssueViewNavEditableTitle from './issueViewNavEditableTitle';
 
 describe('IssueViewNavEditableTitle', () => {
-  const mockOnChange = jest.fn();
   const mockSetIsEditing = jest.fn();
   const mockGroupSearchView = GroupSearchViewFixture();
   const defaultProps = {
-    onChange: mockOnChange,
     isEditing: false,
     setIsEditing: mockSetIsEditing,
     isDragging: false,
@@ -21,16 +19,21 @@ describe('IssueViewNavEditableTitle', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/group-search-views/${mockGroupSearchView.id}/`,
+      method: 'PUT',
+      body: mockGroupSearchView,
+    });
   });
 
   it('renders the label correctly', () => {
     render(<IssueViewNavEditableTitle {...defaultProps} />);
-    expect(screen.getByText('Test Label')).toBeInTheDocument();
+    expect(screen.getByText('Test View')).toBeInTheDocument();
   });
 
   it('enters edit mode on double click', async () => {
     render(<IssueViewNavEditableTitle {...defaultProps} />);
-    const element = screen.getByText('Test Label');
+    const element = screen.getByText('Test View');
     await userEvent.dblClick(element);
     expect(mockSetIsEditing).toHaveBeenCalledWith(true);
   });
@@ -39,7 +42,7 @@ describe('IssueViewNavEditableTitle', () => {
     render(<IssueViewNavEditableTitle {...defaultProps} isEditing />);
     const input = screen.getByRole('textbox');
     expect(input).toBeInTheDocument();
-    expect(input).toHaveValue('Test Label');
+    expect(input).toHaveValue('Test View');
   });
 
   describe('keyboard interactions', () => {
@@ -49,7 +52,6 @@ describe('IssueViewNavEditableTitle', () => {
       await userEvent.clear(input);
       await userEvent.type(input, 'New Label{enter}');
 
-      expect(mockOnChange).toHaveBeenCalledWith('New Label');
       expect(mockSetIsEditing).toHaveBeenCalledWith(false);
     });
 
@@ -59,7 +61,6 @@ describe('IssueViewNavEditableTitle', () => {
       await userEvent.clear(input);
       await userEvent.type(input, 'New Label{escape}');
 
-      expect(mockOnChange).not.toHaveBeenCalled();
       expect(mockSetIsEditing).toHaveBeenCalledWith(false);
     });
 
@@ -69,7 +70,6 @@ describe('IssueViewNavEditableTitle', () => {
       await userEvent.clear(input);
       await userEvent.tab();
 
-      expect(mockOnChange).not.toHaveBeenCalled();
       expect(mockSetIsEditing).toHaveBeenCalledWith(false);
     });
 
@@ -78,8 +78,6 @@ describe('IssueViewNavEditableTitle', () => {
       const input = screen.getByRole('textbox');
       await userEvent.clear(input);
       await userEvent.type(input, '  New Label  {enter}');
-
-      expect(mockOnChange).toHaveBeenCalledWith('New Label');
     });
   });
 });
