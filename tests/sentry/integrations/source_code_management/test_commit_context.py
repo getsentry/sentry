@@ -63,7 +63,7 @@ class MockCommitContextIntegration(CommitContextIntegration):
     def queue_comment_task(self, pullrequest_id: int, project_id: int) -> None:
         raise NotImplementedError
 
-    def on_create_or_update_comment_error(self, api_error: ApiError) -> bool:
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
         raise NotImplementedError
 
 

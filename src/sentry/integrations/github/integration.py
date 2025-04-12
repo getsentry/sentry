@@ -32,7 +32,6 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import (
-    MERGED_PR_METRICS_BASE,
     CommitContextIntegration,
     CommitContextOrganizationOptionKeys,
     CommitContextReferrerIds,
@@ -372,18 +371,18 @@ This pull request was deployed and Sentry observed the following issues:
 
         github_comment_workflow.delay(pullrequest_id=pullrequest_id, project_id=project_id)
 
-    def on_create_or_update_comment_error(self, api_error: ApiError) -> None:
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
         if api_error.json:
             if ISSUE_LOCKED_ERROR_MESSAGE in api_error.json.get("message", ""):
                 metrics.incr(
-                    MERGED_PR_METRICS_BASE.format(integration=self.integration_name, key="error"),
+                    metrics_base.format(integration=self.integration_name, key="error"),
                     tags={"type": "issue_locked_error"},
                 )
                 return True
 
             elif RATE_LIMITED_MESSAGE in api_error.json.get("message", ""):
                 metrics.incr(
-                    MERGED_PR_METRICS_BASE.format(integration=self.integration_name, key="error"),
+                    metrics_base.format(integration=self.integration_name, key="error"),
                     tags={"type": "rate_limited_error"},
                 )
                 return True

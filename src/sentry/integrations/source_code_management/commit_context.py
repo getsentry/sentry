@@ -423,7 +423,7 @@ class CommitContextIntegration(ABC):
             )
 
     @abstractmethod
-    def on_create_or_update_comment_error(self, api_error: ApiError) -> bool:
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
         raise NotImplementedError
 
     @abstractmethod
@@ -558,7 +558,9 @@ class CommitContextIntegration(ABC):
         except ApiError as e:
             cache.delete(cache_key)
 
-            if self.on_create_or_update_comment_error(api_error=e):
+            if self.on_create_or_update_comment_error(
+                api_error=e, metrics_base=MERGED_PR_METRICS_BASE
+            ):
                 return
 
             metrics.incr(
