@@ -9,7 +9,7 @@ import pytest
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
-from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
+from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.create_feedback import (
     create_feedback_issue,
     fix_for_issue_platform,
@@ -861,17 +861,3 @@ def test_create_feedback_evidence_has_spam(
     assert mock_produce_occurrence_to_kafka.call_count == 1
     evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
     assert evidence["is_spam"] is True
-
-
-@django_db_all
-def test_denylist(set_sentry_option, default_project):
-    with set_sentry_option(
-        "feedback.organizations.slug-denylist", [default_project.organization.slug]
-    ):
-        assert is_in_feedback_denylist(default_project.organization) is True
-
-
-@django_db_all
-def test_denylist_not_in_list(set_sentry_option, default_project):
-    with set_sentry_option("feedback.organizations.slug-denylist", ["not-in-list"]):
-        assert is_in_feedback_denylist(default_project.organization) is False

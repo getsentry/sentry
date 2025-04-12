@@ -6,7 +6,7 @@ from sentry.feedback.usecases.shim_to_feedback import shim_to_feedback
 from sentry.testutils.pytest.fixtures import django_db_all
 
 """
-Unit tests for shim_to_feedback error cases. The typical behavior of this function is tested in
+Unit tests for shim_to_feedback. These are mostly error cases - the typical behavior of this function is covered in
 test_project_user_reports, test_post_process, and test_update_user_reports.
 """
 
