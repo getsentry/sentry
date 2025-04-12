@@ -42,6 +42,7 @@ import type {
   LegendSelection,
   Release,
 } from 'sentry/views/dashboards/widgets/common/types';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
@@ -55,7 +56,7 @@ import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
 const {error, warn, info} = Sentry.logger;
 
-export interface TimeSeriesWidgetVisualizationProps {
+export interface TimeSeriesWidgetVisualizationProps extends LoadableChartWidgetProps {
   /**
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
@@ -95,10 +96,6 @@ export interface TimeSeriesWidgetVisualizationProps {
    * Default: `auto`
    */
   showLegend?: 'auto' | 'never';
-  /**
-   * Show releases as either lines per release or a bubble for a group of releases.
-   */
-  showReleaseAs?: 'bubble' | 'line';
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
@@ -114,7 +111,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
 
   const pageFilters = usePageFilters();
-  const {start, end, period, utc} = pageFilters.selection.datetime;
+  const {start, end, period, utc} =
+    props.subPageFilters?.datetime || pageFilters.selection.datetime;
 
   const theme = useTheme();
   const organization = useOrganization();

@@ -1,5 +1,6 @@
 import moment from 'moment-timezone';
 
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -51,13 +52,15 @@ interface UseMetricsSeriesOptions<Fields> {
 
 export const useSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {},
-  referrer: string
+  referrer: string,
+  subPageFilters?: PageFilters
 ) => {
   const useEap = useInsightsEap();
   return useDiscoverSeries<Fields>(
     options,
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
-    referrer
+    referrer,
+    subPageFilters
   );
 };
 
@@ -108,7 +111,8 @@ export const useSpanIndexedSeries = <
 const useDiscoverSeries = <T extends string[]>(
   options: UseMetricsSeriesOptions<T> = {},
   dataset: DiscoverDatasets,
-  referrer: string
+  referrer: string,
+  subPageFilters?: PageFilters
 ) => {
   const {
     search = undefined,
@@ -127,7 +131,7 @@ const useDiscoverSeries = <T extends string[]>(
   const eventView = getSeriesEventView(
     search,
     undefined,
-    pageFilters.selection,
+    subPageFilters || pageFilters.selection,
     yAxis,
     undefined,
     dataset
