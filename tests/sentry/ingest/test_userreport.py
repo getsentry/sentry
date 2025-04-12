@@ -1,9 +1,6 @@
 from unittest.mock import Mock
 
-from sentry.feedback.usecases.create_feedback import (
-    UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
-    FeedbackCreationSource,
-)
+from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
 from sentry.ingest.userreport import save_userreport, should_filter_user_report
 from sentry.models.userreport import UserReport
 from sentry.testutils.pytest.fixtures import django_db_all

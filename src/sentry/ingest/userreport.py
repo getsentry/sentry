@@ -10,7 +10,7 @@ from django.utils import timezone
 from sentry import eventstore, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.feedback.usecases.create_feedback import (
+from sentry.feedback.lib.utils import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
     FeedbackCreationSource,
     is_in_feedback_denylist,

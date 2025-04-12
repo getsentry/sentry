@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
 from sentry.eventstore.models import Event
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
+from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.shim_to_feedback import shim_to_feedback
 from sentry.testutils.pytest.fixtures import django_db_all
 

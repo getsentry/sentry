@@ -9,11 +9,10 @@ import pytest
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
+from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.feedback.usecases.create_feedback import (
-    FeedbackCreationSource,
     create_feedback_issue,
     fix_for_issue_platform,
-    is_in_feedback_denylist,
     validate_issue_platform_event_schema,
 )
 from sentry.models.group import Group, GroupStatus

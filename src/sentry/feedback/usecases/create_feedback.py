@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import random
 from datetime import UTC, datetime
-from enum import Enum
 from typing import Any
 from uuid import uuid4
 
@@ -11,6 +10,7 @@ import jsonschema
 
 from sentry import features, options
 from sentry.constants import DataCategory
+from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -26,37 +26,6 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
-
-UNREAL_FEEDBACK_UNATTENDED_MESSAGE = "Sent in the unattended mode"
-
-
-class FeedbackCreationSource(Enum):
-    NEW_FEEDBACK_ENVELOPE = "new_feedback_envelope"
-    USER_REPORT_DJANGO_ENDPOINT = "user_report_sentry_django_endpoint"
-    USER_REPORT_ENVELOPE = "user_report_envelope"
-    CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
-    UPDATE_USER_REPORTS_TASK = "update_user_reports_task"
-
-    @classmethod
-    def new_feedback_category_values(cls) -> set[str]:
-        return {
-            c.value
-            for c in [
-                cls.NEW_FEEDBACK_ENVELOPE,
-            ]
-        }
-
-    @classmethod
-    def old_feedback_category_values(cls) -> set[str]:
-        return {
-            c.value
-            for c in [
-                cls.CRASH_REPORT_EMBED_FORM,
-                cls.USER_REPORT_ENVELOPE,
-                cls.USER_REPORT_DJANGO_ENDPOINT,
-                cls.UPDATE_USER_REPORTS_TASK,
-            ]
-        }
 
 
 def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: bool | None):
@@ -425,7 +394,3 @@ def auto_ignore_spam_feedbacks(project, issue_fingerprint):
                 new_substatus=GroupSubStatus.FOREVER,
             ),
         )
-
-
-def is_in_feedback_denylist(organization):
-    return organization.slug in options.get("feedback.organizations.slug-denylist")
