@@ -20,6 +20,8 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -194,6 +196,8 @@ function EventNavigationLink({
   config: SectionConfig;
   propCss: SerializedStyles;
 }) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(config.key),
     config?.initialCollapse ?? false
@@ -205,6 +209,8 @@ function EventNavigationLink({
         hash: `#${config.key}`,
       }}
       onClick={event => {
+        // Ignore the link behavior and handle in js to smooth scroll
+        event.preventDefault();
         // If command click do nothing, assume user wants to open in new tab
         if (event.metaKey || event.ctrlKey) {
           return;
@@ -214,6 +220,12 @@ function EventNavigationLink({
         document
           .getElementById(config.key)
           ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+        requestAnimationFrame(() => {
+          navigate({
+            ...location,
+            hash: `${config.key}`,
+          });
+        });
       }}
       borderless
       size="xs"
