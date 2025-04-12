@@ -99,7 +99,7 @@ function ExploreTablesTabbed(props: ExploreTablesProps) {
           </TabList>
         </Tabs>
         <Button
-          disabled={props.samplesTab !== Tab.SPAN}
+          disabled={tab !== Tab.SPAN}
           onClick={openColumnEditor}
           icon={<IconTable />}
         >
