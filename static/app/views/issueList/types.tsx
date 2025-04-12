@@ -29,12 +29,12 @@ export enum GroupSearchViewCreatedBy {
 export type StarredGroupSearchView = {
   environments: string[];
   id: string;
+  lastVisited: string | null;
   name: string;
   projects: number[];
   query: string;
   querySort: IssueSortOptions;
   timeFilters: PageFilters['datetime'];
-  lastVisited?: string;
 };
 
 export type GroupSearchView = StarredGroupSearchView & {

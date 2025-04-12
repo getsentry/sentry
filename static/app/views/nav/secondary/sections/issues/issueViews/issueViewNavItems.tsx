@@ -23,7 +23,7 @@ interface IssueViewNavItemsProps {
 export interface NavIssueView extends IssueViewParams {
   id: string;
   label: string;
-  lastVisited?: string;
+  lastVisited: string | null;
 }
 
 export function IssueViewNavItems({sectionRef, baseUrl}: IssueViewNavItemsProps) {
