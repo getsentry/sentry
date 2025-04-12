@@ -15,9 +15,9 @@ from sentry.feedback.usecases.create_feedback import (
     create_feedback_issue,
     fix_for_issue_platform,
     is_in_feedback_denylist,
-    shim_to_feedback,
     validate_issue_platform_event_schema,
 )
+from sentry.feedback.usecases.shim_to_feedback import shim_to_feedback
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
