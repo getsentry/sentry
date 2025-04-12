@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Protocol
+from abc import ABC
 from urllib.parse import urlencode
 
 from requests import PreparedRequest
@@ -19,14 +19,8 @@ from sentry.silo.base import SiloMode, control_silo_function
 CLOCK_SKEW = 60 * 5
 
 
-class ApiClientProtocol(Protocol):
-    def get(self, path: str, params: dict[str, Any] | None = None, **kwargs) -> dict[str, Any]: ...
-    def post(self, path: str, data: dict[str, Any] | None = None, **kwargs) -> dict[str, Any]: ...
-    def put(self, path: str, data: dict[str, Any] | None = None, **kwargs) -> dict[str, Any]: ...
-
-
-# MsTeamsClientMixin abstract client does not handle setting the base url or auth token
-class MsTeamsClientABC(ApiClient):
+# MsTeamsClientABC abstract client does not handle setting the base url or auth token
+class MsTeamsClientABC(ApiClient, ABC):
     integration_name = "msteams"
     TEAM_URL = "/v3/teams/%s"
     CHANNEL_URL = "/v3/teams/%s/conversations"
