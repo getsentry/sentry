@@ -415,6 +415,10 @@ class SubscriptionProcessor:
                 },
             )
 
+        if aggregation_value is None:
+            metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
+            return
+
         if features.has(
             "organizations:workflow-engine-metric-alert-processing",
             self.subscription.project.organization,
