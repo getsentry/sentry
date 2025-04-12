@@ -265,6 +265,12 @@ class GitHubEnterpriseIntegration(
     ) -> dict[str, Any]:
         raise NotImplementedError
 
+    def queue_comment_task(self, pullrequest_id: int, project_id: int) -> None:
+        raise NotImplementedError
+
+    def on_create_or_update_comment_error(self, api_error: ApiError) -> bool:
+        raise NotImplementedError
+
 
 class InstallationForm(forms.Form):
     url = forms.CharField(

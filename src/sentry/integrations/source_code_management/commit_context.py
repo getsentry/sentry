@@ -16,7 +16,6 @@ from snuba_sdk import Request as SnubaRequest
 from sentry import analytics
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
-from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
@@ -220,7 +219,7 @@ class CommitContextIntegration(ABC):
         ).capture() as lifecycle:
             if not OrganizationOption.objects.get_value(
                 organization=project.organization,
-                key="sentry:github_pr_bot",
+                key=self.commit_context_organization_option_keys.pr_bot,
                 default=True,
             ):
                 # TODO: remove logger in favor of the log recorded in  lifecycle.record_halt
@@ -257,7 +256,6 @@ class CommitContextIntegration(ABC):
             scope = sentry_sdk.Scope.get_isolation_scope()
             scope.set_tag("queue_comment_check.merge_commit_sha", commit.key)
             scope.set_tag("queue_comment_check.organization_id", commit.organization_id)
-            from sentry.integrations.github.tasks.pr_comment import github_comment_workflow
 
             # client will raise an Exception if the request is not successful
             try:
@@ -339,9 +337,11 @@ class CommitContextIntegration(ABC):
 
                     cache.set(cache_key, True, PR_COMMENT_TASK_TTL)
 
-                    github_comment_workflow.delay(
-                        pullrequest_id=pr.id, project_id=group_owner.project_id
-                    )
+                    self.queue_comment_task(pullrequest_id=pr.id, project_id=group_owner.project_id)
+
+    @abstractmethod
+    def queue_comment_task(self, pullrequest_id: int, project_id: int) -> None:
+        raise NotImplementedError
 
     def create_or_update_comment(
         self,
@@ -422,23 +422,9 @@ class CommitContextIntegration(ABC):
                 extra={"new_comment": pr_comment is None, "pr_key": pr_key, "repo": repo.name},
             )
 
+    @abstractmethod
     def on_create_or_update_comment_error(self, api_error: ApiError) -> bool:
-        if api_error.json:
-            if ISSUE_LOCKED_ERROR_MESSAGE in api_error.json.get("message", ""):
-                metrics.incr(
-                    MERGED_PR_METRICS_BASE.format(integration=self.integration_name, key="error"),
-                    tags={"type": "issue_locked_error"},
-                )
-                return True
-
-            elif RATE_LIMITED_MESSAGE in api_error.json.get("message", ""):
-                metrics.incr(
-                    MERGED_PR_METRICS_BASE.format(integration=self.integration_name, key="error"),
-                    tags={"type": "rate_limited_error"},
-                )
-                return True
-
-        return False
+        raise NotImplementedError
 
     @abstractmethod
     def format_pr_comment(self, issue_ids: list[int]) -> str:

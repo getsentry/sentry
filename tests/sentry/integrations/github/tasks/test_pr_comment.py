@@ -258,6 +258,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
     patch_format_pr_comment = patch(
         "sentry.integrations.github.integration.GitHubIntegration.format_pr_comment"
     )
+    patch_integration_metrics = patch("sentry.integrations.github.integration.metrics")
     patch_metrics = patch("sentry.integrations.source_code_management.commit_context.metrics")
 
     @patch_get_top_5_issues_by_count
@@ -333,9 +334,10 @@ class TestCommentWorkflow(GithubCommentTestCase):
         mock_metrics.incr.assert_called_with("github.pr_comment.comment_updated")
 
     @patch_get_top_5_issues_by_count
+    @patch_integration_metrics
     @patch_metrics
     @responses.activate
-    def test_comment_workflow_api_error(self, mock_metrics, mock_issues):
+    def test_comment_workflow_api_error(self, mock_metrics, mock_integration_metrics, mock_issues):
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
         mock_issues.return_value = [
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
@@ -378,7 +380,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         # does not raise ApiError for locked issue
         github_comment_workflow(pr_2.id, self.project.id)
         assert cache.get(cache_key) is None
-        mock_metrics.incr.assert_called_with(
+        mock_integration_metrics.incr.assert_called_with(
             "github.pr_comment.error", tags={"type": "issue_locked_error"}
         )
 
@@ -389,7 +391,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         # does not raise ApiError for rate limited error
         github_comment_workflow(pr_3.id, self.project.id)
         assert cache.get(cache_key) is None
-        mock_metrics.incr.assert_called_with(
+        mock_integration_metrics.incr.assert_called_with(
             "github.pr_comment.error", tags={"type": "rate_limited_error"}
         )
 

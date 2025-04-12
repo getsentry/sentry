@@ -15,6 +15,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -57,6 +58,12 @@ class MockCommitContextIntegration(CommitContextIntegration):
         comment_body: str,
         issue_ids: list[int],
     ) -> dict[str, Any]:
+        raise NotImplementedError
+
+    def queue_comment_task(self, pullrequest_id: int, project_id: int) -> None:
+        raise NotImplementedError
+
+    def on_create_or_update_comment_error(self, api_error: ApiError) -> bool:
         raise NotImplementedError
 
 

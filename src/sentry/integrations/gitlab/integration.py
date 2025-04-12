@@ -197,6 +197,12 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
     ) -> dict[str, Any]:
         raise NotImplementedError
 
+    def queue_comment_task(self, pullrequest_id: int, project_id: int) -> None:
+        raise NotImplementedError
+
+    def on_create_or_update_comment_error(self, api_error: ApiError) -> bool:
+        raise NotImplementedError
+
     # Gitlab only functions
 
     def get_group_id(self):
