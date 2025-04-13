@@ -7,8 +7,6 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.tasks.open_pr_comment import (
-    format_issue_table,
-    format_open_pr_comment,
     get_pr_files,
     open_pr_comment_workflow,
     safe_for_comment,
@@ -23,12 +21,63 @@ from sentry.models.group import Group
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import IntegrationTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.integrations.github.tasks.test_pr_comment import GithubCommentTestCase
-from tests.sentry.integrations.source_code_management.test_commit_context import CreateEventTestCase
 
 pytestmark = [requires_snuba]
+
+
+class CreateEventTestCase(TestCase):
+    def _create_event(
+        self,
+        culprit=None,
+        timestamp=None,
+        filenames=None,
+        function_names=None,
+        project_id=None,
+        user_id=None,
+        handled=False,
+    ):
+        if culprit is None:
+            culprit = "issue0"
+        if timestamp is None:
+            timestamp = before_now(seconds=5).isoformat()
+        if filenames is None:
+            filenames = ["foo.py", "baz.py"]
+        if function_names is None:
+            function_names = ["hello", "world"]
+        if project_id is None:
+            project_id = self.project.id
+
+        assert len(function_names) == len(filenames)
+
+        frames = []
+        for i, filename in enumerate(filenames):
+            frames.append({"filename": filename, "function": function_names[i]})
+
+        return self.store_event(
+            data={
+                "message": "hello!",
+                "culprit": culprit,
+                "platform": "python",
+                "timestamp": timestamp,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": frames,
+                            },
+                            "mechanism": {"handled": handled, "type": "generic"},
+                        },
+                    ]
+                },
+                "user": {"id": user_id},
+            },
+            project_id=project_id,
+        )
 
 
 class TestSafeForComment(GithubCommentTestCase):
@@ -209,6 +258,9 @@ class TestGetFilenames(GithubCommentTestCase):
 class TestFormatComment(TestCase):
     def setUp(self):
         super().setUp()
+        self.installation_impl = self.integration.get_installation(
+            organization_id=self.organization.id
+        )
 
     def test_comment_format_python(self):
         file1 = "tests/sentry/tasks/integrations/github/test_open_pr_comment.py"
@@ -238,9 +290,13 @@ class TestFormatComment(TestCase):
             for i in range(2)
         ]
 
-        issue_table = format_issue_table(file1, file1_issues, PATCH_PARSERS, toggle=False)
-        toggle_issue_table = format_issue_table(file2, file2_issues, PATCH_PARSERS, toggle=True)
-        comment = format_open_pr_comment([issue_table, toggle_issue_table])
+        issue_table = self.installation_impl.format_issue_table(
+            file1, file1_issues, PATCH_PARSERS, toggle=False
+        )
+        toggle_issue_table = self.installation_impl.format_issue_table(
+            file2, file2_issues, PATCH_PARSERS, toggle=True
+        )
+        comment = self.installation_impl.format_open_pr_comment([issue_table, toggle_issue_table])
 
         assert (
             comment
@@ -297,9 +353,13 @@ Your pull request is modifying functions with the following pre-existing issues:
             for i in range(2)
         ]
 
-        issue_table = format_issue_table(file1, file1_issues, PATCH_PARSERS, toggle=False)
-        toggle_issue_table = format_issue_table(file2, file2_issues, PATCH_PARSERS, toggle=True)
-        comment = format_open_pr_comment([issue_table, toggle_issue_table])
+        issue_table = self.installation_impl.format_issue_table(
+            file1, file1_issues, PATCH_PARSERS, toggle=False
+        )
+        toggle_issue_table = self.installation_impl.format_issue_table(
+            file2, file2_issues, PATCH_PARSERS, toggle=True
+        )
+        comment = self.installation_impl.format_open_pr_comment([issue_table, toggle_issue_table])
 
         assert (
             comment
@@ -331,7 +391,9 @@ Your pull request is modifying functions with the following pre-existing issues:
     def test_comment_format_missing_language(self):
         file1 = "tests/sentry/tasks/integrations/github/test_open_pr_comment.docx"
 
-        issue_table = format_issue_table(file1, [], PATCH_PARSERS, toggle=False)
+        issue_table = self.installation_impl.format_issue_table(
+            file1, [], PATCH_PARSERS, toggle=False
+        )
 
         assert issue_table == ""
 

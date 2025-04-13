@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, TypedDict
+from typing import Any
 
 import sentry_sdk
 from django.db import connection
@@ -155,19 +155,6 @@ class PullRequestIssue:
 class PullRequestFile:
     filename: str
     patch: str
-
-
-class IssueCount(TypedDict):
-    group_id: int
-    event_count: int
-
-
-class IssueCountForFile(TypedDict):
-    title: str
-    culprit: str
-    function_name: str
-    group_id: int
-    event_count: int
 
 
 class CommitContextIntegration(ABC):
@@ -544,7 +531,9 @@ class CommitContextIntegration(ABC):
             )
             return [issue_id for (issue_id,) in cursor.fetchall()]
 
-    def get_top_5_issues_by_count(self, issue_ids: list[int], project: Project) -> list[IssueCount]:
+    def get_top_5_issues_by_count(
+        self, issue_ids: list[int], project: Project
+    ) -> list[dict[str, Any]]:
         """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
         request = SnubaRequest(
             dataset=Dataset.Events.value,
@@ -655,9 +644,23 @@ class CommitContextIntegration(ABC):
 
     # Open PR Comment Workflow
 
+    @abstractmethod
+    def format_open_pr_comment(self, issue_tables: list[str]) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
+    def format_issue_table(
+        self,
+        diff_filename: str,
+        issues: list[PullRequestIssue],
+        patch_parsers: dict[str, Any],
+        toggle: bool,
+    ) -> str:
+        raise NotImplementedError
+
     def get_top_5_issues_by_count_for_file(
         self, projects: list[Project], sentry_filenames: list[str], function_names: list[str]
-    ) -> list[IssueCountForFile]:
+    ) -> list[dict[str, Any]]:
         """
         Given a list of projects, filenames reverse-codemapped into filenames in Sentry,
         and function names representing the list of functions changed in a PR file, return a
@@ -798,9 +801,7 @@ class CommitContextIntegration(ABC):
             )
             return []
 
-    def get_issue_table_contents(
-        self, issue_list: list[IssueCountForFile]
-    ) -> list[PullRequestIssue]:
+    def get_issue_table_contents(self, issue_list: list[dict[str, Any]]) -> list[PullRequestIssue]:
         group_id_to_info = {}
         for issue in issue_list:
             group_id = issue["group_id"]

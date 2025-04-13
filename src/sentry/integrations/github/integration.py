@@ -36,6 +36,7 @@ from sentry.integrations.source_code_management.commit_context import (
     CommitContextOrganizationOptionKeys,
     CommitContextReferrerIds,
     CommitContextReferrers,
+    PullRequestIssue,
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
@@ -53,6 +54,7 @@ from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.snuba.referrer import Referrer
+from sentry.templatetags.sentry_helpers import small_count
 from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER, GITHUB_PR_BOT_REFERRER
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -388,6 +390,80 @@ This pull request was deployed and Sentry observed the following issues:
                 return True
 
         return False
+
+    def format_open_pr_comment(self, issue_tables: list[str]) -> str:
+        comment_body_template = """\
+## 🔍 Existing Issues For Review
+Your pull request is modifying functions with the following pre-existing issues:
+
+{issue_tables}
+---
+
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+
+        return comment_body_template.format(issue_tables="\n".join(issue_tables))
+
+    def format_issue_table(
+        self,
+        diff_filename: str,
+        issues: list[PullRequestIssue],
+        patch_parsers: dict[str, Any],
+        toggle: bool,
+    ) -> str:
+        description_length = 52
+
+        issue_table_template = """\
+📄 File: **{filename}**
+
+| Function | Unhandled Issue |
+| :------- | :----- |
+{issue_rows}"""
+
+        issue_table_toggle_template = """\
+<details>
+<summary><b>📄 File: {filename} (Click to Expand)</b></summary>
+
+| Function | Unhandled Issue |
+| :------- | :----- |
+{issue_rows}
+</details>"""
+
+        def format_subtitle(title_length: int, subtitle: str) -> str:
+            # the title length + " " + subtitle should be <= 52
+            subtitle_length = description_length - title_length - 1
+            return (
+                subtitle[: subtitle_length - 3] + "..."
+                if len(subtitle) > subtitle_length
+                else subtitle
+            )
+
+        language_parser = patch_parsers.get(diff_filename.split(".")[-1], None)
+
+        if not language_parser:
+            return ""
+
+        issue_row_template = language_parser.issue_row_template
+
+        issue_rows = "\n".join(
+            [
+                issue_row_template.format(
+                    title=issue.title,
+                    subtitle=format_subtitle(len(issue.title), issue.subtitle),
+                    url=self.format_comment_url(
+                        issue.url, referrer=self.commit_context_referrer_ids.open_pr_bot
+                    ),
+                    event_count=small_count(issue.event_count),
+                    function_name=issue.function_name,
+                    affected_users=small_count(issue.affected_users),
+                )
+                for issue in issues
+            ]
+        )
+
+        if toggle:
+            return issue_table_toggle_template.format(filename=diff_filename, issue_rows=issue_rows)
+
+        return issue_table_template.format(filename=diff_filename, issue_rows=issue_rows)
 
 
 class GitHubIntegrationProvider(IntegrationProvider):

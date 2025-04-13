@@ -70,6 +70,18 @@ class MockCommitContextIntegration(CommitContextIntegration):
     def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
         raise NotImplementedError
 
+    def format_open_pr_comment(self, issue_tables: list[str]) -> str:
+        raise NotImplementedError
+
+    def format_issue_table(
+        self,
+        diff_filename: str,
+        issues: list[PullRequestIssue],
+        patch_parsers: dict[str, Any],
+        toggle: bool,
+    ) -> str:
+        raise NotImplementedError
+
 
 class TestCommitContextIntegrationSLO(TestCase):
     def setUp(self):

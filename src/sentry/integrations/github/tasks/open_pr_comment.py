@@ -15,7 +15,6 @@ from sentry.integrations.source_code_management.commit_context import (
     OPEN_PR_METRICS_BASE,
     CommitContextIntegration,
     PullRequestFile,
-    PullRequestIssue,
 )
 from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
 from sentry.models.organization import Organization
@@ -26,88 +25,9 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_tasks
-from sentry.templatetags.sentry_helpers import small_count
-from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-
-OPEN_PR_COMMENT_BODY_TEMPLATE = """\
-## 🔍 Existing Issues For Review
-Your pull request is modifying functions with the following pre-existing issues:
-
-{issue_tables}
----
-
-<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
-
-OPEN_PR_ISSUE_TABLE_TEMPLATE = """\
-📄 File: **{filename}**
-
-| Function | Unhandled Issue |
-| :------- | :----- |
-{issue_rows}"""
-
-OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
-<details>
-<summary><b>📄 File: {filename} (Click to Expand)</b></summary>
-
-| Function | Unhandled Issue |
-| :------- | :----- |
-{issue_rows}
-</details>"""
-
-OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
-
-MAX_RECENT_ISSUES = 5000
-
-
-def format_comment_url(url, referrer):
-    return url + "?referrer=" + referrer
-
-
-def format_open_pr_comment(issue_tables: list[str]) -> str:
-    return OPEN_PR_COMMENT_BODY_TEMPLATE.format(issue_tables="\n".join(issue_tables))
-
-
-def format_open_pr_comment_subtitle(title_length, subtitle):
-    # the title length + " " + subtitle should be <= 52
-    subtitle_length = OPEN_PR_ISSUE_DESCRIPTION_LENGTH - title_length - 1
-    return subtitle[: subtitle_length - 3] + "..." if len(subtitle) > subtitle_length else subtitle
-
-
-# for a single file, create a table
-def format_issue_table(
-    diff_filename: str, issues: list[PullRequestIssue], patch_parsers: dict[str, Any], toggle: bool
-) -> str:
-    language_parser = patch_parsers.get(diff_filename.split(".")[-1], None)
-
-    if not language_parser:
-        return ""
-
-    issue_row_template = language_parser.issue_row_template
-
-    issue_rows = "\n".join(
-        [
-            issue_row_template.format(
-                title=issue.title,
-                subtitle=format_open_pr_comment_subtitle(len(issue.title), issue.subtitle),
-                url=format_comment_url(issue.url, GITHUB_OPEN_PR_BOT_REFERRER),
-                event_count=small_count(issue.event_count),
-                function_name=issue.function_name,
-                affected_users=small_count(issue.affected_users),
-            )
-            for issue in issues
-        ]
-    )
-
-    if toggle:
-        return OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE.format(
-            filename=diff_filename, issue_rows=issue_rows
-        )
-
-    return OPEN_PR_ISSUE_TABLE_TEMPLATE.format(filename=diff_filename, issue_rows=issue_rows)
 
 
 # TODO(cathy): Change the client typing to allow for multiple SCM Integrations
@@ -374,19 +294,19 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             continue
 
         if first_table:
-            issue_table = format_issue_table(
+            issue_table = installation.format_issue_table(
                 pr_filename, issue_table_content, patch_parsers, toggle=False
             )
             first_table = False
         else:
             # toggle all tables but the first one
-            issue_table = format_issue_table(
+            issue_table = installation.format_issue_table(
                 pr_filename, issue_table_content, patch_parsers, toggle=True
             )
 
         issue_tables.append(issue_table)
 
-    comment_body = format_open_pr_comment(issue_tables)
+    comment_body = installation.format_open_pr_comment(issue_tables)
 
     # list all issues in the comment
     issue_list: list[dict[str, Any]] = list(itertools.chain.from_iterable(top_issues_per_file))
