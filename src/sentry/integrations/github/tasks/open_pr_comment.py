@@ -5,16 +5,10 @@ import logging
 from typing import Any
 
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
-from sentry.integrations.github.client import GitHubApiClient
-from sentry.integrations.github.constants import RATE_LIMITED_MESSAGE
-from sentry.integrations.github.tasks.utils import GithubAPIErrorType
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.commit_context import (
-    OPEN_PR_MAX_FILES_CHANGED,
-    OPEN_PR_MAX_LINES_CHANGED,
     OPEN_PR_METRICS_BASE,
     CommitContextIntegration,
-    PullRequestFile,
 )
 from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
 from sentry.models.organization import Organization
@@ -28,83 +22,6 @@ from sentry.taskworker.namespaces import integrations_tasks
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-
-# TODO(cathy): Change the client typing to allow for multiple SCM Integrations
-def safe_for_comment(
-    gh_client: GitHubApiClient, repository: Repository, pull_request: PullRequest
-) -> list[dict[str, str]]:
-    logger.info("github.open_pr_comment.check_safe_for_comment")
-    try:
-        pr_files = gh_client.get_pullrequest_files(
-            repo=repository.name, pull_number=pull_request.key
-        )
-    except ApiError as e:
-        logger.info("github.open_pr_comment.api_error")
-        if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
-            metrics.incr(
-                OPEN_PR_METRICS_BASE.format(integration="github", key="api_error"),
-                tags={"type": GithubAPIErrorType.RATE_LIMITED.value, "code": e.code},
-            )
-        elif e.code == 404:
-            metrics.incr(
-                OPEN_PR_METRICS_BASE.format(integration="github", key="api_error"),
-                tags={"type": GithubAPIErrorType.MISSING_PULL_REQUEST.value, "code": e.code},
-            )
-        else:
-            metrics.incr(
-                OPEN_PR_METRICS_BASE.format(integration="github", key="api_error"),
-                tags={"type": GithubAPIErrorType.UNKNOWN.value, "code": e.code},
-            )
-            logger.exception("github.open_pr_comment.unknown_api_error", extra={"error": str(e)})
-        return []
-
-    changed_file_count = 0
-    changed_lines_count = 0
-    filtered_pr_files = []
-
-    patch_parsers = PATCH_PARSERS
-    # NOTE: if we are testing beta patch parsers, add check here
-
-    for file in pr_files:
-        filename = file["filename"]
-        # we only count the file if it's modified and if the file extension is in the list of supported file extensions
-        # we cannot look at deleted or newly added files because we cannot extract functions from the diffs
-        if file["status"] != "modified" or filename.split(".")[-1] not in patch_parsers:
-            continue
-
-        changed_file_count += 1
-        changed_lines_count += file["changes"]
-        filtered_pr_files.append(file)
-
-        if changed_file_count > OPEN_PR_MAX_FILES_CHANGED:
-            metrics.incr(
-                OPEN_PR_METRICS_BASE.format(integration="github", key="rejected_comment"),
-                tags={"reason": "too_many_files"},
-            )
-            return []
-        if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
-            metrics.incr(
-                OPEN_PR_METRICS_BASE.format(integration="github", key="rejected_comment"),
-                tags={"reason": "too_many_lines"},
-            )
-            return []
-
-    return filtered_pr_files
-
-
-def get_pr_files(pr_files: list[dict[str, str]]) -> list[PullRequestFile]:
-    # new files will not have sentry issues associated with them
-    # only fetch Python files
-    pullrequest_files = [
-        PullRequestFile(filename=file["filename"], patch=file["patch"])
-        for file in pr_files
-        if "patch" in file
-    ]
-
-    logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pullrequest_files)})
-
-    return pullrequest_files
 
 
 @instrumented_task(
@@ -173,12 +90,10 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     installation = integration.get_installation(organization_id=organization.id)
     assert isinstance(installation, CommitContextIntegration)
 
-    client = installation.get_client()
-
     # CREATING THE COMMENT
 
     # fetch the files in the PR and determine if it is safe to comment
-    pr_files = safe_for_comment(gh_client=client, repository=repo, pull_request=pr)
+    pr_files = installation.get_pr_files_safe_for_comment(repo=repo, pr=pr)
 
     if len(pr_files) == 0:
         logger.info(
@@ -190,7 +105,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         )
         return
 
-    pullrequest_files = get_pr_files(pr_files)
+    pullrequest_files = installation.get_pr_files(pr_files)
 
     issue_table_contents = {}
     top_issues_per_file = []

@@ -645,6 +645,16 @@ class CommitContextIntegration(ABC):
     # Open PR Comment Workflow
 
     @abstractmethod
+    def get_pr_files_safe_for_comment(
+        self, repo: Repository, pr: PullRequest
+    ) -> list[dict[str, str]]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_pr_files(self, pr_files: list[dict[str, str]]) -> list[PullRequestFile]:
+        raise NotImplementedError
+
+    @abstractmethod
     def format_open_pr_comment(self, issue_tables: list[str]) -> str:
         raise NotImplementedError
 
@@ -913,4 +923,8 @@ class CommitContextClient(ABC):
 
     @abstractmethod
     def get_merge_commit_sha_from_commit(self, repo: Repository, sha: str) -> str | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_pullrequest_files(self, repo: Repository, pr: PullRequest) -> Any:
         raise NotImplementedError

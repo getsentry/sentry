@@ -28,16 +28,22 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
+from sentry.integrations.github.tasks.utils import GithubAPIErrorType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import (
+    OPEN_PR_MAX_FILES_CHANGED,
+    OPEN_PR_MAX_LINES_CHANGED,
+    OPEN_PR_METRICS_BASE,
     CommitContextIntegration,
     CommitContextOrganizationOptionKeys,
     CommitContextReferrerIds,
     CommitContextReferrers,
+    PullRequestFile,
     PullRequestIssue,
 )
+from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
@@ -47,6 +53,7 @@ from sentry.integrations.utils.metrics import (
 )
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -390,6 +397,82 @@ This pull request was deployed and Sentry observed the following issues:
                 return True
 
         return False
+
+    def get_pr_files_safe_for_comment(
+        self, repo: Repository, pr: PullRequest
+    ) -> list[dict[str, str]]:
+        client = self.get_client()
+
+        logger.info("github.open_pr_comment.check_safe_for_comment")
+        try:
+            pr_files = client.get_pullrequest_files(repo=repo, pr=pr)
+        except ApiError as e:
+            logger.info("github.open_pr_comment.api_error")
+            if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(integration="github", key="api_error"),
+                    tags={"type": GithubAPIErrorType.RATE_LIMITED.value, "code": e.code},
+                )
+            elif e.code == 404:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(integration="github", key="api_error"),
+                    tags={"type": GithubAPIErrorType.MISSING_PULL_REQUEST.value, "code": e.code},
+                )
+            else:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(integration="github", key="api_error"),
+                    tags={"type": GithubAPIErrorType.UNKNOWN.value, "code": e.code},
+                )
+                logger.exception(
+                    "github.open_pr_comment.unknown_api_error", extra={"error": str(e)}
+                )
+            return []
+
+        changed_file_count = 0
+        changed_lines_count = 0
+        filtered_pr_files = []
+
+        patch_parsers = PATCH_PARSERS
+        # NOTE: if we are testing beta patch parsers, add check here
+
+        for file in pr_files:
+            filename = file["filename"]
+            # we only count the file if it's modified and if the file extension is in the list of supported file extensions
+            # we cannot look at deleted or newly added files because we cannot extract functions from the diffs
+            if file["status"] != "modified" or filename.split(".")[-1] not in patch_parsers:
+                continue
+
+            changed_file_count += 1
+            changed_lines_count += file["changes"]
+            filtered_pr_files.append(file)
+
+            if changed_file_count > OPEN_PR_MAX_FILES_CHANGED:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(integration="github", key="rejected_comment"),
+                    tags={"reason": "too_many_files"},
+                )
+                return []
+            if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(integration="github", key="rejected_comment"),
+                    tags={"reason": "too_many_lines"},
+                )
+                return []
+
+        return filtered_pr_files
+
+    def get_pr_files(self, pr_files: list[dict[str, str]]) -> list[PullRequestFile]:
+        # new files will not have sentry issues associated with them
+        # only fetch Python files
+        pullrequest_files = [
+            PullRequestFile(filename=file["filename"], patch=file["patch"])
+            for file in pr_files
+            if "patch" in file
+        ]
+
+        logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pullrequest_files)})
+
+        return pullrequest_files
 
     def format_open_pr_comment(self, issue_tables: list[str]) -> str:
         comment_body_template = """\

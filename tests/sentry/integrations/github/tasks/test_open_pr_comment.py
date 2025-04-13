@@ -6,11 +6,7 @@ import responses
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.github.tasks.open_pr_comment import (
-    get_pr_files,
-    open_pr_comment_workflow,
-    safe_for_comment,
-)
+from sentry.integrations.github.tasks.open_pr_comment import open_pr_comment_workflow
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import (
     PullRequestFile,
@@ -84,12 +80,15 @@ class TestSafeForComment(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
         self.pr = self.create_pr_issues()
-        self.mock_metrics = patch(
-            "sentry.integrations.github.tasks.open_pr_comment.metrics"
-        ).start()
+
+        metrics_patch = patch("sentry.integrations.github.integration.metrics")
+        self.mock_metrics = metrics_patch.start()
+        self.addCleanup(metrics_patch.stop)
+
         self.gh_path = self.base_url + "/repos/getsentry/sentry/pulls/{pull_number}/files"
-        installation = self.integration.get_installation(organization_id=self.organization.id)
-        self.gh_client = installation.get_client()
+        self.installation_impl = self.integration.get_installation(
+            organization_id=self.organization.id
+        )
 
     @responses.activate
     def test_simple(self):
@@ -109,7 +108,9 @@ class TestSafeForComment(GithubCommentTestCase):
             json=data,
         )
 
-        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        pr_files = self.installation_impl.get_pr_files_safe_for_comment(
+            repo=self.gh_repo, pr=self.pr
+        )
         assert pr_files == [
             {"filename": "foo.py", "changes": 100, "status": "modified"},
             {"filename": "bar.js", "changes": 100, "status": "modified"},
@@ -136,7 +137,9 @@ class TestSafeForComment(GithubCommentTestCase):
             ],
         )
 
-        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        pr_files = self.installation_impl.get_pr_files_safe_for_comment(
+            repo=self.gh_repo, pr=self.pr
+        )
         assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_called_with(
             "github.open_pr_comment.rejected_comment", tags={"reason": "too_many_files"}
@@ -154,7 +157,9 @@ class TestSafeForComment(GithubCommentTestCase):
             ],
         )
 
-        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        pr_files = self.installation_impl.get_pr_files_safe_for_comment(
+            repo=self.gh_repo, pr=self.pr
+        )
         assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_called_with(
             "github.open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
@@ -179,7 +184,9 @@ class TestSafeForComment(GithubCommentTestCase):
             ],
         )
 
-        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        pr_files = self.installation_impl.get_pr_files_safe_for_comment(
+            repo=self.gh_repo, pr=self.pr
+        )
         assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_any_call(
             "github.open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
@@ -197,7 +204,9 @@ class TestSafeForComment(GithubCommentTestCase):
             },
         )
 
-        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        pr_files = self.installation_impl.get_pr_files_safe_for_comment(
+            repo=self.gh_repo, pr=self.pr
+        )
         assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_called_with(
             "github.open_pr_comment.api_error", tags={"type": "gh_rate_limited", "code": 429}
@@ -209,7 +218,9 @@ class TestSafeForComment(GithubCommentTestCase):
             responses.GET, self.gh_path.format(pull_number=self.pr.key), status=404, json={}
         )
 
-        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        pr_files = self.installation_impl.get_pr_files_safe_for_comment(
+            repo=self.gh_repo, pr=self.pr
+        )
         assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_called_with(
             "github.open_pr_comment.api_error",
@@ -222,7 +233,9 @@ class TestSafeForComment(GithubCommentTestCase):
             responses.GET, self.gh_path.format(pull_number=self.pr.key), status=400, json={}
         )
 
-        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        pr_files = self.installation_impl.get_pr_files_safe_for_comment(
+            repo=self.gh_repo, pr=self.pr
+        )
         assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_called_with(
             "github.open_pr_comment.api_error", tags={"type": "unknown_api_error", "code": 400}
@@ -233,12 +246,16 @@ class TestGetFilenames(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
         self.pr = self.create_pr_issues()
-        self.mock_metrics = patch(
-            "sentry.integrations.source_code_management.commit_context.metrics"
-        ).start()
+
+        metrics_patch = patch("sentry.integrations.source_code_management.commit_context.metrics")
+        self.mock_metrics = metrics_patch.start()
+        self.addCleanup(metrics_patch.stop)
+
         self.gh_path = self.base_url + "/repos/getsentry/sentry/pulls/{pull_number}/files"
-        installation = self.integration.get_installation(organization_id=self.organization.id)
-        self.gh_client = installation.get_client()
+        self.installation_impl = self.integration.get_installation(
+            organization_id=self.organization.id
+        )
+        self.gh_client = self.installation_impl.get_client()
 
     @responses.activate
     def test_get_pr_files(self):
@@ -247,7 +264,7 @@ class TestGetFilenames(GithubCommentTestCase):
             {"filename": "baz.py", "status": "modified"},
         ]
 
-        pr_files = get_pr_files(data)
+        pr_files = self.installation_impl.get_pr_files(data)
         assert len(pr_files) == 1
 
         pr_file = pr_files[0]
@@ -398,7 +415,7 @@ Your pull request is modifying functions with the following pre-existing issues:
         assert issue_table == ""
 
 
-@patch("sentry.integrations.github.tasks.open_pr_comment.get_pr_files")
+@patch("sentry.integrations.github.integration.GitHubIntegration.get_pr_files")
 @patch(
     "sentry.integrations.github.integration.GitHubIntegration.get_projects_and_filenames_from_source_file"
 )
@@ -408,7 +425,7 @@ Your pull request is modifying functions with the following pre-existing issues:
 @patch(
     "sentry.integrations.github.integration.GitHubIntegration.get_top_5_issues_by_count_for_file"
 )
-@patch("sentry.integrations.github.tasks.open_pr_comment.safe_for_comment")
+@patch("sentry.integrations.github.integration.GitHubIntegration.get_pr_files_safe_for_comment")
 @patch("sentry.integrations.source_code_management.commit_context.metrics")
 class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     base_url = "https://api.github.com"

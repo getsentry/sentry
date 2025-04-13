@@ -29,10 +29,12 @@ from sentry.integrations.source_code_management.commit_context import (
     CommitContextOrganizationOptionKeys,
     CommitContextReferrerIds,
     CommitContextReferrers,
+    PullRequestFile,
     PullRequestIssue,
 )
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
@@ -270,6 +272,14 @@ class GitHubEnterpriseIntegration(
         raise NotImplementedError
 
     def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        raise NotImplementedError
+
+    def get_pr_files_safe_for_comment(
+        self, repo: Repository, pr: PullRequest
+    ) -> list[dict[str, str]]:
+        raise NotImplementedError
+
+    def get_pr_files(self, pr_files: list[dict[str, str]]) -> list[PullRequestFile]:
         raise NotImplementedError
 
     def format_open_pr_comment(self, issue_tables: list[str]) -> str:
