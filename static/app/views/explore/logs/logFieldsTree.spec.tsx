@@ -84,8 +84,7 @@ describe('logFieldsTree', () => {
             [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-03T15:50:10+00:00',
           }}
         />
-      </ProviderWrapper>,
-      {organization}
+      </ProviderWrapper>
     );
 
     expect(screen.getByText('123')).toBeInTheDocument();
