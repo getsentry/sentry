@@ -71,14 +71,13 @@ describe('logFieldsTree', () => {
               color: '#000',
             },
             useFullSeverityText: false,
-            renderSeverityCircle: false,
             organization,
             location: LocationFixture(),
           }}
           tableResultLogRow={{
             [OurLogKnownFieldKey.PROJECT_ID]: 123,
             [OurLogKnownFieldKey.ORGANIZATION_ID]: 1,
-            [OurLogKnownFieldKey.BODY]: 'test log body',
+            [OurLogKnownFieldKey.MESSAGE]: 'test log body',
             [OurLogKnownFieldKey.SEVERITY_NUMBER]: 456,
             [OurLogKnownFieldKey.SEVERITY_TEXT]: 'error',
             [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-03T15:50:10+00:00',
@@ -93,8 +92,8 @@ describe('logFieldsTree', () => {
 
     expect(screen.getByTestId('tree-key-project.id')).toBeInTheDocument();
     expect(screen.getByTestId('tree-key-project.id')).toHaveTextContent('project_id');
-    expect(screen.getByTestId('tree-key-log.severity_number')).toBeInTheDocument();
-    expect(screen.getByTestId('tree-key-log.severity_number')).toHaveTextContent(
+    expect(screen.getByTestId('tree-key-severity_number')).toBeInTheDocument();
+    expect(screen.getByTestId('tree-key-severity_number')).toHaveTextContent(
       'severity_number'
     );
 

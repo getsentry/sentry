@@ -89,7 +89,7 @@ export default class PercentageAreaChart extends Component<Props> {
                 )
                 .map(
                   ({marker, seriesName, data}) =>
-                    `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span> ${(data as any)[1]}%</div>`
+                    `<div><span class="tooltip-label">${marker as string} <strong>${seriesName}</strong></span> ${(data as any)[1]}%</div>`
                 )
                 .join(''),
               '</div>',

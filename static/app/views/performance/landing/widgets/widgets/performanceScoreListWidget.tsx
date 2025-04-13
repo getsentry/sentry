@@ -24,18 +24,20 @@ import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings'
 import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-
-import {Accordion} from '../components/accordion';
-import {GenericPerformanceWidget} from '../components/performanceWidget';
+import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import {
   GrowLink,
   RightAlignedCell,
   Subtitle,
   WidgetEmptyStateWarning,
-} from '../components/selectableList';
-import type {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import type {transformEventsRequestToStackedArea} from '../transforms/transformEventsToStackedBars';
-import type {PerformanceWidgetProps, WidgetDataResult} from '../types';
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import type {transformDiscoverToList} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToList';
+import type {transformEventsRequestToStackedArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToStackedBars';
+import type {
+  PerformanceWidgetProps,
+  WidgetDataResult,
+} from 'sentry/views/performance/landing/widgets/types';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToStackedArea>;
@@ -96,7 +98,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const getHeaders = () =>
     transactionWebVitals.map((listItem, i) => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
-      const scoreCount = projectScoresData?.data?.[0]?.[
+      const scoreCount = projectScoresData?.[0]?.[
         'count_scores(measurements.score.total)'
       ] as number;
       const opportunity = scoreCount ? (listItem.opportunity ?? 0) * 100 : 0;

@@ -28,6 +28,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -134,6 +135,8 @@ function SidebarContent() {
     ];
   }, [supportedProjects, unsupportedProjects]);
 
+  const organization = useOrganization();
+
   return (
     <Fragment>
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
@@ -163,9 +166,14 @@ function SidebarContent() {
                 )
               }
               value={currentProject?.id}
-              onChange={opt =>
-                setCurrentProject(allProjects.find(p => p.id === opt.value))
-              }
+              onChange={opt => {
+                const newProject = allProjects.find(p => p.id === opt.value);
+                setCurrentProject(newProject);
+                trackAnalytics('flags.setup_sidebar_selection', {
+                  organization,
+                  platform: newProject?.platform,
+                });
+              }}
               triggerProps={{'aria-label': currentProject?.slug}}
               options={projectSelectOptions}
               position="bottom-end"
@@ -203,7 +211,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     });
 
   const [sdkProvider, setsdkProvider] = useState<{
-    value: string;
+    value: SdkProviderEnum;
     label?: ReactNode;
   }>(sdkProviderOptions[0]!);
 
@@ -244,7 +252,14 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                   <CompactSelect
                     triggerLabel={sdkProvider.label}
                     value={sdkProvider.value}
-                    onChange={setsdkProvider}
+                    onChange={value => {
+                      setsdkProvider(value);
+                      trackAnalytics('flags.setup_sidebar_selection', {
+                        organization,
+                        platform: currentProject.platform,
+                        provider: value.value,
+                      });
+                    }}
                     options={sdkProviderOptions}
                     position="bottom-end"
                     key={sdkProvider.value}
@@ -264,6 +279,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         value={setupMode()}
         onChange={value => {
           setSetupMode(value);
+          if (value === 'generic') {
+            trackAnalytics('flags.setup_sidebar_selection', {
+              organization,
+              platform: currentProject.platform,
+              provider: SdkProviderEnum.GENERIC,
+            });
+          }
           window.location.hash = ORIGINAL_HASH;
         }}
       />

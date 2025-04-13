@@ -9,7 +9,7 @@ import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/log
 export const LogAttributesHumanLabel: Partial<Record<OurLogFieldKey, string>> = {
   [OurLogKnownFieldKey.TIMESTAMP]: t('Timestamp'),
   [OurLogKnownFieldKey.SEVERITY_TEXT]: t('Severity'),
-  [OurLogKnownFieldKey.BODY]: t('Message'),
+  [OurLogKnownFieldKey.MESSAGE]: t('Message'),
   [OurLogKnownFieldKey.TRACE_ID]: t('Trace'),
 };
 
@@ -22,17 +22,25 @@ export const AlwaysPresentLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.TRACE_ID,
   OurLogKnownFieldKey.SEVERITY_NUMBER,
   OurLogKnownFieldKey.SEVERITY_TEXT,
+  OurLogKnownFieldKey.TIMESTAMP,
+];
+
+const AlwaysHiddenLogFields: OurLogFieldKey[] = [
+  OurLogKnownFieldKey.ID,
+  OurLogKnownFieldKey.ORGANIZATION_ID,
+  OurLogKnownFieldKey.ITEM_TYPE,
+  OurLogKnownFieldKey.PROJECT,
 ];
 
 /**
  * These are fields that should be hidden in log details view when receiving all data from the API.
  */
 export const HiddenLogDetailFields: OurLogFieldKey[] = [
-  OurLogKnownFieldKey.ID,
-  OurLogKnownFieldKey.BODY,
-  OurLogKnownFieldKey.ORGANIZATION_ID,
-  OurLogKnownFieldKey.ITEM_TYPE,
+  ...AlwaysHiddenLogFields,
+  OurLogKnownFieldKey.MESSAGE,
 ];
+
+export const HiddenColumnEditorLogFields: OurLogFieldKey[] = [...AlwaysHiddenLogFields];
 
 const LOGS_FILTERS: FilterKeySection = {
   value: 'logs_filters',

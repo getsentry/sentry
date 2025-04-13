@@ -3,7 +3,7 @@ import {Fragment, useState} from 'react';
 import {ItemType} from 'sentry/components/deprecatedSmartSearchBar/types';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import type {
   FieldDefinitionGetter,
   FilterKeySection,
@@ -726,9 +726,9 @@ export default storyBook('SearchQueryBuilder', story => {
       <Fragment>
         <p>
           If you just need to render a formatted query outside of the search bar,{' '}
-          <JSXNode name="FormattedQuery" /> is exported for this purpose:
+          <JSXNode name="ProvidedFormattedQuery" /> is exported for this purpose:
         </p>
-        <FormattedQuery
+        <ProvidedFormattedQuery
           query="count():>1 AND (browser.name:[Firefox,Chrome] OR lastSeen:-7d) TypeError"
           filterKeys={FILTER_KEYS}
         />

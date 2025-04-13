@@ -16,15 +16,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {
   convertEventsStatsToTimeSeriesData,
   transformToSeriesMap,
 } from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-
-import {type DashboardFilters, DisplayType, type Widget} from '../types';
-import {isEventsStats} from '../utils/isEventsStats';
 
 import type {
   GenericWidgetQueriesChildrenProps,
@@ -43,6 +42,8 @@ type SpansWidgetQueriesProps = {
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
+  onBestEffortDataFetched?: () => void;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
 };
 
@@ -84,8 +85,7 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
         const {sampleCount: calculatedSampleCount, isSampled: calculatedIsSampled} =
           determineSeriesSampleCountAndIsSampled(
             series,
-            Object.keys(result).filter(seriesName => seriesName.toLowerCase() !== 'other')
-              .length > 0
+            Object.keys(result).some(seriesName => seriesName.toLowerCase() !== 'other')
           );
         seriesSampleCount = calculatedSampleCount;
         seriesConfidence = combineConfidenceForSeries(series);
@@ -100,12 +100,7 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
     [props.widget.queries]
   );
 
-  // TODO: Remove the check for the display type when we support progressive loading
-  // for the table request as well.
-  if (
-    organization.features.includes('visibility-explore-progressive-loading') &&
-    ![DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(props.widget.displayType)
-  ) {
+  if (organization.features.includes('visibility-explore-progressive-loading')) {
     return (
       <SpansWidgetQueriesProgressiveLoadingImpl
         {...props}
@@ -132,13 +127,26 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
   dashboardFilters,
   onDataFetched,
   getConfidenceInformation,
+  onDataFetchStart,
 }: SpansWidgetQueriesImplProps) {
   const config = SpansConfig;
   const organization = useOrganization();
 
+  const [confidence, setConfidence] = useState<Confidence | null>(null);
+  const [sampleCount, setSampleCount] = useState<number | undefined>(undefined);
+  const [isSampled, setIsSampled] = useState<boolean | null>(null);
+
+  // The best effort response props are stored to render after the preflight
+  const [bestEffortChildrenProps, setBestEffortChildrenProps] =
+    useState<GenericWidgetQueriesChildrenProps | null>(null);
+
   const afterFetchSeriesData = (result: SeriesResult) => {
     const {seriesConfidence, seriesSampleCount, seriesIsSampled} =
       getConfidenceInformation(result);
+
+    setConfidence(seriesConfidence);
+    setSampleCount(seriesSampleCount);
+    setIsSampled(seriesIsSampled);
 
     onDataFetched?.({
       confidence: seriesConfidence,
@@ -160,17 +168,22 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
         dashboardFilters={dashboardFilters}
         afterFetchSeriesData={afterFetchSeriesData}
         samplingMode={SAMPLING_MODE.PREFLIGHT}
+        onDataFetchStart={onDataFetchStart}
+        onDataFetched={() => {
+          setBestEffortChildrenProps(null);
+        }}
       >
-        {lowFidelityProps => (
+        {preflightProps => (
           <Fragment>
-            {/** TODO(nar): There is currently a bug where subsequent rerenders (i.e. changes in the widget
-             * params or dashboard filters) will cause this to refetch both the preflight and best effort data
-             * at the same time
-            ) */}
-            {lowFidelityProps.loading ? (
+            {preflightProps.loading || defined(bestEffortChildrenProps) ? (
+              // This state is returned when the preflight query is running, or when
+              // the best effort query has completed.
               children({
-                ...lowFidelityProps,
-                isProgressivelyLoading: lowFidelityProps.loading,
+                ...(bestEffortChildrenProps ?? preflightProps),
+                loading: preflightProps.loading,
+                confidence,
+                sampleCount,
+                isSampled,
               })
             ) : (
               <GenericWidgetQueries<SeriesResult, TableResult>
@@ -184,24 +197,37 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
                 dashboardFilters={dashboardFilters}
                 afterFetchSeriesData={afterFetchSeriesData}
                 samplingMode={SAMPLING_MODE.BEST_EFFORT}
+                onDataFetched={results => {
+                  setBestEffortChildrenProps({
+                    ...results,
+                    confidence,
+                    sampleCount,
+                    isSampled,
+                    loading: false,
+                    isProgressivelyLoading: false,
+                  });
+                  onDataFetched?.({...results, isProgressivelyLoading: false});
+                }}
               >
-                {highFidelityProps =>
-                  children({
-                    ...highFidelityProps,
-                    ...(highFidelityProps.loading
-                      ? {
-                          ...lowFidelityProps,
-                          loading: true,
-                        }
-                      : {
-                          ...highFidelityProps,
-                        }),
-                    isProgressivelyLoading:
-                      highFidelityProps.loading &&
-                      !lowFidelityProps.errorMessage &&
-                      !highFidelityProps.errorMessage,
-                  })
-                }
+                {bestEffortProps => {
+                  if (bestEffortProps.loading) {
+                    return children({
+                      ...preflightProps,
+                      loading: true,
+                      isProgressivelyLoading:
+                        !preflightProps.errorMessage && !bestEffortProps.errorMessage,
+                      confidence,
+                      sampleCount,
+                      isSampled,
+                    });
+                  }
+                  return children({
+                    ...bestEffortProps,
+                    confidence,
+                    sampleCount,
+                    isSampled,
+                  });
+                }}
               </GenericWidgetQueries>
             )}
           </Fragment>

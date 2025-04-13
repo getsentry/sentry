@@ -14,11 +14,13 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-
-import type {AxisOption} from '../data';
-import {getTermHelp, PerformanceTerm} from '../data';
-import type {Rectangle} from '../transactionSummary/transactionVitals/types';
-import {platformToPerformanceType, ProjectPerformanceType} from '../utils';
+import type {AxisOption} from 'sentry/views/performance/data';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
+import type {Rectangle} from 'sentry/views/performance/transactionSummary/transactionVitals/types';
+import {
+  platformToPerformanceType,
+  ProjectPerformanceType,
+} from 'sentry/views/performance/utils';
 
 export const LEFT_AXIS_QUERY_KEY = 'left';
 export const RIGHT_AXIS_QUERY_KEY = 'right';
@@ -186,7 +188,7 @@ type VitalCardDetail = {
 
 export const vitalCardDetails = (
   organization: Organization
-): {[key: string]: VitalCardDetail | undefined} => {
+): Record<string, VitalCardDetail | undefined> => {
   return {
     'p75(transaction.duration)': {
       title: t('Duration (p75)'),
@@ -253,7 +255,7 @@ export function getDisplayAxes(options: AxisOption[], location: Location) {
 
 export function checkIsReactNative(eventView: EventView) {
   // only react native should contain the stall percentage column
-  return Boolean(
-    eventView.getFields().find(field => field.includes('measurements.stall_percentage'))
-  );
+  return eventView
+    .getFields()
+    .some(field => field.includes('measurements.stall_percentage'));
 }

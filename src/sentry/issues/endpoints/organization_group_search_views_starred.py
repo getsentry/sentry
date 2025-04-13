@@ -10,7 +10,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.groupsearchview import GroupSearchViewStarredSerializer
+from sentry.api.serializers.models.groupsearchviewstarred import GroupSearchViewStarredSerializer
 from sentry.models.groupsearchview import DEFAULT_VIEWS
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
@@ -21,7 +21,7 @@ from sentry.users.models.user import User
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read", "member:write"],
+        "GET": ["member:read"],
     }
 
 

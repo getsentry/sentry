@@ -30,16 +30,16 @@ function Main() {
   const [router] = useState(buildRouter);
 
   return (
-    <ThemeAndStyleProvider>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <ThemeAndStyleProvider>
         <OnboardingContextProvider>
           <RouterProvider router={router} />
         </OnboardingContextProvider>
         {USE_REACT_QUERY_DEVTOOL && (
           <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
         )}
-      </QueryClientProvider>
-    </ThemeAndStyleProvider>
+      </ThemeAndStyleProvider>
+    </QueryClientProvider>
   );
 }
 

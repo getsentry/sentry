@@ -47,9 +47,7 @@ interface Attribute {
   original_attribute_key: string;
 }
 
-interface AttributeTree {
-  [key: string]: AttributeTreeContent;
-}
+type AttributeTree = Record<string, AttributeTreeContent>;
 
 interface AttributeTreeContent {
   subtree: AttributeTree;

@@ -43,17 +43,6 @@ const formGroups: JsonFormObject[] = [
         }),
         visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
       },
-      {
-        name: 'uptimeAutodetection',
-        type: 'boolean',
-        label: t('Automatically Configure Uptime Alerts'),
-        help: t('Detect most-used URLs for uptime monitoring.'),
-        // TOOD(epurkhiser): Currently there's no need for users to change this
-        // setting as it will just be confusing. In the future when
-        // autodetection is used for suggested URLs it will make more sense to
-        // for users to have the option to disable this.
-        visible: false,
-      },
     ],
   },
 ];

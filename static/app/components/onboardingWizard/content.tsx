@@ -7,7 +7,6 @@ import partition from 'lodash/partition';
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {useUpdateOnboardingTasks} from 'sentry/actionCreators/onboardingTasks';
-import {Chevron} from 'sentry/components/chevron';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -562,7 +561,7 @@ function TaskGroup({
         }
         actions={
           <Button
-            icon={<Chevron direction={isExpanded ? 'up' : 'down'} />}
+            icon={<IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />}
             aria-label={isExpanded ? t('Collapse') : t('Expand')}
             aria-expanded={isExpanded}
             size="zero"

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import itertools
+from collections.abc import Sequence
+from unittest import mock
 
 import pytest
 import rapidjson
 from sentry_redis_tools.clients import StrictRedis
 
-from sentry.spans.buffer import OutputSpan, SegmentKey, Span, SpansBuffer
+from sentry.spans.buffer import FlushedSegment, OutputSpan, SegmentKey, Span, SpansBuffer
 
 
 def shallow_permutations(spans: list[Span]) -> list[list[Span]]:
@@ -28,6 +30,9 @@ def _payload(span_id: bytes) -> bytes:
 def _output_segment(span_id: bytes, segment_id: bytes, is_segment: bool) -> OutputSpan:
     return OutputSpan(
         payload={
+            "data": {
+                "__sentry_internal_span_buffer_outcome": "different",
+            },
             "span_id": span_id.decode("ascii"),
             "segment_id": segment_id.decode("ascii"),
             "is_segment": is_segment,
@@ -35,9 +40,9 @@ def _output_segment(span_id: bytes, segment_id: bytes, is_segment: bool) -> Outp
     )
 
 
-def _normalize_output(output: dict[SegmentKey, list[OutputSpan]]):
+def _normalize_output(output: dict[SegmentKey, FlushedSegment]):
     for segment in output.values():
-        segment.sort(key=lambda span: span.payload["span_id"])
+        segment.spans.sort(key=lambda span: span.payload["span_id"])
 
 
 @pytest.fixture(params=["cluster", "single"])
@@ -79,7 +84,7 @@ class _SplitBatch:
     pass
 
 
-def process_spans(spans: list[Span | _SplitBatch], buffer: SpansBuffer, now):
+def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now):
     """
     Call buffer.process_spans on the list of spans.
 
@@ -150,19 +155,22 @@ def test_basic(buffer: SpansBuffer, spans):
 
     assert_ttls(buffer.client)
 
-    assert buffer.flush_segments(now=5) == (1, {})
-    _, rv = buffer.flush_segments(now=11)
+    assert buffer.flush_segments(now=5) == {}
+    rv = buffer.flush_segments(now=11)
     _normalize_output(rv)
     assert rv == {
-        _segment_id(1, "a" * 32, "b" * 16): [
-            _output_segment(b"a" * 16, b"b" * 16, False),
-            _output_segment(b"b" * 16, b"b" * 16, True),
-            _output_segment(b"c" * 16, b"b" * 16, False),
-            _output_segment(b"d" * 16, b"b" * 16, False),
-        ]
+        _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
+            queue_key=mock.ANY,
+            spans=[
+                _output_segment(b"a" * 16, b"b" * 16, False),
+                _output_segment(b"b" * 16, b"b" * 16, True),
+                _output_segment(b"c" * 16, b"b" * 16, False),
+                _output_segment(b"d" * 16, b"b" * 16, False),
+            ],
+        )
     }
     buffer.done_flush_segments(rv)
-    assert buffer.flush_segments(now=30) == (0, {})
+    assert buffer.flush_segments(now=30) == {}
 
     assert_clean(buffer.client)
 
@@ -211,20 +219,23 @@ def test_deep(buffer: SpansBuffer, spans):
 
     assert_ttls(buffer.client)
 
-    _, rv = buffer.flush_segments(now=10)
+    rv = buffer.flush_segments(now=10)
     _normalize_output(rv)
     assert rv == {
-        _segment_id(1, "a" * 32, "a" * 16): [
-            _output_segment(b"a" * 16, b"a" * 16, True),
-            _output_segment(b"b" * 16, b"a" * 16, False),
-            _output_segment(b"c" * 16, b"a" * 16, False),
-            _output_segment(b"d" * 16, b"a" * 16, False),
-        ]
+        _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
+            queue_key=mock.ANY,
+            spans=[
+                _output_segment(b"a" * 16, b"a" * 16, True),
+                _output_segment(b"b" * 16, b"a" * 16, False),
+                _output_segment(b"c" * 16, b"a" * 16, False),
+                _output_segment(b"d" * 16, b"a" * 16, False),
+            ],
+        )
     }
 
     buffer.done_flush_segments(rv)
 
-    _, rv = buffer.flush_segments(now=60)
+    rv = buffer.flush_segments(now=60)
     assert rv == {}
 
     assert_clean(buffer.client)
@@ -280,21 +291,24 @@ def test_deep2(buffer: SpansBuffer, spans):
 
     assert_ttls(buffer.client)
 
-    _, rv = buffer.flush_segments(now=10)
+    rv = buffer.flush_segments(now=10)
     _normalize_output(rv)
     assert rv == {
-        _segment_id(1, "a" * 32, "a" * 16): [
-            _output_segment(b"a" * 16, b"a" * 16, True),
-            _output_segment(b"b" * 16, b"a" * 16, False),
-            _output_segment(b"c" * 16, b"a" * 16, False),
-            _output_segment(b"d" * 16, b"a" * 16, False),
-            _output_segment(b"e" * 16, b"a" * 16, False),
-        ]
+        _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
+            queue_key=mock.ANY,
+            spans=[
+                _output_segment(b"a" * 16, b"a" * 16, True),
+                _output_segment(b"b" * 16, b"a" * 16, False),
+                _output_segment(b"c" * 16, b"a" * 16, False),
+                _output_segment(b"d" * 16, b"a" * 16, False),
+                _output_segment(b"e" * 16, b"a" * 16, False),
+            ],
+        )
     }
 
     buffer.done_flush_segments(rv)
 
-    _, rv = buffer.flush_segments(now=60)
+    rv = buffer.flush_segments(now=60)
     assert rv == {}
 
     assert_clean(buffer.client)
@@ -343,25 +357,32 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans):
 
     assert_ttls(buffer.client)
 
-    assert buffer.flush_segments(now=5) == (2, {})
-    _, rv = buffer.flush_segments(now=11)
-    assert rv == {_segment_id(2, "a" * 32, "b" * 16): [_output_segment(b"b" * 16, b"b" * 16, True)]}
-    buffer.done_flush_segments(rv)
-
-    # TODO: flush faster, since we already saw parent in other project
-    assert buffer.flush_segments(now=30) == (1, {})
-    _, rv = buffer.flush_segments(now=60)
-    _normalize_output(rv)
+    assert buffer.flush_segments(now=5) == {}
+    rv = buffer.flush_segments(now=11)
     assert rv == {
-        _segment_id(1, "a" * 32, "b" * 16): [
-            _output_segment(b"c" * 16, b"b" * 16, False),
-            _output_segment(b"d" * 16, b"b" * 16, False),
-            _output_segment(b"e" * 16, b"b" * 16, False),
-        ]
+        _segment_id(2, "a" * 32, "b" * 16): FlushedSegment(
+            queue_key=mock.ANY, spans=[_output_segment(b"b" * 16, b"b" * 16, True)]
+        )
     }
     buffer.done_flush_segments(rv)
 
-    assert buffer.flush_segments(now=90) == (0, {})
+    # TODO: flush faster, since we already saw parent in other project
+    assert buffer.flush_segments(now=30) == {}
+    rv = buffer.flush_segments(now=60)
+    _normalize_output(rv)
+    assert rv == {
+        _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
+            queue_key=mock.ANY,
+            spans=[
+                _output_segment(b"c" * 16, b"b" * 16, False),
+                _output_segment(b"d" * 16, b"b" * 16, False),
+                _output_segment(b"e" * 16, b"b" * 16, False),
+            ],
+        )
+    }
+    buffer.done_flush_segments(rv)
+
+    assert buffer.flush_segments(now=90) == {}
 
     assert_clean(buffer.client)
 
@@ -408,28 +429,70 @@ def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer,
 
     assert_ttls(buffer.client)
 
-    assert buffer.flush_segments(now=5) == (3, {})
-    _, rv = buffer.flush_segments(now=11)
+    assert buffer.flush_segments(now=5) == {}
+    rv = buffer.flush_segments(now=11)
     assert rv == {
-        _segment_id(2, "a" * 32, "b" * 16): [_output_segment(b"b" * 16, b"b" * 16, True)],
-        _segment_id(1, "a" * 32, "c" * 16): [
-            _output_segment(b"c" * 16, b"c" * 16, True),
-        ],
+        _segment_id(2, "a" * 32, "b" * 16): FlushedSegment(
+            queue_key=mock.ANY, spans=[_output_segment(b"b" * 16, b"b" * 16, True)]
+        ),
+        _segment_id(1, "a" * 32, "c" * 16): FlushedSegment(
+            queue_key=mock.ANY,
+            spans=[
+                _output_segment(b"c" * 16, b"c" * 16, True),
+            ],
+        ),
     }
     buffer.done_flush_segments(rv)
 
     # TODO: flush faster, since we already saw parent in other project
-    assert buffer.flush_segments(now=30) == (1, {})
-    _, rv = buffer.flush_segments(now=60)
+    assert buffer.flush_segments(now=30) == {}
+    rv = buffer.flush_segments(now=60)
     _normalize_output(rv)
     assert rv == {
-        _segment_id(1, "a" * 32, "b" * 16): [
-            _output_segment(b"d" * 16, b"b" * 16, False),
-            _output_segment(b"e" * 16, b"b" * 16, False),
-        ],
+        _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
+            queue_key=mock.ANY,
+            spans=[
+                _output_segment(b"d" * 16, b"b" * 16, False),
+                _output_segment(b"e" * 16, b"b" * 16, False),
+            ],
+        ),
     }
+
     buffer.done_flush_segments(rv)
 
-    assert buffer.flush_segments(now=90) == (0, {})
+    assert buffer.flush_segments(now=90) == {}
+
+    assert_clean(buffer.client)
+
+
+def test_flush_rebalance(buffer: SpansBuffer):
+    spans = [
+        Span(
+            payload=_payload(b"a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id=None,
+            project_id=1,
+            is_segment_span=True,
+        )
+    ]
+
+    process_spans(spans, buffer, now=0)
+    assert_ttls(buffer.client)
+
+    assert buffer.flush_segments(now=5) == {}
+    rv = buffer.flush_segments(now=11)
+    assert rv == {
+        _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
+            queue_key=mock.ANY, spans=[_output_segment(b"a" * 16, b"a" * 16, True)]
+        ),
+    }
+
+    # Clear out assigned shards, simulating a rebalance operation.
+    buffer.assigned_shards.clear()
+    buffer.done_flush_segments(rv)
+
+    rv = buffer.flush_segments(now=20)
+    assert not rv
 
     assert_clean(buffer.client)

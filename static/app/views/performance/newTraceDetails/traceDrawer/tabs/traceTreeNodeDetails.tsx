@@ -1,22 +1,22 @@
 import type {Organization} from 'sentry/types/organization';
-import type {ReplayRecord} from 'sentry/views/replays/types';
-
+import {AutogroupNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/autogroup';
+import {ErrorNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/error';
+import {MissingInstrumentationNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/missingInstrumentation';
+import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/index';
+import {TransactionNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/index';
 import {
   isAutogroupedNode,
+  isEAPErrorNode,
   isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
-} from '../../traceGuards';
-import type {TraceTree} from '../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
-import type {VirtualizedViewManager} from '../../traceRenderers/virtualizedViewManager';
-import {AutogroupNodeDetails} from '../details/autogroup';
-import {ErrorNodeDetails} from '../details/error';
-import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentation';
-import {SpanNodeDetails} from '../details/span/index';
-import {TransactionNodeDetails} from '../details/transaction/index';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 export interface TraceTreeNodeDetailsProps<T> {
   manager: VirtualizedViewManager;
@@ -37,7 +37,7 @@ export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
     return <SpanNodeDetails {...props} />;
   }
 
-  if (isTraceErrorNode(props.node)) {
+  if (isTraceErrorNode(props.node) || isEAPErrorNode(props.node)) {
     return <ErrorNodeDetails {...props} />;
   }
 
