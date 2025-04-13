@@ -131,6 +131,26 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         keys = {item["key"] for item in response.data}
         assert keys == {"severity_text", "message", "project"}
 
+    def test_disallowed_attributes(self):
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "sentry.item_type": {"string_value": "value1"},  # Disallowed
+                    "sentry.item_type2": {"string_value": "value2"},  # Allowed
+                },
+            ),
+        ]
+
+        self.store_ourlogs(logs)
+
+        response = self.do_request()
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert keys == {"severity_text", "message", "project", "sentry.item_type2"}
+
 
 class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpointTestBase):
     viewname = "sentry-api-0-organization-trace-item-attribute-values"

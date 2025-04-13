@@ -16,6 +16,7 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
+from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
 from sentry.api.endpoints.organization_member_invite.details import (
     OrganizationMemberInviteDetailsEndpoint,
 )
@@ -121,6 +122,7 @@ from sentry.incidents.endpoints.team_alerts_triggered import (
     TeamAlertsTriggeredIndexEndpoint,
     TeamAlertsTriggeredTotalsEndpoint,
 )
+from sentry.insights.endpoints.starred_segments import InsightsStarredSegmentsEndpoint
 from sentry.integrations.api.endpoints.doc_integration_avatar import DocIntegrationAvatarEndpoint
 from sentry.integrations.api.endpoints.doc_integration_details import DocIntegrationDetailsEndpoint
 from sentry.integrations.api.endpoints.doc_integrations_index import DocIntegrationsEndpoint
@@ -192,8 +194,9 @@ from sentry.issues.endpoints import (
     OrganizationGroupIndexEndpoint,
     OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewDetailsEndpoint,
+    OrganizationGroupSearchViewDetailsStarredEndpoint,
     OrganizationGroupSearchViewsEndpoint,
-    OrganizationGroupSearchViewStarredEndpoint,
+    OrganizationGroupSearchViewsStarredEndpoint,
     OrganizationGroupSearchViewVisitEndpoint,
     OrganizationIssuesCountEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
@@ -1320,6 +1323,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         ProjectTransactionThresholdOverrideEndpoint.as_view(),
         name="sentry-api-0-organization-project-transaction-threshold-override",
     ),
+    # Insights
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/insights/starred-segments/$",
+        InsightsStarredSegmentsEndpoint.as_view(),
+        name="sentry-api-0-insights-starred-segments",
+    ),
     # Explore
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/explore/saved/$",
@@ -1832,6 +1841,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-group-search-views",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/starred/$",
+        OrganizationGroupSearchViewsStarredEndpoint.as_view(),
+        name="sentry-api-0-organization-group-search-views-starred",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/(?P<view_id>[^\/]+)/$",
         OrganizationGroupSearchViewDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-group-search-view-details",
@@ -1843,7 +1857,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/(?P<view_id>[^\/]+)/starred/$",
-        OrganizationGroupSearchViewStarredEndpoint.as_view(),
+        OrganizationGroupSearchViewDetailsStarredEndpoint.as_view(),
         name="sentry-api-0-organization-group-search-view-starred",
     ),
     re_path(
@@ -2296,6 +2310,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/uptime-stats/$",
         OrganizationUptimeStatsEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/insights/tree/$",
+        OrganizationInsightsTreeEndpoint.as_view(),
+        name="sentry-api-0-organization-insights-tree",
     ),
     *workflow_urls.organization_urlpatterns,
 ]

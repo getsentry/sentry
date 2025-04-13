@@ -19,17 +19,16 @@ import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnh
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
-import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
-
 import {
   TrendFunctionField,
   TrendParameterColumn,
   TrendParameterLabel,
-} from '../../trends/types';
-import {TRENDS_FUNCTIONS, TRENDS_PARAMETERS} from '../../trends/utils';
-import {SpanOperationBreakdownFilter} from '../filter';
+} from 'sentry/views/performance/trends/types';
+import {TRENDS_FUNCTIONS, TRENDS_PARAMETERS} from 'sentry/views/performance/trends/utils';
+import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
 
 import LatencyChartControls from './latencyChart/chartControls';
 import {ZOOM_END, ZOOM_START} from './latencyChart/utils';

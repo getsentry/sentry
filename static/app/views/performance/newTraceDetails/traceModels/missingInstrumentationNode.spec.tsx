@@ -1,9 +1,8 @@
+import {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {
   makeNodeMetadata,
   makeSpan,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
-
-import {TraceTreeNode} from '../traceModels/traceTreeNode';
 
 import {MissingInstrumentationNode} from './missingInstrumentationNode';
 

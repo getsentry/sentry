@@ -27,18 +27,17 @@ import type {
   SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-
-import {Referrer} from '../../../referrers';
-import {traceAnalytics} from '../../../traceAnalytics';
-import {useTransaction} from '../../../traceApi/useTransaction';
-import {getCustomInstrumentationLink} from '../../../traceConfigurations';
-import {CacheMetrics} from '../../../traceDrawer/details/transaction/sections/cacheMetrics';
-import type {TraceTreeNodeDetailsProps} from '../../../traceDrawer/tabs/traceTreeNodeDetails';
-import type {TraceTree} from '../../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
-import {useHasTraceNewUi} from '../../../useHasTraceNewUi';
-import {IssueList} from '../issues/issues';
-import {TraceDrawerComponents} from '../styles';
+import {Referrer} from 'sentry/views/performance/newTraceDetails/referrers';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
+import {getCustomInstrumentationLink} from 'sentry/views/performance/newTraceDetails/traceConfigurations';
+import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {CacheMetrics} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/cacheMetrics';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 import {AdditionalData, hasAdditionalData} from './sections/additionalData';
 import {BreadCrumbs} from './sections/breadCrumbs';

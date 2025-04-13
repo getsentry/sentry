@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import {Reorder} from 'framer-motion';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -16,6 +15,7 @@ import {useParams} from 'sentry/utils/useParams';
 import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 import {generateTempViewId} from 'sentry/views/issueList/issueViews/issueViews';
 import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
+import {useUpdateGroupSearchViewStarredOrder} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarredOrder';
 import {makeFetchGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {
   type GroupSearchView,
@@ -60,7 +60,7 @@ export function IssueViewNavItems({
   const replaceWithPersistentViewIds = useCallback(
     (responseViews: GroupSearchView[]) => {
       const newlyCreatedViews = responseViews.filter(
-        view => !views.find(tab => tab.id === view.id)
+        view => !views.some(tab => tab.id === view.id)
       );
       if (newlyCreatedViews.length > 0) {
         const assignedIds = new Set();
@@ -112,6 +112,8 @@ export function IssueViewNavItems({
     onSuccess: replaceWithPersistentViewIds,
   });
 
+  const {mutate: updateStarredViewsOrder} = useUpdateGroupSearchViewStarredOrder();
+
   const debounceUpdateViews = useMemo(
     () =>
       debounce((newTabs: IssueView[]) => {
@@ -132,6 +134,7 @@ export function IssueViewNavItems({
                 projects: tab.projects,
                 environments: tab.environments,
                 timeFilters: tab.timeFilters,
+                starred: true,
               })),
           });
         }
@@ -139,14 +142,27 @@ export function IssueViewNavItems({
     [organization.slug, updateViews]
   );
 
+  const debounceUpdateStarredViewsOrder = useMemo(
+    () =>
+      debounce((newViews: IssueView[]) => {
+        updateStarredViewsOrder({
+          orgSlug: organization.slug,
+          viewIds: newViews
+            .filter(view => view.id[0] !== '_' && !view.id.startsWith('default'))
+            .map(view => parseInt(view.id, 10)),
+        });
+      }, 500),
+    [organization.slug, updateStarredViewsOrder]
+  );
+
   const handleReorderComplete = useCallback(() => {
-    debounceUpdateViews(views);
+    debounceUpdateStarredViewsOrder(views);
 
     trackAnalytics('issue_views.reordered_views', {
       leftNav: true,
       organization: organization.slug,
     });
-  }, [debounceUpdateViews, organization.slug, views]);
+  }, [debounceUpdateStarredViewsOrder, organization.slug, views]);
 
   const handleUpdateView = useCallback(
     (view: IssueView, updatedView: IssueView) => {
@@ -191,7 +207,8 @@ export function IssueViewNavItems({
           isAllProjects: isEqual(v.projects, [-1]),
           name: v.label,
           lastVisited: null,
-          visibility: GroupSearchViewVisibility.OWNER,
+          visibility: GroupSearchViewVisibility.ORGANIZATION,
+          starred: true,
         }))
       );
     },
@@ -234,7 +251,8 @@ export function IssueViewNavItems({
             isAllProjects: isEqual(v.projects, [-1]),
             name: v.label,
             lastVisited: null,
-            visibility: GroupSearchViewVisibility.OWNER,
+            visibility: GroupSearchViewVisibility.ORGANIZATION,
+            starred: true,
           }))
         );
       }
@@ -252,12 +270,8 @@ export function IssueViewNavItems({
 
   return (
     <SecondaryNav.Section
-      title={
-        <TitleWrapper>
-          {t('Starred Views')}
-          <IssueViewAddViewButton baseUrl={baseUrl} />
-        </TitleWrapper>
-      }
+      title={t('Starred Views')}
+      trailingItems={<IssueViewAddViewButton baseUrl={baseUrl} />}
     >
       <Reorder.Group
         as="div"
@@ -306,9 +320,3 @@ export const constructViewLink = (baseUrl: string, view: IssueView) => {
     },
   });
 };
-
-const TitleWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
