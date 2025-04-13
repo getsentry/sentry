@@ -165,6 +165,16 @@ export function generateTraceTarget(
     });
   }
 
+  return generateTraceEventsInDiscoverTarget(event, organization);
+}
+
+export function generateTraceEventsInDiscoverTarget(
+  event: Event,
+  organization: Organization
+): LocationDescriptor {
+  const traceId = event.contexts?.trace?.trace_id ?? '';
+  const dateSelection = normalizeDateTimeParams(getTraceTimeRangeFromEvent(event));
+
   const eventView = EventView.fromSavedQuery({
     id: undefined,
     name: `Events with Trace ID ${traceId}`,
@@ -177,6 +187,7 @@ export function generateTraceTarget(
     version: 2,
     ...dateSelection,
   });
+
   return eventView.getResultsViewUrlTarget(
     organization,
     false,
