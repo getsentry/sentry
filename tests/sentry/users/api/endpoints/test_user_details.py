@@ -119,7 +119,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "clock24Hours": True,
                 "extra": True,
                 "prefersIssueDetailsStreamlinedUI": True,
-                "prefersSpecializedProjectOverview": {"2": True},
                 "prefersStackedNavigation": True,
                 "prefersChonkUI": True,
                 "quickStartDisplay": {self.organization.id: 1},
@@ -144,12 +143,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
         )
         assert UserOption.objects.get_value(user=self.user, key="prefers_stacked_navigation")
         assert UserOption.objects.get_value(user=self.user, key="prefers_chonk_ui")
-        assert (
-            UserOption.objects.get_value(
-                user=self.user, key="prefers_specialized_project_overview"
-            ).get("2")
-            is True
-        )
         assert (
             UserOption.objects.get_value(user=self.user, key="quick_start_display").get(
                 str(self.organization.id)
@@ -220,42 +213,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
         assert user.email == "c@example.com"
         assert user.username == "c@example.com"
-
-    def test_saving_specialized_project_overview_option(self):
-        self.get_success_response(
-            "me",
-            options={"prefersSpecializedProjectOverview": {"1": False, "2": False}},
-        )
-
-        options = UserOption.objects.get_value(
-            user=self.user, key="prefers_specialized_project_overview"
-        )
-        assert options.get("1") is False
-        assert options.get("2") is False
-
-        # Test updating project 1 to True
-        self.get_success_response(
-            "me",
-            options={"prefersSpecializedProjectOverview": {"1": True}},
-        )
-        options = UserOption.objects.get_value(
-            user=self.user, key="prefers_specialized_project_overview"
-        )
-        assert options.get("1") is True
-        # Project 2 should not be affected
-        assert options.get("2") is False
-
-        # Enabled value is not a boolean
-        self.get_error_response(
-            "me",
-            options={"prefersSpecializedProjectOverview": {"1": "True"}},
-            status_code=400,
-        )
-        self.get_error_response(
-            "me",
-            options={"prefersSpecializedProjectOverview": {"1": 1}},
-            status_code=400,
-        )
 
     def test_saving_quick_start_display_option(self):
         org1_id = str(self.organization.id)
