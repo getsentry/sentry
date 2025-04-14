@@ -32,11 +32,11 @@ export const platformOptions = {
     label: t('Module Format'),
     items: [
       {
-        label: t('Lambda Layer (CJS)'),
+        label: t('CJS: Lambda Layer'),
         value: ModuleFormat.CJS,
       },
       {
-        label: t('NPM Package (ESM)'),
+        label: t('ESM: NPM Package'),
         value: ModuleFormat.ESM,
       },
     ],
@@ -52,11 +52,6 @@ NODE_OPTIONS="-r @sentry/aws-serverless/awslambda-auto"
 SENTRY_DSN="${params.dsn.public}"
 ${params.isPerformanceSelected ? 'SENTRY_TRACES_SAMPLE_RATE=1.0' : ''}
 `;
-
-const getVerifySnippet = () => `
-exports.handler = Sentry.wrapHandler(async (event, context) => {
-  throw new Error("This should show up in Sentry!")
-});`;
 
 const getSdkSetupSnippet = (params: Params) => `
 // IMPORTANT: Make sure to import and initialize Sentry at the top of your file.
@@ -134,7 +129,20 @@ const moduleFormatOnboarding: Record<ModuleFormat, OnboardingConfig<PlatformOpti
         ...params,
       }),
     ],
-    verify: () => [],
+    verify: () => [
+      {
+        type: StepType.VERIFY,
+        description: t(
+          "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+        ),
+        configurations: [
+          {
+            language: 'javascript',
+            code: `throw new Error("This should show up in Sentry!");`,
+          },
+        ],
+      },
+    ],
   },
   [ModuleFormat.ESM]: {
     introduction: () =>
@@ -173,8 +181,23 @@ const moduleFormatOnboarding: Record<ModuleFormat, OnboardingConfig<PlatformOpti
         ],
       },
     ],
-
-    verify: () => [],
+    verify: () => [
+      {
+        type: StepType.VERIFY,
+        description: t(
+          "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+        ),
+        configurations: [
+          {
+            language: 'javascript',
+            code: `
+export const handler = Sentry.wrapHandler(async (event, context) => {
+  throw new Error("This should show up in Sentry!")
+});`,
+          },
+        ],
+      },
+    ],
   },
 };
 
@@ -185,20 +208,8 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     moduleFormatOnboarding[params.platformOptions.moduleFormat].install(params),
   configure: (params: Params) =>
     moduleFormatOnboarding[params.platformOptions.moduleFormat].configure(params),
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
-        {
-          language: 'javascript',
-          code: getVerifySnippet(),
-        },
-      ],
-    },
-  ],
+  verify: (params: Params) =>
+    moduleFormatOnboarding[params.platformOptions.moduleFormat].verify(params),
 };
 
 const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {

@@ -9,7 +9,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import docs, {ModuleFormat} from './awslambda';
 
 describe('awslambda onboarding docs', function () {
-  describe('Lambda Layer (CJS)', () => {
+  describe('CJS: Lambda Layer', () => {
     it('renders onboarding docs correctly', () => {
       renderWithOnboardingLayout(docs);
 
@@ -58,7 +58,7 @@ describe('awslambda onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  describe('NPM Package (ESM)', () => {
+  describe('ESM: NPM Package', () => {
     let esmDocs: typeof docs;
     beforeAll(() => {
       esmDocs = {
