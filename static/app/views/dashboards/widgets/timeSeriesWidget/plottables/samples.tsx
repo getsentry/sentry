@@ -50,11 +50,11 @@ export type SamplesConfig = {
    */
   baselineValue?: number;
   /**
-   * Callback for ECharts' `onClick` mouse event. Called with the sample that corresponds to the highlighted sample in the chart
+   * Callback for ECharts' `onClick` mouse event. Called with the sample that corresponds to the clicked sample in the chart
    */
   onClick?: (datum: ValidSampleRow) => void;
   /**
-   * Callback for ECharts' `onHighlight`. Called with the sample that corresponds to the clicked sample in the chart
+   * Callback for ECharts' `onHighlight`. Called with the sample that corresponds to the highlighted sample in the chart.
    */
   onHighlight?: (datum: ValidSampleRow) => void;
 };
