@@ -108,7 +108,21 @@ export class Samples implements Plottable {
     if (sample && isValidSampleRow(sample)) {
       const dataIndex = this.sampleTableData.data.indexOf(sample);
       chart.dispatchAction({type: 'highlight', seriesName, dataIndex});
-      config.onHighlight?.(sample);
+    }
+  }
+
+  downplay(sample: TabularRow) {
+    if (!this.chartRef) {
+      warn('`Samples.downplay` invoked before chart ref is ready');
+      return;
+    }
+
+    const chart = this.chartRef.getEchartsInstance();
+    const seriesName = this.name;
+
+    if (sample && isValidSampleRow(sample)) {
+      const dataIndex = this.sampleTableData.data.indexOf(sample);
+      chart.dispatchAction({type: 'downplay', seriesName, dataIndex});
     }
   }
 
@@ -221,6 +235,15 @@ export class Samples implements Plottable {
     const sample = this.#getSampleByIndex(dataIndex);
     if (sample) {
       config.onHighlight?.(sample);
+    }
+  }
+
+  onDownplay(dataIndex: number): void {
+    const {config} = this;
+
+    const sample = this.#getSampleByIndex(dataIndex);
+    if (sample) {
+      config.onDownplay?.(sample);
     }
   }
 

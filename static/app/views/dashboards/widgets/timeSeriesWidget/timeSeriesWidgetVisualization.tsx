@@ -544,7 +544,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     // Unlike click events, downplays happen to potentially more than one
     // series at a time. We have to iterate each item in the batch
     for (const batch of event.batch ?? []) {
-      runHandler(batch, 'onDownplay');
+      // Downplay events sometimes trigger for the entire series. We are ignoring these. It's not clear why or when they are called, but they appear to be redudant.
+      if (defined(batch.dataIndex) && defined(batch.seriesIndex)) {
+        runHandler(batch, 'onDownplay');
+      }
     }
   };
 

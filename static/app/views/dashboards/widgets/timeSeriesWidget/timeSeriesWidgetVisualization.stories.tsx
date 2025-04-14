@@ -602,7 +602,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
   story('Highlighting', () => {
     const [legendSelection, setLegendSelection] = useState<LegendSelection>({});
-    const [sampleId, setSampleId] = useState<string>();
+    const [sampleId, setSampleId] = useState<string | null>(null);
 
     const aggregatePlottable = new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
       delay: 1800,
@@ -617,20 +617,27 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         onHighlight: row => {
           setSampleId(row.id);
         },
+        onDownplay: () => {
+          setSampleId(null);
+        },
       });
     }, []);
 
-    // Synchronize the highlighted sample ID state with ECharts by dispatching a
-    // "highlight" event whenever the highlighted ID changes. Storing the highlighted
-    // ID in the state prevents the highlight from getting cleared on re-render.
+    // Synchronize the highlighted sample ID state with ECharts
     useEffect(() => {
-      samplesPlottable.highlight(undefined);
+      const sample = shiftedSpanSamples.data.find(datum => datum.id === sampleId)!;
 
-      const sample = shiftedSpanSamples.data.find(datum => datum.id === sampleId);
-
+      // Highlight the new selected sample
       if (sample) {
         samplesPlottable.highlight(sample);
       }
+
+      return () => {
+        // Downplay the previous selected sample
+        if (sample) {
+          samplesPlottable.downplay(sample);
+        }
+      };
     }, [sampleId, samplesPlottable]);
 
     return (
@@ -648,7 +655,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
         <p>
           e.g., the <code>Samples</code> plottable in the chart below has both a callback,
-          and manual highlighting. The callback reports the ID of the most recently
+          and manual highlighting. The callback reports the ID of the currently
           highlighted sample. The "Highlight Random Sample" button manually highlights a
           random sample in the plottable.
         </p>
@@ -656,7 +663,9 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         <Button
           size="sm"
           onClick={() => {
-            const sample = shuffle(shiftedSpanSamples.data).at(0) as {
+            const sample = shuffle(shiftedSpanSamples.data).find(
+              shuffledSample => shuffledSample.id !== sampleId
+            ) as {
               id: string;
               timestamp: string;
             };
