@@ -42,8 +42,8 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class MigrateMetricAlertTest(TestMigrations):
-    migrate_from = "0042_workflow_fire_history_add_fired_actions_bool"
-    migrate_to = "0043_migrate_metric_alerts"
+    migrate_from = "0044_rm_detector_name_unique_constraint"
+    migrate_to = "0046_migrate_metric_alerts"
     app = "workflow_engine"
 
     def setUp(self):
@@ -157,8 +157,8 @@ class MigrateMetricAlertTest(TestMigrations):
         self.create_alert_rule_trigger(alert_rule=self.rule_with_long_name)
 
     def test_simple_rule(self):
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.valid_rule)
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.valid_rule)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.valid_rule.id)
 
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
         assert workflow.name == get_workflow_name(self.valid_rule)
@@ -199,8 +199,8 @@ class MigrateMetricAlertTest(TestMigrations):
         assert data_source_detector.detector == detector
 
     def test_simple_trigger(self):
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.valid_rule)
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.valid_rule)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.valid_rule.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
 
@@ -213,7 +213,7 @@ class MigrateMetricAlertTest(TestMigrations):
 
         assert detector_trigger.type == Condition.GREATER
 
-        assert DataConditionAlertRuleTrigger.objects.get(
+        assert DataConditionAlertRuleTrigger.objects.filter(
             data_condition=detector_trigger, alert_rule_trigger_id=self.valid_trigger.id
         ).exists()
 
@@ -260,7 +260,7 @@ class MigrateMetricAlertTest(TestMigrations):
         """
         Test that we handle AlertRuleThresholdType.BELOW appropriately
         """
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.rule_lt)
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.rule_lt.id)
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
 
         detector_trigger = DataCondition.objects.get(
@@ -279,8 +279,8 @@ class MigrateMetricAlertTest(TestMigrations):
         assert resolve_detector_trigger.type == Condition.GREATER_OR_EQUAL
 
     def test_simple_resolve(self):
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.valid_rule)
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.valid_rule)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.valid_rule.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
 
@@ -308,8 +308,8 @@ class MigrateMetricAlertTest(TestMigrations):
         ).exists()
 
     def test_explicit_resolve(self):
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.rule_with_resolve)
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.rule_with_resolve)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.rule_with_resolve.id)
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.rule_with_resolve.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
 
@@ -337,7 +337,7 @@ class MigrateMetricAlertTest(TestMigrations):
         ).exists()
 
     def test_simple_trigger_action(self):
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.valid_rule)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
         workflow_dcgs = DataConditionGroup.objects.filter(
             workflowdataconditiongroup__workflow=workflow
@@ -363,7 +363,7 @@ class MigrateMetricAlertTest(TestMigrations):
         assert action.config.get("target_type") == self.email_action.target_type
 
     def test_on_call_trigger_action(self):
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.valid_rule)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
         workflow_dcgs = DataConditionGroup.objects.filter(
             workflowdataconditiongroup__workflow=workflow
@@ -390,7 +390,7 @@ class MigrateMetricAlertTest(TestMigrations):
         assert action.config.get("target_type") == self.integration_action.target_type
 
     def test_sentry_app_trigger_action(self):
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.valid_rule)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
         workflow_dcgs = DataConditionGroup.objects.filter(
             workflowdataconditiongroup__workflow=workflow
@@ -420,10 +420,12 @@ class MigrateMetricAlertTest(TestMigrations):
         assert action.config.get("sentry_app_identifier") == "sentry_app_id"
 
     def test_skip_dynamic_rule(self):
-        assert not AlertRuleDetector.objects.filter(alert_rule=self.dynamic_rule).exists()
+        assert not AlertRuleDetector.objects.filter(alert_rule_id=self.dynamic_rule.id).exists()
 
     def test_create_with_incident(self):
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.rule_with_incident)
+        alert_rule_detector = AlertRuleDetector.objects.get(
+            alert_rule_id=self.rule_with_incident.id
+        )
 
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
         detector_state = DetectorState.objects.get(detector=detector)
@@ -431,7 +433,7 @@ class MigrateMetricAlertTest(TestMigrations):
         assert detector_state.state == str(DetectorPriorityLevel.HIGH)
 
     def test_create_snoozed(self):
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.snoozed_rule)
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.snoozed_rule.id)
 
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
         assert not detector.enabled
@@ -441,13 +443,15 @@ class MigrateMetricAlertTest(TestMigrations):
         Test that none of the ACI objects are written to the DB if an exception occurs, and test that
         an exception doesn't crash the migration.
         """
-        assert not AlertRuleDetector.objects.filter(alert_rule=self.skipped_rule).exists()
+        assert not AlertRuleDetector.objects.filter(alert_rule_id=self.skipped_rule.id).exists()
 
     def test_long_rule_name(self):
         """
         Test that we can handle the rule with len(alert_rule.name) > 200.
         """
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.rule_with_long_name)
+        alert_rule_detector = AlertRuleDetector.objects.get(
+            alert_rule_id=self.rule_with_long_name.id
+        )
 
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
         assert (

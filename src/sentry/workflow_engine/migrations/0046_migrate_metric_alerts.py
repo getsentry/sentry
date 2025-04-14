@@ -749,7 +749,7 @@ def _migrate_resolve_threshold(apps: Apps, alert_rule: Any, detector: Any) -> No
     data_condition_group = DataConditionGroup.objects.create(
         organization_id=alert_rule.organization_id
     )
-    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
     WorkflowDataConditionGroup.objects.create(
         condition_group=data_condition_group,
         workflow=alert_rule_workflow.workflow,
@@ -856,9 +856,11 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                         # create detector state
                         _create_detector_state(apps, alert_rule, project, detector)
                         # create lookup tables
-                        AlertRuleDetector.objects.create(alert_rule=alert_rule, detector=detector)
+                        AlertRuleDetector.objects.create(
+                            alert_rule_id=alert_rule.id, detector=detector
+                        )
                         alert_rule_workflow = AlertRuleWorkflow.objects.create(
-                            alert_rule=alert_rule, workflow=workflow
+                            alert_rule_id=alert_rule.id, workflow=workflow
                         )
                         DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
 
@@ -899,7 +901,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("workflow_engine", "0042_workflow_fire_history_add_fired_actions_bool"),
+        ("workflow_engine", "0044_rm_detector_name_unique_constraint"),
     ]
 
     operations = [
