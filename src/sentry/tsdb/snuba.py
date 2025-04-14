@@ -791,6 +791,7 @@ class SnubaTSDB(BaseTSDB):
         tenant_ids=None,
         referrer_suffix=None,
         conditions=None,
+        group_on_time: bool = True,
     ):
         return self.get_data(
             model,
@@ -805,6 +806,7 @@ class SnubaTSDB(BaseTSDB):
             tenant_ids=tenant_ids,
             referrer_suffix=referrer_suffix,
             conditions=conditions,
+            group_on_time=group_on_time,
         )
 
     def get_frequency_series(

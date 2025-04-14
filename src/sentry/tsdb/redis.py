@@ -539,6 +539,7 @@ class RedisTSDB(BaseTSDB):
         tenant_ids: dict[str, int | str] | None = None,
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
+        group_on_time: bool = False,
     ) -> dict[int, Any]:
         """
         Count distinct items during a time range.
