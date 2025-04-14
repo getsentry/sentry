@@ -298,6 +298,7 @@ export default class ReplayReader {
   private _startOffsetMs = 0;
   private _videoEvents: VideoEvent[] = [];
   private _clipWindow: ClipWindow | undefined = undefined;
+  private _errorBeforeReplayStart = false;
 
   private _applyClipWindow = (clipWindow: ClipWindow) => {
     let clipStartTimestampMs;
@@ -310,6 +311,7 @@ export default class ReplayReader {
     if (clipWindow.startTimestampMs < this._replayRecord.started_at.getTime()) {
       clipStartTimestampMs = replayStart;
       clipEndTimestampMs = Math.min(replayStart + 10 * 1000, replayEnd);
+      this._errorBeforeReplayStart = true;
     } else {
       clipStartTimestampMs = clamp(clipWindow.startTimestampMs, replayStart, replayEnd);
       clipEndTimestampMs = clamp(
@@ -457,6 +459,8 @@ export default class ReplayReader {
   getDurationMs = () => {
     return this._duration.asMilliseconds();
   };
+
+  getErrorBeforeReplayStart = () => this._errorBeforeReplayStart;
 
   getStartOffsetMs = () => this._startOffsetMs;
 
