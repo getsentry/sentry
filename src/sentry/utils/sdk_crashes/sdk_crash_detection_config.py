@@ -363,8 +363,8 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 # In the Sentry Flutter SDK, we override the handleDrawFrame and handleBeginFrame methods,
                 # add our custom implementation on top to instrument frame tracking and then forward the calls to Flutter.
                 # However every custom implementation is try/catch guarded so no exception can be thrown.
-                "**handleDrawFrame",
-                "**handleBeginFrame",
+                "SentryWidgetsBindingMixin.handleDrawFrame",
+                "SentryWidgetsBindingMixin.handleBeginFrame",
             ,
         )
         configs.append(dart_config)
