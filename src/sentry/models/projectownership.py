@@ -29,6 +29,8 @@ if TYPE_CHECKING:
     from sentry.models.team import Team
     from sentry.users.services.user import RpcUser
 
+__all__ = ("ProjectOwnership",)
+
 logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
 
