@@ -43,8 +43,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
     reason = t('This feature is disabled for errors only self-hosted');
     return Object.values(ProductSolution)
       .filter(product => product !== ProductSolution.ERROR_MONITORING)
-      .reduce((acc, prod) => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      .reduce<DisabledProducts>((acc, prod) => {
         acc[prod] = {reason};
         return acc;
       }, {});
@@ -225,10 +224,6 @@ type ProductProps = {
    * Click handler. If the product is enabled, by clicking on the button, the product is added or removed from the URL.
    */
   onClick?: () => void;
-  /**
-   * A permanent disabled product is always disabled and cannot be enabled.
-   */
-  permanentDisabled?: boolean;
 };
 
 function Product({
@@ -255,19 +250,20 @@ function Product({
     >
       <ProductButton
         onClick={disabled?.onClick ?? onClick}
-        disabled={!!disabled}
         priority={!!disabled || checked ? 'primary' : 'default'}
+        disabled={!!disabled}
         aria-label={label}
       >
         <ProductButtonInner>
           <Checkbox
-            size="xs"
             readOnly
+            size="xs"
             // Dont allow focus on the checkbox, as it is part of a button and
             // used mostly for a presentation purpose
             tabIndex={-1}
             role="presentation"
             checked={checked}
+            aria-label={label}
           />
           {label}
           <IconQuestion size="xs" />
@@ -288,6 +284,7 @@ export type ProductSelectionProps = {
   disabledProducts?: DisabledProducts;
   /**
    * Fired when the product selection changes
+   *
    */
   onChange?: (products: ProductSolution[]) => void;
   /**
@@ -373,7 +370,6 @@ export function ProductSelection({
         label={t('Error Monitoring')}
         disabled={{reason: t("Let's admit it, we all have errors.")}}
         checked
-        permanentDisabled
       />
       {products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
         <Product
@@ -431,7 +427,7 @@ const ProductButton = withChonk(
       color: ${p => p.theme.purple300};
     }
 
-    [disabled] {
+    [aria-disabled='true'] {
       input {
         background: ${p => p.theme.purple100};
         color: ${p => p.theme.purple300};
