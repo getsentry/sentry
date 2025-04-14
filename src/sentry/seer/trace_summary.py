@@ -77,7 +77,7 @@ def _call_seer(
             "only_transaction": only_transaction,
             "trace": {
                 "trace_id": trace_id,
-                "trace_content": trace_content,
+                "trace": trace_content,
             },
         },
         option=orjson.OPT_NON_STR_KEYS,

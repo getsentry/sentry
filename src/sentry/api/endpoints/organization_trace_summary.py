@@ -11,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.trace_summary import get_trace_summary
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -36,15 +37,24 @@ class OrganizationTraceSummaryEndpoint(OrganizationEndpoint):
 
     def post(self, request: Request, organization: Organization) -> Response:
 
-        if not features.has("organizations:single-trace-summary", organization, actor=request.user):
+        if not features.has(
+            "organizations:single-trace-summary", organization, actor=request.user
+        ) and not features.has(
+            "organizations:trace-spans-format:", organization, actor=request.user
+        ):
             return Response({"detail": "Feature flag not enabled"}, status=400)
 
-        data = orjson.loads(request.body) if request.body else {}
+        data: dict = orjson.loads(request.body) if request.body else {}
         trace_id = data.get("trace_id", None)
-        trace_tree = data.get("trace_tree", [])
-
         if not trace_id:
             return Response({"detail": "Missing trace_id parameter"}, status=400)
+
+        try:
+            trace_endpoint = OrganizationTraceEndpoint()
+            trace_response = trace_endpoint.get(request, organization, trace_id)
+            trace_tree = trace_response.data
+        except Exception as e:
+            return Response({"detail": f"Error fetching trace: {str(e)}"}, status=400)
 
         if not trace_tree:
             return Response({"detail": "Missing trace_tree data"}, status=400)
