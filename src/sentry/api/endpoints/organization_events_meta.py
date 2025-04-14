@@ -295,7 +295,7 @@ def get_eap_span_samples(request: Request, snuba_params: SnubaParams, orderby: l
 
     selected_columns = request.GET.getlist("additionalFields", []) + [
         "project",
-        "transaction.id",
+        "transaction.span_id",
         column,
         "timestamp",
         "span_id",
