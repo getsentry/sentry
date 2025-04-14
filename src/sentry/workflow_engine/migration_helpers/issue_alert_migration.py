@@ -3,6 +3,7 @@ from typing import Any
 
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.locks import locks
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
@@ -89,14 +90,22 @@ class IssueAlertMigrator:
                 error_detector = Detector(type=ErrorGroupType.slug, project=self.project)
 
         else:
-            error_detector, _ = Detector.objects.get_or_create(
-                type=ErrorGroupType.slug,
-                project=self.project,
-                defaults={"config": {}, "name": "Error Detector"},
+            lock = locks.get(
+                f"workflow-engine-project-error-detector:{self.project.id}",
+                duration=10,
+                name="workflow_engine_issue_alert",
             )
-            _, created = AlertRuleDetector.objects.get_or_create(
-                detector=error_detector, rule_id=self.rule.id
-            )
+            with lock.acquire():
+                error_detector, _ = Detector.objects.get_or_create(
+                    type=ErrorGroupType.slug,
+                    project=self.project,
+                    defaults={"config": {}, "name": "Error Detector"},
+                )
+                _, created = AlertRuleDetector.objects.get_or_create(
+                    detector=error_detector, rule_id=self.rule.id
+                )
+
+                # Detector is required for migration, migration should fail if unable to acquire lock
 
         if not created:
             raise Exception("Issue alert already migrated")
