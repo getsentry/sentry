@@ -119,6 +119,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "clock24Hours": True,
                 "extra": True,
                 "prefersIssueDetailsStreamlinedUI": True,
+                "prefersNextjsInsightsOverview": True,
                 "prefersSpecializedProjectOverview": {"2": True},
                 "prefersStackedNavigation": True,
                 "prefersChonkUI": True,
@@ -150,6 +151,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
             ).get("2")
             is True
         )
+        assert UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
         assert (
             UserOption.objects.get_value(user=self.user, key="quick_start_display").get(
                 str(self.organization.id)
@@ -220,6 +222,31 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
         assert user.email == "c@example.com"
         assert user.username == "c@example.com"
+
+    def test_saving_nextjs_insights_overview_option(self):
+        self.get_success_response(
+            "me",
+            options={"prefersNextjsInsightsOverview": True},
+        )
+        assert (
+            UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
+            is True
+        )
+
+        self.get_success_response(
+            "me",
+            options={"prefersNextjsInsightsOverview": False},
+        )
+        assert (
+            UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
+            is False
+        )
+
+    def test_default_nextjs_insights_overview_option_is_true(self):
+        resp = self.get_success_response(
+            "me",
+        )
+        assert resp.data["options"]["prefersNextjsInsightsOverview"] is True
 
     def test_saving_specialized_project_overview_option(self):
         self.get_success_response(

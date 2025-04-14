@@ -66,6 +66,7 @@ class _UserOptions(TypedDict):
     timezone: str
     clock24Hours: bool
     prefersIssueDetailsStreamlinedUI: bool | None
+    prefersNextjsInsightsOverview: bool
     prefersSpecializedProjectOverview: dict[str, bool]
     prefersStackedNavigation: bool
     prefersChonkUI: bool
@@ -199,6 +200,9 @@ class UserSerializer(Serializer):
                 "defaultIssueEvent": options.get("default_issue_event") or "recommended",
                 "timezone": options.get("timezone") or settings.SENTRY_DEFAULT_TIME_ZONE,
                 "clock24Hours": options.get("clock_24_hours") or False,
+                "prefersNextjsInsightsOverview": options.get(
+                    "prefers_nextjs_insights_overview", True
+                ),
                 "prefersIssueDetailsStreamlinedUI": options.get(
                     "prefers_issue_details_streamlined_ui"
                 ),

@@ -87,6 +87,7 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
         required=False,
     )
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
+    prefersNextjsInsightsOverview = serializers.BooleanField(required=False)
     prefersSpecializedProjectOverview = serializers.JSONField(
         required=False,
         allow_null=True,
@@ -272,6 +273,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
             "prefersSpecializedProjectOverview": "prefers_specialized_project_overview",
             "prefersStackedNavigation": "prefers_stacked_navigation",
+            "prefersNextjsInsightsOverview": "prefers_nextjs_insights_overview",
             "prefersChonkUI": "prefers_chonk_ui",
             "quickStartDisplay": "quick_start_display",
         }
