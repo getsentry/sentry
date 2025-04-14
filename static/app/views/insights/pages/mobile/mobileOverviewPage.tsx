@@ -29,6 +29,7 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {
@@ -92,15 +93,19 @@ function MobileOverviewPage() {
   const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
+  const useEap = useInsightsEap();
 
   const withStaticFilters = canUseMetricsData(organization);
+
+  const segmentOp = useEap ? 'span.op' : 'transaction.op';
 
   const eventView = generateMobilePerformanceEventView(
     location,
     projects,
     generateGenericPerformanceEventView(location, withStaticFilters, organization),
     withStaticFilters,
-    organization
+    organization,
+    useEap
   );
   const searchBarEventView = eventView.clone();
 
@@ -118,7 +123,7 @@ function MobileOverviewPage() {
   );
 
   const existingQuery = new MutableSearch(eventView.query);
-  existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addDisjunctionFilterValues(segmentOp, OVERVIEW_PAGE_ALLOWED_OPS);
   if (selectedMobileProjects.length > 0) {
     existingQuery.addOp('OR');
     existingQuery.addFilterValue(
