@@ -120,6 +120,10 @@ export interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonE
   /**
    * @deprecated Use LinkButton instead
    */
+  preventScrollReset?: boolean;
+  /**
+   * @deprecated Use LinkButton instead
+   */
   replace?: boolean;
   /**
    * Similar to `href`, but for internal links within the app.
@@ -153,6 +157,7 @@ interface ToLinkButtonProps extends BaseLinkButtonProps {
    */
   to: string | LocationDescriptor;
   external?: never;
+  preventScrollReset?: boolean;
   replace?: boolean;
 }
 
@@ -203,6 +208,7 @@ function BaseButton({
   size = 'md',
   to,
   replace,
+  preventScrollReset,
   busy,
   href,
   title,
@@ -291,6 +297,7 @@ function BaseButton({
         to={disabled ? undefined : to}
         href={disabled ? undefined : href}
         replace={replace}
+        preventScrollReset={preventScrollReset}
         size={size}
         priority={priority}
         borderless={borderless}
