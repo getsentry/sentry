@@ -49,10 +49,12 @@ class OrganizationTraceSummaryEndpoint(OrganizationEndpoint):
         if not trace_id:
             return Response({"detail": "Missing trace_id parameter"}, status=400)
 
+        trace_tree = []
         try:
             trace_endpoint = OrganizationTraceEndpoint()
             trace_response = trace_endpoint.get(request, organization, trace_id)
-            trace_tree = trace_response.data
+            if hasattr(trace_response, "data"):
+                trace_tree = trace_response.data
         except Exception as e:
             return Response({"detail": f"Error fetching trace: {str(e)}"}, status=400)
 
