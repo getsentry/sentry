@@ -507,41 +507,35 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
-  const handleClick: EChartClickHandler = event => {
-    const affectedRange = seriesIndexToPlottableRangeMap.getRange(event.seriesIndex);
+  const runHandler = (
+    batch: {dataIndex: number; seriesIndex: number},
+    handlerName: 'onClick' | 'onHighlight' | 'onDownplay'
+  ): void => {
+    const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
     const affectedPlottable = affectedRange?.value;
 
     if (
       !defined(affectedRange) ||
       !defined(affectedPlottable) ||
-      !defined(affectedPlottable.onClick)
+      !defined(affectedPlottable[handlerName])
     ) {
       return;
     }
 
-    affectedPlottable.onClick(
-      getPlottableEventDataIndex(allSeries, event, affectedRange)
-    );
+    const handler = affectedPlottable[handlerName];
+
+    handler(getPlottableEventDataIndex(allSeries, batch, affectedRange));
+  };
+
+  const handleClick: EChartClickHandler = event => {
+    runHandler(event, 'onClick');
   };
 
   const handleHighlight: EChartHighlightHandler = event => {
     // Unlike click events, highlights happen to potentially more than one
     // series at a time. We have to iterate each item in the batch
     for (const batch of event.batch ?? []) {
-      const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
-      const affectedPlottable = affectedRange?.value;
-
-      if (
-        !defined(affectedRange) ||
-        !defined(affectedPlottable) ||
-        !defined(affectedPlottable.onHighlight)
-      ) {
-        continue;
-      }
-
-      affectedPlottable.onHighlight(
-        getPlottableEventDataIndex(allSeries, batch, affectedRange)
-      );
+      runHandler(batch, 'onHighlight');
     }
   };
 
