@@ -83,6 +83,7 @@ const unhighlightMarkLines = createMarkLineUpdater({});
 export function ReleasesDrawerList({chart, subPageFilters}: ReleasesDrawerListProps) {
   const {releases} = useReleaseStats(subPageFilters);
   const chartRef = useRef<ReactEchartsRef | null>(null);
+  const chartHeight = '220px'; // TODO: this will change based on chart id
 
   const handleMouseOverRelease = useCallback((release: string) => {
     if (!chartRef.current) {
@@ -125,7 +126,7 @@ export function ReleasesDrawerList({chart, subPageFilters}: ReleasesDrawerListPr
       </EventNavigator>
       <EventDrawerBody>
         {chart ? (
-          <ChartContainer>
+          <ChartContainer style={{height: chartHeight}}>
             <ChartWidgetLoader
               id={chart}
               subPageFilters={subPageFilters}
