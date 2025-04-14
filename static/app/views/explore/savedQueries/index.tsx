@@ -1,5 +1,4 @@
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -26,10 +25,7 @@ export default function SavedQueriesView() {
                 },
               ]}
             />
-            <Layout.Title>
-              {t('All Queries')}
-              <FeatureBadge type="alpha" />
-            </Layout.Title>
+            <Layout.Title>{t('All Queries')}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
