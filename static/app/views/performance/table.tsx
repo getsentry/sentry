@@ -605,7 +605,8 @@ class _Table extends Component<Props, State> {
           id={DemoTourStep.PERFORMANCE_TABLE}
           title={t('See slow transactions')}
           description={t(
-            `Trace slow-loading pages back to their API calls, as well as, related errors and users impacted across projects. Select a transaction to see more details.`
+            `Trace slow-loading pages back to their API calls, as well as, related errors and users impacted across projects.
+            Select a transaction to see more details.`
           )}
         >
           <MEPConsumer>
