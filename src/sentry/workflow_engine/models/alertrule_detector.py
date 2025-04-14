@@ -1,4 +1,4 @@
-from django.db.models import CheckConstraint, Q
+from django.db.models import CheckConstraint, Q, UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -33,5 +33,9 @@ class AlertRuleDetector(DefaultFieldsModel):
                 condition=Q(rule_id__isnull=False, alert_rule_id__isnull=True)
                 | Q(rule_id__isnull=True, alert_rule_id__isnull=False),
                 name="rule_or_alert_rule_detector",
+            ),
+            UniqueConstraint(
+                fields=["alert_rule_id"],
+                name="workflow_engine_alert_rule_id",
             ),
         ]
