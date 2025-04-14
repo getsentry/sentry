@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {Alert} from 'sentry/components/core/alert';
 import type {LinkButtonProps} from 'sentry/components/core/button';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import ReplayPreviewPlayer from 'sentry/components/events/eventReplay/replayPreviewPlayer';
@@ -34,11 +33,7 @@ export default function ReplayClipPreviewPlayer({
     <ReplayLoadingState
       readerResult={replayReaderResult}
       renderArchived={() => (
-        <Alert.Container>
-          <ArchivedReplayAlert
-            message={t('The replay for this event has been deleted.')}
-          />
-        </Alert.Container>
+        <ArchivedReplayAlert message={t('The replay for this event has been deleted.')} />
       )}
       renderLoading={() => (
         <StyledNegativeSpaceContainer data-test-id="replay-loading-placeholder">

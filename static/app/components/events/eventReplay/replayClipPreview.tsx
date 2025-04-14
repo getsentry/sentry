@@ -18,7 +18,7 @@ interface ReplayClipPreviewProps
   replaySlug: string;
 }
 
-function ReplayClipPreview({
+export default function ReplayClipPreview({
   analyticsContext,
   clipOffsets,
   eventTimestampMs,
@@ -56,4 +56,3 @@ function ReplayClipPreview({
     </ReplayContextProvider>
   );
 }
-export default ReplayClipPreview;
