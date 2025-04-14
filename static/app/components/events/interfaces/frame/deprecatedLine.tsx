@@ -233,6 +233,7 @@ function DeprecatedLine({
                   frame={data}
                   line={contextLine ? contextLine[1] : ''}
                   event={event}
+                  disableSetup={isHoverPreviewed}
                 />
               </ErrorBoundary>
             )}
