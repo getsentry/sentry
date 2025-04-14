@@ -67,6 +67,8 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert project.slug == "bar"
         assert project.platform == "python"
         assert project.teams.first() == self.team
+        assert response.data["teams"] is not None
+        assert response.data["teams"][0]["id"] == str(self.team.id)
 
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
