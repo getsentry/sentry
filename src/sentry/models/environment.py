@@ -114,7 +114,7 @@ class Environment(Model):
         if cache.get(cache_key) is None:
             if in_random_rollout("environmentproject.new_add_project.rollout"):
                 _, created = EnvironmentProject.objects.get_or_create(
-                    project=project, environment=self, is_hidden=is_hidden
+                    project=project, environment=self, defaults={"is_hidden": is_hidden}
                 )
                 if not created:
                     # We've already created the object, should still cache the action.
