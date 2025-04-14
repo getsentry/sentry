@@ -86,7 +86,7 @@ class MsTeamsPreInstallClient(MsTeamsClientABC):
 
 
 # MsTeamsClient is used with an existing integration object and handles token refreshing
-class MsTeamsClient(IntegrationProxyClient, MsTeamsClientABC):
+class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
     integration_name = "msteams"
 
     def __init__(self, integration: Integration | RpcIntegration):
