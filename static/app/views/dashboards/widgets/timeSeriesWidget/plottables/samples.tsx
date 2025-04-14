@@ -96,9 +96,7 @@ export class Samples implements Plottable {
     this.chartRef = chartRef;
   }
 
-  highlight(sample: TabularRow | undefined) {
-    const {config} = this;
-
+  highlight(sample: TabularRow) {
     if (!this.chartRef) {
       warn('`Samples.highlight` invoked before chart ref is ready');
       return;
@@ -111,8 +109,6 @@ export class Samples implements Plottable {
       const dataIndex = this.sampleTableData.data.indexOf(sample);
       chart.dispatchAction({type: 'highlight', seriesName, dataIndex});
       config.onHighlight?.(sample);
-    } else {
-      chart.dispatchAction({type: 'downplay', seriesName});
     }
   }
 
