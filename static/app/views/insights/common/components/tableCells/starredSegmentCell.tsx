@@ -3,7 +3,7 @@ import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {FlexContainer} from 'sentry/utils/discover/styles';
 import useProjects from 'sentry/utils/useProjects';
-import {useStarredSegment} from 'sentry/views/insights/common/utils/useStarredTransactions';
+import {useStarredSegment} from 'sentry/views/insights/common/utils/useStarredSegment';
 
 interface Props {
   initialIsStarred: boolean;
