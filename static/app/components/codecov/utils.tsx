@@ -1,4 +1,6 @@
-import {CODECOV_DEFAULT_RELATIVE_PERIODS} from './datePicker';
+import {CODECOV_DEFAULT_RELATIVE_PERIODS} from './datePicker/datePicker';
+
+// Date Picker Utils Start
 
 /**
  * Determines if a period is valid for a Codecov DatePicker component. A period is invalid if
@@ -15,3 +17,5 @@ export function isValidCodecovRelativePeriod(period: string | null): boolean {
 
   return true;
 }
+
+// Date Picker Utils End
