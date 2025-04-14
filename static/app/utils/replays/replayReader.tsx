@@ -300,18 +300,26 @@ export default class ReplayReader {
   private _clipWindow: ClipWindow | undefined = undefined;
 
   private _applyClipWindow = (clipWindow: ClipWindow) => {
-    const clipStartTimestampMs = clamp(
-      clipWindow.startTimestampMs,
-      this._replayRecord.started_at.getTime(),
-      this._replayRecord.finished_at.getTime()
-    );
-    const clipEndTimestampMs = clamp(
-      clipWindow.endTimestampMs,
-      clipStartTimestampMs,
-      this._replayRecord.finished_at.getTime()
-    );
+    let clipStartTimestampMs;
+    let clipEndTimestampMs;
+    const replayStart = this._replayRecord.started_at.getTime();
+    const replayEnd = this._replayRecord.finished_at.getTime();
 
-    this._duration = duration(clipEndTimestampMs - clipStartTimestampMs);
+    // error event is before the replay started. use the start of the replay as the start of the clip
+    if (clipWindow.startTimestampMs < this._replayRecord.started_at.getTime()) {
+      clipStartTimestampMs = replayStart;
+      clipEndTimestampMs = Math.min(replayStart + 5000, replayEnd);
+    } else {
+      clipStartTimestampMs = clamp(clipWindow.startTimestampMs, replayStart, replayEnd);
+      clipEndTimestampMs = clamp(
+        clipWindow.endTimestampMs,
+        clipStartTimestampMs,
+        replayEnd
+      );
+    }
+
+    const clipDuration = clipEndTimestampMs - clipStartTimestampMs;
+    this._duration = duration(clipDuration); // this value should not be 0
 
     // For video replays, we need to bypass setting the global offset (_startOffsetMs)
     // because it messes with the playback time by causing it
