@@ -505,7 +505,7 @@ export type MetricsStringFields =
   | MetricsFields.TRACE
   | MetricsFields.USER_DISPLAY
   | MetricsFields.PROFILE_ID
-  | MetricsFields.RELEASE;
+  | MetricsFields.RELEASE
   | MetricsFields.TIMESTAMP;
 
 export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
