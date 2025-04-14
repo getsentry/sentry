@@ -1454,7 +1454,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
 TASKWORKER_SCHEDULES: ScheduleConfigMap = {
     "sync_options_trial": {
         "schedule": timedelta(minutes=5),
-        "task": "sentry.tasks.options.sync_options",
+        "task": "options:sentry.tasks.options.sync_options",
     },
 }
 
