@@ -12,7 +12,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.testutils.cases import TestCase
 from sentry.users.services.usersocialauth.serial import serialize_usersocialauth
-from sentry_plugins.client import ApiClient, AuthApiClient
+from sentry_plugins.client import AuthApiClient, PluginApiClient
 
 
 class ApiClientTest(TestCase):
@@ -20,7 +20,7 @@ class ApiClientTest(TestCase):
     def test_get(self):
         responses.add(responses.GET, "http://example.com", json={})
 
-        resp = ApiClient().get("http://example.com")
+        resp = PluginApiClient().get("http://example.com")
         assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
@@ -28,7 +28,7 @@ class ApiClientTest(TestCase):
     def test_post(self):
         responses.add(responses.POST, "http://example.com", json={})
 
-        resp = ApiClient().post("http://example.com")
+        resp = PluginApiClient().post("http://example.com")
         assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
@@ -36,7 +36,7 @@ class ApiClientTest(TestCase):
     def test_delete(self):
         responses.add(responses.DELETE, "http://example.com", json={})
 
-        resp = ApiClient().delete("http://example.com")
+        resp = PluginApiClient().delete("http://example.com")
         assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
@@ -44,7 +44,7 @@ class ApiClientTest(TestCase):
     def test_put(self):
         responses.add(responses.PUT, "http://example.com", json={})
 
-        resp = ApiClient().put("http://example.com")
+        resp = PluginApiClient().put("http://example.com")
         assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 
@@ -52,7 +52,7 @@ class ApiClientTest(TestCase):
     def test_patch(self):
         responses.add(responses.PATCH, "http://example.com", json={})
 
-        resp = ApiClient().patch("http://example.com")
+        resp = PluginApiClient().patch("http://example.com")
         assert isinstance(resp, BaseApiResponse)
         assert resp.status_code == 200
 

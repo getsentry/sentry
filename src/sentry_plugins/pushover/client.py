@@ -1,7 +1,7 @@
-from sentry_plugins.client import ApiClient
+from sentry_plugins.client import PluginApiClient
 
 
-class PushoverClient(ApiClient):
+class PushoverClient(PluginApiClient):
     base_url = "https://api.pushover.net/1"
     allow_redirects = False
     plugin_name = "pushover"

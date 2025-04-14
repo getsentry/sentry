@@ -11,7 +11,7 @@ from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.users.services.usersocialauth.service import usersocialauth_service
 
 
-class ApiClient(BaseApiClient):
+class PluginApiClient(BaseApiClient):
     integration_type = "plugin"
 
     metrics_prefix = "sentry-plugins"
@@ -21,7 +21,7 @@ class ApiClient(BaseApiClient):
     plugin_name = "undefined"
 
 
-class AuthApiClient(ApiClient):
+class AuthApiClient(PluginApiClient):
     def __init__(self, auth=None, *args, **kwargs):
         self.auth = auth
         super().__init__(*args, **kwargs)
@@ -89,7 +89,7 @@ class AuthApiClient(ApiClient):
         kwargs = self.ensure_auth(**kwargs)
 
         try:
-            return ApiClient._request(self, method, path, **kwargs)
+            return PluginApiClient._request(self, method, path, **kwargs)
         except Exception as exc:
             if not self.exception_means_unauthorized(exc):
                 raise
@@ -102,4 +102,4 @@ class AuthApiClient(ApiClient):
         )
         usersocialauth_service.refresh_token(filter={"id": self.auth.id})
         kwargs = self.bind_auth(**kwargs)
-        return ApiClient._request(self, method, path, **kwargs)
+        return PluginApiClient._request(self, method, path, **kwargs)

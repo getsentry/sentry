@@ -1,11 +1,11 @@
 from sentry.utils.http import absolute_uri
-from sentry_plugins.client import ApiClient
+from sentry_plugins.client import PluginApiClient
 
 # https://v2.developer.pagerduty.com/docs/events-api
 INTEGRATION_API_URL = "https://events.pagerduty.com/generic/2010-04-15/create_event.json"
 
 
-class PagerDutyPluginClient(ApiClient):
+class PagerDutyPluginClient(PluginApiClient):
     client = "sentry"
     plugin_name = "pagerduty"
     allow_redirects = False

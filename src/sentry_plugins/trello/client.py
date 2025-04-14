@@ -1,4 +1,4 @@
-from sentry_plugins.client import ApiClient
+from sentry_plugins.client import PluginApiClient
 
 ORG_BOARD_PATH = "/organizations/%s/boards"
 MEMBER_ORG_PATH = "/members/me/organizations"
@@ -12,7 +12,7 @@ SEARCH_PATH = "/search"
 CARD_FIELDS = ",".join(["name", "shortLink", "idShort"])
 
 
-class TrelloApiClient(ApiClient):
+class TrelloApiClient(PluginApiClient):
     base_url = "https://api.trello.com/1"
     plugin_name = "trello"
 

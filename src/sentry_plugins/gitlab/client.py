@@ -1,10 +1,10 @@
 from urllib.parse import quote
 
 from sentry.shared_integrations.exceptions import ApiError
-from sentry_plugins.client import ApiClient
+from sentry_plugins.client import PluginApiClient
 
 
-class GitLabClient(ApiClient):
+class GitLabClient(PluginApiClient):
     allow_redirects = False
     plugin_name = "gitlab"
 

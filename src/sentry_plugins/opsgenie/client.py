@@ -1,7 +1,7 @@
-from sentry_plugins.client import ApiClient
+from sentry_plugins.client import PluginApiClient
 
 
-class OpsGenieApiClient(ApiClient):
+class OpsGenieApiClient(PluginApiClient):
     monitoring_tool = "sentry"
     plugin_name = "opsgenie"
     allow_redirects = False

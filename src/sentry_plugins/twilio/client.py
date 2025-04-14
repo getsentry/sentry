@@ -2,10 +2,10 @@ from base64 import b64encode
 
 from django.utils.encoding import force_bytes
 
-from sentry_plugins.client import ApiClient
+from sentry_plugins.client import PluginApiClient
 
 
-class TwilioApiClient(ApiClient):
+class TwilioApiClient(PluginApiClient):
     plugin_name = "twilio"
     allow_redirects = False
     twilio_messages_endpoint = "https://api.twilio.com/2010-04-01/Accounts/{0}/Messages.json"

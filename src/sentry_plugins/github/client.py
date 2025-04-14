@@ -5,7 +5,7 @@ import time
 from sentry import options
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.utils import jwt
-from sentry_plugins.client import ApiClient, AuthApiClient
+from sentry_plugins.client import AuthApiClient, PluginApiClient
 
 
 class GithubPluginClientMixin(AuthApiClient):
@@ -72,7 +72,7 @@ class GithubPluginClient(GithubPluginClientMixin, AuthApiClient):
         return self._request("GET", "/user/installations", headers=headers)
 
 
-class GithubPluginAppsClient(GithubPluginClientMixin, ApiClient):
+class GithubPluginAppsClient(GithubPluginClientMixin, PluginApiClient):
     def __init__(self, integration: RpcIntegration):
         self.integration = integration
         self.token: str | None = None

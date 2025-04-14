@@ -1,10 +1,10 @@
 from collections.abc import Mapping
 from typing import Any
 
-from sentry_plugins.client import ApiClient
+from sentry_plugins.client import PluginApiClient
 
 
-class SlackApiClient(ApiClient):
+class SlackApiClient(PluginApiClient):
     plugin_name = "slack"
     allow_redirects = False
 

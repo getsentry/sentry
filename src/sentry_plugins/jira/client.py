@@ -5,7 +5,7 @@ from hashlib import md5 as _md5
 from django.utils.encoding import force_bytes
 
 from sentry.shared_integrations.exceptions import ApiError
-from sentry_plugins.client import ApiClient
+from sentry_plugins.client import PluginApiClient
 
 log = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ def md5(*bits):
     return _md5(b":".join(force_bytes(bit, errors="replace") for bit in bits))
 
 
-class JiraClient(ApiClient):
+class JiraClient(PluginApiClient):
     """
     The JIRA API Client, so you don't have to.
     """

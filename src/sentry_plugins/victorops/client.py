@@ -1,7 +1,7 @@
-from sentry_plugins.client import ApiClient
+from sentry_plugins.client import PluginApiClient
 
 
-class VictorOpsClient(ApiClient):
+class VictorOpsClient(PluginApiClient):
     monitoring_tool = "sentry"
     routing_key = "everyone"
     plugin_name = "victorops"
