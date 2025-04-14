@@ -26,12 +26,16 @@ import type {
   LogAttributesRendererMap,
   RendererExtra,
 } from 'sentry/views/explore/logs/fieldRenderers';
-import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {
+  type OurLogFieldKey,
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 import {
   adjustAliases,
   adjustLogTraceID,
   getLogAttributeItem,
-  removePrefixes,
+  prettifyAttributeName,
 } from 'sentry/views/explore/logs/utils';
 
 const MAX_TREE_DEPTH = 4;
@@ -43,9 +47,7 @@ interface Attribute {
   original_attribute_key: string;
 }
 
-interface AttributeTree {
-  [key: string]: AttributeTreeContent;
-}
+type AttributeTree = Record<string, AttributeTreeContent>;
 
 interface AttributeTreeContent {
   subtree: AttributeTree;
@@ -63,6 +65,7 @@ interface AttributeTreeColumnData {
 
 interface LogAttributeFieldRender {
   renderExtra: RendererExtra;
+  tableResultLogRow: OurLogsResponseItem;
   renderers?: typeof LogAttributesRendererMap;
 }
 
@@ -87,6 +90,7 @@ interface LogFieldsTreeRowConfig {
 interface LogFieldsTreeRowProps extends LogAttributeFieldRender {
   attributeKey: string;
   content: AttributeTreeContent;
+  tableResultLogRow: OurLogsResponseItem;
   config?: LogFieldsTreeRowConfig;
   isLast?: boolean;
   spacerCount?: number;
@@ -154,6 +158,7 @@ function getAttributeTreeRows({
   uniqueKey,
   renderers = {},
   renderExtra,
+  tableResultLogRow,
   isLast = false,
 }: LogFieldsTreeRowProps &
   LogAttributeFieldRender & {
@@ -170,6 +175,7 @@ function getAttributeTreeRows({
         uniqueKey: `${uniqueKey}-${i}`,
         renderers,
         renderExtra,
+        tableResultLogRow,
       });
       return rows.concat(branchRows);
     },
@@ -185,6 +191,7 @@ function getAttributeTreeRows({
       renderers={renderers}
       renderExtra={renderExtra}
       isLast={isLast}
+      tableResultLogRow={tableResultLogRow}
     />,
     ...subtreeRows,
   ];
@@ -200,6 +207,7 @@ function LogFieldsTreeColumns({
   hiddenAttributes = [],
   renderers = {},
   renderExtra,
+  tableResultLogRow,
 }: LogFieldsTreeColumnsProps) {
   const assembledColumns = useMemo(() => {
     if (!attributes) {
@@ -227,6 +235,7 @@ function LogFieldsTreeColumns({
           uniqueKey: `${i}`,
           renderers,
           renderExtra,
+          tableResultLogRow,
         })
     );
 
@@ -265,7 +274,14 @@ function LogFieldsTreeColumns({
       {startIndex: 0, runningTotal: 0, columns: []}
     );
     return data.columns;
-  }, [attributes, columnCount, hiddenAttributes, renderers, renderExtra]);
+  }, [
+    attributes,
+    columnCount,
+    hiddenAttributes,
+    renderers,
+    renderExtra,
+    tableResultLogRow,
+  ]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }
@@ -290,6 +306,7 @@ function LogFieldsTreeRow({
   spacerCount = 0,
   isLast = false,
   config = {},
+  tableResultLogRow,
   ...props
 }: LogFieldsTreeRowProps) {
   const theme = useTheme();
@@ -344,6 +361,7 @@ function LogFieldsTreeRow({
             renderers={props.renderers}
             renderExtra={props.renderExtra}
             theme={theme}
+            tableResultLogRow={tableResultLogRow}
           />
         </TreeValue>
         {attributeActions}
@@ -461,8 +479,10 @@ function LogFieldsTreeValue({
   renderers = {},
   renderExtra,
   theme,
+  tableResultLogRow,
 }: {
   content: AttributeTreeContent;
+  tableResultLogRow: OurLogsResponseItem;
   config?: LogFieldsTreeRowConfig;
 } & LogAttributeFieldRender & {theme: Theme}) {
   const {originalAttribute} = content;
@@ -494,6 +514,7 @@ function LogFieldsTreeValue({
       item: getLogAttributeItem(attributeKey, adjustedValue),
       extra: renderExtra,
       basicRendered,
+      tableResultLogRow,
     });
   }
 
@@ -517,28 +538,25 @@ function LogFieldsTreeValue({
  * Filters out hidden attributes, replaces sentry. prefixed keys, and simplifies the value
  */
 function getAttribute(
-  attribute: Record<string, any>,
+  attribute: TraceItemResponseAttribute,
   hiddenAttributes: OurLogFieldKey[]
 ): Attribute | undefined {
-  const attributeKey = attribute.name;
   // Filter out hidden attributes
-  if (hiddenAttributes.includes(attributeKey)) {
+  if (hiddenAttributes.includes(attribute.name)) {
     return undefined;
   }
 
-  // Replace the key name with the new key name
-  const newKeyName = removePrefixes(attributeKey);
-
   const attributeValue =
     attribute.type === 'bool' ? String(attribute.value) : attribute.value;
+
   if (!defined(attributeValue)) {
     return undefined;
   }
 
   return {
-    attribute_key: newKeyName,
+    attribute_key: prettifyAttributeName(attribute.name),
     attribute_value: attributeValue,
-    original_attribute_key: adjustAliases(attributeKey),
+    original_attribute_key: adjustAliases(attribute.name),
   };
 }
 

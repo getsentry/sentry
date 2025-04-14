@@ -4,8 +4,7 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-
-import type {WidgetQuery} from '../types';
+import type {WidgetQuery} from 'sentry/views/dashboards/types';
 
 import {transformEventsStatsToSeries} from './transformEventsStatsToSeries';
 

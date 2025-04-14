@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import {createPortal} from 'react-dom';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
@@ -20,13 +21,13 @@ import {
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
-import {useDrawerWidth} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useMedia from 'sentry/utils/useMedia';
 import {useUser} from 'sentry/utils/useUser';
 
 import type {CommentThreadMessage} from './types';
@@ -38,6 +39,7 @@ interface Props {
   runId: string;
   selectedText: string;
   stepIndex: number;
+  blockName?: string;
   isAgentComment?: boolean;
 }
 
@@ -124,6 +126,7 @@ function AutofixHighlightPopupContent({
   stepIndex,
   retainInsightCardIndex,
   isAgentComment,
+  blockName,
   isFocused,
 }: Props & {isFocused?: boolean}) {
   const {mutate: submitComment} = useCommentThread({groupId, runId});
@@ -259,7 +262,13 @@ function AutofixHighlightPopupContent({
   return (
     <Container onClick={handleContainerClick} isFocused={isFocused}>
       <Header>
-        <SelectedText>{truncatedText && <span>"{truncatedText}"</span>}</SelectedText>
+        <SelectedText>
+          {blockName ? (
+            <span>{blockName}</span>
+          ) : (
+            truncatedText && <span>"{truncatedText}"</span>
+          )}
+        </SelectedText>
         {allMessages.length > 0 && (
           <ResolveButton
             size="zero"
@@ -300,7 +309,7 @@ function AutofixHighlightPopupContent({
       {commentThread?.is_completed !== true && (
         <InputWrapper onSubmit={handleSubmit}>
           <StyledInput
-            placeholder={t('Questions or comments?')}
+            placeholder={t('Questions? Instructions?')}
             value={comment}
             onChange={e => setComment(e.target.value)}
             maxLength={4096}
@@ -355,7 +364,6 @@ function getOptimalPosition(
 function AutofixHighlightPopup(props: Props) {
   const {referenceElement} = props;
   const popupRef = useRef<HTMLDivElement>(null);
-  const drawerWidth = useDrawerWidth();
   const [position, setPosition] = useState<{
     left: number;
     top: number;
@@ -366,6 +374,9 @@ function AutofixHighlightPopup(props: Props) {
   const [width, setWidth] = useState<number | undefined>(undefined);
   const [isFocused, setIsFocused] = useState(false);
 
+  const theme = useTheme();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+
   useLayoutEffect(() => {
     if (!referenceElement || !popupRef.current) {
       return undefined;
@@ -375,6 +386,11 @@ function AutofixHighlightPopup(props: Props) {
       const referenceRect = referenceElement.getBoundingClientRect();
       const popupRect = popupRef.current!.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
+
+      const drawerElement = document.querySelector('.drawer-panel');
+      const drawerWidth = drawerElement
+        ? drawerElement.getBoundingClientRect().width
+        : undefined;
 
       // Calculate available width for the popup
       const availableWidth = viewportWidth - (drawerWidth ?? viewportWidth * 0.5) - 16;
@@ -414,7 +430,7 @@ function AutofixHighlightPopup(props: Props) {
       });
       window.removeEventListener('resize', updatePosition);
     };
-  }, [referenceElement, drawerWidth]);
+  }, [referenceElement]);
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -423,6 +439,10 @@ function AutofixHighlightPopup(props: Props) {
   const handleBlur = () => {
     setIsFocused(false);
   };
+
+  if (isSmallScreen) {
+    return null;
+  }
 
   return createPortal(
     <Wrapper

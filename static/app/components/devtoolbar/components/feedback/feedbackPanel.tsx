@@ -3,38 +3,44 @@ import {css} from '@emotion/react';
 
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
+import InfiniteListItems from 'sentry/components/devtoolbar/components/infiniteListItems';
+import InfiniteListState from 'sentry/components/devtoolbar/components/infiniteListState';
+import PanelLayout from 'sentry/components/devtoolbar/components/panelLayout';
+import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
+import transactionToSearchTerm from 'sentry/components/devtoolbar/components/transactionToSearchTerm';
+import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
+import {useSDKFeedbackButton} from 'sentry/components/devtoolbar/hooks/useSDKFeedbackButton';
 import {useScopeAndClient} from 'sentry/components/devtoolbar/hooks/useSentryClientAndScope';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Placeholder from 'sentry/components/placeholder';
-import TextOverflow from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
-import {IconChat, IconFatal, IconImage, IconMegaphone, IconPlay} from 'sentry/icons';
-import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
-
-import useConfiguration from '../../hooks/useConfiguration';
-import {useSDKFeedbackButton} from '../../hooks/useSDKFeedbackButton';
-import useVisibility from '../../hooks/useVisibility';
+import useVisibility from 'sentry/components/devtoolbar/hooks/useVisibility';
 import {
   badgeWithLabelCss,
   gridFlexEndCss,
   listItemGridCss,
   listItemPlaceholderWrapperCss,
-} from '../../styles/listItem';
+} from 'sentry/components/devtoolbar/styles/listItem';
 import {
   buttonRightCss,
   panelDescCss,
   panelHeadingRightCss,
   panelInsetContentCss,
   panelSectionCss,
-} from '../../styles/panel';
-import {resetButtonCss, resetFlexColumnCss} from '../../styles/reset';
-import {smallCss, textOverflowTwoLinesCss, xSmallCss} from '../../styles/typography';
-import type {FeedbackIssueListItem} from '../../types';
-import InfiniteListItems from '../infiniteListItems';
-import InfiniteListState from '../infiniteListState';
-import PanelLayout from '../panelLayout';
-import SentryAppLink from '../sentryAppLink';
-import transactionToSearchTerm from '../transactionToSearchTerm';
+} from 'sentry/components/devtoolbar/styles/panel';
+import {
+  resetButtonCss,
+  resetFlexColumnCss,
+} from 'sentry/components/devtoolbar/styles/reset';
+import {
+  smallCss,
+  textOverflowTwoLinesCss,
+  xSmallCss,
+} from 'sentry/components/devtoolbar/styles/typography';
+import type {FeedbackIssueListItem} from 'sentry/components/devtoolbar/types';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Placeholder from 'sentry/components/placeholder';
+import TextOverflow from 'sentry/components/textOverflow';
+import TimeSince from 'sentry/components/timeSince';
+import {IconChat, IconFatal, IconImage, IconMegaphone, IconPlay} from 'sentry/icons';
+import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
 
 import useInfiniteFeedbackList from './useInfiniteFeedbackList';
 

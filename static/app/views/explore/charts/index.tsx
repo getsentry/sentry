@@ -7,15 +7,11 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Confidence, NewQuery} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import EventView from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -28,20 +24,17 @@ import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {
-  useExploreDataset,
   useExploreVisualizes,
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {
   ChartType,
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-
-import {CHART_HEIGHT, INGESTION_DELAY} from '../settings';
 
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
@@ -76,7 +69,6 @@ export function ExploreCharts({
   isProgressivelyLoading,
 }: ExploreChartsProps) {
   const theme = useTheme();
-  const dataset = useExploreDataset();
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
@@ -144,7 +136,10 @@ export function ExploreCharts({
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 
-      const {sampleCount} = determineSeriesSampleCountAndIsSampled(data, isTopN);
+      const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(
+        data,
+        isTopN
+      );
 
       return {
         chartIcon: <IconGraph type={chartIcon} />,
@@ -157,6 +152,7 @@ export function ExploreCharts({
         loading,
         confidence: confidences[index],
         sampleCount,
+        isSampled,
       };
     });
   }, [confidences, getSeries, visualizes, isTopN]);
@@ -304,15 +300,14 @@ export function ExploreCharts({
                 />
               }
               Footer={
-                dataset === DiscoverDatasets.SPANS_EAP_RPC && (
-                  <ConfidenceFooter
-                    sampleCount={chartInfo.sampleCount}
-                    confidence={chartInfo.confidence}
-                    topEvents={
-                      topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
-                    }
-                  />
-                )
+                <ConfidenceFooter
+                  sampleCount={chartInfo.sampleCount}
+                  isSampled={chartInfo.isSampled}
+                  confidence={chartInfo.confidence}
+                  topEvents={
+                    topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
+                  }
+                />
               }
             />
           );
@@ -322,51 +317,9 @@ export function ExploreCharts({
   );
 }
 
-export function useExtrapolationMeta({
-  dataset,
-  query,
-  isAllowedSelection,
-}: {
-  dataset: DiscoverDatasets;
-  query: string;
-  isAllowedSelection?: boolean;
-}) {
-  const {selection} = usePageFilters();
-
-  const extrapolationMetaEventView = useMemo(() => {
-    const search = new MutableSearch(query);
-
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
-
-    const discoverQuery: NewQuery = {
-      id: undefined,
-      name: 'Explore - Extrapolation Meta',
-      fields: ['count_sample()', 'min(sampling_rate)'],
-      query: search.formatString(),
-      version: 2,
-      dataset,
-    };
-
-    return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, query, selection]);
-
-  return useSpansQuery({
-    eventView: extrapolationMetaEventView,
-    initialData: [],
-    referrer: 'api.explore.spans-extrapolation-meta',
-    enabled:
-      (defined(isAllowedSelection) ? isAllowedSelection : true) &&
-      dataset === DiscoverDatasets.SPANS_EAP_RPC,
-    trackResponseAnalytics: false,
-  });
-}
-
 const ChartList = styled('div')`
   display: grid;
-  row-gap: ${space(2)};
+  row-gap: ${space(1)};
   margin-bottom: ${space(1)};
 `;
 
@@ -374,7 +327,7 @@ const ChartLabel = styled('div')`
   background-color: ${p => p.theme.purple100};
   border-radius: ${p => p.theme.borderRadius};
   text-align: center;
-  min-width: 32px;
+  min-width: 24px;
   color: ${p => p.theme.purple400};
   white-space: nowrap;
   font-weight: ${p => p.theme.fontWeightBold};

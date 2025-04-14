@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -9,6 +10,7 @@ import {getHasTag} from 'sentry/components/events/searchBar';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -30,6 +32,8 @@ import {
   removeHiddenKeys,
   SchemaHintsSources,
 } from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
+import type {LogPageParamsUpdate} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {WritablePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
@@ -45,7 +49,8 @@ interface SchemaHintsListProps extends SchemaHintsPageParams {
 
 export interface SchemaHintsPageParams {
   exploreQuery: string;
-  setExploreQuery: (query: string) => void;
+  setPageParams: (pageParams: WritablePageParams | LogPageParamsUpdate) => void;
+  tableColumns: string[];
 }
 
 const seeFullListTag: Tag = {
@@ -70,7 +75,7 @@ export function addFilterToQuery(
   isBoolean: boolean
 ) {
   filterQuery.addFilterValue(
-    isBoolean || tag.kind === FieldKind.MEASUREMENT ? tag.key : `!${tag.key}`,
+    tag.key,
     isBoolean ? 'True' : tag.kind === FieldKind.MEASUREMENT ? '>0' : ''
   );
 }
@@ -89,14 +94,15 @@ function SchemaHintsList({
   numberTags,
   stringTags,
   isLoading,
-  exploreQuery,
-  setExploreQuery,
+  tableColumns,
+  setPageParams,
   source = SchemaHintsSources.EXPLORE,
 }: SchemaHintsListProps) {
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
+  const {dispatch, query} = useSearchQueryBuilder();
 
   const functionTags = useMemo(() => {
     return getFunctionTags(supportedAggregates);
@@ -206,13 +212,20 @@ function SchemaHintsList({
             () => (
               <SchemaHintsDrawer
                 hints={filterTagsSorted}
-                exploreQuery={exploreQuery}
-                setExploreQuery={setExploreQuery}
+                exploreQuery={query}
+                tableColumns={tableColumns}
+                setPageParams={setPageParams}
+                searchBarDispatch={dispatch}
               />
             ),
             {
               ariaLabel: t('Schema Hints Drawer'),
               drawerWidth: SCHEMA_HINTS_DRAWER_WIDTH,
+              drawerKey: 'schema-hints-drawer',
+              resizable: true,
+              drawerCss: css`
+                height: calc(100% - ${space(4)});
+              `,
               transitionProps: {
                 key: 'schema-hints-drawer',
                 type: 'tween',
@@ -224,8 +237,8 @@ function SchemaHintsList({
                   location.pathname !== newLocation.pathname ||
                   // will close if anything but the filter query has changed
                   !isEqual(
-                    omit(location.query, ['query']),
-                    omit(newLocation.query, ['query'])
+                    omit(location.query, ['query', 'field', 'search', 'logsQuery']),
+                    omit(newLocation.query, ['query', 'field', 'search', 'logsQuery'])
                   )
                 );
               },
@@ -255,12 +268,30 @@ function SchemaHintsList({
         return;
       }
 
-      const newSearchQuery = new MutableSearch(exploreQuery);
+      const newSearchQuery = new MutableSearch(query);
       const isBoolean =
         getFieldDefinition(hint.key, 'span', hint.kind)?.valueType ===
         FieldValueType.BOOLEAN;
       addFilterToQuery(newSearchQuery, hint, isBoolean);
-      setExploreQuery(newSearchQuery.formatString());
+
+      const newTableColumns = tableColumns.includes(hint.key)
+        ? tableColumns
+        : [...tableColumns, hint.key];
+      const newQuery = newSearchQuery.formatString();
+
+      setPageParams({
+        fields: newTableColumns,
+      });
+
+      dispatch({
+        type: 'UPDATE_QUERY',
+        query: newQuery,
+        focusOverride: {
+          itemKey: `filter:${newSearchQuery.getFilterKeys().indexOf(hint.key)}`,
+          part: 'value',
+        },
+      });
+
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
         source: 'list',
@@ -268,12 +299,14 @@ function SchemaHintsList({
       });
     },
     [
-      exploreQuery,
-      setExploreQuery,
-      isDrawerOpen,
+      query,
+      tableColumns,
+      dispatch,
       organization,
+      isDrawerOpen,
       openDrawer,
       filterTagsSorted,
+      setPageParams,
       location.pathname,
       location.query,
       closeDrawer,
@@ -369,7 +402,7 @@ const SchemaHintOption = styled(Button)`
   }
 `;
 
-export const SchemaHintsSection = styled('div')<{withSchemaHintsDrawer: boolean}>`
+export const SchemaHintsSection = styled('div')`
   display: grid;
   /* This is to ensure the hints section spans all the columns */
   grid-column: 1/-1;
@@ -378,8 +411,7 @@ export const SchemaHintsSection = styled('div')<{withSchemaHintsDrawer: boolean}
   height: fit-content;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 1fr ${p =>
-        p.withSchemaHintsDrawer ? SCHEMA_HINTS_DRAWER_WIDTH : '0px'};
+    grid-template-columns: 1fr;
     margin-bottom: 0;
     margin-top: 0;
   }

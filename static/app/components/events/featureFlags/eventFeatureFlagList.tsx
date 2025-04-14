@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -31,20 +32,26 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import useLegacyEventSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useLegacyEventSuspectFlags';
 import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
-import useSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useSuspectFlags';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-export function EventFeatureFlagList({
-  event,
-  group,
-  project,
-}: {
+export function EventFeatureFlagList(props: EventFeatureFlagListProps) {
+  return (
+    <AnalyticsArea name="event_feature_flag_list">
+      <BaseEventFeatureFlagList {...props} />
+    </AnalyticsArea>
+  );
+}
+
+type EventFeatureFlagListProps = {
   event: Event;
   group: Group;
   project: Project;
-}) {
+};
+
+function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagListProps) {
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
@@ -114,7 +121,7 @@ export function EventFeatureFlagList({
     suspectFlags,
     isError: isSuspectError,
     isPending: isSuspectPending,
-  } = useSuspectFlags({
+  } = useLegacyEventSuspectFlags({
     organization,
     firstSeen: group.firstSeen,
     rawFlagData,
@@ -222,7 +229,12 @@ export function EventFeatureFlagList({
     const showCTA =
       featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
       organization.features.includes('feature-flag-cta');
-    return showCTA ? <FeatureFlagInlineCTA projectId={event.projectID} /> : null;
+    return showCTA ? (
+      <FeatureFlagInlineCTA
+        projectId={event.projectID}
+        projectPlatform={project.platform}
+      />
+    ) : null;
   }
 
   const actions = (

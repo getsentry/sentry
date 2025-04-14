@@ -49,7 +49,6 @@ def get_total_span_count(settings: ResolverSettings) -> Column:
         aggregation=AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
             key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
-            label="total",
             extrapolation_mode=extrapolation_mode,
         )
     )
@@ -60,9 +59,9 @@ def division(args: ResolvedArguments, _: ResolverSettings) -> Column.BinaryFormu
     divisor = cast(AttributeKey, args[1])
 
     return Column.BinaryFormula(
-        left=Column(key=dividend, label="dividend"),
+        left=Column(key=dividend),
         op=Column.BinaryFormula.OP_DIVIDE,
-        right=Column(key=divisor, label="divisor"),
+        right=Column(key=divisor),
     )
 
 
@@ -143,7 +142,6 @@ def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bin
                         ),
                     )
                 ),
-                label="trace_status_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
@@ -152,11 +150,39 @@ def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bin
     )
 
 
+def get_count_of_vital(vital: str, settings: ResolverSettings) -> float:
+
+    snuba_params = settings["snuba_params"]
+    query_string = snuba_params.query_string
+
+    rpc_res = spans_rpc.run_table_query(
+        snuba_params,
+        query_string=query_string if query_string is not None else "",
+        referrer="totalvitalcount",
+        selected_columns=[f"count_scores(measurements.score.{vital}) as count"],
+        orderby=None,
+        offset=0,
+        limit=1,
+        sampling_mode=None,
+        config=SearchResolverConfig(
+            auto_fields=True,
+        ),
+    )
+
+    if len(rpc_res["data"]) > 0 and rpc_res["data"][0]["count"] is not None:
+        return rpc_res["data"][0]["count"]
+
+    return 0
+
+
 def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
     score_attribute = cast(AttributeKey, args[0])
     ratio_attribute = transform_vital_score_to_ratio([score_attribute])
+
+    if ratio_attribute.name == "score.total":
+        return total_opportunity_score(args, settings)
 
     score_ratio = Column.BinaryFormula(
         left=Column(
@@ -167,7 +193,7 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
                 ),
                 key=ratio_attribute,
                 extrapolation_mode=extrapolation_mode,
-            )
+            ),
         ),
         op=Column.BinaryFormula.OP_SUBTRACT,
         right=Column(
@@ -186,39 +212,31 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
     if web_vital == "total":
         return score_ratio
 
-    weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[web_vital]
+    vital_count = get_count_of_vital(web_vital, settings)
 
     return Column.BinaryFormula(
         left=Column(formula=score_ratio),
-        op=Column.BinaryFormula.OP_MULTIPLY,
-        right=Column(literal=LiteralValue(val_double=weight)),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            literal=LiteralValue(val_double=vital_count),
+        ),
     )
 
 
 def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
     vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
     vital_score_columns: list[Column] = []
-    extrapolation_mode = settings["extrapolation_mode"]
 
     for vital in vitals:
         vital_score = f"score.{vital}"
         vital_score_key = AttributeKey(name=vital_score, type=AttributeKey.TYPE_DOUBLE)
-        ratio_attribute = transform_vital_score_to_ratio([vital_score_key])
+        weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital]
         vital_score_columns.append(
             Column(
                 formula=Column.BinaryFormula(
                     left=Column(formula=opportunity_score([vital_score_key], settings)),
-                    op=Column.BinaryFormula.OP_DIVIDE,
-                    right=Column(
-                        conditional_aggregation=AttributeConditionalAggregation(
-                            aggregate=Function.FUNCTION_COUNT,
-                            filter=TraceItemFilter(
-                                exists_filter=ExistsFilter(key=ratio_attribute),
-                            ),
-                            key=ratio_attribute,
-                            extrapolation_mode=extrapolation_mode,
-                        )
-                    ),
+                    op=Column.BinaryFormula.OP_MULTIPLY,
+                    right=Column(literal=LiteralValue(val_double=weight)),
                 )
             )
         )
@@ -254,19 +272,17 @@ def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> C
                         ),
                     )
                 ),
-                label="error_request_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(
-            conditional_aggregation=AttributeConditionalAggregation(
+            aggregation=AttributeAggregation(
                 aggregate=Function.FUNCTION_COUNT,
                 key=AttributeKey(
                     name="sentry.status_code",
                     type=AttributeKey.TYPE_STRING,
                 ),
-                label="total_request_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
@@ -298,7 +314,6 @@ def trace_status_rate(args: ResolvedArguments, settings: ResolverSettings) -> Co
                         ),
                     )
                 ),
-                label="trace_status_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
@@ -330,7 +345,6 @@ def cache_miss_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.
                         ),
                     )
                 ),
-                label="cache_miss_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
@@ -342,7 +356,6 @@ def cache_miss_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.
                     name="cache.hit",
                     type=AttributeKey.TYPE_BOOLEAN,
                 ),
-                label="total_cache_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
@@ -366,7 +379,6 @@ def ttfd_contribution_rate(
                         value=AttributeValue(val_str="ttfd"),
                     )
                 ),
-                label="ttfd_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
@@ -392,7 +404,6 @@ def ttid_contribution_rate(
                         value=AttributeValue(val_str="ttid"),
                     )
                 ),
-                label="ttid_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
@@ -459,7 +470,7 @@ def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
                 aggregate=Function.FUNCTION_COUNT,
                 key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
                 extrapolation_mode=extrapolation_mode,
-            )
+            ),
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(
@@ -528,12 +539,6 @@ SPAN_FORMULA_DEFINITIONS = {
         formula_resolver=opportunity_score,
         is_aggregate=True,
     ),
-    "total_opportunity_score": FormulaDefinition(
-        default_search_type="percentage",
-        arguments=[],
-        formula_resolver=total_opportunity_score,
-        is_aggregate=True,
-    ),
     "avg_compare": FormulaDefinition(
         default_search_type="percentage",
         arguments=[
@@ -598,6 +603,6 @@ SPAN_FORMULA_DEFINITIONS = {
         private=True,
     ),
     "epm": FormulaDefinition(
-        default_search_type="number", arguments=[], formula_resolver=epm, is_aggregate=True
+        default_search_type="rate", arguments=[], formula_resolver=epm, is_aggregate=True
     ),
 }

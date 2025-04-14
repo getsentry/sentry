@@ -2,22 +2,21 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {DeprecatedLineProps} from 'sentry/components/events/interfaces/frame/deprecatedLine';
+import DeprecatedLine from 'sentry/components/events/interfaces/frame/deprecatedLine';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import {
+  getHiddenFrameIndices,
+  getLastFrameIndex,
+  isRepeatedFrame,
+  stackTracePlatformIcon,
+} from 'sentry/components/events/interfaces/utils';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-
-import type {DeprecatedLineProps} from '../../frame/deprecatedLine';
-import DeprecatedLine from '../../frame/deprecatedLine';
-import {
-  getHiddenFrameIndices,
-  getLastFrameIndex,
-  isRepeatedFrame,
-  stackTracePlatformIcon,
-} from '../../utils';
 
 import StacktracePlatformIcon from './platformIcon';
 
@@ -74,7 +73,7 @@ function Content({
     );
   }
 
-  function setInitialFrameMap(): {[frameIndex: number]: boolean} {
+  function setInitialFrameMap(): Record<number, boolean> {
     const indexMap: Record<string, boolean> = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
@@ -86,7 +85,7 @@ function Content({
     return indexMap;
   }
 
-  function getInitialFrameCounts(): {[frameIndex: number]: number} {
+  function getInitialFrameCounts(): Record<number, number> {
     let count = 0;
     const countMap: Record<string, number> = {};
     (data.frames ?? []).forEach((frame, frameIdx) => {

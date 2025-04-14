@@ -38,13 +38,6 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-const mockUpdateOnboardingTasks = jest.fn();
-jest.mock('sentry/actionCreators/onboardingTasks', () => ({
-  useUpdateOnboardingTasks: () => ({
-    mutate: mockUpdateOnboardingTasks,
-  }),
-}));
-
 describe('ProjectAlertsCreate', function () {
   beforeEach(function () {
     TeamStore.init();
@@ -364,8 +357,6 @@ describe('ProjectAlertsCreate', function () {
         );
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
-        expect(mockUpdateOnboardingTasks).toHaveBeenCalledTimes(1);
-
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith(
             '/organizations/org-slug/alerts/rules/project-slug/1/details/'
@@ -569,7 +560,6 @@ describe('ProjectAlertsCreate', function () {
       for (const group of groups) {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();
       }
-      expect(screen.getAllByText('3mo ago')[0]).toBeInTheDocument();
     });
 
     it('invalid preview alert', async () => {

@@ -21,7 +21,12 @@ export enum GroupSearchViewVisibility {
   ORGANIZATION = 'organization',
 }
 
-export type GroupSearchView = {
+export enum GroupSearchViewCreatedBy {
+  ME = 'me',
+  OTHERS = 'others',
+}
+
+export type StarredGroupSearchView = {
   environments: string[];
   id: string;
   lastVisited: string | null;
@@ -30,14 +35,27 @@ export type GroupSearchView = {
   query: string;
   querySort: IssueSortOptions;
   timeFilters: PageFilters['datetime'];
+};
+
+export type GroupSearchView = StarredGroupSearchView & {
+  starred: boolean;
   visibility: GroupSearchViewVisibility;
 };
 
 export interface UpdateGroupSearchViewPayload
-  extends Omit<GroupSearchView, 'id' | 'lastVisited' | 'visibility'> {
+  extends Omit<GroupSearchView, 'id' | 'lastVisited' | 'visibility' | 'starred'> {
   environments: string[];
   projects: number[];
   timeFilters: PageFilters['datetime'];
   id?: string;
   isAllProjects?: boolean;
+}
+
+export enum GroupSearchViewSort {
+  VISITED_DESC = '-visited',
+  VISITED_ASC = 'visited',
+  POPULARITY_DESC = '-popularity',
+  POPULARITY_ASC = 'popularity',
+  NAME_ASC = 'name',
+  NAME_DESC = '-name',
 }

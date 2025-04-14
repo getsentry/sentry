@@ -131,20 +131,30 @@ class BaseIssueAlertHandler(ABC):
             "actions": [cls.build_rule_action_blob(action, detector.project.organization.id)],
         }
 
-        # We need to pass the legacy rule id when the workflow-engine-ui feature flag is disabled
+        # We need to pass the legacy rule id when the workflow-engine-ui-links feature flag is disabled
         # This is so we can build the old link to the rule
-        if not features.has("organizations:workflow-engine-ui", detector.project.organization):
+        if not features.has(
+            "organizations:workflow-engine-ui-links", detector.project.organization
+        ):
             if job.workflow_id is None:
                 raise ValueError("Workflow ID is required when triggering an action")
 
-            alert_rule_workflow = AlertRuleWorkflow.objects.get(
-                workflow_id=job.workflow_id,
-            )
+            # If test event, just set the legacy rule id to -1
+            if job.workflow_id == -1:
+                data["actions"][0]["legacy_rule_id"] = -1
+            else:
+                alert_rule_workflow = AlertRuleWorkflow.objects.get(
+                    workflow_id=job.workflow_id,
+                )
 
-            if alert_rule_workflow.rule is None:
-                raise ValueError("Rule not found when querying for AlertRuleWorkflow")
+                if alert_rule_workflow.rule_id is None:
+                    raise ValueError("Rule not found when querying for AlertRuleWorkflow")
 
-            data["legacy_rule_id"] = alert_rule_workflow.rule.id
+                data["actions"][0]["legacy_rule_id"] = alert_rule_workflow.rule_id
+
+        # In the new UI, we need this for to build the link to the new rule in the notification action
+        else:
+            data["actions"][0]["workflow_id"] = job.workflow_id
 
         rule = Rule(
             id=action.id,
@@ -188,8 +198,25 @@ class BaseIssueAlertHandler(ABC):
         with sentry_sdk.start_span(
             op="workflow_engine.handlers.action.notification.issue_alert.execute_futures"
         ):
-            for callback, futures in futures:
-                safe_execute(callback, job.event, futures)
+            for callback, future in futures:
+                safe_execute(callback, job.event, future)
+
+    @staticmethod
+    def send_test_notification(
+        job: WorkflowEventData,
+        futures: Collection[
+            tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
+        ],
+    ) -> None:
+        """
+        This method will execute the futures.
+        Based off of process_rules in post_process.py
+        """
+        with sentry_sdk.start_span(
+            op="workflow_engine.handlers.action.notification.issue_alert.execute_futures"
+        ):
+            for callback, future in futures:
+                callback(job.event, future)
 
     @classmethod
     def invoke_legacy_registry(
@@ -219,7 +246,11 @@ class BaseIssueAlertHandler(ABC):
             futures = cls.get_rule_futures(job, rule, notification_uuid)
 
             # Execute the futures
-            cls.execute_futures(job, futures)
+            # If the rule id is -1, we are sending a test notification
+            if rule.id == -1:
+                cls.send_test_notification(job, futures)
+            else:
+                cls.execute_futures(job, futures)
 
 
 class TicketingIssueAlertHandler(BaseIssueAlertHandler):

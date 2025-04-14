@@ -72,8 +72,11 @@ import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 import trackMetric from 'getsentry/utils/trackMetric';
 
 import {CodecovSettingsLink} from './components/codecovSettingsLink';
+import PrimaryNavigationQuotaExceeded from './components/navBillingStatus';
 import OpenInDiscoverBtn from './components/openInDiscoverBtn';
 import {
+  ContinuousProfilingBetaAlertBanner,
+  ContinuousProfilingBetaSDKAlertBanner,
   ProfilingAM1OrMMXUpgrade,
   ProfilingBetaAlertBanner,
   ProfilingUpgradePlanButton,
@@ -121,7 +124,15 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'sidebar:organization-dropdown-menu': hookSidebarDropdownMenu,
   'sidebar:help-menu': hookSidebarHelpMenu,
   'sidebar:item-label': () => LabelWithPowerIcon,
-  'sidebar:bottom-items': props => <TryBusinessSidebarItem {...props} />,
+  'sidebar:try-business': props => (
+    <TryBusinessSidebarItem key="try-business-sidebar-item" {...props} />
+  ),
+  'sidebar:billing-status': props => (
+    <PrimaryNavigationQuotaExceeded
+      key="quota-exceeded-sidebar-item"
+      organization={props.organization}
+    />
+  ),
 
   /**
    * Augment the global help search modal with a contat support button
@@ -204,6 +215,9 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     InsightsDateRangeQueryLimitFooter,
   'component:ai-setup-data-consent': () => AiSetupDataConsent,
   'component:codecov-integration-settings-link': () => CodecovSettingsLink,
+  'component:continuous-profiling-beta-banner': () => ContinuousProfilingBetaAlertBanner,
+  'component:continuous-profiling-beta-sdk-banner': () =>
+    ContinuousProfilingBetaSDKAlertBanner,
   /**
    * Augment the datetime picker based on plan retention days. Includes upsell interface
    */

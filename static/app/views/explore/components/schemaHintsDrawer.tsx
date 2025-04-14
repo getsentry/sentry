@@ -1,13 +1,12 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Tag as Badge} from 'sentry/components/core/badge/tag';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
-import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -17,32 +16,38 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SchemaHintsPageParams} from 'sentry/views/explore/components/schemaHintsList';
 import {addFilterToQuery} from 'sentry/views/explore/components/schemaHintsList';
 
 type SchemaHintsDrawerProps = SchemaHintsPageParams & {
   hints: Tag[];
+  searchBarDispatch: React.Dispatch<QueryBuilderActions>;
 };
 
 function SchemaHintsDrawer({
   hints,
   exploreQuery,
-  setExploreQuery,
+  tableColumns,
+  setPageParams,
+  searchBarDispatch,
 }: SchemaHintsDrawerProps) {
   const organization = useOrganization();
   const [searchQuery, setSearchQuery] = useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const [currentQuery, setCurrentQuery] = useState(exploreQuery);
+  const [currentTableColumns, setCurrentTableColumns] = useState(tableColumns);
 
-  const handleQueryChange = useCallback(
-    (newQuery: string) => {
-      setCurrentQuery(newQuery);
-      setExploreQuery(newQuery);
+  const handleQueryAndTableColumnsChange = useCallback(
+    (newQuery: MutableSearch, newTableColumns: string[]) => {
+      setCurrentQuery(newQuery.formatString());
+      setCurrentTableColumns(newTableColumns);
+      setPageParams({
+        fields: newTableColumns,
+      });
     },
-    [setExploreQuery]
+    [setPageParams]
   );
 
   const selectedFilterKeys = useMemo(() => {
@@ -117,14 +122,33 @@ function SchemaHintsDrawer({
           hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
         );
       }
-      handleQueryChange(filterQuery.formatString());
+
+      const newTableColumns = currentTableColumns.includes(hint.key)
+        ? currentTableColumns
+        : [...currentTableColumns, hint.key];
+
+      handleQueryAndTableColumnsChange(filterQuery, newTableColumns);
+      searchBarDispatch({
+        type: 'UPDATE_QUERY',
+        query: filterQuery.formatString(),
+        focusOverride: {
+          itemKey: `filter:${filterQuery.getFilterKeys().indexOf(hint.key)}`,
+          part: 'value',
+        },
+      });
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
         source: 'drawer',
         organization,
       });
     },
-    [currentQuery, handleQueryChange, organization]
+    [
+      currentQuery,
+      currentTableColumns,
+      handleQueryAndTableColumnsChange,
+      organization,
+      searchBarDispatch,
+    ]
   );
 
   const noAttributesMessage = (
@@ -204,22 +228,6 @@ function SchemaHintsDrawer({
 }
 
 export default SchemaHintsDrawer;
-
-/**
- * Used to determine if the schema hints drawer should be rendered (only applicable on
- * large screens)
- */
-export const useSchemaHintsOnLargeScreen = () => {
-  const organization = useOrganization();
-  const {isDrawerOpen: isSchemaHintsDrawerOpen} = useDrawer();
-  const theme = useTheme();
-  const isLargeScreen = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
-  const isSchemaHintsDrawerOpenOnLargeScreen =
-    isSchemaHintsDrawerOpen &&
-    isLargeScreen &&
-    organization.features.includes('traces-schema-hints');
-  return isSchemaHintsDrawerOpenOnLargeScreen;
-};
 
 const SchemaHintsHeader = styled('h4')`
   margin: 0;

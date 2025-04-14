@@ -1,177 +1,70 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
-import Feature from 'sentry/components/acl/feature';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
-import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Placeholder from 'sentry/components/placeholder';
-import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import useProjects from 'sentry/utils/useProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {ProjectsRenderer} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-
-import {isRootEvent} from '../../traceDetails/utils';
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
-import TraceConfigurations from '../traceConfigurations';
-import {isEAPTraceNode, isTraceNode} from '../traceGuards';
-import type {TraceTree} from '../traceModels/traceTree';
-import {useHasTraceNewUi} from '../useHasTraceNewUi';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import TraceConfigurations from 'sentry/views/performance/newTraceDetails/traceConfigurations';
+import {
+  isEAPTraceNode,
+  isTraceNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import Highlights from 'sentry/views/performance/newTraceDetails/traceHeader/highlights';
+import {PlaceHolder} from 'sentry/views/performance/newTraceDetails/traceHeader/placeholder';
+import Projects from 'sentry/views/performance/newTraceDetails/traceHeader/projects';
+import ScrollToSectionLinks from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
+import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
+import {isRootEvent} from 'sentry/views/performance/traceDetails/utils';
 
 import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {Meta} from './meta';
 import {Title} from './title';
 
 export interface TraceMetadataHeaderProps {
+  logs: OurLogsResponseItem[];
   metaResults: TraceMetaQueryResults;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traceEventView: EventView;
   traceSlug: string;
   tree: TraceTree;
+  project?: Project;
 }
-
-function FeedbackButton() {
-  const openForm = useFeedbackForm();
-
-  return openForm ? (
-    <Button
-      size="xs"
-      aria-label="trace-view-feedback"
-      icon={<IconMegaphone size="xs" />}
-      onClick={() =>
-        openForm({
-          messagePlaceholder: t('How can we make the trace view better for you?'),
-          tags: {
-            ['feedback.source']: 'trace-view',
-            ['feedback.owner']: 'performance',
-          },
-        })
-      }
-    >
-      {t('Give Feedback')}
-    </Button>
-  ) : null;
-}
-
-export const TRACE_FORMAT_PREFERENCE_KEY = 'trace_format_preference';
-
-export function ToggleTraceFormatButton({
-  organization,
-}: {
-  location: Location;
-  organization: Organization;
-}) {
-  const [storedTraceFormat, setStoredTraceFormat] = useSyncedLocalStorageState(
-    TRACE_FORMAT_PREFERENCE_KEY,
-    'non-eap'
-  );
-
-  return (
-    <Feature organization={organization} features="trace-spans-format">
-      <Button
-        size="xs"
-        aria-label="toggle-trace-format-btn"
-        onClick={() => {
-          setStoredTraceFormat(storedTraceFormat === 'eap' ? 'non-eap' : 'eap');
-        }}
-      >
-        {storedTraceFormat === 'eap'
-          ? t('Switch to Non-EAP Trace')
-          : t('Switch to EAP Trace')}
-      </Button>
-    </Feature>
-  );
-}
-
-function PlaceHolder({organization}: {organization: Organization}) {
-  const {view} = useDomainViewFilters();
-  const moduleURLBuilder = useModuleURLBuilder(true);
-  const location = useLocation();
-
-  return (
-    <HeaderLayout>
-      <HeaderContent>
-        <HeaderRow>
-          <Breadcrumbs
-            crumbs={getTraceViewBreadcrumbs(
-              organization,
-              location,
-              moduleURLBuilder,
-              view
-            )}
-          />
-          <ButtonBar gap={1}>
-            <ToggleTraceFormatButton location={location} organization={organization} />
-            <FeedbackButton />
-          </ButtonBar>
-        </HeaderRow>
-        <HeaderRow>
-          <PlaceHolderTitleWrapper>
-            <StyledPlaceholder _width={300} _height={20} />
-            <StyledPlaceholder _width={200} _height={18} />
-          </PlaceHolderTitleWrapper>
-          <PlaceHolderTitleWrapper>
-            <StyledPlaceholder _width={300} _height={18} />
-            <StyledPlaceholder _width={300} _height={24} />
-          </PlaceHolderTitleWrapper>
-        </HeaderRow>
-        <StyledBreak />
-        <HeaderRow>
-          <PlaceHolderHighlightWrapper>
-            <StyledPlaceholder _width={150} _height={20} />
-            <StyledPlaceholder _width={150} _height={20} />
-            <StyledPlaceholder _width={150} _height={20} />
-          </PlaceHolderHighlightWrapper>
-          <StyledPlaceholder _width={50} _height={28} />
-        </HeaderRow>
-      </HeaderContent>
-    </HeaderLayout>
-  );
-}
-
-const PlaceHolderTitleWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
-const PlaceHolderHighlightWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>`
-  border-radius: ${p => p.theme.borderRadius};
-  height: ${p => p._height}px;
-  width: ${p => p._width}px;
-`;
 
 const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation'];
 
-export const getRepresentativeEvent = (
-  tree: TraceTree
-): TraceTree.Transaction | TraceTree.EAPSpan | null => {
+const getRepresentativeEvent = (
+  tree: TraceTree,
+  logs: OurLogsResponseItem[]
+): TraceTree.TraceEvent | OurLogsResponseItem | null => {
+  if (tree.type === 'empty' && logs.length > 0) {
+    return logs[0] ?? null;
+  }
+
   const traceNode = tree.root.children[0];
 
   if (!traceNode) {
@@ -182,11 +75,13 @@ export const getRepresentativeEvent = (
     throw new TypeError('Not trace node');
   }
 
-  let firstRootEvent: TraceTree.Transaction | TraceTree.EAPSpan | null = null;
-  let candidateEvent: TraceTree.Transaction | TraceTree.EAPSpan | null = null;
-  let firstEvent: TraceTree.Transaction | TraceTree.EAPSpan | null = null;
+  let firstRootEvent: TraceTree.TraceEvent | null = null;
+  let candidateEvent: TraceTree.TraceEvent | null = null;
+  let firstEvent: TraceTree.TraceEvent | null = null;
 
-  const events = isTraceNode(traceNode) ? traceNode.value.transactions : traceNode.value;
+  const events = isTraceNode(traceNode)
+    ? [...traceNode.value.transactions, ...traceNode.value.orphan_errors]
+    : traceNode.value;
   for (const event of events) {
     // If we find a root transaction, we can stop looking and use it for the title.
     if (!firstRootEvent && isRootEvent(event)) {
@@ -198,7 +93,11 @@ export const getRepresentativeEvent = (
       // a root.
       !candidateEvent &&
       CANDIDATE_TRACE_TITLE_OPS.includes(
-        'transaction.op' in event ? event['transaction.op'] : event.op
+        'transaction.op' in event
+          ? event['transaction.op']
+          : 'op' in event
+            ? event.op
+            : ''
       )
     ) {
       candidateEvent = event;
@@ -228,12 +127,14 @@ function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
     <Layout.Header>
       <Layout.HeaderContent>
         <Breadcrumbs
-          crumbs={getTraceViewBreadcrumbs(
-            props.organization,
+          crumbs={getTraceViewBreadcrumbs({
+            organization: props.organization,
             location,
             moduleURLBuilder,
-            view
-          )}
+            traceSlug: props.traceSlug,
+            project: props.project,
+            view,
+          })}
         />
       </Layout.HeaderContent>
       <Layout.HeaderActions>
@@ -265,18 +166,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const hasNewTraceViewUi = useHasTraceNewUi();
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
-  const dispatch = useTraceStateDispatch();
-
-  const onProjectClick = useCallback(
-    (projectSlug: string) => {
-      dispatch({type: 'set query', query: `project:${projectSlug}`, source: 'external'});
-    },
-    [dispatch]
-  );
-
-  const projectSlugs = useMemo(() => {
-    return Array.from(props.tree.projects.values()).map(project => project.slug);
-  }, [props.tree.projects]);
+  const {projects} = useProjects();
 
   if (!hasNewTraceViewUi) {
     return <LegacyTraceMetadataHeader {...props} />;
@@ -287,109 +177,82 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     props.rootEventResults.isLoading ||
     props.tree.type === 'loading';
 
-  if (isLoading) {
-    return <PlaceHolder organization={props.organization} />;
+  const isError =
+    props.metaResults.status === 'error' ||
+    props.rootEventResults.status === 'error' ||
+    props.tree.type === 'error';
+
+  if (isLoading || isError) {
+    return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
   }
 
-  const representativeTransaction = getRepresentativeEvent(props.tree);
+  const representativeEvent = getRepresentativeEvent(props.tree, props.logs);
+  const project = representativeEvent
+    ? OurLogKnownFieldKey.PROJECT_ID in representativeEvent
+      ? projects.find(p => {
+          return Number(p.id) === representativeEvent[OurLogKnownFieldKey.PROJECT_ID];
+        })
+      : projects.find(p => p.slug === representativeEvent.project_slug)
+    : undefined;
 
   return (
-    <HeaderLayout>
-      <HeaderContent>
-        <HeaderRow>
+    <TraceHeaderComponents.HeaderLayout>
+      <TraceHeaderComponents.HeaderContent>
+        <TraceHeaderComponents.HeaderRow>
           <Breadcrumbs
-            crumbs={getTraceViewBreadcrumbs(
-              props.organization,
+            crumbs={getTraceViewBreadcrumbs({
+              organization: props.organization,
               location,
               moduleURLBuilder,
-              view
-            )}
+              traceSlug: props.traceSlug,
+              project,
+              view,
+            })}
           />
           <ButtonBar gap={1}>
-            <ToggleTraceFormatButton
+            <TraceHeaderComponents.ToggleTraceFormatButton
               location={location}
               organization={props.organization}
             />
-            <FeedbackButton />
+            <TraceHeaderComponents.FeedbackButton />
           </ButtonBar>
-        </HeaderRow>
-        <HeaderRow>
+        </TraceHeaderComponents.HeaderRow>
+        <TraceHeaderComponents.HeaderRow>
           <Title
-            tree={props.tree}
-            traceSlug={props.traceSlug}
-            representativeTransaction={representativeTransaction}
+            representativeEvent={representativeEvent}
+            rootEventResults={props.rootEventResults}
           />
           <Meta
             organization={props.organization}
             rootEventResults={props.rootEventResults}
             tree={props.tree}
             meta={props.metaResults.data}
-            representativeTransaction={representativeTransaction}
+            representativeEvent={representativeEvent}
+            logs={props.logs}
           />
-        </HeaderRow>
-        {props.rootEventResults.data ? (
-          <Fragment>
-            <StyledBreak />
-            <HeaderRow>
-              <StyledWrapper>
-                <HighlightsIconSummary event={props.rootEventResults.data} />
-              </StyledWrapper>
-              <ProjectsRendererWrapper>
-                <ProjectsRenderer
-                  disableLink
-                  onProjectClick={onProjectClick}
-                  projectSlugs={projectSlugs}
-                  visibleAvatarSize={24}
-                  maxVisibleProjects={3}
-                />
-              </ProjectsRendererWrapper>
-            </HeaderRow>
-          </Fragment>
-        ) : null}
-      </HeaderContent>
-    </HeaderLayout>
+        </TraceHeaderComponents.HeaderRow>
+        <TraceHeaderComponents.StyledBreak />
+        <TraceHeaderComponents.HeaderRow>
+          <Highlights
+            rootEventResults={props.rootEventResults}
+            tree={props.tree}
+            logs={props.logs}
+            project={project}
+            organization={props.organization}
+          />
+          <Flex>
+            <ScrollToSectionLinks tree={props.tree} />
+            <Projects projects={projects} logs={props.logs} tree={props.tree} />
+          </Flex>
+        </TraceHeaderComponents.HeaderRow>
+      </TraceHeaderComponents.HeaderContent>
+    </TraceHeaderComponents.HeaderLayout>
   );
 }
 
-// We cannot change the cursor of the ProjectBadge component so we need to wrap it in a div
-const ProjectsRendererWrapper = styled('div')`
-  img {
-    cursor: pointer;
-  }
-`;
-
-const HeaderLayout = styled('div')`
-  background-color: ${p => p.theme.background};
-  padding: ${space(1)} ${space(3)} ${space(1)} ${space(3)};
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-const HeaderRow = styled('div')`
+const Flex = styled('div')`
   display: flex;
-  justify-content: space-between;
-  gap: ${space(2)};
+  gap: ${space(1)};
+  flex-direction: row;
   align-items: center;
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    gap: ${space(1)};
-    flex-direction: column;
-  }
-`;
-
-const HeaderContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
-const StyledBreak = styled('hr')`
-  margin: ${space(1)} 0;
-  border-color: ${p => p.theme.border};
-`;
-
-const StyledWrapper = styled('span')`
-  display: flex;
-  align-items: center;
-  & > div {
-    padding: 0;
-  }
 `;

@@ -1,8 +1,6 @@
 import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
-import List from 'sentry/components/list/';
-import ListItem from 'sentry/components/list/listItem';
 import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
@@ -20,7 +18,6 @@ import {
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {MaybeBrowserProfilingBetaWarning} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
@@ -28,6 +25,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct, tctCode} from 'sentry/locale';
+import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -82,10 +80,10 @@ const onboarding: OnboardingConfig = {
   ],
   configure: params => [
     {
-      title: t('Manual Configuration'),
       collapsible: true,
+      title: t('Manual Configuration'),
       description: tct(
-        'Alternatively, you can also [manualSetupLink:set up the SDK manually], by following these steps:',
+        'Alternatively, you can also set up the SDK manually, by following the [manualSetupLink:manual setup docs].',
         {
           manualSetupLink: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/manual-setup/" />
@@ -93,25 +91,6 @@ const onboarding: OnboardingConfig = {
         }
       ),
       configurations: [
-        {
-          description: (
-            <List symbol="bullet">
-              <ListItem>
-                {tctCode('Add [code:@sentry/nuxt/module] to your [code:nuxt.config.ts].')}
-              </ListItem>
-              <ListItem>
-                {tctCode(
-                  'Create or update [code:sentry.client.config.ts] and [code:sentry.server.config.ts] with the default [code:Sentry.init] call.'
-                )}
-              </ListItem>
-              <ListItem>
-                {tctCode(
-                  'Configure source maps upload options in your [code:nuxt.config.ts].'
-                )}
-              </ListItem>
-            </List>
-          ),
-        },
         {
           description: <CopyDsnField params={params} />,
         },
@@ -255,16 +234,40 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig = {
-  ...onboarding,
-  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
-};
+const profilingOnboarding = getJavascriptProfilingOnboarding({
+  getInstallConfig: () => [
+    {
+      language: 'bash',
+      code: [
+        {
+          label: 'npm',
+          value: 'npm',
+          language: 'bash',
+          code: 'npm install --save @sentry/nuxt',
+        },
+        {
+          label: 'yarn',
+          value: 'yarn',
+          language: 'bash',
+          code: 'yarn add @sentry/nuxt',
+        },
+        {
+          label: 'pnpm',
+          value: 'pnpm',
+          language: 'bash',
+          code: 'pnpm add @sentry/nuxt',
+        },
+      ],
+    },
+  ],
+  docsLink:
+    'https://docs.sentry.io/platforms/javascript/guides/nuxt/profiling/browser-profiling/',
+});
 
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-
   crashReportOnboarding,
   profilingOnboarding,
   featureFlagOnboarding,

@@ -77,7 +77,11 @@ describe('GroupEventAttachments', function () {
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/group-id/attachments/',
       expect.objectContaining({
-        query: {screenshot: '1'},
+        query: {
+          screenshot: '1',
+          environment: [],
+          statsPeriod: '14d',
+        },
       })
     );
   });
@@ -159,7 +163,7 @@ describe('GroupEventAttachments', function () {
     act(() => ConfigStore.set('user', user));
 
     render(<GroupEventAttachments project={project} group={group} />, {
-      disableRouterMocks: true,
+      enableRouterMocks: false,
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',

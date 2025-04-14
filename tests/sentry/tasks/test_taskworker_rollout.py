@@ -1,7 +1,6 @@
 from unittest import mock
 
 from sentry import options
-from sentry.celery import app
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.registry import TaskRegistry
@@ -72,14 +71,18 @@ class TestTaskworkerRollout(TestCase):
         assert task is not None
         assert task.name == "test.test_with_taskworker_rollout"
         test_task.delay("world")
-        test_task.apply_async("world")
+        test_task.apply_async(["world"])
         assert mock_send_task.call_count == 2
 
+    @mock.patch("sentry.tasks.base.random.random")
     @mock.patch("sentry.taskworker.registry.TaskNamespace.send_task")
-    @override_options(
-        {"taskworker.test_namespace.rollout": {"test.test_with_taskworker_rollout": 1.0}}
-    )
-    def test_with_taskworker_rollout_with_args_trim_producer(self, mock_send_task):
+    @mock.patch("sentry.celery.Task.apply_async")
+    @override_options({"taskworker.test_namespace.rollout": {"*": 0.5, "test.low_rate": 0.1}})
+    def test_with_taskworker_rollout_with_glob_option(
+        self, mock_celery_apply, mock_send_task, mock_random
+    ):
+        mock_random.return_value = 0.3
+
         @instrumented_task(
             name="test.test_with_taskworker_rollout",
             taskworker_config=self.config,
@@ -87,9 +90,22 @@ class TestTaskworkerRollout(TestCase):
         def test_task(msg):
             return f"hello {msg}"
 
-        with app.default_producer() as producer:
-            test_task.delay("world", producer=producer)
-        assert mock_send_task.call_count == 1
+        @instrumented_task(
+            name="test.low_rate",
+            taskworker_config=self.config,
+        )
+        def test_low_rate(msg):
+            return f"hello {msg}"
+
+        test_task.delay("world")
+        test_task.apply_async(["world"])
+        assert mock_send_task.call_count == 2
+        assert mock_celery_apply.call_count == 0
+
+        test_low_rate.delay("world")
+        test_low_rate.apply_async(["world"])
+        assert mock_send_task.call_count == 2
+        assert mock_celery_apply.call_count == 2
 
     @mock.patch("sentry.tasks.base.random.random")
     @mock.patch("sentry.celery.Task.apply_async")

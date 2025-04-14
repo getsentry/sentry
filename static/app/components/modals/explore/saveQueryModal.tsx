@@ -12,18 +12,19 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
-import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSetExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 
 type SingleQueryProps = {
   query: string;
-  visualizes: Visualize[];
+  visualizes: BaseVisualize[];
   groupBys?: string[]; // This needs to be passed in because saveQuery relies on being within the Explore PageParamsContext to fetch params
 };
 
@@ -31,14 +32,23 @@ export type SaveQueryModalProps = {
   organization: Organization;
   queries: SingleQueryProps[];
   saveQuery: (name: string) => Promise<SavedQuery>;
+  name?: string;
 };
 
 type Props = ModalRenderProps & SaveQueryModalProps;
 
-function SaveQueryModal({Header, Body, Footer, closeModal, queries, saveQuery}: Props) {
+function SaveQueryModal({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  queries,
+  saveQuery,
+  name: initialName,
+}: Props) {
   const organization = useOrganization();
 
-  const [name, setName] = useState('');
+  const [name, setName] = useState(initialName ?? '');
   const [isSaving, setIsSaving] = useState(false);
 
   const setExplorePageParams = useSetExplorePageParams();
@@ -78,7 +88,7 @@ function SaveQueryModal({Header, Body, Footer, closeModal, queries, saveQuery}: 
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('New Query')}</h4>
+        <h4>{defined(initialName) ? t('Rename Query') : t('New Query')}</h4>
       </Header>
       <Body>
         <Wrapper>
@@ -104,7 +114,7 @@ function SaveQueryModal({Header, Body, Footer, closeModal, queries, saveQuery}: 
             {t('Cancel')}
           </Button>
           <Button onClick={onSave} disabled={!name || isSaving} priority="primary">
-            {t('Create a New Query')}
+            {defined(initialName) ? t('Save Changes') : t('Create a New Query')}
           </Button>
         </StyledButtonBar>
       </Footer>
@@ -112,11 +122,16 @@ function SaveQueryModal({Header, Body, Footer, closeModal, queries, saveQuery}: 
   );
 }
 
-function ExploreParams({query, visualizes, groupBys}: SingleQueryProps) {
+export function ExploreParams({
+  query,
+  visualizes,
+  groupBys,
+  className,
+}: SingleQueryProps & {className?: string}) {
   const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
 
   return (
-    <ExploreParamsContainer>
+    <ExploreParamsContainer className={className}>
       <ExploreParamSection>
         <ExploreParamTitle>{t('Visualize')}</ExploreParamTitle>
         <ExploreParamSection>
@@ -129,7 +144,7 @@ function ExploreParams({query, visualizes, groupBys}: SingleQueryProps) {
         <ExploreParamSection>
           <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
           <FormattedQueryWrapper>
-            <FormattedQuery query={query} />
+            <ProvidedFormattedQuery query={query} />
           </FormattedQueryWrapper>
         </ExploreParamSection>
       )}
@@ -143,7 +158,6 @@ function ExploreParams({query, visualizes, groupBys}: SingleQueryProps) {
           </ExploreParamSection>
         </ExploreParamSection>
       )}
-      <ExploreParamSection>...</ExploreParamSection>
     </ExploreParamsContainer>
   );
 }

@@ -1,40 +1,61 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import type {AutofixRepository} from 'sentry/components/events/autofix/types';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
+
+jest.mock('sentry/components/events/autofix/useAutofix');
 
 describe('SeerNotices', function () {
   // Helper function to create repository objects
-  const createRepository = (
-    overrides: Partial<AutofixRepository> = {}
-  ): AutofixRepository => ({
-    default_branch: 'main',
+  const createRepository = (overrides = {}) => ({
     external_id: 'repo-123',
-    integration_id: '123',
     name: 'org/repo',
+    owner: 'org',
     provider: 'github',
-    url: 'https://github.com/org/repo',
+    provider_raw: 'github',
     is_readable: true,
+    is_writeable: true,
     ...overrides,
+  });
+
+  const project = ProjectFixture();
+
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${project.organization.slug}/${project.slug}/seer/preferences/`,
+      body: {
+        code_mapping_repos: [],
+        preference: null,
+      },
+    });
+
+    // Reset mock before each test
+    jest.mocked(useAutofixRepos).mockReset();
   });
 
   it('renders nothing when all repositories are readable', function () {
     const repositories = [createRepository(), createRepository({name: 'org/repo2'})];
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: repositories,
+      codebases: {},
+    });
 
     const {container} = render(
-      <SeerNotices autofixRepositories={repositories} hasGithubIntegration />
+      <SeerNotices groupId="123" hasGithubIntegration project={project} />
     );
 
     expect(container).toBeEmptyDOMElement();
   });
 
   it('renders GitHub integration setup card when hasGithubIntegration is false', function () {
-    render(
-      <SeerNotices
-        autofixRepositories={[createRepository()]}
-        hasGithubIntegration={false}
-      />
-    );
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [createRepository()],
+      codebases: {},
+    });
+
+    render(<SeerNotices groupId="123" hasGithubIntegration={false} project={project} />);
 
     expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
 
@@ -58,21 +79,28 @@ describe('SeerNotices', function () {
 
   it('renders warning for a single unreadable GitHub repository', function () {
     const repositories = [createRepository({is_readable: false})];
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: repositories,
+      codebases: {},
+    });
 
-    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
     expect(screen.getByText(/Autofix can't access the/)).toBeInTheDocument();
     expect(screen.getByText('org/repo')).toBeInTheDocument();
     expect(screen.getByText(/GitHub integration/)).toBeInTheDocument();
-    expect(screen.getByText(/code mappings/)).toBeInTheDocument();
   });
 
   it('renders warning for a single unreadable non-GitHub repository', function () {
     const repositories = [
       createRepository({is_readable: false, provider: 'gitlab', name: 'org/gitlab-repo'}),
     ];
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: repositories,
+      codebases: {},
+    });
 
-    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
     expect(screen.getByText(/Autofix can't access the/)).toBeInTheDocument();
     expect(screen.getByText('org/gitlab-repo')).toBeInTheDocument();
@@ -86,8 +114,12 @@ describe('SeerNotices', function () {
       createRepository({is_readable: false, name: 'org/repo1'}),
       createRepository({is_readable: false, name: 'org/repo2'}),
     ];
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: repositories,
+      codebases: {},
+    });
 
-    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
     expect(
       screen.getByText(/Autofix can't access these repositories:/)
@@ -95,7 +127,6 @@ describe('SeerNotices', function () {
     expect(screen.getByText('org/repo1, org/repo2')).toBeInTheDocument();
     expect(screen.getByText(/For best performance, enable the/)).toBeInTheDocument();
     expect(screen.getByText(/GitHub integration/)).toBeInTheDocument();
-    expect(screen.getByText(/code mappings/)).toBeInTheDocument();
   });
 
   it('renders warning for multiple unreadable repositories (all non-GitHub)', function () {
@@ -111,8 +142,12 @@ describe('SeerNotices', function () {
         name: 'org/bitbucket-repo2',
       }),
     ];
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: repositories,
+      codebases: {},
+    });
 
-    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
     expect(
       screen.getByText(/Autofix can't access these repositories:/)
@@ -128,8 +163,12 @@ describe('SeerNotices', function () {
       createRepository({is_readable: false, name: 'org/github-repo'}),
       createRepository({is_readable: false, provider: 'gitlab', name: 'org/gitlab-repo'}),
     ];
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: repositories,
+      codebases: {},
+    });
 
-    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
     expect(
       screen.getByText(/Autofix can't access these repositories:/)
@@ -137,7 +176,6 @@ describe('SeerNotices', function () {
     expect(screen.getByText('org/github-repo, org/gitlab-repo')).toBeInTheDocument();
     expect(screen.getByText(/For best performance, enable the/)).toBeInTheDocument();
     expect(screen.getByText(/GitHub integration/)).toBeInTheDocument();
-    expect(screen.getByText(/code mappings/)).toBeInTheDocument();
     expect(
       screen.getByText(/Autofix currently only supports GitHub repositories/)
     ).toBeInTheDocument();
@@ -148,10 +186,12 @@ describe('SeerNotices', function () {
       createRepository({is_readable: false, name: 'org/repo1'}),
       createRepository({is_readable: false, name: 'org/repo2'}),
     ];
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: repositories,
+      codebases: {},
+    });
 
-    render(
-      <SeerNotices autofixRepositories={repositories} hasGithubIntegration={false} />
-    );
+    render(<SeerNotices groupId="123" hasGithubIntegration={false} project={project} />);
 
     // GitHub setup card
     expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
@@ -164,23 +204,19 @@ describe('SeerNotices', function () {
     expect(screen.getByText('org/repo1, org/repo2')).toBeInTheDocument();
   });
 
-  it('renders correct integration links based on integration_id', function () {
-    const repositories = [
-      createRepository({is_readable: false, integration_id: '456', name: 'org/repo1'}),
-    ];
+  it('renders GitHub integration link correctly', function () {
+    const repositories = [createRepository({is_readable: false, name: 'org/repo1'})];
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: repositories,
+      codebases: {},
+    });
 
-    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
 
     const integrationLink = screen.getByText('GitHub integration');
     expect(integrationLink).toHaveAttribute(
       'href',
-      '/settings/org-slug/integrations/github/456'
-    );
-
-    const codeMappingsLink = screen.getByText('code mappings');
-    expect(codeMappingsLink).toHaveAttribute(
-      'href',
-      '/settings/org-slug/integrations/github/456/?tab=codeMappings'
+      '/settings/org-slug/integrations/github/'
     );
   });
 
@@ -189,10 +225,12 @@ describe('SeerNotices', function () {
       createRepository({is_readable: false, name: 'org/repo1'}),
       createRepository({is_readable: false, name: 'org/repo2'}),
     ];
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: repositories,
+      codebases: {},
+    });
 
-    render(
-      <SeerNotices autofixRepositories={repositories} hasGithubIntegration={false} />
-    );
+    render(<SeerNotices groupId="123" hasGithubIntegration={false} project={project} />);
 
     // Should have both the GitHub setup card and the unreadable repos warning
     const setupCard = screen.getByText('Set Up the GitHub Integration').closest('div');
@@ -203,5 +241,26 @@ describe('SeerNotices', function () {
     expect(setupCard).toBeInTheDocument();
     expect(warningAlert).toBeInTheDocument();
     expect(setupCard).not.toBe(warningAlert);
+  });
+
+  it('renders repository selection card when no repos are selected but GitHub integration is enabled', async function () {
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [],
+      codebases: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${project.organization.slug}/${project.slug}/seer/preferences/`,
+      body: {
+        code_mapping_repos: null,
+        preference: null,
+      },
+    });
+
+    render(<SeerNotices groupId="123" hasGithubIntegration project={project} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Pick Repositories to Work In')).toBeInTheDocument();
+    });
   });
 });

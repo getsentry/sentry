@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Button} from 'sentry/components/core/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -10,10 +10,12 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
+import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
@@ -40,6 +42,7 @@ export function ExploreContent() {
   const hasSavedQueries = organization.features.includes('performance-saved-queries');
 
   const title = getTitleFromLocation(location);
+  const id = getIdFromLocation(location);
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
@@ -47,7 +50,7 @@ export function ExploreContent() {
         <Layout.Page>
           <Layout.Header unified={prefersStackedNav}>
             <Layout.HeaderContent unified={prefersStackedNav}>
-              {hasSavedQueries && title ? <ExploreBreadcrumb /> : null}
+              {hasSavedQueries && title && defined(id) ? <ExploreBreadcrumb /> : null}
               <Layout.Title>
                 {hasSavedQueries && title ? title : t('Traces')}
                 <PageHeadingQuestionTooltip
@@ -74,6 +77,19 @@ export function ExploreContent() {
                     {t('Switch to Old Trace Explore')}
                   </Button>
                 </Feature>
+                {!prefersStackedNav && (
+                  <Feature
+                    organization={organization}
+                    features="performance-saved-queries"
+                  >
+                    <LinkButton
+                      to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                      size="sm"
+                    >
+                      {t('Saved Queries')}
+                    </LinkButton>
+                  </Feature>
+                )}
                 <FeedbackWidgetButton />
               </ButtonBar>
             </Layout.HeaderActions>
