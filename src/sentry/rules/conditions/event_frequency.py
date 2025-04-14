@@ -248,7 +248,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         """
         Queries Snuba for a unique condition for multiple groups.
         """
-        return self.batch_query_hook(group_ids, start, end, environment_id, True)
+        return self.batch_query_hook(group_ids, start, end, environment_id, False)
 
     def batch_query_hook(
         self,
