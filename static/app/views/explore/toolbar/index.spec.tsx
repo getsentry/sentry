@@ -15,7 +15,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageParamsProvider,
-  useExploreDataset,
   useExploreFields,
   useExploreGroupBys,
   useExploreMode,
@@ -54,67 +53,11 @@ describe('ExploreToolbar', function () {
     });
   });
 
-  it('should not render dataset selector', function () {
-    function Component() {
-      return <ExploreToolbar />;
-    }
-    render(
-      <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-          <Component />
-        </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
-    );
-    const section = screen.queryByTestId('section-dataset');
-    expect(section).not.toBeInTheDocument();
-  });
-
-  it('allows changing datasets', async function () {
-    let dataset: any;
-    function Component() {
-      dataset = useExploreDataset();
-      return <ExploreToolbar extras={['dataset toggle']} />;
-    }
-
-    render(
-      <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-          <Component />
-        </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
-    );
-
-    const section = screen.getByTestId('section-dataset');
-
-    const eapSpans = within(section).getByRole('radio', {name: 'EAP Spans'});
-    const rpcSpans = within(section).getByRole('radio', {name: 'EAP RPC Spans'});
-    const indexedSpans = within(section).getByRole('radio', {name: 'Indexed Spans'});
-
-    expect(eapSpans).not.toBeChecked();
-    expect(rpcSpans).toBeChecked();
-    expect(indexedSpans).not.toBeChecked();
-    expect(dataset).toEqual(DiscoverDatasets.SPANS_EAP_RPC);
-
-    await userEvent.click(eapSpans);
-    expect(eapSpans).toBeChecked();
-    expect(rpcSpans).not.toBeChecked();
-    expect(indexedSpans).not.toBeChecked();
-    expect(dataset).toEqual(DiscoverDatasets.SPANS_EAP);
-
-    await userEvent.click(indexedSpans);
-    expect(eapSpans).not.toBeChecked();
-    expect(rpcSpans).not.toBeChecked();
-    expect(indexedSpans).toBeChecked();
-    expect(dataset).toEqual(DiscoverDatasets.SPANS_INDEXED);
-  });
-
   it('allows changing mode', async function () {
     let mode: any;
     function Component() {
       mode = useExploreMode();
-      return <ExploreToolbar extras={['dataset toggle']} />;
+      return <ExploreToolbar />;
     }
 
     render(
@@ -151,7 +94,7 @@ describe('ExploreToolbar', function () {
     function Component() {
       fields = useExploreFields();
       groupBys = useExploreGroupBys();
-      return <ExploreToolbar extras={['dataset toggle']} />;
+      return <ExploreToolbar />;
     }
 
     render(
