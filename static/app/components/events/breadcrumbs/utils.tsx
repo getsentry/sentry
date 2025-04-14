@@ -55,7 +55,7 @@ export const BREADCRUMB_TIME_DISPLAY_OPTIONS = {
 export const BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY = 'event-breadcrumb-time-display';
 
 const Color = styled('span')<{colorConfig: ColorConfig}>`
-  color: ${p => p.theme[p.colorConfig.icon]};
+  color: ${p => p.colorConfig.icon};
 `;
 
 /**
