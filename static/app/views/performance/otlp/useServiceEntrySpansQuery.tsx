@@ -136,8 +136,7 @@ function useSingleQuery(options: UseSingleQueryOptions) {
       pageFilters: selection,
       enabled,
     },
-    'api.performance.service-entry-spans-table',
-    true
+    'api.performance.service-entry-spans-table'
   );
 
   return {
