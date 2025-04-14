@@ -355,15 +355,17 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 },
                 path_replacer=KeepFieldPathReplacer(fields={"package", "filename", "abs_path"}),
             ),
-            sdk_crash_ignore_functions_matchers={
+            sdk_crash_ignore_functions_matchers=
                 # getCurrentStackTrace is always part of the stacktrace when the SDK captures the stacktrace,
                 # and would cause false positives. Therefore, we ignore it.
                 "getCurrentStackTrace",
-                # We override the handleDrawFrame and handleBeginFrame methods in the Flutter SDK to instrument frame tracking.
-                # These methods are part of the Flutter engine and lead to false positives.
-                "handleDrawFrame",
-                "handleBeginFrame",
-            },
+                # Ignore handleDrawFrame and handleBeginFrame to avoid false positives.
+                # In the Sentry Flutter SDK, we override the handleDrawFrame and handleBeginFrame methods,
+                # add our custom implementation on top to instrument frame tracking and then forward the calls to Flutter.
+                # However every custom implementation is try/catch guarded so no exception can be thrown.
+                "**handleDrawFrame",
+                "**handleBeginFrame",
+            ,
         )
         configs.append(dart_config)
 
