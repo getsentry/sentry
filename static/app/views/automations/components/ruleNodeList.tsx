@@ -2,10 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Select} from 'sentry/components/core/select';
-import RuleNode, {ruleNodesMap} from 'sentry/views/automations/components/ruleNode';
+import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
+import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
+import RuleNode from 'sentry/views/automations/components/ruleNode';
 
 interface RuleNodeListProps {
-  conditions: Record<string, any>;
+  conditions: Array<Omit<DataCondition, 'condition_group' | 'type' | 'id'>>;
   group: string;
   onAddRow: (type: string) => void;
   onDeleteRow: (id: number) => void;
@@ -21,7 +23,7 @@ export default function RuleNodeList({
   onDeleteRow,
   updateCondition,
 }: RuleNodeListProps) {
-  const options = Object.entries(ruleNodesMap).map(([value, node]) => ({
+  const options = Object.entries(dataConditionNodesMap).map(([value, node]) => ({
     value,
     label: node.label,
   }));

@@ -1,10 +1,4 @@
-import {
-  createContext,
-  type Dispatch,
-  type SetStateAction,
-  useEffect,
-  useState,
-} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {flattie} from 'flattie';
 
@@ -19,7 +13,12 @@ import CollapsibleSection from 'sentry/components/workflowEngine/ui/collapsibleS
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
+import {
+  AutomationBuilderContext,
+  type AutomationBuilderState,
+} from 'sentry/views/automations/components/automationBuilderState';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 
 const FREQUENCY_OPTIONS = [
@@ -35,38 +34,20 @@ const FREQUENCY_OPTIONS = [
 ];
 
 const initialState: AutomationBuilderState = {
-  when: {
-    logic_type: 'any',
-    conditions: [
-      {type: 'issue_frequency', comparison: {operator: 'gte', value: 5}},
-      {type: 'age_comparison', comparison: {type: 'newer', value: 2, time: 'hours'}},
-    ],
+  triggers: {
+    id: 'when',
+    logicType: DataConditionGroupLogicType.ANY,
+    conditions: [],
   },
-  if: [],
+  actionFilters: [
+    {id: 'if.0', logicType: DataConditionGroupLogicType.ANY, conditions: []},
+  ],
 };
 
 const model = new FormModel(flattie(initialState));
 
-interface AutomationBuilderState {
-  if: DataConditionGroup[];
-  when: DataConditionGroup;
-}
-interface DataConditionGroup {
-  conditions: DataCondition[];
-  logic_type: 'any' | 'all';
-  actions?: DataCondition[];
-}
-interface DataCondition {
-  comparison: Record<string, any>;
-  type: string;
-}
-
-export const AutomationBuilderContext = createContext<{
-  setState: Dispatch<SetStateAction<AutomationBuilderState>>;
-  state: AutomationBuilderState;
-} | null>(null);
-
-function AutomationBuilderProvider({children}: {children: React.ReactNode}) {
+export default function AutomationForm() {
+  const title = useDocumentTitle();
   const [state, setState] = useState<AutomationBuilderState>(() => initialState);
 
   useEffect(() => {
@@ -74,50 +55,40 @@ function AutomationBuilderProvider({children}: {children: React.ReactNode}) {
     model.setInitialData(flattened);
   });
 
-  return (
-    <Form hideFooter model={model}>
-      <AutomationBuilderContext.Provider value={{state, setState}}>
-        {children}
-      </AutomationBuilderContext.Provider>
-    </Form>
-  );
-}
-
-export default function AutomationForm() {
-  const title = useDocumentTitle();
-
   useEffect(() => {
     model.setValue('name', title);
   }, [title]);
 
   return (
-    <AutomationBuilderProvider>
-      <Flex column gap={space(1.5)} style={{padding: space(2)}}>
-        <CollapsibleSection title={t('Connect Monitors')} open>
-          <StyledConnectedMonitorsList monitors={[]} />
-          <ButtonWrapper justify="space-between">
-            <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
-            <Button icon={<IconEdit />}>{t('Edit Monitors')}</Button>
-          </ButtonWrapper>
-        </CollapsibleSection>
-        <CollapsibleSection title={t('Automation Builder')} open>
-          <AutomationBuilder />
-        </CollapsibleSection>
-        <CollapsibleSection
-          title={t('Action Interval')}
-          description={t('Perform the set actions once per set interval')}
-          open
-        >
-          <EmbeddedSelectField
-            name="frequency"
-            inline={false}
-            clearable={false}
-            options={FREQUENCY_OPTIONS}
-          />
-        </CollapsibleSection>
-        <DebugForm />
-      </Flex>
-    </AutomationBuilderProvider>
+    <Form hideFooter model={model}>
+      <AutomationBuilderContext.Provider value={{state, setState}}>
+        <Flex column gap={space(1.5)} style={{padding: space(2)}}>
+          <CollapsibleSection title={t('Connect Monitors')} open>
+            <StyledConnectedMonitorsList monitors={[]} />
+            <ButtonWrapper justify="space-between">
+              <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
+              <Button icon={<IconEdit />}>{t('Edit Monitors')}</Button>
+            </ButtonWrapper>
+          </CollapsibleSection>
+          <CollapsibleSection title={t('Automation Builder')} open>
+            <AutomationBuilder />
+          </CollapsibleSection>
+          <CollapsibleSection
+            title={t('Action Interval')}
+            description={t('Perform the set actions once per set interval')}
+            open
+          >
+            <EmbeddedSelectField
+              name="frequency"
+              inline={false}
+              clearable={false}
+              options={FREQUENCY_OPTIONS}
+            />
+          </CollapsibleSection>
+          <DebugForm />
+        </Flex>
+      </AutomationBuilderContext.Provider>
+    </Form>
   );
 }
 
