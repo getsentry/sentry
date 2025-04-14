@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -90,11 +88,6 @@ const moduleFormatOnboarding: Record<ModuleFormat, OnboardingConfig<PlatformOpti
               {
                 strong: <strong />,
               }
-            ),
-          },
-          {
-            description: (
-              <Image src="https://docs.sentry.io/mdx-images/add_layer-SLRFQLDC.png" />
             ),
           },
         ],
@@ -234,9 +227,5 @@ const docs: Docs<PlatformOptions> = {
   }),
   platformOptions,
 };
-
-const Image = styled('img')`
-  max-height: 300px;
-`;
 
 export default docs;
