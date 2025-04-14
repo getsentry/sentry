@@ -14,6 +14,8 @@ import {IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHintsList';
@@ -26,7 +28,9 @@ import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
   type LogPageParamsUpdate,
   useLogsFields,
+  useLogsProjectIds,
   useLogsSearch,
+  useLogsSortBys,
   useSetLogsFields,
   useSetLogsPageParams,
   useSetLogsQuery,
@@ -34,11 +38,13 @@ import {
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {HiddenColumnEditorLogFields} from 'sentry/views/explore/logs/constants';
+import {LogsChart} from 'sentry/views/explore/logs/logsChart';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {DefaultPeriod, MaxPickableDays} from 'sentry/views/explore/utils';
+import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 
 export type LogsTabProps = {
   defaultPeriod: DefaultPeriod;
@@ -54,9 +60,20 @@ export function LogsTabContent({
   const setLogsQuery = useSetLogsQuery();
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
+  const sorts = useLogsSortBys();
   const setFields = useSetLogsFields();
+  const {selection} = usePageFilters();
+  const projectIds = useLogsProjectIds();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useExploreLogsTable({});
+  const eventView = getEventView(
+    logsSearch,
+    fields ?? [],
+    sorts,
+    selection,
+    DiscoverDatasets.OURLOGS,
+    projectIds
+  );
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');
@@ -139,15 +156,19 @@ export function LogsTabContent({
               />
             </SchemaHintsSection>
           </Feature>
+          <Feature features="organizations:ourlogs-graph">
+            <LogsItemContainer>
+              <LogsChart eventView={eventView} />
+            </LogsItemContainer>
+          </Feature>
+          <LogsItemContainer>
+            <LogsTable
+              tableData={tableData}
+              stringAttributes={stringAttributes}
+              numberAttributes={numberAttributes}
+            />
+          </LogsItemContainer>
         </Layout.Main>
-
-        <LogsTableContainer fullWidth>
-          <LogsTable
-            tableData={tableData}
-            stringAttributes={stringAttributes}
-            numberAttributes={numberAttributes}
-          />
-        </LogsTableContainer>
       </Layout.Body>
     </SearchQueryBuilderProvider>
   );
@@ -159,6 +180,7 @@ const FilterBarContainer = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const LogsTableContainer = styled(Layout.Main)`
-  margin-top: ${space(1)};
+const LogsItemContainer = styled('div')`
+  flex: 1 1 auto;
+  margin-top: ${space(2)};
 `;

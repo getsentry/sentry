@@ -822,7 +822,6 @@ export class Results extends Component<Props, State> {
                 >
                   <ResultsChart
                     api={api}
-                    router={router}
                     organization={organization}
                     eventView={eventView}
                     location={location}

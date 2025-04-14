@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest import TestCase
 
-from sentry.testutils.cases import TestCase
 from sentry.utils.event import has_stacktrace, is_handled
 
 

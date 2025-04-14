@@ -457,6 +457,15 @@ function useWidgetBuilderState(): {
               },
             ]);
           }
+
+          if (action.payload.length > 0 && (yAxis?.length ?? 0) > 0 && !defined(limit)) {
+            setLimit(
+              Math.min(
+                DEFAULT_RESULTS_LIMIT,
+                getResultsLimit(query?.length ?? 1, yAxis?.length ?? 0)
+              )
+            );
+          }
           break;
         }
         case BuilderStateAction.SET_Y_AXIS:
