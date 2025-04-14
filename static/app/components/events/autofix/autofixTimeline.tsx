@@ -57,9 +57,9 @@ function getEventColor(
     };
   }
   return {
-    title: 'gray400',
-    icon: isActive ? (activeColor ?? 'pink400') : 'gray400',
-    iconBorder: isActive ? (activeColor ?? 'pink400') : 'gray400',
+    title: theme.gray400,
+    icon: isActive ? (activeColor ?? theme.pink400) : theme.gray400,
+    iconBorder: isActive ? (activeColor ?? theme.pink400) : theme.gray400,
   };
 }
 
