@@ -1,10 +1,4 @@
-import styled from '@emotion/styled';
-
-import {space} from 'sentry/styles/space';
-import {
-  makePerformanceScoreColors,
-  type PerformanceScore,
-} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {
   scoreToStatus,
   STATUS_TEXT,
@@ -17,20 +11,8 @@ type Props = {
 export function PerformanceBadge({score}: Props) {
   const status = scoreToStatus(score);
   return (
-    <Badge status={status}>
+    <Tag type={status === 'good' ? 'success' : status === 'bad' ? 'error' : 'warning'}>
       {STATUS_TEXT[status]} {score}
-    </Badge>
+    </Tag>
   );
 }
-
-export const Badge = styled('div')<{status: PerformanceScore}>`
-  white-space: nowrap;
-  border-radius: 12px;
-  color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
-  background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
-  border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].light};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  padding: 0 ${space(1)};
-  display: inline-block;
-  height: 17px;
-`;
