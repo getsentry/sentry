@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
@@ -28,7 +29,7 @@ from snuba_sdk import Request as SnubaRequest
 
 from sentry import analytics
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.constants import ObjectStatus
+from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
@@ -836,6 +837,191 @@ class CommitContextIntegration(ABC):
 
         return pull_request_issues
 
+    def run_open_pr_comment_workflow(
+        self, organization: Organization, repo: Repository, pr: PullRequest
+    ) -> None:
+        # fetch the files in the PR and determine if it is safe to comment
+        pr_files = self.get_pr_files_safe_for_comment(repo=repo, pr=pr)
+
+        if len(pr_files) == 0:
+            logger.info(
+                _open_pr_comment_log(
+                    integration_name=self.integration_name, suffix="not_safe_for_comment"
+                ),
+                extra={"file_count": len(pr_files)},
+            )
+            metrics.incr(
+                OPEN_PR_METRICS_BASE.format(integration=self.integration_name, key="error"),
+                tags={"type": "unsafe_for_comment"},
+            )
+            return
+
+        pullrequest_files = self.get_pr_files(pr_files)
+
+        issue_table_contents = {}
+        top_issues_per_file = []
+
+        patch_parsers = PATCH_PARSERS
+        # NOTE: if we are testing beta patch parsers, add check here
+
+        file_extensions = set()
+        # fetch issues related to the files
+        for file in pullrequest_files:
+            projects, sentry_filenames = self.get_projects_and_filenames_from_source_file(
+                organization=organization, repo=repo, pr_filename=file.filename
+            )
+            if not len(projects) or not len(sentry_filenames):
+                continue
+
+            file_extension = file.filename.split(".")[-1]
+            logger.info(
+                _open_pr_comment_log(
+                    integration_name=self.integration_name, suffix="file_extension"
+                ),
+                extra={
+                    "organization_id": organization.id,
+                    "repository_id": repo.id,
+                    "extension": file_extension,
+                },
+            )
+
+            language_parser = patch_parsers.get(file.filename.split(".")[-1], None)
+            if not language_parser:
+                logger.info(
+                    _open_pr_comment_log(
+                        integration_name=self.integration_name, suffix="missing_parser"
+                    ),
+                    extra={"extension": file_extension},
+                )
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(
+                        integration=self.integration_name, key="missing_parser"
+                    ),
+                    tags={"extension": file_extension},
+                )
+                continue
+
+            function_names = language_parser.extract_functions_from_patch(file.patch)
+
+            if file_extension in ["js", "jsx"]:
+                logger.info(
+                    _open_pr_comment_log(
+                        integration_name=self.integration_name, suffix="javascript"
+                    ),
+                    extra={
+                        "organization_id": organization.id,
+                        "repository_id": repo.id,
+                        "extension": file_extension,
+                        "has_function_names": bool(function_names),
+                    },
+                )
+
+            if file_extension == ["php"]:
+                logger.info(
+                    _open_pr_comment_log(integration_name=self.integration_name, suffix="php"),
+                    extra={
+                        "organization_id": organization.id,
+                        "repository_id": repo.id,
+                        "extension": file_extension,
+                        "has_function_names": bool(function_names),
+                    },
+                )
+
+            if file_extension == ["rb"]:
+                logger.info(
+                    _open_pr_comment_log(integration_name=self.integration_name, suffix="ruby"),
+                    extra={
+                        "organization_id": organization.id,
+                        "repository_id": repo.id,
+                        "extension": file_extension,
+                        "has_function_names": bool(function_names),
+                    },
+                )
+
+            if not len(function_names):
+                continue
+
+            top_issues = self.get_top_5_issues_by_count_for_file(
+                list(projects), list(sentry_filenames), list(function_names)
+            )
+            if not len(top_issues):
+                continue
+
+            top_issues_per_file.append(top_issues)
+            file_extensions.add(file_extension)
+
+            issue_table_contents[file.filename] = self.get_issue_table_contents(top_issues)
+
+        if not len(issue_table_contents):
+            logger.info(
+                _open_pr_comment_log(integration_name=self.integration_name, suffix="no_issues")
+            )
+            # don't leave a comment if no issues for files in PR
+            metrics.incr(
+                OPEN_PR_METRICS_BASE.format(integration=self.integration_name, key="no_issues")
+            )
+            return
+
+        # format issues per file into comment
+        issue_tables = []
+        first_table = True
+        for file in pullrequest_files:
+            pr_filename = file.filename
+            issue_table_content = issue_table_contents.get(pr_filename, None)
+
+            if issue_table_content is None:
+                continue
+
+            if first_table:
+                issue_table = self.format_issue_table(
+                    pr_filename, issue_table_content, patch_parsers, toggle=False
+                )
+                first_table = False
+            else:
+                # toggle all tables but the first one
+                issue_table = self.format_issue_table(
+                    pr_filename, issue_table_content, patch_parsers, toggle=True
+                )
+
+            issue_tables.append(issue_table)
+
+        comment_body = self.format_open_pr_comment(issue_tables)
+
+        # list all issues in the comment
+        issue_list: list[dict[str, Any]] = list(itertools.chain.from_iterable(top_issues_per_file))
+        issue_id_list: list[int] = [issue["group_id"] for issue in issue_list]
+
+        # pick one language from the list of languages in the PR for analytics
+        languages = [
+            EXTENSION_LANGUAGE_MAP[extension]
+            for extension in file_extensions
+            if extension in EXTENSION_LANGUAGE_MAP
+        ]
+        language = languages[0] if len(languages) else "not found"
+
+        try:
+            self.create_or_update_comment(
+                repo=repo,
+                pr_key=pr.key,
+                comment_data={"body": comment_body},
+                pullrequest_id=pr.id,
+                issue_ids=issue_id_list,
+                comment_type=CommentType.OPEN_PR,
+                metrics_base=OPEN_PR_METRICS_BASE,
+                language=language,
+            )
+        except ApiError as e:
+            if self.on_create_or_update_comment_error(
+                api_error=e, metrics_base=OPEN_PR_METRICS_BASE
+            ):
+                return
+
+            metrics.incr(
+                OPEN_PR_METRICS_BASE.format(integration=self.integration_name, key="error"),
+                tags={"type": "api_error"},
+            )
+            raise
+
 
 def run_pr_comment_workflow(integration_name: str, pullrequest_id: int, project_id: int) -> None:
     cache_key = debounce_pr_comment_cache_key(pullrequest_id=pullrequest_id)
@@ -898,6 +1084,76 @@ def run_pr_comment_workflow(integration_name: str, pullrequest_id: int, project_
         repo=repo,
         pr=pr,
         project_id=project_id,
+    )
+
+
+def run_open_pr_comment_workflow(integration_name: str, pullrequest_id: int) -> None:
+    logger.info(_open_pr_comment_log(integration_name=integration_name, suffix="start_workflow"))
+
+    # CHECKS
+    # check PR exists to get PR key
+    try:
+        pr = PullRequest.objects.get(id=pullrequest_id)
+        assert isinstance(pr, PullRequest)
+    except PullRequest.DoesNotExist:
+        logger.info(_open_pr_comment_log(integration_name=integration_name, suffix="pr_missing"))
+        metrics.incr(
+            OPEN_PR_METRICS_BASE.format(integration=integration_name, key="error"),
+            tags={"type": "missing_pr"},
+        )
+        return
+
+    # check org option
+    try:
+        organization = Organization.objects.get_from_cache(id=pr.organization_id)
+        assert isinstance(organization, Organization)
+    except Organization.DoesNotExist:
+        logger.exception(
+            _open_pr_comment_log(integration_name=integration_name, suffix="org_missing")
+        )
+        metrics.incr(
+            OPEN_PR_METRICS_BASE.format(integration=integration_name, key="error"),
+            tags={"type": "missing_org"},
+        )
+        return
+
+    # check PR repo exists to get repo name
+    try:
+        repo = Repository.objects.get(id=pr.repository_id)
+        assert isinstance(repo, Repository)
+    except Repository.DoesNotExist:
+        logger.info(
+            _open_pr_comment_log(integration_name=integration_name, suffix="repo_missing"),
+            extra={"organization_id": organization.id},
+        )
+        metrics.incr(
+            OPEN_PR_METRICS_BASE.format(integration=integration_name, key="error"),
+            tags={"type": "missing_repo"},
+        )
+        return
+
+    # check integration exists to hit Github API with client
+    integration = integration_service.get_integration(
+        integration_id=repo.integration_id, status=ObjectStatus.ACTIVE
+    )
+    if not integration:
+        logger.info(
+            _open_pr_comment_log(integration_name=integration_name, suffix="integration_missing"),
+            extra={"organization_id": organization.id},
+        )
+        metrics.incr(
+            OPEN_PR_METRICS_BASE.format(integration=integration_name, key="error"),
+            tags={"type": "missing_integration"},
+        )
+        return
+
+    installation = integration.get_installation(organization_id=organization.id)
+    assert isinstance(installation, CommitContextIntegration)
+
+    installation.run_open_pr_comment_workflow(
+        organization=organization,
+        repo=repo,
+        pr=pr,
     )
 
 
