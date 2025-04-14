@@ -95,51 +95,50 @@ describe('getRuntimeLabel', function () {
     expect(getRuntimeLabelAndTooltip(event)).toBeNull();
   });
 
-  it('returns explicitly set runtime type', function () {
-    const backendEvent = EventFixture({
+  it('returns null for javascript issues without context information', function () {
+    const event = EventFixture({
       sdk: {name: 'javascript'},
     });
 
-    expect(getRuntimeLabelAndTooltip(backendEvent, 'backend')?.label).toBe('Backend');
-
-    const frontendEvent = EventFixture({
-      sdk: {name: 'javascript'},
-    });
-
-    expect(getRuntimeLabelAndTooltip(frontendEvent, 'frontend')?.label).toBe('Frontend');
+    expect(getRuntimeLabelAndTooltip(event)).toBeNull();
   });
 
-  it('returns inferred runtime', function () {
-    const frontedEvent = EventFixture({
+  it('returns inferred runtime from browser context', function () {
+    const frontendEvent = EventFixture({
       sdk: {name: 'javascript'},
       contexts: {
         browser: {name: 'Chrome'},
       },
     });
 
-    expect(getRuntimeLabelAndTooltip(frontedEvent)?.label).toBe('Frontend');
-
-    const serverlessEvent = EventFixture({
-      sdk: {name: 'javascript'},
-      contexts: {
-        runtime: {name: 'node'},
-        browser: {name: 'Chrome'}, // Backend events also have 'browser'
-        cloud_resource: {['cloud.provider']: 'cloudflare', type: 'default'},
-      },
-    });
-
-    expect(getRuntimeLabelAndTooltip(serverlessEvent)?.label).toBe('Backend');
-
-    const backendEvent = EventFixture({
-      sdk: {name: 'javascript'},
-      contexts: {
-        runtime: {name: 'node'},
-        browser: {name: 'Chrome'}, // Backend events also have 'browser'
-      },
-    });
-
-    expect(getRuntimeLabelAndTooltip(backendEvent)?.label).toBe('Backend');
+    expect(getRuntimeLabelAndTooltip(frontendEvent)?.label).toBe('Frontend');
+    expect(getRuntimeLabelAndTooltip(frontendEvent)?.tooltip).toBe(
+      'Error from Chrome browser'
+    );
   });
+
+  it.each([
+    ['node', 'Error from Node.js Server Runtime'],
+    ['bun', 'Error from Bun Server Runtime'],
+    ['deno', 'Error from Deno Server Runtime'],
+    ['cloudflare', 'Error from Cloudflare Workers'],
+    ['vercel-edge', 'Error from Vercel Edge Runtime'],
+  ])(
+    'returns correct runtime label and tooltip for %s runtime',
+    (runtimeName, expectedTooltip) => {
+      const event = EventFixture({
+        sdk: {name: 'javascript'},
+        contexts: {
+          runtime: {name: runtimeName},
+          browser: {name: 'Chrome'}, // Backend events might also have 'browser'
+        },
+      });
+
+      const result = getRuntimeLabelAndTooltip(event);
+      expect(result?.label).toBe('Backend');
+      expect(result?.tooltip).toBe(expectedTooltip);
+    }
+  );
 
   it('returns null when no runtime can be determined', function () {
     const event = EventFixture({

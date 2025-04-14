@@ -177,31 +177,35 @@ export function getHighlightTagData({
  * Currently only used for JavaScript-based events.
  */
 export function getRuntimeLabelAndTooltip(
-  event: Event,
-  knownRuntimeType?: 'backend' | 'frontend' | null
+  event: Event
 ): {label: string; tooltip: string} | null {
   if (!event.sdk?.name.includes('javascript')) {
     return null;
   }
 
-  if (knownRuntimeType === 'backend') {
-    return {label: t('Backend'), tooltip: t('Error from Server, Edge or Worker Runtime')};
-  }
-  if (knownRuntimeType === 'frontend') {
-    return {label: t('Frontend'), tooltip: t('Error from Client (e.g. Browser)')};
+  // eslint-disable-next-line default-case
+  switch (event.contexts.runtime?.name || '') {
+    case 'node':
+      return {label: t('Backend'), tooltip: t('Error from Node.js Server Runtime')};
+    case 'bun':
+      return {label: t('Backend'), tooltip: t('Error from Bun Server Runtime')};
+    case 'deno':
+      return {label: t('Backend'), tooltip: t('Error from Deno Server Runtime')};
+    case 'cloudflare':
+      return {label: t('Backend'), tooltip: t('Error from Cloudflare Workers')};
+    case 'vercel-edge':
+      return {label: t('Backend'), tooltip: t('Error from Vercel Edge Runtime')};
   }
 
-  if (
-    event.contexts.cloud_resource ||
-    (event.contexts.runtime?.name &&
-      ['node', 'bun', 'deno', 'cloudflare', 'vercel-edge'].includes(
-        event.contexts.runtime.name
-      ))
-  ) {
+  if (event.contexts.runtime?.name) {
+    // Browser events don't have a runtime context
     return {label: t('Backend'), tooltip: t('Error from Server, Edge or Worker Runtime')};
   }
+
   if (event.contexts.browser) {
-    return {label: t('Frontend'), tooltip: t('Error from Client (e.g. Browser)')};
+    // Backend events might also have a browser context
+    const browserName = event.contexts.browser.name || 'browser';
+    return {label: t('Frontend'), tooltip: t('Error from %s browser', browserName)};
   }
 
   return null;

@@ -112,6 +112,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
     event,
     isMetaFrameworkBackendIssue ? 'backend' : null
   );
+  const runtimeInfo = getRuntimeLabelAndTooltip(event);
 
   return items.length || screenshot ? (
     <Fragment>
