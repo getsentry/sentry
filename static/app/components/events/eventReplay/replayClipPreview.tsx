@@ -14,6 +14,7 @@ interface ReplayClipPreviewProps
     durationBeforeMs: number;
   };
   eventTimestampMs: number;
+  orgSlug: string;
   replaySlug: string;
 }
 
@@ -23,7 +24,7 @@ function ReplayClipPreview({
   eventTimestampMs,
   orgSlug,
   replaySlug,
-  ...props
+  fullReplayButtonProps,
 }: ReplayClipPreviewProps) {
   const clipWindow = useMemo(
     () => ({
@@ -33,13 +34,13 @@ function ReplayClipPreview({
     [clipOffsets.durationBeforeMs, clipOffsets.durationAfterMs, eventTimestampMs]
   );
 
-  const replayReaderResult = useLoadReplayReader({
+  const readerResult = useLoadReplayReader({
     orgSlug,
     replaySlug,
     clipWindow,
   });
 
-  const {fetching, replay} = replayReaderResult;
+  const {fetching, replay} = readerResult;
 
   return (
     <ReplayContextProvider
@@ -48,10 +49,9 @@ function ReplayClipPreview({
       replay={replay}
     >
       <ReplayClipPreviewPlayer
-        replayReaderResult={replayReaderResult}
+        replayReaderResult={readerResult}
         analyticsContext={analyticsContext}
-        orgSlug={orgSlug}
-        {...props}
+        fullReplayButtonProps={fullReplayButtonProps}
       />
     </ReplayContextProvider>
   );

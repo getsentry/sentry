@@ -140,12 +140,12 @@ function GroupReplaysTableInner({
   overlayContent?: React.ReactNode;
 }) {
   const orgSlug = organization.slug;
-  const replayReaderData = useLoadReplayReader({
+  const readerResult = useLoadReplayReader({
     orgSlug,
     replaySlug,
     group,
   });
-  const {fetching, replay} = replayReaderData;
+  const {fetching, replay} = readerResult;
 
   return (
     <ReplayContextProvider
@@ -155,10 +155,8 @@ function GroupReplaysTableInner({
       autoStart
     >
       <GroupReplaysPlayer
-        replayReaderResult={replayReaderData}
+        replayReaderResult={readerResult}
         overlayContent={overlayContent}
-        orgSlug={orgSlug}
-        showNextAndPrevious
         handleForwardClick={
           replays && selectedReplayIndex + 1 < replays.length
             ? () => {
@@ -173,7 +171,7 @@ function GroupReplaysTableInner({
               }
             : undefined
         }
-        analyticsContext={'replay_tab'}
+        analyticsContext="replay_tab"
       />
       {children}
     </ReplayContextProvider>

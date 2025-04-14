@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
@@ -9,137 +8,73 @@ import ReplayPreviewPlayer from 'sentry/components/events/eventReplay/replayPrev
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
-import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
+import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import type {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useOrganization from 'sentry/utils/useOrganization';
+import useLogEventReplayStatus from 'sentry/utils/replays/hooks/useLogEventReplayStatus';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import type {ReplayRecord} from 'sentry/views/replays/types';
 
 interface Props {
   analyticsContext: string;
-  orgSlug: string;
+  fullReplayButtonProps: Partial<Omit<LinkButtonProps, 'external'>>;
   replayReaderResult: ReturnType<typeof useLoadReplayReader>;
-  focusTab?: TabKey;
-  fullReplayButtonProps?: Partial<Omit<LinkButtonProps, 'external'>>;
-  handleBackClick?: () => void;
-  handleForwardClick?: () => void;
-  onClickNextReplay?: () => void;
-  overlayContent?: React.ReactNode;
-  showNextAndPrevious?: boolean;
-}
-
-function getReplayAnalyticsStatus({
-  fetchError,
-  replayRecord,
-}: {
-  fetchError?: RequestError;
-  replayRecord?: ReplayRecord;
-}) {
-  if (fetchError) {
-    return 'error';
-  }
-
-  if (replayRecord?.is_archived) {
-    return 'archived';
-  }
-
-  if (replayRecord) {
-    return 'success';
-  }
-
-  return 'none';
 }
 
 export default function ReplayClipPreviewPlayer({
   analyticsContext,
-  orgSlug,
   fullReplayButtonProps,
-  handleForwardClick,
-  handleBackClick,
-  overlayContent,
   replayReaderResult,
-  showNextAndPrevious,
 }: Props) {
-  useRouteAnalyticsParams({
-    event_replay_status: getReplayAnalyticsStatus({
-      fetchError: replayReaderResult.fetchError,
-      replayRecord: replayReaderResult.replayRecord,
-    }),
+  useLogEventReplayStatus({
+    readerResult: replayReaderResult,
   });
-  const organization = useOrganization();
-
-  useEffect(() => {
-    if (replayReaderResult.fetchError) {
-      trackAnalytics('replay.render-missing-replay-alert', {
-        organization,
-        surface: 'issue details - clip preview',
-      });
-    }
-  }, [organization, replayReaderResult.fetchError]);
-
-  if (replayReaderResult.replayRecord?.is_archived) {
-    return (
-      <Alert.Container>
-        <ArchivedReplayAlert message={t('The replay for this event has been deleted.')} />
-      </Alert.Container>
-    );
-  }
-
-  if (replayReaderResult.fetchError) {
-    return <MissingReplayAlert orgSlug={orgSlug} />;
-  }
-
-  if (
-    replayReaderResult.fetching ||
-    !replayReaderResult.replayRecord ||
-    !replayReaderResult.replay
-  ) {
-    return (
-      <StyledNegativeSpaceContainer data-test-id="replay-loading-placeholder">
-        <LoadingIndicator />
-      </StyledNegativeSpaceContainer>
-    );
-  }
-
-  if (replayReaderResult.replay.getDurationMs() <= 0) {
-    return (
-      <StaticReplayPreview
-        analyticsContext={analyticsContext}
-        isFetching={false}
-        replay={replayReaderResult.replay}
-        replayId={replayReaderResult.replayId}
-        fullReplayButtonProps={fullReplayButtonProps}
-        initialTimeOffsetMs={0}
-      />
-    );
-  }
 
   return (
-    <PlayerContainer data-test-id="player-container">
-      {replayReaderResult.replay?.hasProcessingErrors() ? (
-        <ReplayProcessingError
-          processingErrors={replayReaderResult.replay.processingErrors()}
-        />
-      ) : (
-        <ReplayPreviewPlayer
-          replayId={replayReaderResult.replayId}
-          fullReplayButtonProps={fullReplayButtonProps}
-          replayRecord={replayReaderResult.replayRecord}
-          handleBackClick={handleBackClick}
-          handleForwardClick={handleForwardClick}
-          overlayContent={overlayContent}
-          showNextAndPrevious={showNextAndPrevious}
-          // if the player is large, we want to keep the priority as default
-          playPausePriority={undefined}
-        />
+    <ReplayLoadingState
+      readerResult={replayReaderResult}
+      renderArchived={() => (
+        <Alert.Container>
+          <ArchivedReplayAlert
+            message={t('The replay for this event has been deleted.')}
+          />
+        </Alert.Container>
       )}
-    </PlayerContainer>
+      renderLoading={() => (
+        <StyledNegativeSpaceContainer data-test-id="replay-loading-placeholder">
+          <LoadingIndicator />
+        </StyledNegativeSpaceContainer>
+      )}
+    >
+      {({replay}) => {
+        if (replay.getDurationMs() <= 0) {
+          return (
+            <StaticReplayPreview
+              analyticsContext={analyticsContext}
+              isFetching={false}
+              replay={replay}
+              replayId={replayReaderResult.replayId}
+              fullReplayButtonProps={fullReplayButtonProps}
+              initialTimeOffsetMs={0}
+            />
+          );
+        }
+
+        return (
+          <PlayerContainer data-test-id="player-container">
+            {replay.hasProcessingErrors() ? (
+              <ReplayProcessingError processingErrors={replay.processingErrors()} />
+            ) : (
+              <ReplayPreviewPlayer
+                replayId={replayReaderResult.replayId}
+                fullReplayButtonProps={fullReplayButtonProps}
+                replayRecord={replayReaderResult.replayRecord!}
+              />
+            )}
+          </PlayerContainer>
+        );
+      }}
+    </ReplayLoadingState>
   );
 }
 

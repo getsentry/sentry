@@ -46,5 +46,6 @@ export default function ReplayLoadingState({
   if (readerResult.replayRecord?.is_archived) {
     return renderArchived ? renderArchived(readerResult) : <ArchivedReplayAlert />;
   }
+  // what about replay.hasProcessingErrors()?
   return children({replay: readerResult.replay});
 }
