@@ -49,7 +49,6 @@ def get_total_span_count(settings: ResolverSettings) -> Column:
         aggregation=AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
             key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
-            label="total",
             extrapolation_mode=extrapolation_mode,
         )
     )
@@ -60,9 +59,9 @@ def division(args: ResolvedArguments, _: ResolverSettings) -> Column.BinaryFormu
     divisor = cast(AttributeKey, args[1])
 
     return Column.BinaryFormula(
-        left=Column(key=dividend, label="dividend"),
+        left=Column(key=dividend),
         op=Column.BinaryFormula.OP_DIVIDE,
-        right=Column(key=divisor, label="divisor"),
+        right=Column(key=divisor),
     )
 
 
@@ -143,7 +142,6 @@ def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bin
                         ),
                     )
                 ),
-                label="trace_status_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
@@ -274,7 +272,6 @@ def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> C
                         ),
                     )
                 ),
-                label="error_request_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
@@ -286,7 +283,6 @@ def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> C
                     name="sentry.status_code",
                     type=AttributeKey.TYPE_STRING,
                 ),
-                label="total_request_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
@@ -318,7 +314,6 @@ def trace_status_rate(args: ResolvedArguments, settings: ResolverSettings) -> Co
                         ),
                     )
                 ),
-                label="trace_status_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
@@ -350,7 +345,6 @@ def cache_miss_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.
                         ),
                     )
                 ),
-                label="cache_miss_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
@@ -362,7 +356,6 @@ def cache_miss_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.
                     name="cache.hit",
                     type=AttributeKey.TYPE_BOOLEAN,
                 ),
-                label="total_cache_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
@@ -386,7 +379,6 @@ def ttfd_contribution_rate(
                         value=AttributeValue(val_str="ttfd"),
                     )
                 ),
-                label="ttfd_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
@@ -412,7 +404,6 @@ def ttid_contribution_rate(
                         value=AttributeValue(val_str="ttid"),
                     )
                 ),
-                label="ttid_count",
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
