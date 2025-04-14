@@ -26,14 +26,14 @@ export function FeatureFlagCTAContent({
   handleSetupButtonClick: (e: any) => void;
 }) {
   const organization = useOrganization();
-  const area = useAnalyticsArea();
+  const analyticsArea = useAnalyticsArea();
 
   useEffect(() => {
     trackAnalytics('flags.cta_rendered', {
       organization,
-      area,
+      surface: analyticsArea,
     });
-  }, [organization, area]);
+  }, [organization, analyticsArea]);
 
   return (
     <Fragment>
