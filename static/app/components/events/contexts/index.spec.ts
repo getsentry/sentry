@@ -35,8 +35,9 @@ describe('getOrderedContextItems', function () {
     expect(aliasOrder[0]).toBe('response');
     expect(aliasOrder[1]).toBe('feedback');
     expect(aliasOrder[2]).toBe('user');
-    expect(aliasOrder[3]).toBe('runtime');
-    expect(aliasOrder[4]).toBe('os');
+    expect(aliasOrder[3]).toBe('browser');
+    expect(aliasOrder[4]).toBe('runtime');
+    expect(aliasOrder[5]).toBe('os');
   });
 
   it('does not fail with missing context items', function () {

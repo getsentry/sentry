@@ -7,6 +7,7 @@ import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
   getHighlightTagData,
+  getRuntimeLabelAndTooltip,
 } from 'sentry/components/events/highlights/util';
 
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
@@ -82,5 +83,69 @@ describe('getHighlightTagData', function () {
       td => td.originalTag.key === missingTag
     );
     expect(missingTagHighlightFromEvent?.value).toBe(EMPTY_HIGHLIGHT_DEFAULT);
+  });
+});
+
+describe('getRuntimeLabel', function () {
+  it('returns null for non-JavaScript SDK events', function () {
+    const event = EventFixture({
+      sdk: {name: 'python'},
+    });
+
+    expect(getRuntimeLabelAndTooltip(event)).toBeNull();
+  });
+
+  it('returns null for javascript issues without context information', function () {
+    const event = EventFixture({
+      sdk: {name: 'javascript'},
+    });
+
+    expect(getRuntimeLabelAndTooltip(event)).toBeNull();
+  });
+
+  it('returns inferred runtime from browser context', function () {
+    const frontendEvent = EventFixture({
+      sdk: {name: 'javascript'},
+      contexts: {
+        browser: {name: 'Chrome'},
+      },
+    });
+
+    expect(getRuntimeLabelAndTooltip(frontendEvent)?.label).toBe('Frontend');
+    expect(getRuntimeLabelAndTooltip(frontendEvent)?.tooltip).toBe(
+      'Error from Chrome browser'
+    );
+  });
+
+  it.each([
+    ['node', 'Error from Node.js Server Runtime'],
+    ['bun', 'Error from Bun Server Runtime'],
+    ['deno', 'Error from Deno Server Runtime'],
+    ['cloudflare', 'Error from Cloudflare Workers'],
+    ['vercel-edge', 'Error from Vercel Edge Runtime'],
+  ])(
+    'returns correct runtime label and tooltip for %s runtime',
+    (runtimeName, expectedTooltip) => {
+      const event = EventFixture({
+        sdk: {name: 'javascript'},
+        contexts: {
+          runtime: {name: runtimeName},
+          browser: {name: 'Chrome'}, // Backend events might also have 'browser'
+        },
+      });
+
+      const result = getRuntimeLabelAndTooltip(event);
+      expect(result?.label).toBe('Backend');
+      expect(result?.tooltip).toBe(expectedTooltip);
+    }
+  );
+
+  it('returns null when no runtime can be determined', function () {
+    const event = EventFixture({
+      sdk: {name: 'javascript'},
+      contexts: {}, // No browser or runtime context
+    });
+
+    expect(getRuntimeLabelAndTooltip(event)).toBeNull();
   });
 });
