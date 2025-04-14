@@ -1780,7 +1780,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data["http_response_rate(5)"]["data"][1][1][0]["count"] == 0.5
         assert data["http_response_rate(5)"]["data"][2][1][0]["count"] == 0.75
 
-    @pytest.mark.xfail(reason="https://github.com/getsentry/snuba/pull/7066")
+    @pytest.mark.xfail(reason="https://github.com/getsentry/snuba/pull/7067")
     def test_downsampling_single_series(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
