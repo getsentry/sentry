@@ -25,7 +25,7 @@ import {
   makeAutofixQueryKey,
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
-import {Timeline} from 'sentry/components/timeline';
+import {Timeline, type TimelineItemProps} from 'sentry/components/timeline';
 import {
   IconAdd,
   IconChevron,
@@ -381,17 +381,11 @@ function getEventIcon(eventType: string) {
   }
 }
 
-interface ColorConfig {
-  icon: string;
-  iconBorder: string;
-  title: string;
-}
-
 function getEventColor(
   theme: Theme,
   isActive?: boolean,
   isSelected?: boolean
-): ColorConfig {
+): TimelineItemProps['colorConfig'] {
   if (isChonkTheme(theme)) {
     return {
       title: theme.colors.content.primary,
