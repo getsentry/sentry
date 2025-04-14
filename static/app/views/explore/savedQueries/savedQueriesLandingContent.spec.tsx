@@ -5,8 +5,9 @@ import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/save
 
 describe('SavedQueriesTable', () => {
   const {organization} = initializeOrg();
+  let getSavedQueriesMock: jest.Mock;
   beforeEach(() => {
-    MockApiClient.addMockResponse({
+    getSavedQueriesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/`,
       body: [],
     });
@@ -31,12 +32,28 @@ describe('SavedQueriesTable', () => {
     await screen.findByText('Recently Viewed');
   });
 
-  it('should show a single table when searching', async () => {
+  it('should filter tables when searching', async () => {
     render(<SavedQueriesLandingContent />);
     await screen.findByText('Created by Me');
     await screen.findByText('Created by Others');
     await userEvent.type(screen.getByPlaceholderText('Search for a query'), 'Query Name');
-    expect(screen.queryByText('Created by Me')).not.toBeInTheDocument();
-    expect(screen.queryByText('Created by Others')).not.toBeInTheDocument();
+    expect(getSavedQueriesMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/explore/saved/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'Query Name',
+          exclude: 'shared',
+        }),
+      })
+    );
+    expect(getSavedQueriesMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/explore/saved/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'Query Name',
+          exclude: 'owned',
+        }),
+      })
+    );
   });
 });
