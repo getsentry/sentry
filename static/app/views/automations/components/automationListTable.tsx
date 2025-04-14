@@ -59,7 +59,7 @@ function AutomationListTable({automations}: AutomationListTableProps) {
             id={automation.id}
             lastTriggered={automation.lastTriggered}
             link={automation.link}
-            monitors={automation.monitors}
+            monitorIds={automation.monitorIds}
             name={automation.name}
             project={automation.project}
             details={automation.details}
