@@ -39,7 +39,7 @@ export function useOutdatedSDKProjects(options?: Options) {
     .map(projectId => {
       return ProjectsStore.getById(projectId);
     })
-    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+    .filter(Boolean);
 
   return {
     ...response,

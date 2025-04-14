@@ -83,12 +83,7 @@ function EditAccessSelector({
     const selectedOptionsFromDashboard =
       !defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone
         ? ['_creator', '_allUsers', ...teamIdsList]
-        : [
-            '_creator',
-            ...(dashboard.permissions.teamsWithEditAccess?.map(teamId =>
-              String(teamId)
-            ) ?? []),
-          ];
+        : ['_creator', ...(dashboard.permissions.teamsWithEditAccess?.map(String) ?? [])];
     setSelectedOptions(selectedOptionsFromDashboard);
   }, [dashboard, teamsToRender, isMenuOpen]); // isMenuOpen dependency ensures perms are 'refreshed'
 

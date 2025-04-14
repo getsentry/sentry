@@ -53,7 +53,7 @@ class ProjectBaseEventsChart extends Component<Props> {
         query,
         dataset,
         environment: environments,
-        project: projects.map(proj => String(proj)),
+        project: projects.map(String),
         ...normalizeDateTimeParams(datetime),
       });
       onTotalValuesChange(totals);

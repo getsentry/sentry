@@ -355,7 +355,7 @@ function AutofixInsightCards({
     setIsCollapsed(!isCollapsed);
   };
 
-  const validInsightCount = insights.filter(insight => insight).length;
+  const validInsightCount = insights.filter(Boolean).length;
 
   return (
     <InsightsContainer>
