@@ -67,7 +67,6 @@ class _UserOptions(TypedDict):
     clock24Hours: bool
     prefersIssueDetailsStreamlinedUI: bool | None
     prefersNextjsInsightsOverview: bool
-    prefersSpecializedProjectOverview: dict[str, bool]
     prefersStackedNavigation: bool
     prefersChonkUI: bool
     quickStartDisplay: dict[str, int]
@@ -205,9 +204,6 @@ class UserSerializer(Serializer):
                 ),
                 "prefersIssueDetailsStreamlinedUI": options.get(
                     "prefers_issue_details_streamlined_ui"
-                ),
-                "prefersSpecializedProjectOverview": options.get(
-                    "prefers_specialized_project_overview", {}
                 ),
                 "prefersStackedNavigation": options.get("prefers_stacked_navigation", False),
                 "prefersChonkUI": options.get("prefers_chonk_ui", False),
