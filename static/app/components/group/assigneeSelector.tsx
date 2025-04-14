@@ -23,6 +23,7 @@ interface AssigneeSelectorProps {
   additionalMenuFooterItems?: React.ReactNode;
   memberList?: User[];
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
+  showLabel?: boolean;
 }
 
 export type OnAssignCallback = (
@@ -79,6 +80,7 @@ export function AssigneeSelector({
   handleAssigneeChange,
   owners,
   additionalMenuFooterItems,
+  showLabel = false,
 }: AssigneeSelectorProps) {
   const theme = useTheme();
 
@@ -108,6 +110,7 @@ export function AssigneeSelector({
               })?.type
             }
             loading={assigneeLoading}
+            showLabel={showLabel}
             chevronDirection={isOpen ? 'up' : 'down'}
           />
         </StyledDropdownButton>
