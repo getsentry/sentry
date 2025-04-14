@@ -77,7 +77,7 @@ function ProjectCardList({projects}: {projects: Project[]}) {
 function addProjectsToTeams(teams: Team[], projects: Project[]): TeamWithProjects[] {
   return teams.map(team => ({
     ...team,
-    projects: projects.filter(project => project.teams.some(tm => tm.id === team.id)),
+    projects: projects.filter(project => project.teams?.some(tm => tm.id === team.id) ?? false),
   }));
 }
 

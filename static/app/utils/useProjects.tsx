@@ -204,8 +204,14 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
         limit,
       });
 
+      // Normalize project data to ensure teams property exists
+      const normalizedResults = results.map(project => ({
+        ...project,
+        teams: project.teams || []
+      }));
+
       // Note the order of uniqBy: we prioritize project data recently fetched over previously cached data
-      const fetchedProjects = uniqBy([...results, ...store.projects], ({slug}) => slug);
+      const fetchedProjects = uniqBy([...normalizedResults, ...store.projects], ({slug}) => slug);
       ProjectsStore.loadInitialData(fetchedProjects);
 
       setState(prev => ({
@@ -251,8 +257,14 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
         lastSearch,
         cursor,
       });
+      
+      // Normalize project data to ensure teams property exists
+      const normalizedResults = results.map(project => ({
+        ...project,
+        teams: project.teams || []
+      }));
 
-      const fetchedProjects = uniqBy([...store.projects, ...results], ({slug}) => slug);
+      const fetchedProjects = uniqBy([...store.projects, ...normalizedResults], ({slug}) => slug);
 
       // Only update the store if we have more items
       if (fetchedProjects.length > store.projects.length) {
