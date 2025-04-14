@@ -62,7 +62,7 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
 export function SidebarItem({children, label, showLabel, ...props}: SidebarItemProps) {
   const {layout} = useNavContext();
   return (
-    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '14px' : '19px'}>
+    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '14px' : '21px'}>
       <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={0}>
         <SidebarListItem {...props}>{children}</SidebarListItem>
       </Tooltip>
@@ -242,8 +242,8 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
     margin-inline: 0 auto;
     gap: ${space(0.75)};
     padding: ${space(1.5)} 0;
-    min-height: 40px;
-    width: 44px;
+    min-height: 44px;
+    width: 48px;
     letter-spacing: -0.02em;
     font-size: 10px;
   `}
@@ -263,8 +263,8 @@ const NavLinkIconContainer = withChonk(
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 32px;
+    width: 48px;
+    height: 44px;
     border-radius: ${p => p.theme.borderRadius};
     overflow: hidden;
 
