@@ -12,9 +12,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {
   EAPSpanSearchQueryBuilder,
-  SpanSearchQueryBuilder,
   useEAPSpanSearchQueryBuilderProps,
-  useSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -24,7 +22,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -87,7 +84,6 @@ export function SpansTabContentImpl({
 }: SpanTabProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const dataset = useExploreDataset();
   const mode = useExploreMode();
   const visualizes = useExploreVisualizes();
   const [samplesTab, setSamplesTab] = useTab();
@@ -109,11 +105,11 @@ export function SpansTabContentImpl({
   }, [id, visitQuery]);
 
   const toolbarExtras = [
-    ...(organization?.features?.includes('visibility-explore-dataset')
-      ? ['dataset toggle' as const]
-      : []),
     ...(organization?.features?.includes('visibility-explore-equations')
       ? ['equations' as const]
+      : []),
+    ...(organization?.features?.includes('visibility-explore-tabs')
+      ? ['tabs' as const]
       : []),
   ];
 
@@ -204,13 +200,6 @@ export function SpansTabContentImpl({
         ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
         : false);
 
-  const spanSearchQueryBuilderProps = {
-    projects: selection.projects,
-    initialQuery: query,
-    onSearch: setQuery,
-    searchSource: 'explore',
-  };
-
   const eapSpanSearchQueryBuilderProps = {
     projects: selection.projects,
     initialQuery: query,
@@ -233,19 +222,12 @@ export function SpansTabContentImpl({
     stringTags,
   };
 
-  const spanSearchQueryProviderProps = useSpanSearchQueryBuilderProps(
-    spanSearchQueryBuilderProps
-  );
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
     eapSpanSearchQueryBuilderProps
   );
 
   return (
-    <SearchQueryBuilderProvider
-      {...(dataset === DiscoverDatasets.SPANS_INDEXED
-        ? spanSearchQueryProviderProps
-        : eapSpanSearchQueryProviderProps)}
-    >
+    <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <Body
         withToolbar={expanded}
         withHints={organization.features.includes('traces-schema-hints')}
@@ -263,11 +245,7 @@ export function SpansTabContentImpl({
               })}
             />
           </StyledPageFilterBar>
-          {dataset === DiscoverDatasets.SPANS_INDEXED ? (
-            <SpanSearchQueryBuilder {...spanSearchQueryBuilderProps} />
-          ) : (
-            <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
-          )}
+          <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
         </TopSection>
         <Feature features="organizations:traces-schema-hints">
           <SchemaHintsSection>
@@ -312,6 +290,7 @@ export function SpansTabContentImpl({
               samplesTab={samplesTab}
               setSamplesTab={setSamplesTab}
               isProgressivelyLoading={tableIsProgressivelyLoading}
+              useTabs={organization.features.includes('visibility-explore-tabs')}
             />
             <Toggle>
               <StyledButton

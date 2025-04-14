@@ -58,10 +58,10 @@ export function GeneralInfo(props: GeneralInfoProps) {
       return [];
     }
 
-    const unique: TraceTree.TraceOccurence[] = [];
+    const unique: TraceTree.TraceOccurrence[] = [];
     const seenIssues: Set<number> = new Set();
 
-    for (const issue of traceNode.occurences) {
+    for (const issue of traceNode.occurrences) {
       if (seenIssues.has(issue.issue_id)) {
         continue;
       }

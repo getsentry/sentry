@@ -281,8 +281,8 @@ export function SpanNodeDetails({
   const hasNewTraceUi = useHasTraceNewUi();
   const {projects} = useProjects();
   const issues = useMemo(() => {
-    return [...node.errors, ...node.occurences];
-  }, [node.errors, node.occurences]);
+    return [...node.errors, ...node.occurrences];
+  }, [node.errors, node.occurrences]);
 
   const project = projects.find(proj => proj.slug === node.event?.projectSlug);
   const profileMeta = getProfileMeta(node.event) || '';
