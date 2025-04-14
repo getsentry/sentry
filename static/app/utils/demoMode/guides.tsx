@@ -59,9 +59,6 @@ export function getTourTask(
       return {tour: 'issues', task: OnboardingTaskKey.ISSUE_GUIDE};
     case 'releases':
       return {tour: 'releases', task: OnboardingTaskKey.RELEASE_GUIDE};
-    // TODO(ogi): Remove this once we merge the new releases tour
-    case 'release-details_v2':
-      return {tour: 'releases', task: OnboardingTaskKey.RELEASE_GUIDE};
     case 'performance':
       return {tour: 'performance', task: OnboardingTaskKey.PERFORMANCE_GUIDE};
 
@@ -74,9 +71,9 @@ export function getDemoGuides() {
   return [
     {guide: 'sidebar_v2', seen: false},
     {guide: 'issues_v3', seen: false},
-    {guide: 'releases_v2', seen: false},
-    {guide: 'react-release', seen: false},
-    {guide: 'release-details_v2', seen: false},
+    {guide: 'releases', seen: false},
+    // {guide: 'react-release', seen: false},
+    // {guide: 'release-details_v2', seen: false},e
     {guide: 'performance', seen: false},
     // {guide: 'transaction_summary', seen: false},
     // {guide: 'transaction_details_v2', seen: false},
@@ -170,46 +167,6 @@ export function getDemoModeGuides(): GuidesContent {
             `Sentry automatically captures breadcrumbs for events so you can see the sequence of events leading up to the error.`
           ),
           nextText: t('Got it'),
-        },
-      ],
-    },
-    {
-      guide: 'releases_v2',
-      requiredTargets: ['release_projects'],
-      priority: 1,
-      steps: [
-        {
-          title: t('Compare releases'),
-          target: 'release_projects',
-          description: t(
-            `Click here and select the "react" project to see how the release is trending compared to previous releases.`
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'react-release',
-      requiredTargets: ['release_version'],
-      steps: [
-        {
-          title: t('Release-specific trends'),
-          target: 'release_version',
-          description: t(
-            `Select the latest release to review new and regressed issues, and business critical metrics like crash rate, and user adoption.`
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'release-details_v2',
-      requiredTargets: ['release_states'],
-      steps: [
-        {
-          title: t('New and regressed issues'),
-          target: 'release_states',
-          description: t(
-            `Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.`
-          ),
         },
       ],
     },
