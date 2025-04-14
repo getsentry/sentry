@@ -6,31 +6,32 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type StarTransactionParams = {
-  project_id: string;
-  segment_name: string;
+  project_id?: string;
+  segment_name?: string;
 };
 
 const URL_PREFIX = '/insights/starred-segments/';
 
 interface Props {
   initialIsStarred: boolean;
-  projectSlug: string;
   segmentName: string;
+  project?: Project | undefined;
 }
 
-export function useStarredSegment({initialIsStarred, projectSlug, segmentName}: Props) {
+export function useStarredSegment({initialIsStarred, project, segmentName}: Props) {
   const [isStarred, setIsStarred] = useState(initialIsStarred);
   const organization = useOrganization();
   const api = useApi();
 
   const url = `/organizations/${organization.slug}${URL_PREFIX}`;
   const data: StarTransactionParams = {
-    project_id: projectSlug,
+    project_id: project?.id,
     segment_name: segmentName,
   };
 
@@ -58,7 +59,7 @@ export function useStarredSegment({initialIsStarred, projectSlug, segmentName}: 
   const isPending = starTransactionResult.isPending || unstarTransactionResult.isPending;
 
   const toggleStarredTransaction = () => {
-    if (isPending) {
+    if (isPending || !project?.id) {
       return;
     }
 

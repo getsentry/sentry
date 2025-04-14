@@ -22,6 +22,7 @@ import {
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -32,13 +33,20 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {
+  BackendOverviewTable,
+  isAValidSort,
+  type ValidSort,
+} from 'sentry/views/insights/pages/backend/backendTable';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/backend/laravel/features';
 import {
   BACKEND_LANDING_TITLE,
+  DEFAULT_SORT,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
@@ -51,6 +59,7 @@ import {
   OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
+import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {
   generateBackendPerformanceEventView,
   USER_MISERY_TOOLTIP,
@@ -91,6 +100,22 @@ export const BACKEND_COLUMN_TITLES = [
   {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
+export const fields = [
+  'team_key_transaction',
+  'http.method',
+  'transaction',
+  'transaction.op',
+  'project',
+  'tpm()',
+  'p50()',
+  'p95()',
+  'failure_rate()',
+  'apdex()',
+  'count_unique(user)',
+  'count_miserable(user)',
+  'user_misery()',
+];
+
 function BackendOverviewPage() {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
@@ -125,21 +150,20 @@ function GenericBackendOverviewPage() {
   const segmentOp = useEap ? 'span.op' : 'transaction.op';
 
   // TODO - this should come from MetricsField / EAP fields
-  eventView.fields = [
-    {field: 'team_key_transaction'},
-    {field: 'http.method'},
-    {field: 'transaction'},
-    {field: segmentOp},
-    {field: 'project'},
-    {field: 'tpm()'},
-    {field: 'p50()'},
-    {field: 'p95()'},
-    {field: 'failure_rate()'},
-    {field: 'apdex()'},
-    {field: 'count_unique(user)'},
-    {field: 'count_miserable(user)'},
-    {field: 'user_misery()'},
-  ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
+  eventView.fields = fields.map(fieldName => ({
+    field: fieldName,
+    width: COL_WIDTH_UNDEFINED,
+  }));
+
+  if (useEap) {
+    eventView.sorts = [
+      {
+        field: 'is_starred_transaction',
+        kind: 'desc',
+      },
+      ...decodeSorts(location.query.sort),
+    ];
+  }
 
   const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried with the same tags/filters
   const disallowedOps = [
@@ -243,6 +267,37 @@ function GenericBackendOverviewPage() {
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
+  const sorts: [ValidSort, ValidSort] = [
+    {
+      field: 'is_starred_transaction' satisfies EAPSpanProperty,
+      kind: 'desc',
+    },
+    decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
+  ];
+
+  const response = useEAPSpans(
+    {
+      search: existingQuery,
+      sorts,
+      enabled: useEap,
+      fields: [
+        'is_starred_transaction',
+        'request.method',
+        'transaction',
+        'span.op',
+        'project',
+        'epm()',
+        'p50(span.duration)',
+        'p95(span.duration)',
+        'failure_rate()',
+        'time_spent_percentage(span.duration)',
+        'sum(span.duration)',
+      ],
+    },
+    'api.performance.landing-table',
+    true
+  );
+
   return (
     <Feature
       features="performance-view"
@@ -293,13 +348,17 @@ function GenericBackendOverviewPage() {
                       allowedCharts={tripleChartRowCharts}
                       {...sharedProps}
                     />
-                    <Table
-                      theme={theme}
-                      projects={projects}
-                      columnTitles={BACKEND_COLUMN_TITLES}
-                      setError={setPageError}
-                      {...sharedProps}
-                    />
+                    {useEap ? (
+                      <BackendOverviewTable response={response} sort={sorts[1]} />
+                    ) : (
+                      <Table
+                        theme={theme}
+                        projects={projects}
+                        columnTitles={BACKEND_COLUMN_TITLES}
+                        setError={setPageError}
+                        {...sharedProps}
+                      />
+                    )}
                   </TeamKeyTransactionManager.Provider>
                 </PerformanceDisplayProvider>
               )}
