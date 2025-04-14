@@ -2,6 +2,7 @@ import type {ComponentProps} from 'react';
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Button, LinkButton, type LinkButtonProps} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -32,6 +33,7 @@ import {ReplayCell} from 'sentry/views/replays/replayTable/tableCell';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 export default function ReplayPreviewPlayer({
+  errorBeforeReplayStart,
   replayId,
   fullReplayButtonProps,
   replayRecord,
@@ -41,6 +43,7 @@ export default function ReplayPreviewPlayer({
   showNextAndPrevious,
   playPausePriority,
 }: {
+  errorBeforeReplayStart: boolean;
   replayId: string;
   replayRecord: ReplayRecord;
   fullReplayButtonProps?: Partial<Omit<LinkButtonProps, 'external'>>;
@@ -77,6 +80,13 @@ export default function ReplayPreviewPlayer({
 
   return (
     <PlayerPanel>
+      {errorBeforeReplayStart && (
+        <StyledAlert type="warning">
+          {t(
+            'For this event, the replay recording started after the error happened, so the replay below shows the user experience after the error.'
+          )}
+        </StyledAlert>
+      )}
       <HeaderWrapper>
         <StyledReplayCell
           key="session"
@@ -237,4 +247,8 @@ const HeaderWrapper = styled('div')`
   justify-content: space-between;
   align-items: center;
   margin-bottom: ${space(1)};
+`;
+
+const StyledAlert = styled(Alert)`
+  margin: ${space(1)} 0;
 `;
