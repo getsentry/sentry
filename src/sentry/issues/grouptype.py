@@ -50,6 +50,12 @@ DEFAULT_IGNORE_LIMIT: int = 3
 DEFAULT_EXPIRY_TIME: timedelta = timedelta(hours=24)
 
 
+class InvalidGroupTypeError(ValueError):
+    def __init__(self, group_type_id: int) -> None:
+        super().__init__(f"No group type with the id {group_type_id} is registered.")
+        self.group_type_id = group_type_id
+
+
 @dataclass()
 class GroupTypeRegistry:
     _registry: dict[int, type[GroupType]] = field(default_factory=dict)
@@ -113,7 +119,7 @@ class GroupTypeRegistry:
 
     def get_by_type_id(self, id_: int) -> type[GroupType]:
         if id_ not in self._registry:
-            raise ValueError(f"No group type with the id {id_} is registered.")
+            raise InvalidGroupTypeError(id_)
         return self._registry[id_]
 
 

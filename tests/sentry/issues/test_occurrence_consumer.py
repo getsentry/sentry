@@ -149,9 +149,13 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
 
     def test_invalid_occurrence_payload(self) -> None:
         message = get_test_message(self.project.id, type=300)
-        with pytest.raises(InvalidEventPayloadError):
+        with (mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics,):
             with self.feature("organizations:profile-file-io-main-thread-ingest"):
                 _process_message(message)
+            metrics.incr.assert_called_once_with(
+                "occurrence_ingest.invalid_group_type",
+                tags={"occurrence_type": 300},
+            )
 
     def test_mismatch_event_ids(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
