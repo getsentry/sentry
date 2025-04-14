@@ -229,8 +229,12 @@ export function useSetExploreFields() {
 export function useSetExploreGroupBys() {
   const setPageParams = useSetExplorePageParams();
   return useCallback(
-    (groupBys: string[]) => {
-      setPageParams({groupBys});
+    (groupBys: string[], mode?: Mode) => {
+      if (mode) {
+        setPageParams({groupBys, mode});
+      } else {
+        setPageParams({groupBys});
+      }
     },
     [setPageParams]
   );
