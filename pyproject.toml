@@ -142,7 +142,6 @@ module = [
     "sentry.integrations.vsts.integration",
     "sentry.integrations.vsts.issues",
     "sentry.issues.search",
-    "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
     "sentry.net.http",
     "sentry.net.socket",
