@@ -84,7 +84,12 @@ def visit_attribute(query: QueryType, attribute: Attrib) -> None:
         query.component_name = attribute.value
     elif attrib == "role":
         query.role = attribute.value
-    elif attrib == "data-testid" or attrib == "testid":  # Matches search bar
+    elif (
+        attrib == "data-testid"
+        or attrib == "data-test-id"
+        # Matches search bar
+        or attrib == "testid"
+    ):
         query.testid = attribute.value
     elif attrib == "title":
         query.title = attribute.value
