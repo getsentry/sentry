@@ -458,7 +458,7 @@ function useWidgetBuilderState(): {
             ]);
           }
 
-          if ((yAxis?.length ?? 0) > 0 && !defined(limit)) {
+          if (action.payload.length > 0 && (yAxis?.length ?? 0) > 0 && !defined(limit)) {
             setLimit(
               Math.min(
                 DEFAULT_RESULTS_LIMIT,
