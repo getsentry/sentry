@@ -8,6 +8,7 @@ import {space} from 'sentry/styles/space';
 import {type EventTransaction, ReplayContextKey} from 'sentry/types/event';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -18,6 +19,7 @@ import {
   isTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface TitleProps {
   representativeEvent: TraceTree.TraceEvent | OurLogsResponseItem | null;
@@ -65,6 +67,8 @@ function getTitle(event: TraceTree.TraceEvent | OurLogsResponseItem | null): {
 }
 
 function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>) {
+  const organization = useOrganization();
+
   if (!rootEventResults.data) {
     return null;
   }
@@ -82,10 +86,12 @@ function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>)
         priority="link"
         icon={<IconPlay size="xs" />}
         to={{
-          pathname: `/explore/replays/${replayId}`,
+          pathname: makeReplaysPathname({
+            path: `/${replayId}/`,
+            organization,
+          }),
         }}
-        replace
-        aria-label={t("View this issue's replays")}
+        aria-label={t("View this issue's replay")}
       >
         {t('1 Replay')}
       </ReplayButton>
