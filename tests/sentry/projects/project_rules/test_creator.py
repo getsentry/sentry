@@ -4,11 +4,14 @@ import pytest
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule
-from sentry.projects.project_rules.creator import ProjectRuleCreator, UnableToAcquireLockApiError
+from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.actor import Actor
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import (
+    UnableToAcquireLockApiError,
+)
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
