@@ -3868,6 +3868,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
         assert response.data["meta"]["dataScanned"] == "partial"
 
+    @pytest.mark.xfail(reason="https://github.com/getsentry/snuba/pull/7067")
     def test_best_effort_request(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
