@@ -70,6 +70,7 @@ sort_config = {
 sort_config["browser"] = sort_config["browser.name"]
 sort_config["os"] = sort_config["os.name"]
 sort_config["os_name"] = sort_config["os.name"]
+sort_config["count_screens"] = sort_config["count_urls"]
 
 
 def sort_is_scalar_compatible(sort: str) -> bool:
