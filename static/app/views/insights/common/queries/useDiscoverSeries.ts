@@ -53,14 +53,14 @@ interface UseMetricsSeriesOptions<Fields> {
 export const useSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {},
   referrer: string,
-  subPageFilters?: PageFilters
+  pageFilters?: PageFilters
 ) => {
   const useEap = useInsightsEap();
   return useDiscoverSeries<Fields>(
     options,
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
     referrer,
-    subPageFilters
+    pageFilters
   );
 };
 
@@ -112,7 +112,7 @@ const useDiscoverSeries = <T extends string[]>(
   options: UseMetricsSeriesOptions<T> = {},
   dataset: DiscoverDatasets,
   referrer: string,
-  subPageFilters?: PageFilters
+  pageFilters?: PageFilters
 ) => {
   const {
     search = undefined,
@@ -121,7 +121,7 @@ const useDiscoverSeries = <T extends string[]>(
     samplingMode = DEFAULT_SAMPLING_MODE,
   } = options;
 
-  const pageFilters = usePageFilters();
+  const defaultPageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -131,7 +131,7 @@ const useDiscoverSeries = <T extends string[]>(
   const eventView = getSeriesEventView(
     search,
     undefined,
-    subPageFilters || pageFilters.selection,
+    pageFilters || defaultPageFilters.selection,
     yAxis,
     undefined,
     dataset
