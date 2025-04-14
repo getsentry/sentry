@@ -411,7 +411,7 @@ class TaskWorker:
         self._gettask_backoff_seconds = 0
         self._setstatus_backoff_seconds = 0
 
-        self._processing_pool_name = processing_pool_name | "unknown"
+        self._processing_pool_name: str = processing_pool_name or "unknown"
 
     def __del__(self) -> None:
         self.shutdown()
