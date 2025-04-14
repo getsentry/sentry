@@ -306,9 +306,10 @@ export default class ReplayReader {
     const replayEnd = this._replayRecord.finished_at.getTime();
 
     // error event is before the replay started. use the start of the replay as the start of the clip
+    // set the clip to be at most 10 seconds long
     if (clipWindow.startTimestampMs < this._replayRecord.started_at.getTime()) {
       clipStartTimestampMs = replayStart;
-      clipEndTimestampMs = Math.min(replayStart + 5000, replayEnd);
+      clipEndTimestampMs = Math.min(replayStart + 10 * 1000, replayEnd);
     } else {
       clipStartTimestampMs = clamp(clipWindow.startTimestampMs, replayStart, replayEnd);
       clipEndTimestampMs = clamp(
