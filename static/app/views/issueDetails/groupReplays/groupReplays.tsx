@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/core/button';
-import ReplayClipPreviewPlayer from 'sentry/components/events/eventReplay/replayClipPreviewPlayer';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
@@ -22,6 +21,7 @@ import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
+import GroupReplaysPlayer from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -154,7 +154,7 @@ function GroupReplaysTableInner({
       replay={replay}
       autoStart
     >
-      <ReplayClipPreviewPlayer
+      <GroupReplaysPlayer
         replayReaderResult={replayReaderData}
         overlayContent={overlayContent}
         orgSlug={orgSlug}
@@ -174,7 +174,6 @@ function GroupReplaysTableInner({
             : undefined
         }
         analyticsContext={'replay_tab'}
-        isLarge
       />
       {children}
     </ReplayContextProvider>

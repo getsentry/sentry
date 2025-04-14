@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {Alert} from 'sentry/components/core/alert';
 import type {LinkButtonProps} from 'sentry/components/core/button';
-import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
+import {REPLAY_LOADING_HEIGHT_LARGE} from 'sentry/components/events/eventReplay/constants';
 import ReplayPreviewPlayer from 'sentry/components/events/eventReplay/replayPreviewPlayer';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -56,7 +56,7 @@ function getReplayAnalyticsStatus({
   return 'none';
 }
 
-export default function ReplayClipPreviewPlayer({
+export default function GroupReplaysPlayer({
   analyticsContext,
   orgSlug,
   fullReplayButtonProps,
@@ -136,7 +136,7 @@ export default function ReplayClipPreviewPlayer({
           overlayContent={overlayContent}
           showNextAndPrevious={showNextAndPrevious}
           // if the player is large, we want to keep the priority as default
-          playPausePriority={undefined}
+          playPausePriority="default"
         />
       )}
     </PlayerContainer>
@@ -145,13 +145,13 @@ export default function ReplayClipPreviewPlayer({
 
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
-  max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
+  max-height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    min-height: ${REPLAY_LOADING_HEIGHT + 16}px;
+    min-height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
   }
 `;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
-  height: ${REPLAY_LOADING_HEIGHT}px;
+  height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
   border-radius: ${p => p.theme.borderRadius};
 `;
