@@ -329,6 +329,7 @@ def run_taskworker(
     child_tasks_queue_maxsize: int,
     result_queue_maxsize: int,
     rebalance_after: int,
+    processing_pool_name: str = "unknown",
     **options: Any,
 ) -> None:
     """
@@ -346,6 +347,7 @@ def run_taskworker(
             child_tasks_queue_maxsize=child_tasks_queue_maxsize,
             result_queue_maxsize=result_queue_maxsize,
             rebalance_after=rebalance_after,
+            processing_pool_name=processing_pool_name,
             **options,
         )
         exitcode = worker.start()
