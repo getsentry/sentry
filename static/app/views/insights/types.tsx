@@ -258,7 +258,8 @@ export enum SpanIndexedField {
   SDK_NAME = 'sdk.name',
   SDK_VERSION = 'sdk.version',
   TRACE = 'trace',
-  TRANSACTION_ID = 'transaction.id',
+  TRANSACTION_ID = 'transaction.id', // TODO: remove this when on eap
+  TRANSACTION_SPAN_ID = 'transaction.span_id',
   TRANSACTION_METHOD = 'transaction.method',
   TRANSACTION_OP = 'transaction.op',
   SPAN_DOMAIN = 'span.domain',
@@ -404,6 +405,7 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH]: number;
   [SpanIndexedField.PROJECT]: string;
   [SpanIndexedField.SPAN_GROUP]: string;
+  [SpanIndexedField.TRANSACTION_SPAN_ID]: string;
   'any(id)': string;
 };
 

@@ -120,7 +120,7 @@ function SampleTable({
     isPending: isLoadingTransactions,
     error: transactionError,
   } = useTransactions(
-    spans.map(span => span['transaction.id']),
+    spans.map(span => span['transaction.span_id']),
     'api.starfish.span-summary-panel-samples-table-transactions'
   );
 
@@ -179,7 +179,7 @@ function SampleTable({
               ...sample,
               // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               op: spanMetrics[SPAN_OP]!,
-              transaction: transactionsById[sample['transaction.id']]!,
+              transaction: transactionsById[sample['transaction.span_id']]!,
             };
           })}
           isLoading={isLoading}

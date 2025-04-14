@@ -65,7 +65,7 @@ type SpanTableRow = {
     timestamp: string;
     'transaction.duration': number;
   };
-  'transaction.id': string;
+  'transaction.span_id': string;
 } & SpanSample;
 
 type Props = {

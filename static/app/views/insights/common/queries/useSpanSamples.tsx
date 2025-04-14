@@ -33,7 +33,7 @@ type Options<Fields> = {
 export type SpanSample = Pick<
   SpanIndexedFieldTypes,
   | SpanIndexedField.SPAN_SELF_TIME
-  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.TRANSACTION_SPAN_ID
   | SpanIndexedField.PROJECT
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_ID
@@ -57,6 +57,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
     additionalFields = [],
   } = options;
   const location = useLocation();
+  const useEap = useInsightsEap();
 
   const query = spanSearch === undefined ? new MutableSearch([]) : spanSearch.copy();
   query.addFilterValue(SPAN_GROUP, groupId);
@@ -102,20 +103,20 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
   );
 
-  return useApiQuery<{
-    data: Array<
-      Pick<
-        SpanIndexedResponse,
-        | Fields[number]
-        // These fields are returned by default
-        | SpanIndexedField.PROJECT
-        | SpanIndexedField.TRANSACTION_ID
-        | SpanIndexedField.TIMESTAMP
-        | SpanIndexedField.SPAN_ID
-        | SpanIndexedField.PROFILE_ID
-        | SpanIndexedField.SPAN_SELF_TIME
-      >
-    >;
+  type DataRow = Pick<
+    SpanIndexedResponse,
+    | Fields[number]
+    // These fields are returned by default
+    | SpanIndexedField.PROJECT
+    | SpanIndexedField.TRANSACTION_ID // TODO: Remove this with `useInsightsEap`, this is the old field name before eap
+    | SpanIndexedField.TRANSACTION_SPAN_ID
+    | SpanIndexedField.TIMESTAMP
+    | SpanIndexedField.SPAN_ID
+    | SpanIndexedField.PROFILE_ID
+    | SpanIndexedField.SPAN_SELF_TIME
+  >;
+  const result = useApiQuery<{
+    data: DataRow[];
     meta: EventsMetaType;
   }>(
     [
@@ -133,7 +134,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
           upperBound: max,
           additionalFields,
           sort: `-${SPAN_SELF_TIME}`,
-          useRpc: useInsightsEap() ? '1' : undefined,
+          useRpc: useEap ? '1' : undefined,
         },
       },
     ],
@@ -144,4 +145,17 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
       retry: false,
     }
   );
+
+  // TODO: Remove this `Omit` and mapping once we remove `useInsightsEap`
+  const finalData: Array<Omit<DataRow, SpanIndexedField.TRANSACTION_ID>> | undefined =
+    result.data?.data.map(row => {
+      return {
+        ...row,
+        [SpanIndexedField.TRANSACTION_SPAN_ID]: useEap
+          ? row[SpanIndexedField.TRANSACTION_SPAN_ID]
+          : row[SpanIndexedField.TRANSACTION_SPAN_ID],
+      };
+    });
+
+  return {...result, data: {...result.data, data: finalData}};
 };
