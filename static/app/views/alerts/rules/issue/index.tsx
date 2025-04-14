@@ -143,10 +143,6 @@ type Props = {
   userTeamIds: string[];
   loadingProjects?: boolean;
   onChangeTitle?: (data: string) => void;
-  /**
-   * A callback triggered when the rule is saved successfully
-   */
-  onSaveSuccess?: () => void;
 } & RouteComponentProps<RouteParams>;
 
 type State = DeprecatedAsyncComponent['state'] & {
@@ -456,9 +452,8 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   };
 
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
-    const {organization, router, onSaveSuccess} = this.props;
+    const {organization, router} = this.props;
     const {project} = this.state;
-    onSaveSuccess?.();
 
     metric.endSpan({name: 'saveAlertRule'});
 
