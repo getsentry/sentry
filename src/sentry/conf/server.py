@@ -1451,7 +1451,12 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
 )
 
 # Schedules for taskworker tasks to be spawned on.
-TASKWORKER_SCHEDULES: ScheduleConfigMap = {}
+TASKWORKER_SCHEDULES: ScheduleConfigMap = {
+    "sync_options_trial": {
+        "schedule": timedelta(minutes=5),
+        "task": "options:sentry.tasks.options.sync_options",
+    },
+}
 
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
