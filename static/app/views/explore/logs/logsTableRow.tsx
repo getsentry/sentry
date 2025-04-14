@@ -199,6 +199,7 @@ export function LogRowContent({
                   item={getLogRowItem(field, dataRow, meta)}
                   meta={meta}
                   extra={rendererExtra}
+                  tableResultLogRow={dataRow}
                 />
               </CellAction>
             </LogTableBodyCell>
@@ -282,6 +283,7 @@ function LogRowDetails({
                       location,
                       organization,
                     }}
+                    tableResultLogRow={dataRow}
                   />
                 </LogDetailPanelItem>
               </DetailsContent>

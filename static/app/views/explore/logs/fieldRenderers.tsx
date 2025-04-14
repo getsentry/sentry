@@ -129,7 +129,7 @@ export function TraceIDRenderer(props: LogFieldRendererProps) {
     organization: props.extra.organization,
     dateSelection: props.extra.location,
     location,
-    source: TraceViewSources.TRACES,
+    source: TraceViewSources.LOGS,
   });
   return <Link to={target}>{props.basicRendered}</Link>;
 }
