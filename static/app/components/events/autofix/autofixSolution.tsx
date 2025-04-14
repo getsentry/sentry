@@ -618,6 +618,7 @@ function AutofixSolutionDisplay({
                   : null
               }
               isAgentComment
+              blockName={t('Solution')}
             />
           )}
         </AnimatePresence>
@@ -707,6 +708,7 @@ const HeaderWrapper = styled('div')`
   padding-left: ${space(0.5)};
   padding-bottom: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
+  flex-wrap: wrap;
   gap: ${space(1)};
 `;
 
