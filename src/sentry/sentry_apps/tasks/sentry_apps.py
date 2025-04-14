@@ -346,7 +346,7 @@ def _load_service_hook(organization_id: int | None, installation_id: int) -> Ser
             actor_id=installation_id,
         )
         if service_hook.installation_id != service_hook.actor_id:
-            logger.error(
+            logger.info(
                 "service_hook.installation_id != service_hook.actor_id",
                 extra={"service_hook_id": service_hook.id},
             )
