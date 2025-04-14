@@ -1606,7 +1606,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "urls:App*",
                 "!urls:Micro*",
             ]
-            queries.extend(q.replace("url", "screen") for q in queries)
+            new_queries = [q.replace("url", "screen") for q in queries]
+            queries.extend(new_queries)
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 200
