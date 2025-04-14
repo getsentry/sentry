@@ -61,13 +61,13 @@ export function useOwnerOptions({
 
   const {disabledTeams, memberTeams, otherTeams} = groupBy(
     teams as DetailedTeam[],
-   team => {
-     if (
-       memberOfProjectSlugs &&
-       !(team.projects?.some(({slug}) => memberOfProjectSlugs.includes(slug)) ?? false)
-     ) {
-       return 'disabledTeams';
-     }
+    team => {
+      if (
+        memberOfProjectSlugs &&
+        !(team.projects?.some(({slug}) => memberOfProjectSlugs.includes(slug)) ?? false)
+      ) {
+        return 'disabledTeams';
+      }
       return team.isMember ? 'memberTeams' : 'otherTeams';
     }
   );
