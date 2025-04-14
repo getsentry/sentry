@@ -523,9 +523,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       return;
     }
 
-    const handler = affectedPlottable[handlerName];
-
-    handler(getPlottableEventDataIndex(allSeries, batch, affectedRange));
+    affectedPlottable[handlerName](
+      getPlottableEventDataIndex(allSeries, batch, affectedRange)
+    );
   };
 
   const handleClick: EChartClickHandler = event => {
