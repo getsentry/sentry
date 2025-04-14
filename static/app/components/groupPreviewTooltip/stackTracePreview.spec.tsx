@@ -66,7 +66,7 @@ describe('StackTracePreview', () => {
       stacktrace: {
         hasSystemFrames: false,
         registers: {},
-        framesOmitted: 0,
+        framesOmitted: null,
         frames: [frame],
       },
       mechanism: null,

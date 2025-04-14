@@ -12,7 +12,10 @@ export enum StackType {
 }
 
 export interface StacktraceType {
-  framesOmitted: any;
+  /**
+   * Omitted segment of frames (start, end)
+   */
+  framesOmitted: [start: number, end: number] | null;
   hasSystemFrames: boolean;
   registers: Record<string, string | null> | null;
   frames?: Frame[];
