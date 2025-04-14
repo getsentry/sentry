@@ -554,6 +554,65 @@ describe('ExploreToolbar', function () {
     expect(within(section).getByLabelText('Remove Column')).toBeDisabled();
   });
 
+  it('switches to aggregates mode when modifying group bys', async function () {
+    let groupBys: any;
+    let mode: any;
+
+    function Component() {
+      groupBys = useExploreGroupBys();
+      mode = useExploreMode();
+      return <ExploreToolbar extras={['tabs']} />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {enableRouterMocks: false}
+    );
+
+    expect(mode).toEqual(Mode.SAMPLES);
+    expect(groupBys).toEqual(['']);
+
+    const section = screen.getByTestId('section-group-by');
+
+    await userEvent.click(within(section).getByRole('button', {name: '\u2014'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
+
+    expect(mode).toEqual(Mode.AGGREGATE);
+    expect(groupBys).toEqual(['span.op']);
+  });
+
+  it('switches to aggregates mode when adding group bys', async function () {
+    let groupBys: any;
+    let mode: any;
+
+    function Component() {
+      groupBys = useExploreGroupBys();
+      mode = useExploreMode();
+      return <ExploreToolbar extras={['tabs']} />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {enableRouterMocks: false}
+    );
+
+    expect(mode).toEqual(Mode.SAMPLES);
+    expect(groupBys).toEqual(['']);
+
+    const section = screen.getByTestId('section-group-by');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'Add Group'}));
+
+    expect(mode).toEqual(Mode.AGGREGATE);
+    expect(groupBys).toEqual(['', '']);
+  });
+
   it('allows changing sort by', async function () {
     let sortBys: any;
     function Component() {
