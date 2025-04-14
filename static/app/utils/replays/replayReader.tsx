@@ -298,20 +298,31 @@ export default class ReplayReader {
   private _startOffsetMs = 0;
   private _videoEvents: VideoEvent[] = [];
   private _clipWindow: ClipWindow | undefined = undefined;
+  private _errorBeforeReplayStart = false;
 
   private _applyClipWindow = (clipWindow: ClipWindow) => {
-    const clipStartTimestampMs = clamp(
-      clipWindow.startTimestampMs,
-      this._replayRecord.started_at.getTime(),
-      this._replayRecord.finished_at.getTime()
-    );
-    const clipEndTimestampMs = clamp(
-      clipWindow.endTimestampMs,
-      clipStartTimestampMs,
-      this._replayRecord.finished_at.getTime()
-    );
+    let clipStartTimestampMs;
+    let clipEndTimestampMs;
+    const replayStart = this._replayRecord.started_at.getTime();
+    const replayEnd = this._replayRecord.finished_at.getTime();
 
-    this._duration = duration(clipEndTimestampMs - clipStartTimestampMs);
+    // error event is before the replay started. use the start of the replay as the start of the clip
+    // set the clip to be at most 10 seconds long
+    if (clipWindow.startTimestampMs < this._replayRecord.started_at.getTime()) {
+      clipStartTimestampMs = replayStart;
+      clipEndTimestampMs = Math.min(replayStart + 10 * 1000, replayEnd);
+      this._errorBeforeReplayStart = true;
+    } else {
+      clipStartTimestampMs = clamp(clipWindow.startTimestampMs, replayStart, replayEnd);
+      clipEndTimestampMs = clamp(
+        clipWindow.endTimestampMs,
+        clipStartTimestampMs,
+        replayEnd
+      );
+    }
+
+    const clipDuration = clipEndTimestampMs - clipStartTimestampMs;
+    this._duration = duration(clipDuration); // this value should not be 0
 
     // For video replays, we need to bypass setting the global offset (_startOffsetMs)
     // because it messes with the playback time by causing it
@@ -448,6 +459,11 @@ export default class ReplayReader {
   getDurationMs = () => {
     return this._duration.asMilliseconds();
   };
+
+  /**
+   * @returns Whether the error happened before the replay started
+   */
+  getErrorBeforeReplayStart = () => this._errorBeforeReplayStart;
 
   getStartOffsetMs = () => this._startOffsetMs;
 
