@@ -147,6 +147,7 @@ class SeenStats(TypedDict):
     first_seen: datetime | None
     last_seen: datetime | None
     user_count: int
+    total_user_count: int
 
 
 def is_seen_stats(o: object) -> TypeGuard[SeenStats]:
@@ -740,6 +741,7 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _convert_seen_stats(attrs: SeenStats):
+
         return {
             "count": str(attrs["times_seen"]),
             "userCount": attrs["user_count"],
@@ -813,7 +815,13 @@ class GroupSerializer(GroupSerializerBase):
             environment = self.environment_func()
         except Environment.DoesNotExist:
             return {
-                item: {"times_seen": 0, "first_seen": None, "last_seen": None, "user_count": 0}
+                item: {
+                    "times_seen": 0,
+                    "first_seen": None,
+                    "last_seen": None,
+                    "user_count": 0,
+                    "total_user_count": 0,
+                }
                 for item in issue_list
             }
 
