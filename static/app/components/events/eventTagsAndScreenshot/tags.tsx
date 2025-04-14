@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {
   getSentryDefaultTags,
@@ -11,7 +12,6 @@ import {
   TAGS_DOCS_LINK,
 } from 'sentry/components/events/eventTags/util';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';

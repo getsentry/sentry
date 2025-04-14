@@ -48,7 +48,6 @@ from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     create_workflow_fire_histories,
     evaluate_workflows_action_filters,
-    log_fired_workflows,
 )
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
@@ -426,25 +425,20 @@ def fire_actions_for_groups(
         # temporary fetching of organization, so not passing in as parameter
         organization = group.project.organization
 
-        if features.has(
-            "organizations:workflow-engine-process-workflows",
-            organization,
-        ):
-            metrics.incr(
-                "workflow_engine.delayed_workflow.triggered_actions",
-                amount=len(filtered_actions),
-                tags={"event_type": group_event.group.type},
-            )
+        metrics.incr(
+            "workflow_engine.delayed_workflow.triggered_actions",
+            amount=len(filtered_actions),
+            tags={"event_type": group_event.group.type},
+        )
 
-        if features.has(
-            "organizations:workflow-engine-process-workflows-logs",
-            organization,
-        ):
-            log_fired_workflows(
-                log_name="workflow_engine.delayed_workflow.fired_workflow",
-                actions=list(filtered_actions),
-                event_data=event_data,
-            )
+        logger.info(
+            "workflow_engine.delayed_workflow.triggered_actions",
+            extra={
+                "workflow_ids": [workflow.id for workflow in workflows],
+                "actions": filtered_actions,
+                "event_data": event_data,
+            },
+        )
 
         if features.has(
             "organizations:workflow-engine-trigger-actions",

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import starImage from 'sentry-images/spot/banner-star.svg';
 
 import Feature from 'sentry/components/acl/feature';
-import {SeerIcon, SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
+import {SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -13,6 +13,7 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
+import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import AutofixPreferenceDropdown from 'sentry/components/events/autofix/preferences/autofixPreferenceDropdown';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
@@ -192,7 +193,6 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       </SeerDrawerHeader>
       <SeerDrawerNavigator>
         <Header>
-          <SeerIcon size="lg" />
           {t('Autofix')}
           <StyledFeatureBadge
             type="beta"
@@ -231,14 +231,9 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         )}
       </SeerDrawerNavigator>
 
-      {!aiConfig.isAutofixSetupLoading && !aiConfig.needsGenAIConsent && (
-        <SeerNotices
-          groupId={group.id}
-          hasGithubIntegration={aiConfig.hasGithubIntegration}
-          project={project}
-        />
+      {!aiConfig.isAutofixSetupLoading && !aiConfig.needsGenAIConsent && autofixData && (
+        <AutofixProgressBar autofixData={autofixData} />
       )}
-
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
@@ -248,6 +243,11 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           <AiSetupDataConsent groupId={group.id} />
         ) : (
           <Fragment>
+            <SeerNotices
+              groupId={group.id}
+              hasGithubIntegration={aiConfig.hasGithubIntegration}
+              project={project}
+            />
             {aiConfig.hasSummary && (
               <StyledCard>
                 <GroupSummary group={group} event={event} project={project} />
@@ -434,7 +434,7 @@ const StyledFeatureBadge = styled(FeatureBadge)`
 const SeerDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto auto 1fr;
   position: relative;
 `;
 
