@@ -99,11 +99,6 @@ const COLUMN_ORDER: Column[] = [
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
-  {
-    key: 'sum(span.duration)',
-    name: 'span.duration',
-    width: COL_WIDTH_UNDEFINED,
-  },
 ];
 
 const SORTABLE_FIELDS = [
