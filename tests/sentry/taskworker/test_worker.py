@@ -260,7 +260,7 @@ def test_child_worker_complete(mock_capture_checkin) -> None:
     shutdown = Event()
 
     todo.put(SIMPLE_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=1)
+    child_worker(todo, processed, shutdown, max_task_count=1, processing_pool_name="test")
 
     assert todo.empty()
     result = processed.get()
@@ -276,7 +276,7 @@ def test_child_worker_retry_task() -> None:
     shutdown = Event()
 
     todo.put(RETRY_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=1)
+    child_worker(todo, processed, shutdown, max_task_count=1, processing_pool_name="test")
 
     assert todo.empty()
     result = processed.get()
@@ -291,7 +291,7 @@ def test_child_worker_failure_task() -> None:
     shutdown = Event()
 
     todo.put(FAIL_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=1)
+    child_worker(todo, processed, shutdown, max_task_count=1, processing_pool_name="test")
 
     assert todo.empty()
     result = processed.get()
@@ -307,7 +307,7 @@ def test_child_worker_shutdown() -> None:
     shutdown.set()
 
     todo.put(SIMPLE_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=1)
+    child_worker(todo, processed, shutdown, max_task_count=1, processing_pool_name="test")
 
     # When shutdown has been set, the child should not process more tasks.
     assert todo.qsize() == 1
@@ -322,7 +322,7 @@ def test_child_worker_unknown_task() -> None:
 
     todo.put(UNDEFINED_TASK)
     todo.put(SIMPLE_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=1)
+    child_worker(todo, processed, shutdown, max_task_count=1, processing_pool_name="test")
 
     result = processed.get()
     assert result.task_id == UNDEFINED_TASK.id
@@ -342,7 +342,7 @@ def test_child_worker_at_most_once() -> None:
     todo.put(AT_MOST_ONCE_TASK)
     todo.put(AT_MOST_ONCE_TASK)
     todo.put(SIMPLE_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=2)
+    child_worker(todo, processed, shutdown, max_task_count=2, processing_pool_name="test")
 
     assert todo.empty()
     result = processed.get(block=False)
@@ -362,7 +362,7 @@ def test_child_worker_record_checkin(mock_capture_checkin: mock.Mock) -> None:
     shutdown = Event()
 
     todo.put(SCHEDULED_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=1)
+    child_worker(todo, processed, shutdown, max_task_count=1, processing_pool_name="test")
 
     assert todo.empty()
     result = processed.get()
@@ -395,7 +395,7 @@ def test_child_worker_terminate_task(mock_exit: mock.Mock, mock_capture: mock.Mo
     )
 
     todo.put(sleepy)
-    child_worker(todo, processed, shutdown, max_task_count=1)
+    child_worker(todo, processed, shutdown, max_task_count=1, processing_pool_name="test")
 
     assert todo.empty()
     result = processed.get(block=False)
