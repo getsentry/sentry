@@ -191,7 +191,7 @@ export function SpansTabContentImpl({
   const tableIsProgressivelyLoading =
     organization.features.includes('visibility-explore-progressive-loading') &&
     (queryType === 'samples'
-      ? spansTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+      ? false // Samples mode won't show the progressive loading spinner
       : queryType === 'aggregate'
         ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
         : false);
