@@ -280,3 +280,27 @@ export function showConfidence(isSampled: boolean | null | undefined) {
   }
   return true;
 }
+
+export function getDefaultExploreRoute(organization: Organization) {
+  if (organization.features.includes('performance-trace-explorer')) {
+    return 'traces';
+  }
+
+  if (organization.features.includes('ourlogs-enabled')) {
+    return 'logs';
+  }
+
+  if (organization.features.includes('discover-basic')) {
+    return 'discover';
+  }
+
+  if (organization.features.includes('performance-profiling')) {
+    return 'profiling';
+  }
+
+  if (organization.features.includes('session-replay-ui')) {
+    return 'replays';
+  }
+
+  return 'releases';
+}

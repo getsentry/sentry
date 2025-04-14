@@ -13,6 +13,7 @@ import {
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CODECOV_BASE_URL, COVERAGE_BASE_URL} from 'sentry/views/codecov/settings';
+import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
 import {
   SeparatorItem,
@@ -71,11 +72,7 @@ export function PrimaryNavigationItems() {
           description={null}
         >
           <SidebarLink
-            to={
-              organization.features.includes('performance-view')
-                ? `/${prefix}/explore/traces/`
-                : `/${prefix}/explore/profiling/`
-            }
+            to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
             activeTo={`/${prefix}/explore`}
             analyticsKey="explore"
             label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.EXPLORE].label}
