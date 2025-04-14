@@ -355,10 +355,14 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 },
                 path_replacer=KeepFieldPathReplacer(fields={"package", "filename", "abs_path"}),
             ),
-            # getCurrentStackTrace is always part of the stacktrace when the SDK captures the stacktrace,
-            # and would cause false positives. Therefore, we ignore it.
             sdk_crash_ignore_functions_matchers={
+                # getCurrentStackTrace is always part of the stacktrace when the SDK captures the stacktrace,
+                # and would cause false positives. Therefore, we ignore it.
                 "getCurrentStackTrace",
+                # We override the handleDrawFrame and handleBeginFrame methods in the Flutter SDK to instrument frame tracking.
+                # These methods are part of the Flutter engine and lead to false positives.
+                "handleDrawFrame",
+                "handleBeginFrame",
             },
         )
         configs.append(dart_config)
