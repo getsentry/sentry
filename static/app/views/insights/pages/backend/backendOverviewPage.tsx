@@ -100,22 +100,6 @@ export const BACKEND_COLUMN_TITLES = [
   {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
-export const fields = [
-  'team_key_transaction',
-  'http.method',
-  'transaction',
-  'transaction.op',
-  'project',
-  'tpm()',
-  'p50()',
-  'p95()',
-  'failure_rate()',
-  'apdex()',
-  'count_unique(user)',
-  'count_miserable(user)',
-  'user_misery()',
-];
-
 function BackendOverviewPage() {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
@@ -150,10 +134,21 @@ function GenericBackendOverviewPage() {
   const segmentOp = useEap ? 'span.op' : 'transaction.op';
 
   // TODO - this should come from MetricsField / EAP fields
-  eventView.fields = fields.map(fieldName => ({
-    field: fieldName,
-    width: COL_WIDTH_UNDEFINED,
-  }));
+  eventView.fields = [
+    {field: 'team_key_transaction'},
+    {field: 'http.method'},
+    {field: 'transaction'},
+    {field: segmentOp},
+    {field: 'project'},
+    {field: 'tpm()'},
+    {field: 'p50()'},
+    {field: 'p95()'},
+    {field: 'failure_rate()'},
+    {field: 'apdex()'},
+    {field: 'count_unique(user)'},
+    {field: 'count_miserable(user)'},
+    {field: 'user_misery()'},
+  ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
 
   if (useEap) {
     eventView.sorts = [
