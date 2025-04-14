@@ -5,18 +5,16 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
-export interface ColorConfig {
-  icon: string;
-  iconBorder: string;
-  title: string;
-}
-
 export interface TimelineItemProps {
   icon: React.ReactNode;
   title: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
-  colorConfig?: ColorConfig;
+  colorConfig?: {
+    icon: string;
+    iconBorder: string;
+    title: string;
+  };
   isActive?: boolean;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;

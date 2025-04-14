@@ -5,7 +5,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
-import type {ColorConfig} from 'sentry/components/timeline';
+import type {TimelineItemProps} from 'sentry/components/timeline';
 import {Timeline} from 'sentry/components/timeline';
 import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -42,7 +42,10 @@ function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
   }
 }
 
-function getEventColor(theme: Theme, isActive?: boolean): ColorConfig {
+function getEventColor(
+  theme: Theme,
+  isActive?: boolean
+): TimelineItemProps['colorConfig'] {
   if (isChonkTheme(theme)) {
     return {
       title: theme.colors.content.primary,
