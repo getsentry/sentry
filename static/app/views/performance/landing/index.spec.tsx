@@ -223,7 +223,7 @@ describe('Performance > Landing > Index', function () {
           query: 'event.type:transaction',
           referrer: 'api.performance.generic-widget-chart.user-misery-area',
           statsPeriod: '28d',
-          yAxis: ['user_misery()', 'tpm()', 'failure_rate()'],
+          yAxis: ['user_misery()', 'epm()', 'failure_rate()'],
         }),
       })
     );
