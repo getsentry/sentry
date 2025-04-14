@@ -11,7 +11,7 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
  * When a span's origin matches one of these keys, we'll use the corresponding platform icon instead of the project's platform
  */
 export const SPAN_ORIGIN_TO_PLATFORM_MAP: Record<string, string> = {
-  'auto.db.supabase': 'python-fastapi', // Using FastAPI as a placeholder for Supabase until we add the proper icon
+  'auto.db.supabase': 'supabase',
 };
 
 /**
