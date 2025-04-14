@@ -20,6 +20,10 @@ const labels: Record<ConnectionCellProps['type'], (n: number) => string> = {
   detector: count => tn('%s monitor', '%s monitors', count),
   workflow: count => tn('%s automation', '%s automations', count),
 };
+const links: Record<ConnectionCellProps['type'], (id: string) => string> = {
+  detector: id => `/issues/monitors/${id}/`,
+  workflow: id => `/issues/automations/${id}/`,
+};
 
 export function ConnectionCell({
   ids: items,
@@ -42,9 +46,10 @@ export function ConnectionCell({
 
 function Overlay(props: ConnectionCellProps) {
   const {ids, type} = props;
+  const createLink = links[type];
   // TODO(natemoo-re): fetch data for each id
   return ids.map((id, index) => {
-    const link = `/${type}s/${id}/`;
+    const link = createLink(id);
     const description = 'description';
     return (
       <Fragment key={id}>
