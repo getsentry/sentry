@@ -165,7 +165,10 @@ class ScheduleRunner:
     is used in a while loop to spawn tasks and sleep.
     """
 
-    def __init__(self, registry: TaskRegistry, run_storage: RunStorage) -> None:
+    def __init__(
+        self, registry: TaskRegistry, run_storage: RunStorage, processing_pool_name: str
+    ) -> None:
+        self._processing_pool = processing_pool_name
         self._entries: list[ScheduleEntry] = []
         self._registry = registry
         self._run_storage = run_storage
@@ -185,7 +188,10 @@ class ScheduleRunner:
 
     def log_startup(self) -> None:
         task_names = [entry.fullname for entry in self._entries]
-        logger.info("taskworker.scheduler.startup", extra={"tasks": task_names})
+        logger.info(
+            "taskworker.scheduler.startup",
+            extra={"tasks": task_names, "processing_pool": self._processing_pool},
+        )
 
     def tick(self) -> float:
         """
@@ -223,14 +229,25 @@ class ScheduleRunner:
             entry.delay_task()
             entry.set_last_run(now)
 
-            logger.info("taskworker.scheduler.delay_task", extra={"task": entry.fullname})
-            metrics.incr("taskworker.scheduler.delay_task")
+            logger.info(
+                "taskworker.scheduler.delay_task",
+                extra={"task": entry.fullname, "processing_pool": self._processing_pool},
+            )
+            metrics.incr(
+                "taskworker.scheduler.delay_task", tags={"processing_pool": self._processing_pool}
+            )
         else:
             # sync with last_run state in storage
             entry.set_last_run(self._run_storage.read(entry.fullname))
 
-            logger.info("taskworker.scheduler.sync_with_storage", extra={"task": entry.fullname})
-            metrics.incr("taskworker.scheduler.sync_with_storage")
+            logger.info(
+                "taskworker.scheduler.sync_with_storage",
+                extra={"task": entry.fullname, "processing_pool": self._processing_pool},
+            )
+            metrics.incr(
+                "taskworker.scheduler.sync_with_storage",
+                tags={"processing_pool": self._processing_pool},
+            )
 
     def _update_heap(self) -> None:
         """update the heap to reflect current remaining time"""

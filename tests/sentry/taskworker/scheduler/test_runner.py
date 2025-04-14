@@ -37,7 +37,9 @@ def run_storage() -> RunStorage:
 @pytest.mark.django_db
 def test_schedulerunner_add_invalid(taskregistry) -> None:
     run_storage = Mock(spec=RunStorage)
-    schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
+    schedule_set = ScheduleRunner(
+        registry=taskregistry, run_storage=run_storage, processing_pool_name="test"
+    )
 
     with pytest.raises(ValueError) as err:
         schedule_set.add(
@@ -72,7 +74,9 @@ def test_schedulerunner_add_invalid(taskregistry) -> None:
 
 @pytest.mark.django_db
 def test_schedulerunner_tick_no_tasks(taskregistry: TaskRegistry, run_storage: RunStorage) -> None:
-    schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
+    schedule_set = ScheduleRunner(
+        registry=taskregistry, run_storage=run_storage, processing_pool_name="test"
+    )
 
     with freeze_time("2025-01-24 14:25:00"):
         sleep_time = schedule_set.tick()
@@ -83,7 +87,9 @@ def test_schedulerunner_tick_no_tasks(taskregistry: TaskRegistry, run_storage: R
 def test_schedulerunner_tick_one_task_time_remaining(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
-    schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
+    schedule_set = ScheduleRunner(
+        registry=taskregistry, run_storage=run_storage, processing_pool_name="test"
+    )
 
     schedule_set.add(
         "valid",
@@ -111,7 +117,9 @@ def test_schedulerunner_tick_one_task_spawned(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
     run_storage = Mock(spec=RunStorage)
-    schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
+    schedule_set = ScheduleRunner(
+        registry=taskregistry, run_storage=run_storage, processing_pool_name="test"
+    )
     schedule_set.add(
         "valid",
         {
@@ -143,7 +151,9 @@ def test_schedulerunner_tick_create_checkin(
     mock_capture_checkin: Mock, taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
     run_storage = Mock(spec=RunStorage)
-    schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
+    schedule_set = ScheduleRunner(
+        registry=taskregistry, run_storage=run_storage, processing_pool_name="test"
+    )
     schedule_set.add(
         "important-task",
         {
@@ -194,7 +204,9 @@ def test_schedulerunner_tick_create_checkin(
 def test_schedulerunner_tick_key_exists_no_spawn(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
-    schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
+    schedule_set = ScheduleRunner(
+        registry=taskregistry, run_storage=run_storage, processing_pool_name="test"
+    )
     schedule_set.add(
         "valid",
         {
@@ -228,7 +240,9 @@ def test_schedulerunner_tick_key_exists_no_spawn(
 def test_schedulerunner_tick_one_task_multiple_ticks(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
-    schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
+    schedule_set = ScheduleRunner(
+        registry=taskregistry, run_storage=run_storage, processing_pool_name="test"
+    )
     schedule_set.add(
         "valid",
         {
@@ -254,7 +268,9 @@ def test_schedulerunner_tick_one_task_multiple_ticks(
 def test_schedulerunner_tick_one_task_multiple_ticks_crontab(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
-    schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
+    schedule_set = ScheduleRunner(
+        registry=taskregistry, run_storage=run_storage, processing_pool_name="test"
+    )
     schedule_set.add(
         "valid",
         {
@@ -286,7 +302,9 @@ def test_schedulerunner_tick_one_task_multiple_ticks_crontab(
 def test_schedulerunner_tick_multiple_tasks(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
-    schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
+    schedule_set = ScheduleRunner(
+        registry=taskregistry, run_storage=run_storage, processing_pool_name="test"
+    )
     schedule_set.add(
         "valid",
         {
@@ -330,7 +348,9 @@ def test_schedulerunner_tick_multiple_tasks(
 def test_schedulerunner_tick_fast_and_slow(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
-    schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
+    schedule_set = ScheduleRunner(
+        registry=taskregistry, run_storage=run_storage, processing_pool_name="test"
+    )
     schedule_set.add(
         "valid",
         {

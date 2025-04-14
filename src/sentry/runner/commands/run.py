@@ -244,9 +244,14 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
     help="The rediscluster name to store run state in.",
     default="default",
 )
+@click.option(
+    "--processing-pool-name",
+    help="The name of the processing pool being used",
+    default="unknown",
+)
 @log_options()
 @configuration
-def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
+def taskworker_scheduler(redis_cluster: str, processing_pool_name: str, **options: Any) -> None:
     """
     Run a scheduler for taskworkers
 
@@ -264,7 +269,7 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     run_storage = RunStorage(redis_clusters.get(redis_cluster))
 
     with managed_bgtasks(role="taskworker-scheduler"):
-        runner = ScheduleRunner(taskregistry, run_storage)
+        runner = ScheduleRunner(taskregistry, run_storage, processing_pool_name)
         for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
             runner.add(key, schedule_data)
 
