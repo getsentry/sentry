@@ -41,7 +41,6 @@ export interface OrganizationSummary {
     id: ObjectStatus;
     name: string;
   };
-  uptimeAutodetection?: boolean;
 }
 
 /**

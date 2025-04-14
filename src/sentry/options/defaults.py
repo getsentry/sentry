@@ -346,6 +346,12 @@ register(
     default={"location": "/tmp/sentry-relocation-files"},
     flags=FLAG_NOSTORE,
 )
+register("filestore.profiles-backend", default="filesystem", flags=FLAG_NOSTORE)
+register(
+    "filestore.profiles-options",
+    default={"location": "/tmp/sentry-profiles", "allow_overwrite": True},
+    flags=FLAG_NOSTORE,
+)
 
 # Filestore for control silo
 register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
@@ -2801,14 +2807,6 @@ register(
     type=Dict,
     default={"limit": 1000, "window": 300, "concurrent_limit": 15},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Killswitch for GroupRelease.get_or_create refactor
-register(
-    "grouprelease.new_get_or_create.rollout",
-    default=0.0,
-    type=Float,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Killswitch for EnvironmentProject.get_or_create refactor
