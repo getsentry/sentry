@@ -39,8 +39,8 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
         project = self.create_project(teams=[self.team])
 
         replay_id = uuid.uuid4().hex
-        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
-        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(minutes=15, seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(minutes=15, seconds=5)
         self.store_replays(mock_replay(seq1_timestamp, project.id, replay_id))
         self.store_replays(mock_replay(seq2_timestamp, project.id, replay_id))
         self.store_replays(
@@ -112,8 +112,8 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
     def test_get_replays_filter_clicks(self):
         """Test replays conform to the interchange format."""
         replay_id = uuid.uuid4().hex
-        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
-        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(minutes=15, seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(minutes=15, seconds=5)
 
         self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay_id))
         self.store_replays(
@@ -174,9 +174,9 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
 
     def test_get_click_filter_environment(self):
         """Test that clicks can be filtered by environment."""
-        prod_env = self.create_environment(name="prod", project=self.project)
-        dev_env = self.create_environment(name="dev", project=self.project)
-        staging_env = self.create_environment(name="staging", project=self.project)
+        self.create_environment(name="prod", project=self.project)
+        self.create_environment(name="dev", project=self.project)
+        self.create_environment(name="staging", project=self.project)
 
         timestamp = datetime.datetime.now() - datetime.timedelta(hours=1)
         replay_id_prod = uuid.uuid4().hex
@@ -184,14 +184,14 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
         replay_id_staging = uuid.uuid4().hex
 
         self.store_replays(
-            mock_replay(timestamp, self.project.id, replay_id_prod, environment=prod_env.name)
+            mock_replay(timestamp, self.project.id, replay_id_prod, environment="prod")
         )
         self.store_replays(
             mock_replay_click(
                 timestamp,
                 self.project.id,
                 replay_id_prod,
-                environment=prod_env.name,
+                environment="prod",
                 node_id=1,
                 tag="div",
                 id="myid",
@@ -202,14 +202,14 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
         )
 
         self.store_replays(
-            mock_replay(timestamp, self.project.id, replay_id_dev, environment=dev_env.name)
+            mock_replay(timestamp, self.project.id, replay_id_dev, environment="dev")
         )
         self.store_replays(
             mock_replay_click(
                 timestamp,
                 self.project.id,
                 replay_id_dev,
-                environment=dev_env.name,
+                environment="dev",
                 node_id=1,
                 tag="div",
                 id="myid",
@@ -220,14 +220,14 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
         )
 
         self.store_replays(
-            mock_replay(timestamp, self.project.id, replay_id_staging, environment=staging_env.name)
+            mock_replay(timestamp, self.project.id, replay_id_staging, environment="staging")
         )
         self.store_replays(
             mock_replay_click(
                 timestamp,
                 self.project.id,
                 replay_id_staging,
-                environment=staging_env.name,
+                environment="staging",
                 node_id=1,
                 tag="div",
                 id="myid",
@@ -239,7 +239,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             # Test single environment
-            response = self.client.get(self.url + f"?environment={prod_env.name}")
+            response = self.client.get(self.url + "?environment=prod")
             assert response.status_code == 200
             response_data = response.json()
             assert len(response_data["data"]) == 1
@@ -247,9 +247,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["count_rage_clicks"] == 0
 
             # Test multiple environments
-            response = self.client.get(
-                self.url + f"?environment={prod_env.name}&environment={dev_env.name}"
-            )
+            response = self.client.get(self.url + "?environment=prod&environment=dev")
             assert response.status_code == 200
             response_data = response.json()
             assert len(response_data["data"]) == 1
