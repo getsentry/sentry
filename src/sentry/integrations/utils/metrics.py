@@ -134,6 +134,8 @@ class EventLifecycle:
         sample_rate = 1.0
         metrics.incr(key, tags=tags, sample_rate=sample_rate)
 
+        sentry_sdk.set_tags(self.payload.get_metric_tags())
+
         extra = dict(self._extra)
         extra.update(tags)
         log_params: dict[str, Any] = {
@@ -144,8 +146,6 @@ class EventLifecycle:
             log_params["exc_info"] = outcome_reason
         elif isinstance(outcome_reason, str):
             extra["outcome_reason"] = outcome_reason
-
-        sentry_sdk.set_tags(self.payload.get_metric_tags())
 
         if outcome == EventLifecycleOutcome.FAILURE:
             logger.error(key, **log_params)
