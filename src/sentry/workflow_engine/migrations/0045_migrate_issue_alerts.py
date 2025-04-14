@@ -2240,7 +2240,7 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
     ):
         migrate_projects_issue_alerts(projects)
         # Update the progress in Redis
-        redis_client.set(backfill_key, projects[-1].id)
+        redis_client.set(backfill_key, projects[-1])
 
 
 class Migration(CheckedMigration):
