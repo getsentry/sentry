@@ -388,11 +388,10 @@ describe('ProductSelectionAvailability', function () {
       // Session Replay
       // disabled: false - By clicking on the button, an upsell modal is shown
       // checked: false
-      expect(screen.getByRole('button', {name: 'Session Replay'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Session Replay'})).toBeEnabled();
       expect(
         screen.getByRole('presentation', {name: 'Session Replay'})
       ).not.toBeChecked();
-      expect(screen.getByRole('presentation', {name: 'Session Replay'})).toBeDisabled();
       // Tooltip
       await userEvent.hover(screen.getByRole('button', {name: 'Session Replay'}));
       expect(

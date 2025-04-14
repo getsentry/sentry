@@ -21,6 +21,7 @@ import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOn
 interface DisabledProduct {
   reason: ReactNode;
   onClick?: () => void;
+  requiresUpgrade?: boolean;
 }
 
 export type DisabledProducts = Partial<Record<ProductSolution, DisabledProduct>>;
@@ -251,7 +252,7 @@ function Product({
       <ProductButton
         onClick={disabled?.onClick ?? onClick}
         priority={!!disabled || checked ? 'primary' : 'default'}
-        disabled={!!disabled}
+        disabled={!!disabled && !disabled.requiresUpgrade}
         aria-label={label}
       >
         <ProductButtonInner>
