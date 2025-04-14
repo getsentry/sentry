@@ -4,8 +4,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import ModalManager from '../modalManager';
+import ModalManager from 'sentry/views/settings/organizationRelay/modals/modalManager';
 
 import Item from './item';
 import Terminal from './terminal';

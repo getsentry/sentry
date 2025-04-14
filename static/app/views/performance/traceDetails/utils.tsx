@@ -15,15 +15,14 @@ import {isTraceSplitResult, reduceTrace} from 'sentry/utils/performance/quickTra
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
-import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
-
 import {
   TRACE_SOURCE_TO_NON_INSIGHT_ROUTES,
   TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY,
   TraceViewSources,
-} from '../newTraceDetails/traceHeader/breadcrumbs';
+} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import type {TraceInfo} from './types';
@@ -107,6 +106,7 @@ export function getTraceDetailsUrl({
       const path: TraceTree.NodePath[] = [`span-${spanId}`, `txn-${targetId ?? eventId}`];
       queryParams.node = path;
     }
+
     return {
       pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`),
       query: {

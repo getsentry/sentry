@@ -13,8 +13,11 @@ import {
   makeProjectionMatrix,
   upperBound,
 } from 'sentry/utils/profiling/gl/utils';
-
-import {findRangeBinarySearch, Rect, trimTextCenter} from '../speedscope';
+import {
+  findRangeBinarySearch,
+  Rect,
+  trimTextCenter,
+} from 'sentry/utils/profiling/speedscope';
 
 describe('makeProjectionMatrix', () => {
   it('should return a projection matrix', () => {

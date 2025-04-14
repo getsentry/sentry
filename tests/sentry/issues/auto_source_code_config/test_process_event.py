@@ -18,7 +18,6 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
@@ -606,7 +605,6 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "java"
 
     def test_short_packages(self) -> None:
-        # No code mapping will be stored, however, we get what would have been created
         self._process_and_assert_configuration_changes(
             repo_trees={
                 REPO1: [
@@ -634,7 +632,6 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         )
 
     def test_handles_dollar_sign_in_module(self) -> None:
-        # No code mapping will be stored, however, we get what would have been created
         self._process_and_assert_configuration_changes(
             repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},
             frames=[
@@ -671,7 +668,6 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             ],
         )
 
-    @with_feature({"organizations:auto-source-code-config-java-enabled": True})
     def test_country_code_tld(self) -> None:
         # We have two packages for the same domain
         repo_trees = {REPO1: ["src/uk/co/example/foo/Bar.kt", "src/uk/co/example/bar/Baz.kt"]}
@@ -722,7 +718,6 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         assert event.data["stacktrace"]["frames"][1]["module"] == "uk.co.not-example.baz.qux"
         assert event.data["stacktrace"]["frames"][1]["in_app"] is False
 
-    @with_feature({"organizations:auto-source-code-config-java-enabled": True})
     def test_country_code_tld_with_old_granularity(self) -> None:
         # We have two packages for the same domain
         repo_trees = {REPO1: ["src/uk/co/example/foo/Bar.kt", "src/uk/co/example/bar/Baz.kt"]}
@@ -763,7 +758,6 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             "stack.module:uk.co.example.** +app",
         ]
 
-    @with_feature({"organizations:auto-source-code-config-java-enabled": True})
     def test_do_not_clobber_rules(self) -> None:
         self._process_and_assert_configuration_changes(
             repo_trees={REPO1: ["src/a/Bar.java", "src/x/y/Baz.java"]},
@@ -781,8 +775,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             expected_new_in_app_stack_trace_rules=["stack.module:x.y.** +app"],
         )
 
-    @with_feature({"organizations:auto-source-code-config-java-enabled": True})
-    def test_run_without_dry_run(self) -> None:
+    def test_basic_case(self) -> None:
         repo_trees = {REPO1: ["src/com/example/foo/Bar.kt"]}
         frames = [
             self.frame(module="com.example.foo.Bar", abs_path="Bar.kt", in_app=False),
@@ -839,31 +832,22 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         # Even though the file is in the repo, it's not processed because it's categorized as internals
         repo_trees = {REPO1: ["src/android/app/Activity.java"]}
         frame = self.frame(module="android.app.Activity", abs_path="Activity.java", in_app=False)
-        with (
-            patch(f"{CLIENT}.get_tree", side_effect=create_mock_get_tree(repo_trees)),
-            patch(f"{CLIENT}.get_remaining_api_requests", return_value=500),
-            patch(
-                f"{REPO_TREES_INTEGRATION}._populate_repositories",
-                return_value=mock_populate_repositories(),
-            ),
-        ):
-            event = self.create_event([frame], self.platform)
-            dry_run_code_mappings, in_app_stack_trace_rules = process_event(
-                self.project.id, event.group_id, event.event_id
+        self._process_and_assert_configuration_changes(
+            repo_trees=repo_trees,
+            frames=[frame],
+            platform=self.platform,
+        )
+
+        # If we remove the category, it will be processed
+        with patch(f"{CODE_ROOT}.stacktraces._check_not_categorized", return_value=True):
+            self._process_and_assert_configuration_changes(
+                repo_trees=repo_trees,
+                frames=[frame],
+                platform=self.platform,
+                expected_new_code_mappings=[self.code_mapping("android/app/", "src/android/app/")],
+                expected_new_in_app_stack_trace_rules=["stack.module:android.app.** +app"],
             )
-            assert dry_run_code_mappings == []
-            assert in_app_stack_trace_rules == []
 
-            # If we remove the category, it will be processed
-            with patch(f"{CODE_ROOT}.stacktraces._check_not_categorized", return_value=True):
-                event = self.create_event([frame], self.platform)
-                dry_run_code_mappings, in_app_stack_trace_rules = process_event(
-                    self.project.id, event.group_id, event.event_id
-                )
-                assert dry_run_code_mappings != []
-                assert in_app_stack_trace_rules != []
-
-    @with_feature({"organizations:auto-source-code-config-java-enabled": True})
     def test_unintended_rules_are_removed(self) -> None:
         """Test that unintended rules will be removed without affecting other rules"""
         key = "sentry:automatic_grouping_enhancements"

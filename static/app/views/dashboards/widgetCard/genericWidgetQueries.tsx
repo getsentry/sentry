@@ -13,12 +13,11 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-
-import type {DatasetConfig} from '../datasetConfig/base';
-import type {DashboardFilters, Widget, WidgetQuery} from '../types';
-import {DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
 
 function getReferrer(displayType: DisplayType) {
   let referrer = '';

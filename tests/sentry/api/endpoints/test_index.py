@@ -7,14 +7,17 @@ from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
+def test_anonymous(client):
+    response = client.get(reverse("sentry-api-index"))
+    assert response.status_code == 200
+    assert response.data["version"] == "0"
+    assert not response.data["user"]
+    assert not response.data["auth"]
+
+
+@control_silo_test
 class ApiIndexTest(APITestCase):
     endpoint = "sentry-api-index"
-
-    def test_anonymous(self):
-        response = self.get_success_response()
-        assert response.data["version"] == "0"
-        assert not response.data["user"]
-        assert not response.data["auth"]
 
     def test_session_auth(self):
         self.login_as(user=self.user)

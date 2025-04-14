@@ -7,10 +7,12 @@ import type EventView from 'sentry/utils/discover/eventView';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-
-import type {SpanOperationBreakdownFilter} from '../filter';
-import {filterToField} from '../filter';
-import {getTransactionSummaryBaseUrl, TransactionFilterOptions} from '../utils';
+import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {filterToField} from 'sentry/views/performance/transactionSummary/filter';
+import {
+  getTransactionSummaryBaseUrl,
+  TransactionFilterOptions,
+} from 'sentry/views/performance/transactionSummary/utils';
 
 export enum EventsDisplayFilterName {
   P50 = 'p50',

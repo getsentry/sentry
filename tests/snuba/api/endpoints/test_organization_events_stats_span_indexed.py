@@ -1727,9 +1727,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data["data"][1][1][0]["count"] == 0.5
         assert data["data"][2][1][0]["count"] == 0.75
 
-    @pytest.mark.xfail(
-        reason="raw sql is is not querying for 5xx's, https://github.com/getsentry/eap-planning/issues/242"
-    )
     def test_http_response_rate_multiple_series(self):
         self.store_spans(
             [
@@ -1783,6 +1780,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data["http_response_rate(5)"]["data"][1][1][0]["count"] == 0.5
         assert data["http_response_rate(5)"]["data"][2][1][0]["count"] == 0.75
 
+    @pytest.mark.xfail(reason="https://github.com/getsentry/snuba/pull/7066")
     def test_downsampling_single_series(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},

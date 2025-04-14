@@ -9,7 +9,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -74,12 +73,7 @@ function Content() {
               items={[
                 {
                   key: 'save-query',
-                  label: (
-                    <span>
-                      {t('A New Query')}
-                      <FeatureBadge type="alpha" />
-                    </span>
-                  ),
+                  label: <span>{t('A New Query')}</span>,
                   onAction: () => {
                     openSaveQueryModal({
                       organization,
@@ -102,12 +96,7 @@ function Content() {
                   ? [
                       {
                         key: 'update-query',
-                        label: (
-                          <span>
-                            {t('Existing Query')}
-                            <FeatureBadge type="alpha" />
-                          </span>
-                        ),
+                        label: <span>{t('Existing Query')}</span>,
                         onAction: async () => {
                           try {
                             addLoadingMessage(t('Updating query...'));
