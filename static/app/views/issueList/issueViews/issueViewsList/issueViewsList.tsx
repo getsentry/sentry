@@ -20,7 +20,9 @@ import {
   makeFetchGroupSearchViewsKey,
   useFetchGroupSearchViews,
 } from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import {
+  type GroupSearchView,
   GroupSearchViewCreatedBy,
   GroupSearchViewSort,
   type StarredGroupSearchView,
@@ -73,18 +75,44 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
 
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
     onMutate: variables => {
-      setApiQueryData<StarredGroupSearchView[]>(queryClient, tableQueryKey, data => {
+      setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
         return data?.map(view =>
           view.id === variables.id ? {...view, starred: variables.starred} : view
         );
       });
+      if (variables.starred) {
+        setApiQueryData<StarredGroupSearchView[]>(
+          queryClient,
+          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
+          data => [...(data ?? []), variables.view]
+        );
+      } else {
+        setApiQueryData<StarredGroupSearchView[]>(
+          queryClient,
+          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
+          data => data?.filter(view => view.id !== variables.id)
+        );
+      }
     },
     onError: (_error, variables) => {
-      setApiQueryData<StarredGroupSearchView[]>(queryClient, tableQueryKey, data => {
+      setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
         return data?.map(view =>
           view.id === variables.id ? {...view, starred: !variables.starred} : view
         );
       });
+      if (variables.starred) {
+        setApiQueryData<StarredGroupSearchView[]>(
+          queryClient,
+          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
+          data => data?.filter(view => view.id !== variables.id)
+        );
+      } else {
+        setApiQueryData<StarredGroupSearchView[]>(
+          queryClient,
+          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
+          data => [...(data ?? []), variables.view]
+        );
+      }
     },
   });
 
