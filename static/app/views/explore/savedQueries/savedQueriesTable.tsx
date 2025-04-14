@@ -9,6 +9,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Avatar from 'sentry/components/core/avatar';
+import {ExploreParams} from 'sentry/components/modals/explore/saveQueryModal';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
@@ -17,16 +18,15 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
-import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
-import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
-
 import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
   type SavedQuery,
   type SortOption,
   useGetSavedQueries,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
+import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
 
 type Props = {
   cursorKey?: string;
@@ -185,7 +185,11 @@ export function SavedQueriesTable({
               <SavedEntityTable.CellEnvironments environments={query.environment} />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell>
-              <SavedEntityTable.CellQuery query={query.query[0].query} />
+              <StyledExploreParams
+                query={query.query[0].query}
+                visualizes={query.query[0].visualize}
+                groupBys={query.query[0].groupby}
+              />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell>
               <Avatar user={query.createdBy} tooltip={query.createdBy.name} hasTooltip />
@@ -263,5 +267,20 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)`
     min-height: unset;
     height: auto;
     padding: ${space(0.5)} ${space(1)};
+  }
+`;
+
+const StyledExploreParams = styled(ExploreParams)`
+  overflow: hidden;
+  flex-wrap: nowrap;
+  margin-bottom: 0;
+
+  span {
+    flex-wrap: nowrap;
+    overflow: visible;
+  }
+
+  div {
+    flex-wrap: nowrap;
   }
 `;
