@@ -10,6 +10,7 @@ from sentry.models.savedsearch import SORT_LITERALS
 
 class GroupSearchViewSerializerResponse(TypedDict):
     id: str
+    owner_id: str
     name: str
     query: str
     querySort: SORT_LITERALS
@@ -20,6 +21,7 @@ class GroupSearchViewSerializerResponse(TypedDict):
     dateCreated: str
     dateUpdated: str
     starred: bool
+    stars: int
 
 
 @register(GroupSearchView)
@@ -52,6 +54,7 @@ class GroupSearchViewSerializer(Serializer):
             if last_visited:
                 attrs[item]["last_visited"] = last_visited.last_visited
             attrs[item]["starred"] = item.id in user_starred_view_ids
+            attrs[item]["stars"] = getattr(item, "popularity", 0)
 
         return attrs
 
@@ -68,6 +71,7 @@ class GroupSearchViewSerializer(Serializer):
 
         return {
             "id": str(obj.id),
+            "owner_id": str(obj.user_id),
             "name": obj.name,
             "query": obj.query,
             "querySort": obj.query_sort,
@@ -75,7 +79,8 @@ class GroupSearchViewSerializer(Serializer):
             "environments": obj.environments,
             "timeFilters": obj.time_filters,
             "lastVisited": attrs["last_visited"] if "last_visited" in attrs else None,
+            "starred": attrs["starred"] if attrs else False,
+            "stars": attrs["stars"],
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "starred": attrs["starred"] if attrs else False,
         }
