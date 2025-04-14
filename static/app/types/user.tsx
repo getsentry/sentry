@@ -55,7 +55,6 @@ export interface User extends Omit<AvatarUser, 'options'> {
     language: string;
     prefersChonkUI: boolean;
     prefersIssueDetailsStreamlinedUI: boolean | null;
-    prefersSpecializedProjectOverview: Record<string, boolean>;
     prefersStackedNavigation: boolean;
     quickStartDisplay: QuickStartDisplay;
     stacktraceOrder: number;
