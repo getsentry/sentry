@@ -235,7 +235,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         start: datetime,
         end: datetime,
         environment_id: int,
-        # group_on_time: bool = False,
     ) -> int | float:
         """
         Abstract method that specifies how to query Snuba for a single group
