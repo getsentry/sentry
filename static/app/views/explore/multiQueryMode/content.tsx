@@ -78,17 +78,6 @@ function Content() {
                     openSaveQueryModal({
                       organization,
                       saveQuery,
-                      queries: queries.map((query, index) => ({
-                        query: query.query,
-                        groupBys: query.groupBys,
-                        visualizes: [
-                          {
-                            chartType: query.chartType,
-                            yAxes: query.yAxes,
-                            label: `visualization-${index}`,
-                          },
-                        ],
-                      })),
                     });
                   },
                 },

@@ -207,14 +207,6 @@ export function SavedQueriesTable({
                     onAction: () => {
                       openSaveQueryModal({
                         organization,
-                        queries: query.query.map((q, qIndex) => ({
-                          query: q.query,
-                          groupBys: q.groupby,
-                          visualizes: q.visualize.map((v, vIndex) => ({
-                            ...v,
-                            label: `visualization-${qIndex}-${vIndex}`,
-                          })),
-                        })),
                         saveQuery: getHandleUpdateFromSavedQuery(query),
                         name: query.name,
                       });
