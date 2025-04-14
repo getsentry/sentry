@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -8,58 +10,75 @@ import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export type StarTransactionParams = {
-  projectId: string;
-  segmentName: string;
+type StarTransactionParams = {
+  project_id: string;
+  segment_name: string;
 };
 
 const URL_PREFIX = '/insights/starred-segments/';
 
-export function useStarredTransactions() {
+interface Props {
+  initialIsStarred: boolean;
+  projectSlug: string;
+  transactionName: string;
+}
+
+export function useStarredTransaction({
+  initialIsStarred,
+  projectSlug,
+  transactionName: segmentName,
+}: Props) {
+  const [isStarred, setIsStarred] = useState(initialIsStarred);
   const organization = useOrganization();
   const api = useApi();
+
   const url = `/organizations/${organization.slug}${URL_PREFIX}`;
-
-  const {mutate: mutateStarTransaction, ...starTransactionResult} = useMutation({
-    mutationFn: (params: StarTransactionParams) =>
-      api.requestPromise(url, {
-        method: 'POST',
-        data: {
-          project_id: params.projectId,
-          segment_name: params.segmentName,
-        },
-      }),
-    onSuccess: () => addSuccessMessage(t('Transaction starred')),
-    onError: () => addErrorMessage(t('Failed to star transaction')),
-  });
-
-  const {mutate: mutateUnstarTransaction, ...unstarTransactionResult} = useMutation({
-    mutationFn: (params: StarTransactionParams) =>
-      api.requestPromise(url, {
-        method: 'DELETE',
-        data: {
-          project_id: params.projectId,
-          segment_name: params.segmentName,
-        },
-      }),
-    onSuccess: () => addSuccessMessage(t('Transaction unstarred')),
-    onError: () => addErrorMessage(t('Failed to unstar transaction')),
-  });
-
-  const starTransaction = (params: StarTransactionParams) => {
-    addLoadingMessage();
-    mutateStarTransaction(params);
+  const data: StarTransactionParams = {
+    project_id: projectSlug,
+    segment_name: segmentName,
   };
 
-  const unstarTransaction = (params: StarTransactionParams) => {
+  const onError = () => {
+    addErrorMessage(t('Failed to star transaction'));
+    setIsStarred(!isStarred);
+  };
+
+  const onSuccess = () => {
+    addSuccessMessage(t('Transaction starred'));
+  };
+
+  const {mutate: starTransaction, ...starTransactionResult} = useMutation({
+    mutationFn: () => api.requestPromise(url, {method: 'POST', data}),
+    onSuccess,
+    onError,
+  });
+
+  const {mutate: unstarTransaction, ...unstarTransactionResult} = useMutation({
+    mutationFn: () => api.requestPromise(url, {method: 'DELETE', data}),
+    onSuccess,
+    onError,
+  });
+
+  const isPending = starTransactionResult.isPending || unstarTransactionResult.isPending;
+
+  const toggleStarredTransaction = () => {
+    if (isPending) {
+      return;
+    }
+
     addLoadingMessage();
-    mutateUnstarTransaction(params);
+
+    if (isStarred) {
+      unstarTransaction();
+    } else {
+      starTransaction();
+    }
+    setIsStarred(!isStarred);
   };
 
   return {
-    starTransaction,
-    unstarTransaction,
-    starTransactionResult,
-    unstarTransactionResult,
+    toggleStarredTransaction,
+    isPending,
+    isStarred,
   };
 }

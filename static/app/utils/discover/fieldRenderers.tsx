@@ -770,7 +770,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       <StarredTransactionCell
         projectSlug={data.project}
         transactionName={data.transaction}
-        isStarred={data.is_starred_transaction}
+        initialIsStarred={data.is_starred_transaction}
       />
     ),
   },
