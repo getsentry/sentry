@@ -3,29 +3,25 @@ import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {FlexContainer} from 'sentry/utils/discover/styles';
 import useProjects from 'sentry/utils/useProjects';
-import {useStarredTransaction} from 'sentry/views/insights/common/utils/useStarredTransactions';
+import {useStarredSegment} from 'sentry/views/insights/common/utils/useStarredTransactions';
 
 interface Props {
   initialIsStarred: boolean;
   projectSlug: string;
-  transactionName: string;
+  segmentName: string;
 }
 
-export function StarredTransactionCell({
-  transactionName,
-  initialIsStarred,
-  projectSlug,
-}: Props) {
+export function StarredSegmentCell({segmentName, initialIsStarred, projectSlug}: Props) {
   const {projects} = useProjects();
 
-  const {toggleStarredTransaction, isPending, isStarred} = useStarredTransaction({
+  const {toggleStarredTransaction, isPending, isStarred} = useStarredSegment({
     initialIsStarred,
     projectSlug,
-    transactionName,
+    segmentName,
   });
 
   const project = projects.find(p => p.slug === projectSlug);
-  const disabled = !project || !transactionName || isPending;
+  const disabled = !project || !segmentName || isPending;
 
   return (
     <FlexContainer>

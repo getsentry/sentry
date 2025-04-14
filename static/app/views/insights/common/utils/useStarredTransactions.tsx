@@ -20,14 +20,10 @@ const URL_PREFIX = '/insights/starred-segments/';
 interface Props {
   initialIsStarred: boolean;
   projectSlug: string;
-  transactionName: string;
+  segmentName: string;
 }
 
-export function useStarredTransaction({
-  initialIsStarred,
-  projectSlug,
-  transactionName: segmentName,
-}: Props) {
+export function useStarredSegment({initialIsStarred, projectSlug, segmentName}: Props) {
   const [isStarred, setIsStarred] = useState(initialIsStarred);
   const organization = useOrganization();
   const api = useApi();

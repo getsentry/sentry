@@ -59,7 +59,7 @@ import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
-import {StarredTransactionCell} from 'sentry/views/insights/common/components/tableCells/starredTransactionCell';
+import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 import {
@@ -767,9 +767,9 @@ const SPECIAL_FIELDS: SpecialFields = {
   [SpanFields.IS_STARRED_TRANSACTION]: {
     sortField: null,
     renderFunc: data => (
-      <StarredTransactionCell
+      <StarredSegmentCell
         projectSlug={data.project}
-        transactionName={data.transaction}
+        segmentName={data.transaction}
         initialIsStarred={data.is_starred_transaction}
       />
     ),
