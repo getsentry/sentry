@@ -7,13 +7,12 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   SpanIndexedField,
   SpanIndexedProperty,
   SpanIndexedResponse,
 } from 'sentry/views/insights/types';
-
-import {useInsightsEap} from '../../common/utils/useEap';
 
 interface UseSpanSamplesOptions<Fields> {
   enabled?: boolean;

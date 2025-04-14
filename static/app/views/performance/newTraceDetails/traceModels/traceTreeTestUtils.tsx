@@ -2,6 +2,7 @@ import {uuid4} from '@sentry/core';
 
 import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
 import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
   isAutogroupedNode,
   isEAPSpanNode,
@@ -11,8 +12,6 @@ import {
   isTraceNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 
 import {ParentAutogroupNode} from './parentAutogroupNode';
 import {SiblingAutogroupNode} from './siblingAutogroupNode';
