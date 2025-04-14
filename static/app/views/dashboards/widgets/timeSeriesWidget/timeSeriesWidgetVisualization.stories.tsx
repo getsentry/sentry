@@ -601,6 +601,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   });
 
   story('Highlighting', () => {
+    const [legendSelection, setLegendSelection] = useState<LegendSelection>({});
     const [sampleId, setSampleId] = useState<string>();
 
     const aggregatePlottable = new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
@@ -668,6 +669,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
         <MediumWidget>
           <TimeSeriesWidgetVisualization
+            legendSelection={legendSelection}
+            onLegendSelectionChange={setLegendSelection}
             plottables={[aggregatePlottable, samplesPlottable]}
           />
 
