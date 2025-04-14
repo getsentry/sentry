@@ -1,6 +1,10 @@
 import type {Query} from 'history';
 
 import type {EventTag} from 'sentry/types/event';
+import {
+  type FieldKey,
+  ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS,
+} from 'sentry/utils/fields';
 import {appendTagCondition} from 'sentry/utils/queryString';
 
 export function intcomma(x: number): string {
@@ -90,6 +94,22 @@ export function isWebpackChunkLoadingError(error: Error): boolean {
     typeof error.message === 'string' &&
     error.message.toLowerCase().includes('loading chunk')
   );
+}
+
+/**
+ * If a tag conflicts with a reserved keyword, change it to `tags[key]:value`
+ */
+export function escapeIssueTagKey(key: string) {
+  // Environment and project should be handled by the page filter
+  if (key === 'environment' || key === 'project') {
+    return key;
+  }
+
+  if (ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS.has(key as FieldKey)) {
+    return `tags[${key}]`;
+  }
+
+  return key;
 }
 
 export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
