@@ -20,6 +20,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
+from sentry.notifications.notifications.rules import get_key_from_rule_data
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
@@ -591,8 +592,9 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
         id = f.rule.id
         # if we are using the new workflow engine, we need to use the legacy rule id
         if features.has("organizations:workflow-engine-trigger-actions", event.group.organization):
-            id = f.rule.data.get("actions", [{}])[0].get("legacy_rule_id")
-            assert id is not None
+            id = get_key_from_rule_data(f.rule, "legacy_rule_id")
+        elif features.has("organizations:workflow-engine-ui-links", event.group.organization):
+            id = get_key_from_rule_data(f.rule, "workflow_id")
 
         settings = f.kwargs.get("schema_defined_settings")
         if settings:
