@@ -22,6 +22,7 @@ import decodeSubregions from 'sentry/views/insights/browser/resources/utils/quer
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
+import type {NonDefaultSpanSampleFields} from 'sentry/views/insights/common/queries/useSpanSamples';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
@@ -29,7 +30,6 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
   SpanIndexedField,
-  type SpanIndexedProperty,
   SpanMetricsField,
 } from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
@@ -108,10 +108,7 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
 
   let columnOrder = DEFAULT_COLUMN_ORDER;
 
-  const additionalFields: SpanIndexedProperty[] = [
-    SpanIndexedField.TRACE,
-    SpanIndexedField.TRANSACTION_ID,
-  ];
+  const additionalFields: NonDefaultSpanSampleFields[] = [SpanIndexedField.TRACE];
 
   if (moduleName === ModuleName.RESOURCE) {
     additionalFields?.push(SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH);

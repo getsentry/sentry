@@ -189,7 +189,6 @@ describe('messageSpanSamplesPanel', () => {
         query: expect.objectContaining({
           additionalFields: [
             'trace',
-            'transaction.id',
             'span.description',
             'measurements.messaging.message.body.size',
             'measurements.messaging.message.receive.latency',
@@ -285,7 +284,6 @@ describe('messageSpanSamplesPanel', () => {
         query: expect.objectContaining({
           additionalFields: [
             'trace',
-            'transaction.id',
             'span.description',
             'measurements.messaging.message.body.size',
             'measurements.messaging.message.receive.latency',

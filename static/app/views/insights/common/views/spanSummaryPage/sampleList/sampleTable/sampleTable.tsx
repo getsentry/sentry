@@ -12,12 +12,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {SamplesTableColumnHeader} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import {SpanSamplesTable} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
+import type {
+  NonDefaultSpanSampleFields,
+  SpanSample,
+} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
 import type {
   ModuleName,
-  SpanIndexedProperty,
   SpanMetricsQueryFilters,
   SubregionCode,
 } from 'sentry/views/insights/types';
@@ -32,7 +34,7 @@ type Props = {
   groupId: string;
   moduleName: ModuleName;
   transactionName: string;
-  additionalFields?: SpanIndexedProperty[];
+  additionalFields?: NonDefaultSpanSampleFields[];
   additionalFilters?: Record<string, string>;
   columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
