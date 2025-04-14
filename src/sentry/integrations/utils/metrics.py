@@ -134,7 +134,7 @@ class EventLifecycle:
         sample_rate = 1.0
         metrics.incr(key, tags=tags, sample_rate=sample_rate)
 
-        sentry_sdk.set_tags(self.payload.get_metric_tags())
+        sentry_sdk.set_tags(tags)
 
         extra = dict(self._extra)
         extra.update(tags)
