@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -21,6 +21,7 @@ from ..base import (
     get_span_evidence_value,
     get_url_from_span,
     parameterize_url,
+    parameterize_url_with_result,
 )
 from ..performance_problem import PerformanceProblem
 from ..types import PerformanceProblemsMap, Span
@@ -157,11 +158,16 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return
 
         offender_span_ids = [span["span_id"] for span in self.spans]
+        problem_description = self._get_parameterized_url(self.spans[0])
+        if problem_description == "":
+            problem_description = os.path.commonprefix(
+                [span.get("description", "") or "" for span in self.spans]
+            )
 
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
             op=last_span["op"],
-            desc=os.path.commonprefix([span.get("description", "") or "" for span in self.spans]),
+            desc=problem_description,
             type=PerformanceNPlusOneAPICallsGroupType,
             cause_span_ids=[],
             parent_span_ids=[last_span.get("parent_span_id", None)],
@@ -175,16 +181,14 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
                 "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
                 "repeating_spans": self._get_path_prefix(self.spans[0]),
                 "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
-                "parameters": self._get_parameters(),
+                "parameters": self._get_parameters()["query_params"],
+                "path_parameters": self._get_parameters()["path_params"],
             },
             evidence_display=[
                 IssueEvidence(
                     name="Offending Spans",
                     value=get_notification_attachment_body(
-                        last_span["op"],
-                        os.path.commonprefix(
-                            [span.get("description", "") or "" for span in self.spans]
-                        ),
+                        op=last_span["op"], desc=problem_description
                     ),
                     # Has to be marked important to be displayed in the notifications
                     important=True,
@@ -192,24 +196,28 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             ],
         )
 
-    def _get_parameters(self) -> list[str]:
+    def _get_parameters(self) -> dict[str, list[str]]:
         if not self.spans or len(self.spans) == 0:
-            return []
+            return {"query_params": [], "path_params": []}
 
-        urls = [get_url_from_span(span) for span in self.spans]
-
-        all_parameters: Mapping[str, list[str]] = defaultdict(list)
-
-        for url in urls:
-            parsed_url = urlparse(url)
-            parameters = parse_qs(parsed_url.query)
-
-            for key, value in parameters.items():
-                all_parameters[key] += value
-
-        return [
-            "{{{}: {}}}".format(key, ",".join(values)) for key, values in all_parameters.items()
+        parameterized_urls = [
+            parameterize_url_with_result(get_url_from_span(span)) for span in self.spans
         ]
+        path_params = [param["path_params"] for param in parameterized_urls]
+        query_dict: Mapping[str, list[str]] = defaultdict(list)
+
+        for parameterized_url in parameterized_urls:
+            query_params = parameterized_url["query_params"]
+
+            for key, value in query_params.items():
+                query_dict[key] += value
+        return {
+            "path_params": [f"{', '.join(param_group)}" for param_group in path_params],
+            "query_params": [f"{key}: {', '.join(values)}" for key, values in query_dict.items()],
+        }
+
+    def _get_parameterized_url(self, span: Span) -> str:
+        return parameterize_url(get_url_from_span(span))
 
     def _get_path_prefix(self, repeating_span: Span) -> str:
         if not repeating_span:
@@ -225,9 +233,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         # Check if we parameterized the URL at all. If not, do not attempt
         # fingerprinting. Unparameterized URLs run too high a risk of
-        # fingerprinting explosions. Query parameters are parameterized by
-        # definition, so exclude them from comparison
-        if without_query_params(parameterized_first_url) == without_query_params(first_url):
+        # fingerprinting explosions.
+        if parameterized_first_url == first_url:
             return None
 
         fingerprint = fingerprint_http_spans([self.spans[0]])
@@ -244,11 +251,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     def _spans_are_similar(self, span_a: Span, span_b: Span) -> bool:
         return (
-            parameterize_url(get_url_from_span(span_a))
-            == parameterize_url(get_url_from_span(span_b))
+            self._get_parameterized_url(span_a) == self._get_parameterized_url(span_b)
             and span_a["parent_span_id"] == span_b["parent_span_id"]
         )
-
-
-def without_query_params(url: str) -> str:
-    return urlparse(url)._replace(query="").geturl()
