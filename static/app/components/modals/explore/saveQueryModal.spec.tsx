@@ -26,7 +26,7 @@ describe('SaveQueryModal', function () {
         queries={[
           {
             query: 'span.op:pageload',
-            visualizes: [{chartType: 1, yAxes: ['avg(span.duration)'], label: 'A'}],
+            visualizes: [{chartType: 1, yAxes: ['avg(span.duration)']}],
             groupBys: ['span.op'],
           },
         ]}
@@ -57,7 +57,7 @@ describe('SaveQueryModal', function () {
         queries={[
           {
             query: 'span.op:pageload',
-            visualizes: [{chartType: 1, yAxes: ['avg(span.duration)'], label: 'A'}],
+            visualizes: [{chartType: 1, yAxes: ['avg(span.duration)']}],
             groupBys: ['span.op'],
           },
         ]}
@@ -85,7 +85,7 @@ describe('SaveQueryModal', function () {
         queries={[
           {
             query: 'span.op:pageload',
-            visualizes: [{chartType: 1, yAxes: ['avg(span.duration)'], label: 'A'}],
+            visualizes: [{chartType: 1, yAxes: ['avg(span.duration)']}],
             groupBys: ['span.op'],
           },
         ]}
