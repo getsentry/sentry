@@ -73,7 +73,7 @@ describe('buildRoutes()', function () {
   test('orgId routes also have domain routes', function () {
     const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
 
-    // Get routes for with customer domains off.
+    // Get routes with customer domains off.
     spy.mockReturnValue(false);
     const routes = extractRoutes(buildReactRouter6Routes(buildRoutes()));
 
