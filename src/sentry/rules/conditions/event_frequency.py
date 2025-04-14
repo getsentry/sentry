@@ -351,22 +351,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         referrer_suffix: str,
         group_on_time: bool = True,
     ) -> Mapping[int, int]:
-        result: Mapping[int, int] = {}
-        # if tsdb_function == tsdb.get_sums:
-        #     result = tsdb_function(
-        #         model=model,
-        #         keys=keys,
-        #         start=start,
-        #         end=end,
-        #         environment_id=environment_id,
-        #         use_cache=True,
-        #         jitter_value=group_id,
-        #         tenant_ids={"organization_id": organization_id},
-        #         referrer_suffix=referrer_suffix,
-        #         group_on_time=group_on_time,
-        #     )
-        # else:
-        result = tsdb_function(
+        result: Mapping[int, int] = tsdb_function(
             model=model,
             keys=keys,
             start=start,
