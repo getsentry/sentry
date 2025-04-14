@@ -6,6 +6,8 @@ from enum import StrEnum
 from types import TracebackType
 from typing import Any, Self
 
+import sentry_sdk
+
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.utils import metrics
@@ -142,6 +144,8 @@ class EventLifecycle:
             log_params["exc_info"] = outcome_reason
         elif isinstance(outcome_reason, str):
             extra["outcome_reason"] = outcome_reason
+
+        sentry_sdk.set_tags(self.payload.get_metric_tags())
 
         if outcome == EventLifecycleOutcome.FAILURE:
             logger.error(key, **log_params)
