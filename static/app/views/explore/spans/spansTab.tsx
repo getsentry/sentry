@@ -10,10 +10,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {
-  EAPSpanSearchQueryBuilder,
-  SpanSearchQueryBuilder,
-} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,7 +18,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -84,7 +80,6 @@ export function SpansTabContentImpl({
 }: SpanTabProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const dataset = useExploreDataset();
   const mode = useExploreMode();
   const visualizes = useExploreVisualizes();
   const [samplesTab, setSamplesTab] = useTab();
@@ -106,9 +101,6 @@ export function SpansTabContentImpl({
   }, [id, visitQuery]);
 
   const toolbarExtras = [
-    ...(organization?.features?.includes('visibility-explore-dataset')
-      ? ['dataset toggle' as const]
-      : []),
     ...(organization?.features?.includes('visibility-explore-equations')
       ? ['equations' as const]
       : []),
@@ -222,40 +214,31 @@ export function SpansTabContentImpl({
             })}
           />
         </StyledPageFilterBar>
-        {dataset === DiscoverDatasets.SPANS_INDEXED ? (
-          <SpanSearchQueryBuilder
-            projects={selection.projects}
-            initialQuery={query}
-            onSearch={setQuery}
-            searchSource="explore"
-          />
-        ) : (
-          <EAPSpanSearchQueryBuilder
-            projects={selection.projects}
-            initialQuery={query}
-            onSearch={setQuery}
-            searchSource="explore"
-            getFilterTokenWarning={
-              mode === Mode.SAMPLES
-                ? key => {
-                    if (
-                      ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(key as AggregationKey)
-                    ) {
-                      return t(
-                        "This key won't affect the results because samples mode does not support aggregate functions"
-                      );
-                    }
-                    return undefined;
+        <EAPSpanSearchQueryBuilder
+          projects={selection.projects}
+          initialQuery={query}
+          onSearch={setQuery}
+          searchSource="explore"
+          getFilterTokenWarning={
+            mode === Mode.SAMPLES
+              ? key => {
+                  if (
+                    ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(key as AggregationKey)
+                  ) {
+                    return t(
+                      "This key won't affect the results because samples mode does not support aggregate functions"
+                    );
                   }
-                : undefined
-            }
-            supportedAggregates={
-              mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
-            }
-            numberTags={numberTags}
-            stringTags={stringTags}
-          />
-        )}
+                  return undefined;
+                }
+              : undefined
+          }
+          supportedAggregates={
+            mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
+          }
+          numberTags={numberTags}
+          stringTags={stringTags}
+        />
       </TopSection>
       <Feature features="organizations:traces-schema-hints">
         <SchemaHintsSection>
