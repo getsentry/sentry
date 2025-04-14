@@ -1,19 +1,20 @@
 import logging
-from enum import StrEnum
+import operator
+from collections.abc import Callable
+from dataclasses import asdict, dataclass
+from enum import IntEnum, StrEnum
 from typing import Any
 
 import sentry_sdk
 from django.apps.registry import Apps
 from django.db import migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from jsonschema import ValidationError, validate
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 # TODO: remove these imports by copy-pasting the code into this file
-from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
-    translate_to_data_condition,
-)
 from sentry.workflow_engine.migration_helpers.rule_action import (
     build_notification_actions_from_rule_data_actions,
 )
@@ -86,6 +87,33 @@ class ComparisonType(StrEnum):
     PERCENT = "percent"
 
 
+class AgeComparisonType(StrEnum):
+    OLDER = "older"
+    NEWER = "newer"
+
+
+class AssigneeTargetType(StrEnum):
+    UNASSIGNED = "Unassigned"
+    TEAM = "Team"
+    MEMBER = "Member"
+
+
+class GroupCategory(IntEnum):
+    ERROR = 1
+    PERFORMANCE = 2
+    PROFILE = 3  # deprecated, merging with PERFORMANCE
+    CRON = 4
+    REPLAY = 5
+    FEEDBACK = 6
+    UPTIME = 7
+    METRIC_ALERT = 8
+
+
+class ModelAgeType(StrEnum):
+    OLDEST = "oldest"
+    NEWEST = "newest"
+
+
 class MatchType(StrEnum):
     CONTAINS = "co"
     ENDS_WITH = "ew"
@@ -149,6 +177,538 @@ class Condition(StrEnum):
     EVERY_EVENT = "every_event"
 
 
+@dataclass
+class DataConditionKwargs:
+    type: str
+    comparison: Any
+    condition_result: bool
+    condition_group_id: int
+
+
+def create_every_event_data_condition(data: dict[str, Any], dcg: Any) -> DataConditionKwargs:
+    return DataConditionKwargs(
+        type=Condition.EVERY_EVENT,
+        comparison=True,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_reappeared_event_data_condition(data: dict[str, Any], dcg: Any) -> DataConditionKwargs:
+    return DataConditionKwargs(
+        type=Condition.REAPPEARED_EVENT,
+        comparison=True,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_regression_event_data_condition(data: dict[str, Any], dcg: Any) -> DataConditionKwargs:
+    return DataConditionKwargs(
+        type=Condition.REGRESSION_EVENT,
+        comparison=True,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_existing_high_priority_issue_data_condition(
+    data: dict[str, Any], dcg: Any
+) -> DataConditionKwargs:
+    return DataConditionKwargs(
+        type=Condition.EXISTING_HIGH_PRIORITY_ISSUE,
+        comparison=True,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_event_attribute_data_condition(data: dict[str, Any], dcg: Any) -> DataConditionKwargs:
+    comparison = {
+        "match": data["match"],
+        "value": data["value"],
+        "attribute": data["attribute"],
+    }
+
+    return DataConditionKwargs(
+        type=Condition.EVENT_ATTRIBUTE,
+        comparison=comparison,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_first_seen_event_data_condition(data: dict[str, Any], dcg: Any) -> DataConditionKwargs:
+    return DataConditionKwargs(
+        type=Condition.FIRST_SEEN_EVENT,
+        comparison=True,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_new_high_priority_issue_data_condition(
+    data: dict[str, Any], dcg: Any
+) -> DataConditionKwargs:
+    return DataConditionKwargs(
+        type=Condition.NEW_HIGH_PRIORITY_ISSUE,
+        comparison=True,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_level_data_condition(data: dict[str, Any], dcg: Any) -> DataConditionKwargs:
+    comparison = {"match": data["match"], "level": int(data["level"])}
+
+    return DataConditionKwargs(
+        type=Condition.LEVEL,
+        comparison=comparison,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_tagged_event_data_condition(data: dict[str, Any], dcg: Any) -> DataConditionKwargs:
+    comparison = {
+        "match": data["match"],
+        "key": data["key"],
+    }
+    if comparison["match"] not in {MatchType.IS_SET, MatchType.NOT_SET}:
+        comparison["value"] = data["value"]
+
+    return DataConditionKwargs(
+        type=Condition.TAGGED_EVENT,
+        comparison=comparison,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_age_comparison_data_condition(data: dict[str, Any], dcg: Any) -> DataConditionKwargs:
+    comparison_type = AgeComparisonType(data["comparison_type"])
+    value = int(data["value"])
+    if value < 0:
+        # make all values positive and switch the comparison type
+        value = -1 * value
+        comparison_type = (
+            AgeComparisonType.NEWER
+            if comparison_type == AgeComparisonType.OLDER
+            else AgeComparisonType.OLDER
+        )
+
+    comparison = {
+        "comparison_type": comparison_type,
+        "value": value,
+        "time": data["time"],
+    }
+
+    return DataConditionKwargs(
+        type=Condition.AGE_COMPARISON,
+        comparison=comparison,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_assigned_to_data_condition(data: dict[str, Any], dcg: Any) -> DataConditionKwargs:
+    comparison = {
+        "target_type": data["targetType"],
+        "target_identifier": data["targetIdentifier"],
+    }
+
+    return DataConditionKwargs(
+        type=Condition.ASSIGNED_TO,
+        comparison=comparison,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_issue_category_data_condition(data: dict[str, Any], dcg: Any) -> DataConditionKwargs:
+    comparison = {
+        "value": int(data["value"]),
+    }
+
+    return DataConditionKwargs(
+        type=Condition.ISSUE_CATEGORY,
+        comparison=comparison,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_issue_occurrences_data_condition(data: dict[str, Any], dcg: Any) -> DataConditionKwargs:
+    comparison = {
+        "value": int(data["value"]),
+    }
+
+    return DataConditionKwargs(
+        type=Condition.ISSUE_OCCURRENCES,
+        comparison=comparison,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_latest_release_data_condition(data: dict[str, Any], dcg: Any) -> DataConditionKwargs:
+    return DataConditionKwargs(
+        type=Condition.LATEST_RELEASE,
+        comparison=True,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_latest_adopted_release_data_condition(
+    data: dict[str, Any], dcg: Any
+) -> DataConditionKwargs:
+    comparison = {
+        "release_age_type": data["oldest_or_newest"],
+        "age_comparison": data["older_or_newer"],
+        "environment": data["environment"],
+    }
+    return DataConditionKwargs(
+        type=Condition.LATEST_ADOPTED_RELEASE,
+        comparison=comparison,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_base_event_frequency_data_condition(
+    data: dict[str, Any], dcg: Any, count_type: str, percent_type: str
+) -> DataConditionKwargs:
+    comparison_type = data.get(
+        "comparisonType", ComparisonType.COUNT
+    )  # this is camelCase, age comparison is snake_case
+    comparison_type = ComparisonType(comparison_type)
+
+    value = max(int(data["value"]), 0)  # force to 0 if negative
+    comparison = {
+        "interval": data["interval"],
+        "value": value,
+    }
+
+    if comparison_type == ComparisonType.COUNT:
+        type = count_type
+    else:
+        type = percent_type
+        comparison["comparison_interval"] = data["comparisonInterval"]
+
+    return DataConditionKwargs(
+        type=type,
+        comparison=comparison,
+        condition_result=True,
+        condition_group_id=dcg.id,
+    )
+
+
+def create_event_frequency_data_condition(data: dict[str, Any], dcg: Any) -> DataConditionKwargs:
+    return create_base_event_frequency_data_condition(
+        data=data,
+        dcg=dcg,
+        count_type=Condition.EVENT_FREQUENCY_COUNT,
+        percent_type=Condition.EVENT_FREQUENCY_PERCENT,
+    )
+
+
+def create_event_unique_user_frequency_data_condition(
+    data: dict[str, Any], dcg: Any
+) -> DataConditionKwargs:
+    return create_base_event_frequency_data_condition(
+        data=data,
+        dcg=dcg,
+        count_type=Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+        percent_type=Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+    )
+
+
+def create_percent_sessions_data_condition(data: dict[str, Any], dcg: Any) -> DataConditionKwargs:
+    return create_base_event_frequency_data_condition(
+        data=data,
+        dcg=dcg,
+        count_type=Condition.PERCENT_SESSIONS_COUNT,
+        percent_type=Condition.PERCENT_SESSIONS_PERCENT,
+    )
+
+
+data_condition_translator_mapping: dict[
+    str, Callable[[dict[str, Any], Any], DataConditionKwargs]
+] = {
+    "sentry.rules.conditions.every_event.EveryEventCondition": create_every_event_data_condition,
+    "sentry.rules.conditions.reappeared_event.ReappearedEventCondition": create_reappeared_event_data_condition,
+    "sentry.rules.conditions.regression_event.RegressionEventCondition": create_regression_event_data_condition,
+    "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition": create_existing_high_priority_issue_data_condition,
+    "sentry.rules.conditions.event_attribute.EventAttributeCondition": create_event_attribute_data_condition,
+    "sentry.rules.filters.event_attribute.EventAttributeFilter": create_event_attribute_data_condition,
+    "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition": create_first_seen_event_data_condition,
+    "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition": create_new_high_priority_issue_data_condition,
+    "sentry.rules.conditions.level.LevelCondition": create_level_data_condition,
+    "sentry.rules.filters.level.LevelFilter": create_level_data_condition,
+    "sentry.rules.conditions.tagged_event.TaggedEventCondition": create_tagged_event_data_condition,
+    "sentry.rules.filters.tagged_event.TaggedEventFilter": create_tagged_event_data_condition,
+    "sentry.rules.filters.age_comparison.AgeComparisonFilter": create_age_comparison_data_condition,
+    "sentry.rules.filters.assigned_to.AssignedToFilter": create_assigned_to_data_condition,
+    "sentry.rules.filters.issue_category.IssueCategoryFilter": create_issue_category_data_condition,
+    "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter": create_issue_occurrences_data_condition,
+    "sentry.rules.filters.latest_release.LatestReleaseFilter": create_latest_release_data_condition,
+    "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter": create_latest_adopted_release_data_condition,
+    "sentry.rules.conditions.event_frequency.EventFrequencyCondition": create_event_frequency_data_condition,
+    "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition": create_event_unique_user_frequency_data_condition,
+    "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition": create_percent_sessions_data_condition,
+}
+
+# COPY PASTES FOR JSON SCHEMA
+tagged_event_json_schema = {
+    "type": "object",
+    "properties": {
+        "key": {"type": "string"},
+        "match": {"type": "string", "enum": [*MatchType]},
+        "value": {"type": "string", "optional": True},
+    },
+    "oneOf": [
+        {
+            "properties": {
+                "key": {"type": "string"},
+                "match": {"enum": [MatchType.IS_SET, MatchType.NOT_SET]},
+            },
+            "required": ["key", "match"],
+            "not": {"required": ["value"]},
+        },
+        {
+            "properties": {
+                "key": {"type": "string"},
+                "match": {"not": {"enum": [MatchType.IS_SET, MatchType.NOT_SET]}},
+                "value": {"type": "string"},
+            },
+            "required": ["key", "match", "value"],
+        },
+    ],
+    "additionalProperties": False,
+}
+event_attribute_json_schema = {
+    "type": "object",
+    "properties": {
+        "attribute": {"type": "string"},
+        "match": {"type": "string", "enum": [*MatchType]},
+        "value": {"type": "string"},
+    },
+    "required": ["attribute", "match", "value"],
+    "additionalProperties": False,
+}
+data_condition_json_schema_mapping: dict[Condition, dict[str, Any]] = {
+    Condition.AGE_COMPARISON: {
+        "type": "object",
+        "properties": {
+            "comparison_type": {"type": "string", "enum": [*AgeComparisonType]},
+            "value": {"type": "integer", "minimum": 0},
+            "time": {"type": "string", "enum": ["minute", "hour", "day", "week"]},
+        },
+        "required": ["comparison_type", "value", "time"],
+        "additionalProperties": False,
+    },
+    Condition.ASSIGNED_TO: {
+        "type": "object",
+        "properties": {
+            "target_type": {"type": "string", "enum": [*AssigneeTargetType]},
+            "target_identifier": {"type": ["integer", "string"]},
+        },
+        "required": ["target_type", "target_identifier"],
+        "additionalProperties": False,
+    },
+    Condition.EVENT_ATTRIBUTE: event_attribute_json_schema,
+    Condition.EXISTING_HIGH_PRIORITY_ISSUE: {"type": "boolean"},
+    Condition.FIRST_SEEN_EVENT: {"type": "boolean"},
+    Condition.ISSUE_CATEGORY: {
+        "type": "object",
+        "properties": {"value": {"type": "integer", "enum": [*GroupCategory]}},
+        "required": ["value"],
+        "additionalProperties": False,
+    },
+    Condition.ISSUE_OCCURRENCES: {
+        "type": "object",
+        "properties": {"value": {"type": "integer", "minimum": 0}},
+        "required": ["value"],
+        "additionalProperties": False,
+    },
+    Condition.LATEST_ADOPTED_RELEASE: {
+        "type": "object",
+        "properties": {
+            "release_age_type": {"type": "string", "enum": [*ModelAgeType]},
+            "age_comparison": {"type": "string", "enum": [*AgeComparisonType]},
+            "environment": {"type": "string"},
+        },
+        "required": ["release_age_type", "age_comparison", "environment"],
+        "additionalProperties": False,
+    },
+    Condition.LATEST_RELEASE: {"type": "boolean"},
+    Condition.LEVEL: {
+        "type": "object",
+        "properties": {
+            "level": {"type": "integer", "enum": [0, 10, 20, 30, 40, 50]},
+            "match": {"type": "string", "enum": [*MatchType]},
+        },
+        "required": ["level", "match"],
+        "additionalProperties": False,
+    },
+    Condition.NEW_HIGH_PRIORITY_ISSUE: {"type": "boolean"},
+    Condition.REGRESSION_EVENT: {"type": "boolean"},
+    Condition.REAPPEARED_EVENT: {"type": "boolean"},
+    Condition.TAGGED_EVENT: tagged_event_json_schema,
+    Condition.EVENT_FREQUENCY_COUNT: {
+        "type": "object",
+        "properties": {
+            "interval": {"type": "string", "enum": ["1m", "5m", "15m", "1h", "1d", "1w", "30d"]},
+            "value": {"type": "integer", "minimum": 0},
+            "filters": {
+                "type": "array",
+                "items": {
+                    "anyOf": [
+                        tagged_event_json_schema,
+                        event_attribute_json_schema,
+                    ]
+                },
+            },
+        },
+        "required": ["interval", "value"],
+        "additionalProperties": False,
+    },
+    Condition.EVENT_FREQUENCY_PERCENT: {
+        "type": "object",
+        "properties": {
+            "interval": {"type": "string", "enum": ["1m", "5m", "15m", "1h", "1d", "1w", "30d"]},
+            "value": {"type": "integer", "minimum": 0},
+            "comparison_interval": {
+                "type": "string",
+                "enum": ["5m", "15m", "1h", "1d", "1w", "30d"],
+            },
+            "filters": {
+                "type": "array",
+                "items": {
+                    "anyOf": [
+                        tagged_event_json_schema,
+                        event_attribute_json_schema,
+                    ]
+                },
+            },
+        },
+        "required": ["interval", "value", "comparison_interval"],
+        "additionalProperties": False,
+    },
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT: {
+        "type": "object",
+        "properties": {
+            "interval": {"type": "string", "enum": ["1m", "5m", "15m", "1h", "1d", "1w", "30d"]},
+            "value": {"type": "integer", "minimum": 0},
+            "filters": {
+                "type": "array",
+                "items": {
+                    "anyOf": [
+                        tagged_event_json_schema,
+                        event_attribute_json_schema,
+                    ]
+                },
+            },
+        },
+        "required": ["interval", "value"],
+        "additionalProperties": False,
+    },
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT: {
+        "type": "object",
+        "properties": {
+            "interval": {"type": "string", "enum": ["1m", "5m", "15m", "1h", "1d", "1w", "30d"]},
+            "value": {"type": "integer", "minimum": 0},
+            "comparison_interval": {
+                "type": "string",
+                "enum": ["5m", "15m", "1h", "1d", "1w", "30d"],
+            },
+            "filters": {
+                "type": "array",
+                "items": {
+                    "anyOf": [
+                        tagged_event_json_schema,
+                        event_attribute_json_schema,
+                    ]
+                },
+            },
+        },
+        "required": ["interval", "value", "comparison_interval"],
+        "additionalProperties": False,
+    },
+    Condition.PERCENT_SESSIONS_COUNT: {
+        "type": "object",
+        "properties": {
+            "interval": {"type": "string", "enum": ["1m", "5m", "10m", "30m", "1h"]},
+            "value": {"type": "number", "minimum": 0, "maximum": 100},
+            "filters": {
+                "type": "array",
+                "items": {
+                    "anyOf": [
+                        tagged_event_json_schema,
+                        event_attribute_json_schema,
+                    ]
+                },
+            },
+        },
+        "required": ["interval", "value"],
+        "additionalProperties": False,
+    },
+    Condition.PERCENT_SESSIONS_PERCENT: {
+        "type": "object",
+        "properties": {
+            "interval": {"type": "string", "enum": ["1m", "5m", "10m", "30m", "1h"]},
+            "value": {"type": "number", "minimum": 0},
+            "comparison_interval": {
+                "type": "string",
+                "enum": ["5m", "15m", "1h", "1d", "1w", "30d"],
+            },
+            "filters": {
+                "type": "array",
+                "items": {
+                    "anyOf": [
+                        tagged_event_json_schema,
+                        event_attribute_json_schema,
+                    ]
+                },
+            },
+        },
+        "required": ["interval", "value", "comparison_interval"],
+        "additionalProperties": False,
+    },
+}
+
+
+CONDITION_OPS = {
+    Condition.EQUAL: operator.eq,
+    Condition.GREATER_OR_EQUAL: operator.ge,
+    Condition.GREATER: operator.gt,
+    Condition.LESS_OR_EQUAL: operator.le,
+    Condition.LESS: operator.lt,
+    Condition.NOT_EQUAL: operator.ne,
+}
+
+
+def enforce_data_condition_json_schema(data_condition: Any) -> None:
+    condition_type = Condition(data_condition.type)
+    if condition_type in CONDITION_OPS:
+        # don't enforce schema for default ops, this can be any type
+        return
+
+    schema = data_condition_json_schema_mapping.get(condition_type)
+    if not schema:
+        logger.error(
+            "No registration exists for condition",
+            extra={"type": data_condition.type, "id": data_condition.id},
+        )
+        return None
+
+    try:
+        validate(data_condition.comparison, schema)
+    except ValidationError as e:
+        raise ValidationError(f"Invalid config: {e.message}")
+
+
 def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Project = apps.get_model("sentry", "Project")
     Rule = apps.get_model("sentry", "Rule")
@@ -163,6 +723,13 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
     DetectorWorkflow = apps.get_model("workflow_engine", "DetectorWorkflow")
     Workflow = apps.get_model("workflow_engine", "Workflow")
     WorkflowDataConditionGroup = apps.get_model("workflow_engine", "WorkflowDataConditionGroup")
+
+    def _translate_to_data_condition(data: dict[str, Any], dcg: Any) -> Any:
+        translator = data_condition_translator_mapping.get(data["id"])
+        if not translator:
+            raise ValueError(f"Unsupported condition: {data['id']}")
+
+        return DataCondition(**asdict(translator(data, dcg)))
 
     def _create_event_unique_user_frequency_condition_with_conditions(
         data: dict[str, Any], dcg: Any, conditions: list[dict[str, Any]] | None = None
@@ -234,7 +801,7 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
                         )
                     )
                 else:
-                    dcg_conditions.append(translate_to_data_condition(dict(condition), dcg=dcg))
+                    dcg_conditions.append(_translate_to_data_condition(dict(condition), dcg=dcg))
             except Exception as e:
                 logger.exception(
                     "workflow_engine.issue_alert_migration.error",
@@ -247,6 +814,7 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
         # try one by one, ignoring errors
         for dc in filtered_data_conditions:
             try:
+                enforce_data_condition_json_schema(dc)
                 dc.save()
                 data_conditions.append(dc)
             except Exception as e:
