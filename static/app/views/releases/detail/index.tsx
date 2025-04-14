@@ -33,7 +33,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import type {ReleaseBounds} from 'sentry/views/releases/utils';
@@ -256,7 +255,6 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
   const params = useParams<{release: string}>();
   const location = useLocation();
   const navigate = useNavigate();
-  const router = useRouter();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {release} = params;
@@ -316,7 +314,6 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
           id: String(id),
           slug,
         }))}
-        router={router}
         nextPath={{
           pathname: makeReleasesPathname({
             path: `/${encodeURIComponent(release)}/`,
