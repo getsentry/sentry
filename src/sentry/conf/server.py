@@ -1427,6 +1427,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
     "sentry.notifications.utils.tasks",
+    "sentry.relocation.tasks.process",
+    "sentry.relocation.tasks.transfer",
     "sentry.replays.tasks",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.snuba.tasks",
