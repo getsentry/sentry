@@ -251,7 +251,7 @@ function OTelSummaryContentInner({
           <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
         </FilterActions>
         <EAPChartsWidgetContainer>
-          <EAPChartsWidget transactionName={transactionName} />
+          <EAPChartsWidget transactionName={transactionName} query={query} />
         </EAPChartsWidgetContainer>
 
         <PerformanceAtScaleContextProvider>
