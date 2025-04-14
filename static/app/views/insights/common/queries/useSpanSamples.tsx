@@ -19,7 +19,7 @@ import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 
-type Options<Fields> = {
+type Options<Fields extends NonDefaultSpanSampleFields[]> = {
   groupId: string;
   transactionName: string;
   additionalFields?: Fields;
@@ -42,7 +42,20 @@ export type SpanSample = Pick<
   | SpanIndexedField.TRACE
 >;
 
-export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
+export type DefaultSpanSampleFields =
+  | SpanIndexedField.PROJECT
+  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.TIMESTAMP
+  | SpanIndexedField.SPAN_ID
+  | SpanIndexedField.PROFILE_ID
+  | SpanIndexedField.SPAN_SELF_TIME;
+
+export type NonDefaultSpanSampleFields = Exclude<
+  SpanIndexedProperty,
+  DefaultSpanSampleFields
+>;
+
+export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   options: Options<Fields>
 ) => {
   const organization = useOrganization();
@@ -103,19 +116,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
   );
 
   return useApiQuery<{
-    data: Array<
-      Pick<
-        SpanIndexedResponse,
-        | Fields[number]
-        // These fields are returned by default
-        | SpanIndexedField.PROJECT
-        | SpanIndexedField.TRANSACTION_ID
-        | SpanIndexedField.TIMESTAMP
-        | SpanIndexedField.SPAN_ID
-        | SpanIndexedField.PROFILE_ID
-        | SpanIndexedField.SPAN_SELF_TIME
-      >
-    >;
+    data: Array<Pick<SpanIndexedResponse, Fields[number] | DefaultSpanSampleFields>>;
     meta: EventsMetaType;
   }>(
     [
