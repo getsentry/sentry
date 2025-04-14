@@ -18,7 +18,6 @@ import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -567,7 +566,6 @@ function GraphButton({
       aria-label={`${t('Toggle graph series')} - ${label}`}
       {...props}
     >
-      <InteractionStateLayer hidden={isActive} />
       <Flex column>
         <Label isActive={isActive}>{label}</Label>
         <Count isActive={isActive}>{count ? formatAbbreviatedNumber(count) : '-'}</Count>
