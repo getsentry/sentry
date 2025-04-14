@@ -106,12 +106,6 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
           makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
           data => data?.filter(view => view.id !== variables.id)
         );
-      } else {
-        setApiQueryData<StarredGroupSearchView[]>(
-          queryClient,
-          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-          data => [...(data ?? []), variables.view]
-        );
       }
     },
   });

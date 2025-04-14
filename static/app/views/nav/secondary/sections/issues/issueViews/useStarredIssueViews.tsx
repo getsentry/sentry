@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 
-import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import type {StarredGroupSearchView} from 'sentry/views/issueList/types';
@@ -10,9 +10,9 @@ export function useStarredIssueViews() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const groupSearchViews = getApiQueryData<StarredGroupSearchView[]>(
-    queryClient,
-    makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug})
+  const {data: groupSearchViews} = useApiQuery<StarredGroupSearchView[]>(
+    makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
+    {notifyOnChangeProps: ['data'], staleTime: 0}
   );
 
   const starredViews = groupSearchViews?.map(convertGSVtoIssueView) ?? [];

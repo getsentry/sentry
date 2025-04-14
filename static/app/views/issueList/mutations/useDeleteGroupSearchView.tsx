@@ -36,12 +36,13 @@ export const useDeleteGroupSearchView = (
         }
       ),
     onSuccess: (data, parameters, context) => {
-      // Update the specific view cache
-      setApiQueryData<GroupSearchView>(
-        queryClient,
-        makeFetchGroupSearchViewKey({orgSlug: organization.slug, id: parameters.id}),
-        undefined
-      );
+      // Invalidate the view in cache
+      queryClient.invalidateQueries({
+        queryKey: makeFetchGroupSearchViewKey({
+          orgSlug: organization.slug,
+          id: parameters.id,
+        }),
+      });
 
       // Update any matching starred views in cache
       setApiQueryData<StarredGroupSearchView[]>(
