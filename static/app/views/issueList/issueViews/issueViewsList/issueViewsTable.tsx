@@ -81,7 +81,7 @@ export function IssueViewsTable({
             <SavedEntityTable.CellQuery query={view.query} />
           </SavedEntityTable.Cell>
           <SavedEntityTable.Cell>
-            <SavedEntityTable.CellTimeSince date={view.lastVisited ?? null} />
+            <SavedEntityTable.CellTimeSince date={view.lastVisited} />
           </SavedEntityTable.Cell>
         </SavedEntityTable.Row>
       ))}
