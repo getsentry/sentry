@@ -74,6 +74,7 @@ class DummyTSDB(BaseTSDB):
         tenant_ids=None,
         referrer_suffix=None,
         conditions=None,
+        group_on_time: bool = False,
     ):
         self.validate_arguments([model], [environment_id])
         return {k: 0 for k in keys}
