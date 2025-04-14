@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import importlib.metadata
 import inspect
 import os.path
 import random
@@ -975,23 +974,6 @@ class PluginTestCase(TestCase):
         if inspect.isclass(self.plugin):
             plugins.register(self.plugin)
             self.addCleanup(plugins.unregister, self.plugin)
-
-    def assertAppInstalled(self, name, path):
-        for ep in importlib.metadata.distribution("sentry").entry_points:
-            if ep.group == "sentry.apps" and ep.name == name:
-                assert ep.value == path
-                return
-        else:
-            self.fail(f"Missing app from entry_points: {name!r}")
-
-    def assertPluginInstalled(self, name, plugin):
-        path = type(plugin).__module__ + ":" + type(plugin).__name__
-        for ep in importlib.metadata.distribution("sentry").entry_points:
-            if ep.group == "sentry.plugins" and ep.name == name:
-                assert ep.value == path
-                return
-        else:
-            self.fail(f"Missing plugin from entry_points: {name!r}")
 
 
 class CliTestCase(TestCase):
