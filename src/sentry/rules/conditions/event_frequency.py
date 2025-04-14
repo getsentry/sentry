@@ -235,7 +235,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         start: datetime,
         end: datetime,
         environment_id: int,
-        group_on_time: bool = False,
+        # group_on_time: bool = False,
     ) -> int | float:
         """
         Abstract method that specifies how to query Snuba for a single group
@@ -438,7 +438,6 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         start: datetime,
         end: datetime,
         environment_id: int,
-        group_on_time: bool = False,
     ) -> int:
         sums: Mapping[int, int] = self.get_snuba_query_result(
             tsdb_function=self.tsdb.get_sums,
@@ -450,7 +449,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             end=end,
             environment_id=environment_id,
             referrer_suffix="alert_event_frequency",
-            group_on_time=group_on_time,
+            group_on_time=False,
         )
         return sums[event.group_id]
 
@@ -514,7 +513,6 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         start: datetime,
         end: datetime,
         environment_id: int,
-        group_on_time: bool = False,
     ) -> int:
         totals: Mapping[int, int] = self.get_snuba_query_result(
             tsdb_function=self.tsdb.get_distinct_counts_totals,
@@ -526,7 +524,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
             end=end,
             environment_id=environment_id,
             referrer_suffix="alert_event_uniq_user_frequency",
-            group_on_time=group_on_time,
+            group_on_time=False,
         )
         return totals[event.group_id]
 
@@ -590,7 +588,6 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         start: datetime,
         end: datetime,
         environment_id: int,
-        group_on_time: bool = False,
     ) -> int:
         assert self.rule
         if not features.has(
@@ -625,7 +622,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
             environment_id=environment_id,
             referrer_suffix="batch_alert_event_uniq_user_frequency",
             conditions=conditions,
-            group_on_time=group_on_time,
+            group_on_time=False,
         )
         return total[event.group.id]
 
@@ -926,7 +923,6 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         start: datetime,
         end: datetime,
         environment_id: int,
-        group_on_time: bool = True,
     ) -> float:
         project_id = event.project_id
         session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
@@ -944,7 +940,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix="alert_event_frequency_percent",
-                group_on_time=group_on_time,
+                group_on_time=True,
             )[event.group_id]
 
             if issue_count > avg_sessions_in_interval:
