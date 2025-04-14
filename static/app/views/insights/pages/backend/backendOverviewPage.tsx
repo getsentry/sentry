@@ -33,6 +33,7 @@ import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/backend/laravel/features';
@@ -111,17 +112,24 @@ function GenericBackendOverviewPage() {
   const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
+  const useEap = useInsightsEap();
 
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
+  const eventView = generateBackendPerformanceEventView(
+    location,
+    withStaticFilters,
+    useEap
+  );
   const searchBarEventView = eventView.clone();
+
+  const segmentOp = useEap ? 'span.op' : 'transaction.op';
 
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
     {field: 'team_key_transaction'},
     {field: 'http.method'},
     {field: 'transaction'},
-    {field: 'transaction.op'},
+    {field: segmentOp},
     {field: 'project'},
     {field: 'tpm()'},
     {field: 'p50()'},
@@ -155,7 +163,7 @@ function GenericBackendOverviewPage() {
   const existingQuery = new MutableSearch(eventView.query);
   existingQuery.addOp('(');
   existingQuery.addOp('(');
-  existingQuery.addFilterValues('!transaction.op', disallowedOps);
+  existingQuery.addFilterValues(`!${segmentOp}`, disallowedOps);
 
   if (selectedFrontendProjects.length > 0 || selectedMobileProjects.length > 0) {
     existingQuery.addFilterValue(
@@ -168,7 +176,7 @@ function GenericBackendOverviewPage() {
   }
   existingQuery.addOp(')');
   existingQuery.addOp('OR');
-  existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addDisjunctionFilterValues(segmentOp, OVERVIEW_PAGE_ALLOWED_OPS);
   existingQuery.addOp(')');
 
   eventView.query = existingQuery.formatString();

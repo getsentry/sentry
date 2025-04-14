@@ -30,6 +30,7 @@ import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
@@ -111,6 +112,18 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const {InteractiveTitle} = props;
   const {setPageError} = usePageAlert();
 
+  const useEap = useInsightsEap();
+
+  const dataset = useInsightsEap()
+    ? DiscoverDatasets.SPANS_EAP_RPC
+    : DiscoverDatasets.SPANS_METRICS;
+
+  const queryParams: Record<string, string> = useEap
+    ? {useRpc: '1', dataset: DiscoverDatasets.SPANS_EAP}
+    : {dataset: DiscoverDatasets.SPANS_METRICS};
+
+  const segmentOp = useEap ? 'span.op' : 'transaction.op';
+
   const field = props.fields[0]!;
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
@@ -122,7 +135,9 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
         }
 
         const eventView = provided.eventView.clone();
-        let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
+        let extraQueryParams = useEap
+          ? queryParams
+          : getMEPParamsIfApplicable(mepSetting, props.chartSetting);
 
         // Set fields
         const sortField: string = (
@@ -143,16 +158,18 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
         ];
 
         // Change data set to metrics
-        eventView.dataset = DiscoverDatasets.METRICS;
+        eventView.dataset = dataset;
         extraQueryParams = {
           ...extraQueryParams,
-          dataset: DiscoverDatasets.METRICS,
+          ...queryParams,
         };
 
         // Update query
         const mutableSearch = new MutableSearch(eventView.query);
-        mutableSearch.addFilterValue('event.type', 'transaction');
-        mutableSearch.addFilterValue('transaction.op', 'ui.load');
+        if (!useEap) {
+          mutableSearch.addFilterValue('event.type', 'transaction');
+        }
+        mutableSearch.addFilterValue(segmentOp, 'ui.load');
         eventView.query = appendReleaseFilters(
           mutableSearch,
           primaryRelease,
@@ -208,16 +225,18 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
             provided.widgetData.list.data[selectedListIndex]!.transaction as string,
           ]);
 
-          eventView.dataset = DiscoverDatasets.METRICS;
+          eventView.dataset = dataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.METRICS,
+            ...queryParams,
           };
 
           eventView.fields = [{field}, {field: 'release'}];
           const mutableSearch = new MutableSearch(eventView.query);
-          mutableSearch.addFilterValue('event.type', 'transaction');
-          mutableSearch.addFilterValue('transaction.op', 'ui.load');
+          if (!useEap) {
+            mutableSearch.addFilterValue('event.type', 'transaction');
+          }
+          mutableSearch.addFilterValue(segmentOp, 'ui.load');
           eventView.query = appendReleaseFilters(
             mutableSearch,
             primaryRelease,

@@ -505,7 +505,8 @@ export function generateGenericPerformanceEventView(
 
 export function generateBackendPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean
+  withStaticFilters: boolean,
+  useEap = false
 ): EventView {
   const {query} = location;
 
@@ -529,7 +530,7 @@ export function generateBackendPerformanceEventView(
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: 'event.type:transaction',
+    query: useEap ? 'is_transaction:true' : 'event.type:transaction',
     projects: [],
     fields,
     version: 2,
@@ -549,7 +550,11 @@ export function generateBackendPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  if (useEap) {
+    eventView.additionalConditions.addFilterValues('is_transaction', ['true']);
+  } else {
+    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  }
 
   return eventView;
 }
@@ -559,7 +564,8 @@ export function generateMobilePerformanceEventView(
   projects: Project[],
   genericEventView: EventView,
   withStaticFilters: boolean,
-  organization: Organization
+  organization: Organization,
+  useEap = false
 ): EventView {
   const {query} = location;
 
@@ -596,7 +602,7 @@ export function generateMobilePerformanceEventView(
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: 'event.type:transaction',
+    query: useEap ? 'is_transaction:true' : 'event.type:transaction',
     projects: [],
     fields: [...fields, 'count_unique(user)', 'count_miserable(user)', 'user_misery()'],
     version: 2,
@@ -616,7 +622,11 @@ export function generateMobilePerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  if (useEap) {
+    eventView.additionalConditions.addFilterValues('is_transaction', ['true']);
+  } else {
+    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  }
 
   return eventView;
 }
@@ -673,7 +683,8 @@ function generateFrontendPageloadPerformanceEventView(
 
 export function generateFrontendOtherPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean
+  withStaticFilters: boolean,
+  useEap = false
 ): EventView {
   const {query} = location;
 
@@ -695,7 +706,7 @@ export function generateFrontendOtherPerformanceEventView(
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: 'event.type:transaction',
+    query: useEap ? 'is_transaction:true' : 'event.type:transaction',
     projects: [],
     fields,
     version: 2,
@@ -715,7 +726,11 @@ export function generateFrontendOtherPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  if (useEap) {
+    eventView.additionalConditions.addFilterValues('is_transaction', ['true']);
+  } else {
+    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
+  }
 
   return eventView;
 }

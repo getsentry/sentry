@@ -470,6 +470,7 @@ export enum MetricsFields {
   APP_START_WARM = 'measurements.app_start_warm',
   TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
   TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
+  RELEASE = 'release',
 }
 
 export type MetricsNumberFields =
@@ -503,7 +504,8 @@ export type MetricsStringFields =
   | MetricsFields.ID
   | MetricsFields.TRACE
   | MetricsFields.USER_DISPLAY
-  | MetricsFields.REPLAY_ID
+  | MetricsFields.PROFILE_ID
+  | MetricsFields.RELEASE
   | MetricsFields.TIMESTAMP;
 
 export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
