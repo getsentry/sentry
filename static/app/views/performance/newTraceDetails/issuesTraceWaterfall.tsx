@@ -7,7 +7,6 @@ import {
   useReducer,
   useRef,
 } from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -33,14 +32,10 @@ import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/use
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
-import {TraceScheduler} from './traceRenderers/traceScheduler';
-import {TraceView as TraceViewModel} from './traceRenderers/traceView';
-import {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
-import type {TraceReducerState} from './traceState';
 import {
   traceNodeAdjacentAnalyticsProperties,
   traceNodeAnalyticsName,
@@ -54,13 +49,13 @@ import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
 const noopTraceSearch = () => {};
 
-interface IssuesTraceWaterfallProps extends Omit<TraceWaterfallProps, 'tree'> {
+interface IssuesTraceWaterfallProps
+  extends Omit<TraceWaterfallProps, 'tree' | 'traceWaterfallScrollHandlers'> {
   event: Event;
   tree: IssuesTraceTree;
 }
 
 export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
-  const theme = useTheme();
   const {projects} = useProjects();
   const organization = useOrganization();
   const traceState = useTraceState();
@@ -69,8 +64,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
 
-  const traceView = useMemo(() => new TraceViewModel(), []);
-  const traceScheduler = useMemo(() => new TraceScheduler(), []);
   const problemSpans = useMemo((): ReturnType<typeof getProblemSpansForSpanTree> => {
     if (props.event.type === 'transaction') {
       return getProblemSpansForSpanTree(props.event);
@@ -93,29 +86,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     null
   );
 
-  // Assign the trace state to a ref so we can access it without re-rendering
-  const traceStateRef = useRef<TraceReducerState>(traceState);
-  traceStateRef.current = traceState;
-
-  const traceStatePreferencesRef = useRef<
-    Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
-  >(traceState.preferences);
-  traceStatePreferencesRef.current = traceState.preferences;
-
-  // Initialize the view manager right after the state reducer
-  const viewManager = useMemo(() => {
-    return new VirtualizedViewManager(
-      {
-        list: {width: traceState.preferences.list.width},
-        span_list: {width: 1 - traceState.preferences.list.width},
-      },
-      traceScheduler,
-      traceView,
-      theme
-    );
-    // We only care about initial state when we initialize the view manager
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const {viewManager, traceScheduler, traceView} = props.traceWaterfallModels;
 
   // Initialize the tabs reducer when the tree initializes
   useLayoutEffect(() => {
