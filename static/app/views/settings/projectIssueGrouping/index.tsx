@@ -107,7 +107,8 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
           <JsonForm
             {...jsonFormProps}
             title={t('Derived Grouping Enhancements')}
-            fields={[fields.derivedGroupingEnhancements!]}
+            fields={[fields.derivedGroupingEnhancements]}
+            disabled
           />
         )}
       </Form>

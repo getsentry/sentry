@@ -16,7 +16,7 @@ export type Row = {
 export type TransactionSampleRow = {
   id: string;
   'profile.id': string;
-  projectSlug: string;
+  project: string;
   replayId: string;
   timestamp: string;
   trace: string;
@@ -31,7 +31,7 @@ export type TransactionSampleRow = {
 
 export type TransactionSampleRowWithScore = TransactionSampleRow & Score;
 
-type Score = {
+export type Score = {
   clsScore: number;
   fcpScore: number;
   inpScore: number;
@@ -43,7 +43,7 @@ type Score = {
 export type SpanSampleRow = {
   id: string;
   'profile.id': string;
-  projectSlug: string;
+  project: string;
   replayId: string;
   [SpanIndexedField.SPAN_DESCRIPTION]: string;
   [SpanIndexedField.SPAN_SELF_TIME]: number;

@@ -14,7 +14,7 @@ import {
   DEFAULT_TIME_FILTERS,
 } from 'sentry/views/issueList/issueViews/issueViews';
 import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
-import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import {useFetchStarredGroupSearchViews} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {useNavContext} from 'sentry/views/nav/context';
 import useDefaultProject from 'sentry/views/nav/secondary/sections/issues/issueViews/useDefaultProject';
@@ -29,7 +29,7 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
 
   const defaultProject = useDefaultProject();
 
-  const {data: groupSearchViews} = useFetchGroupSearchViews({
+  const {data: starredGroupSearchViews} = useFetchStarredGroupSearchViews({
     orgSlug: organization.slug,
   });
 
@@ -47,11 +47,11 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
   });
 
   const handleOnAddView = () => {
-    if (groupSearchViews) {
+    if (starredGroupSearchViews) {
       setIsLoading(true);
       updateViews({
         groupSearchViews: [
-          ...groupSearchViews,
+          ...starredGroupSearchViews,
           {
             name: 'New View',
             query: 'is:unresolved',
@@ -90,9 +90,11 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
 }
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  width: 14px;
-  height: 14px !important;
-  margin: 0 !important;
+  && {
+    margin: 0;
+    height: 14px;
+    width: 14px;
+  }
 `;
 
 const AddViewButton = styled(Button)<{layout: NavLayout}>`

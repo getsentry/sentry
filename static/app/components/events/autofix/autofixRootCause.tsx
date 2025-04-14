@@ -139,7 +139,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
           };
         }
       );
-      addSuccessMessage("Great, let's move forward with this root cause.");
+      addSuccessMessage('On it.');
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when selecting the root cause.'));

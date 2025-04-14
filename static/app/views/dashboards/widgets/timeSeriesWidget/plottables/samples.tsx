@@ -1,25 +1,28 @@
 import type {Theme} from '@emotion/react';
+import * as Sentry from '@sentry/react';
 import type {ScatterSeriesOption, SeriesOption} from 'echarts';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
+import isValidDate from 'sentry/utils/date/isValidDate';
 import type {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {scaleTabularDataColumn} from 'sentry/utils/tabularData/scaleTabularDataColumn';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
-import {getSampleChartSymbol} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
-import {crossIconPath} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/symbol';
-
-import {isAPlottableTimeSeriesValueType} from '../../common/typePredicates';
+import {isAPlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/common/typePredicates';
 import type {
   TabularData,
   TabularRow,
   TabularValueUnit,
   TimeSeriesValueUnit,
-} from '../../common/types';
-import {FALLBACK_TYPE} from '../settings';
+} from 'sentry/views/dashboards/widgets/common/types';
+import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
+import {getSampleChartSymbol} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
+import {crossIconPath} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/symbol';
 
 import {BaselineMarkLine} from './baselineMarkline';
 import type {Plottable, PlottableTimeSeriesValueType} from './plottable';
+
+const {error, warn} = Sentry.logger;
 
 type ScatterPlotDatum = [timestamp: string, value: number, id: string];
 
@@ -46,6 +49,14 @@ export type SamplesConfig = {
    * A baseline value. If provided, the plottable will add a markline to indicate this baseline. Values above and below this baseline will be highlighted accordingly.
    */
   baselineValue?: number;
+  /**
+   * Callback for ECharts' `onClick` mouse event. Called with the sample that corresponds to the highlighted sample in the chart
+   */
+  onClick?: (datum: ValidSampleRow) => void;
+  /**
+   * Callback for ECharts' `onHighlight`. Called with the sample that corresponds to the clicked sample in the chart
+   */
+  onHighlight?: (datum: ValidSampleRow) => void;
 };
 
 export type SamplesPlottingOptions = {
@@ -66,6 +77,7 @@ export class Samples implements Plottable {
   sampleTableData: Readonly<TabularData>;
   #timestamps: readonly string[];
   config: Readonly<SamplesConfig>;
+  chartRef?: ReactEchartsRef;
 
   constructor(samples: TabularData, config: SamplesConfig) {
     this.sampleTableData = samples;
@@ -74,6 +86,30 @@ export class Samples implements Plottable {
       .map(sample => sample.timestamp)
       .toSorted();
     this.config = config;
+  }
+
+  handleChartRef(chartRef: ReactEchartsRef) {
+    this.chartRef = chartRef;
+  }
+
+  highlight(sample: TabularRow | undefined) {
+    const {config} = this;
+
+    if (!this.chartRef) {
+      warn('`Samples.highlight` invoked before chart ref is ready');
+      return;
+    }
+
+    const chart = this.chartRef.getEchartsInstance();
+    const seriesName = this.name;
+
+    if (sample && isValidSampleRow(sample)) {
+      const dataIndex = this.sampleTableData.data.indexOf(sample);
+      chart.dispatchAction({type: 'highlight', seriesName, dataIndex});
+      config.onHighlight?.(sample);
+    } else {
+      chart.dispatchAction({type: 'downplay', seriesName});
+    }
   }
 
   get isEmpty(): boolean {
@@ -131,11 +167,13 @@ export class Samples implements Plottable {
     return {
       ...this.sampleTableData,
       data: this.sampleTableData.data.filter(sample => {
-        if (!defined(sample.timestamp)) {
+        const timestampValue = sample.timestamp;
+        // @ts-expect-error: TypeScript pretends like `Date` doesn't accept `undefined`, but it does
+        const ts = new Date(timestampValue);
+
+        if (!isValidDate(ts)) {
           return false;
         }
-
-        const ts = new Date(sample.timestamp);
 
         return (
           (!boundaryStart || ts >= boundaryStart) && (!boundaryEnd || ts <= boundaryEnd)
@@ -146,6 +184,44 @@ export class Samples implements Plottable {
 
   constrain(boundaryStart: Date | null, boundaryEnd: Date | null) {
     return new Samples(this.constrainSamples(boundaryStart, boundaryEnd), this.config);
+  }
+
+  #getSampleByIndex(dataIndex: number): ValidSampleRow | undefined {
+    const sample = this.sampleTableData.data.at(dataIndex);
+
+    if (!sample) {
+      error('`Samples` plottable data out-of-range error', {
+        dataIndex,
+      });
+      return undefined;
+    }
+
+    if (!isValidSampleRow(sample)) {
+      warn('`Samples` plottable `onHighlight` almost received an invalid row', {
+        dataIndex,
+      });
+      return undefined;
+    }
+
+    return sample;
+  }
+
+  onClick(dataIndex: number): void {
+    const {config} = this;
+
+    const sample = this.#getSampleByIndex(dataIndex);
+    if (sample) {
+      config.onClick?.(sample);
+    }
+  }
+
+  onHighlight(dataIndex: number): void {
+    const {config} = this;
+
+    const sample = this.#getSampleByIndex(dataIndex);
+    if (sample) {
+      config.onHighlight?.(sample);
+    }
   }
 
   toSeries(plottingOptions: SamplesPlottingOptions): SeriesOption[] {

@@ -153,7 +153,13 @@ function AutofixSummary({
       title: t('Root Cause'),
       insight: rootCauseDescription,
       icon: <IconFocus size="sm" />,
-      onClick: openSeerDrawer,
+      onClick: () => {
+        trackAnalytics('autofix.summary_root_cause_clicked', {
+          organization,
+          group_id: group.id,
+        });
+        openSeerDrawer();
+      },
       copyTitle: t('Copy root cause as Markdown'),
       copyText: rootCauseCopyText,
     },
@@ -166,7 +172,13 @@ function AutofixSummary({
             insight: solutionDescription,
             icon: <IconFix size="sm" />,
             isLoading: solutionIsLoading,
-            onClick: openSeerDrawer,
+            onClick: () => {
+              trackAnalytics('autofix.summary_solution_clicked', {
+                organization,
+                group_id: group.id,
+              });
+              openSeerDrawer();
+            },
             copyTitle: t('Copy solution as Markdown'),
             copyText: solutionCopyText,
           },
@@ -181,38 +193,17 @@ function AutofixSummary({
             insight: codeChangesDescription,
             icon: <IconCode size="sm" />,
             isLoading: codeChangesIsLoading,
-            onClick: openSeerDrawer,
+            onClick: () => {
+              trackAnalytics('autofix.summary_code_changes_clicked', {
+                organization,
+                group_id: group.id,
+              });
+              openSeerDrawer();
+            },
           },
         ]
       : []),
   ];
-
-  const handleCardClick = (cardId: string, originalOnClick?: () => void) => {
-    let eventKey: string | null = null;
-
-    switch (cardId) {
-      case 'root_cause_description':
-        eventKey = 'autofix.summary_root_cause_clicked';
-        break;
-      case 'solution_description':
-        eventKey = 'autofix.summary_solution_clicked';
-        break;
-      case 'code_changes':
-        eventKey = 'autofix.summary_code_changes_clicked';
-        break;
-      default:
-        break;
-    }
-
-    if (eventKey) {
-      trackAnalytics(eventKey, {
-        organization,
-        group_id: group.id,
-      });
-    }
-
-    originalOnClick?.();
-  };
 
   return (
     <div data-testid="autofix-summary">
@@ -224,14 +215,7 @@ function AutofixSummary({
             }
 
             return (
-              <InsightCardButton
-                key={card.id}
-                onClick={() => handleCardClick(card.id, card.onClick)}
-                role="button"
-                initial="initial"
-                animate={card.isLoading ? 'animate' : 'initial'}
-                variants={pulseAnimation}
-              >
+              <InsightCardButton key={card.id} onClick={card.onClick} role="button">
                 <InsightCard>
                   <CardTitle preview={card.isLoading}>
                     <CardTitleSpacer>
@@ -252,7 +236,13 @@ function AutofixSummary({
                   </CardTitle>
                   <CardContent>
                     {card.isLoading ? (
-                      <Placeholder height="1.5rem" />
+                      <motion.div
+                        initial="initial"
+                        animate="animate"
+                        variants={pulseAnimation}
+                      >
+                        <Placeholder height="1.5rem" />
+                      </motion.div>
                     ) : (
                       <React.Fragment>
                         {card.insightElement}
@@ -293,12 +283,6 @@ const Content = styled('div')`
   position: relative;
 `;
 
-const InsightGrid = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
-`;
-
 const InsightCardButton = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
@@ -320,6 +304,24 @@ const InsightCardButton = styled(motion.div)<React.HTMLAttributes<HTMLDivElement
   }
 `;
 
+const InsightGrid = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
+  position: relative;
+
+  &:before {
+    content: '';
+    position: absolute;
+    left: ${space(3)};
+    top: ${space(4)};
+    bottom: ${space(2)};
+    width: 1px;
+    background: ${p => p.theme.border};
+    z-index: 0;
+  }
+`;
+
 const InsightCard = styled('div')`
   display: flex;
   flex-direction: column;
@@ -332,7 +334,7 @@ const CardTitle = styled('div')<{preview?: boolean}>`
   align-items: center;
   gap: ${space(1)};
   color: ${p => p.theme.subText};
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
+  padding: ${space(0.5)} ${space(0.5)} ${space(0.5)} ${space(1)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   justify-content: space-between;
 `;
@@ -341,13 +343,14 @@ const CardTitleSpacer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(0.75)};
 `;
 
 const CardTitleText = styled('p')`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
+  margin-top: 1px;
 `;
 
 const CardTitleIcon = styled('div')`
@@ -359,7 +362,7 @@ const CardTitleIcon = styled('div')`
 const CardContent = styled('div')`
   overflow-wrap: break-word;
   word-break: break-word;
-  padding: ${space(1.5)};
+  padding: ${space(1)};
   text-align: left;
   flex: 1;
 

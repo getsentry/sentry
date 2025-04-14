@@ -73,13 +73,12 @@ import {PreviewIssues} from 'sentry/views/alerts/rules/issue/previewIssues';
 import SetupMessagingIntegrationButton, {
   MessagingIntegrationAnalyticsView,
 } from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
+import {getProjectOptions} from 'sentry/views/alerts/rules/utils';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/utils/constants';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
-
-import {getProjectOptions} from '../utils';
 
 import RuleNodeList from './ruleNodeList';
 
@@ -144,17 +143,11 @@ type Props = {
   userTeamIds: string[];
   loadingProjects?: boolean;
   onChangeTitle?: (data: string) => void;
-  /**
-   * A callback triggered when the rule is saved successfully
-   */
-  onSaveSuccess?: () => void;
 } & RouteComponentProps<RouteParams>;
 
 type State = DeprecatedAsyncComponent['state'] & {
   configs: IssueAlertConfiguration | null;
-  detailedError: null | {
-    [key: string]: string[];
-  };
+  detailedError: null | Record<string, string[]>;
   environments: Environment[] | null;
   incompatibleConditions: number[] | null;
   incompatibleFilters: number[] | null;
@@ -459,9 +452,8 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   };
 
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
-    const {organization, router, onSaveSuccess} = this.props;
+    const {organization, router} = this.props;
     const {project} = this.state;
-    onSaveSuccess?.();
 
     metric.endSpan({name: 'saveAlertRule'});
 
@@ -671,7 +663,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
             ])
             .filter(([, initial]) => !!initial)
         )
-      : {};
+      : [];
   };
 
   handleResetRow = <T extends keyof IssueAlertRuleAction>(
@@ -1084,7 +1076,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
               disabled={disabled || isSavedAlertRule(rule)}
               value={selectedProject.id}
               styles={{
-                container: (provided: {[x: string]: string | number | boolean}) => ({
+                container: (provided: Record<string, string | number | boolean>) => ({
                   ...provided,
                   marginBottom: `${space(1)}`,
                 }),
@@ -1099,8 +1091,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                   ?.split(':')[1];
                 if (
                   ownerId &&
-                  nextSelectedProject.teams.find(({id}) => id === ownerId) ===
-                    undefined &&
+                  !nextSelectedProject.teams.some(({id}) => id === ownerId) &&
                   nextSelectedProject.teams.length
                 ) {
                   this.handleOwnerChange({value: nextSelectedProject.teams[0]!.id});

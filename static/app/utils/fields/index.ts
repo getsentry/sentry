@@ -1,8 +1,7 @@
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
+import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {SpanIndexedField} from 'sentry/views/insights/types';
-
-import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from '../discover/types';
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
 export enum FieldKind {
@@ -26,6 +25,7 @@ export enum FieldKey {
   BOOKMARKS = 'bookmarks',
   BROWSER_NAME = 'browser.name',
   CULPRIT = 'culprit',
+  DEVICE = 'device',
   DEVICE_ARCH = 'device.arch',
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
   DEVICE_BRAND = 'device.brand',
@@ -822,13 +822,13 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
 
 // TODO: Extend the two lists below with more options upon backend support
 export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
-  SpanIndexedField.SPAN_DURATION,
+  SpanIndexedField.SPAN_DURATION, // DO NOT RE-ORDER: the first element is used as the default
   SpanIndexedField.SPAN_SELF_TIME,
 ];
 
 export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
+  AggregationKey.COUNT, // DO NOT RE-ORDER: the first element is used as the default
   AggregationKey.AVG,
-  AggregationKey.COUNT,
   AggregationKey.P50,
   AggregationKey.P75,
   AggregationKey.P90,
@@ -1298,6 +1298,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
   [FieldKey.BROWSER_NAME]: {
     desc: t('Name of the browser'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.DEVICE]: {
+    desc: t('The device that the event was seen on'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -2256,7 +2261,9 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.SEEN_BY_ME]: {
-    desc: t('Whether you have seen this replay before (true/false)'),
+    desc: t(
+      'Whether you have seen this replay before. Alias of viewed_by_me. (true/false)'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
@@ -2271,7 +2278,7 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.VIEWED_BY_ME]: {
-    desc: t('Whether you have seen this replay before (true/false)'),
+    desc: t('Whether you have seen this replay before. Alias of seen_by_me (true/false)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
@@ -2397,7 +2404,7 @@ export const FEEDBACK_FIELDS = [
   FeedbackFieldKey.MESSAGE,
   FeedbackFieldKey.OS_NAME,
   FeedbackFieldKey.OS_VERSION,
-  FieldKey.PLATFORM,
+  FieldKey.PLATFORM_NAME,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
   FieldKey.TIMESTAMP,
@@ -2513,6 +2520,16 @@ export const getFieldDefinition = (
       if (key in LOG_FIELD_DEFINITIONS) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return LOG_FIELD_DEFINITIONS[key];
+      }
+
+      // In EAP we have numeric tags that can be passed as parameters to
+      // aggregate functions. We assign value type based on kind, so that we can filter
+      // on them when suggesting function parameters.
+      if (kind === FieldKind.MEASUREMENT) {
+        return {
+          kind: FieldKind.FIELD,
+          valueType: FieldValueType.NUMBER,
+        };
       }
 
       if (kind === FieldKind.TAG) {

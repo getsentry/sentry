@@ -211,10 +211,8 @@ type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
   ...infer Rest,
 ]
   ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
-    {[K in A['length']]: Rest extends [] ? never : Rest[0]} & NextTuple<
-      Rest,
-      [...A, unknown]
-    >
+    Record<A['length'], Rest extends [] ? never : Rest[0]> &
+      NextTuple<Rest, [...A, unknown]>
   : Record<number, unknown>;
 
 type NextMap = NextTuple<TupleOf<ColorLength>>;
@@ -777,12 +775,6 @@ const generateAliases = (
   focusBorder: tokens.border.accent,
 
   /**
-   * Inactive
-   * NOTE: Used in only a few places, but unclear how this would map to chonkUI
-   */
-  inactive: colors.gray300,
-
-  /**
    * Link color indicates that something is clickable
    */
   linkColor: tokens.component.link.accent.default,
@@ -804,7 +796,7 @@ const generateAliases = (
    * Color of lines that flow across the background of the chart to indicate axes levels
    * (This should only be used for yAxis)
    */
-  chartLineColor: colors.gray100,
+  chartLineColor: colors.gray300,
 
   /**
    * Color for chart label text
@@ -814,7 +806,12 @@ const generateAliases = (
   /**
    * Color for the 'others' series in topEvent charts
    */
-  chartOther: colors.gray200,
+  chartOther: tokens.content.muted,
+
+  /**
+   * Hover color of the drag handle used in the content slider diff view.
+   */
+  diffSliderDragHandleHover: colors.blue500,
 
   /**
    * Default Progressbar color
@@ -827,11 +824,6 @@ const generateAliases = (
   progressBackground: colors.gray100,
 
   /**
-   * Overlay for partial opacity
-   */
-  overlayBackgroundAlpha: colors.gray100,
-
-  /**
    * Tag progress bars
    */
   tagBarHover: colors.chonk.blue300,
@@ -839,12 +831,12 @@ const generateAliases = (
 
   // @todo(jonasbadalic) should these reference chonk colors?
   searchTokenBackground: {
-    valid: colors.chonk.blue100,
-    validActive: color(colors.chonk.blue100).opaquer(1.0).string(),
-    invalid: colors.chonk.red100,
-    invalidActive: color(colors.chonk.red100).opaquer(0.8).string(),
-    warning: colors.chonk.yellow100,
-    warningActive: color(colors.chonk.yellow100).opaquer(0.8).string(),
+    valid: colors.blue100,
+    validActive: color(colors.blue100).opaquer(1.0).string(),
+    invalid: colors.red100,
+    invalidActive: color(colors.red100).opaquer(0.8).string(),
+    warning: colors.yellow100,
+    warningActive: color(colors.yellow100).opaquer(0.8).string(),
   },
 
   /**
@@ -852,23 +844,13 @@ const generateAliases = (
    * NOTE: Not being used anymore in the new Search UI
    */
   searchTokenBorder: {
-    valid: colors.chonk.blue200,
-    validActive: color(colors.chonk.blue200).opaquer(1).string(),
-    invalid: colors.chonk.red200,
-    invalidActive: color(colors.chonk.red200).opaquer(1).string(),
-    warning: colors.chonk.yellow200,
-    warningActive: color(colors.chonk.yellow200).opaquer(1).string(),
+    valid: colors.blue200,
+    validActive: color(colors.blue200).opaquer(1).string(),
+    invalid: colors.red200,
+    invalidActive: color(colors.red200).opaquer(1).string(),
+    warning: colors.yellow200,
+    warningActive: color(colors.yellow200).opaquer(1).string(),
   },
-
-  /**
-   * Count on button when active
-   */
-  buttonCountActive: colors.white,
-
-  /**
-   * Count on button
-   */
-  buttonCount: tokens.content.primary,
 
   /**
    * Background of alert banners at the top
@@ -1079,8 +1061,12 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   },
 
   sidebar: {
-    // @TODO: these colors need to be ported
-    ...lightTheme.sidebar,
+    background: lightAliases.background,
+    scrollbarThumbColor: '#A0A0A0',
+    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
+    gradient: lightAliases.background,
+    border: 'transparent',
+    superuser: '#880808',
   },
 };
 
@@ -1147,8 +1133,12 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   },
 
   sidebar: {
-    // @TODO: these colors need to be ported
-    ...darkTheme.sidebar,
+    background: lightAliases.background,
+    scrollbarThumbColor: '#A0A0A0',
+    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
+    gradient: `none`,
+    border: 'transparent',
+    superuser: '#880808',
   },
 };
 

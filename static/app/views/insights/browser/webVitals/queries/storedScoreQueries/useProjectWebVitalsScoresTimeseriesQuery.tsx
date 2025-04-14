@@ -1,17 +1,9 @@
-import {getInterval} from 'sentry/components/charts/utils';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import type {Tag} from 'sentry/types/group';
-import type {MetaType} from 'sentry/utils/discover/eventView';
-import EventView from 'sentry/utils/discover/eventView';
-import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
-import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {useDefaultWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/utils/useDefaultQuery';
+import {useMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
@@ -35,13 +27,11 @@ export type WebVitalsScoreBreakdown = {
 export const useProjectWebVitalsScoresTimeseriesQuery = ({
   transaction,
   tag,
-  enabled = true,
   browserTypes,
   subregions,
 }: Props) => {
-  const pageFilters = usePageFilters();
-  const location = useLocation();
-  const organization = useOrganization();
+  const defaultQuery = useDefaultWebVitalsQuery();
+
   const search = new MutableSearch([
     'has:measurements.score.total',
     ...(tag ? [`${tag.key}:"${tag.name}"`] : []),
@@ -55,8 +45,10 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
   if (browserTypes) {
     search.addDisjunctionFilterValues(SpanMetricsField.BROWSER_NAME, browserTypes);
   }
-  const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
+
+  const result = useMetricsSeries(
     {
+      search: [defaultQuery, search.formatString()].join(' ').trim(),
       yAxis: [
         'performance_score(measurements.score.lcp)',
         'performance_score(measurements.score.fcp)',
@@ -65,68 +57,21 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
         'performance_score(measurements.score.ttfb)',
         'count()',
       ],
-      name: 'Web Vitals',
-      query: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
-      version: 2,
-      fields: [],
-      interval: getInterval(pageFilters.selection.datetime, 'low'),
-      dataset: DiscoverDatasets.METRICS,
     },
-    pageFilters.selection
+    'api.performance.browser.web-vitals.timeseries-scores'
   );
 
-  const result = useGenericDiscoverQuery<
-    {
-      data: any[];
-      meta: MetaType;
-    },
-    DiscoverQueryProps
-  >({
-    route: 'events-stats',
-    eventView: projectTimeSeriesEventView,
-    location,
-    orgSlug: organization.slug,
-    getRequestPayload: () => ({
-      ...projectTimeSeriesEventView.getEventsAPIPayload(location),
-      yAxis: projectTimeSeriesEventView.yAxis,
-      topEvents: projectTimeSeriesEventView.topEvents,
-      excludeOther: 0,
-      partial: 1,
-      orderby: undefined,
-      interval: projectTimeSeriesEventView.interval,
-    }),
-    options: {
-      enabled: pageFilters.isReady && enabled,
-      refetchOnWindowFocus: false,
-    },
-    referrer: 'api.performance.browser.web-vitals.timeseries-scores',
-  });
+  const multiplyBy100 = (data: SeriesDataUnit[]) =>
+    data.map(({name, value}) => ({name, value: value * 100}));
 
   const data: WebVitalsScoreBreakdown = {
-    lcp: [],
-    fcp: [],
-    cls: [],
-    ttfb: [],
-    inp: [],
-    total: [],
+    lcp: multiplyBy100(result.data['performance_score(measurements.score.lcp)'].data),
+    fcp: multiplyBy100(result.data['performance_score(measurements.score.fcp)'].data),
+    cls: multiplyBy100(result.data['performance_score(measurements.score.cls)'].data),
+    ttfb: multiplyBy100(result.data['performance_score(measurements.score.ttfb)'].data),
+    inp: multiplyBy100(result.data['performance_score(measurements.score.inp)'].data),
+    total: result.data['count()'].data,
   };
 
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  result?.data?.['performance_score(measurements.score.lcp)']?.data.forEach(
-    (interval: any, index: any) => {
-      ['lcp', 'fcp', 'cls', 'ttfb', 'inp'].forEach(webVital => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        data[webVital].push({
-          value:
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            result?.data?.[`performance_score(measurements.score.${webVital})`]?.data[
-              index
-            ][1][0].count * 100,
-          name: interval[0] * 1000,
-        });
-      });
-    }
-  );
-
-  return {data, isLoading: result.isPending};
+  return {...result, data};
 };

@@ -52,9 +52,7 @@ jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(fu
 });
 
 describe('SpansTabContent', function () {
-  const {organization, project} = initializeOrg({
-    organization: {features: ['visibility-explore-rpc']},
-  });
+  const {organization, project} = initializeOrg();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -171,6 +169,7 @@ describe('SpansTabContent', function () {
       />,
       {enableRouterMocks: false, organization: schemaHintsOrganization}
     );
+
     expect(screen.getByText('stringTag1')).toBeInTheDocument();
     expect(screen.getByText('stringTag2')).toBeInTheDocument();
     expect(screen.getByText('numberTag1')).toBeInTheDocument();

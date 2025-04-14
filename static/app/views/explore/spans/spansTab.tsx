@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -29,18 +29,19 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreCharts} from 'sentry/views/explore/charts';
-import {useSchemaHintsOnLargeScreen} from 'sentry/views/explore/components/schemaHintsDrawer';
 import SchemaHintsList, {
-  SCHEMA_HINTS_DRAWER_WIDTH,
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {
   PageParamsProvider,
   useExploreDataset,
+  useExploreFields,
+  useExploreId,
   useExploreMode,
   useExploreQuery,
   useExploreVisualizes,
+  useSetExplorePageParams,
   useSetExploreQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -56,6 +57,7 @@ import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeser
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
+import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {
@@ -92,8 +94,16 @@ export function SpansTabContentImpl({
 
   const query = useExploreQuery();
   const setQuery = useSetExploreQuery();
+  const fields = useExploreFields();
+  const setExplorePageParams = useSetExplorePageParams();
 
-  const isSchemaHintsDrawerOpenOnLargeScreen = useSchemaHintsOnLargeScreen();
+  const id = useExploreId();
+  const visitQuery = useVisitQuery();
+  useEffect(() => {
+    if (defined(id)) {
+      visitQuery(id);
+    }
+  }, [id, visitQuery]);
 
   const toolbarExtras = [
     ...(organization?.features?.includes('visibility-explore-dataset')
@@ -101,6 +111,9 @@ export function SpansTabContentImpl({
       : []),
     ...(organization?.features?.includes('visibility-explore-equations')
       ? ['equations' as const]
+      : []),
+    ...(organization?.features?.includes('visibility-explore-tabs')
+      ? ['tabs' as const]
       : []),
   ];
 
@@ -195,9 +208,6 @@ export function SpansTabContentImpl({
     <Body
       withToolbar={expanded}
       withHints={organization.features.includes('traces-schema-hints')}
-      thirdColumnWidth={
-        isSchemaHintsDrawerOpenOnLargeScreen ? SCHEMA_HINTS_DRAWER_WIDTH : '0px'
-      }
     >
       <TopSection>
         <StyledPageFilterBar condensed>
@@ -218,7 +228,6 @@ export function SpansTabContentImpl({
             initialQuery={query}
             onSearch={setQuery}
             searchSource="explore"
-            submitOnFilterChange
           />
         ) : (
           <EAPSpanSearchQueryBuilder
@@ -245,12 +254,11 @@ export function SpansTabContentImpl({
             }
             numberTags={numberTags}
             stringTags={stringTags}
-            submitOnFilterChange
           />
         )}
       </TopSection>
       <Feature features="organizations:traces-schema-hints">
-        <SchemaHintsSection withSchemaHintsDrawer={isSchemaHintsDrawerOpenOnLargeScreen}>
+        <SchemaHintsSection>
           <SchemaHintsList
             supportedAggregates={
               mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
@@ -259,8 +267,9 @@ export function SpansTabContentImpl({
             stringTags={stringTags}
             isLoading={numberTagsLoading || stringTagsLoading}
             exploreQuery={query}
-            setExploreQuery={setQuery}
             source={SchemaHintsSources.EXPLORE}
+            tableColumns={fields}
+            setPageParams={setExplorePageParams}
           />
         </SchemaHintsSection>
       </Feature>
@@ -289,6 +298,7 @@ export function SpansTabContentImpl({
             samplesTab={samplesTab}
             setSamplesTab={setSamplesTab}
             isProgressivelyLoading={tableIsProgressivelyLoading}
+            useTabs={organization.features.includes('visibility-explore-tabs')}
           />
           <Toggle>
             <StyledButton
@@ -379,7 +389,7 @@ function checkIsAllowedSelection(
 }
 
 const Body = styled(Layout.Body)<{
-  thirdColumnWidth: string;
+  // thirdColumnWidth: string;
   withHints: boolean;
   withToolbar: boolean;
 }>`
@@ -387,8 +397,8 @@ const Body = styled(Layout.Body)<{
     display: grid;
     ${p =>
       p.withToolbar
-        ? `grid-template-columns: 300px minmax(100px, auto) ${p.withHints ? p.thirdColumnWidth : ''};`
-        : `grid-template-columns: 0px minmax(100px, auto) ${p.withHints ? p.thirdColumnWidth : ''};`}
+        ? `grid-template-columns: 300px minmax(100px, auto);`
+        : `grid-template-columns: 0px minmax(100px, auto);`}
     grid-template-rows: auto ${p => (p.withHints ? 'auto 1fr' : '1fr')};
     align-content: start;
     gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};

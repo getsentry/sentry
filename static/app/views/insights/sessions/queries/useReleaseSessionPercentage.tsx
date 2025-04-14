@@ -1,11 +1,16 @@
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {getSessionsInterval} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 export default function useReleaseSessionPercentage() {
   const location = useLocation();
   const organization = useOrganization();
+  const {
+    selection: {datetime},
+  } = usePageFilters();
 
   const locationQuery = {
     ...location,
@@ -27,6 +32,7 @@ export default function useReleaseSessionPercentage() {
       {
         query: {
           ...locationQuery.query,
+          interval: getSessionsInterval(datetime),
           field: ['sum(session)'],
           groupBy: ['release'],
           per_page: 5,

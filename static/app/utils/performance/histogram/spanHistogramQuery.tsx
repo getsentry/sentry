@@ -6,8 +6,7 @@ import type {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
-
-import type {SpanSlug} from '../suspectSpans/types';
+import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 
 type HistogramProps = {
   numBuckets: number;

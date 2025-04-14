@@ -230,7 +230,7 @@ describe('TrialSubscriptionAction', function () {
         <TrialSubscriptionAction
           subscription={SubscriptionFixture({
             organization,
-            trialEnd: trialEnd.toString(),
+            trialEnd: trialEnd.toISOString(),
             plan: 'am1_t',
             isFree: true,
           })}
@@ -259,7 +259,7 @@ describe('TrialSubscriptionAction', function () {
         <TrialSubscriptionAction
           subscription={SubscriptionFixture({
             organization,
-            trialEnd: trialEnd.toString(),
+            trialEnd: trialEnd.toISOString(),
             plan: 'am1_t',
             isFree: true,
           })}
@@ -359,5 +359,72 @@ describe('TrialSubscriptionAction', function () {
     const trialTierInputs = within(screen.getByRole('dialog')).getAllByRole('textbox');
     await userEvent.click(trialTierInputs[1]!);
     expect(screen.getByText('am3')).toBeInTheDocument();
+  });
+
+  it('defaults 14-day trial for self-serve', function () {
+    jest.mock('sentry/components/core/alert');
+
+    openAdminConfirmModal({
+      onConfirm,
+      renderModalSpecificContent: deps => (
+        <TrialSubscriptionAction
+          subscription={SubscriptionFixture({
+            organization,
+            plan: 'am3_business',
+            isEnterpriseTrial: false,
+          })}
+          {...deps}
+        />
+      ),
+    });
+
+    renderGlobalModal();
+    const daysInput = screen.getByRole('spinbutton', {name: 'Number of Days'});
+    expect(daysInput).toHaveValue(14);
+  });
+
+  it('defaults 28-day trial for isEnterpriseTrial', function () {
+    jest.mock('sentry/components/core/alert');
+
+    openAdminConfirmModal({
+      onConfirm,
+      renderModalSpecificContent: deps => (
+        <TrialSubscriptionAction
+          subscription={SubscriptionFixture({
+            organization,
+            plan: 'am3_business',
+            isEnterpriseTrial: true,
+          })}
+          {...deps}
+        />
+      ),
+    });
+
+    renderGlobalModal();
+    const daysInput = screen.getByRole('spinbutton', {name: 'Number of Days'});
+    expect(daysInput).toHaveValue(28);
+  });
+
+  it('defaults 28-day trial for startEnterpriseTrial', function () {
+    jest.mock('sentry/components/core/alert');
+
+    openAdminConfirmModal({
+      onConfirm,
+      renderModalSpecificContent: deps => (
+        <TrialSubscriptionAction
+          subscription={SubscriptionFixture({
+            organization,
+            plan: 'am3_business',
+            isEnterpriseTrial: false,
+          })}
+          startEnterpriseTrial
+          {...deps}
+        />
+      ),
+    });
+
+    renderGlobalModal();
+    const daysInput = screen.getByRole('spinbutton', {name: 'Number of Days'});
+    expect(daysInput).toHaveValue(28);
   });
 });

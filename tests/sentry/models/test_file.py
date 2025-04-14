@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 from io import BytesIO
 from unittest.mock import Mock, patch
+from uuid import uuid4
 
 import pytest
 from django.core.files.base import ContentFile
@@ -12,6 +13,7 @@ from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.testutils.cases import TestCase
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 class FileBlobTest(TestCase):
@@ -58,7 +60,7 @@ class FileBlobTest(TestCase):
                 blob.delete()
         # Even though postgres failed we should still queue
         # a task to delete the filestore object.
-        assert mock_delete_file_region.apply_async.call_count == 1
+        assert mock_delete_file_region.delay.call_count == 1
 
         # blob is still around.
         assert FileBlob.objects.get(id=blob.id)
@@ -185,3 +187,23 @@ class FileTest(TestCase):
 
         f = file.getfile(prefetch=True)
         assert f.read() == random_data
+
+
+@django_db_all
+def test_large_files():
+    large_blob = FileBlob.objects.create(size=3_000_000_000, checksum=uuid4().hex)
+    zero_blob = FileBlob.objects.create(size=0, checksum=uuid4().hex)
+    large_file = File.objects.create(size=3_000_000_000)
+
+    FileBlobIndex.objects.create(file=large_file, blob=large_blob, offset=0)
+    FileBlobIndex.objects.create(file=large_file, blob=zero_blob, offset=3_000_000_000)
+
+    file = File.objects.get(id=large_file.id)
+    assert file.size == 3_000_000_000
+
+    assert [fbi.offset for fbi in file._blob_index_records()] == [0, 3_000_000_000]
+
+    large_blob.refresh_from_db()
+    assert large_blob.size == 3_000_000_000
+    blob = FileBlob.objects.get(id=large_blob.id)
+    assert blob.size == 3_000_000_000

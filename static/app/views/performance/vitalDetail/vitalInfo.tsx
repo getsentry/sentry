@@ -5,8 +5,7 @@ import toArray from 'sentry/utils/array/toArray';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {WebVital} from 'sentry/utils/fields';
 import VitalsCardDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
-
-import {VitalBar} from '../landing/vitalsCards';
+import {VitalBar} from 'sentry/views/performance/landing/vitalsCards';
 
 type ViewProps = Pick<
   EventView,

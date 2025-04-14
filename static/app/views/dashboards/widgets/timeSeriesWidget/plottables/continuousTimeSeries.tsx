@@ -1,11 +1,13 @@
 import type {SeriesOption} from 'echarts';
 
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
-
-import {isAPlottableTimeSeriesValueType} from '../../common/typePredicates';
-import type {TimeSeries, TimeSeriesValueUnit} from '../../common/types';
-import {formatSeriesName} from '../formatters/formatSeriesName';
-import {FALLBACK_TYPE} from '../settings';
+import {isAPlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/common/typePredicates';
+import type {
+  TimeSeries,
+  TimeSeriesValueUnit,
+} from 'sentry/views/dashboards/widgets/common/types';
+import {formatSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatSeriesName';
+import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
 import type {PlottableTimeSeriesValueType} from './plottable';
 
@@ -22,6 +24,10 @@ export type ContinuousTimeSeriesConfig = {
    * Data delay, in seconds. Data older than N seconds will be visually deemphasized.
    */
   delay?: number;
+  /**
+   * Callback for ECharts' `onHighlight`. Called with the data point that corresponds to the highlighted point in the chart
+   */
+  onHighlight?: (datum: Readonly<TimeSeries['data'][number]>) => void;
 };
 
 export type ContinuousTimeSeriesPlottingOptions = {
