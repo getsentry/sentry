@@ -165,7 +165,7 @@ const useDiscoverSeries = <T extends string[]>(
         samplingMode === 'NONE' || !shouldSetSamplingMode ? undefined : samplingMode,
     }),
     options: {
-      enabled: options.enabled && pageFilters.isReady,
+      enabled: options.enabled && defaultPageFilters.isReady,
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
