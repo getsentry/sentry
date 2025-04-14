@@ -127,7 +127,7 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
 
     dataset = Dataset.Events
 
-    def chunk(self) -> bool:
+    def chunk(self, **kwargs: Any) -> bool:
         """This method is called to delete chunks of data. It returns a boolean to say
         if the deletion has completed and if it needs to be called again."""
         events = self.get_unfetched_events()
@@ -174,7 +174,7 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
 
     dataset = Dataset.IssuePlatform
 
-    def chunk(self) -> bool:
+    def chunk(self, **kwargs: Any) -> bool:
         """This method is called to delete chunks of data. It returns a boolean to say
         if the deletion has completed and if it needs to be called again."""
         events = self.get_unfetched_events()
@@ -223,7 +223,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
     # balance the number of snuba replacements with memory limits.
     DEFAULT_CHUNK_SIZE = 1000
 
-    def delete_bulk(self, instance_list: Sequence[Group]) -> bool:
+    def delete_bulk(self, instance_list: Sequence[Group], **kwargs: Any) -> bool:
         """
         Group deletion operates as a quasi-bulk operation so that we don't flood
         snuba replacements with deletions per group.
@@ -242,7 +242,8 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         self._delete_children(instance_list)
 
         # Remove group objects with children removed.
-        self.delete_instance_bulk(instance_list)
+        silence = kwargs.get("silence", False)
+        self.delete_instance_bulk(instance_list, silence=silence)
 
         return False
 
@@ -282,7 +283,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
 
         self.delete_children(child_relations)
 
-    def delete_instance(self, instance: Group) -> None:
+    def delete_instance(self, instance: Group, **kwargs: Any) -> None:
         from sentry import similarity
 
         if not self.skip_models or similarity not in self.skip_models:

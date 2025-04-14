@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.deletions.base import ModelDeletionTask
 from sentry.models.grouphistory import GroupHistory
 
@@ -13,7 +15,7 @@ class GroupHistoryDeletionTask(ModelDeletionTask[GroupHistory]):
     span 10000 ID values.
     """
 
-    def chunk(self) -> bool:
+    def chunk(self, **kwargs: Any) -> bool:
         group_ids = self.query.get("group_id__in", [])
         if not group_ids:
             # If we don't have group_id conditions
