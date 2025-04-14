@@ -31,7 +31,7 @@ const isProjectsCacheEnabled =
  * Attach the persister to the query client
  * @link https://tanstack.com/query/latest/docs/framework/react/plugins/persistQueryClient
  */
-if (!isProjectsCacheEnabled) {
+if (isProjectsCacheEnabled) {
   persistQueryClient({
     queryClient: appQueryClient,
     persister: localStoragePersister,
@@ -59,13 +59,13 @@ if (!isProjectsCacheEnabled) {
 }
 
 export function restoreQueryCache() {
-  if (!isProjectsCacheEnabled) {
+  if (isProjectsCacheEnabled) {
     localStoragePersister.restoreClient();
   }
 }
 
 export async function clearQueryCache() {
-  if (!isProjectsCacheEnabled) {
+  if (isProjectsCacheEnabled) {
     // Mark queries as stale so they won't be recached
     appQueryClient.invalidateQueries({queryKey: ['bootstrap-projects']});
     await removeItem(cacheKey);
