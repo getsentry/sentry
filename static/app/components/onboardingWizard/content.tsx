@@ -6,7 +6,6 @@ import partition from 'lodash/partition';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {useUpdateOnboardingTasks} from 'sentry/actionCreators/onboardingTasks';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -33,6 +32,7 @@ import {DemoTour, DemoTourStep, useDemoTours} from 'sentry/utils/demoMode/demoTo
 import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useUpdateOnboardingTasks} from 'sentry/utils/useMutateOnboardingTasks';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 

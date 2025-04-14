@@ -3,10 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useUpdateOnboardingTasks} from 'sentry/actionCreators/onboardingTasks';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
+import {useUpdateOnboardingTasks} from 'sentry/utils/useMutateOnboardingTasks';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('actionCreators/onboardingTasks', function () {
