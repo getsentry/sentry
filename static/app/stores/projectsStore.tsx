@@ -65,11 +65,13 @@ const storeConfig: ProjectsStoreDefinition = {
     // Ensure each project has a valid teams array
     const normalizedProjects = items.map(project => ({
       ...project,
-      teams: Array.isArray(project.teams) ? project.teams : []
+      teams: Array.isArray(project.teams) ? project.teams : [],
     }));
-    
+
     this.state = {
-      projects: normalizedProjects.toSorted((a: any, b: any) => a.slug.localeCompare(b.slug)),
+      projects: normalizedProjects.toSorted((a: any, b: any) =>
+        a.slug.localeCompare(b.slug)
+      ),
       loading: false,
     };
 
