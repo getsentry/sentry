@@ -10,6 +10,7 @@ interface AutofixHighlightWrapperProps {
   runId: string;
   stepIndex: number;
   className?: string;
+  displayName?: string;
   isAgentComment?: boolean;
   retainInsightCardIndex?: number | null;
 }
@@ -26,6 +27,7 @@ export function AutofixHighlightWrapper({
   retainInsightCardIndex = null,
   isAgentComment = false,
   className,
+  displayName,
 }: AutofixHighlightWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const selection = useTextSelection(containerRef);
@@ -46,6 +48,7 @@ export function AutofixHighlightWrapper({
             stepIndex={stepIndex}
             retainInsightCardIndex={retainInsightCardIndex}
             isAgentComment={isAgentComment}
+            blockName={displayName}
           />
         )}
       </AnimatePresence>

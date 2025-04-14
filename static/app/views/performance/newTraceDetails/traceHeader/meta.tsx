@@ -12,14 +12,13 @@ import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   isEAPError,
   isTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
-
-import {TraceDrawerComponents} from '../traceDrawer/details/styles';
-import type {TraceTree} from '../traceModels/traceTree';
 
 type MetaDataProps = {
   bodyText: React.ReactNode;
@@ -102,10 +101,10 @@ export function Meta(props: MetaProps) {
       return [];
     }
 
-    const unique: TraceTree.TraceOccurence[] = [];
+    const unique: TraceTree.TraceOccurrence[] = [];
     const seenIssues: Set<number> = new Set();
 
-    for (const issue of traceNode.occurences) {
+    for (const issue of traceNode.occurrences) {
       if (seenIssues.has(issue.issue_id)) {
         continue;
       }

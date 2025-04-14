@@ -41,16 +41,15 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-
-import {COLUMN_TITLES} from '../../data';
-import {TraceViewSources} from '../../newTraceDetails/traceHeader/breadcrumbs';
-import Tab from '../tabs';
+import {COLUMN_TITLES} from 'sentry/views/performance/data';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {
   generateProfileLink,
   generateReplayLink,
   generateTraceLink,
   normalizeSearchConditions,
-} from '../utils';
+} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {TitleProps} from './operationSort';
 import OperationSort from './operationSort';

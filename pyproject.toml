@@ -129,7 +129,6 @@ module = [
     "sentry.incidents.endpoints.bases",
     "sentry.integrations.github.client",
     "sentry.integrations.github.integration",
-    "sentry.integrations.gitlab.client",
     "sentry.integrations.gitlab.issues",
     "sentry.integrations.jira.integration",
     "sentry.integrations.msteams.client",

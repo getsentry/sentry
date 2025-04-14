@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 import urllib3
 
+from sentry.insights.models import InsightsStarredSegment
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
@@ -2850,6 +2851,38 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[1]["cache.hit"] is True
         assert meta["dataset"] == self.dataset
 
+    def test_searchable_contexts(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"device.model": "Apple"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"request.url": "https://sentry/api/0/foo"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["device.model", "request.url"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "device.model",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["device.model"] == "Apple"
+        assert data[1]["request.url"] == "https://sentry/api/0/foo"
+        assert meta["dataset"] == self.dataset
+
     def test_trace_status_rate(self):
         statuses = ["unknown", "internal_error", "unauthenticated", "ok", "ok"]
         self.store_spans(
@@ -3835,6 +3868,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
         assert response.data["meta"]["dataScanned"] == "partial"
 
+    @pytest.mark.xfail(reason="https://github.com/getsentry/snuba/pull/7067")
     def test_best_effort_request(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
@@ -4089,6 +4123,56 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(data) == 1
         assert data[0]["sentry.sampling_factor"] == 0.01
         assert meta["dataset"] == self.dataset
+
+    def test_is_starred_transaction(self):
+        InsightsStarredSegment.objects.create(
+            organization=self.organization,
+            project=self.project,
+            segment_name="foo",
+            user_id=self.user.id,
+        )
+
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success", "transaction": "foo"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "success", "transaction": "bar"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["is_starred_transaction", "transaction"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "-is_starred_transaction",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+
+        assert data[0]["is_starred_transaction"] is True
+        assert data[0]["transaction"] == "foo"
+
+        assert data[1]["is_starred_transaction"] is False
+        assert data[1]["transaction"] == "bar"
 
     @mock.patch("sentry.api.utils.sentry_sdk.capture_exception")
     @mock.patch("sentry.utils.snuba_rpc._snuba_pool.urlopen")

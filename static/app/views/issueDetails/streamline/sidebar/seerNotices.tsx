@@ -5,14 +5,17 @@ import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button';
+import {useProjectPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectPreferences';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface SeerNoticesProps {
   groupId: string;
+  project: Project;
   hasGithubIntegration?: boolean;
 }
 
@@ -100,15 +103,26 @@ function SelectReposCard() {
   );
 }
 
-export function SeerNotices({groupId, hasGithubIntegration}: SeerNoticesProps) {
+export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
   const {repos} = useAutofixRepos(groupId);
+  const {
+    preference,
+    codeMappingRepos,
+    isLoading: isLoadingPreferences,
+  } = useProjectPreferences(project);
+
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
   const notices: React.JSX.Element[] = [];
 
   if (!hasGithubIntegration) {
     notices.push(<GithubIntegrationSetupCard key="github-setup" />);
-  } else if (repos.length === 0) {
+  } else if (
+    repos.length === 0 &&
+    !preference?.repositories?.length &&
+    !codeMappingRepos?.length &&
+    !isLoadingPreferences
+  ) {
     notices.push(<SelectReposCard key="repo-selection" />);
   }
 
@@ -174,11 +188,7 @@ export function SeerNotices({groupId, hasGithubIntegration}: SeerNoticesProps) {
     return null;
   }
 
-  return (
-    <StickyNoticesContainer>
-      <NoticesContainer>{notices}</NoticesContainer>
-    </StickyNoticesContainer>
-  );
+  return <NoticesContainer>{notices}</NoticesContainer>;
 }
 
 const NoticesContainer = styled('div')`
@@ -187,17 +197,6 @@ const NoticesContainer = styled('div')`
   gap: ${space(2)};
   align-items: stretch;
   margin-bottom: ${space(2)};
-`;
-
-const StickyNoticesContainer = styled('div')`
-  position: sticky;
-  top: 0;
-  background: ${p => p.theme.background};
-  padding-top: ${space(2)};
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
 const IntegrationCard = styled('div')`

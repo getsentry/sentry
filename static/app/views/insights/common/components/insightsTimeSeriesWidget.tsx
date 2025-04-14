@@ -20,7 +20,6 @@ import {
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {WidgetTitleProps} from 'sentry/views/dashboards/widgets/widget/widgetTitle';
-
 import {
   AVG_COLOR,
   COUNT_COLOR,
@@ -28,10 +27,10 @@ import {
   HTTP_RESPONSE_4XX_COLOR,
   HTTP_RESPONSE_5XX_COLOR,
   THROUGHPUT_COLOR,
-} from '../../colors';
-import {INGESTION_DELAY} from '../../settings';
-import type {DiscoverSeries} from '../queries/useDiscoverSeries';
-import {convertSeriesToTimeseries} from '../utils/convertSeriesToTimeseries';
+} from 'sentry/views/insights/colors';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
+import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
 export interface InsightsTimeSeriesWidgetProps extends WidgetTitleProps {
   error: Error | null;
@@ -41,9 +40,11 @@ export interface InsightsTimeSeriesWidgetProps extends WidgetTitleProps {
   aliases?: Record<string, string>;
   description?: React.ReactNode;
   height?: string | number;
+  id?: string;
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
+  showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   stacked?: boolean;
 }
 
@@ -59,6 +60,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     })) ?? [];
 
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
+    showLegend: props.showLegend,
     plottables: (props.series.filter(Boolean) ?? [])?.map(serie => {
       const timeSeries = convertSeriesToTimeseries(serie);
       const PlottableDataConstructor =

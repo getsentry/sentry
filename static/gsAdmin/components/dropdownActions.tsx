@@ -39,7 +39,7 @@ function mapActionsToCompactSelect(
         label: (
           <div>
             {action.name}
-            <StyledIconNot size="xs" />
+            {action.disabled && <StyledIconNot data-test-id="disabled-icon" size="xs" />}
           </div>
         ),
         details: action.help,
@@ -81,6 +81,11 @@ function DropdownActions({actions, label}: Props) {
         });
       }}
       triggerLabel={label}
+      triggerProps={
+        {
+          'data-test-id': 'detail-actions',
+        } as any
+      }
     />
   );
 }
