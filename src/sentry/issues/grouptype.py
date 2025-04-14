@@ -322,6 +322,7 @@ class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, 
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
     released = True
+    use_flagpole_for_all_features = True
 
 
 @dataclass(frozen=True)
