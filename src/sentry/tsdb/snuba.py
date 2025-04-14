@@ -791,7 +791,7 @@ class SnubaTSDB(BaseTSDB):
         tenant_ids=None,
         referrer_suffix=None,
         conditions=None,
-        group_on_time: bool = True,
+        group_on_time: bool = False,
     ):
         return self.get_data(
             model,
