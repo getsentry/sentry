@@ -188,7 +188,6 @@ export function MessageSpanSamplesPanel() {
     enabled: isPanelOpen && durationAxisMax > 0,
     fields: [
       SpanIndexedField.TRACE,
-      SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
       SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
