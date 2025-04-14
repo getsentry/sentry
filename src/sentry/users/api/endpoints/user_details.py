@@ -39,14 +39,6 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 TIMEZONE_CHOICES = get_timezone_choices()
 
 
-def validate_prefers_specialized_project_overview(value: dict[str, bool] | None) -> None:
-    invalid_entries = [key for key, value_ in (value or {}).items() if not isinstance(value_, bool)]
-    if len(invalid_entries) > 0:
-        raise ValidationError(
-            f"The enabled values {', '.join(invalid_entries)} should be booleans."
-        )
-
-
 def validate_quick_start_display(value: dict[str, int] | None) -> None:
     if value is not None:
         for display_value in value.values():
@@ -87,12 +79,6 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
         required=False,
     )
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
-    prefersSpecializedProjectOverview = serializers.JSONField(
-        required=False,
-        allow_null=True,
-        validators=[validate_prefers_specialized_project_overview],
-        help_text="Tracks whether the user prefers the new specialized project overview experience (dict of project ids to booleans)",
-    )
     prefersStackedNavigation = serializers.BooleanField(required=False)
     prefersChonkUI = serializers.BooleanField(required=False)
 
@@ -270,7 +256,6 @@ class UserDetailsEndpoint(UserEndpoint):
             "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
             "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
-            "prefersSpecializedProjectOverview": "prefers_specialized_project_overview",
             "prefersStackedNavigation": "prefers_stacked_navigation",
             "prefersChonkUI": "prefers_chonk_ui",
             "quickStartDisplay": "quick_start_display",
@@ -280,7 +265,7 @@ class UserDetailsEndpoint(UserEndpoint):
 
         for key in key_map:
             if key in options_result:
-                if key in ("quickStartDisplay", "prefersSpecializedProjectOverview"):
+                if key == "quickStartDisplay":
                     current_value = UserOption.objects.get_value(
                         user=user, key=key_map.get(key, key)
                     )
