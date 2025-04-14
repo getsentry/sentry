@@ -10,6 +10,7 @@ import {getHasTag} from 'sentry/components/events/searchBar';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -74,7 +75,7 @@ export function addFilterToQuery(
   isBoolean: boolean
 ) {
   filterQuery.addFilterValue(
-    isBoolean || tag.kind === FieldKind.MEASUREMENT ? tag.key : `!${tag.key}`,
+    tag.key,
     isBoolean ? 'True' : tag.kind === FieldKind.MEASUREMENT ? '>0' : ''
   );
 }
@@ -93,7 +94,6 @@ function SchemaHintsList({
   numberTags,
   stringTags,
   isLoading,
-  exploreQuery,
   tableColumns,
   setPageParams,
   source = SchemaHintsSources.EXPLORE,
@@ -102,6 +102,7 @@ function SchemaHintsList({
   const location = useLocation();
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
+  const {dispatch, query} = useSearchQueryBuilder();
 
   const functionTags = useMemo(() => {
     return getFunctionTags(supportedAggregates);
@@ -211,10 +212,10 @@ function SchemaHintsList({
             () => (
               <SchemaHintsDrawer
                 hints={filterTagsSorted}
-                exploreQuery={exploreQuery}
+                exploreQuery={query}
                 tableColumns={tableColumns}
                 setPageParams={setPageParams}
-                source={source}
+                searchBarDispatch={dispatch}
               />
             ),
             {
@@ -267,7 +268,7 @@ function SchemaHintsList({
         return;
       }
 
-      const newSearchQuery = new MutableSearch(exploreQuery);
+      const newSearchQuery = new MutableSearch(query);
       const isBoolean =
         getFieldDefinition(hint.key, 'span', hint.kind)?.valueType ===
         FieldValueType.BOOLEAN;
@@ -278,17 +279,18 @@ function SchemaHintsList({
         : [...tableColumns, hint.key];
       const newQuery = newSearchQuery.formatString();
 
-      setPageParams(
-        source === SchemaHintsSources.LOGS
-          ? {
-              search: newSearchQuery,
-              fields: newTableColumns,
-            }
-          : {
-              query: newQuery,
-              fields: newTableColumns,
-            }
-      );
+      setPageParams({
+        fields: newTableColumns,
+      });
+
+      dispatch({
+        type: 'UPDATE_QUERY',
+        query: newQuery,
+        focusOverride: {
+          itemKey: `filter:${newSearchQuery.getFilterKeys().indexOf(hint.key)}`,
+          part: 'value',
+        },
+      });
 
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
@@ -297,14 +299,14 @@ function SchemaHintsList({
       });
     },
     [
-      exploreQuery,
+      query,
       tableColumns,
-      setPageParams,
-      source,
+      dispatch,
       organization,
       isDrawerOpen,
       openDrawer,
       filterTagsSorted,
+      setPageParams,
       location.pathname,
       location.query,
       closeDrawer,

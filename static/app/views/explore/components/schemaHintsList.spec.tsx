@@ -21,11 +21,21 @@ const mockNumberTags: TagCollection = {
   numberTag2: {key: 'numberTag2', kind: FieldKind.MEASUREMENT, name: 'numberTag2'},
 };
 
-jest.mock('sentry/utils/useNavigate', () => ({useNavigate: jest.fn()}));
-
 const mockNavigate = jest.fn();
+const mockDispatch = jest.fn();
+
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => mockNavigate,
+}));
+
+// Add mock for useSearchQueryBuilder
+jest.mock('sentry/components/searchQueryBuilder/context', () => ({
+  useSearchQueryBuilder: () => ({
+    query: '',
+    getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
+    dispatch: mockDispatch,
+  }),
+  SearchQueryBuilderProvider: ({children}: {children: React.ReactNode}) => children,
 }));
 
 function Subject(
@@ -96,7 +106,7 @@ describe('SchemaHintsList', () => {
     },
   });
   beforeEach(() => {
-    mockNavigate.mockClear();
+    jest.clearAllMocks();
   });
 
   it('should render', () => {
@@ -122,7 +132,29 @@ describe('SchemaHintsList', () => {
     expect(withinContainer.getByText('See full list')).toBeInTheDocument();
   });
 
-  it('should add hint to query when clicked', async () => {
+  it('should call dispatch with correct parameters when hint is clicked', async () => {
+    render(
+      <Subject
+        stringTags={mockStringTags}
+        numberTags={mockNumberTags}
+        supportedAggregates={[]}
+      />
+    );
+
+    const stringTag1Hint = screen.getByText('stringTag1');
+    await userEvent.click(stringTag1Hint);
+
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_QUERY',
+      query: 'stringTag1:""',
+      focusOverride: {
+        itemKey: 'filter:0',
+        part: 'value',
+      },
+    });
+  });
+
+  it('should add hint to field columns when clicked', async () => {
     render(
       <Subject
         stringTags={mockStringTags}
@@ -137,7 +169,6 @@ describe('SchemaHintsList', () => {
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          query: '!stringTag1:""',
           field: expect.arrayContaining(['stringTag1']),
         },
       })
@@ -197,21 +228,38 @@ describe('SchemaHintsList', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: {query: '!stringTag1:""', field: expect.arrayContaining(['stringTag1'])},
+        query: expect.objectContaining({field: expect.arrayContaining(['stringTag1'])}),
       })
     );
+
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_QUERY',
+      query: 'stringTag1:""',
+      focusOverride: {
+        itemKey: 'filter:0',
+        part: 'value',
+      },
+    });
 
     const numberTag1Checkbox = withinDrawer.getByText('numberTag1');
     await userEvent.click(numberTag1Checkbox);
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: {
-          query: '!stringTag1:"" numberTag1:>0',
+        query: expect.objectContaining({
           field: expect.arrayContaining(['stringTag1', 'numberTag1']),
-        },
+        }),
       })
     );
+
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_QUERY',
+      query: 'stringTag1:"" numberTag1:>0',
+      focusOverride: {
+        itemKey: 'filter:1',
+        part: 'value',
+      },
+    });
   });
 
   it('should remove hint from query when checkbox is unchecked on drawer', async () => {
@@ -243,14 +291,14 @@ describe('SchemaHintsList', () => {
     const stringTag1Checkbox = withinDrawer.getByText('stringTag1');
     await userEvent.click(stringTag1Checkbox);
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
-          query: 'numberTag1:>0',
-          field: expect.arrayContaining(['numberTag1', 'stringTag1']),
-        },
-      })
-    );
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_QUERY',
+      query: 'stringTag1:""',
+      focusOverride: {
+        itemKey: 'filter:0',
+        part: 'value',
+      },
+    });
   });
 
   it('should keep drawer open when query is updated', async () => {

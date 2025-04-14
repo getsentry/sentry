@@ -47,6 +47,48 @@ function getTraceItemFieldDefinitionFunction(
   };
 }
 
+export function useSearchQueryBuilderProps({
+  itemType,
+  numberAttributes,
+  stringAttributes,
+  initialQuery,
+  searchSource,
+  getFilterTokenWarning,
+  onBlur,
+  onSearch,
+  portalTarget,
+  supportedAggregates = [],
+}: TraceItemSearchQueryBuilderProps) {
+  const placeholderText = itemTypeToDefaultPlaceholder(itemType);
+  const functionTags = useFunctionTags(itemType, supportedAggregates);
+  const filterKeySections = useFilterKeySections(itemType, stringAttributes);
+  const filterTags = useFilterTags(numberAttributes, stringAttributes, functionTags);
+
+  const getTraceItemAttributeValues = useTraceItemAttributeValues({
+    traceItemType: itemType,
+    attributeKey: '',
+    enabled: true,
+    type: 'string',
+  });
+
+  return {
+    placeholder: placeholderText,
+    filterKeys: filterTags,
+    initialQuery,
+    fieldDefinitionGetter: getTraceItemFieldDefinitionFunction(itemType, filterTags),
+    onSearch,
+    onBlur,
+    getFilterTokenWarning,
+    searchSource,
+    filterKeySections,
+    getTagValues: getTraceItemAttributeValues,
+    disallowUnsupportedFilters: true,
+    recentSearches: itemTypeToRecentSearches(itemType),
+    showUnsubmittedIndicator: true,
+    portalTarget,
+  };
+}
+
 /**
  * This component should replace EAPSpansSearchQueryBuilder in the future,
  * once spans support has been added to the trace-items attribute endpoints.
@@ -65,36 +107,20 @@ export function TraceItemSearchQueryBuilder({
   projects: _projects,
   supportedAggregates = [],
 }: TraceItemSearchQueryBuilderProps) {
-  const placeholderText = itemTypeToDefaultPlaceholder(itemType);
-  const functionTags = useFunctionTags(itemType, supportedAggregates);
-  const filterKeySections = useFilterKeySections(itemType, stringAttributes);
-  const filterTags = useFilterTags(numberAttributes, stringAttributes, functionTags);
-
-  const getTraceItemAttributeValues = useTraceItemAttributeValues({
-    traceItemType: itemType,
-    attributeKey: '', // Empty as we're only using the callback function
-    enabled: true,
-    type: 'string', // Only string attributes are supported for now
+  const searchQueryBuilderProps = useSearchQueryBuilderProps({
+    itemType,
+    numberAttributes,
+    stringAttributes,
+    initialQuery,
+    searchSource,
+    getFilterTokenWarning,
+    onBlur,
+    onSearch,
+    portalTarget,
+    supportedAggregates,
   });
 
-  return (
-    <SearchQueryBuilder
-      placeholder={placeholderText}
-      filterKeys={filterTags}
-      initialQuery={initialQuery}
-      fieldDefinitionGetter={getTraceItemFieldDefinitionFunction(itemType, filterTags)}
-      onSearch={onSearch}
-      onBlur={onBlur}
-      getFilterTokenWarning={getFilterTokenWarning}
-      searchSource={searchSource}
-      filterKeySections={filterKeySections}
-      getTagValues={getTraceItemAttributeValues}
-      disallowUnsupportedFilters
-      recentSearches={itemTypeToRecentSearches(itemType)}
-      showUnsubmittedIndicator
-      portalTarget={portalTarget}
-    />
-  );
+  return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }
 
 function useFunctionTags(
