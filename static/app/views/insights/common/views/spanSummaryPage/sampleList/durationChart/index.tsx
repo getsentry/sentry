@@ -15,15 +15,14 @@ import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
+import type {
+  NonDefaultSpanSampleFields,
+  SpanSample,
+} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
-import type {
-  SpanIndexedProperty,
-  SpanMetricsQueryFilters,
-  SubregionCode,
-} from 'sentry/views/insights/types';
+import type {SpanMetricsQueryFilters, SubregionCode} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
@@ -31,7 +30,7 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 type Props = {
   groupId: string;
   transactionName: string;
-  additionalFields?: SpanIndexedProperty[];
+  additionalFields?: NonDefaultSpanSampleFields[];
   additionalFilters?: Record<string, string>;
   highlightedSpanId?: string;
   onClickSample?: (sample: SpanSample) => void;
