@@ -13,10 +13,7 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {formatTimeSeriesResultsToChartData} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
-import {
-  Badge,
-  PerformanceBadge,
-} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
+import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useProjectWebVitalsScoresTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
@@ -126,9 +123,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
                 }
                 isHoverable
               >
-                <PerformanceBadgeWrapper>
-                  <PerformanceBadge score={listItem.totalScore} />
-                </PerformanceBadgeWrapper>
+                <PerformanceBadge score={listItem.totalScore} />
               </Tooltip>
             )}
             {isProjectScoresLoading ? (
@@ -252,11 +247,5 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   &,
   .loading-message {
     margin: 0;
-  }
-`;
-
-const PerformanceBadgeWrapper = styled('span')`
-  ${Badge} {
-    text-decoration: underline dotted;
   }
 `;

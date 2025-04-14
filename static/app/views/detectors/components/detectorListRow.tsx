@@ -3,48 +3,34 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/container/flex';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {
-  ConnectionCell,
-  type Item,
-} from 'sentry/components/workflowEngine/gridCell/connectionCell';
+import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connectionCell';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {TypeCell} from 'sentry/components/workflowEngine/gridCell/typeCell';
 import {UserCell} from 'sentry/components/workflowEngine/gridCell/userCell';
-import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {AvatarProject} from 'sentry/types/project';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 
-export type Detector = {
-  automations: Item[];
-  groups: Group[];
-  id: string;
-  link: string;
-  name: string;
-  project: AvatarProject;
-  details?: string[];
-  disabled?: boolean;
-};
-
-type DetectorListRowProps = Detector & {
+interface DetectorListRowProps {
+  detector: Detector;
   handleSelect: (id: string, checked: boolean) => void;
   selected: boolean;
-};
+}
 
 export function DetectorListRow({
-  automations,
-  groups,
-  id,
-  link,
-  name,
-  project,
-  details,
+  detector: {workflowIds, id, name, disabled},
   handleSelect,
   selected,
-  disabled,
 }: DetectorListRowProps) {
+  const link = `/issues/monitors/${id}/`;
+  const project: AvatarProject = {
+    slug: name,
+    platform: 'javascript-astro',
+  };
+  const issues: Group[] = [];
   return (
     <RowWrapper disabled={disabled}>
       <InteractionStateLayer />
@@ -60,7 +46,6 @@ export function DetectorListRow({
             name={name}
             project={project}
             link={link}
-            details={details}
             disabled={disabled}
           />
         </CellWrapper>
@@ -71,7 +56,7 @@ export function DetectorListRow({
       </CellWrapper>
       <CellWrapper className="last-issue">
         <StyledIssueCell
-          group={groups.length > 0 ? groups[0] : undefined}
+          group={issues.length > 0 ? issues[0] : undefined}
           disabled={disabled}
         />
       </CellWrapper>
@@ -79,11 +64,7 @@ export function DetectorListRow({
         <UserCell user="sentry" />
       </CellWrapper>
       <CellWrapper className="connected-automations">
-        <ConnectionCell
-          items={automations}
-          renderText={count => tn('%s automation', '%s automations', count)}
-          disabled={disabled}
-        />
+        <ConnectionCell ids={workflowIds} type="workflow" disabled={disabled} />
       </CellWrapper>
     </RowWrapper>
   );
