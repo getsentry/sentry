@@ -35,7 +35,7 @@ const formatMetricValue = (metric: MetricValue, field?: string | undefined): str
   return String(metric.value);
 };
 
-// maps to PERFORMANCE_SCORE_COLORS keys
+// maps to PerformanceScoreColor keys
 export enum PerformanceScore {
   GOOD = 'good',
   NEEDS_IMPROVEMENT = 'needsImprovement',

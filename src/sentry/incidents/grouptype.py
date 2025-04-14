@@ -72,6 +72,7 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
 # like these when we're sending issues as alerts
 @dataclass(frozen=True)
 class MetricAlertFire(GroupType):
+    use_flagpole_for_all_features = True
     type_id = 8001
     slug = "metric_alert_fire"
     description = "Metric alert fired"
