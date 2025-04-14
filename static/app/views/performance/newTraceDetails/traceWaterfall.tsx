@@ -24,6 +24,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
   cancelAnimationTimeout,
@@ -936,19 +937,29 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         ref={setTraceGridRef}
         hideBottomBorder={hasTraceNewUi}
       >
-        <Trace
-          metaQueryResults={props.meta}
-          trace={props.tree}
-          rerender={rerender}
-          trace_id={props.traceSlug}
-          onRowClick={onRowClick}
-          onTraceSearch={onTraceSearch}
-          previouslyFocusedNodeRef={previouslyFocusedNodeRef}
-          manager={viewManager}
-          scheduler={traceScheduler}
-          forceRerender={forceRender}
-          isLoading={props.tree.type === 'loading' || onLoadScrollStatus === 'pending'}
-        />
+        <DemoTourElement
+          id={DemoTourStep.PERFORMANCE_SPAN_TREE}
+          title={t('Trace Waterfall')}
+          description={t(
+            `Trace Waterfall offers a detailed look at traces for debugging slow services and errors.
+            Each span represents a single operation or function call in the trace.
+            Expanding a span will display sub-spans, and clicking on a span will display more details about the span.`
+          )}
+        >
+          <Trace
+            metaQueryResults={props.meta}
+            trace={props.tree}
+            rerender={rerender}
+            trace_id={props.traceSlug}
+            onRowClick={onRowClick}
+            onTraceSearch={onTraceSearch}
+            previouslyFocusedNodeRef={previouslyFocusedNodeRef}
+            manager={viewManager}
+            scheduler={traceScheduler}
+            forceRerender={forceRender}
+            isLoading={props.tree.type === 'loading' || onLoadScrollStatus === 'pending'}
+          />
+        </DemoTourElement>
 
         {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
           <TraceWaterfallState.Loading />

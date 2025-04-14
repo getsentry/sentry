@@ -19,10 +19,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {MetaType} from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -600,10 +601,13 @@ class _Table extends Component<Props, State> {
 
     return (
       <div data-test-id="performance-table">
-        <GuideAnchor
-          target="performance_table"
-          position="top-start"
-          wrapperComponent={TableWrapper}
+        <DemoTourElement
+          id={DemoTourStep.PERFORMANCE_TABLE}
+          title={t('See slow transactions')}
+          description={t(
+            `Trace slow-loading pages back to their API calls, as well as, related errors and users impacted across projects.
+            Select a transaction to see more details.`
+          )}
         >
           <MEPConsumer>
             {value => {
@@ -656,7 +660,7 @@ class _Table extends Component<Props, State> {
               );
             }}
           </MEPConsumer>
-        </GuideAnchor>
+        </DemoTourElement>
       </div>
     );
   }
@@ -687,10 +691,6 @@ const UnparameterizedTooltipWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-`;
-
-const TableWrapper = styled('span')`
-  display: block;
 `;
 
 export default Table;
