@@ -551,7 +551,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         start: datetime,
         end: datetime,
         environment_id: int,
-        group_on_time: bool = True,
+        group_on_time: bool = False,
     ) -> dict[int, int | float]:
         batch_totals: dict[int, int | float] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
