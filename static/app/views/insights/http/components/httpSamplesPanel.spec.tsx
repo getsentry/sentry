@@ -416,12 +416,7 @@ describe('HTTPSamplesPanel', () => {
             query:
               'span.module:http span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
             project: [],
-            additionalFields: [
-              'trace',
-              'transaction.id',
-              'span.description',
-              'span.status_code',
-            ],
+            additionalFields: ['trace', 'span.description', 'span.status_code'],
             lowerBound: 0,
             firstBound: expect.closeTo(333.3333),
             secondBound: expect.closeTo(666.6666),
