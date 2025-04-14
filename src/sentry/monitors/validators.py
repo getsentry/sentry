@@ -242,7 +242,7 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
-@extend_schema_serializer(exclude_fields=["alert_rule", "type"])
+@extend_schema_serializer(exclude_fields=["alert_rule"])
 class MonitorValidator(CamelSnakeSerializer):
     project = ProjectField(
         scope="project:read",
