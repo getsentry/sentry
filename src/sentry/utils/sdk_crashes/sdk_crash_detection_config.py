@@ -355,7 +355,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 },
                 path_replacer=KeepFieldPathReplacer(fields={"package", "filename", "abs_path"}),
             ),
-            sdk_crash_ignore_functions_matchers=
+            sdk_crash_ignore_functions_matchers={
                 # getCurrentStackTrace is always part of the stacktrace when the SDK captures the stacktrace,
                 # and would cause false positives. Therefore, we ignore it.
                 "getCurrentStackTrace",
@@ -365,7 +365,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 # However every custom implementation is try/catch guarded so no exception can be thrown.
                 "SentryWidgetsBindingMixin.handleDrawFrame",
                 "SentryWidgetsBindingMixin.handleBeginFrame",
-            ,
+            },
         )
         configs.append(dart_config)
 
