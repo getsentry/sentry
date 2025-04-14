@@ -241,9 +241,9 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
     border-radius: ${p.theme.borderRadius};
     margin-inline: 0 auto;
     gap: ${space(0.75)};
-    padding: ${space(1.5)} 0;
-    min-height: 44px;
-    width: 48px;
+    padding: ${space(1)} 0;
+    min-height: 42px;
+    width: 46px;
     letter-spacing: -0.02em;
     font-size: 10px;
   `}
@@ -263,8 +263,8 @@ const NavLinkIconContainer = withChonk(
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 44px;
+    width: 46px;
+    height: 42px;
     border-radius: ${p => p.theme.borderRadius};
     overflow: hidden;
 
