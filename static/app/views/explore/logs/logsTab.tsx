@@ -14,8 +14,6 @@ import {IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHintsList';
@@ -28,9 +26,7 @@ import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
   type LogPageParamsUpdate,
   useLogsFields,
-  useLogsProjectIds,
   useLogsSearch,
-  useLogsSortBys,
   useSetLogsFields,
   useSetLogsPageParams,
   useSetLogsQuery,
@@ -44,7 +40,6 @@ import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {DefaultPeriod, MaxPickableDays} from 'sentry/views/explore/utils';
-import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 
 export type LogsTabProps = {
   defaultPeriod: DefaultPeriod;
@@ -60,20 +55,9 @@ export function LogsTabContent({
   const setLogsQuery = useSetLogsQuery();
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
-  const sorts = useLogsSortBys();
   const setFields = useSetLogsFields();
-  const {selection} = usePageFilters();
-  const projectIds = useLogsProjectIds();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useExploreLogsTable({});
-  const eventView = getEventView(
-    logsSearch,
-    fields ?? [],
-    sorts,
-    selection,
-    DiscoverDatasets.OURLOGS,
-    projectIds
-  );
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');
@@ -158,7 +142,7 @@ export function LogsTabContent({
           </Feature>
           <Feature features="organizations:ourlogs-graph">
             <LogsItemContainer>
-              <LogsChart eventView={eventView} />
+              <LogsChart />
             </LogsItemContainer>
           </Feature>
           <LogsItemContainer>

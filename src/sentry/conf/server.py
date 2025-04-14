@@ -1401,6 +1401,7 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.scheduled",
+    "sentry.demo_mode.tasks",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
@@ -1451,7 +1452,12 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
 )
 
 # Schedules for taskworker tasks to be spawned on.
-TASKWORKER_SCHEDULES: ScheduleConfigMap = {}
+TASKWORKER_SCHEDULES: ScheduleConfigMap = {
+    "sync_options_trial": {
+        "schedule": timedelta(minutes=5),
+        "task": "options:sentry.tasks.options.sync_options",
+    },
+}
 
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
