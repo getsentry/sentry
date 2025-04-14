@@ -1924,6 +1924,14 @@ function buildRoutes() {
       />
     </Fragment>
   );
+
+  const logsChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/explore/logs'))} />
+      {traceViewRoute}
+    </Fragment>
+  );
+
   const tracesRoutes = (
     <Route
       path="/traces/"
@@ -1991,7 +1999,7 @@ function buildRoutes() {
       >
         {releasesChildRoutes}
       </Route>
-      <Route path="logs/" component={make(() => import('sentry/views/explore/logs'))} />
+      <Route path="logs/">{logsChildRoutes}</Route>
       <Route
         path="saved-queries/"
         component={make(() => import('sentry/views/explore/savedQueries'))}
