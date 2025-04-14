@@ -74,7 +74,13 @@ class GroupTypeRegistry:
         with sentry_sdk.start_span(op="GroupTypeRegistry.get_visible") as span:
             released = [gt for gt in self.all() if gt.released]
             feature_to_grouptype = {
-                gt.build_visible_feature_name(): gt for gt in self.all() if not gt.released
+                (
+                    gt.build_visible_feature_name()
+                    if not gt.use_flagpole_for_all_features
+                    else gt.build_visible_flagpole_feature_name()
+                ): gt
+                for gt in self.all()
+                if not gt.released
             }
             batch_features = features.batch_has(
                 list(feature_to_grouptype.keys()), actor=actor, organization=organization
@@ -176,6 +182,8 @@ class GroupType:
     # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
     enable_status_change_workflow_notifications: bool = True
     detector_config_schema: ClassVar[dict[str, Any]] = {}
+    # Temporary setting so that we can slowly migrate all perf issues to use flagpole for all feature flags
+    use_flagpole_for_all_features = False
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -185,6 +193,15 @@ class GroupType:
             features.add(cls.build_visible_feature_name(), OrganizationFeature, True)
             features.add(cls.build_ingest_feature_name(), OrganizationFeature)
             features.add(cls.build_post_process_group_feature_name(), OrganizationFeature)
+
+            # XXX: Temporary shim here. We can't use the existing feature flag names, because they're auto defined
+            # as being option backed. So options automator isn't able to validate them and fails. We'll instead
+            # move to new flag names
+            features.add(cls.build_visible_flagpole_feature_name(), OrganizationFeature, True)
+            features.add(cls.build_ingest_flagpole_feature_name(), OrganizationFeature, True)
+            features.add(
+                cls.build_post_process_group_flagpole_feature_name(), OrganizationFeature, True
+            )
 
     def __post_init__(self) -> None:
         valid_categories = [category.value for category in GroupCategory]
@@ -196,14 +213,25 @@ class GroupType:
         if cls.released:
             return True
 
-        return features.has(cls.build_ingest_feature_name(), organization)
+        flag_name = (
+            cls.build_ingest_feature_name()
+            if not cls.use_flagpole_for_all_features
+            else cls.build_ingest_flagpole_feature_name()
+        )
+        return features.has(flag_name, organization)
 
     @classmethod
     def allow_post_process_group(cls, organization: Organization) -> bool:
         if cls.released:
             return True
 
-        return features.has(cls.build_post_process_group_feature_name(), organization)
+        flag_name = (
+            cls.build_post_process_group_feature_name()
+            if not cls.use_flagpole_for_all_features
+            else cls.build_post_process_group_flagpole_feature_name()
+        )
+
+        return features.has(flag_name, organization)
 
     @classmethod
     def should_detect_escalation(cls) -> bool:
@@ -217,20 +245,33 @@ class GroupType:
         return cls.slug.replace("_", "-")
 
     @classmethod
-    def build_base_feature_name(cls) -> str:
-        return f"organizations:{cls.build_feature_name_slug()}"
+    def build_base_feature_name(cls, prefix: str = "") -> str:
+        return f"organizations:{prefix}{cls.build_feature_name_slug()}"
 
     @classmethod
     def build_visible_feature_name(cls) -> str:
         return f"{cls.build_base_feature_name()}-visible"
 
     @classmethod
+    def build_visible_flagpole_feature_name(cls) -> str:
+        # We'll rename this too so that all the feature names are consistent
+        return f"{cls.build_base_feature_name("issue-")}-visible"
+
+    @classmethod
     def build_ingest_feature_name(cls) -> str:
         return f"{cls.build_base_feature_name()}-ingest"
 
     @classmethod
+    def build_ingest_flagpole_feature_name(cls) -> str:
+        return f"{cls.build_base_feature_name("issue-")}-ingest"
+
+    @classmethod
     def build_post_process_group_feature_name(cls) -> str:
         return f"{cls.build_base_feature_name()}-post-process-group"
+
+    @classmethod
+    def build_post_process_group_flagpole_feature_name(cls) -> str:
+        return f"{cls.build_base_feature_name("issue-")}-post-process-group"
 
 
 def get_all_group_type_ids() -> set[int]:
@@ -281,6 +322,7 @@ class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, 
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
     released = True
+    use_flagpole_for_all_features = True
 
 
 @dataclass(frozen=True)
@@ -384,19 +426,7 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
     noise_config = NoiseConfig(ignore_limit=20)
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
-
-
-# experimental
-@dataclass(frozen=True)
-class PerformanceDurationRegressionGroupType(GroupType):
-    type_id = 1017
-    slug = "performance_duration_regression"
-    description = "Transaction Duration Regression (Experimental)"
-    category = GroupCategory.PERFORMANCE.value
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-    default_priority = PriorityLevel.LOW
-    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
+    released = True
 
 
 @dataclass(frozen=True)
@@ -432,6 +462,7 @@ class ProfileFileIOGroupType(GroupType):
     description = "File I/O on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
+    released = True
 
 
 @dataclass(frozen=True)
@@ -441,6 +472,7 @@ class ProfileImageDecodeGroupType(GroupType):
     description = "Image Decoding on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
+    released = True
 
 
 @dataclass(frozen=True)
@@ -450,25 +482,7 @@ class ProfileJSONDecodeType(GroupType):
     description = "JSON Decoding on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
-
-
-@dataclass(frozen=True)
-class ProfileCoreDataExperimentalType(GroupType):
-    type_id = 2004
-    slug = "profile_core_data_main_exp"
-    description = "Core Data on Main Thread"
-    category = GroupCategory.PERFORMANCE.value
-    default_priority = PriorityLevel.LOW
-
-
-# 2005 was ProfileRegexExperimentalType
-@dataclass(frozen=True)
-class ProfileViewIsSlowExperimentalType(GroupType):
-    type_id = 2006
-    slug = "profile_view_is_slow_experimental"
-    description = "View Render/Layout/Update is slow"
-    category = GroupCategory.PERFORMANCE.value
-    default_priority = PriorityLevel.LOW
+    released = True
 
 
 @dataclass(frozen=True)
@@ -482,15 +496,6 @@ class ProfileRegexType(GroupType):
 
 
 @dataclass(frozen=True)
-class ProfileFrameDropExperimentalType(GroupType):
-    type_id = 2008
-    slug = "profile_frame_drop_experimental"
-    description = "Frame Drop"
-    category = GroupCategory.PERFORMANCE.value
-    default_priority = PriorityLevel.LOW
-
-
-@dataclass(frozen=True)
 class ProfileFrameDropType(GroupType):
     type_id = 2009
     slug = "profile_frame_drop"
@@ -499,17 +504,6 @@ class ProfileFrameDropType(GroupType):
     noise_config = NoiseConfig(ignore_limit=2000)
     released = True
     default_priority = PriorityLevel.LOW
-
-
-@dataclass(frozen=True)
-class ProfileFunctionRegressionExperimentalType(GroupType):
-    type_id = 2010
-    slug = "profile_function_regression_exp"
-    description = "Function Duration Regression (Experimental)"
-    category = GroupCategory.PERFORMANCE.value
-    enable_auto_resolve = False
-    default_priority = PriorityLevel.LOW
-    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 @dataclass(frozen=True)
@@ -554,16 +548,6 @@ class MonitorCheckInMissed(MonitorIncidentType):
 
 
 @dataclass(frozen=True)
-class ReplayDeadClickType(ReplayGroupTypeDefaults, GroupType):
-    # This is not currently used
-    type_id = 5001
-    slug = "replay_click_dead"
-    description = "Dead Click Detected"
-    category = GroupCategory.REPLAY.value
-    default_priority = PriorityLevel.MEDIUM
-
-
-@dataclass(frozen=True)
 class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     type_id = 5002
     slug = "replay_click_rage"
@@ -601,33 +585,6 @@ class FeedbackGroup(GroupType):
 
 
 @dataclass(frozen=True)
-class UptimeDomainCheckFailure(GroupType):
-    type_id = 7001
-    slug = "uptime_domain_failure"
-    description = "Uptime Domain Monitor Failure"
-    category = GroupCategory.UPTIME.value
-    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-    detector_config_schema = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "A representation of an uptime alert",
-        "type": "object",
-        "required": ["mode", "environment"],
-        "properties": {
-            "mode": {
-                "type": ["integer"],
-                # TODO: Enable this when we can move this grouptype out of this file
-                # "enum": [mode.value for mode in ProjectUptimeSubscriptionMode],
-            },
-            "environment": {"type": ["string"]},
-        },
-        "additionalProperties": False,
-    }
-
-
-@dataclass(frozen=True)
 class MetricIssuePOC(GroupType):
     type_id = 8002
     slug = "metric_issue_poc"
@@ -637,6 +594,7 @@ class MetricIssuePOC(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
+    use_flagpole_for_all_features = True
 
 
 def should_create_group(

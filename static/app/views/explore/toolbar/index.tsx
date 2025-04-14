@@ -21,7 +21,7 @@ import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
 import {ToolbarSuggestedQueries} from 'sentry/views/explore/toolbar/toolbarSuggestedQueries';
 import {ToolbarVisualize} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
-type Extras = 'dataset toggle' | 'equations';
+type Extras = 'dataset toggle' | 'equations' | 'tabs';
 
 interface ExploreToolbarProps {
   extras?: Extras[];
@@ -44,9 +44,9 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
       {extras?.includes('dataset toggle') && (
         <ToolbarDataset dataset={dataset} setDataset={setDataset} />
       )}
-      <ToolbarMode mode={mode} setMode={setMode} />
+      {!extras?.includes('tabs') && <ToolbarMode mode={mode} setMode={setMode} />}
       <ToolbarVisualize equationSupport={extras?.includes('equations')} />
-      {mode === Mode.AGGREGATE && <ToolbarGroupBy />}
+      {(extras?.includes('tabs') || mode === Mode.AGGREGATE) && <ToolbarGroupBy />}
       <ToolbarSortBy
         fields={fields}
         groupBys={groupBys}

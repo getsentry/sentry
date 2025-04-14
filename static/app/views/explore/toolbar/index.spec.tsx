@@ -24,10 +24,9 @@ import {
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-
-import {SpanTagsProvider} from '../contexts/spanTagsContext';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -181,7 +180,7 @@ describe('ExploreToolbar', function () {
     // Add a group by, and leave one unselected
     await userEvent.click(aggregates);
     const groupBy = screen.getByTestId('section-group-by');
-    await userEvent.click(within(groupBy).getByRole('button', {name: 'span.op'}));
+    await userEvent.click(within(groupBy).getByRole('button', {name: '\u2014'}));
     await userEvent.click(within(groupBy).getByRole('option', {name: 'release'}));
     expect(groupBys).toEqual(['release']);
     await userEvent.click(within(groupBy).getByRole('button', {name: 'Add Group'}));
@@ -571,23 +570,29 @@ describe('ExploreToolbar', function () {
       })
     );
 
+    let options;
     const section = screen.getByTestId('section-group-by');
 
-    expect(within(section).getByRole('button', {name: 'span.op'})).toBeEnabled();
-    await userEvent.click(within(section).getByRole('button', {name: 'span.op'}));
-    const groupByOptions1 = await within(section).findAllByRole('option');
-    expect(groupByOptions1.length).toBeGreaterThan(0);
+    expect(groupBys).toEqual(['']);
 
+    await userEvent.click(within(section).getByRole('button', {name: '\u2014'}));
+    options = await within(section).findAllByRole('option');
+    expect(options.length).toBeGreaterThan(0);
+    await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
+    expect(groupBys).toEqual(['span.op']);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'span.op'}));
+    options = await within(section).findAllByRole('option');
+    expect(options.length).toBeGreaterThan(0);
     await userEvent.click(within(section).getByRole('option', {name: 'project'}));
     expect(groupBys).toEqual(['project']);
 
     await userEvent.click(within(section).getByRole('button', {name: 'Add Group'}));
     expect(groupBys).toEqual(['project', '']);
 
-    await userEvent.click(within(section).getByRole('button', {name: 'None'}));
-    const groupByOptions2 = await within(section).findAllByRole('option');
-    expect(groupByOptions2.length).toBeGreaterThan(0);
-
+    await userEvent.click(within(section).getByRole('button', {name: '\u2014'}));
+    options = await within(section).findAllByRole('option');
+    expect(options.length).toBeGreaterThan(0);
     await userEvent.click(
       within(section).getByRole('option', {name: 'span.description'})
     );

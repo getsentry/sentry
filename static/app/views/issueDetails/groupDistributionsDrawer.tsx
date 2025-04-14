@@ -1,10 +1,12 @@
 import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
@@ -17,7 +19,6 @@ import {
   SearchInput,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {IconDownload, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -72,13 +73,23 @@ function getHeaderTitle(
 /**
  * Shared tags and feature flags distributions drawer, used by streamlined issue details UI.
  */
-export function GroupDistributionsDrawer({
-  group,
-  includeFeatureFlagsTab,
-}: {
+export function GroupDistributionsDrawer(props: GroupDistributionsDrawerProps) {
+  return (
+    <AnalyticsArea name="distributions_drawer">
+      <BaseGroupDistributionsDrawer {...props} />
+    </AnalyticsArea>
+  );
+}
+
+type GroupDistributionsDrawerProps = {
   group: Group;
   includeFeatureFlagsTab: boolean;
-}) {
+};
+
+function BaseGroupDistributionsDrawer({
+  group,
+  includeFeatureFlagsTab,
+}: GroupDistributionsDrawerProps) {
   const location = useLocation();
   const organization = useOrganization();
   const environments = useEnvironmentsFromUrl();
@@ -167,7 +178,7 @@ export function GroupDistributionsDrawer({
             size="xs"
             value={tab}
             onChange={newTab => {
-              setTab(newTab as DrawerTab);
+              setTab(newTab);
               setSearch('');
             }}
           >
@@ -226,9 +237,17 @@ export function GroupDistributionsDrawer({
         {tagKey && tab === DrawerTab.TAGS ? (
           <TagDetailsDrawerContent group={group} />
         ) : tagKey && tab === DrawerTab.FEATURE_FLAGS ? (
-          <FlagDetailsDrawerContent />
+          <AnalyticsArea name="feature_flag_details">
+            <FlagDetailsDrawerContent />
+          </AnalyticsArea>
         ) : tab === DrawerTab.FEATURE_FLAGS ? (
-          <FlagDrawerContent group={group} environments={environments} search={search} />
+          <AnalyticsArea name="feature_flag_distributions">
+            <FlagDrawerContent
+              group={group}
+              environments={environments}
+              search={search}
+            />
+          </AnalyticsArea>
         ) : (
           <TagDrawerContent
             group={group}

@@ -2,26 +2,26 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
-import useErrorFreeSessions from 'sentry/views/insights/sessions/queries/useErrorFreeSessions';
+import useErroredSessions from 'sentry/views/insights/sessions/queries/useErroredSessions';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function ErrorFreeSessionsChart() {
-  const {series, isPending, error} = useErrorFreeSessions();
+export default function UnhealthySessionsChart() {
+  const {series, isPending, error} = useErroredSessions();
 
   const aliases = {
-    successful_session_rate: t('crash_free_rate(session)'),
+    successful_session_rate: t('error_rate(sessions)'),
   };
 
   return (
     <InsightsLineChartWidget
-      title={CHART_TITLES.ErrorFreeSessionsChart}
+      title={CHART_TITLES.UnhealthySessionsChart}
       interactiveTitle={() => (
-        <ChartSelectionTitle title={CHART_TITLES.ErrorFreeSessionsChart} />
+        <ChartSelectionTitle title={CHART_TITLES.UnhealthySessionsChart} />
       )}
       height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
-        'The percent of sessions terminating without a single error occurring. See [link:session status].',
+        'The percent of sessions ending normally, with no errors occurring during its lifetime. See [link:session status].',
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/product/releases/health/#session-status" />

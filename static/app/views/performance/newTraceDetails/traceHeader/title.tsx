@@ -17,8 +17,7 @@ import {
   isEAPError,
   isTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-
-import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 interface TitleProps {
   representativeEvent: TraceTree.TraceEvent | OurLogsResponseItem | null;
@@ -70,7 +69,10 @@ function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>)
     return null;
   }
 
-  const replay_id = rootEventResults.data.contexts.replay?.[ReplayContextKey.REPLAY_ID];
+  const replayId = rootEventResults.data.contexts.replay?.[ReplayContextKey.REPLAY_ID];
+  if (!replayId) {
+    return null;
+  }
 
   return (
     <Fragment>
@@ -80,7 +82,7 @@ function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>)
         priority="link"
         icon={<IconPlay size="xs" />}
         to={{
-          pathname: `/explore/replays/${replay_id}`,
+          pathname: `/explore/replays/${replayId}`,
         }}
         replace
         aria-label={t("View this issue's replays")}

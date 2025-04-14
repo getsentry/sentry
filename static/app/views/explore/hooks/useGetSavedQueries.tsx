@@ -18,8 +18,8 @@ type Query = {
 
 export type SortOption =
   | 'name'
-  | 'dateAdded'
-  | 'dateUpdated'
+  | '-dateAdded'
+  | '-dateUpdated'
   | 'mostPopular'
   | 'recentlyViewed'
   | 'starred'
@@ -36,6 +36,7 @@ export type SavedQuery = {
   interval: string;
   lastVisited: string;
   name: string;
+  position: number | null;
   projects: number[];
   query: [Query, ...Query[]];
   queryDataset: string;
