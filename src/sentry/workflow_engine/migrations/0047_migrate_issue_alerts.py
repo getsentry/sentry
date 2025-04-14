@@ -9,14 +9,19 @@ from typing import Any, ClassVar, NotRequired, TypedDict
 
 import sentry_sdk
 from django.apps.registry import Apps
+from django.conf import settings
 from django.db import migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from jsonschema import ValidationError, validate
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils import redis
+from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = 1000
 
 # COPY PASTES FOR RULE REGISTRY
 
@@ -2082,9 +2087,8 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
         action_match: str,
         detector: Any,
     ) -> Any:
-        when_dcg = _create_when_dcg(
-            organization=rule.project.organization, action_match=action_match
-        )
+        organization = rule.project.organization
+        when_dcg = _create_when_dcg(organization=organization, action_match=action_match)
         data_conditions = _bulk_create_data_conditions(
             rule=rule, conditions=conditions, filters=filters, dcg=when_dcg
         )
@@ -2135,12 +2139,12 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
 
     def _create_if_dcg(
         rule: Any,
-        organization: Any,
         filter_match: str,
         workflow: Any,
         conditions: list[dict[str, Any]],
         filters: list[dict[str, Any]],
     ) -> Any:
+        organization = rule.project.organization
         if (
             filter_match == "any" or filter_match is None
         ):  # must create IF DCG even if it's empty, to attach actions
@@ -2167,60 +2171,76 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
         DataConditionGroupAction.objects.bulk_create(dcg_actions)
 
     # EXECUTION STARTS HERE
-    for project in RangeQuerySetWrapperWithProgressBarApprox(Project.objects.all()):
-        organization = project.organization
-        error_detector, _ = Detector.objects.get_or_create(
-            type="error",
-            project=project,
-            defaults={"config": {}, "name": "Error Detector"},
-        )
+    backfill_key = "backfill_workflow_engine_issue_alerts"
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+    progress_id = int(redis_client.get(backfill_key) or 0)
 
-        with transaction.atomic(router.db_for_write(Rule)):
-            rules = Rule.objects.select_for_update().filter(project=project)
+    def migrate_projects_issue_alerts(project_ids: list[int]) -> None:
+        for project_id in project_ids:
+            error_detector, _ = Detector.objects.get_or_create(
+                type="error",
+                project_id=project_id,
+                defaults={"config": {}, "name": "Error Detector"},
+            )
 
-            for rule in RangeQuerySetWrapperWithProgressBarApprox(rules):
-                try:
-                    with transaction.atomic(router.db_for_write(Workflow)):
-                        # make sure rule is not already migrated
-                        _, created = AlertRuleDetector.objects.get_or_create(
-                            detector_id=error_detector.id, rule_id=rule.id
+            with transaction.atomic(router.db_for_write(Rule)):
+                rules = Rule.objects.select_for_update().filter(project_id=project_id)
+
+                for rule in RangeQuerySetWrapperWithProgressBarApprox(rules):
+                    try:
+                        with transaction.atomic(router.db_for_write(Workflow)):
+                            # make sure rule is not already migrated
+                            _, created = AlertRuleDetector.objects.get_or_create(
+                                detector_id=error_detector.id, rule_id=rule.id
+                            )
+                            if not created:
+                                raise Exception("Rule already migrated")
+
+                            data = rule.data
+                            user_id = None
+                            created_activity = RuleActivity.objects.filter(
+                                rule=rule, type=1  # created
+                            ).first()
+                            if created_activity:
+                                user_id = getattr(created_activity, "user_id")
+
+                            conditions, filters = split_conditions_and_filters(data["conditions"])
+                            action_match = data.get("action_match") or "all"
+                            workflow = _create_workflow_and_lookup(
+                                rule=rule,
+                                user_id=int(user_id) if user_id else None,
+                                conditions=conditions,
+                                filters=filters,
+                                action_match=action_match,
+                                detector=error_detector,
+                            )
+                            filter_match = data.get("filter_match") or "all"
+                            if_dcg = _create_if_dcg(
+                                rule=rule,
+                                filter_match=filter_match,
+                                workflow=workflow,
+                                conditions=conditions,
+                                filters=filters,
+                            )
+                            _create_workflow_actions(if_dcg=if_dcg, actions=data["actions"])
+                    except Exception as e:
+                        logger.exception(
+                            "Error migrating issue alert",
+                            extra={"rule_id": rule.id, "error": str(e)},
                         )
-                        if not created:
-                            raise Exception("Rule already migrated")
+                        sentry_sdk.capture_exception(e)
 
-                        data = rule.data
-                        user_id = None
-                        created_activity = RuleActivity.objects.filter(
-                            rule=rule, type=1  # created
-                        ).first()
-                        if created_activity:
-                            user_id = getattr(created_activity, "user_id")
-
-                        conditions, filters = split_conditions_and_filters(data["conditions"])
-                        action_match = data.get("action_match") or "all"
-                        workflow = _create_workflow_and_lookup(
-                            rule=rule,
-                            user_id=int(user_id) if user_id else None,
-                            conditions=conditions,
-                            filters=filters,
-                            action_match=action_match,
-                            detector=error_detector,
-                        )
-                        filter_match = data.get("filter_match") or "all"
-                        if_dcg = _create_if_dcg(
-                            rule=rule,
-                            organization=rule.project.organization,
-                            filter_match=filter_match,
-                            workflow=workflow,
-                            conditions=conditions,
-                            filters=filters,
-                        )
-                        _create_workflow_actions(if_dcg=if_dcg, actions=data["actions"])
-                except Exception as e:
-                    logger.exception(
-                        "Error migrating issue alert", extra={"rule_id": rule.id, "error": str(e)}
-                    )
-                    sentry_sdk.capture_exception(e)
+    for projects in chunked(
+        RangeQuerySetWrapperWithProgressBarApprox(
+            Project.objects.filter(id__gt=progress_id).values_list("id", flat=True),
+            step=CHUNK_SIZE,
+            result_value_getter=lambda item: item,
+        ),
+        CHUNK_SIZE,
+    ):
+        migrate_projects_issue_alerts(projects)
+        # Update the progress in Redis
+        redis_client.set(backfill_key, projects[-1].id)
 
 
 class Migration(CheckedMigration):
