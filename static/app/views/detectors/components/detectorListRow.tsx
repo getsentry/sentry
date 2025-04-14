@@ -9,8 +9,9 @@ import {
 } from 'sentry/components/workflowEngine/gridCell/connectionCell';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
-import {NumberCell} from 'sentry/components/workflowEngine/gridCell/numberCell';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
+import {TypeCell} from 'sentry/components/workflowEngine/gridCell/typeCell';
+import {UserCell} from 'sentry/components/workflowEngine/gridCell/userCell';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -65,14 +66,17 @@ export function DetectorListRow({
         </CellWrapper>
         <StyledGraphCell />
       </Flex>
+      <CellWrapper className="type">
+        <TypeCell type="errors" />
+      </CellWrapper>
       <CellWrapper className="last-issue">
         <StyledIssueCell
           group={groups.length > 0 ? groups[0] : undefined}
           disabled={disabled}
         />
       </CellWrapper>
-      <CellWrapper className="open-issues">
-        <NumberCell number={groups.length} />
+      <CellWrapper className="creator">
+        <UserCell user="sentry" />
       </CellWrapper>
       <CellWrapper className="connected-automations">
         <ConnectionCell

@@ -33,8 +33,7 @@ const SecondarySidebarWrapper = styled(NavTourElement)`
   position: relative;
   border-right: 1px solid
     ${p => (p.theme.isChonk ? p.theme.border : p.theme.translucentGray200)};
-  background: ${p =>
-    p.theme.isChonk ? p.theme.backgroundSecondary : p.theme.surface200};
+  background: ${p => (p.theme.isChonk ? p.theme.background : p.theme.surface200)};
   width: ${SECONDARY_SIDEBAR_WIDTH}px;
   z-index: ${p => p.theme.zIndex.sidebarPanel};
   height: 100%;

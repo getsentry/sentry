@@ -77,7 +77,8 @@ export function getCategoryOptions({
 }): CategoryOption[] {
   return USAGE_CHART_OPTIONS_DATACATEGORY.filter(
     opt =>
-      plan.checkoutCategories.includes(opt.value as DataCategory) &&
+      (plan.checkoutCategories.includes(opt.value as DataCategory) ||
+        plan.onDemandCategories.includes(opt.value as DataCategory)) &&
       (opt.value === DataCategory.SPANS_INDEXED ? hadCustomDynamicSampling : true)
   );
 }
@@ -155,7 +156,7 @@ function chartTooltip(category: DataCategory, displayMode: 'usage' | 'cost') {
             // @ts-expect-error TS(2339): Property 'dropped' does not exist on type 'OptionD... Remove this comment to see the full error message
             const dropped = s.data.dropped as DroppedBreakdown | undefined;
             if (typeof dropped === 'undefined' || value === '0') {
-              return `<div><span class="tooltip-label">${s.marker} <strong>${label}</strong></span> ${value}</div>`;
+              return `<div><span class="tooltip-label">${s.marker as string} <strong>${label}</strong></span> ${value}</div>`;
             }
             const other = tooltipValueFormatter(dropped.other);
             const overQuota = tooltipValueFormatter(dropped.overQuota);
@@ -163,7 +164,7 @@ function chartTooltip(category: DataCategory, displayMode: 'usage' | 'cost') {
             // Used to shift breakdown over the same amount as series markers.
             const indent = '<span style="display: inline-block; width: 15px"></span>';
             const labels = [
-              `<div><span class="tooltip-label">${s.marker} <strong>${t(
+              `<div><span class="tooltip-label">${s.marker as string} <strong>${t(
                 'Dropped'
               )}</strong></span> ${value}</div>`,
               `<div><span class="tooltip-label">${indent} <strong>${t(
@@ -318,8 +319,8 @@ export function mapCostStatsToChart({
     const {prepaidSpend, prepaidPrice} = calculateCategoryPrepaidUsage(
       category,
       subscription,
-      {accepted},
-      prepaid
+      prepaid,
+      accepted
     );
     sumReserved = isCumulative ? sumReserved + prepaidSpend : prepaidSpend;
     // Ensure that the reserved amount does not exceed the prepaid amount.
@@ -390,8 +391,8 @@ export function mapReservedBudgetStatsToChart({
         const {prepaidSpend, prepaidPrice} = calculateCategoryPrepaidUsage(
           category,
           subscription,
-          {accepted},
           prepaid,
+          accepted,
           reservedCpe
         );
         sumReserved = isCumulative ? sumReserved + prepaidSpend : prepaidSpend;
@@ -559,8 +560,8 @@ function ReservedUsageChart({
         const {prepaidPrice} = calculateCategoryPrepaidUsage(
           category,
           subscription,
-          {accepted: 0},
-          reservedBudgetCategoryInfo[category]?.prepaidBudget ?? currentHistory.prepaid
+          reservedBudgetCategoryInfo[category]?.prepaidBudget ?? currentHistory.prepaid,
+          0
         );
         const {onDemandCategoryMax} = calculateCategoryOnDemandUsage(
           category,

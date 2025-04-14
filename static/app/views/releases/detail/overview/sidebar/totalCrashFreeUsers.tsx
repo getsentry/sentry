@@ -15,8 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {CrashFreeTimeBreakdown} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
-
-import {displayCrashFreePercent} from '../../../utils';
+import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
 type Props = {
   location: Location;

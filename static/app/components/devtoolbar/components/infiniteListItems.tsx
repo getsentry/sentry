@@ -2,15 +2,14 @@ import {useEffect, useRef} from 'react';
 import type {InfiniteData, UseInfiniteQueryResult} from '@tanstack/react-query';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-
 import {
   infiniteListFloatingMessageBottomCss,
   infiniteListParentContainerCss,
   infiniteListScollablePanelCss,
   infiniteListScrollableWindowCss,
-} from '../styles/infiniteList';
-import type {ApiResult} from '../types';
+} from 'sentry/components/devtoolbar/styles/infiniteList';
+import type {ApiResult} from 'sentry/components/devtoolbar/types';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 
 interface Props<Data> {
   itemRenderer: ({item}: {item: Data}) => React.ReactNode;

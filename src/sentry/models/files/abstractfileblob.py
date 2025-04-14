@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.celery import SentryTask
-from sentry.db.models import BoundedPositiveIntegerField, Model
+from sentry.db.models import Model, WrappingU32IntegerField
 from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 from sentry.models.files.utils import (
     get_and_optionally_update_blob,
@@ -44,7 +44,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
     __relocation_scope__ = RelocationScope.Excluded
 
     path = models.TextField(null=True)
-    size = BoundedPositiveIntegerField(null=True)
+    size = WrappingU32IntegerField(null=True)
     checksum = models.CharField(max_length=40, unique=True)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
 

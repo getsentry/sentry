@@ -35,16 +35,15 @@ import type {
 import VitalsCardsDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
-
-import ColorBar from '../vitalDetail/colorBar';
+import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
 import {
   vitalAbbreviations,
   vitalDetailRouteWithQuery,
   vitalMap,
   VitalState,
   vitalStateColors,
-} from '../vitalDetail/utils';
-import VitalPercents from '../vitalDetail/vitalPercents';
+} from 'sentry/views/performance/vitalDetail/utils';
+import VitalPercents from 'sentry/views/performance/vitalDetail/vitalPercents';
 
 import {
   getDefaultDisplayFieldForPlatform,

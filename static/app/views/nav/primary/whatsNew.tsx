@@ -16,6 +16,7 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useNavContext} from 'sentry/views/nav/context';
 import {
   SidebarButton,
   SidebarItemUnreadIndicator,
@@ -24,6 +25,7 @@ import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
 } from 'sentry/views/nav/primary/primaryButtonOverlay';
+import {NavLayout} from 'sentry/views/nav/types';
 
 const MARK_SEEN_DELAY = 1000;
 
@@ -125,6 +127,8 @@ export function PrimaryNavigationWhatsNew() {
     overlayProps,
   } = usePrimaryButtonOverlay();
 
+  const {layout} = useNavContext();
+
   return (
     <Fragment>
       <SidebarButton
@@ -134,7 +138,10 @@ export function PrimaryNavigationWhatsNew() {
       >
         <IconBroadcast />
         {unseenPostIds.length > 0 && (
-          <SidebarItemUnreadIndicator data-test-id="whats-new-unread-indicator" />
+          <SidebarItemUnreadIndicator
+            data-test-id="whats-new-unread-indicator"
+            isMobile={layout === NavLayout.MOBILE}
+          />
         )}
       </SidebarButton>
       {isOpen && (

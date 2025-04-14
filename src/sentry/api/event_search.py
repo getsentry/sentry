@@ -1685,6 +1685,7 @@ default_config = SearchConfig(
         "error.main_thread",
         "stack.in_app",
         "is_application",
+        "symbolicated_in_app",
         TEAM_KEY_TRANSACTION_ALIAS,
     },
 )
