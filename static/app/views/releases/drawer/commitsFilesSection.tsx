@@ -1,3 +1,4 @@
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from 'sentry/components/core/badge';
@@ -48,17 +49,26 @@ export function CommitsFilesSection({
       enabled: !!projectSlug,
     },
   });
+  const [isCollapsed, setCollapsed] = useState(false);
   const isError = repositoriesQuery.isError || releaseReposQuery.isError;
   const isLoading = repositoriesQuery.isPending || releaseReposQuery.isPending;
   const releaseRepos = releaseReposQuery.data;
   const repositories = repositoriesQuery.data;
   const noReleaseReposFound = !releaseRepos?.length;
   const noRepositoryOrgRelatedFound = !repositories?.length;
+  const handleChange = useCallback(() => {
+    setCollapsed(false);
+  }, []);
+  const handleFoldChange = useCallback((collapsed: boolean) => {
+    setCollapsed(collapsed);
+  }, []);
 
   return (
-    <Tabs disabled={isError}>
+    <Tabs disabled={isError} onChange={handleChange}>
       <FoldSection
+        isCollapsed={isCollapsed}
         sectionKey="commits"
+        onChange={handleFoldChange}
         title={
           <TabList hideBorder>
             <TabList.Item key="commits">

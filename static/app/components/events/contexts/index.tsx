@@ -36,11 +36,20 @@ export function getOrderedContextItems(event: Event): ContextItem[] {
 
   // hide `flags` in the contexts section since we display this
   // info in the feature flag section below
-  const {feedback, response, runtime, os, flags: _, ...otherContexts} = contexts ?? {};
+  const {
+    feedback,
+    response,
+    browser,
+    runtime,
+    os,
+    flags: _,
+    ...otherContexts
+  } = contexts ?? {};
   const orderedContext: Array<[ContextItem['alias'], ContextValue]> = [
     ['response', response],
     ['feedback', feedback],
     ['user', {...userContext, ...(customUserData as any)}],
+    ['browser', browser],
     ['runtime', runtime],
     ['os', os],
     ...Object.entries(otherContexts),

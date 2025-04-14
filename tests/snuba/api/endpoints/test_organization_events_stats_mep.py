@@ -1854,6 +1854,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         assert response.status_code == 200, response.content
         for datum in response.data.values():
             assert datum["meta"] == {
+                "dataScanned": "full",
                 "dataset": "metricsEnhanced",
                 "datasetReason": "unchanged",
                 "fields": {"count": "integer", "networkId": "string", "time": "date"},
@@ -1910,6 +1911,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
 
         assert response.status_code == 200, response.content
         assert response.data["meta"] == {
+            "dataScanned": "full",
             "fields": {"time": "date", "epm": "rate"},
             "units": {"time": None, "epm": None},
             "isMetricsData": True,
@@ -2042,6 +2044,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         assert data2["data"][0][1][0]["count"] == 5
         for datum in response.data.values():
             assert datum["meta"] == {
+                "dataScanned": "full",
                 "dataset": "metricsEnhanced",
                 "datasetReason": "unchanged",
                 "fields": {"count": "integer", "networkId": "string", "time": "date"},
@@ -2084,6 +2087,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         assert data2["data"][0][1][0]["count"] == 10
         for datum in response.data.values():
             assert datum["meta"] == {
+                "dataScanned": "full",
                 "dataset": "metricsEnhanced",
                 "datasetReason": "unchanged",
                 "fields": {"count": "integer", "networkId": "string", "time": "date"},
@@ -2126,6 +2130,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         assert data2["data"][0][1][0]["count"] == 200
         for datum in response.data.values():
             assert datum["meta"] == {
+                "dataScanned": "full",
                 "dataset": "metricsEnhanced",
                 "datasetReason": "unchanged",
                 "fields": {

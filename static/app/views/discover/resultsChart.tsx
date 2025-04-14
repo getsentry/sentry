@@ -13,7 +13,6 @@ import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
@@ -30,8 +29,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
-
-import {isCustomMeasurement} from '../dashboards/utils';
+import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 
 import ChartFooter from './chartFooter';
 
@@ -41,7 +39,6 @@ type ResultsChartProps = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  router: InjectedRouter;
   yAxisValue: string[];
   customMeasurements?: CustomMeasurementCollection | undefined;
 };
@@ -64,7 +61,6 @@ class ResultsChart extends Component<ResultsChartProps> {
       eventView,
       location,
       organization,
-      router,
       confirmedQuery,
       yAxisValue,
       customMeasurements,
@@ -132,7 +128,7 @@ class ResultsChart extends Component<ResultsChartProps> {
           value: (
             <EventsChart
               api={api}
-              router={router}
+              location={location}
               query={apiPayload.query}
               dataset={apiPayload.dataset}
               organization={organization}
@@ -177,10 +173,10 @@ type ContainerProps = {
   onTopEventsChange: (value: string) => void;
 
   organization: Organization;
-  router: InjectedRouter;
   // chart footer props
   total: number | null;
   yAxis: string[];
+  hideFooter?: boolean;
 };
 
 type ContainerState = {
@@ -220,7 +216,6 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
       api,
       eventView,
       location,
-      router,
       total,
       onAxisChange,
       onDisplayChange,
@@ -229,6 +224,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
       organization,
       confirmedQuery,
       yAxis,
+      hideFooter,
     } = this.props;
 
     const {yAxisOptions} = this.state;
@@ -275,7 +271,6 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
                 eventView={eventView}
                 location={location}
                 organization={organization}
-                router={router}
                 confirmedQuery={confirmedQuery}
                 yAxisValue={yAxis}
                 customMeasurements={contextValue?.customMeasurements}
@@ -283,19 +278,21 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
             )}
           </CustomMeasurementsContext.Consumer>
         )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
-        <ChartFooter
-          total={total}
-          yAxisValue={yAxis}
-          yAxisOptions={yAxisOptions}
-          eventView={eventView}
-          onAxisChange={onAxisChange}
-          displayOptions={displayOptions}
-          displayMode={eventView.getDisplayMode()}
-          onDisplayChange={onDisplayChange}
-          onTopEventsChange={onTopEventsChange}
-          onIntervalChange={onIntervalChange}
-          topEvents={eventView.topEvents ?? TOP_N.toString()}
-        />
+        {hideFooter ? null : (
+          <ChartFooter
+            total={total}
+            yAxisValue={yAxis}
+            yAxisOptions={yAxisOptions}
+            eventView={eventView}
+            onAxisChange={onAxisChange}
+            displayOptions={displayOptions}
+            displayMode={eventView.getDisplayMode()}
+            onDisplayChange={onDisplayChange}
+            onTopEventsChange={onTopEventsChange}
+            onIntervalChange={onIntervalChange}
+            topEvents={eventView.topEvents ?? TOP_N.toString()}
+          />
+        )}
       </StyledPanel>
     );
   }

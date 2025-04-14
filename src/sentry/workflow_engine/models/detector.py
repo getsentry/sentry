@@ -125,5 +125,4 @@ def enforce_config_schema(sender, instance: Detector, **kwargs):
         raise ValidationError("Detector config must be a dictionary")
 
     config_schema = group_type.detector_config_schema
-    if instance.config:
-        instance.validate_config(config_schema)
+    instance.validate_config(config_schema)
