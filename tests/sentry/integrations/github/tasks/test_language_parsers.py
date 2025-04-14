@@ -1,10 +1,11 @@
+from unittest import TestCase
+
 from sentry.integrations.github.tasks.language_parsers import (
     JavascriptParser,
     PHPParser,
     PythonParser,
     RubyParser,
 )
-from sentry.testutils.cases import TestCase
 
 
 class PythonParserTestCase(TestCase):

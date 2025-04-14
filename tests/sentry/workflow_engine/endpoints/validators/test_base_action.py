@@ -1,8 +1,7 @@
-from unittest import mock
+from unittest import TestCase, mock
 
 from rest_framework import serializers
 
-from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionHandler

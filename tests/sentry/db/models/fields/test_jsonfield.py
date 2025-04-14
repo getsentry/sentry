@@ -41,19 +41,91 @@ class CallableDefaultModel(models.Model):
         app_label = "fixtures"
 
 
+def test_json_field() -> None:
+    obj = JSONFieldTestModel(
+        json="""{
+        "spam": "eggs"
+    }"""
+    )
+    assert obj.json == {"spam": "eggs"}
+
+
+def test_json_field_empty() -> None:
+    obj = JSONFieldTestModel(json="")
+    assert obj.json is None
+
+
+def test_db_prep_value() -> None:
+    field = JSONField("test")
+    field.set_attributes_from_name("json")
+    assert field.get_db_prep_value(None, connection=None) is None
+    assert '{"spam":"eggs"}' == field.get_db_prep_value({"spam": "eggs"}, connection=None)
+
+
+def test_formfield() -> None:
+    field = JSONField("test")
+    field.set_attributes_from_name("json")
+    formfield = field.formfield()
+    assert formfield is not None
+
+    assert type(formfield) is forms.CharField
+    assert type(formfield.widget) is forms.Textarea
+
+
+def test_formfield_clean_blank() -> None:
+    field = JSONField("test")
+    formfield = field.formfield()
+    assert formfield is not None
+    with pytest.raises(forms.ValidationError) as excinfo:
+        formfield.clean(value="")
+    assert excinfo.value.message == formfield.error_messages["required"]
+
+
+def test_formfield_clean_none() -> None:
+    field = JSONField("test")
+    formfield = field.formfield()
+    assert formfield is not None
+    with pytest.raises(forms.ValidationError) as excinfo:
+        formfield.clean(value=None)
+    assert excinfo.value.message == formfield.error_messages["required"]
+
+
+def test_formfield_null_and_blank_clean_blank() -> None:
+    field = JSONField("test", null=True, blank=True)
+    formfield = field.formfield()
+    assert formfield is not None
+    assert formfield.clean(value="") == ""
+
+
+def test_formfield_blank_clean_blank() -> None:
+    field = JSONField("test", null=False, blank=True)
+    formfield = field.formfield()
+    assert formfield is not None
+    assert formfield.clean(value="") == ""
+
+
+def test_mutable_default_checking() -> None:
+    obj1 = JSONFieldWithDefaultTestModel()
+    obj2 = JSONFieldWithDefaultTestModel()
+
+    obj1.json["foo"] = "bar"
+    assert "foo" not in obj2.json
+
+
+def test_invalid_json() -> None:
+    obj = JSONFieldTestModel()
+    obj.json = '{"foo": 2}'
+    assert "foo" in obj.json
+    with pytest.raises(forms.ValidationError):
+        obj.json = '{"foo"}'
+
+
+def test_invalid_json_default() -> None:
+    with pytest.raises(ValueError):
+        JSONField("test", default='{"foo"}')
+
+
 class JSONFieldTest(TestCase):
-    def test_json_field(self):
-        obj = JSONFieldTestModel(
-            json="""{
-            "spam": "eggs"
-        }"""
-        )
-        self.assertEqual(obj.json, {"spam": "eggs"})
-
-    def test_json_field_empty(self):
-        obj = JSONFieldTestModel(json="")
-        self.assertEqual(obj.json, None)
-
     def test_json_field_save(self):
         JSONFieldTestModel.objects.create(
             id=10,
@@ -68,57 +140,6 @@ class JSONFieldTest(TestCase):
         JSONFieldTestModel.objects.create(id=10, json="")
         obj2 = JSONFieldTestModel.objects.get(id=10)
         self.assertEqual(obj2.json, None)
-
-    def test_db_prep_value(self):
-        field = JSONField("test")
-        field.set_attributes_from_name("json")
-        self.assertEqual(None, field.get_db_prep_value(None, connection=None))
-        self.assertEqual(
-            '{"spam":"eggs"}', field.get_db_prep_value({"spam": "eggs"}, connection=None)
-        )
-
-    def test_formfield(self):
-        field = JSONField("test")
-        field.set_attributes_from_name("json")
-        formfield = field.formfield()
-        assert formfield is not None
-
-        self.assertEqual(type(formfield), forms.CharField)
-        self.assertEqual(type(formfield.widget), forms.Textarea)
-
-    def test_formfield_clean_blank(self):
-        field = JSONField("test")
-        formfield = field.formfield()
-        assert formfield is not None
-        self.assertRaisesMessage(
-            forms.ValidationError,
-            str(formfield.error_messages["required"]),
-            formfield.clean,
-            value="",
-        )
-
-    def test_formfield_clean_none(self):
-        field = JSONField("test")
-        formfield = field.formfield()
-        assert formfield is not None
-        self.assertRaisesMessage(
-            forms.ValidationError,
-            str(formfield.error_messages["required"]),
-            formfield.clean,
-            value=None,
-        )
-
-    def test_formfield_null_and_blank_clean_blank(self):
-        field = JSONField("test", null=True, blank=True)
-        formfield = field.formfield()
-        assert formfield is not None
-        self.assertEqual(formfield.clean(value=""), "")
-
-    def test_formfield_blank_clean_blank(self):
-        field = JSONField("test", null=False, blank=True)
-        formfield = field.formfield()
-        assert formfield is not None
-        self.assertEqual(formfield.clean(value=""), "")
 
     def test_default_value(self):
         obj = JSONFieldWithDefaultTestModel.objects.create()
@@ -174,24 +195,6 @@ class JSONFieldTest(TestCase):
         CallableDefaultModel.objects.create(json={"x": 3})
         obj = CallableDefaultModel.objects.get()
         self.assertEqual({"x": 3}, obj.json)
-
-    def test_mutable_default_checking(self):
-        obj1 = JSONFieldWithDefaultTestModel()
-        obj2 = JSONFieldWithDefaultTestModel()
-
-        obj1.json["foo"] = "bar"
-        self.assertNotIn("foo", obj2.json)
-
-    def test_invalid_json(self):
-        obj = JSONFieldTestModel()
-        obj.json = '{"foo": 2}'
-        assert "foo" in obj.json
-        with pytest.raises(forms.ValidationError):
-            obj.json = '{"foo"}'
-
-    def test_invalid_json_default(self):
-        with pytest.raises(ValueError):
-            JSONField("test", default='{"foo"}')
 
 
 class SavingModelsTest(TestCase):

@@ -1,7 +1,7 @@
 import time
+from unittest import TestCase
 
 from sentry.cache.django import DjangoCache
-from sentry.testutils.cases import TestCase
 
 
 class DjangoCacheTest(TestCase):

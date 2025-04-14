@@ -1,9 +1,9 @@
 from typing import Any
+from unittest import TestCase
 
 import pytest
 
 from sentry.integrations.msteams import MsTeamsEvents, MsTeamsWebhookEndpoint
-from sentry.testutils.cases import TestCase
 
 
 class TestGeTeamInstallationRequestData(TestCase):

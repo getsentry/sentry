@@ -1,11 +1,10 @@
-from unittest import mock
+from unittest import TestCase, mock
 
 import pytest
 
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
-from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
 
 

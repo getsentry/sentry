@@ -8,7 +8,16 @@ from django.test import RequestFactory
 
 from sentry.exceptions import PluginError
 from sentry.testutils.cases import PluginTestCase
+from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.github.plugin import GitHubPlugin
+
+
+def test_conf_key() -> None:
+    assert GitHubPlugin().conf_key == "github"
+
+
+def test_entry_point() -> None:
+    assert_plugin_installed("github", GitHubPlugin())
 
 
 class GitHubPluginTest(PluginTestCase):
@@ -19,12 +28,6 @@ class GitHubPluginTest(PluginTestCase):
     @cached_property
     def request(self):
         return RequestFactory()
-
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "github"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("github", self.plugin)
 
     def test_get_issue_label(self):
         group = self.create_group(message="Hello world", culprit="foo.bar")
