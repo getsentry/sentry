@@ -15,8 +15,7 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import Dashboard from 'sentry/views/dashboards/dashboard';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-
-import {OrganizationContext} from '../organizationContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import WidgetLegendSelectionState from './widgetLegendSelectionState';
 

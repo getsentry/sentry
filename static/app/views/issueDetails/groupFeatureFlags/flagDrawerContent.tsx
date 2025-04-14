@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 
 import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
@@ -6,6 +6,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -81,7 +82,7 @@ export default function FlagDrawerContent({
         <div>
           {`Suspicion Score: ${scoreObj?.score.toString() ?? '_'}`}
           <br />
-          {`Baseline Percent: ${scoreObj?.baseline_percent ? `${scoreObj.baseline_percent * 100}%` : '_'}`}
+          {`Baseline Percent: ${scoreObj?.baseline_percent === undefined ? '_' : `${scoreObj.baseline_percent * 100}%`}`}
         </div>
       );
     },
@@ -126,6 +127,15 @@ export default function FlagDrawerContent({
     !project.hasFlags &&
     featureFlagOnboardingPlatforms.includes(project.platform ?? 'other');
 
+  useEffect(() => {
+    if (!isPending && !isError && !showCTA) {
+      trackAnalytics('flags.drawer_rendered', {
+        organization,
+        numFlags: data.length,
+      });
+    }
+  }, [organization, data.length, isPending, isError, showCTA]);
+
   return isPending ? (
     <LoadingIndicator />
   ) : isError ? (
@@ -134,7 +144,7 @@ export default function FlagDrawerContent({
       onRetry={refetch}
     />
   ) : showCTA ? (
-    <FlagDrawerCTA />
+    <FlagDrawerCTA projectPlatform={project.platform} />
   ) : data.length === 0 ? (
     <StyledEmptyStateWarning withIcon>
       {t('No feature flags were found for this issue')}

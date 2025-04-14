@@ -1427,6 +1427,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
     "sentry.notifications.utils.tasks",
+    "sentry.relocation.tasks.process",
+    "sentry.relocation.tasks.transfer",
     "sentry.replays.tasks",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.snuba.tasks",
@@ -3055,6 +3057,9 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-metrics-dlq": "default",
     "snuba-metrics": "default",
     "profiles": "default",
+    "profiles-call-tree": "default",
+    "snuba-profile-chunks": "default",
+    "processed-profiles": "default",
     "ingest-performance-metrics": "default",
     "ingest-generic-metrics-dlq": "default",
     "snuba-generic-metrics": "default",
@@ -3065,9 +3070,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
     "monitors-incident-occurrences": "default",
-    "uptime-configs": "default",
     "uptime-results": "default",
-    "uptime-configs": "default",
     "snuba-uptime-results": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
@@ -3357,6 +3360,10 @@ SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS: dict[str, str] = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
+
+SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT = 10000
+SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
+SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None

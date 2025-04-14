@@ -1,5 +1,4 @@
-import moment from 'moment-timezone';
-
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -7,11 +6,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {DATE_FORMAT} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   SpanIndexedFieldTypes,
+  SpanIndexedProperty,
+  SpanIndexedResponse,
   SpanMetricsQueryFilters,
   SubregionCode,
 } from 'sentry/views/insights/types';
@@ -19,10 +19,11 @@ import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 
-type Options = {
+type Options<Fields> = {
   groupId: string;
   transactionName: string;
-  additionalFields?: string[];
+  additionalFields?: Fields;
+  referrer?: string;
   release?: string;
   spanSearch?: MutableSearch;
   subregions?: SubregionCode[];
@@ -41,7 +42,9 @@ export type SpanSample = Pick<
   | SpanIndexedField.TRACE
 >;
 
-export const useSpanSamples = (options: Options) => {
+export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
+  options: Options<Fields>
+) => {
   const organization = useOrganization();
   const pageFilter = usePageFilters();
   const {
@@ -50,8 +53,8 @@ export const useSpanSamples = (options: Options) => {
     transactionMethod,
     release,
     spanSearch,
-    additionalFields,
     subregions,
+    additionalFields = [],
   } = options;
   const location = useLocation();
 
@@ -92,44 +95,53 @@ export const useSpanSamples = (options: Options) => {
     'api.starfish.sidebar-span-metrics'
   );
 
-  const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]);
+  const min = 0;
+  const max = computeAxisMax([spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]);
 
   const enabled = Boolean(
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
   );
 
-  const queryParams = {
-    ...dateCondtions,
-    ...{utc: location.query.utc},
-    lowerBound: 0,
-    firstBound: maxYValue * (1 / 3),
-    secondBound: maxYValue * (2 / 3),
-    upperBound: maxYValue,
-    project: pageFilter.selection.projects,
-    environment: pageFilter.selection.environments,
-    query: query.formatString(),
-    useRpc: useInsightsEap(),
-    ...(additionalFields?.length ? {additionalFields} : {}),
-  };
-  const {data, ...result} = useApiQuery<{data: SpanSample[]}>(
-    [`/api/0/organizations/${organization.slug}/spans-samples/`, {query: queryParams}],
+  return useApiQuery<{
+    data: Array<
+      Pick<
+        SpanIndexedResponse,
+        | Fields[number]
+        // These fields are returned by default
+        | SpanIndexedField.PROJECT
+        | SpanIndexedField.TRANSACTION_ID
+        | SpanIndexedField.TIMESTAMP
+        | SpanIndexedField.SPAN_ID
+        | SpanIndexedField.PROFILE_ID
+        | SpanIndexedField.SPAN_SELF_TIME
+      >
+    >;
+    meta: EventsMetaType;
+  }>(
+    [
+      `/api/0/organizations/${organization.slug}/spans-samples/`,
+      {
+        query: {
+          query: query.formatString(),
+          project: pageFilter.selection.projects,
+          ...dateCondtions,
+          ...{utc: location.query.utc},
+          environment: pageFilter.selection.environments,
+          lowerBound: min,
+          firstBound: max * (1 / 3),
+          secondBound: max * (2 / 3),
+          upperBound: max,
+          additionalFields,
+          sort: `-${SPAN_SELF_TIME}`,
+          useRpc: useInsightsEap() ? '1' : undefined,
+        },
+      },
+    ],
     {
-      refetchOnWindowFocus: false,
       enabled,
-      staleTime: 0,
+      refetchOnWindowFocus: false,
+      staleTime: Infinity,
+      retry: false,
     }
   );
-
-  return {
-    ...result,
-    isEnabled: enabled,
-    data:
-      data?.data
-        .map((d: SpanSample) => ({
-          ...d,
-          timestamp: moment(d.timestamp).format(DATE_FORMAT),
-        }))
-        .sort((a: SpanSample, b: SpanSample) => b[SPAN_SELF_TIME] - a[SPAN_SELF_TIME]) ??
-      [],
-  };
 };

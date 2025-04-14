@@ -35,15 +35,17 @@ import {
 } from 'sentry/views/insights/database/utils/jsonUtils';
 import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import SpanSummaryLink from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {
+  getSearchInExploreTarget,
+  TraceDrawerActionKind,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
-
-import type {TraceTree} from '../../../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
-import {TraceDrawerComponents} from '../../styles';
-import {getSearchInExploreTarget, TraceDrawerActionKind} from '../../utils';
-import SpanSummaryLink from '../components/spanSummaryLink';
 
 const formatter = new SQLishFormatter();
 
