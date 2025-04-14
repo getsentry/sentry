@@ -221,16 +221,10 @@ function AggregatesTable({
 }
 
 interface SampleTableProps extends MultiQueryTableBaseProps {
-  isProgressivelyLoading: boolean;
   spansTableResult: SpansTableResult;
 }
 
-function SpansTable({
-  spansTableResult,
-  query: queryParts,
-  index,
-  isProgressivelyLoading,
-}: SampleTableProps) {
+function SpansTable({spansTableResult, query: queryParts, index}: SampleTableProps) {
   const {result, eventView} = spansTableResult;
   const {fields, sortBys} = queryParts;
   const meta = result.meta ?? {};
@@ -274,7 +268,6 @@ function SpansTable({
                     <Tooltip showOnlyOnOverflow title={label}>
                       {label}
                     </Tooltip>
-                    {i === 0 && getProgressiveLoadingIndicator(isProgressivelyLoading)}
                     {defined(direction) && (
                       <IconArrow
                         size="xs"

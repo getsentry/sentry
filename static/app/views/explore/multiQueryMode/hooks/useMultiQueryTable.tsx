@@ -10,10 +10,10 @@ import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBy
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {
+  QUERY_MODE,
   type SpansRPCQueryExtras,
   useProgressiveQuery,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {QUERY_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {getFieldsForConstructedQuery} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
@@ -37,7 +37,6 @@ export function useMultiQueryTableAggregateMode({
   return useProgressiveQuery({
     queryHookImplementation: useMultiQueryTableAggregateModeImpl,
     queryHookArgs: {groupBys, query, yAxes, sortBys, enabled, queryExtras},
-    queryMode: QUERY_MODE.SERIAL,
   });
 }
 
@@ -102,7 +101,7 @@ export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: P
   return useProgressiveQuery({
     queryHookImplementation: useMultiQueryTableSampleModeImpl,
     queryHookArgs: {query, yAxes, sortBys, enabled},
-    queryMode: QUERY_MODE.SERIAL,
+    queryOptions: {queryMode: QUERY_MODE.SERIAL, withholdBestEffort: true},
   });
 }
 

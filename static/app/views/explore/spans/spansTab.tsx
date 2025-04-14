@@ -191,10 +191,18 @@ export function SpansTabContentImpl({
   const tableIsProgressivelyLoading =
     organization.features.includes('visibility-explore-progressive-loading') &&
     (queryType === 'samples'
-      ? spansTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+      ? false // Samples mode won't show the progressive loading spinner
       : queryType === 'aggregate'
         ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
         : false);
+
+  // Progressive loading only shows when we have preflight data and
+  // we're fetching the best effort request
+  const timeseriesIsProgressivelyLoading =
+    organization.features.includes('visibility-explore-progressive-loading') &&
+    defined(timeseriesSamplingMode) &&
+    timeseriesSamplingMode === SAMPLING_MODE.PREFLIGHT &&
+    timeseriesResult.isFetched;
 
   return (
     <Body
@@ -267,11 +275,7 @@ export function SpansTabContentImpl({
             confidences={confidences}
             query={query}
             timeseriesResult={timeseriesResult}
-            isProgressivelyLoading={
-              organization.features.includes('visibility-explore-progressive-loading') &&
-              defined(timeseriesSamplingMode) &&
-              timeseriesSamplingMode !== SAMPLING_MODE.BEST_EFFORT
-            }
+            isProgressivelyLoading={timeseriesIsProgressivelyLoading}
           />
           <ExploreTables
             aggregatesTableResult={aggregatesTableResult}
