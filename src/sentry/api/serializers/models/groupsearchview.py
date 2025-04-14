@@ -6,12 +6,13 @@ from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.savedsearch import SORT_LITERALS
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
 
 
 class GroupSearchViewSerializerResponse(TypedDict):
     id: str
-    owner_id: str
+    createdBy: UserSerializerResponse
     name: str
     query: str
     querySort: SORT_LITERALS
