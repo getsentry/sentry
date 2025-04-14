@@ -38,7 +38,9 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
     <Container width={width}>
       {!extras?.includes('tabs') && <ToolbarMode mode={mode} setMode={setMode} />}
       <ToolbarVisualize equationSupport={extras?.includes('equations')} />
-      {(extras?.includes('tabs') || mode === Mode.AGGREGATE) && <ToolbarGroupBy />}
+      {(extras?.includes('tabs') || mode === Mode.AGGREGATE) && (
+        <ToolbarGroupBy autoSwitchToAggregates={extras?.includes('tabs') || false} />
+      )}
       <ToolbarSortBy
         fields={fields}
         groupBys={groupBys}

@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
@@ -18,6 +18,7 @@ import {
   useSetExploreGroupBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 
@@ -29,11 +30,26 @@ import {
   ToolbarSection,
 } from './styles';
 
-export function ToolbarGroupBy() {
+interface ToolbarGroupBy {
+  autoSwitchToAggregates: boolean;
+}
+
+export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
   const {tags} = useSpanTags();
 
   const groupBys = useExploreGroupBys();
   const setGroupBys = useSetExploreGroupBys();
+
+  const setColumns = useCallback(
+    (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => {
+      if (autoSwitchToAggregates && (op === 'insert' || op === 'update')) {
+        setGroupBys(columns, Mode.AGGREGATE);
+      } else {
+        setGroupBys(columns);
+      }
+    },
+    [autoSwitchToAggregates, setGroupBys]
+  );
 
   const options: Array<SelectOption<string>> = useMemo(() => {
     const potentialOptions = [
@@ -61,7 +77,7 @@ export function ToolbarGroupBy() {
   }, [groupBys, tags]);
 
   return (
-    <DragNDropContext columns={groupBys} setColumns={setGroupBys}>
+    <DragNDropContext columns={groupBys} setColumns={setColumns}>
       {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => {
         return (
           <ToolbarSection data-test-id="section-group-by">
