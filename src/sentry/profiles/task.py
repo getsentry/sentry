@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime, timezone
-from functools import partial
 from operator import itemgetter
 from time import time
 from typing import Any, TypedDict
@@ -63,17 +62,17 @@ def _get_profiles_producer_from_topic(topic: Topic) -> KafkaProducer:
 
 
 processed_profiles_producer = SingletonProducer(
-    partial(_get_profiles_producer_from_topic, Topic.PROCESSED_PROFILES),
+    lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES),
     max_futures=settings.SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT,
 )
 
 profile_functions_producer = SingletonProducer(
-    partial(_get_profiles_producer_from_topic, Topic.PROFILES_CALL_TREE),
+    lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE),
     max_futures=settings.SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT,
 )
 
 profile_chunks_producer = SingletonProducer(
-    partial(_get_profiles_producer_from_topic, Topic.PROFILE_CHUNKS),
+    lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS),
     max_futures=settings.SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT,
 )
 
