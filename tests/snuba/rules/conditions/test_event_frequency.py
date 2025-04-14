@@ -180,8 +180,8 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             assert group_id
             return group_id
 
-        group_1_id = _store_events("group-1")
-        group_2_id = _store_events("group-2", offset=False)
+        group_1_id = _store_events("group-hb")
+        group_2_id = _store_events("group-pb", offset=False)
 
         condition_inst = self.get_rule(
             data={"interval": "1w", "value": 1},
@@ -213,8 +213,8 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             group_on_time=False,
         )
         assert batch_query == {
-            group_1_id: 5,
-            group_2_id: 5,
+            group_1_id: 4,
+            group_2_id: 4,
         }
 
     def test_get_error_and_generic_group_ids(self):
