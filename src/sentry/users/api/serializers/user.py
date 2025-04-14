@@ -66,7 +66,6 @@ class _UserOptions(TypedDict):
     timezone: str
     clock24Hours: bool
     prefersIssueDetailsStreamlinedUI: bool | None
-    prefersSpecializedProjectOverview: dict[str, bool]
     prefersStackedNavigation: bool
     prefersChonkUI: bool
     quickStartDisplay: dict[str, int]

@@ -119,7 +119,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "clock24Hours": True,
                 "extra": True,
                 "prefersIssueDetailsStreamlinedUI": True,
-                "prefersSpecializedProjectOverview": {"2": True},
                 "prefersStackedNavigation": True,
                 "prefersChonkUI": True,
                 "quickStartDisplay": {self.organization.id: 1},

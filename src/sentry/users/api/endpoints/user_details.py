@@ -265,7 +265,7 @@ class UserDetailsEndpoint(UserEndpoint):
 
         for key in key_map:
             if key in options_result:
-                if key in ("quickStartDisplay", "prefersSpecializedProjectOverview"):
+                if key == "quickStartDisplay":
                     current_value = UserOption.objects.get_value(
                         user=user, key=key_map.get(key, key)
                     )
