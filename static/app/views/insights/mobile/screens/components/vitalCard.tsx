@@ -4,7 +4,10 @@ import styled from '@emotion/styled';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {space} from 'sentry/styles/space';
-import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
+import {
+  makePerformanceScoreColors,
+  type PerformanceScore,
+} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
 
 type Props = {
   description: string;
@@ -38,10 +41,7 @@ function VitalCard({
           <MeterHeader>{title}</MeterHeader>
           <MeterValueText>{formattedValue ?? '-'}</MeterValueText>
         </MeterBarBody>
-        <MeterBarFooter
-          label={statusLabel}
-          status={status as keyof typeof PERFORMANCE_SCORE_COLORS}
-        />
+        <MeterBarFooter label={statusLabel} status={status as PerformanceScore} />
       </MeterBarContainer>
     </Fragment>
   );
@@ -85,7 +85,7 @@ function MeterBarFooter({
   status,
 }: {
   label: string | undefined;
-  status: keyof typeof PERFORMANCE_SCORE_COLORS | undefined;
+  status: PerformanceScore | undefined;
 }) {
   return (
     <MeterBarFooterContainer status={status || 'none'}>
@@ -95,13 +95,13 @@ function MeterBarFooter({
 }
 
 const MeterBarFooterContainer = styled('div')<{
-  status: keyof typeof PERFORMANCE_SCORE_COLORS;
+  status: PerformanceScore;
 }>`
-  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   background-color: ${p =>
-    p.status === 'none' ? 'none' : p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
+    p.status === 'none' ? 'none' : makePerformanceScoreColors(p.theme)[p.status].light};
+  border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].border};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.5)};
   text-align: center;

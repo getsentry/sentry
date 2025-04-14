@@ -31,7 +31,7 @@ export type TransactionSampleRow = {
 
 export type TransactionSampleRowWithScore = TransactionSampleRow & Score;
 
-type Score = {
+export type Score = {
   clsScore: number;
   fcpScore: number;
   inpScore: number;
