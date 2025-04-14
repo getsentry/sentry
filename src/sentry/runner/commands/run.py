@@ -308,6 +308,11 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     help="The number of tasks to process before choosing a new broker instance. Requires num-brokers > 1",
     default=taskworker_constants.DEFAULT_REBALANCE_AFTER,
 )
+@click.option(
+    "--processing-pool-name",
+    help="The name of the processing pool being used",
+    default="unknown",
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -329,7 +334,7 @@ def run_taskworker(
     child_tasks_queue_maxsize: int,
     result_queue_maxsize: int,
     rebalance_after: int,
-    processing_pool_name: str = "unknown",
+    processing_pool_name: str,
     **options: Any,
 ) -> None:
     """
