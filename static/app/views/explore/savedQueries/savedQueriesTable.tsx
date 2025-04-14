@@ -47,7 +47,7 @@ export function SavedQueriesTable({
   const location = useLocation();
   const navigate = useNavigate();
   const cursor = decodeScalar(location.query[cursorKey]);
-  const {data, isLoading, pageLinks, isFetched} = useGetSavedQueries({
+  const {data, isLoading, pageLinks, isFetched, isError} = useGetSavedQueries({
     sortBy: ['starred', sort],
     exclude: mode === 'owned' ? 'shared' : mode === 'shared' ? 'owned' : undefined, // Inverse because this is an exclusion
     perPage,
@@ -130,6 +130,7 @@ export function SavedQueriesTable({
   return (
     <span>
       <SavedEntityTableWithColumns
+        pageSize={perPage}
         isLoading={isLoading}
         header={
           <SavedEntityTable.Header>
@@ -155,9 +156,9 @@ export function SavedQueriesTable({
             <SavedEntityTable.HeaderCell key="actions" />
           </SavedEntityTable.Header>
         }
-        emptyMessage={undefined}
-        isEmpty={false}
-        isError={false}
+        isEmpty={filteredData.length === 0}
+        isError={isError}
+        emptyMessage={t('No saved queries found')}
       >
         {filteredData.map((query, index) => (
           <SavedEntityTable.Row
