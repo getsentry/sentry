@@ -2,6 +2,7 @@ import abc
 import logging
 from typing import Any
 
+from sentry.identity.services.identity.model import RpcIdentity
 from sentry.pipeline import PipelineProvider
 from sentry.users.models.identity import Identity
 
@@ -52,7 +53,7 @@ class Provider(PipelineProvider, abc.ABC):
         """
         return new_data
 
-    def refresh_identity(self, identity: Identity, **kwargs: Any) -> None:
+    def refresh_identity(self, identity: Identity | RpcIdentity, **kwargs: Any) -> None:
         """
         Updates the AuthIdentity with any changes from upstream. The primary
         example of a change would be signalling this identity is no longer

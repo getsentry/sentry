@@ -38,7 +38,7 @@ def find_commit_context_for_event_all_frames(
     project_id: int,
     platform: str,
     sdk_name: str | None,
-    extra: Mapping[str, Any],
+    extra: dict[str, Any],
 ) -> tuple[FileBlameInfo | None, IntegrationInstallation | None]:
     """
     Given a list of event frames and code mappings, finds the most recent commit.
@@ -254,7 +254,7 @@ def _get_blames_from_all_integrations(
     integration_to_files_mapping: dict[int, list[SourceLineInfo]],
     organization_id: int,
     project_id: int,
-    extra: Mapping[str, Any],
+    extra: dict[str, Any],
 ) -> tuple[list[FileBlameInfo], dict[int, tuple[IntegrationInstallation, str]]]:
     """
     Calls get_commit_context_all_frames for each integration, using the file

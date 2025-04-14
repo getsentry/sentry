@@ -419,7 +419,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         endpoint = f"/repos/{repo}/issues"
         return self.post(endpoint, data=data)
 
-    def create_comment(self, repo: str, issue_id: str, data: Mapping[str, Any]) -> Any:
+    def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         """
         https://docs.github.com/en/rest/issues/comments#create-an-issue-comment
         """
@@ -427,7 +427,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         return self.post(endpoint, data=data)
 
     def update_comment(
-        self, repo: str, issue_id: str, comment_id: str, data: Mapping[str, Any]
+        self, repo: str, issue_id: str, comment_id: str, data: dict[str, Any]
     ) -> Any:
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         return self.patch(endpoint, data=data)
@@ -480,7 +480,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         return result
 
     def get_blame_for_files(
-        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+        self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
     ) -> Sequence[FileBlameInfo]:
         log_info = {
             **extra,

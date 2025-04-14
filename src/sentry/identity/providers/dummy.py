@@ -5,6 +5,7 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
 from sentry.identity.base import Provider
+from sentry.identity.services.identity.model import RpcIdentity
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.users.models.identity import Identity
 
@@ -32,5 +33,5 @@ class DummyProvider(Provider):
     def build_identity(self, state):
         return {"id": state["email"], "email": state["email"], "name": "Dummy"}
 
-    def refresh_identity(self, identity: Identity, **kwargs: Any) -> None:
+    def refresh_identity(self, identity: Identity | RpcIdentity, **kwargs: Any) -> None:
         pass
