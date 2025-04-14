@@ -30,11 +30,13 @@ import {
   getSchemaHintsListOrder,
   removeHiddenKeys,
   SchemaHintsSources,
+  USER_IDENTIFIER_KEY,
 } from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import type {LogPageParamsUpdate} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {WritablePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 export const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
 
@@ -65,7 +67,18 @@ const hideListTag: Tag = {
 };
 
 function getTagsFromKeys(keys: string[], tags: TagCollection): Tag[] {
-  return keys.map(key => tags[key]).filter(tag => !!tag);
+  return keys
+    .map(key => {
+      if (key === USER_IDENTIFIER_KEY) {
+        return (
+          tags[SpanIndexedField.USER_EMAIL] ||
+          tags[SpanIndexedField.USER_USERNAME] ||
+          tags[SpanIndexedField.USER_ID]
+        );
+      }
+      return tags[key];
+    })
+    .filter(tag => !!tag);
 }
 
 export function addFilterToQuery(
