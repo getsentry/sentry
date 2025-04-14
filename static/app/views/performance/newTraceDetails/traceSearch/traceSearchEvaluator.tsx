@@ -10,7 +10,6 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-
 import {
   isAutogroupedNode,
   isEAPErrorNode,
@@ -18,9 +17,9 @@ import {
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
-} from '../traceGuards';
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 export type TraceSearchResult = {
   index: number;
@@ -515,7 +514,7 @@ function resolveValueFromKey(
           }
           case 'issue':
           case 'issues':
-            return node.errors.size > 0 || node.performance_issues.size > 0;
+            return node.errors.size > 0 || node.occurrences.size > 0;
           case 'profile':
           case 'profiles':
             return node.profiles.length > 0;

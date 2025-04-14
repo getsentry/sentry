@@ -15,4 +15,4 @@ export const getCountStatusSeries = (
     'count_unique(user)'
   ] ?? [];
 
-export const SESSION_HEALTH_CHART_HEIGHT = 400;
+export const SESSION_HEALTH_CHART_HEIGHT = 322;

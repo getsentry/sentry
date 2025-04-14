@@ -5,6 +5,7 @@ import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import ClippedBox from 'sentry/components/clippedBox';
+import {Alert} from 'sentry/components/core/alert';
 import {Button, LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
@@ -27,7 +28,7 @@ import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {IconCode, IconCopy, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
@@ -216,11 +217,22 @@ export function AutofixChanges({
 
   if (!step.changes.length) {
     return (
-      <Content>
-        <PreviewContent>
-          <span>{t('Could not find a fix.')}</span>
-        </PreviewContent>
-      </Content>
+      <AnimatePresence initial={isChangesFirstAppearance}>
+        <AnimationWrapper key="card" {...cardAnimationProps}>
+          <NoChangesPadding>
+            <Alert.Container>
+              <MarkdownAlert
+                dangerouslySetInnerHTML={{
+                  __html: marked(
+                    step.termination_reason ||
+                      t('Autofix had trouble applying its code changes.')
+                  ),
+                }}
+              />
+            </Alert.Container>
+          </NoChangesPadding>
+        </AnimationWrapper>
+      </AnimatePresence>
     );
   }
 
@@ -329,6 +341,7 @@ export function AutofixChanges({
                       : null
                   }
                   isAgentComment
+                  blockName={t('Code Changes')}
                 />
               )}
             </AnimatePresence>
@@ -394,6 +407,18 @@ const RepoChangesHeader = styled('div')`
   grid-template-columns: 1fr auto;
 `;
 
+const MarkdownAlert = styled('div')`
+  border: 1px solid ${p => p.theme.alert.warning.border};
+  background-color: ${p => p.theme.alert.warning.backgroundLight};
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.alert.warning.color};
+`;
+
+const NoChangesPadding = styled('div')`
+  padding: 0 ${space(2)};
+`;
+
 const Separator = styled('hr')`
   border: none;
   border-top: 1px solid ${p => p.theme.innerBorder};
@@ -416,6 +441,8 @@ const HeaderWrapper = styled('div')`
   padding-left: ${space(0.5)};
   padding-bottom: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
+  flex-wrap: wrap;
+  gap: ${space(1)};
 `;
 
 const HeaderIconWrapper = styled('div')`

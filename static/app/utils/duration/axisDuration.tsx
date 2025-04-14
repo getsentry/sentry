@@ -1,7 +1,6 @@
 import {t} from 'sentry/locale';
+import {categorizeDuration} from 'sentry/utils/discover/categorizeDuration';
 import {DAY, HOUR, MINUTE, SECOND, WEEK} from 'sentry/utils/formatters';
-
-import {categorizeDuration} from '../discover/categorizeDuration';
 
 /**
  * Specialized duration formatting for axis labels.

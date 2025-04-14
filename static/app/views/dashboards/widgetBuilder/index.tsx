@@ -4,9 +4,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
-
-import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 import WidgetBuilder from './widgetBuilder';
 

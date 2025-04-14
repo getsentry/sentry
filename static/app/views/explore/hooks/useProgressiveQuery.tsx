@@ -36,10 +36,16 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
   // progressive loading to surface the correct data.
   queryHookImplementation: (props: Parameters<TQueryFn>[0]) => ReturnType<TQueryFn> & {
     result: {
+      data: any;
       isFetched: boolean;
     };
   };
-  queryMode: QueryMode;
+  queryOptions?: QueryOptions;
+}
+
+interface QueryOptions {
+  queryMode?: QueryMode;
+  withholdBestEffort?: boolean;
 }
 
 /**
@@ -58,7 +64,7 @@ export function useProgressiveQuery<
 >({
   queryHookImplementation,
   queryHookArgs,
-  queryMode,
+  queryOptions,
 }: ProgressiveQueryOptions<TQueryFn>): ReturnType<TQueryFn> & {
   samplingMode?: SamplingMode;
 } {
@@ -68,8 +74,16 @@ export function useProgressiveQuery<
     'visibility-explore-progressive-loading'
   );
 
+  const queryMode = queryOptions?.queryMode ?? QUERY_MODE.SERIAL;
+
   // If the time range is small enough, just go directly to the best effort request
   const isSmallRange = getDiffInMinutes(selection.datetime) < SMALL_TIME_RANGE_THRESHOLD;
+
+  let skipPreflight = isSmallRange;
+  if (organization.features.includes('visibility-explore-skip-preflight')) {
+    // Override the time range check if the feature flag is enabled
+    skipPreflight = true;
+  }
 
   const singleQueryResult = queryHookImplementation({
     ...queryHookArgs,
@@ -79,8 +93,15 @@ export function useProgressiveQuery<
   const preflightRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: LOW_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled: queryHookArgs.enabled && canUseProgressiveLoading && !isSmallRange,
+    enabled: queryHookArgs.enabled && canUseProgressiveLoading && !skipPreflight,
   });
+
+  const triggerBestEffortAfterPreflight =
+    !queryOptions?.withholdBestEffort && preflightRequest.result.isFetched;
+  const triggerBestEffortRequestForEmptyPreflight =
+    preflightRequest.result.isFetched &&
+    queryOptions?.withholdBestEffort &&
+    preflightRequest.result.data?.length === 0;
 
   const bestEffortRequest = queryHookImplementation({
     ...queryHookArgs,
@@ -89,8 +110,9 @@ export function useProgressiveQuery<
       queryHookArgs.enabled &&
       canUseProgressiveLoading &&
       (queryMode === QUERY_MODE.PARALLEL ||
-        preflightRequest.result.isFetched ||
-        isSmallRange),
+        skipPreflight ||
+        triggerBestEffortAfterPreflight ||
+        triggerBestEffortRequestForEmptyPreflight),
   });
 
   if (!canUseProgressiveLoading) {
