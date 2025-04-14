@@ -82,7 +82,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
     filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
-  const dateCondtions = getDateConditions(pageFilter.selection);
+  const dateConditions = getDateConditions(pageFilter.selection);
 
   const {isPending: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
     {
@@ -124,7 +124,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
         query: {
           query: query.formatString(),
           project: pageFilter.selection.projects,
-          ...dateCondtions,
+          ...dateConditions,
           ...{utc: location.query.utc},
           environment: pageFilter.selection.environments,
           lowerBound: min,
