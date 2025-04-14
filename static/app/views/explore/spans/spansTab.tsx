@@ -12,8 +12,9 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {
   EAPSpanSearchQueryBuilder,
-  getSpanPropsFromDataset,
   SpanSearchQueryBuilder,
+  useEAPSpanSearchQueryBuilderProps,
+  useSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -232,15 +233,19 @@ export function SpansTabContentImpl({
     stringTags,
   };
 
-  const useSearchQueryBuilderProps = getSpanPropsFromDataset(dataset);
-  const searchQueryBuilderProps = useSearchQueryBuilderProps(
-    dataset === DiscoverDatasets.SPANS_INDEXED
-      ? {...spanSearchQueryBuilderProps, numberTags: {}, stringTags: {}}
-      : eapSpanSearchQueryBuilderProps
+  const spanSearchQueryProviderProps = useSpanSearchQueryBuilderProps(
+    spanSearchQueryBuilderProps
+  );
+  const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
+    eapSpanSearchQueryBuilderProps
   );
 
   return (
-    <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
+    <SearchQueryBuilderProvider
+      {...(dataset === DiscoverDatasets.SPANS_INDEXED
+        ? spanSearchQueryProviderProps
+        : eapSpanSearchQueryProviderProps)}
+    >
       <Body
         withToolbar={expanded}
         withHints={organization.features.includes('traces-schema-hints')}

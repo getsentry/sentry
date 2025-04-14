@@ -10,7 +10,6 @@ import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
   DEVICE_CLASS_TAG_VALUES,
@@ -301,12 +300,4 @@ export function EAPSpanSearchQueryBuilder({
   });
 
   return <SearchQueryBuilder {...searchQueryBuilderProps} />;
-}
-
-export function getSpanPropsFromDataset(dataset: DiscoverDatasets) {
-  if (dataset === DiscoverDatasets.SPANS_INDEXED) {
-    return useSpanSearchQueryBuilderProps;
-  }
-
-  return useEAPSpanSearchQueryBuilderProps;
 }

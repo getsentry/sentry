@@ -31,25 +31,9 @@ jest.mock('sentry/utils/useNavigate', () => ({
 // Add mock for useSearchQueryBuilder
 jest.mock('sentry/components/searchQueryBuilder/context', () => ({
   useSearchQueryBuilder: () => ({
-    // initialQuery: '',
     query: '',
-    // focusOverride: null,
-    // filterKeys: {},
-    // filterKeyMenuWidth: 360,
-    // filterKeySections: [],
-    // getFieldDefinition: () => null,
     getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
     dispatch: mockDispatch,
-    // parsedQuery: null,
-    // wrapperRef: {current: null},
-    // handleSearch: () => {},
-    // searchSource: '',
-    // size: 'normal',
-    // disabled: false,
-    // disallowFreeText: false,
-    // disallowWildcard: false,
-    // portalTarget: null,
-    // actionBarRef: {current: null},
   }),
   SearchQueryBuilderProvider: ({children}: {children: React.ReactNode}) => children,
 }));
@@ -122,8 +106,7 @@ describe('SchemaHintsList', () => {
     },
   });
   beforeEach(() => {
-    mockNavigate.mockClear();
-    mockDispatch.mockClear();
+    jest.clearAllMocks();
   });
 
   it('should render', () => {
