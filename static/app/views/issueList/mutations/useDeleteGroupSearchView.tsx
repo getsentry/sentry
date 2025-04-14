@@ -22,7 +22,7 @@ export const useDeleteGroupSearchView = (
     'mutationFn'
   > = {}
 ) => {
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const organization = useOrganization();
 
