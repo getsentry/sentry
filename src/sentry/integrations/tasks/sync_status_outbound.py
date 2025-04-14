@@ -8,6 +8,7 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group, GroupStatus
+from sentry.shared_integrations.exceptions import ApiInvalidRequestError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.taskworker.config import TaskworkerConfig
@@ -68,9 +69,16 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
                     "status": group.status,
                 }
             )
-            installation.sync_status_outbound(
-                external_issue, group.status == GroupStatus.RESOLVED, group.project_id
-            )
+            try:
+                installation.sync_status_outbound(
+                    external_issue, group.status == GroupStatus.RESOLVED, group.project_id
+                )
+            except ApiInvalidRequestError:
+                raise
+            except IntegrationError as e:
+                lifecycle.record_halt(halt_reason=e)
+                return None
+
             analytics.record(
                 "integration.issue.status.synced",
                 provider=integration.provider,
