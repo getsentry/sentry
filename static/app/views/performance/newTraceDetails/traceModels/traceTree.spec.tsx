@@ -1820,4 +1820,61 @@ describe('TraceTree', () => {
       expect(tree.build().serialize()).toMatchSnapshot();
     });
   });
+
+  describe('printTraceTreeNode', () => {
+    it('adds prefetch prefix to spans with http.request.prefetch attribute', () => {
+      const tree = TraceTree.FromTrace(trace, traceMetadata);
+
+      const prefetchSpan = makeSpan({
+        op: 'http',
+        description: 'GET /api/users',
+        data: {
+          'http.request.prefetch': true,
+        },
+      });
+
+      const regularSpan = makeSpan({
+        op: 'http',
+        description: 'GET /api/users',
+      });
+
+      TraceTree.FromSpans(
+        tree.root.children[0]!.children[0]!,
+        [prefetchSpan, regularSpan],
+        makeEventTransaction()
+      );
+
+      const serialized = tree.build().serialize();
+
+      // Check that the prefetch span has the prefix
+      expect(serialized).toContain('http - (prefetch) GET /api/users');
+
+      // Check that the regular span doesn't have the prefix
+      expect(serialized).toContain('http - GET /api/users');
+    });
+
+    it('handles falsy prefetch attribute', () => {
+      const tree = TraceTree.FromTrace(trace, traceMetadata);
+
+      const falsePrefetchSpan = makeSpan({
+        op: 'http',
+        description: 'GET /api/users',
+        data: {
+          'http.request.prefetch': false,
+        },
+      });
+
+      TraceTree.FromSpans(
+        tree.root.children[0]!.children[0]!,
+        [falsePrefetchSpan],
+        makeEventTransaction()
+      );
+
+      const serialized = tree.build().serialize();
+
+      // Check that the span with prefetch = false doesn't have the prefix
+      expect(serialized).toContain('http - GET /api/users');
+      expect(serialized).not.toContain('http - (prefetch) GET /api/users');
+    });
+  });
 });
