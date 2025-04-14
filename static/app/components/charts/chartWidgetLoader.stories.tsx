@@ -33,13 +33,7 @@ export default storyBook('ChartWidgetLoader', (story, APIReference) => {
           render these chart widgets).
         </p>
 
-        <CodeSnippet language="tsx">
-          {`
-            <ChartWidgetLoader
-              id="chart-id"
-            />
-          `}
-        </CodeSnippet>
+        <CodeSnippet language="tsx">{`<ChartWidgetLoader id="chart-id" />`}</CodeSnippet>
       </Fragment>
     );
   });
