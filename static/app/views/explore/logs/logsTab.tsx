@@ -9,6 +9,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,7 +20,10 @@ import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
-import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {
+  TraceItemSearchQueryBuilder,
+  useSearchQueryBuilderProps,
+} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
   type LogPageParamsUpdate,
@@ -81,6 +85,19 @@ export function LogsTabContent({
     source: LogsAnalyticsPageSource.EXPLORE_LOGS,
   });
 
+  const tracesItemSearchQueryBuilderProps = {
+    initialQuery: logsSearch.formatString(),
+    searchSource: 'ourlogs',
+    onSearch: setLogsQuery,
+    numberAttributes,
+    stringAttributes,
+    itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,
+  };
+
+  const searchQueryBuilderProps = useSearchQueryBuilderProps(
+    tracesItemSearchQueryBuilderProps
+  );
+
   const openColumnEditor = useCallback(() => {
     openModal(
       modalProps => (
@@ -101,64 +118,59 @@ export function LogsTabContent({
     );
   }, [fields, setFields, stringAttributes, numberAttributes]);
   return (
-    <Layout.Body noRowGap>
-      <Layout.Main fullWidth>
-        <FilterBarContainer>
-          <PageFilterBar condensed>
-            <ProjectPageFilter />
-            <EnvironmentPageFilter />
-            <DatePageFilter
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={({arbitraryOptions}) => ({
-                ...arbitraryOptions,
-                ...relativeOptions,
-              })}
-            />
-          </PageFilterBar>
-          <TraceItemSearchQueryBuilder
-            initialQuery={logsSearch.formatString()}
-            searchSource="ourlogs"
-            onSearch={setLogsQuery}
-            numberAttributes={numberAttributes}
-            stringAttributes={stringAttributes}
-            itemType={TraceItemDataset.LOGS}
-          />
+    <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
+      <Layout.Body noRowGap>
+        <Layout.Main fullWidth>
+          <FilterBarContainer>
+            <PageFilterBar condensed>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter />
+              <DatePageFilter
+                defaultPeriod={defaultPeriod}
+                maxPickableDays={maxPickableDays}
+                relativeOptions={({arbitraryOptions}) => ({
+                  ...arbitraryOptions,
+                  ...relativeOptions,
+                })}
+              />
+            </PageFilterBar>
+            <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
 
-          <Button onClick={openColumnEditor} icon={<IconTable />}>
-            {t('Edit Table')}
-          </Button>
-        </FilterBarContainer>
-        <Feature features="organizations:traces-schema-hints">
-          <SchemaHintsSection>
-            <SchemaHintsList
-              supportedAggregates={[]}
-              numberTags={numberAttributes}
-              stringTags={stringAttributes}
-              isLoading={numberAttributesLoading || stringAttributesLoading}
-              exploreQuery={logsSearch.formatString()}
-              source={SchemaHintsSources.LOGS}
-              setPageParams={pageParams =>
-                setLogsPageParams(pageParams as LogPageParamsUpdate)
-              }
-              tableColumns={fields}
-            />
-          </SchemaHintsSection>
-        </Feature>
-        <Feature features="organizations:ourlogs-graph">
+            <Button onClick={openColumnEditor} icon={<IconTable />}>
+              {t('Edit Table')}
+            </Button>
+          </FilterBarContainer>
+          <Feature features="organizations:traces-schema-hints">
+            <SchemaHintsSection>
+              <SchemaHintsList
+                supportedAggregates={[]}
+                numberTags={numberAttributes}
+                stringTags={stringAttributes}
+                isLoading={numberAttributesLoading || stringAttributesLoading}
+                exploreQuery={logsSearch.formatString()}
+                source={SchemaHintsSources.LOGS}
+                setPageParams={pageParams =>
+                  setLogsPageParams(pageParams as LogPageParamsUpdate)
+                }
+                tableColumns={fields}
+              />
+            </SchemaHintsSection>
+          </Feature>
+          <Feature features="organizations:ourlogs-graph">
+            <LogsItemContainer>
+              <LogsChart eventView={eventView} />
+            </LogsItemContainer>
+          </Feature>
           <LogsItemContainer>
-            <LogsChart eventView={eventView} />
+            <LogsTable
+              tableData={tableData}
+              stringAttributes={stringAttributes}
+              numberAttributes={numberAttributes}
+            />
           </LogsItemContainer>
-        </Feature>
-        <LogsItemContainer>
-          <LogsTable
-            tableData={tableData}
-            stringAttributes={stringAttributes}
-            numberAttributes={numberAttributes}
-          />
-        </LogsItemContainer>
-      </Layout.Main>
-    </Layout.Body>
+        </Layout.Main>
+      </Layout.Body>
+    </SearchQueryBuilderProvider>
   );
 }
 
