@@ -460,6 +460,9 @@ export default class ReplayReader {
     return this._duration.asMilliseconds();
   };
 
+  /**
+   * @returns Whether the error happened before the replay started
+   */
   getErrorBeforeReplayStart = () => this._errorBeforeReplayStart;
 
   getStartOffsetMs = () => this._startOffsetMs;
