@@ -98,12 +98,18 @@ def build_test_message_blocks(
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
     if rule:
-        title_link += f"&alert_rule_id={rule.id}&alert_type=issue"
+        if legacy_rule_id:
+            title_link += f"&alert_rule_id={legacy_rule_id}&alert_type=issue"
+        else:
+            title_link += f"&alert_rule_id={rule.id}&alert_type=issue"
 
     title_text = f":red_circle: <{title_link}|*{formatted_title}*>"
 
     if rule:
-        block_id = f'{{"issue":{group.id},"rule":{rule.id}}}'
+        if legacy_rule_id:
+            block_id = f'{{"issue":{group.id},"rule":{legacy_rule_id}}}'
+        else:
+            block_id = f'{{"issue":{group.id},"rule":{rule.id}}}'
     else:
         block_id = f'{{"issue":{group.id}}}'
 

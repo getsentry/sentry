@@ -77,6 +77,79 @@ class LatestAdoptedReleaseFilterTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event_4)
 
+    def test_semver_with_release_without_adoption(self):
+        event = self.get_event()
+        now = datetime.now(UTC)
+        prod = self.create_environment(name="prod")
+        test = self.create_environment(name="test")
+        test_release = self.create_release(
+            project=event.group.project,
+            version="test@1.9",
+            date_added=now,
+            environments=[test],
+            adopted=now,
+        )
+        test_bad_release = self.create_release(
+            project=event.group.project,
+            version="test@0.9",
+            date_added=now - timedelta(days=2),
+            environments=[prod],
+            adopted=now - timedelta(days=2),
+        )
+        # Latest unadopted release
+        self.create_release(
+            project=event.group.project,
+            version="test@2.0",
+            date_added=now - timedelta(days=1),
+            environments=[prod],
+            adopted=None,
+        )
+        # Latest adopted release
+        self.create_release(
+            project=event.group.project,
+            version="test@1.0",
+            date_added=now - timedelta(days=3),
+            environments=[prod],
+            adopted=now - timedelta(days=3),
+        )
+
+        self.create_group_release(group=self.event.group, release=test_bad_release)
+        data = {"oldest_or_newest": "oldest", "older_or_newer": "newer", "environment": prod.name}
+
+        rule = self.get_rule(data=data)
+        # Oldest release for group is .9, latest adopted release for environment is 1.0
+        self.assertDoesNotPass(rule, event)
+
+        event_2 = self.store_event(data={"fingerprint": ["group2"]}, project_id=self.project.id)
+        group_2 = event_2.group
+        self.create_group_release(group=group_2, release=test_release)
+        # Oldest release for group is 1.9, latest adopted release for environment is 1.0
+        self.assertPasses(rule, event_2)
+
+    def test_no_adopted_release(self):
+        event = self.get_event()
+        now = datetime.now(UTC)
+        prod = self.create_environment(name="prod")
+        test = self.create_environment(name="test")
+        test_release = self.create_release(
+            project=event.group.project,
+            version="test@1.9",
+            date_added=now,
+            environments=[test],
+            adopted=now,
+        )
+        self.create_release(
+            project=event.group.project,
+            version="test@0.9",
+            date_added=now - timedelta(days=2),
+            environments=[prod],
+            adopted=None,
+        )
+        self.create_group_release(group=self.event.group, release=test_release)
+        data = {"oldest_or_newest": "oldest", "older_or_newer": "newer", "environment": prod.name}
+        rule = self.get_rule(data=data)
+        self.assertDoesNotPass(rule, event)
+
     def test_date(self):
         event = self.get_event()
         now = datetime.now(UTC)

@@ -7,7 +7,8 @@ import {Item, useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import type {RadioGroupProps, RadioGroupState} from '@react-stately/radio';
 import {useRadioGroupState} from '@react-stately/radio';
-import type {CollectionBase, ItemProps, Node} from '@react-types/shared';
+import type {Node} from '@react-types/shared';
+import type {CollectionChildren} from '@react-types/shared/src/collections';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -17,8 +18,7 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {FormSize} from 'sentry/utils/theme';
 
-export interface SegmentedControlItemProps<Value extends string>
-  extends Omit<ItemProps<any>, 'children'> {
+export interface SegmentedControlItemProps<Value extends string> {
   key: Value;
   children?: React.ReactNode;
   disabled?: boolean;
@@ -30,6 +30,8 @@ export interface SegmentedControlItemProps<Value extends string>
    * not defined), then an `aria-label` must be provided for screen reader support.
    */
   icon?: React.ReactNode;
+  /** A string representation of the item's contents */
+  textValue?: string;
   /**
    * Optional tooltip that appears when the use hovers over the segment. Avoid using
    * tooltips if there are other, more visible ways to display the same information.
@@ -43,21 +45,19 @@ export interface SegmentedControlItemProps<Value extends string>
 
 type Priority = 'default' | 'primary';
 export interface SegmentedControlProps<Value extends string>
-  extends Omit<RadioGroupProps, 'value' | 'defaultValue' | 'onChange'>,
-    CollectionBase<any> {
-  defaultValue?: Value;
+  extends Omit<RadioGroupProps, 'value' | 'defaultValue' | 'onChange' | 'isDisabled'> {
+  children: CollectionChildren<Value>;
+  onChange: (value: Value) => void;
+  value: Value;
   disabled?: RadioGroupProps['isDisabled'];
-  onChange?: (value: Value) => void;
   priority?: Priority;
   size?: FormSize;
-  value?: Value;
 }
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
 export function SegmentedControl<Value extends string>({
   value,
-  defaultValue,
   onChange,
   size = 'md',
   priority = 'default',
@@ -66,17 +66,14 @@ export function SegmentedControl<Value extends string>({
 }: SegmentedControlProps<Value>) {
   const ref = useRef<HTMLDivElement>(null);
 
-  const collection = useCollection(props, collectionFactory);
-  const ariaProps: RadioGroupProps = {
+  const collection = useCollection(props as any, collectionFactory);
+  const ariaProps = {
     ...props,
-    // Cast value/defaultValue as string to comply with AriaRadioGroupProps. This is safe
-    // as value and defaultValue are already strings (their type, Value, extends string)
-    value: value as string,
-    defaultValue: defaultValue as string,
-    onChange: onChange && (val => onChange(val as Value)),
+    value,
+    onChange: onChange as (value: string) => void,
     orientation: 'horizontal',
     isDisabled: disabled,
-  };
+  } satisfies RadioGroupProps;
 
   const state = useRadioGroupState(ariaProps);
   const {radioGroupProps} = useRadioGroup(ariaProps, state);

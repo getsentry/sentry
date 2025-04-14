@@ -1,3 +1,5 @@
+from unittest import TestCase
+
 import pytest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
@@ -17,7 +19,6 @@ from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.testutils.cases import TestCase
 
 
 class SearchResolverQueryTest(TestCase):
