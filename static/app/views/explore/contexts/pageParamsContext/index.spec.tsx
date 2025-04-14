@@ -4,7 +4,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageParamsProvider,
   useExplorePageParams,
-  useSetExploreDataset,
   useSetExploreFields,
   useSetExploreGroupBys,
   useSetExploreId,
@@ -40,7 +39,6 @@ describe('defaults', function () {
 describe('PageParamsProvider', function () {
   let pageParams: ReturnType<typeof useExplorePageParams>;
   let setPageParams: ReturnType<typeof useSetExplorePageParams>;
-  let setDataset: ReturnType<typeof useSetExploreDataset>;
   let setFields: ReturnType<typeof useSetExploreFields>;
   let setGroupBys: ReturnType<typeof useSetExploreGroupBys>;
   let setMode: ReturnType<typeof useSetExploreMode>;
@@ -53,7 +51,6 @@ describe('PageParamsProvider', function () {
   function Component() {
     pageParams = useExplorePageParams();
     setPageParams = useSetExplorePageParams();
-    setDataset = useSetExploreDataset();
     setFields = useSetExploreFields();
     setGroupBys = useSetExploreGroupBys();
     setMode = useSetExploreMode();
@@ -120,28 +117,6 @@ describe('PageParamsProvider', function () {
           chartType: ChartType.BAR,
           label: 'A',
           yAxes: ['count(span.duration)'],
-        },
-      ],
-    });
-  });
-
-  it('correctly updates dataset', function () {
-    renderTestComponent();
-
-    act(() => setDataset(DiscoverDatasets.SPANS_EAP));
-
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP,
-      fields: ['id', 'timestamp'],
-      groupBys: ['span.op'],
-      mode: Mode.AGGREGATE,
-      query: '',
-      sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
         },
       ],
     });
