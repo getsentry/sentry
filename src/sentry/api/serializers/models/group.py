@@ -147,7 +147,7 @@ class SeenStats(TypedDict):
     first_seen: datetime | None
     last_seen: datetime | None
     user_count: int
-    total_user_count: int
+    total_user_count: int | None
 
 
 def is_seen_stats(o: object) -> TypeGuard[SeenStats]:
@@ -747,7 +747,7 @@ class GroupSerializerBase(Serializer, ABC):
             "userCount": attrs["user_count"],
             "firstSeen": attrs["first_seen"],
             "lastSeen": attrs["last_seen"],
-            "totalUserCount": attrs["total_user_count"],
+            "totalUserCount": attrs["total_user_count"] if "total_user_count" in attrs else None,
         }
 
 
@@ -820,7 +820,6 @@ class GroupSerializer(GroupSerializerBase):
                     "first_seen": None,
                     "last_seen": None,
                     "user_count": 0,
-                    "total_user_count": 0,
                 }
                 for item in issue_list
             }
