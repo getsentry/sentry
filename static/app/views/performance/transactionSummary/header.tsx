@@ -182,6 +182,7 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
+  // Hard-code 90d for the replay tab to surface more interesting data.
   const {getReplayCountForTransaction} = useReplayCountForTransactions({
     statsPeriod: '90d',
   });
