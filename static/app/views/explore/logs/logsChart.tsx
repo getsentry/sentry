@@ -3,7 +3,6 @@ import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -38,7 +37,7 @@ export function LogsChart() {
   );
   const timeSeriesData = Object.values(timeSeriesRawData ?? {})
     .map(x => x[0])
-    .find(() => true) as TimeSeries | undefined;
+    .find(() => true);
 
   const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
   const releases =
