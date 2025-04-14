@@ -3,6 +3,24 @@ import {css} from '@emotion/react';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
+import InfiniteListItems from 'sentry/components/devtoolbar/components/infiniteListItems';
+import InfiniteListState from 'sentry/components/devtoolbar/components/infiniteListState';
+import PanelLayout from 'sentry/components/devtoolbar/components/panelLayout';
+import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
+import useTeams from 'sentry/components/devtoolbar/components/teams/useTeams';
+import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
+import {
+  badgeWithLabelCss,
+  gridFlexEndCss,
+  listItemGridCss,
+  listItemPlaceholderWrapperCss,
+} from 'sentry/components/devtoolbar/styles/listItem';
+import {
+  panelInsetContentCss,
+  panelSectionCss,
+} from 'sentry/components/devtoolbar/styles/panel';
+import {resetFlexColumnCss} from 'sentry/components/devtoolbar/styles/reset';
+import {smallCss, xSmallCss} from 'sentry/components/devtoolbar/styles/typography';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
@@ -10,22 +28,6 @@ import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Incident} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
-
-import useConfiguration from '../../hooks/useConfiguration';
-import {
-  badgeWithLabelCss,
-  gridFlexEndCss,
-  listItemGridCss,
-  listItemPlaceholderWrapperCss,
-} from '../../styles/listItem';
-import {panelInsetContentCss, panelSectionCss} from '../../styles/panel';
-import {resetFlexColumnCss} from '../../styles/reset';
-import {smallCss, xSmallCss} from '../../styles/typography';
-import InfiniteListItems from '../infiniteListItems';
-import InfiniteListState from '../infiniteListState';
-import PanelLayout from '../panelLayout';
-import SentryAppLink from '../sentryAppLink';
-import useTeams from '../teams/useTeams';
 
 import useInfiniteAlertsList from './useInfiniteAlertsList';
 

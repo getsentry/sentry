@@ -23,7 +23,6 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 from sentry.conf.types import kafka_definition
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory, ObjectStatus
-from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
@@ -37,6 +36,7 @@ from sentry.uptime.consumers.results_consumer import (
 )
 from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.detectors.tasks import is_failed_url
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
@@ -79,7 +79,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 datetime.now(),
             )
         )
-        with self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
+        with self.feature(UptimeDomainCheckFailure.build_ingest_flagpole_feature_name()):
             if consumer is None:
                 factory = UptimeResultsStrategyFactory(mode=self.strategy_processing_mode)
                 commit = mock.Mock()

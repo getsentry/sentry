@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest import mock
+from unittest import TestCase, mock
 
 import pytest
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
-from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 dummy_provider_config = {

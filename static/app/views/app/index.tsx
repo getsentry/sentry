@@ -23,6 +23,7 @@ import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
@@ -259,9 +260,11 @@ function App({children, params}: Props) {
               <GlobalFeedbackForm>
                 <GlobalDrawer>
                   <MainContainer tabIndex={-1} ref={mainContainerRef}>
-                    <GlobalModal onClose={handleModalClose} />
-                    <Indicators className="indicators-container" />
-                    <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                    <DemoToursProvider>
+                      <GlobalModal onClose={handleModalClose} />
+                      <Indicators className="indicators-container" />
+                      <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                    </DemoToursProvider>
                   </MainContainer>
                 </GlobalDrawer>
               </GlobalFeedbackForm>
