@@ -170,45 +170,5 @@ export function getDemoModeGuides(): GuidesContent {
         },
       ],
     },
-    // {
-    //   guide: 'releases_v2',
-    //   requiredTargets: ['release_projects'],
-    //   priority: 1,
-    //   steps: [
-    //     {
-    //       title: t('Compare releases'),
-    //       target: 'release_projects',
-    //       description: t(
-    //         `Click here and select the "react" project to see how the release is trending compared to previous releases.`
-    //       ),
-    //     },
-    //   ],
-    // },
-    // {
-    //   guide: 'react-release',
-    //   requiredTargets: ['release_version'],
-    //   steps: [
-    //     {
-    //       title: t('Release-specific trends'),
-    //       target: 'release_version',
-    //       description: t(
-    //         `Select the latest release to review new and regressed issues, and business critical metrics like crash rate, and user adoption.`
-    //       ),
-    //     },
-    //   ],
-    // },
-    // {
-    //   guide: 'release-details_v2',
-    //   requiredTargets: ['release_states'],
-    //   steps: [
-    //     {
-    //       title: t('New and regressed issues'),
-    //       target: 'release_states',
-    //       description: t(
-    //         `Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.`
-    //       ),
-    //     },
-    //   ],
-    // },
   ];
 }
