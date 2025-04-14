@@ -51,7 +51,6 @@ export interface RendererExtra {
   logColors: ReturnType<typeof getLogColors>;
   organization: Organization;
   align?: 'left' | 'center' | 'right';
-  renderSeverityCircle?: boolean;
   useFullSeverityText?: boolean;
   wrapBody?: true;
 }
@@ -82,17 +81,8 @@ export function SeverityTextRenderer(props: LogFieldRendererProps) {
   const useFullSeverityText = props.extra.useFullSeverityText ?? false;
   const level = getLogSeverityLevel(severityNumber, attribute_value);
   const levelLabel = useFullSeverityText ? attribute_value : severityLevelToText(level);
-  const renderSeverityCircle = props.extra.renderSeverityCircle ?? false;
   return (
     <AlignedCellContent align={props.align}>
-      {renderSeverityCircle && (
-        <SeverityCircle
-          level={level}
-          levelLabel={levelLabel}
-          severityText={attribute_value}
-          logColors={props.extra.logColors}
-        />
-      )}
       <ColoredLogText logColors={props.extra.logColors}>{levelLabel}</ColoredLogText>
     </AlignedCellContent>
   );
@@ -139,7 +129,7 @@ export function TraceIDRenderer(props: LogFieldRendererProps) {
     organization: props.extra.organization,
     dateSelection: props.extra.location,
     location,
-    source: TraceViewSources.TRACES,
+    source: TraceViewSources.LOGS,
   });
   return <Link to={target}>{props.basicRendered}</Link>;
 }
@@ -203,7 +193,7 @@ export const LogAttributesRendererMap: Record<
     return TimestampRenderer(props);
   },
   [OurLogKnownFieldKey.SEVERITY_TEXT]: SeverityTextRenderer,
-  [OurLogKnownFieldKey.BODY]: LogBodyRenderer,
+  [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
   [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
 };
 

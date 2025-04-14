@@ -73,6 +73,7 @@ class EventsMeta(TypedDict):
     discoverSplitDecision: NotRequired[str]
     # only returned when debug=True
     query: NotRequired[dict[str, Any] | str]
+    full_scan: NotRequired[bool]
 
 
 class EventsResponse(TypedDict):

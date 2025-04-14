@@ -15,7 +15,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageParamsProvider,
-  useExploreDataset,
   useExploreFields,
   useExploreGroupBys,
   useExploreMode,
@@ -24,10 +23,9 @@ import {
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-
-import {SpanTagsProvider} from '../contexts/spanTagsContext';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -55,67 +53,11 @@ describe('ExploreToolbar', function () {
     });
   });
 
-  it('should not render dataset selector', function () {
-    function Component() {
-      return <ExploreToolbar />;
-    }
-    render(
-      <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-          <Component />
-        </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
-    );
-    const section = screen.queryByTestId('section-dataset');
-    expect(section).not.toBeInTheDocument();
-  });
-
-  it('allows changing datasets', async function () {
-    let dataset: any;
-    function Component() {
-      dataset = useExploreDataset();
-      return <ExploreToolbar extras={['dataset toggle']} />;
-    }
-
-    render(
-      <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-          <Component />
-        </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
-    );
-
-    const section = screen.getByTestId('section-dataset');
-
-    const eapSpans = within(section).getByRole('radio', {name: 'EAP Spans'});
-    const rpcSpans = within(section).getByRole('radio', {name: 'EAP RPC Spans'});
-    const indexedSpans = within(section).getByRole('radio', {name: 'Indexed Spans'});
-
-    expect(eapSpans).not.toBeChecked();
-    expect(rpcSpans).toBeChecked();
-    expect(indexedSpans).not.toBeChecked();
-    expect(dataset).toEqual(DiscoverDatasets.SPANS_EAP_RPC);
-
-    await userEvent.click(eapSpans);
-    expect(eapSpans).toBeChecked();
-    expect(rpcSpans).not.toBeChecked();
-    expect(indexedSpans).not.toBeChecked();
-    expect(dataset).toEqual(DiscoverDatasets.SPANS_EAP);
-
-    await userEvent.click(indexedSpans);
-    expect(eapSpans).not.toBeChecked();
-    expect(rpcSpans).not.toBeChecked();
-    expect(indexedSpans).toBeChecked();
-    expect(dataset).toEqual(DiscoverDatasets.SPANS_INDEXED);
-  });
-
   it('allows changing mode', async function () {
     let mode: any;
     function Component() {
       mode = useExploreMode();
-      return <ExploreToolbar extras={['dataset toggle']} />;
+      return <ExploreToolbar />;
     }
 
     render(
@@ -152,7 +94,7 @@ describe('ExploreToolbar', function () {
     function Component() {
       fields = useExploreFields();
       groupBys = useExploreGroupBys();
-      return <ExploreToolbar extras={['dataset toggle']} />;
+      return <ExploreToolbar />;
     }
 
     render(
@@ -181,7 +123,7 @@ describe('ExploreToolbar', function () {
     // Add a group by, and leave one unselected
     await userEvent.click(aggregates);
     const groupBy = screen.getByTestId('section-group-by');
-    await userEvent.click(within(groupBy).getByRole('button', {name: 'span.op'}));
+    await userEvent.click(within(groupBy).getByRole('button', {name: '\u2014'}));
     await userEvent.click(within(groupBy).getByRole('option', {name: 'release'}));
     expect(groupBys).toEqual(['release']);
     await userEvent.click(within(groupBy).getByRole('button', {name: 'Add Group'}));
@@ -571,23 +513,29 @@ describe('ExploreToolbar', function () {
       })
     );
 
+    let options;
     const section = screen.getByTestId('section-group-by');
 
-    expect(within(section).getByRole('button', {name: 'span.op'})).toBeEnabled();
-    await userEvent.click(within(section).getByRole('button', {name: 'span.op'}));
-    const groupByOptions1 = await within(section).findAllByRole('option');
-    expect(groupByOptions1.length).toBeGreaterThan(0);
+    expect(groupBys).toEqual(['']);
 
+    await userEvent.click(within(section).getByRole('button', {name: '\u2014'}));
+    options = await within(section).findAllByRole('option');
+    expect(options.length).toBeGreaterThan(0);
+    await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
+    expect(groupBys).toEqual(['span.op']);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'span.op'}));
+    options = await within(section).findAllByRole('option');
+    expect(options.length).toBeGreaterThan(0);
     await userEvent.click(within(section).getByRole('option', {name: 'project'}));
     expect(groupBys).toEqual(['project']);
 
     await userEvent.click(within(section).getByRole('button', {name: 'Add Group'}));
     expect(groupBys).toEqual(['project', '']);
 
-    await userEvent.click(within(section).getByRole('button', {name: 'None'}));
-    const groupByOptions2 = await within(section).findAllByRole('option');
-    expect(groupByOptions2.length).toBeGreaterThan(0);
-
+    await userEvent.click(within(section).getByRole('button', {name: '\u2014'}));
+    options = await within(section).findAllByRole('option');
+    expect(options.length).toBeGreaterThan(0);
     await userEvent.click(
       within(section).getByRole('option', {name: 'span.description'})
     );

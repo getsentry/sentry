@@ -52,7 +52,6 @@ from sentry.constants import (
     SENSITIVE_FIELDS_DEFAULT,
     STREAMLINE_UI_ONLY,
     TARGET_SAMPLE_RATE_DEFAULT,
-    UPTIME_AUTODETECTION,
     ObjectStatus,
 )
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
@@ -506,7 +505,6 @@ class OnboardingTasksSerializer(Serializer):
 class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResponse, total=False):
     role: Any  # TODO: replace with enum/literal
     orgRole: str
-    uptimeAutodetection: bool
     targetSampleRate: float
     samplingMode: str
     effectiveSampleRate: float
@@ -713,11 +711,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ).count(),
             "isDynamicallySampled": is_dynamically_sampled,
         }
-
-        if features.has("organizations:uptime-settings", obj):
-            context["uptimeAutodetection"] = bool(
-                obj.get_option("sentry:uptime_autodetection", UPTIME_AUTODETECTION)
-            )
 
         if has_custom_dynamic_sampling(obj, actor=user):
             context["targetSampleRate"] = float(

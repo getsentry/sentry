@@ -280,14 +280,6 @@ export function getCodeOwnerIcon(
       return <IconSentry size={iconSize} />;
   }
 }
-
-// used for project creation and onboarding
-// determines what integration maps to what project platform
-export const platformToIntegrationMap = {
-  'node-awslambda': 'aws_lambda',
-  'python-awslambda': 'aws_lambda',
-};
-
 export const isSlackIntegrationUpToDate = (integrations: Integration[]): boolean => {
   return integrations.every(
     integration =>
@@ -378,7 +370,7 @@ function getInstallValue({
     return 0;
   }
 
-  return integrationInstalls.find(i => i.provider.key === integration.key) ? 2 : 0;
+  return integrationInstalls.some(i => i.provider.key === integration.key) ? 2 : 0;
 }
 
 function getPopularityWeight(integration: AppOrProviderOrPlugin) {

@@ -1,11 +1,10 @@
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-
-import type {TraceTree} from '../traceModels/traceTree';
-import {TraceTreeNode} from '../traceModels/traceTreeNode';
-import {searchInTraceTreeTokens} from '../traceSearch/traceSearchEvaluator';
-import {parseTraceSearch} from '../traceSearch/traceTokenConverter';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {searchInTraceTreeTokens} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchEvaluator';
+import {parseTraceSearch} from 'sentry/views/performance/newTraceDetails/traceSearch/traceTokenConverter';
 
 function makeTransaction(
   overrides: Partial<TraceTree.Transaction> = {}
