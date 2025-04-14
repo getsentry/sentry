@@ -9,9 +9,11 @@ from uuid import UUID
 
 import msgpack
 import sentry_sdk
+from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from django.conf import settings
 
 from sentry import features, options, quotas
+from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
@@ -37,6 +39,8 @@ from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
+from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import set_measurement
@@ -47,6 +51,30 @@ REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.
 MAX_DURATION_SAMPLE_V2 = 66000
 
 UI_PROFILE_PLATFORMS = {"cocoa", "android", "javascript"}
+
+
+def _get_profiles_producer_from_topic(topic: Topic) -> KafkaProducer:
+    cluster_name = get_topic_definition(topic)["cluster"]
+    producer_config = get_kafka_producer_cluster_options(cluster_name)
+    producer_config.pop("compression.type", None)
+    producer_config.pop("message.max.bytes", None)
+    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+
+processed_profiles_producer = SingletonProducer(
+    lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES),
+    max_futures=settings.SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT,
+)
+
+profile_functions_producer = SingletonProducer(
+    lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE),
+    max_futures=settings.SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT,
+)
+
+profile_chunks_producer = SingletonProducer(
+    lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS),
+    max_futures=settings.SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT,
+)
 
 
 @instrumented_task(
