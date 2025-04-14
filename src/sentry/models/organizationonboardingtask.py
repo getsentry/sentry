@@ -43,19 +43,6 @@ class OnboardingTaskStatus:
     SKIPPED = 3
 
 
-# NOTE: data fields for some event types are as follows:
-#
-#   FIRST_EVENT:      { 'platform':  'flask', }
-#   INVITE_MEMBER:    { 'invited_member': user.id, 'teams': [team.id] }
-#   SECOND_PLATFORM:  { 'platform': 'javascript' }
-#
-# NOTE: Currently the `PENDING` status is applicable for the following
-# onboarding tasks:
-#
-#   FIRST_EVENT:     User confirms that sdk has been installed
-#   INVITE_MEMBER:   Until the member has successfully joined org
-
-
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
     def record(self, organization_id, task, **kwargs):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
