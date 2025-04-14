@@ -7,8 +7,7 @@ import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-
-import {isValidCodecovRelativePeriod} from '../utils';
+import {isValidCodecovRelativePeriod} from 'sentry/components/codecov/utils';
 
 const CODECOV_DEFAULT_RELATIVE_PERIOD = '24h';
 export const CODECOV_DEFAULT_RELATIVE_PERIODS = {
