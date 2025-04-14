@@ -15,7 +15,6 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
-  QUERY_MODE,
   type SpansRPCQueryExtras,
   useProgressiveQuery,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -43,7 +42,6 @@ export const useExploreTimeseries = ({
   return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
     queryHookImplementation: useExploreTimeseriesImpl,
     queryHookArgs: {query, enabled},
-    queryMode: QUERY_MODE.SERIAL,
   });
 };
 

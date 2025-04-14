@@ -36,10 +36,16 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
   // progressive loading to surface the correct data.
   queryHookImplementation: (props: Parameters<TQueryFn>[0]) => ReturnType<TQueryFn> & {
     result: {
+      data: any;
       isFetched: boolean;
     };
   };
-  queryMode: QueryMode;
+  queryOptions?: QueryOptions;
+}
+
+interface QueryOptions {
+  queryMode?: QueryMode;
+  withholdBestEffort?: boolean;
 }
 
 /**
@@ -58,7 +64,7 @@ export function useProgressiveQuery<
 >({
   queryHookImplementation,
   queryHookArgs,
-  queryMode,
+  queryOptions,
 }: ProgressiveQueryOptions<TQueryFn>): ReturnType<TQueryFn> & {
   samplingMode?: SamplingMode;
 } {
@@ -67,6 +73,8 @@ export function useProgressiveQuery<
   const canUseProgressiveLoading = organization.features.includes(
     'visibility-explore-progressive-loading'
   );
+
+  const queryMode = queryOptions?.queryMode ?? QUERY_MODE.SERIAL;
 
   // If the time range is small enough, just go directly to the best effort request
   const isSmallRange = getDiffInMinutes(selection.datetime) < SMALL_TIME_RANGE_THRESHOLD;
@@ -88,6 +96,13 @@ export function useProgressiveQuery<
     enabled: queryHookArgs.enabled && canUseProgressiveLoading && !skipPreflight,
   });
 
+  const triggerBestEffortAfterPreflight =
+    !queryOptions?.withholdBestEffort && preflightRequest.result.isFetched;
+  const triggerBestEffortRequestForEmptyPreflight =
+    preflightRequest.result.isFetched &&
+    queryOptions?.withholdBestEffort &&
+    preflightRequest.result.data?.length === 0;
+
   const bestEffortRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: HIGH_SAMPLING_MODE_QUERY_EXTRAS,
@@ -95,8 +110,9 @@ export function useProgressiveQuery<
       queryHookArgs.enabled &&
       canUseProgressiveLoading &&
       (queryMode === QUERY_MODE.PARALLEL ||
-        preflightRequest.result.isFetched ||
-        skipPreflight),
+        skipPreflight ||
+        triggerBestEffortAfterPreflight ||
+        triggerBestEffortRequestForEmptyPreflight),
   });
 
   if (!canUseProgressiveLoading) {
