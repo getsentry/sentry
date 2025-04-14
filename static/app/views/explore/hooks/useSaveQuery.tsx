@@ -68,7 +68,7 @@ export function useSaveQuery() {
   ]);
 
   const saveQuery = useCallback(
-    async (newTitle: string) => {
+    async (newTitle: string, starred = true) => {
       const response = await api.requestPromise(
         `/organizations/${organization.slug}/explore/saved/`,
         {
@@ -76,7 +76,7 @@ export function useSaveQuery() {
           data: {
             ...data,
             name: newTitle,
-            starred: true,
+            starred,
           },
         }
       );
