@@ -51,7 +51,7 @@ export function HTTPLandingPage() {
   });
 
   const sort =
-    decodeSorts(location.query?.[QueryParameterNames.DOMAINS_SORT]).find(isAValidSort) ??
+    decodeSorts(query?.[QueryParameterNames.DOMAINS_SORT]).find(isAValidSort) ??
     DEFAULT_SORT;
   const cursor = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_CURSOR]);
 
