@@ -225,6 +225,7 @@ def test_too_low_min_sdk_version_not_detected(
 
     assert mock_sdk_crash_reporter.report.call_count == 0
 
+
 @decorators
 def test_ignore_handle_begin_frame(mock_sdk_crash_reporter, mock_random, store_event, configs):
     event_data = get_crash_event(sdk_function="SentryWidgetsBindingMixin.handleBeginFrame")
