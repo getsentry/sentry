@@ -10,7 +10,6 @@ import {Timeline} from 'sentry/components/timeline';
 import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
-import type {Color} from 'sentry/utils/theme';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import type {AutofixTimelineEvent} from './types';
@@ -19,7 +18,6 @@ type Props = {
   events: AutofixTimelineEvent[];
   groupId: string;
   runId: string;
-  activeColor?: Color;
   getCustomIcon?: (event: AutofixTimelineEvent) => React.ReactNode;
   retainInsightCardIndex?: number | null;
   stepIndex?: number;
@@ -44,11 +42,7 @@ function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
   }
 }
 
-function getEventColor(
-  theme: Theme,
-  isActive?: boolean,
-  activeColor?: Color
-): ColorConfig {
+function getEventColor(theme: Theme, isActive?: boolean): ColorConfig {
   if (isChonkTheme(theme)) {
     return {
       title: theme.colors.content.primary,
@@ -58,14 +52,13 @@ function getEventColor(
   }
   return {
     title: theme.gray400,
-    icon: isActive ? (activeColor ?? theme.pink400) : theme.gray400,
-    iconBorder: isActive ? (activeColor ?? theme.pink400) : theme.gray400,
+    icon: isActive ? theme.pink400 : theme.gray400,
+    iconBorder: isActive ? theme.pink400 : theme.gray400,
   };
 }
 
 export function AutofixTimeline({
   events,
-  activeColor,
   getCustomIcon,
   groupId,
   runId,
@@ -119,7 +112,7 @@ export function AutofixTimeline({
             }
             isActive={isActive}
             icon={getCustomIcon?.(event) ?? getEventIcon(event.timeline_item_type)}
-            colorConfig={getEventColor(theme, isActive, activeColor)}
+            colorConfig={getEventColor(theme, isActive)}
           >
             <AnimatePresence>
               {expandedItems.includes(index) && (
