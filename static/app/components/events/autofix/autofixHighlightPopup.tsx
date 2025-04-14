@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import {createPortal} from 'react-dom';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
@@ -26,6 +27,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useMedia from 'sentry/utils/useMedia';
 import {useUser} from 'sentry/utils/useUser';
 
 import type {CommentThreadMessage} from './types';
@@ -37,6 +39,7 @@ interface Props {
   runId: string;
   selectedText: string;
   stepIndex: number;
+  blockName?: string;
   isAgentComment?: boolean;
 }
 
@@ -123,6 +126,7 @@ function AutofixHighlightPopupContent({
   stepIndex,
   retainInsightCardIndex,
   isAgentComment,
+  blockName,
   isFocused,
 }: Props & {isFocused?: boolean}) {
   const {mutate: submitComment} = useCommentThread({groupId, runId});
@@ -258,7 +262,13 @@ function AutofixHighlightPopupContent({
   return (
     <Container onClick={handleContainerClick} isFocused={isFocused}>
       <Header>
-        <SelectedText>{truncatedText && <span>"{truncatedText}"</span>}</SelectedText>
+        <SelectedText>
+          {blockName ? (
+            <span>{blockName}</span>
+          ) : (
+            truncatedText && <span>"{truncatedText}"</span>
+          )}
+        </SelectedText>
         {allMessages.length > 0 && (
           <ResolveButton
             size="zero"
@@ -364,6 +374,9 @@ function AutofixHighlightPopup(props: Props) {
   const [width, setWidth] = useState<number | undefined>(undefined);
   const [isFocused, setIsFocused] = useState(false);
 
+  const theme = useTheme();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+
   useLayoutEffect(() => {
     if (!referenceElement || !popupRef.current) {
       return undefined;
@@ -426,6 +439,10 @@ function AutofixHighlightPopup(props: Props) {
   const handleBlur = () => {
     setIsFocused(false);
   };
+
+  if (isSmallScreen) {
+    return null;
+  }
 
   return createPortal(
     <Wrapper
