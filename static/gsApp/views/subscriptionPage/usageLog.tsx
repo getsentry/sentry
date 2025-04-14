@@ -56,7 +56,7 @@ function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
     return (
       <StaffNote>
         {logEntryUser.name}
-        <Tag>{t('Sentry Staff')}</Tag>
+        <Tag type="default">{t('Sentry Staff')}</Tag>
       </StaffNote>
     );
   }

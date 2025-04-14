@@ -540,6 +540,8 @@ def apply_legacy_settings(settings: Any) -> None:
         ("SENTRY_FILESTORE_OPTIONS", "filestore.options"),
         ("SENTRY_RELOCATION_BACKEND", "filestore.relocation-backend"),
         ("SENTRY_RELOCATION_OPTIONS", "filestore.relocation-options"),
+        ("SENTRY_PROFILES_BACKEND", "filestore.profiles-backend"),
+        ("SENTRY_PROFILES_OPTIONS", "filestore.profiles-options"),
         ("GOOGLE_CLIENT_ID", "auth-google.client-id"),
         ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret"),
     ):
