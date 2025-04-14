@@ -90,6 +90,7 @@ function ReplaysContentWrapper({
   organization,
   setError,
 }: ChildProps) {
+  // Hard-code 90d to match the count query. There's no date selector for the replay tab.
   const {data, fetchError, isFetching, pageLinks} = useReplaysFromTransaction({
     replayIdsEventView,
     location: {
