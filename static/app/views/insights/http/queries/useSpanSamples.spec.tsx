@@ -132,7 +132,7 @@ describe('useSpanSamples', () => {
       expect.objectContaining({
         method: 'GET',
         query: {
-          additionalFields: ['transaction.id', 'span_id'],
+          additionalFields: [],
           project: [],
           query: `span.group:221aa7ebd216 release:0.0.1`,
           referrer: 'api-spec',
