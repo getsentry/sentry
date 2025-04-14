@@ -100,17 +100,13 @@ describe('getRuntimeLabel', function () {
       sdk: {name: 'javascript'},
     });
 
-    expect(getRuntimeLabelAndTooltip(backendEvent, {isBackend: true})?.label).toBe(
-      'Backend'
-    );
+    expect(getRuntimeLabelAndTooltip(backendEvent, 'backend')?.label).toBe('Backend');
 
     const frontendEvent = EventFixture({
       sdk: {name: 'javascript'},
     });
 
-    expect(getRuntimeLabelAndTooltip(frontendEvent, {isFrontend: true})?.label).toBe(
-      'Frontend'
-    );
+    expect(getRuntimeLabelAndTooltip(frontendEvent, 'frontend')?.label).toBe('Frontend');
   });
 
   it('returns inferred runtime', function () {

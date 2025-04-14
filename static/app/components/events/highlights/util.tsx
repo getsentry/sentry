@@ -178,16 +178,16 @@ export function getHighlightTagData({
  */
 export function getRuntimeLabelAndTooltip(
   event: Event,
-  knownRuntimeType?: {isBackend?: boolean; isFrontend?: boolean}
+  knownRuntimeType?: 'backend' | 'frontend' | null
 ): {label: string; tooltip: string} | null {
   if (!event.sdk?.name.includes('javascript')) {
     return null;
   }
 
-  if (knownRuntimeType?.isBackend) {
+  if (knownRuntimeType === 'backend') {
     return {label: t('Backend'), tooltip: t('Error from Server, Edge or Worker Runtime')};
   }
-  if (knownRuntimeType?.isFrontend) {
+  if (knownRuntimeType === 'frontend') {
     return {label: t('Frontend'), tooltip: t('Error from Client (e.g. Browser)')};
   }
 
