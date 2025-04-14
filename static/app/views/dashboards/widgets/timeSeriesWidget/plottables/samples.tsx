@@ -54,6 +54,10 @@ export type SamplesConfig = {
    */
   onClick?: (datum: ValidSampleRow) => void;
   /**
+   * Callback for ECharts' `onDownplay`. Called with the sample that corresponds to the downplayed sample in the chart.
+   */
+  onDownplay?: (datum: ValidSampleRow) => void;
+  /**
    * Callback for ECharts' `onHighlight`. Called with the sample that corresponds to the highlighted sample in the chart.
    */
   onHighlight?: (datum: ValidSampleRow) => void;

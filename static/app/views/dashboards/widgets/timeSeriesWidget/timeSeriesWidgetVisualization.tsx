@@ -23,6 +23,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {
   EChartClickHandler,
   EChartDataZoomHandler,
+  EChartDownplayHandler,
   EChartHighlightHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
@@ -539,6 +540,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     }
   };
 
+  const handleDownplay: EChartDownplayHandler = event => {
+    // Unlike click events, downplays happen to potentially more than one
+    // series at a time. We have to iterate each item in the batch
+    for (const batch of event.batch ?? []) {
+      runHandler(batch, 'onDownplay');
+    }
+  };
+
   return (
     <BaseChart
       ref={mergeRefs(props.ref, chartRef, handleChartRef)}
@@ -611,6 +620,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       period={period}
       utc={utc ?? undefined}
       onHighlight={handleHighlight}
+      onDownplay={handleDownplay}
       onClick={handleClick}
     />
   );

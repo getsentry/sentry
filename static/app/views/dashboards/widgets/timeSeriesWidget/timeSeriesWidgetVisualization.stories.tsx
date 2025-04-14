@@ -639,9 +639,10 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           first way is to pass the <code>onHighlight</code> configuration option to your
           plottable. All plottables support this configuration option. It's a callback,
           called whenever a data point is highlighted by bringing the X axis cursor near
-          its timestamp. The second way is to manually cause highlighting on your
-          plottables by calling the <code>highlight</code> method of the plottable
-          instance. Note: only <code>Samples</code> supports this right now.
+          its timestamp. There is also a corresponding <code>onDownplay</code> option. The
+          second way is to manually cause highlighting on your plottables by calling the{' '}
+          <code>highlight</code> method of the plottable instance. Note: only{' '}
+          <code>Samples</code> supports this right now.
         </p>
 
         <p>
