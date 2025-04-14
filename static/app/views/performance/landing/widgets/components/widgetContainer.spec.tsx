@@ -181,7 +181,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           partial: '1',
           query: 'transaction.op:pageload',
           statsPeriod: '28d',
-          yAxis: 'tpm()',
+          yAxis: 'epm()',
         }),
       })
     );
@@ -317,7 +317,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           partial: '1',
           query: 'transaction.op:pageload',
           statsPeriod: '14d',
-          yAxis: 'tpm()',
+          yAxis: 'epm()',
         }),
       })
     );
@@ -1096,6 +1096,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_scores(measurements.score.cls)',
             'count_scores(measurements.score.inp)',
             'count_scores(measurements.score.ttfb)',
+            'count_scores(measurements.score.total)',
             'total_opportunity_score()',
           ],
           query:

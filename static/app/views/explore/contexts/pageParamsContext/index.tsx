@@ -2,7 +2,6 @@ import type React from 'react';
 import {createContext, useCallback, useContext, useMemo} from 'react';
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -144,12 +143,6 @@ export function useExplorePageParams(): ReadablePageParams {
 }
 
 export function useExploreDataset(): DiscoverDatasets {
-  const pageParams = useExplorePageParams();
-
-  if (defined(pageParams.dataset)) {
-    return pageParams.dataset;
-  }
-
   return DiscoverDatasets.SPANS_EAP_RPC;
 }
 
@@ -220,16 +213,6 @@ export function useSetExplorePageParams() {
       navigate(target);
     },
     [location, navigate]
-  );
-}
-
-export function useSetExploreDataset() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (dataset: DiscoverDatasets) => {
-      setPageParams({dataset});
-    },
-    [setPageParams]
   );
 }
 
