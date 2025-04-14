@@ -21,12 +21,12 @@ import {
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import {escapeIssueTagKey} from 'sentry/utils';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {
   FieldKey,
   FieldKind,
   IsFieldValues,
-  ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS,
   ISSUE_EVENT_PROPERTY_FIELDS,
   ISSUE_FIELDS,
   ISSUE_PROPERTY_FIELDS,
@@ -68,15 +68,15 @@ const renameConflictingTags = (tags: TagCollection): TagCollection => {
   const renamedTags: TagCollection = {};
 
   for (const [key, tag] of Object.entries(tags)) {
-    if (ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS.has(key as FieldKey)) {
-      const newKey = `tags[${key}]`;
+    const newKey = escapeIssueTagKey(key);
+    if (key === newKey) {
+      renamedTags[key] = tag;
+    } else {
       renamedTags[newKey] = {
         ...tag,
         key: newKey,
         name: newKey,
       };
-    } else {
-      renamedTags[key] = tag;
     }
   }
 
