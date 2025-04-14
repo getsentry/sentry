@@ -9,7 +9,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {NavIssueView} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
-import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
 
 interface IssueViewNavEditableTitleProps {
   isActive: boolean;
@@ -28,8 +27,6 @@ function IssueViewNavEditableTitle({
 }: IssueViewNavEditableTitleProps) {
   const organization = useOrganization();
   const [inputValue, setInputValue] = useState(view.label);
-
-  const {starredViews, setStarredIssueViews} = useStarredIssueViews();
 
   const {mutate: updateIssueView} = useUpdateGroupSearchView({
     onSuccess: () => {
@@ -66,9 +63,6 @@ function IssueViewNavEditableTitle({
       return;
     }
     if (trimmedInputValue !== view.label) {
-      setStarredIssueViews(
-        starredViews.map(v => (v.id === view.id ? {...v, name: trimmedInputValue} : v))
-      );
       setInputValue(trimmedInputValue);
       updateIssueView({...view, name: trimmedInputValue});
     }

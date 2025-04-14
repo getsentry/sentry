@@ -24,6 +24,13 @@ describe('IssueViewNavEditableTitle', () => {
       method: 'PUT',
       body: mockGroupSearchView,
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/group-search-views/starred/`,
+      method: 'GET',
+      body: {
+        views: [convertGSVtoIssueView(mockGroupSearchView)],
+      },
+    });
   });
 
   it('renders the label correctly', () => {
