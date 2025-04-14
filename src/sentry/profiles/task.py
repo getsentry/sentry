@@ -1160,6 +1160,9 @@ def determine_client_sdk(profile: Profile, event_type: EventType) -> tuple[str, 
             # to figure out which it is here so collapse them all into just node
             return "sentry.javascript.node", "0.0.0"
 
+        # Other platforms do not have a version released where it sends
+        # a profile chunk without the client sdk info
+
     raise UnknownClientSDKException
 
 
