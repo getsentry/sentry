@@ -121,7 +121,13 @@ export function IssueTraceWaterfallOverlay({
     });
   }, [organization]);
 
-  const baseLink = getTraceLinkForIssue(traceTarget);
+  // Link to an offender span in the trace view if the event includes an occurrence.
+  // Keeps the highlighted span consistent across issues and trace waterfalls.
+  const spanId = event.occurrence?.evidenceData?.offenderSpanIds?.[0];
+  const baseNodePath: TraceTree.NodePath[] = spanId
+    ? [`span-${spanId}`, `txn-${event.eventID}`]
+    : [`txn-${event.eventID}`];
+  const baseLink = getTraceLinkForIssue(traceTarget, baseNodePath);
 
   return (
     <OverlayWrapper>

@@ -2320,12 +2320,6 @@ function getRelatedPerformanceIssuesFromTransaction(
   const occurences: TraceTree.TraceOccurrence[] = [];
 
   for (const perfIssue of node.value.performance_issues) {
-    for (const s of perfIssue.span) {
-      if (s === span.span_id) {
-        occurences.push(perfIssue);
-      }
-    }
-
     for (const suspect of perfIssue.suspect_spans) {
       if (suspect === span.span_id) {
         occurences.push(perfIssue);
