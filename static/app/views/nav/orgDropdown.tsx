@@ -79,12 +79,12 @@ export function OrgDropdown({className}: {className?: string}) {
       trigger={props => (
         <OrgDropdownTrigger
           borderless={!theme.isChonk}
-          width={isMobile ? 32 : 44}
+          width={isMobile ? 32 : 48}
           aria-label={t('Toggle organization menu')}
           {...props}
         >
           <StyledOrganizationAvatar
-            size={isMobile ? 24 : 32}
+            size={isMobile ? 24 : 36}
             round={false}
             organization={organization}
           />
