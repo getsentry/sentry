@@ -7,6 +7,10 @@ import {DEFAULT_QUERY_CLIENT_CONFIG, QueryClient} from 'sentry/utils/queryClient
 
 /**
  * Named it appQueryClient because we already have a queryClient in sentry/utils/queryClient
+ * sentry/utils/queryClient is a small wrapper around react-query's functionality for our API.
+ *
+ * appQueryClient below is the app's react-query cache and should not be imported directly.
+ * Instead, use `const queryClient = useQueryClient()`.
  * @link https://tanstack.com/query/v5/docs/reference/QueryClient
  */
 export const appQueryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
@@ -47,7 +51,6 @@ if (isProjectsCacheEnabled) {
         return (
           // Query is not pending or failed
           query.state.status === 'success' &&
-          // Query is not stale
           !query.isStale() &&
           Array.isArray(query.queryKey) &&
           // Currently only bootstrap-projects is persisted
