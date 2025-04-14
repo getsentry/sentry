@@ -6,9 +6,14 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.api.serializers import Serializer
 from sentry.api.serializers.models.incidentactivity import IncidentActivitySerializerResponse
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
-from sentry.incidents.endpoints.serializers.incident import IncidentSerializerResponse
+from sentry.incidents.endpoints.serializers.incident import (
+    DetailedIncidentSerializerResponse,
+    IncidentSerializerResponse,
+)
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod, IncidentType
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.snuba.entity_subscription import apply_dataset_query_conditions
+from sentry.snuba.models import SnubaQuery
 from sentry.types.group import PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -80,3 +85,32 @@ class WorkflowEngineIncidentSerializer(Serializer):
             "dateCreated": obj.date_added,
             "dateClosed": date_closed,
         }
+
+
+class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer):
+    def __init__(self, expand=None):
+        if expand is None:
+            expand = []
+        if "original_alert_rule" not in expand:
+            expand.append("original_alert_rule")
+        super().__init__(expand=expand)
+
+    def serialize(self, obj, attrs, user, **kwargs) -> DetailedIncidentSerializerResponse:
+        base_context = super().serialize(obj, attrs, user)
+        # The query we should use to get accurate results in Discover.
+        context = DetailedIncidentSerializerResponse(
+            **base_context, discoverQuery=self._build_discover_query(obj)
+        )
+
+        return context
+
+    def get_snuba_query(self, open_period: GroupOpenPeriod) -> SnubaQuery:
+        pass
+
+    def _build_discover_query(self, open_period: GroupOpenPeriod, snuba_query: SnubaQuery) -> str:
+        return apply_dataset_query_conditions(
+            snuba_query.type,
+            snuba_query.query,
+            snuba_query.event_types,
+            discover=True,
+        )
