@@ -21,7 +21,7 @@ export default function HttpDomainSummaryThroughputChartWidget(
       transformAliasToInputFormat: true,
     },
     Referrer.DOMAIN_SUMMARY_THROUGHPUT_CHART,
-    props.subPageFilters
+    props.pageFilters
   );
 
   return (

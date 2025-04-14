@@ -22,7 +22,7 @@ export default function HttpDomainSummaryDurationChartWidget(
       transformAliasToInputFormat: true,
     },
     Referrer.DOMAIN_SUMMARY_DURATION_CHART,
-    props.subPageFilters
+    props.pageFilters
   );
 
   return (

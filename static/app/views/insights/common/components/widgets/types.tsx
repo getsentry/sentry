@@ -12,14 +12,14 @@ export interface LoadableChartWidgetProps {
   id?: string;
 
   /**
-   * Show releases as either lines per release or a bubble for a group of releases.
-   */
-  showReleaseAs?: 'bubble' | 'line';
-
-  /**
    * PageFilters-like object that will override the main PageFilters e.g. in
    * Releases Drawer, we have a smaller timeframe to show a smaller amount of
    * releases.
    */
-  subPageFilters?: PageFilters;
+  pageFilters?: PageFilters;
+
+  /**
+   * Show releases as either lines per release or a bubble for a group of releases.
+   */
+  showReleaseAs?: 'bubble' | 'line';
 }

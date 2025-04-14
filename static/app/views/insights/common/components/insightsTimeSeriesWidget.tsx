@@ -53,7 +53,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const pageFiltersSelection = props.subPageFilters || pageFilters.selection;
+  const pageFiltersSelection = props.pageFilters || pageFilters.selection;
   const {releases: releasesWithDate} = useReleaseStats(pageFiltersSelection);
   const releases =
     releasesWithDate?.map(({date, version}) => ({
@@ -131,7 +131,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         Visualization={
           <TimeSeriesWidgetVisualization
             id={props.id}
-            subPageFilters={props.subPageFilters}
+            pageFilters={props.pageFilters}
             {...enableReleaseBubblesProps}
             legendSelection={props.legendSelection}
             onLegendSelectionChange={props.onLegendSelectionChange}

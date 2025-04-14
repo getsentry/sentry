@@ -56,7 +56,8 @@ import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
 const {error, warn, info} = Sentry.logger;
 
-export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChartWidgetProps> {
+export interface TimeSeriesWidgetVisualizationProps
+  extends Partial<LoadableChartWidgetProps> {
   /**
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
@@ -112,7 +113,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const pageFilters = usePageFilters();
   const {start, end, period, utc} =
-    props.subPageFilters?.datetime || pageFilters.selection.datetime;
+    props.pageFilters?.datetime || pageFilters.selection.datetime;
 
   const theme = useTheme();
   const organization = useOrganization();

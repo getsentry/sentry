@@ -22,7 +22,7 @@ export default function HttpDomainSummaryResponseCodesChartWidget(
       transformAliasToInputFormat: true,
     },
     Referrer.DOMAIN_SUMMARY_RESPONSE_CODE_CHART,
-    props.subPageFilters
+    props.pageFilters
   );
 
   return (

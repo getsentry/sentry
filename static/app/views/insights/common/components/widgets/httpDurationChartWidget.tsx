@@ -19,7 +19,7 @@ export default function HttpDurationChartWidget(props: LoadableChartWidgetProps)
       transformAliasToInputFormat: true,
     },
     Referrer.LANDING_DURATION_CHART,
-    props.subPageFilters
+    props.pageFilters
   );
 
   return (

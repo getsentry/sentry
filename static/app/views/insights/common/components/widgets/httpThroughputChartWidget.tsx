@@ -19,7 +19,7 @@ export default function HttpThroughputChartWidget(props: LoadableChartWidgetProp
       transformAliasToInputFormat: true,
     },
     Referrer.LANDING_THROUGHPUT_CHART,
-    props.subPageFilters
+    props.pageFilters
   );
 
   return (

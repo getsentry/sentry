@@ -20,7 +20,7 @@ export default function HttpResponseCodesChartWidget(props: LoadableChartWidgetP
       transformAliasToInputFormat: true,
     },
     Referrer.LANDING_RESPONSE_CODE_CHART,
-    props.subPageFilters
+    props.pageFilters
   );
 
   return (
