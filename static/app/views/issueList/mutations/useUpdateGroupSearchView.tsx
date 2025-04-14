@@ -16,7 +16,9 @@ import type {GroupSearchView, StarredGroupSearchView} from 'sentry/views/issueLi
 type UpdateGroupSearchViewVariables = Pick<
   GroupSearchView,
   'id' | 'name' | 'query' | 'querySort' | 'projects' | 'environments' | 'timeFilters'
->;
+> & {
+  optimisticlyUpdate?: boolean;
+};
 
 export const useUpdateGroupSearchView = (
   options: Omit<
@@ -38,29 +40,60 @@ export const useUpdateGroupSearchView = (
           data: groupSearchView,
         }
       ),
-    onSuccess: (data, parameters, context) => {
-      // Update the specific view cache
-      setApiQueryData<GroupSearchView>(
-        queryClient,
-        makeFetchGroupSearchViewKey({orgSlug: organization.slug, id: parameters.id}),
-        data
-      );
 
-      // Update any matching starred views in cache
-      setApiQueryData<StarredGroupSearchView[]>(
-        queryClient,
-        makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-        oldGroupSearchViews => {
-          return (
-            oldGroupSearchViews?.map(view => {
-              if (view.id === parameters.id) {
-                return {...view, ...parameters};
-              }
-              return view;
-            }) ?? []
-          );
-        }
-      );
+    onMutate: variables => {
+      const {optimisticlyUpdate, ...viewParams} = variables;
+      if (optimisticlyUpdate) {
+        // Update the specific view cache
+        setApiQueryData<GroupSearchView>(
+          queryClient,
+          makeFetchGroupSearchViewKey({orgSlug: organization.slug, id: viewParams.id}),
+          oldView => (oldView ? {...oldView, ...viewParams} : oldView)
+        );
+
+        // Update any matching starred views in cache
+        setApiQueryData<StarredGroupSearchView[]>(
+          queryClient,
+          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
+          oldGroupSearchViews => {
+            return (
+              oldGroupSearchViews?.map(view => {
+                if (view.id === variables.id) {
+                  return {...view, ...variables};
+                }
+                return view;
+              }) ?? []
+            );
+          }
+        );
+      }
+      options.onMutate?.(variables);
+    },
+    onSuccess: (data, parameters, context) => {
+      if (!parameters.optimisticlyUpdate) {
+        // Update the specific view cache
+        setApiQueryData<GroupSearchView>(
+          queryClient,
+          makeFetchGroupSearchViewKey({orgSlug: organization.slug, id: parameters.id}),
+          data
+        );
+
+        // Update any matching starred views in cache
+        setApiQueryData<StarredGroupSearchView[]>(
+          queryClient,
+          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
+          oldGroupSearchViews => {
+            return (
+              oldGroupSearchViews?.map(view => {
+                if (view.id === parameters.id) {
+                  return {...view, ...parameters};
+                }
+                return view;
+              }) ?? []
+            );
+          }
+        );
+      }
       options.onSuccess?.(data, parameters, context);
     },
     onError: (error, variables, context) => {
