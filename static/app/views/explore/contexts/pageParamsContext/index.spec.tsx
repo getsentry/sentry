@@ -111,7 +111,7 @@ describe('PageParamsProvider', function () {
         'transaction',
         'timestamp',
       ],
-      groupBys: ['span.op'],
+      groupBys: [''],
       mode: Mode.SAMPLES,
       query: '',
       sortBys: [{field: 'timestamp', kind: 'desc'}],
@@ -199,7 +199,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual({
       dataset: DiscoverDatasets.SPANS_EAP_RPC,
       fields: ['id', 'timestamp'],
-      groupBys: ['span.op'],
+      groupBys: [''],
       mode: Mode.AGGREGATE,
       query: '',
       sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
