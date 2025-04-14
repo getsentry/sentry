@@ -21,7 +21,6 @@ PLATFORMS_CONFIG: dict[str, Mapping[str, Any]] = {
         # e.g. com.foo.bar.Baz$handle$1, Baz.kt -> com/foo/bar/Baz.kt
         "extract_filename_from_module": True,
         "create_in_app_stack_trace_rules": True,
-        "dry_run": True,
         "extensions": ["kt", "kts", "java", "jsp"],
     },
     "javascript": {"extensions": ["js", "jsx", "mjs", "tsx", "ts"]},
