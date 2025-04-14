@@ -1,13 +1,13 @@
-import {useState} from 'react';
+import {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import type FormModel from 'sentry/components/forms/model';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {AutomationBuilderContext} from 'sentry/views/automations/components/automationForm';
 import RuleNodeList from 'sentry/views/automations/components/ruleNodeList';
 
 const TRIGGER_MATCH_OPTIONS = [
@@ -20,8 +20,43 @@ const FILTER_MATCH_OPTIONS = [
   {value: 'any', label: t('any')},
   {value: 'none', label: t('none')},
 ];
+interface IfThenBlockProps {
+  addIfCondition: (
+    groupIndex: number,
+    type: string,
+    field: 'conditions' | 'actions'
+  ) => void;
+  id: number;
+  onDelete: () => void;
+  removeIfCondition: (
+    groupIndex: number,
+    conditionIndex: number,
+    field: 'conditions' | 'actions'
+  ) => void;
+  updateIfCondition: (
+    groupIndex: number,
+    conditionIndex: number,
+    comparison: any,
+    field: 'conditions' | 'actions'
+  ) => void;
+  updateIfGroupLogicType: (groupIndex: number, logic_type: 'any' | 'all') => void;
+}
 
-function IfThenBlock({id, onDelete}: {id: number; onDelete: () => void}) {
+function IfThenBlock({
+  id,
+  onDelete,
+  addIfCondition,
+  removeIfCondition,
+  updateIfCondition,
+  updateIfGroupLogicType,
+}: IfThenBlockProps) {
+  const ctx = useContext(AutomationBuilderContext);
+  if (!ctx) {
+    throw new Error('stop what ur doin');
+  }
+  const {state} = ctx;
+  const ifBlock = state.if[id];
+
   return (
     <IfThenWrapper key={id}>
       <Flex column gap={space(1)}>
@@ -42,11 +77,13 @@ function IfThenBlock({id, onDelete}: {id: number; onDelete: () => void}) {
                     inline={false}
                     isSearchable={false}
                     isClearable={false}
-                    name={`if[${id}].action_match`}
+                    name={`if.${id}.logic_type`}
                     required
                     flexibleControlStateSize
                     options={FILTER_MATCH_OPTIONS}
                     size="xs"
+                    value={ifBlock?.logic_type}
+                    onChange={value => updateIfGroupLogicType(id, value)}
                   />
                 </EmbeddedWrapper>
               ),
@@ -60,7 +97,16 @@ function IfThenBlock({id, onDelete}: {id: number; onDelete: () => void}) {
             onClick={onDelete}
           />
         </Flex>
-        <RuleNodeList placeholder={t('Filter by...')} group={`if[${id}]`} />
+        <RuleNodeList
+          placeholder={t('Filter by...')}
+          group={`if.${id}`}
+          conditions={ifBlock?.conditions || []}
+          onAddRow={type => addIfCondition(id, type, 'conditions')}
+          onDeleteRow={index => removeIfCondition(id, index, 'conditions')}
+          updateCondition={(index, comparison) =>
+            updateIfCondition(id, index, comparison, 'conditions')
+          }
+        />
       </Flex>
       <Flex column gap={space(1)}>
         <StepLead>
@@ -68,80 +114,237 @@ function IfThenBlock({id, onDelete}: {id: number; onDelete: () => void}) {
             then: <Badge />,
           })}
         </StepLead>
-        <RuleNodeList placeholder={t('Select an action...')} group={`if[${id}]`} />
+        <RuleNodeList
+          placeholder={t('Select an action...')}
+          group={`if.${id}.then`}
+          conditions={ifBlock?.actions || []}
+          onAddRow={type => addIfCondition(id, type, 'actions')}
+          onDeleteRow={index => removeIfCondition(id, index, 'actions')}
+          updateCondition={(index, comparison) =>
+            updateIfCondition(id, index, comparison, 'actions')
+          }
+        />
       </Flex>
     </IfThenWrapper>
   );
 }
 
-export default function AutomationBuilder({model}: {model: FormModel}) {
-  const [ifThenBlocks, setIfThenBlocks] = useState<number[]>([0]);
+export default function AutomationBuilder() {
+  const ctx = useContext(AutomationBuilderContext);
+  if (!ctx) {
+    throw new Error('stop what ur doin');
+  }
+  const {state, setState} = ctx;
+  function addCondition(type: string) {
+    setState(s => {
+      return {
+        when: {
+          ...s.when,
+          conditions: [
+            ...s.when.conditions,
+            {
+              type,
+              comparison: {
+                operator: 'eq',
+                value: 0,
+              },
+            },
+          ],
+        },
+        if: s.if.map(group => ({
+          ...group,
+        })),
+      };
+    });
+  }
+  function removeCondition(index: number) {
+    setState(s => {
+      const newState = {
+        ...s,
+        when: {
+          ...s.when,
+          conditions: [...s.when.conditions.filter((_, i) => index !== i)],
+        },
+      };
+      return newState;
+    });
+  }
+  function updateCondition(index: number, comparison: any) {
+    setState(s => ({
+      when: {
+        ...s.when,
+        conditions: s.when.conditions.map((c, i) =>
+          i === index ? {...c, comparison: {...c.comparison, ...comparison}} : c
+        ),
+      },
+      if: s.if.map(group => ({
+        ...group,
+      })),
+    }));
+  }
 
-  const handleAddBlock = () => {
-    const newIndex = Math.max(...ifThenBlocks, -1) + 1;
-    model.setValue(`if[${newIndex}].action_match`, 'any', {quiet: true});
-    setIfThenBlocks(prev => [...prev, newIndex]);
-  };
+  function addIfGroup() {
+    setState(s => ({
+      ...s,
+      if: [
+        ...s.if,
+        {
+          conditions: [],
+          actions: [],
+          logic_type: 'any',
+        },
+      ],
+    }));
+  }
 
-  const handleDeleteBlock = (id: number) => {
-    const data = model.getData();
-    Object.keys(data)
-      .filter(key => key.startsWith(`if[${id}]`))
-      .forEach(key => {
-        model.removeField(key);
-      });
-    setIfThenBlocks(prev => prev.filter(i => i !== id));
-  };
+  function removeIfGroup(groupIndex: number) {
+    setState(s => ({
+      ...s,
+      if: s.if.filter((_, i) => i !== groupIndex),
+    }));
+  }
+
+  function addIfCondition(
+    groupIndex: number,
+    type: string,
+    field: 'conditions' | 'actions'
+  ) {
+    setState(s => ({
+      ...s,
+      if: s.if.map((group, i) => {
+        if (i !== groupIndex) {
+          return group;
+        }
+        return {
+          ...group,
+          logic_type: 'any',
+          [field]: [
+            ...(group[field] || []),
+            {
+              type,
+              comparison: {},
+            },
+          ],
+        };
+      }),
+    }));
+  }
+
+  function removeIfCondition(
+    groupIndex: number,
+    conditionIndex: number,
+    field: 'conditions' | 'actions'
+  ) {
+    setState(s => ({
+      ...s,
+      if: s.if.map((group, i) => {
+        if (i !== groupIndex) {
+          return group;
+        }
+        return {
+          ...group,
+          [field]: (group[field] || []).filter((_, j) => j !== conditionIndex),
+        };
+      }),
+    }));
+  }
+
+  function updateIfCondition(
+    groupIndex: number,
+    conditionIndex: number,
+    comparison: any,
+    field: 'conditions' | 'actions'
+  ) {
+    setState(s => ({
+      ...s,
+      if: s.if.map((group, i) => {
+        if (i !== groupIndex) {
+          return group;
+        }
+        return {
+          ...group,
+          [field]: (group[field] || []).map((c, j) =>
+            j === conditionIndex
+              ? {...c, comparison: {...c.comparison, ...comparison}}
+              : c
+          ),
+        };
+      }),
+    }));
+  }
+
+  function updateIfGroupLogicType(groupIndex: number, logic_type: 'any' | 'all') {
+    setState(s => ({
+      ...s,
+      if: s.if.map((group, i) => {
+        if (i !== groupIndex) {
+          return group;
+        }
+        return {
+          ...group,
+          logic_type,
+        };
+      }),
+    }));
+  }
 
   return (
-    <div>
-      <Flex column gap={space(1)}>
-        <StepLead>
-          {tct('[when:When] [selector] of the following occur', {
-            when: <Badge />,
-            selector: (
-              <EmbeddedWrapper>
-                <EmbeddedSelectField
-                  styles={{
-                    control: (provided: any) => ({
-                      ...provided,
-                      minHeight: '21px',
-                      height: '21px',
-                    }),
-                  }}
-                  inline={false}
-                  isSearchable={false}
-                  isClearable={false}
-                  name="when.action_match"
-                  required
-                  flexibleControlStateSize
-                  options={TRIGGER_MATCH_OPTIONS}
-                  size="xs"
-                />
-              </EmbeddedWrapper>
-            ),
-          })}
-        </StepLead>
-        <RuleNodeList placeholder={t('Select a trigger...')} group="when" />
+    <Flex column gap={space(1)}>
+      <StepLead>
+        {tct('[when:When] [selector] of the following occur', {
+          when: <Badge />,
+          selector: (
+            <EmbeddedWrapper>
+              <EmbeddedSelectField
+                styles={{
+                  control: (provided: any) => ({
+                    ...provided,
+                    minHeight: '21px',
+                    height: '21px',
+                  }),
+                }}
+                inline={false}
+                isSearchable={false}
+                isClearable={false}
+                name="when.logic_type"
+                required
+                flexibleControlStateSize
+                options={TRIGGER_MATCH_OPTIONS}
+                size="xs"
+              />
+            </EmbeddedWrapper>
+          ),
+        })}
+      </StepLead>
+      <RuleNodeList
+        placeholder={t('Select a trigger...')}
+        conditions={state.when.conditions}
+        group="when"
+        onAddRow={addCondition}
+        onDeleteRow={removeCondition}
+        updateCondition={updateCondition}
+      />
 
-        {ifThenBlocks.map(i => (
-          <IfThenBlock key={i} id={i} onDelete={() => handleDeleteBlock(i)} />
-        ))}
-        <span>
-          <PurpleTextButton
-            borderless
-            icon={<IconAdd />}
-            size={'xs'}
-            onClick={handleAddBlock}
-          >
-            {t('If/Then Block')}
-          </PurpleTextButton>
-        </span>
-        <span>
-          <Button icon={<IconMail />}>{t('Send Test Notification')}</Button>
-        </span>
-      </Flex>
-    </div>
+      {state.if.map((_, index) => (
+        <IfThenBlock
+          key={index}
+          id={index}
+          onDelete={() => removeIfGroup(index)}
+          addIfCondition={addIfCondition}
+          removeIfCondition={removeIfCondition}
+          updateIfCondition={updateIfCondition}
+          updateIfGroupLogicType={updateIfGroupLogicType}
+        />
+      ))}
+      <span>
+        <PurpleTextButton borderless icon={<IconAdd />} size="xs" onClick={addIfGroup}>
+          {t('If/Then Block')}
+        </PurpleTextButton>
+      </span>
+      <span>
+        <Button icon={<IconMail />}>{t('Send Test Notification')}</Button>
+      </span>
+    </Flex>
   );
 }
 

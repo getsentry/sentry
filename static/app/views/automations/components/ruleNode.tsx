@@ -10,19 +10,30 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface RuleNodeProps {
-  groupId: string;
+  condition: Record<string, any>;
+  condition_id: string;
   onDelete: () => void;
-  type: string;
+  onUpdate: (condition: Record<string, any>) => void;
 }
 
-export default function RuleNode({onDelete, type, groupId}: RuleNodeProps) {
+export default function RuleNode({
+  condition,
+  condition_id,
+  onDelete,
+  onUpdate,
+}: RuleNodeProps) {
   return (
     <RuleRowContainer>
       <RuleRow>
         <Rule>
-          {ruleNodesMap[type]?.config_node
-            ? ruleNodesMap[type].config_node(groupId)
-            : ruleNodesMap[type]?.label}
+          {(() => {
+            const node = ruleNodesMap[condition.type];
+            const configNode = node?.config_node;
+            if (configNode) {
+              return configNode(condition_id, onUpdate);
+            }
+            return node?.label;
+          })()}
         </Rule>
         <DeleteButton
           aria-label={t('Delete Node')}
@@ -93,7 +104,10 @@ const DeleteButton = styled(Button)`
 
 export type RuleNodeConfig = {
   label: string;
-  config_node?: (group_id: string) => React.ReactNode;
+  config_node?: (
+    condition_id: string,
+    onUpdate: (condition: Record<string, any>) => void
+  ) => React.ReactNode;
 };
 
 export const ruleNodesMap: Record<string, RuleNodeConfig> = {
@@ -111,36 +125,53 @@ export const ruleNodesMap: Record<string, RuleNodeConfig> = {
   },
   age_comparison: {
     label: t('Compare the age of an issue'),
-    config_node: (group_id: string) => (
+    config_node: (
+      condition_id: string,
+      onUpdate: (condition: Record<string, any>) => void
+    ) => (
       <Fragment>
         {tct('The issue is [comparison_type] [value] [time]', {
           comparison_type: (
             <InlineSelectControl
               styles={selectControlStyles}
-              name={`${group_id}.age_comparison.comparison_type`}
+              name={`${condition_id}.comparison.type`}
               options={[
                 {value: 'older', label: 'older than'},
                 {value: 'newer', label: 'newer than'},
               ]}
+              onChange={(value: string) => {
+                onUpdate({
+                  type: value,
+                });
+              }}
             />
           ),
           value: (
             <InlineNumberInput
-              name={`${group_id}.age_comparison.value`}
+              name={`${condition_id}.comparison.value`}
               min={0}
               step={1}
-              onChange={() => {}}
+              onChange={(value: string) => {
+                onUpdate({
+                  value: parseInt(value, 10),
+                });
+              }}
             />
           ),
           time: (
             <InlineSelectControl
               styles={selectControlStyles}
-              name={`${group_id}.age_comparison.time`}
+              name={`${condition_id}.comparison.time`}
               options={[
                 {value: 'minutes', label: 'minute(s)'},
                 {value: 'hours', label: 'hour(s)'},
                 {value: 'days', label: 'day(s)'},
               ]}
+              onChange={(value: string) => {
+                onUpdate({
+                  time: value,
+                });
+              }}
             />
           ),
         })}
@@ -149,14 +180,19 @@ export const ruleNodesMap: Record<string, RuleNodeConfig> = {
   },
   issue_frequency: {
     label: t('Check how many times an issue has occurred'),
-    config_node: (group_id: string) => (
+    config_node: (condition_id: string, onUpdate) => (
       <Fragment>
         {tct('The issue has happened at least [value] times', {
           value: (
             <InlineNumberInput
-              name={`${group_id}.issue_frequency.value`}
+              name={`${condition_id}.comparison.value`}
               min={1}
               step={1}
+              onChange={(value: string) => {
+                onUpdate({
+                  value,
+                });
+              }}
             />
           ),
         })}
@@ -164,6 +200,3 @@ export const ruleNodesMap: Record<string, RuleNodeConfig> = {
     ),
   },
 };
-
-// For backward compatibility, we can still provide the array version
-export const ruleNodes = Object.values(ruleNodesMap);

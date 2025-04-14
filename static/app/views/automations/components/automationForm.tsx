@@ -1,5 +1,12 @@
-import {useEffect} from 'react';
+import {
+  createContext,
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
+import {flattie} from 'flattie';
 
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
@@ -27,14 +34,54 @@ const FREQUENCY_OPTIONS = [
   {value: '43200', label: t('30 days')},
 ];
 
-const model = new FormModel({
-  initialData: {
-    name: t('New Monitor'),
-    'when.action_match': 'any',
-    'if[0].action_match': 'any',
-    frequency: '10',
+const initialState: AutomationBuilderState = {
+  when: {
+    logic_type: 'any',
+    conditions: [
+      {type: 'issue_frequency', comparison: {operator: 'gte', value: 5}},
+      {type: 'age_comparison', comparison: {type: 'newer', value: 2, time: 'hours'}},
+    ],
   },
-});
+  if: [],
+};
+
+const model = new FormModel(flattie(initialState));
+
+interface AutomationBuilderState {
+  if: DataConditionGroup[];
+  when: DataConditionGroup;
+}
+interface DataConditionGroup {
+  conditions: DataCondition[];
+  logic_type: 'any' | 'all';
+  actions?: DataCondition[];
+}
+interface DataCondition {
+  comparison: Record<string, any>;
+  type: string;
+}
+
+export const AutomationBuilderContext = createContext<{
+  setState: Dispatch<SetStateAction<AutomationBuilderState>>;
+  state: AutomationBuilderState;
+} | null>(null);
+
+function AutomationBuilderProvider({children}: {children: React.ReactNode}) {
+  const [state, setState] = useState<AutomationBuilderState>(() => initialState);
+
+  useEffect(() => {
+    const flattened = flattie(state);
+    model.setInitialData(flattened);
+  });
+
+  return (
+    <Form hideFooter model={model}>
+      <AutomationBuilderContext.Provider value={{state, setState}}>
+        {children}
+      </AutomationBuilderContext.Provider>
+    </Form>
+  );
+}
 
 export default function AutomationForm() {
   const title = useDocumentTitle();
@@ -43,45 +90,10 @@ export default function AutomationForm() {
     model.setValue('name', title);
   }, [title]);
 
-  // TODO: BROKEN AF
-  // useEffect(() => {
-  //   model.setInitialData({
-  //     name: title,
-  //     'when.action_match': 'any',
-  //     'if_0.action_match': 'any',
-  //     frequency: '10',
-  //   });
-
-  //   const prevHook = model.options.onFieldChange;
-  //   model.setFormOptions({
-  //     onFieldChange(id, value) {
-  //       if (!id.startsWith('if_')) {
-  //         prevHook?.(id, value);
-  //         return;
-  //       }
-  //       const data = model.getData();
-  //       const blocks = Object.keys(data)
-  //         .filter(key => key.startsWith('if_'))
-  //         .map(key => {
-  //           const parts = key.split('_');
-  //           if (parts.length < 2 || !parts[1]) return undefined;
-  //           const num = parseInt(parts[1], 10);
-  //           return isNaN(num) ? undefined : num;
-  //         })
-  //         .filter((num): num is number => num !== undefined);
-
-  //       setIfThenBlocks(blocks);
-
-  //       prevHook?.(id, value);
-  //     },
-  //   });
-  // }, [title]);
-
   return (
-    <Form hideFooter model={model}>
+    <AutomationBuilderProvider>
       <Flex column gap={space(1.5)} style={{padding: space(2)}}>
         <CollapsibleSection title={t('Connect Monitors')} open>
-          {/* TODO: fix margins on SimpleTable */}
           <StyledConnectedMonitorsList monitors={[]} />
           <ButtonWrapper justify="space-between">
             <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
@@ -89,7 +101,7 @@ export default function AutomationForm() {
           </ButtonWrapper>
         </CollapsibleSection>
         <CollapsibleSection title={t('Automation Builder')} open>
-          <AutomationBuilder model={model} />
+          <AutomationBuilder />
         </CollapsibleSection>
         <CollapsibleSection
           title={t('Action Interval')}
@@ -103,9 +115,9 @@ export default function AutomationForm() {
             options={FREQUENCY_OPTIONS}
           />
         </CollapsibleSection>
+        <DebugForm />
       </Flex>
-      <DebugForm />
-    </Form>
+    </AutomationBuilderProvider>
   );
 }
 

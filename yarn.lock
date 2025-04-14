@@ -7158,6 +7158,11 @@ flatted@^3.2.9, flatted@^3.3.1:
   resolved "https://registry.yarnpkg.com/flatted/-/flatted-3.3.2.tgz#adba1448a9841bec72b42c532ea23dbbedef1a27"
   integrity sha512-AiwGJM8YcNOaobumgtng+6NHuOqC3A7MixFeDafM3X9cIUM+xUXoS5Vfgf+OihAYe20fxqNM9yPBXJzRtZ/4eA==
 
+flattie@^1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/flattie/-/flattie-1.1.1.tgz#88182235723113667d36217fec55359275d6fe3d"
+  integrity sha512-9UbaD6XdAL97+k/n+N7JwX46K/M6Zc6KcFYskrYL8wbBV/Uyk0CTAMY0VT+qiK5PM7AIc9aTWYtq65U7T+aCNQ==
+
 focus-trap@^7.3.1:
   version "7.3.1"
   resolved "https://registry.yarnpkg.com/focus-trap/-/focus-trap-7.3.1.tgz#417c98e5f1ab94e717d31f1bafa2da45dabcd65f"
@@ -9436,6 +9441,11 @@ neo-async@^2.6.2:
   version "2.6.2"
   resolved "https://registry.yarnpkg.com/neo-async/-/neo-async-2.6.2.tgz#b4aafb93e3aeb2d8174ca53cf163ab7d7308305f"
   integrity sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==
+
+nestie@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/nestie/-/nestie-1.0.3.tgz#87abb5b6d44cc9ebdbe6385a1de401be07a6417c"
+  integrity sha512-971uBUL8p6TuISghZ4Qxx35DKgRKVuOLNBl9Q6CJNIcwh79zAB07d3bkrN3Sh3xbOhyzdUS9V7t0KV6/gyOl+g==
 
 no-case@^3.0.4:
   version "3.0.4"
