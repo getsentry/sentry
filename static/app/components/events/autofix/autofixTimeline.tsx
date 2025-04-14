@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -10,6 +11,7 @@ import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import type {Color} from 'sentry/utils/theme';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import type {AutofixTimelineEvent} from './types';
 
@@ -42,7 +44,18 @@ function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
   }
 }
 
-function getEventColor(isActive?: boolean, activeColor?: Color): ColorConfig {
+function getEventColor(
+  theme: Theme,
+  isActive?: boolean,
+  activeColor?: Color
+): ColorConfig {
+  if (isChonkTheme(theme)) {
+    return {
+      title: theme.colors.content.primary,
+      icon: isActive ? theme.colors.pink400 : theme.colors.content.muted,
+      iconBorder: isActive ? theme.colors.pink400 : theme.colors.content.muted,
+    };
+  }
   return {
     title: 'gray400',
     icon: isActive ? (activeColor ?? 'pink400') : 'gray400',
@@ -59,6 +72,7 @@ export function AutofixTimeline({
   stepIndex = 0,
   retainInsightCardIndex = null,
 }: Props) {
+  const theme = useTheme();
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
 
   if (!events?.length) {
@@ -105,7 +119,7 @@ export function AutofixTimeline({
             }
             isActive={isActive}
             icon={getCustomIcon?.(event) ?? getEventIcon(event.timeline_item_type)}
-            colorConfig={getEventColor(isActive, activeColor)}
+            colorConfig={getEventColor(theme, isActive, activeColor)}
           >
             <AnimatePresence>
               {expandedItems.includes(index) && (
