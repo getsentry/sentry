@@ -1,6 +1,6 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/queues/settings';
 import type {SpanMetricsProperty} from 'sentry/views/insights/types';
@@ -19,8 +19,7 @@ export function useQueuesMetricsQuery({
   referrer,
 }: Props) {
   const mutableSearch = new MutableSearch(DEFAULT_QUERY_FILTER);
-  const location = useLocation();
-  const useEap = location.query?.useEap === '1';
+  const useEap = useInsightsEap();
   if (destination) {
     mutableSearch.addFilterValue('messaging.destination.name', destination);
   }

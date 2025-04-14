@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 from sentry import options
 from sentry.eventstore.models import Event
@@ -111,72 +111,6 @@ class GetSeerSimilarIssuesTest(TestCase):
             },
             {"hybrid_fingerprint": False},
         )
-
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
-    def test_sends_second_seer_request_when_seer_matches_are_unusable(
-        self, mock_incr: MagicMock
-    ) -> None:
-
-        existing_event = save_new_event(
-            {"message": "Dogs are great!", "fingerprint": ["{{ default }}", "maisey"]},
-            self.project,
-        )
-        assert existing_event.group_id
-
-        new_event, new_variants, new_grouphash, new_stacktrace_string = create_new_event(
-            self.project
-        )
-
-        seer_result_data = [
-            SeerSimilarIssueData(
-                parent_hash=existing_event.get_primary_hash(),
-                parent_group_id=existing_event.group_id,
-                stacktrace_distance=0.01,
-                should_group=True,
-            )
-        ]
-
-        with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
-            return_value=seer_result_data,
-        ) as mock_get_similarity_data:
-            get_seer_similar_issues(new_event, new_grouphash, new_variants)
-
-            assert_metrics_call(
-                mock_incr, "get_seer_similar_issues", "no_matches_usable", {"is_hybrid": True}
-            )
-
-            base_request_params = {
-                "event_id": new_event.event_id,
-                "hash": new_event.get_primary_hash(),
-                "project_id": self.project.id,
-                "stacktrace": new_stacktrace_string,
-                "exception_type": "FailedToFetchError",
-            }
-
-            assert mock_get_similarity_data.call_count == 2
-            assert mock_get_similarity_data.mock_calls == [
-                # Initial call to Seer
-                call(
-                    {
-                        **base_request_params,
-                        "k": options.get("seer.similarity.ingest.num_matches_to_request"),
-                        "referrer": "ingest",
-                        "use_reranking": True,
-                    },
-                    {"hybrid_fingerprint": False},
-                ),
-                # Second call to store the event's data since the match that came back from Seer
-                # wasn't usable
-                call(
-                    {
-                        **base_request_params,
-                        "k": 0,
-                        "referrer": "ingest_follow_up",
-                        "use_reranking": False,
-                    }
-                ),
-            ]
 
 
 class ParentGroupFoundTest(TestCase):

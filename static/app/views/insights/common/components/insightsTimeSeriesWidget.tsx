@@ -40,9 +40,11 @@ export interface InsightsTimeSeriesWidgetProps extends WidgetTitleProps {
   aliases?: Record<string, string>;
   description?: React.ReactNode;
   height?: string | number;
+  id?: string;
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
+  showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   stacked?: boolean;
 }
 
@@ -58,6 +60,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     })) ?? [];
 
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
+    showLegend: props.showLegend,
     plottables: (props.series.filter(Boolean) ?? [])?.map(serie => {
       const timeSeries = convertSeriesToTimeseries(serie);
       const PlottableDataConstructor =
