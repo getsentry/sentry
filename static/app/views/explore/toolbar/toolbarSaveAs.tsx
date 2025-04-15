@@ -200,50 +200,34 @@ export function ToolbarSaveAs() {
     if (isLoadingSavedQuery || savedQuery === undefined) {
       return false;
     }
-    // Compares editable fields from saved query with location params to check for changes
-    const queryIsEqual = valueIsEqual(query, savedQuery?.query[0]?.query);
-    const groupBysIsEqual = valueIsEqual(groupBys, savedQuery?.query[0]?.groupby);
-    const sortByString = sortBys[0] ? encodeSort(sortBys[0]) : undefined;
-    const sortByIsEqual = valueIsEqual(sortByString, savedQuery?.query[0]?.orderby);
-    const fieldsIsEqual = valueIsEqual(fields, savedQuery?.query[0]?.fields);
-    const visualizesIsEqual = valueIsEqual(
-      visualizes.map(({chartType, yAxes}) => ({chartType, yAxes})),
-      savedQuery?.query[0]?.visualize,
-      true
-    );
-    const startIsEqual =
-      (defined(savedQuery.start) ? new Date(savedQuery.start).getTime() : null) ===
-      (pageFilters.selection.datetime.start
-        ? new Date(pageFilters.selection.datetime.start).getTime()
-        : null);
-    const endIsEqual =
-      (defined(savedQuery.end) ? new Date(savedQuery.end).getTime() : null) ===
-      (pageFilters.selection.datetime.end
-        ? new Date(pageFilters.selection.datetime.end).getTime()
-        : null);
-    const periodIsEqual =
-      (savedQuery.range ?? null) === pageFilters.selection.datetime.period;
-    const projectIsEqual = valueIsEqual(
-      savedQuery.projects,
-      pageFilters.selection.projects
-    );
-    const environmentIsEqual = valueIsEqual(
-      savedQuery.environment,
-      pageFilters.selection.environments
-    );
+    // The non comparison trace explorer view only supports a single query
+    const singleQuery = savedQuery?.query[0];
+    const locationSortByString = sortBys[0] ? encodeSort(sortBys[0]) : undefined;
 
-    return (
-      !queryIsEqual ||
-      !groupBysIsEqual ||
-      !sortByIsEqual ||
-      !fieldsIsEqual ||
-      !visualizesIsEqual ||
-      !startIsEqual ||
-      !endIsEqual ||
-      !periodIsEqual ||
-      !projectIsEqual ||
-      !environmentIsEqual
-    );
+    // Compares editable fields from saved query with location params to check for changes
+    const hasChangesArray = [
+      !valueIsEqual(query, singleQuery?.query),
+      !valueIsEqual(groupBys, singleQuery?.groupby),
+      !valueIsEqual(locationSortByString, singleQuery?.orderby),
+      !valueIsEqual(fields, singleQuery?.fields),
+      !valueIsEqual(
+        visualizes.map(({chartType, yAxes}) => ({chartType, yAxes})),
+        singleQuery?.visualize,
+        true
+      ),
+      !valueIsEqual(savedQuery.projects, pageFilters.selection.projects),
+      !valueIsEqual(savedQuery.environment, pageFilters.selection.environments),
+      (defined(savedQuery.start) ? new Date(savedQuery.start).getTime() : null) !==
+        (pageFilters.selection.datetime.start
+          ? new Date(pageFilters.selection.datetime.start).getTime()
+          : null),
+      (defined(savedQuery.end) ? new Date(savedQuery.end).getTime() : null) !==
+        (pageFilters.selection.datetime.end
+          ? new Date(pageFilters.selection.datetime.end).getTime()
+          : null),
+      (savedQuery.range ?? null) !== pageFilters.selection.datetime.period,
+    ];
+    return hasChangesArray.some(Boolean);
   }, [
     isLoadingSavedQuery,
     savedQuery,
