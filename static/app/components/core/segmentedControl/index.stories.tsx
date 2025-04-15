@@ -10,6 +10,7 @@ import storyBook from 'sentry/stories/storyBook';
 export default storyBook('SegmentedControl', story => {
   story('Controlled Value', () => {
     const [value, setValue] = useState('two');
+    const [value2, setValue2] = useState('one');
     return (
       <Fragment>
         <p>
@@ -29,6 +30,18 @@ export default storyBook('SegmentedControl', story => {
             <SegmentedControl.Item key="one">One</SegmentedControl.Item>
             <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
             <SegmentedControl.Item key="three">Three</SegmentedControl.Item>
+          </SegmentedControl>
+        </SideBySide>
+
+        <p>selected={value2}</p>
+        <SideBySide>
+          <SegmentedControl value={value2} onChange={setValue2} priority="default">
+            <SegmentedControl.Item key="one">One</SegmentedControl.Item>
+            <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
+          </SegmentedControl>
+          <SegmentedControl value={value2} onChange={setValue2} priority="primary">
+            <SegmentedControl.Item key="one">One</SegmentedControl.Item>
+            <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
           </SegmentedControl>
         </SideBySide>
       </Fragment>

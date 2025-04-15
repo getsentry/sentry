@@ -20,20 +20,21 @@ export const ChonkStyledGroupWrap = chonkStyled('div')<{
   & > label:first-child {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
+    border-right: 0;
   }
 
   & > label:not(:first-child):not(:last-child) {
     border-radius: 0;
-
-    &::after {
-      border-left: none;
-      border-right: none;
-    }
   }
 
   & > label:last-child {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
+  }
+
+  /* don't turn off border if the 2nd element is also the last element */
+  & > label:last-child:not(:nth-child(2)) {
+    border-left: 0;
   }
 `;
 
