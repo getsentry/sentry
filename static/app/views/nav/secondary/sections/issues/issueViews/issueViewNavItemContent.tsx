@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, Reorder, useDragControls} from 'framer-motion';
 
@@ -160,7 +161,9 @@ export function IssueViewNavItemContent({
         trailingItems={
           <TrailingItemsWrapper
             onClickCapture={e => {
-              e.preventDefault();
+              if (!hasIssueViewSharing) {
+                e.preventDefault();
+              }
             }}
           >
             <IssueViewNavQueryCount view={view} isActive={isActive} />
@@ -277,10 +280,11 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)<{hasIssueViewSharing: b
   :not(:hover) {
     ${p =>
       !p.hasIssueViewSharing &&
-      `
-      [data-ellipsis-menu-trigger]:not([aria-expanded='true']) {
-        ${p.theme.visuallyHidden}
-      }`}
+      css`
+        [data-ellipsis-menu-trigger]:not([aria-expanded='true']) {
+          ${p.theme.visuallyHidden}
+        }
+      `}
 
     [data-drag-icon] {
       ${p => p.theme.visuallyHidden}
@@ -291,10 +295,10 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)<{hasIssueViewSharing: b
   :hover {
     ${p =>
       !p.hasIssueViewSharing &&
-      `
-      [data-issue-view-query-count] {
-        ${p.theme.visuallyHidden}
-      }
+      css`
+        [data-issue-view-query-count] {
+          ${p.theme.visuallyHidden}
+        }
       `}
 
     [data-project-icon] {
