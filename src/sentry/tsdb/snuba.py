@@ -819,7 +819,7 @@ class SnubaTSDB(BaseTSDB):
     def get_distinct_counts_totals(
         self,
         model,
-        keys: Sequence[int],
+        keys: Sequence[TSDBKey],
         start,
         end=None,
         rollup=None,
