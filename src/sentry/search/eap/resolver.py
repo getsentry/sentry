@@ -449,32 +449,59 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
         if value == "" and context_definition is None:
-            exists_filter = TraceItemFilter(
-                and_filter=AndFilter(
-                    filters=[
-                        TraceItemFilter(
-                            exists_filter=ExistsFilter(
-                                key=resolved_column.proto_definition,
-                            )
-                        ),
-                        TraceItemFilter(
-                            comparison_filter=ComparisonFilter(
-                                key=resolved_column.proto_definition,
-                                op=operator,
-                                value=self._resolve_search_value(
-                                    resolved_column, term.operator, value
-                                ),
-                            )
-                        ),
-                    ]
-                )
-            )
-            if term.operator == "=":
+            if term.operator == "!=":
                 return (
-                    TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))
+                    TraceItemFilter(
+                        and_filter=AndFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    exists_filter=ExistsFilter(
+                                        key=resolved_column.proto_definition,
+                                    )
+                                ),
+                                TraceItemFilter(
+                                    comparison_filter=ComparisonFilter(
+                                        key=resolved_column.proto_definition,
+                                        op=operator,
+                                        value=self._resolve_search_value(
+                                            resolved_column, term.operator, value
+                                        ),
+                                    )
+                                ),
+                            ]
+                        )
+                    ),
+                    context_definition,
+                )
+            elif term.operator == "=":
+                TraceItemFilter(
+                    or_filter=OrFilter(
+                        filters=[
+                            TraceItemFilter(
+                                not_filter=NotFilter(
+                                    filters=[
+                                        TraceItemFilter(
+                                            exists_filter=ExistsFilter(
+                                                key=resolved_column.proto_definition,
+                                            )
+                                        ),
+                                    ]
+                                )
+                            ),
+                            TraceItemFilter(
+                                comparison_filter=ComparisonFilter(
+                                    key=resolved_column.proto_definition,
+                                    op=operator,
+                                    value=self._resolve_search_value(
+                                        resolved_column, term.operator, value
+                                    ),
+                                )
+                            ),
+                        ]
+                    )
                 ), context_definition
             else:
-                return exists_filter, context_definition
+                raise InvalidSearchQuery(f"Unsupported operator for empty strings {term.operator}")
 
         return (
             TraceItemFilter(
