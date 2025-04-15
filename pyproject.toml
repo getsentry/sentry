@@ -111,7 +111,6 @@ ignore_missing_imports = true
 # - python3 -m tools.mypy_helpers.find_easiest_modules
 [[tool.mypy.overrides]]
 module = [
-    "sentry.api.base",
     "sentry.api.endpoints.group_integration_details",
     "sentry.api.endpoints.organization_events_meta",
     "sentry.api.endpoints.organization_events_spans_performance",
@@ -131,16 +130,12 @@ module = [
     "sentry.integrations.github.integration",
     "sentry.integrations.gitlab.issues",
     "sentry.integrations.jira.integration",
-    "sentry.integrations.msteams.notifications",
     "sentry.integrations.pagerduty.actions.form",
     "sentry.integrations.pipeline",
     "sentry.integrations.slack.message_builder.notifications.issues",
-    "sentry.integrations.slack.notifications",
-    "sentry.integrations.slack.webhooks.command",
     "sentry.integrations.slack.webhooks.event",
     "sentry.integrations.utils.sync",
     "sentry.integrations.vsts.integration",
-    "sentry.integrations.vsts.issues",
     "sentry.issues.search",
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",

@@ -164,7 +164,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 return response
 
         try:
-            cursor_result, query_kwargs = prep_search(self, request, project, {"count_hits": True})
+            cursor_result, query_kwargs = prep_search(request, project, {"count_hits": True})
         except ValidationError as exc:
             return Response({"detail": str(exc)}, status=400)
 
@@ -261,7 +261,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :auth: required
         """
 
-        search_fn = functools.partial(prep_search, self, request, project)
+        search_fn = functools.partial(prep_search, request, project)
         return update_groups_with_search_fn(
             request,
             request.GET.getlist("id"),
@@ -298,5 +298,5 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                      belong to.
         :auth: required
         """
-        search_fn = functools.partial(prep_search, self, request, project)
+        search_fn = functools.partial(prep_search, request, project)
         return delete_groups(request, [project], project.organization_id, search_fn)

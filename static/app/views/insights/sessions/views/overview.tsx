@@ -2,14 +2,15 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
-import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
@@ -40,15 +41,11 @@ export function SessionsOverview() {
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
-              <ToolRibbon>
-                <ModulePageFilterBar
-                  moduleName={ModuleName.SESSIONS}
-                  extraFilters={<SubregionSelector />}
-                  onProjectChange={() => {
-                    setFilters(['']);
-                  }}
-                />
-              </ToolRibbon>
+              <PageFilterBar>
+                <ProjectPageFilter resetParamsOnChange={['cursor']} />
+                <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
+                <DatePageFilter />
+              </PageFilterBar>
             </ModuleLayout.Full>
             {showOnboarding ? (
               <ModuleLayout.Full>
