@@ -28,11 +28,14 @@ import {
   HTTP_RESPONSE_5XX_COLOR,
   THROUGHPUT_COLOR,
 } from 'sentry/views/insights/colors';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
-export interface InsightsTimeSeriesWidgetProps extends WidgetTitleProps {
+export interface InsightsTimeSeriesWidgetProps
+  extends WidgetTitleProps,
+    LoadableChartWidgetProps {
   error: Error | null;
   isLoading: boolean;
   series: DiscoverSeries[];
@@ -40,7 +43,6 @@ export interface InsightsTimeSeriesWidgetProps extends WidgetTitleProps {
   aliases?: Record<string, string>;
   description?: React.ReactNode;
   height?: string | number;
-  id?: string;
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
@@ -52,7 +54,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
+  const pageFiltersSelection = props.pageFilters || pageFilters.selection;
+  const {releases: releasesWithDate} = useReleaseStats(pageFiltersSelection);
   const releases =
     releasesWithDate?.map(({date, version}) => ({
       timestamp: date,
@@ -120,7 +123,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   }
 
   const enableReleaseBubblesProps = organization.features.includes('release-bubbles-ui')
-    ? ({releases, showReleaseAs: 'bubble'} as const)
+    ? ({releases, showReleaseAs: props.showReleaseAs || 'bubble'} as const)
     : {};
 
   return (
@@ -129,6 +132,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         Title={Title}
         Visualization={
           <TimeSeriesWidgetVisualization
+            id={props.id}
+            pageFilters={props.pageFilters}
             {...enableReleaseBubblesProps}
             legendSelection={props.legendSelection}
             onLegendSelectionChange={props.onLegendSelectionChange}
@@ -151,6 +156,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                   children: (
                     <ModalChartContainer>
                       <TimeSeriesWidgetVisualization
+                        id={props.id}
                         {...visualizationProps}
                         {...enableReleaseBubblesProps}
                         onZoom={() => {}}
