@@ -19,7 +19,7 @@ import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 
-type Options<Fields> = {
+type Options<Fields extends NonDefaultSpanSampleFields[]> = {
   groupId: string;
   transactionName: string;
   additionalFields?: Fields;
@@ -42,7 +42,20 @@ export type SpanSample = Pick<
   | SpanIndexedField.TRACE
 >;
 
-export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
+export type DefaultSpanSampleFields =
+  | SpanIndexedField.PROJECT
+  | SpanIndexedField.TRANSACTION_SPAN_ID
+  | SpanIndexedField.TIMESTAMP
+  | SpanIndexedField.SPAN_ID
+  | SpanIndexedField.PROFILE_ID
+  | SpanIndexedField.SPAN_SELF_TIME;
+
+export type NonDefaultSpanSampleFields = Exclude<
+  SpanIndexedProperty,
+  DefaultSpanSampleFields
+>;
+
+export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   options: Options<Fields>
 ) => {
   const organization = useOrganization();
@@ -83,7 +96,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
     filters[SpanMetricsField.USER_GEO_SUBREGION] = `[${subregions.join(',')}]`;
   }
 
-  const dateCondtions = getDateConditions(pageFilter.selection);
+  const dateConditions = getDateConditions(pageFilter.selection);
 
   const {isPending: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
     {
@@ -103,18 +116,12 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
   );
 
+  // TODO: Remove `Transaction_id` with `useInsightsEap`
   type DataRow = Pick<
     SpanIndexedResponse,
-    | Fields[number]
-    // These fields are returned by default
-    | SpanIndexedField.PROJECT
-    | SpanIndexedField.TRANSACTION_ID // TODO: Remove this with `useInsightsEap`, this is the old field name before eap
-    | SpanIndexedField.TRANSACTION_SPAN_ID
-    | SpanIndexedField.TIMESTAMP
-    | SpanIndexedField.SPAN_ID
-    | SpanIndexedField.PROFILE_ID
-    | SpanIndexedField.SPAN_SELF_TIME
+    Fields[number] | DefaultSpanSampleFields | SpanIndexedField.TRANSACTION_ID
   >;
+
   const result = useApiQuery<{
     data: DataRow[];
     meta: EventsMetaType;
@@ -125,7 +132,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
         query: {
           query: query.formatString(),
           project: pageFilter.selection.projects,
-          ...dateCondtions,
+          ...dateConditions,
           ...{utc: location.query.utc},
           environment: pageFilter.selection.environments,
           lowerBound: min,
@@ -153,7 +160,7 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
         ...row,
         [SpanIndexedField.TRANSACTION_SPAN_ID]: useEap
           ? row[SpanIndexedField.TRANSACTION_SPAN_ID]
-          : row[SpanIndexedField.TRANSACTION_SPAN_ID],
+          : row[SpanIndexedField.TRANSACTION_ID],
       };
     });
 

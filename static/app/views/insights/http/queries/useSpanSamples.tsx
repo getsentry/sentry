@@ -6,13 +6,13 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {
+  DefaultSpanSampleFields,
+  NonDefaultSpanSampleFields,
+} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import {
-  SpanIndexedField,
-  type SpanIndexedProperty,
-  type SpanIndexedResponse,
-} from 'sentry/views/insights/types';
+import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/insights/types';
 
 interface UseSpanSamplesOptions<Fields> {
   enabled?: boolean;
@@ -23,7 +23,7 @@ interface UseSpanSamplesOptions<Fields> {
   search?: MutableSearch;
 }
 
-export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
+export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   options: UseSpanSamplesOptions<Fields> = {}
 ) => {
   const {
@@ -53,13 +53,8 @@ export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
     SpanIndexedResponse,
     | Fields[number]
     // These fields are returned by default
-    | SpanIndexedField.PROJECT
-    | SpanIndexedField.TRANSACTION_SPAN_ID
-    | SpanIndexedField.TRANSACTION_ID // TODO: Remove this with `useInsightsEap`, this is the old field name before eap
-    | SpanIndexedField.TIMESTAMP
-    | SpanIndexedField.SPAN_ID
-    | SpanIndexedField.PROFILE_ID
-    | SpanIndexedField.SPAN_SELF_TIME
+    | DefaultSpanSampleFields
+    | SpanIndexedField.TRANSACTION_ID
   >;
 
   const result = useApiQuery<{
