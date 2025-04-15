@@ -299,10 +299,10 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     def get_audit_log_data(self):
         return {"scopes": self.get_scopes()}
 
-    def get_allowed_origins(self):
+    def get_allowed_origins(self) -> list[str]:
         if self.application:
             return self.application.get_allowed_origins()
-        return ()
+        return []
 
     def refresh(self, expires_at=None):
         if self.token_type == AuthTokenType.USER:

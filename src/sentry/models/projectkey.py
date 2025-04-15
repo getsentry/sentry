@@ -310,7 +310,7 @@ class ProjectKey(Model):
 
         return endpoint
 
-    def get_allowed_origins(self):
+    def get_allowed_origins(self) -> frozenset[str]:
         from sentry.utils.http import get_origins
 
         return get_origins(self.project)

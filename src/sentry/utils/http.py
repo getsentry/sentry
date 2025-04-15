@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import TYPE_CHECKING, NamedTuple, TypeGuard, overload
 from urllib.parse import quote, urljoin, urlparse
 
@@ -103,7 +104,7 @@ def parse_uri_match(value: str) -> ParsedUriMatch:
 
 
 def is_valid_origin(
-    origin: str | None, project: Project | None = None, allowed: frozenset[str] | None = None
+    origin: str | None, project: Project | None = None, allowed: Collection[str] | None = None
 ) -> bool:
     """
     Given an ``origin`` which matches a base URI (e.g. http://example.com)

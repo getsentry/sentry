@@ -401,6 +401,7 @@ class Endpoint(APIView):
                 self.initial(request, *args, **kwargs)
 
                 # Get the appropriate handler method
+                assert request.method is not None
                 method = request.method.lower()
                 if method in self.http_method_names and hasattr(self, method):
                     handler = getattr(self, method)
@@ -445,6 +446,7 @@ class Endpoint(APIView):
 
         # Only enforced in dev environment
         if settings.ENFORCE_PAGINATION:
+            assert request.method is not None
             if request.method.lower() == "get":
                 status = getattr(self.response, "status_code", 0)
                 # Response can either be Response or HttpResponse, check if
