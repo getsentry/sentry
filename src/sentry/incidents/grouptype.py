@@ -16,7 +16,7 @@ from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
 from sentry.workflow_engine.models.data_source import DataPacket
-from sentry.workflow_engine.types import DetectorConfig, DetectorGroupKey
+from sentry.workflow_engine.types import DetectorGroupKey, DetectorSettings
 
 COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in ComparisonDeltaChoices]
 COMPARISON_DELTA_CHOICES.append(None)
@@ -80,7 +80,7 @@ class MetricAlertFire(GroupType):
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
-    detector_config = DetectorConfig(
+    detector_settings = DetectorSettings(
         handler=MetricAlertDetectorHandler,
         validator=MetricAlertsDetectorValidator,
         config_schema={

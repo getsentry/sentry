@@ -123,7 +123,7 @@ class SnubaQueryDataSourceType(TypedDict):
 
 
 @dataclass(frozen=True)
-class DetectorConfig:
+class DetectorSettings:
     handler: type[DetectorHandler] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
