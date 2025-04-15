@@ -26,7 +26,13 @@ interface Props extends LoadableChartWidgetProps {
 export function ChartWidgetLoader(props: Props) {
   const query = useQuery<{default: React.FC<LoadableChartWidgetProps>}>({
     queryKey: [`widget-${props.id}`],
-    queryFn: () => import(`sentry/views/insights/common/components/widgets/${props.id}`),
+    queryFn: () => {
+      if (props.id === 'issuesEventGraph') {
+        return import('sentry/views/issueDetails/streamline/eventGraphWidget');
+      }
+
+      return import(`sentry/views/insights/common/components/widgets/${props.id}`);
+    },
   });
 
   if (query.isPending) {

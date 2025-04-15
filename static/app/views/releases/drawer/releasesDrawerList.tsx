@@ -83,7 +83,7 @@ const unhighlightMarkLines = createMarkLineUpdater({});
 export function ReleasesDrawerList({chart, pageFilters}: ReleasesDrawerListProps) {
   const {releases} = useReleaseStats(pageFilters);
   const chartRef = useRef<ReactEchartsRef | null>(null);
-  const chartHeight = '220px'; // TODO: this will change based on chart id
+  const chartHeight = chart === 'issuesEventGraph' ? '112px' : '220px';
 
   const handleMouseOverRelease = useCallback((release: string) => {
     if (!chartRef.current) {

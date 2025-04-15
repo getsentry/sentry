@@ -50,7 +50,6 @@ export interface InsightsTimeSeriesWidgetProps
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   showReleaseAs?: 'line' | 'bubble';
   stacked?: boolean;
-  subPageFilters?: PageFilters;
 }
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
