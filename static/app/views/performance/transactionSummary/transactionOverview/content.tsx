@@ -129,7 +129,11 @@ function OTelSummaryContentInner({
   function handleTransactionsListSortChange(value: string) {
     const target = {
       pathname: location.pathname,
-      query: {...location.query, showTransactions: value, transactionCursor: undefined},
+      query: {
+        ...location.query,
+        showTransactions: value,
+        serviceEntrySpansCursor: undefined,
+      },
     };
 
     navigate(target);
