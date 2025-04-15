@@ -705,6 +705,16 @@ class SnubaTSDB(BaseTSDB):
                     else:
                         self.unnest(val, aggregated_as)
 
+    def get_aggregate_function(self, model) -> str:
+        model_query_settings = self.model_query_settings.get(model)
+        assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
+
+        if model_query_settings.dataset == Dataset.Outcomes:
+            aggregate_function = "sum"
+        else:
+            aggregate_function = "count()"
+        return aggregate_function
+
     def get_sums_data(
         self,
         model: TSDBModel,
@@ -720,14 +730,6 @@ class SnubaTSDB(BaseTSDB):
         referrer_suffix: str | None = None,
         group_on_time: bool = True,
     ) -> Mapping[TSDBKey, int]:
-        model_query_settings = self.model_query_settings.get(model)
-        assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
-
-        if model_query_settings.dataset == Dataset.Outcomes:
-            aggregate_function = "sum"
-        else:
-            aggregate_function = "count()"
-
         result: Mapping[TSDBKey, int] = self.get_data(
             model,
             keys,
@@ -735,7 +737,7 @@ class SnubaTSDB(BaseTSDB):
             end,
             rollup,
             environment_ids,
-            aggregation=aggregate_function,
+            aggregation=self.get_aggregate_function(model),
             group_on_time=group_on_time,
             conditions=conditions,
             use_cache=use_cache,
@@ -760,14 +762,6 @@ class SnubaTSDB(BaseTSDB):
         referrer_suffix: str | None = None,
         group_on_time: bool = True,
     ) -> dict[TSDBKey, list[tuple[int, int]]]:
-        model_query_settings = self.model_query_settings.get(model)
-        assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
-
-        if model_query_settings.dataset == Dataset.Outcomes:
-            aggregate_function = "sum"
-        else:
-            aggregate_function = "count()"
-
         result = self.get_data(
             model,
             keys,
@@ -775,7 +769,7 @@ class SnubaTSDB(BaseTSDB):
             end,
             rollup,
             environment_ids,
-            aggregation=aggregate_function,
+            aggregation=self.get_aggregate_function(model),
             group_on_time=True,
             conditions=conditions,
             use_cache=use_cache,
