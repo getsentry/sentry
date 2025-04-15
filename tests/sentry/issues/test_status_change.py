@@ -259,6 +259,7 @@ class HandleStatusChangeTest(TestCase):
 
         assert len(GroupOpenPeriod.objects.filter(group=self.group)) == 1
         open_period = GroupOpenPeriod.objects.filter(group=self.group).first()
+        assert open_period is not None
         assert open_period.date_started is not None
         assert open_period.date_ended is None
 
@@ -290,5 +291,6 @@ class HandleStatusChangeTest(TestCase):
 
         assert len(GroupOpenPeriod.objects.filter(group=self.group)) == 1
         open_period = GroupOpenPeriod.objects.filter(group=self.group).first()
+        assert open_period is not None
         assert open_period.date_started is not None
         assert open_period.date_ended is None
