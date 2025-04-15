@@ -49,6 +49,7 @@ export function GroupDetailsLayout({
 }: GroupDetailsLayoutProps) {
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
+  const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   return (
     <IssueDetailsContextProvider>
