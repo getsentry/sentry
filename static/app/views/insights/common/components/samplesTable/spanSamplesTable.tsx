@@ -120,7 +120,7 @@ export function SpanSamplesTable({
         <OverflowEllipsisTextContainer>
           <Link
             to={generateLinkToEventInTraceView({
-              eventId: row['transaction.id'],
+              eventId: row['transaction.span_id'],
               timestamp: row.timestamp,
               traceSlug: row.trace,
               projectSlug: row.project,
@@ -137,7 +137,7 @@ export function SpanSamplesTable({
               view,
             })}
           >
-            {row['transaction.id'].slice(0, 8)}
+            {row['transaction.span_id'].slice(0, 8)}
           </Link>
         </OverflowEllipsisTextContainer>
       );
@@ -154,7 +154,7 @@ export function SpanSamplesTable({
               })
             }
             to={generateLinkToEventInTraceView({
-              eventId: row['transaction.id'],
+              eventId: row['transaction.span_id'],
               timestamp: row.timestamp,
               traceSlug: row.trace,
               projectSlug: row.project,
