@@ -56,7 +56,8 @@ export function useStarredSegment({initialIsStarred, project, segmentName}: Prop
     onError,
   });
 
-  const isPending = starTransactionResult.isPending || unstarTransactionResult.isPending;
+  const isPending =
+    starTransactionResult.isPending || unstarTransactionResult.isPending || !project?.id;
 
   const toggleStarredTransaction = () => {
     if (isPending || !project?.id) {
