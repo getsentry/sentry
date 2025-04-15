@@ -13,4 +13,4 @@ class AuthTokenType(models.TextChoices):
     INTEGRATION = "sntryi_"
 
     # tokens created prior to our prefixing
-    __empty__ = None
+    __empty__: None = None
