@@ -9,7 +9,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -74,27 +73,11 @@ function Content() {
               items={[
                 {
                   key: 'save-query',
-                  label: (
-                    <span>
-                      {t('A New Query')}
-                      <FeatureBadge type="alpha" />
-                    </span>
-                  ),
+                  label: <span>{t('A New Query')}</span>,
                   onAction: () => {
                     openSaveQueryModal({
                       organization,
                       saveQuery,
-                      queries: queries.map((query, index) => ({
-                        query: query.query,
-                        groupBys: query.groupBys,
-                        visualizes: [
-                          {
-                            chartType: query.chartType,
-                            yAxes: query.yAxes,
-                            label: `visualization-${index}`,
-                          },
-                        ],
-                      })),
                     });
                   },
                 },
@@ -102,12 +85,7 @@ function Content() {
                   ? [
                       {
                         key: 'update-query',
-                        label: (
-                          <span>
-                            {t('Existing Query')}
-                            <FeatureBadge type="alpha" />
-                          </span>
-                        ),
+                        label: <span>{t('Existing Query')}</span>,
                         onAction: async () => {
                           try {
                             addLoadingMessage(t('Updating query...'));

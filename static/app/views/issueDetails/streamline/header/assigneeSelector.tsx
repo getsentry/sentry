@@ -64,6 +64,7 @@ export function GroupHeaderAssigneeSelector({
       owners={owners}
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
+      showLabel
       additionalMenuFooterItems={
         <Button
           type="button"

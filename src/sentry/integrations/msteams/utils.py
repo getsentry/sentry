@@ -12,7 +12,7 @@ from sentry.incidents.typings.metric_detector import (
     OpenPeriodContext,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.organization import Organization
 
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
@@ -41,7 +41,7 @@ def channel_filter(channel, name):
         return name.lower() == "general"
 
 
-def get_user_conversation_id(integration: Integration, user_id: str) -> str:
+def get_user_conversation_id(integration: Integration | RpcIntegration, user_id: str) -> str:
     """
     Get the user_conversation_id even if `integration.metadata.tenant_id` is not set.
     """
