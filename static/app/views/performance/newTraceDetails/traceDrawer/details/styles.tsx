@@ -746,12 +746,12 @@ function KeyValueAction({
   const location = useLocation();
   const organization = useOrganization();
   const hasNewTraceUi = useHasTraceNewUi();
-  const hasTraceDrawerAction = organization.features.includes('trace-drawer-action');
+  const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const [isVisible, setIsVisible] = useState(false);
 
   if (
     !hasNewTraceUi ||
-    !hasTraceDrawerAction ||
+    !hasExploreEnabled ||
     !defined(rowValue) ||
     !defined(rowKey) ||
     !['string', 'number'].includes(typeof rowValue)
