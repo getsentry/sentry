@@ -12,7 +12,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 
 interface Props {
@@ -137,7 +136,7 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
             disabled: disableDelete,
             onAction: onDelete,
           },
-        ].filter(defined)}
+        ]}
       />
     </Fragment>
   );
@@ -189,7 +188,7 @@ function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
           disabled: disableDelete,
           onAction: onDelete,
         },
-      ].filter(defined)}
+      ]}
     />
   );
 }
