@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -14,6 +14,8 @@ import {IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {ExploreCharts} from 'sentry/views/explore/charts';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHintsList';
@@ -31,15 +33,19 @@ import {
   useSetLogsPageParams,
   useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {HiddenColumnEditorLogFields} from 'sentry/views/explore/logs/constants';
-import {LogsChart} from 'sentry/views/explore/logs/logsChart';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {DefaultPeriod, MaxPickableDays} from 'sentry/views/explore/utils';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 export type LogsTabProps = {
   defaultPeriod: DefaultPeriod;
@@ -58,6 +64,25 @@ export function LogsTabContent({
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useExploreLogsTable({});
+
+  const [interval] = useChartInterval();
+
+  const timeseriesResult = useSortedTimeSeries(
+    {
+      search: logsSearch,
+      yAxis: [`count(${OurLogKnownFieldKey.MESSAGE})`],
+      interval,
+    },
+    'explore.ourlogs.main-chart',
+    DiscoverDatasets.OURLOGS
+  );
+  const [visualizes, setVisualizes] = useState<Visualize[]>([
+    {
+      chartType: ChartType.BAR,
+      yAxes: [`count(${OurLogKnownFieldKey.MESSAGE})`],
+      label: 'A',
+    },
+  ]);
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');
@@ -142,7 +167,16 @@ export function LogsTabContent({
           </Feature>
           <Feature features="organizations:ourlogs-graph">
             <LogsItemContainer>
-              <LogsChart />
+              <ExploreCharts
+                canUsePreviousResults
+                confidences={['high']}
+                query={logsSearch.formatString()}
+                timeseriesResult={timeseriesResult}
+                visualizes={visualizes}
+                setVisualizes={setVisualizes}
+                // TODO: we do not support log alerts nor adding to dashboards yet
+                hideContextMenu
+              />
             </LogsItemContainer>
           </Feature>
           <LogsItemContainer>

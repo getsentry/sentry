@@ -23,10 +23,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
-import {
-  useExploreVisualizes,
-  useSetExploreVisualizes,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
@@ -40,7 +37,10 @@ interface ExploreChartsProps {
   canUsePreviousResults: boolean;
   confidences: Confidence[];
   query: string;
+  setVisualizes: (visualizes: Visualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  visualizes: Visualize[];
+  hideContextMenu?: boolean;
   isProgressivelyLoading?: boolean;
 }
 
@@ -67,10 +67,11 @@ export function ExploreCharts({
   query,
   timeseriesResult,
   isProgressivelyLoading,
+  visualizes,
+  setVisualizes,
+  hideContextMenu,
 }: ExploreChartsProps) {
   const theme = useTheme();
-  const visualizes = useExploreVisualizes();
-  const setVisualizes = useSetExploreVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const isTopN = defined(topEvents) && topEvents > 0;
@@ -275,13 +276,19 @@ export function ExploreCharts({
                     options={intervalOptions}
                   />
                 </Tooltip>,
-                <ChartContextMenu
-                  key="context"
-                  visualizeYAxes={chartInfo.yAxes}
-                  query={query}
-                  interval={interval}
-                  visualizeIndex={index}
-                />,
+                [
+                  ...(hideContextMenu
+                    ? []
+                    : [
+                        <ChartContextMenu
+                          key="context"
+                          visualizeYAxes={chartInfo.yAxes}
+                          query={query}
+                          interval={interval}
+                          visualizeIndex={index}
+                        />,
+                      ]),
+                ],
               ]}
               revealActions="always"
               Visualization={
