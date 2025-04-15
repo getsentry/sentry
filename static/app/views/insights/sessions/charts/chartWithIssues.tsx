@@ -36,16 +36,18 @@ interface Props extends WidgetTitleProps, Partial<LoadableChartWidgetProps> {
   legendSelection?: LegendSelection | undefined;
 }
 
-export default function ChartWithIssues({
-  description,
-  error,
-  interactiveTitle,
-  isPending,
-  legendSelection,
-  plottables,
-  series,
-  title,
-}: Props) {
+export default function ChartWithIssues(props: Props) {
+  const {
+    description,
+    error,
+    interactiveTitle,
+    isPending,
+    legendSelection,
+    plottables,
+    series,
+    title,
+    id,
+  } = props;
   const {projects} = useProjectHasSessions();
   const {recentIssues, isPending: isPendingRecentIssues} = useRecentIssues({
     projectId: projects[0]?.id,
@@ -84,6 +86,8 @@ export default function ChartWithIssues({
       error={error}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
+        ...props,
+        id,
         legendSelection,
         plottables,
       }}
@@ -103,6 +107,7 @@ export default function ChartWithIssues({
 
   return (
     <Widget
+      {...props}
       Title={Title}
       height={SESSION_HEALTH_CHART_HEIGHT}
       Visualization={visualization}
@@ -130,6 +135,8 @@ export default function ChartWithIssues({
                   <Fragment>
                     <ModalChartContainer>
                       <TimeSeriesWidgetVisualization
+                        {...props}
+                        id={id}
                         releases={releases ?? []}
                         plottables={plottables}
                         legendSelection={legendSelection}
