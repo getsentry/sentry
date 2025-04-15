@@ -69,3 +69,16 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
 
   ${p => p.isSelected && `z-index: 1;`}
 `;
+
+export const ChonkStyledVisibleLabel = chonkStyled('span')<{
+  isSelected: boolean;
+  priority: Priority;
+  isDisabled?: boolean;
+}>`
+${p => p.theme.overflowEllipsis}
+  transition: color 0.25s ease-out;
+
+  user-select: none;
+  font-weight: ${p => p.theme.fontWeightNormal};
+  text-align: center;
+`;

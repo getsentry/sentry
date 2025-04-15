@@ -19,11 +19,18 @@ export default storyBook('SegmentedControl', story => {
           manually.
         </p>
         <p>selected={value}</p>
-        <SegmentedControl value={value} onChange={setValue}>
-          <SegmentedControl.Item key="one">One</SegmentedControl.Item>
-          <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
-          <SegmentedControl.Item key="three">Three</SegmentedControl.Item>
-        </SegmentedControl>
+        <SideBySide>
+          <SegmentedControl value={value} onChange={setValue} priority="default">
+            <SegmentedControl.Item key="one">One</SegmentedControl.Item>
+            <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
+            <SegmentedControl.Item key="three">Three</SegmentedControl.Item>
+          </SegmentedControl>
+          <SegmentedControl value={value} onChange={setValue} priority="primary">
+            <SegmentedControl.Item key="one">One</SegmentedControl.Item>
+            <SegmentedControl.Item key="two">Two</SegmentedControl.Item>
+            <SegmentedControl.Item key="three">Three</SegmentedControl.Item>
+          </SegmentedControl>
+        </SideBySide>
       </Fragment>
     );
   });

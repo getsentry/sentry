@@ -19,7 +19,12 @@ import {defined} from 'sentry/utils';
 import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
-import {ChonkStyledGroupWrap, ChonkStyledSegmentWrap, type Priority} from './index.chonk';
+import {
+  ChonkStyledGroupWrap,
+  ChonkStyledSegmentWrap,
+  ChonkStyledVisibleLabel,
+  type Priority,
+} from './index.chonk';
 
 export interface SegmentedControlItemProps<Value extends string> {
   key: Value;
@@ -146,6 +151,34 @@ function Segment<Value extends string>({
   const showDivider = !isSelected && !nextOptionIsSelected;
 
   const {isDisabled} = props;
+
+  const label = theme.isChonk ? (
+    <VisibleLabel
+      isSelected={isSelected}
+      isDisabled={isDisabled}
+      priority={priority}
+      role="presentation"
+    >
+      {props.children}
+    </VisibleLabel>
+  ) : (
+    // Once an item is selected, it gets a heavier font weight and becomes slightly
+    // wider. To prevent layout shifts, we need a hidden container (HiddenLabel) that
+    // will always have normal weight to take up constant space; and a visible,
+    // absolutely positioned container (VisibleLabel) that doesn't affect the layout.
+    <InnerLabelWrap role="presentation">
+      <HiddenLabel aria-hidden>{props.children}</HiddenLabel>
+      <VisibleLabel
+        isSelected={isSelected}
+        isDisabled={isDisabled}
+        priority={priority}
+        role="presentation"
+      >
+        {props.children}
+      </VisibleLabel>
+    </InnerLabelWrap>
+  );
+
   const content = (
     <SegmentWrap
       size={size}
@@ -178,23 +211,7 @@ function Segment<Value extends string>({
 
       <LabelWrap size={size} role="presentation">
         {icon}
-        {/* Once an item is selected, it gets a heavier font weight and becomes slightly
-        wider. To prevent layout shifts, we need a hidden container (HiddenLabel) that
-        will always have normal weight to take up constant space; and a visible,
-        absolutely positioned container (VisibleLabel) that doesn't affect the layout. */}
-        {props.children && (
-          <InnerLabelWrap role="presentation">
-            <HiddenLabel aria-hidden>{props.children}</HiddenLabel>
-            <VisibleLabel
-              isSelected={isSelected}
-              isDisabled={isDisabled}
-              priority={priority}
-              role="presentation"
-            >
-              {props.children}
-            </VisibleLabel>
-          </InnerLabelWrap>
-        )}
+        {props.children && label}
       </LabelWrap>
     </SegmentWrap>
   );
@@ -391,26 +408,29 @@ function getTextColor({
   return `color: ${theme.textColor};`;
 }
 
-const VisibleLabel = styled('span')<{
-  isSelected: boolean;
-  priority: Priority;
-  isDisabled?: boolean;
-}>`
-  ${p => p.theme.overflowEllipsis}
+const VisibleLabel = withChonk(
+  styled('span')<{
+    isSelected: boolean;
+    priority: Priority;
+    isDisabled?: boolean;
+  }>`
+    ${p => p.theme.overflowEllipsis}
 
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  transition: color 0.25s ease-out;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: color 0.25s ease-out;
 
-  user-select: none;
-  font-weight: ${p => (p.isSelected ? 600 : 400)};
-  letter-spacing: ${p => (p.isSelected ? '-0.015em' : 'inherit')};
-  text-align: center;
-  line-height: ${p => p.theme.text.lineHeightBody};
-  ${getTextColor}
-`;
+    user-select: none;
+    font-weight: ${p => (p.isSelected ? 600 : 400)};
+    letter-spacing: ${p => (p.isSelected ? '-0.015em' : 'inherit')};
+    text-align: center;
+    line-height: ${p => p.theme.text.lineHeightBody};
+    ${getTextColor}
+  `,
+  ChonkStyledVisibleLabel
+);
 
 const Divider = styled('div')<{visible: boolean}>`
   position: absolute;
