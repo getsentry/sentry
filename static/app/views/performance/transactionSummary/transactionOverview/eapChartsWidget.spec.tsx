@@ -30,7 +30,7 @@ describe('EAPChartsWidget', function () {
   });
 
   it('shows default widget type when no query param is provided', async function () {
-    render(<EAPChartsWidget transactionName={transactionName} />);
+    render(<EAPChartsWidget transactionName={transactionName} query={''} />);
 
     await waitFor(() => {
       expect(screen.getByText('Duration Breakdown')).toBeInTheDocument();
@@ -47,7 +47,7 @@ describe('EAPChartsWidget', function () {
       })
     );
 
-    render(<EAPChartsWidget transactionName={transactionName} />);
+    render(<EAPChartsWidget transactionName={transactionName} query={''} />);
 
     await waitFor(() => {
       expect(screen.getByText('Duration Breakdown')).toBeInTheDocument();
