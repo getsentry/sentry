@@ -18,7 +18,7 @@ export function ConfidenceFooter(props: Props) {
 }
 
 function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Props) {
-  const isTopN = defined(topEvents) && topEvents > 0;
+  const isTopN = defined(topEvents) && topEvents > 1;
   if (!defined(sampleCount)) {
     return isTopN
       ? t('* Chart for top %s groups extrapolated from \u2026', topEvents)
@@ -27,36 +27,36 @@ function confidenceMessage({sampleCount, confidence, topEvents, isSampled}: Prop
 
   const noSampling = defined(isSampled) && !isSampled;
 
-  const lowAccuracySampleCount = (
-    <Tooltip
-      title={
-        <div>
-          {t('You may not have enough samples for high accuracy.')}
-          <br />
-          <br />
-          {t(
-            'You can try adjusting your query by removing filters or increasing the time interval.'
-          )}
-          <br />
-          <br />
-          {t(
-            'You can also increase your sampling rates to get more samples and accurate trends.'
-          )}
-        </div>
-      }
-      disabled={noSampling}
-      maxWidth={270}
-    >
-      <InsufficientSamples>
-        <Count value={sampleCount} />
-      </InsufficientSamples>
-    </Tooltip>
-  );
-
   if (confidence === 'low') {
+    const lowAccuracySampleCount = (
+      <Tooltip
+        title={
+          <div>
+            {t('You may not have enough samples for high accuracy.')}
+            <br />
+            <br />
+            {t(
+              'You can try adjusting your query by removing filters or increasing the time interval.'
+            )}
+            <br />
+            <br />
+            {t(
+              'You can also increase your sampling rates to get more samples and accurate trends.'
+            )}
+          </div>
+        }
+        disabled={noSampling}
+        maxWidth={270}
+      >
+        <InsufficientSamples>
+          <Count value={sampleCount} />
+        </InsufficientSamples>
+      </Tooltip>
+    );
+
     if (isTopN) {
-      return tct('Sample count for top [groupText]: [sampleCount]', {
-        groupText: topEvents > 1 ? tct('[topEvents] groups', {topEvents}) : t('group'),
+      return tct('Sample count for top [topEvents] groups: [sampleCount]', {
+        topEvents,
         sampleCount: lowAccuracySampleCount,
       });
     }

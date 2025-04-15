@@ -941,7 +941,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           id={DemoTourStep.PERFORMANCE_SPAN_TREE}
           title={t('Trace Waterfall')}
           description={t(
-            `The trace waterfall displays the spans of a trace in a vertical list. Each span represents a single operation or function call in the trace. The waterfall view helps you understand the sequence of operations and their relationships, allowing you to identify the root cause of performance issues.`
+            `Trace Waterfall offers a detailed look at traces for debugging slow services and errors.
+            Each span represents a single operation or function call in the trace.
+            Expanding a span will display sub-spans, and clicking on a span will display more details about the span.`
           )}
         >
           <Trace

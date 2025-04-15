@@ -177,7 +177,7 @@ export function MessageSpanSamplesPanel() {
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.duration)`]]);
 
   const {
-    data: durationSamplesData,
+    data: spanSamplesData,
     isFetching: isDurationSamplesDataFetching,
     error: durationSamplesDataError,
     refetch: refetchDurationSpanSamples,
@@ -188,7 +188,6 @@ export function MessageSpanSamplesPanel() {
     enabled: isPanelOpen && durationAxisMax > 0,
     fields: [
       SpanIndexedField.TRACE,
-      SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
       SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
@@ -198,6 +197,8 @@ export function MessageSpanSamplesPanel() {
       SpanIndexedField.SPAN_DURATION,
     ],
   });
+
+  const durationSamplesData = spanSamplesData?.data ?? [];
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(
     durationSamplesData,

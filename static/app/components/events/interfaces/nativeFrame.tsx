@@ -391,6 +391,7 @@ function NativeFrame({
                   frame={frame}
                   line={contextLine ? contextLine[1] : ''}
                   event={event}
+                  disableSetup={isHoverPreviewed}
                 />
               </ErrorBoundary>
             )}

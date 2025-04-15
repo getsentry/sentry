@@ -37,7 +37,6 @@ import type {
   InboxDetails,
   PriorityLevel,
 } from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
 import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
@@ -424,15 +423,6 @@ function StreamGroup({
     withChart && group && group.filtered && statsPeriod && useFilteredStats
   );
 
-  const groupCategoryCountTitles: Record<IssueCategory, string> = {
-    [IssueCategory.ERROR]: t('Error Events'),
-    [IssueCategory.PERFORMANCE]: t('Transaction Events'),
-    [IssueCategory.CRON]: t('Cron Events'),
-    [IssueCategory.REPLAY]: t('Replay Events'),
-    [IssueCategory.UPTIME]: t('Uptime Events'),
-    [IssueCategory.METRIC_ALERT]: t('Metric Alert Events'),
-  };
-
   const groupCount = defined(primaryCount) ? (
     <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
       <Tooltip
@@ -440,7 +430,7 @@ function StreamGroup({
         isHoverable
         title={
           <CountTooltipContent>
-            <h4>{groupCategoryCountTitles[group.issueCategory]}</h4>
+            <h4>{issueTypeConfig.customCopy.eventUnits}</h4>
             {group.filtered && (
               <Fragment>
                 <div>{queryFilterDescription ?? t('Matching filters')}</div>

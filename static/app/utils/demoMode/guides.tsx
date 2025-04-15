@@ -58,6 +58,7 @@ export function getTourTask(
       return {tour: 'releases', task: OnboardingTaskKey.RELEASE_GUIDE};
     case 'performance':
       return {tour: 'performance', task: OnboardingTaskKey.PERFORMANCE_GUIDE};
+
     default:
       return undefined;
   }

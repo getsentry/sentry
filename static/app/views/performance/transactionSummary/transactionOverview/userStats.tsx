@@ -146,7 +146,8 @@ function UserStats({
             id={DemoTourStep.PERFORMANCE_USER_MISERY}
             title={t('Identify the root cause')}
             description={t(
-              'Dive into the details behind a slow transaction. See User Misery, Apdex, and more metrics, along with related events and suspect spans.'
+              `Dive into the details behind a slow transaction.
+              See User Misery, Apdex, and more metrics, along with related events and suspect spans.`
             )}
           >
             <SectionHeading>

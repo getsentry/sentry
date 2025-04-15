@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -225,7 +225,7 @@ export function HTTPSamplesPanel() {
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
 
   const {
-    data: durationSamplesData,
+    data: spanSamplesData,
     isFetching: isDurationSamplesDataFetching,
     error: durationSamplesDataError,
     refetch: refetchDurationSpanSamples,
@@ -233,7 +233,6 @@ export function HTTPSamplesPanel() {
     search,
     fields: [
       SpanIndexedField.TRACE,
-      SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.RESPONSE_CODE,
     ],
@@ -242,6 +241,8 @@ export function HTTPSamplesPanel() {
     enabled: isPanelOpen && query.panel === 'duration' && durationAxisMax > 0,
     referrer: Referrer.SAMPLES_PANEL_DURATION_SAMPLES,
   });
+
+  const durationSamplesData = spanSamplesData?.data ?? [];
 
   const {
     data: responseCodeSamplesData,
