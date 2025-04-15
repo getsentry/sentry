@@ -22,7 +22,7 @@ import {
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 const NO_ERRORS = new Set<TraceTree.TraceError>();
-const NO_OCCURENCES = new Set<TraceTree.TraceOccurence>();
+const NO_OCCURENCES = new Set<TraceTree.TraceOccurrence>();
 const NO_PROFILES: any = [];
 
 export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>>) {
@@ -94,7 +94,7 @@ export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>
               color={makeTraceNodeBarColor(props.theme, props.node)}
               node_space={props.node.space}
               errors={NO_ERRORS}
-              occurences={NO_OCCURENCES}
+              occurrences={NO_OCCURENCES}
               profiles={NO_PROFILES}
             />
             <button

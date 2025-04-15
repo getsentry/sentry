@@ -25,7 +25,7 @@ interface DragNDropContextProps {
     updateColumnAtIndex: (i: number, column: string) => void;
   }) => React.ReactNode;
   columns: string[];
-  setColumns: (columns: string[]) => void;
+  setColumns: (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => void;
 }
 
 export function DragNDropContext({columns, setColumns, children}: DragNDropContextProps) {

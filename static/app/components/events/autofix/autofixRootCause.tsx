@@ -387,6 +387,7 @@ function AutofixRootCauseDisplay({
                   : null
               }
               isAgentComment
+              blockName={t('Root Cause')}
             />
           )}
         </AnimatePresence>
@@ -477,6 +478,7 @@ const HeaderWrapper = styled('div')`
   padding-bottom: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
   gap: ${space(1)};
+  flex-wrap: wrap;
 `;
 
 const IconWrapper = styled('div')`

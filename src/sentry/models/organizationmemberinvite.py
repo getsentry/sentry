@@ -18,6 +18,8 @@ from sentry.roles import organization_roles
 
 INVITE_DAYS_VALID = 30
 
+__all__ = ("OrganizationMemberInvite",)
+
 
 class InviteStatus(Enum):
     APPROVED = 0

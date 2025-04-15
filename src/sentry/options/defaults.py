@@ -346,6 +346,12 @@ register(
     default={"location": "/tmp/sentry-relocation-files"},
     flags=FLAG_NOSTORE,
 )
+register("filestore.profiles-backend", default="filesystem", flags=FLAG_NOSTORE)
+register(
+    "filestore.profiles-options",
+    default={"location": "/tmp/sentry-profiles", "allow_overwrite": True},
+    flags=FLAG_NOSTORE,
+)
 
 # Filestore for control silo
 register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
@@ -3187,6 +3193,16 @@ register(
 )
 register(
     "taskworker.tempest.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.relocation.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.relocation.control.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
