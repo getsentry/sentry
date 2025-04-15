@@ -67,7 +67,9 @@ def is_supported_notification_type(notification: BaseNotification) -> bool:
 
 
 def get_group_notification_card(
-    notification: GroupActivityNotification, context: Mapping[str, Any], recipient: Actor
+    notification: GroupActivityNotification | AlertRuleNotification,
+    context: Mapping[str, Any],
+    recipient: Actor,
 ) -> AdaptiveCard:
     cls = GROUP_MESSAGE_BUILDERS[notification.message_builder]
     return cls(notification, context, recipient).build_notification_card()
@@ -106,7 +108,9 @@ def send_notification_as_msteams(
                 context = get_context(notification, recipient, shared_context, extra_context)
 
                 with sentry_sdk.start_span(op="notification.send_msteams", name="gen_attachments"):
-                    if isinstance(notification, GroupActivityNotification):
+                    if isinstance(notification, GroupActivityNotification) or isinstance(
+                        notification, AlertRuleNotification
+                    ):
                         card = get_group_notification_card(notification, context, recipient)
                     else:
                         card = get_base_notification_card(notification, context, recipient)
