@@ -400,7 +400,7 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
                     environment_id=environment_id,
                     referrer_suffix="batch_alert_event_uniq_user_frequency",
                     filters=filters,
-                    group_on_time=True,
+                    group_on_time=False,
                 )
             except InvalidFilter:
                 # Filter is not supported for this issue type
