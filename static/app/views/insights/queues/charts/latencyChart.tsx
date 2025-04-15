@@ -1,6 +1,7 @@
 import cloneDeep from 'lodash/cloneDeep';
 
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
 import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
@@ -12,9 +13,10 @@ interface Props {
   referrer: Referrer;
   destination?: string;
   error?: Error | null;
+  pageFilters?: PageFilters;
 }
 
-export function LatencyChart({id, error, destination, referrer}: Props) {
+export function LatencyChart({id, error, destination, referrer, pageFilters}: Props) {
   const {
     data,
     isPending,
@@ -22,6 +24,7 @@ export function LatencyChart({id, error, destination, referrer}: Props) {
   } = useProcessQueuesTimeSeriesQuery({
     destination,
     referrer,
+    pageFilters,
   });
 
   const messageReceiveLatencySeries = cloneDeep(

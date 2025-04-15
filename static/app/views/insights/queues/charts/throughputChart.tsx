@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {renameDiscoverSeries} from 'sentry/views/insights/common/utils/renameDiscoverSeries';
 import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
@@ -13,9 +14,10 @@ interface Props {
   referrer: Referrer;
   destination?: string;
   error?: Error | null;
+  pageFilters?: PageFilters;
 }
 
-export function ThroughputChart({id, error, destination, referrer}: Props) {
+export function ThroughputChart({id, error, destination, pageFilters, referrer}: Props) {
   const theme = useTheme();
   const {
     data: publishData,
@@ -24,6 +26,7 @@ export function ThroughputChart({id, error, destination, referrer}: Props) {
   } = usePublishQueuesTimeSeriesQuery({
     destination,
     referrer,
+    pageFilters,
   });
 
   const {
@@ -33,6 +36,7 @@ export function ThroughputChart({id, error, destination, referrer}: Props) {
   } = useProcessQueuesTimeSeriesQuery({
     destination,
     referrer,
+    pageFilters,
   });
 
   return (
