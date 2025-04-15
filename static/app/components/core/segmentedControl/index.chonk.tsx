@@ -51,6 +51,7 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
   min-height: 0;
   min-width: 0;
+  z-index: ${p => (p.isSelected ? 1 : undefined)};
 
   ${p => p.theme.buttonPadding[p.size]}
   font-weight: ${p => p.theme.fontWeightNormal};
@@ -70,8 +71,6 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   input:focus-visible + span {
     ${({theme}) => theme.focusRing};
   }
-
-  ${p => p.isSelected && `z-index: 1;`}
 `;
 
 export const ChonkStyledVisibleLabel = chonkStyled('span')<{
