@@ -789,7 +789,14 @@ class JiraIntegration(IssueSyncIntegration):
         project_id = params.get("project", defaults.get("project"))
         client = self.get_client()
         try:
-            jira_projects = client.get_projects_list()
+            if features.has(
+                "organizations:jira-paginated-projects", group.organization, actor=user
+            ):
+                jira_projects = client.get_projects_paginated(
+                    {"maxResults": MAX_PER_PROJECT_QUERIES}
+                )["values"]
+            else:
+                jira_projects = client.get_projects_list()
         except ApiError as e:
             logger.info(
                 "jira.get-create-issue-config.no-projects",
@@ -822,15 +829,27 @@ class JiraIntegration(IssueSyncIntegration):
             if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
-        fields = [
+        projects_form_field = {}
+        if features.has("organizations:jira-paginated-projects", group.organization, actor=user):
+            paginated_projects_url = reverse(
+                "sentry-extensions-jira-search", args=[self.organization.slug, self.model.id]
+            )
+            projects_form_field["url"] = paginated_projects_url
+
+        projects_form_field.update(
             {
                 "name": "project",
                 "label": "Jira Project",
-                "choices": [(p["id"], p["key"]) for p in jira_projects],
+                "choices": [(p["id"], f"{p["key"]} - {p["name"]}") for p in jira_projects],
                 "default": meta["id"],
                 "type": "select",
                 "updatesForm": True,
-            },
+                "required": True,
+            }
+        )
+
+        fields = [
+            projects_form_field,
             *fields,
             {
                 "name": "issuetype",

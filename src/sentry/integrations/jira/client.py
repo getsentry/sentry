@@ -29,6 +29,7 @@ class JiraCloudClient(ApiClient):
     ISSUE_URL = "/rest/api/2/issue/%s"
     META_URL = "/rest/api/2/issue/createmeta"
     PRIORITIES_URL = "/rest/api/2/priority"
+    PROJECTS_PAGINATED_URL = "/rest/api/2/project/search"
     PROJECT_URL = "/rest/api/2/project"
     SEARCH_URL = "/rest/api/2/search/"
     VERSIONS_URL = "/rest/api/2/project/%s/versions"
@@ -122,6 +123,11 @@ class JiraCloudClient(ApiClient):
     def update_comment(self, issue_key, comment_id, comment):
         return self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment})
 
+    def get_projects_paginated(self, params: dict[str, str | Any] | None = None):
+        response = self.get(self.PROJECTS_PAGINATED_URL, params=params)
+        return response
+
+    # deprecated - please use paginated one above
     def get_projects_list(self):
         return self.get_cached(self.PROJECT_URL)
 
