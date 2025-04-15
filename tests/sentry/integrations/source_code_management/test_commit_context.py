@@ -9,6 +9,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import TestCase
 from sentry.users.models.identity import Identity
@@ -26,8 +27,11 @@ class MockCommitContextIntegration(CommitContextIntegration):
     def get_client(self):
         return self.client
 
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        raise NotImplementedError
 
-class CommitContextIntegrationTest(TestCase):
+
+class TestCommitContextIntegrationSLO(TestCase):
     def setUp(self):
         super().setUp()
         self.integration = MockCommitContextIntegration()

@@ -23,7 +23,7 @@ from snuba_sdk import Request as SnubaRequest
 
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.integrations.github.client import GitHubApiClient
-from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
+from sentry.integrations.github.constants import RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.pr_comment import format_comment_url
 from sentry.integrations.github.tasks.utils import (
     GithubAPIErrorType,
@@ -624,20 +624,10 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             language=language,
         )
     except ApiError as e:
-        if e.json:
-            if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
-                metrics.incr(
-                    OPEN_PR_METRICS_BASE.format(integration="github", key="error"),
-                    tags={"type": "issue_locked_error"},
-                )
-                return
-
-            elif RATE_LIMITED_MESSAGE in e.json.get("message", ""):
-                metrics.incr(
-                    OPEN_PR_METRICS_BASE.format(integration="github", key="error"),
-                    tags={"type": "rate_limited_error"},
-                )
-                return
+        if installation.on_create_or_update_comment_error(
+            api_error=e, metrics_base=OPEN_PR_METRICS_BASE
+        ):
+            return
 
         metrics.incr(
             OPEN_PR_METRICS_BASE.format(integration="github", key="error"),

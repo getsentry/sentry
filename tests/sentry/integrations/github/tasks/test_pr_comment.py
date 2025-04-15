@@ -492,8 +492,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
     @patch("sentry.integrations.github.tasks.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
+    @patch("sentry.integrations.github.integration.metrics")
     @responses.activate
-    def test_comment_workflow_api_error(self, mock_metrics, mock_issues):
+    def test_comment_workflow_api_error(self, mock_integration_metrics, mock_metrics, mock_issues):
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
         mock_issues.return_value = [
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
@@ -526,8 +527,8 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         with pytest.raises(ApiError):
             github_comment_workflow(self.pr.id, self.project.id)
-            assert cache.get(self.cache_key) is None
-            mock_metrics.incr.assert_called_with("github.pr_comment.api_error")
+        assert cache.get(self.cache_key) is None
+        mock_metrics.incr.assert_called_with("github.pr_comment.error", tags={"type": "api_error"})
 
         pr_2 = self.create_pr_issues()
         cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pr_2.id)
@@ -536,7 +537,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         # does not raise ApiError for locked issue
         github_comment_workflow(pr_2.id, self.project.id)
         assert cache.get(cache_key) is None
-        mock_metrics.incr.assert_called_with(
+        mock_integration_metrics.incr.assert_called_with(
             "github.pr_comment.error", tags={"type": "issue_locked_error"}
         )
 
@@ -547,7 +548,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         # does not raise ApiError for rate limited error
         github_comment_workflow(pr_3.id, self.project.id)
         assert cache.get(cache_key) is None
-        mock_metrics.incr.assert_called_with(
+        mock_integration_metrics.incr.assert_called_with(
             "github.pr_comment.error", tags={"type": "rate_limited_error"}
         )
 
