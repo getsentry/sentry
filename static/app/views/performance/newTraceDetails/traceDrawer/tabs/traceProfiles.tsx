@@ -11,6 +11,8 @@ import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -30,6 +32,8 @@ export function TraceProfiles({
 }) {
   const {projects} = useProjects();
   const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const projectLookup: Record<string, PlatformKey | undefined> = useMemo(() => {
     return projects.reduce<Record<Project['slug'], Project['platform']>>(
@@ -58,6 +62,17 @@ export function TraceProfiles({
       }
     },
     [organization]
+  );
+
+  const onNodeIdClick = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue>) => {
+      navigate({
+        ...location,
+        hash: `#trace-waterfall`,
+      });
+      onScrollToNode(node);
+    },
+    [location, navigate, onScrollToNode]
   );
 
   return (
@@ -108,7 +123,7 @@ export function TraceProfiles({
           return (
             <ProfilesTableRow key={index}>
               <div>
-                <a onClick={() => onScrollToNode(node)}>
+                <a onClick={() => onNodeIdClick(node)}>
                   <PlatformIcon
                     platform={projectLookup[node.value.project_slug] ?? 'default'}
                   />
@@ -128,7 +143,7 @@ export function TraceProfiles({
           return (
             <ProfilesTableRow key={index}>
               <div>
-                <a onClick={() => onScrollToNode(node)}>
+                <a onClick={() => onNodeIdClick(node)}>
                   <span>{node.value.op ?? '<unknown>'}</span> —{' '}
                   <span className="TraceDescription" title={node.value.description}>
                     {node.value.description
