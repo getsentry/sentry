@@ -95,7 +95,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
         ...row,
         [SpanIndexedField.TRANSACTION_SPAN_ID]: useEap
           ? row[SpanIndexedField.TRANSACTION_SPAN_ID]
-          : row[SpanIndexedField.TRANSACTION_SPAN_ID],
+          : row[SpanIndexedField.TRANSACTION_ID],
       };
     });
 
