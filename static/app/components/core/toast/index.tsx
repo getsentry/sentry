@@ -15,8 +15,31 @@ import testableTransition from 'sentry/utils/testableTransition';
 type Props = {
   indicator: Indicator;
   onDismiss: (indicator: Indicator, event: React.MouseEvent) => void;
-  className?: string;
 };
+
+export function Toast({indicator, onDismiss, ...props}: Props) {
+  return (
+    <ToastContainer
+      onClick={
+        indicator.options?.disableDismiss ? undefined : e => onDismiss(indicator, e)
+      }
+      data-test-id={indicator.type ? `toast-${indicator.type}` : 'toast'}
+      className={classNames('ref-toast', `ref-${indicator.type}`)}
+      {...TOAST_TRANSITION}
+      {...props}
+    >
+      <ToastIcon type={indicator.type} />
+      <ToastMessage>
+        <TextOverflow>{indicator.message}</TextOverflow>
+      </ToastMessage>
+      {typeof indicator.options?.undo === 'function' ? (
+        <ToastUndoButton priority="link" onClick={indicator.options.undo}>
+          {t('Undo')}
+        </ToastUndoButton>
+      ) : null}
+    </ToastContainer>
+  );
+}
 
 const TOAST_TRANSITION = {
   initial: {opacity: 0, y: 70},
@@ -29,44 +52,20 @@ const TOAST_TRANSITION = {
   }),
 };
 
-export function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
-  return (
-    <Toast
-      onClick={
-        indicator.options?.disableDismiss ? undefined : e => onDismiss(indicator, e)
-      }
-      data-test-id={indicator.type ? `toast-${indicator.type}` : 'toast'}
-      className={classNames(className, 'ref-toast', `ref-${indicator.type}`)}
-      {...TOAST_TRANSITION}
-      {...props}
-    >
-      <ToastIcon type={indicator.type} />
-      <Message>
-        <TextOverflow>{indicator.message}</TextOverflow>
-      </Message>
-      {typeof indicator.options?.undo === 'function' && (
-        <Undo priority="link" onClick={indicator.options.undo}>
-          {t('Undo')}
-        </Undo>
-      )}
-    </Toast>
-  );
-}
-
 function ToastIcon({type}: {type: Indicator['type']}) {
   switch (type) {
     case 'loading':
-      return <StyledLoadingIndicator mini />;
+      return <ToastLoadingIndicator mini />;
     case 'success':
       return (
-        <IconContainer type={type}>
-          <IconCheckmark size="lg" isCircled />
+        <IconContainer>
+          <IconCheckmark size="lg" isCircled color="successText" />
         </IconContainer>
       );
     case 'error':
       return (
-        <IconContainer type={type}>
-          <IconClose size="lg" isCircled />
+        <IconContainer>
+          <IconClose size="lg" isCircled color="successText" />
         </IconContainer>
       );
     case 'undo':
@@ -79,7 +78,7 @@ function ToastIcon({type}: {type: Indicator['type']}) {
   }
 }
 
-const Toast = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
+const ToastContainer = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   display: flex;
   align-items: center;
   height: 40px;
@@ -93,22 +92,18 @@ const Toast = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   position: relative;
 `;
 
-const IconContainer = styled('div', {shouldForwardProp: p => p !== 'type'})<{
-  type: string;
-}>`
+const IconContainer = styled('div')`
   margin-right: ${space(0.75)};
   svg {
     display: block;
   }
-
-  color: ${p => (p.type === 'success' ? p.theme.successText : p.theme.errorText)};
 `;
 
-const Message = styled('div')`
+const ToastMessage = styled('div')`
   flex: 1;
 `;
 
-const Undo = styled(Button)`
+const ToastUndoButton = styled(Button)`
   color: ${p => p.theme.inverted.linkColor};
   margin-left: ${space(2)};
 
@@ -117,7 +112,7 @@ const Undo = styled(Button)`
   }
 `;
 
-const StyledLoadingIndicator = styled(LoadingIndicator)`
+const ToastLoadingIndicator = styled(LoadingIndicator)`
   .loading-indicator {
     border-color: ${p => p.theme.inverted.border};
     border-left-color: ${p => p.theme.inverted.purple300};
