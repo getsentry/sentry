@@ -94,6 +94,7 @@ class BaseQueryBuilder:
     size_fields: dict[str, str] = {}
     uuid_fields: set[str] = set()
     span_id_fields: set[str] = set()
+    column_remapping: dict[str, str] = {}
 
     def get_middle(self):
         """Get the middle for comparison functions"""
@@ -307,6 +308,7 @@ class BaseQueryBuilder:
         self.end = self.params.end
 
     def resolve_column_name(self, col: str) -> str:
+        col = self.column_remapping.get(col, col)
         # TODO: when utils/snuba.py becomes typed don't need this extra annotation
         column_resolver: Callable[[str], str] = resolve_column(self.dataset)
         column_name = column_resolver(col)
@@ -1237,7 +1239,7 @@ class BaseQueryBuilder:
         self,
         search_filter: event_search.SearchFilter,
     ) -> WhereType | None:
-        name = search_filter.key.name
+        name = self.column_remapping.get(search_filter.key.name, search_filter.key.name)
         value = search_filter.value.value
         if value and (unit := self.get_field_type(name)):
             if unit in constants.SIZE_UNITS or unit in constants.DURATION_UNITS:
