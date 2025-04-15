@@ -69,6 +69,14 @@ export enum IssueCategory {
   REPLAY = 'replay',
   UPTIME = 'uptime',
   METRIC_ALERT = 'metric_alert',
+  FEEDBACK = 'feedback',
+
+  // New categories, gated by the `issue-taxonomy` feature flag
+  OUTAGE = 'outage',
+  PERFORMANCE_REGRESSION = 'performance_regression',
+  USER_EXPERIENCE = 'user_experience',
+  RESPONSIVENESS = 'responsiveness',
+  PERFORMANCE_BEST_PRACTICE = 'performance_best_practice',
 }
 
 export enum IssueType {
