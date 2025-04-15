@@ -363,6 +363,8 @@ class GroupSerializerBase(Serializer, ABC):
             group_dict["isUnhandled"] = attrs["is_unhandled"]
         if is_seen_stats(attrs):
             group_dict.update(self._convert_seen_stats(attrs))
+        if "lifetime" in attrs:
+            group_dict["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
         return group_dict
 
     @abstractmethod
@@ -1012,7 +1014,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
     def _seen_stats_error(
         self, error_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
-        return self._parse_seen_stats_results(
+        result = self._parse_seen_stats_results(
             self._execute_error_seen_stats_query(
                 item_list=error_issue_list,
                 start=self.start,
@@ -1024,11 +1026,19 @@ class GroupSerializerSnuba(GroupSerializerBase):
             bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )
+        lifetime_result = self._parse_seen_stats_results(
+            self._execute_lifetime_seen_stats_query(
+                item_list=error_issue_list,
+            ),
+        )
+        for item in error_issue_list:
+            result[item].update({"lifetime": lifetime_result.get(item, {})})
+        return result
 
     def _seen_stats_generic(
         self, generic_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
-        return self._parse_seen_stats_results(
+        result = self._parse_seen_stats_results(
             self._execute_generic_seen_stats_query(
                 item_list=generic_issue_list,
                 start=self.start,
@@ -1040,6 +1050,14 @@ class GroupSerializerSnuba(GroupSerializerBase):
             bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )
+        lifetime_result = self._parse_seen_stats_results(
+            self._execute_lifetime_seen_stats_query(
+                item_list=generic_issue_list,
+            ),
+        )
+        for item in generic_issue_list:
+            result[item].update({"lifetime": lifetime_result.get(item, {})})
+        return result
 
     @staticmethod
     def _execute_error_seen_stats_query(

@@ -274,6 +274,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 }
             )
 
+            data["lifetime"]["count"] = get_group_global_count(group)
+
             participants = user_service.serialize_many(
                 filter={"user_ids": GroupSubscriptionManager.get_participating_user_ids(group)},
                 as_user=request.user,
