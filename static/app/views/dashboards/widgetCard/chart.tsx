@@ -11,6 +11,7 @@ import omit from 'lodash/omit';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
+import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
@@ -50,17 +51,15 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import type {Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
-
-import {getFormatter} from '../../../components/charts/components/tooltip';
-import {getDatasetConfig} from '../datasetConfig/base';
-import type {Widget} from '../types';
-import {DisplayType, WidgetType} from '../types';
-import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
-import {BigNumberWidgetVisualization} from '../widgets/bigNumberWidget/bigNumberWidgetVisualization';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -86,6 +85,7 @@ type WidgetCardChartProps = Pick<
   confidence?: Confidence;
   expandNumbers?: boolean;
   isMobile?: boolean;
+  isSampled?: boolean | null;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: string;
   noPadding?: boolean;
@@ -282,6 +282,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       confidence,
       showConfidenceWarning,
       sampleCount,
+      isSampled,
     } = this.props;
 
     if (errorMessage) {
@@ -553,6 +554,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                           confidence={confidence}
                           sampleCount={sampleCount}
                           topEvents={topEventsCountExcludingOther}
+                          isSampled={isSampled}
                         />
                       )}
                     </ChartWrapper>

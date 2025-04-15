@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
@@ -14,7 +14,7 @@ from sentry.models.group import Group
 
 
 @region_silo_endpoint
-class OrganizationGroupSuspectFlagsEndpoint(GroupEndpoint, EnvironmentMixin):
+class OrganizationGroupSuspectFlagsEndpoint(GroupEndpoint):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 
     def get(self, request: Request, group: Group) -> Response:
@@ -43,8 +43,8 @@ class OrganizationGroupSuspectFlagsEndpoint(GroupEndpoint, EnvironmentMixin):
         return Response(
             {
                 "data": [
-                    {"flag": flag, "score": score}
-                    for flag, score in get_suspect_flag_scores(
+                    {"flag": flag, "score": score, "baseline_percent": baseline_percent}
+                    for flag, score, baseline_percent in get_suspect_flag_scores(
                         organization_id,
                         project_id,
                         start,

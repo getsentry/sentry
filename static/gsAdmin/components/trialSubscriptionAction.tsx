@@ -14,7 +14,6 @@ import {PlanTier} from 'getsentry/types';
 
 type Props = AdminConfirmRenderProps & {
   subscription: Subscription;
-  canUseTrialOverride?: boolean;
   startEnterpriseTrial?: boolean;
 };
 
@@ -29,7 +28,10 @@ type State = {
  */
 class TrialSubscriptionAction extends Component<Props, State> {
   state: State = {
-    trialDays: 14,
+    trialDays:
+      this.props.subscription.isEnterpriseTrial || this.props.startEnterpriseTrial
+        ? 28
+        : 14,
     trialTier: PlanTier.AM3,
     trialPlanOverride: undefined,
   };
@@ -73,7 +75,7 @@ class TrialSubscriptionAction extends Component<Props, State> {
   }
 
   render() {
-    const {subscription, startEnterpriseTrial, canUseTrialOverride = false} = this.props;
+    const {subscription, startEnterpriseTrial} = this.props;
     const {trialDays, trialTier, trialPlanOverride} = this.state;
     const AM3_ENTERPRISE_TRIAL_PLAN = 'am3_t_ent_ds';
 
@@ -88,11 +90,8 @@ class TrialSubscriptionAction extends Component<Props, State> {
 
     const tierChoices: Array<[string | PlanTier, string | PlanTier]> = [];
 
-    // TODO(DS Spans): remove canUseTrialOverride once we've launched
-    if (canUseTrialOverride) {
-      // TODO(DS Spans): remove this if we ever put DS on the regular AM3 enterprise trial
-      tierChoices.push([AM3_ENTERPRISE_TRIAL_PLAN, 'am3 with Dynamic Sampling']);
-    }
+    // TODO(DS Spans): remove this if we ever put DS on the regular AM3 enterprise trial
+    tierChoices.push([AM3_ENTERPRISE_TRIAL_PLAN, 'am3 with Dynamic Sampling']);
 
     tierChoices.push(
       [PlanTier.AM3, PlanTier.AM3],

@@ -66,7 +66,21 @@ export enum SpanMetricsField {
   USER_GEO_SUBREGION = 'user.geo.subregion',
   PRECISE_START_TS = 'precise.start_ts',
   PRECISE_FINISH_TS = 'precise.finish_ts',
+  MOBILE_FRAMES_DELAY = 'mobile.frames_delay',
+  MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
+  MOBILE_TOTAL_FRAMES = 'mobile.total_frames',
+  MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
 }
+
+// TODO: This will be the final field type for eap spans
+export enum SpanFields {
+  IS_TRANSACTION = 'is_transaction',
+  IS_STARRED_TRANSACTION = 'is_starred_transaction',
+}
+
+export type SpanBooleanFields =
+  | SpanFields.IS_TRANSACTION
+  | SpanFields.IS_STARRED_TRANSACTION;
 
 export type SpanNumberFields =
   | SpanMetricsField.AI_TOTAL_COST
@@ -80,6 +94,10 @@ export type SpanNumberFields =
   | SpanMetricsField.CACHE_ITEM_SIZE
   | SpanMetricsField.PRECISE_START_TS
   | SpanMetricsField.PRECISE_FINISH_TS
+  | SpanMetricsField.MOBILE_FRAMES_DELAY
+  | SpanMetricsField.MOBILE_FROZEN_FRAMES
+  | SpanMetricsField.MOBILE_TOTAL_FRAMES
+  | SpanMetricsField.MOBILE_SLOW_FRAMES
   | DiscoverNumberFields;
 
 export type SpanStringFields =
@@ -175,20 +193,21 @@ export type SpanMetricsResponse = {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
   [Property in SpanStringArrayFields as `${Property}`]: string[];
-} & {
-  // TODO: This should include all valid HTTP codes or just all integers
-  'http_response_count(2)': number;
-  'http_response_count(3)': number;
-  'http_response_count(4)': number;
-  'http_response_count(5)': number;
-  'http_response_rate(2)': number;
-  'http_response_rate(3)': number;
-  'http_response_rate(4)': number;
-  'http_response_rate(5)': number;
-} & {
-  ['project']: string;
-  ['project.id']: number;
-} & Record<RegressionFunctions, number> &
+  // TODO: We should allow a nicer way to define functions with multiple arguments and different arg types
+} & Record<`division(${SpanNumberFields},${SpanNumberFields})`, number> & {
+    // TODO: This should include all valid HTTP codes or just all integers
+    'http_response_count(2)': number;
+    'http_response_count(3)': number;
+    'http_response_count(4)': number;
+    'http_response_count(5)': number;
+    'http_response_rate(2)': number;
+    'http_response_rate(3)': number;
+    'http_response_rate(4)': number;
+    'http_response_rate(5)': number;
+  } & {
+    ['project']: string;
+    ['project.id']: number;
+  } & Record<RegressionFunctions, number> &
   Record<SpanAnyFunction, string> & {
     [Property in ConditionalAggregate as
       | `${Property}(${string})`
@@ -197,7 +216,6 @@ export type SpanMetricsResponse = {
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
   };
-
 export type MetricsFilters = {
   [Property in SpanStringFields as `${Property}`]?: string | string[];
 };
@@ -214,6 +232,8 @@ export type EAPSpanResponse = {
   [Property in SpanNumberFields as `${Property}`]: number;
 } & {
   [Property in SpanStringArrayFields as `${Property}`]: string[];
+} & {} & {
+  [Property in SpanBooleanFields as `${Property}`]: boolean;
 } & {
   ['project']: string;
   ['project.id']: number;
@@ -302,6 +322,7 @@ export enum SpanIndexedField {
   LCP_ELEMENT = 'lcp.element',
   CLS_SOURCE = 'cls.source.1',
   NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
+  MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
 }
 
 export type SpanIndexedResponse = {
@@ -362,6 +383,7 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.USER_USERNAME]: string;
   [SpanIndexedField.USER_IP]: string;
   [SpanIndexedField.USER_DISPLAY]: string;
+  [SpanIndexedField.IS_TRANSACTION]: number;
   [SpanIndexedField.INP]: number;
   [SpanIndexedField.INP_SCORE]: number;
   [SpanIndexedField.INP_SCORE_WEIGHT]: number;
@@ -391,6 +413,10 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.USER_GEO_SUBREGION]: string;
   [SpanIndexedField.LCP_ELEMENT]: string;
   [SpanIndexedField.CLS_SOURCE]: string;
+  [SpanIndexedField.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH]: number;
+  [SpanIndexedField.PROJECT]: string;
+  [SpanIndexedField.SPAN_GROUP]: string;
+  'any(id)': string;
 };
 
 export type SpanIndexedProperty = keyof SpanIndexedResponse;
@@ -452,6 +478,11 @@ export enum MetricsFields {
   REPLAY_ID = 'replayId',
   TIMESTAMP = 'timestamp',
   PROFILE_ID = 'profile.id',
+  APP_START_COLD = 'measurements.app_start_cold',
+  APP_START_WARM = 'measurements.app_start_warm',
+  TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
+  TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
+  RELEASE = 'release',
 }
 
 export type MetricsNumberFields =
@@ -473,18 +504,21 @@ export type MetricsNumberFields =
   | MetricsFields.FCP
   | MetricsFields.INP
   | MetricsFields.CLS
-  | MetricsFields.TTFB;
+  | MetricsFields.TTFB
+  | MetricsFields.APP_START_COLD
+  | MetricsFields.APP_START_WARM
+  | MetricsFields.TIME_TO_INITIAL_DISPLAY
+  | MetricsFields.TIME_TO_FULL_DISPLAY;
 
 export type MetricsStringFields =
   | MetricsFields.TRANSACTION
   | MetricsFields.PROJECT
-  | MetricsFields.PROJECT_ID
   | MetricsFields.ID
   | MetricsFields.TRACE
   | MetricsFields.USER_DISPLAY
-  | MetricsFields.REPLAY_ID
-  | MetricsFields.TIMESTAMP
-  | MetricsFields.PROFILE_ID;
+  | MetricsFields.PROFILE_ID
+  | MetricsFields.RELEASE
+  | MetricsFields.TIMESTAMP;
 
 export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
 
@@ -498,6 +532,8 @@ export type MetricsResponse = {
   [Property in MetricsStringFields as `${Property}`]: string;
 } & {
   [Property in MetricsNumberFields as `count_web_vitals(${Property}, any)`]: string[];
+} & {
+  ['project.id']: number;
 };
 
 export enum DiscoverFields {

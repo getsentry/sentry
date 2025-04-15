@@ -15,7 +15,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {TableRow} from 'sentry/views/explore/components/table';
 import {
   useLogsAnalyticsPageSource,
   useLogsFields,
@@ -40,11 +39,11 @@ import {
 } from 'sentry/views/explore/logs/useLogsQuery';
 
 import {
-  DetailsFooter,
-  DetailsGrid,
+  DetailsBody,
+  DetailsContent,
   DetailsWrapper,
   getLogColors,
-  LogDetailsTitle,
+  LogDetailPanelItem,
   LogDetailTableBodyCell,
   LogFirstCellContent,
   LogsTableBodyFirstCell,
@@ -192,13 +191,14 @@ export function LogRowContent({
                   }
                 }}
                 allowActions={
-                  field === OurLogKnownFieldKey.BODY ? ALLOWED_CELL_ACTIONS : []
+                  field === OurLogKnownFieldKey.MESSAGE ? ALLOWED_CELL_ACTIONS : []
                 }
               >
                 <LogFieldRenderer
                   item={getLogRowItem(field, dataRow, meta)}
                   meta={meta}
                   extra={rendererExtra}
+                  tableResultLogRow={dataRow}
                 />
               </CellAction>
             </LogTableBodyCell>
@@ -253,13 +253,24 @@ function LogRowDetails({
   }
   return (
     <DetailsWrapper>
-      <TableRow>
-        <LogDetailTableBodyCell colSpan={fields.length}>
-          {isPending && <LoadingIndicator />}
-          {!isPending && data && (
-            <Fragment>
-              <DetailsGrid>
-                <LogDetailsTitle>{t('Log')}</LogDetailsTitle>
+      <LogDetailTableBodyCell colSpan={fields.length}>
+        {isPending && <LoadingIndicator />}
+        {!isPending && data && (
+          <Fragment>
+            <DetailsContent>
+              <DetailsBody>
+                {LogBodyRenderer({
+                  item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
+                  extra: {
+                    highlightTerms,
+                    logColors,
+                    wrapBody: true,
+                    location,
+                    organization,
+                  },
+                })}
+              </DetailsBody>
+              <LogDetailPanelItem>
                 <LogFieldsTree
                   attributes={data.attributes}
                   hiddenAttributes={HiddenLogDetailFields}
@@ -270,24 +281,13 @@ function LogRowDetails({
                     location,
                     organization,
                   }}
+                  tableResultLogRow={dataRow}
                 />
-              </DetailsGrid>
-              <DetailsFooter logColors={logColors}>
-                {LogBodyRenderer({
-                  item: getLogRowItem(OurLogKnownFieldKey.BODY, dataRow, meta),
-                  extra: {
-                    highlightTerms,
-                    logColors,
-                    wrapBody: true,
-                    location,
-                    organization,
-                  },
-                })}
-              </DetailsFooter>
-            </Fragment>
-          )}
-        </LogDetailTableBodyCell>
-      </TableRow>
+              </LogDetailPanelItem>
+            </DetailsContent>
+          </Fragment>
+        )}
+      </LogDetailTableBodyCell>
     </DetailsWrapper>
   );
 }

@@ -1,10 +1,8 @@
 import * as Sentry from '@sentry/react';
 
-import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {
@@ -61,12 +59,7 @@ export function dismissGuide(guide: string, step: number, orgId: string | null) 
   closeGuide(true);
 }
 
-export function recordFinish(
-  guide: string,
-  orgId: string | null,
-  orgSlug: string | null,
-  org: Organization | null
-) {
+export function recordFinish(guide: string, orgId: string | null) {
   if (!isDemoModeActive()) {
     api.requestPromise('/assistant/', {
       method: 'PUT',
@@ -79,11 +72,10 @@ export function recordFinish(
 
   const tourTask = getTourTask(guide);
 
-  if (isDemoModeActive() && tourTask && org) {
+  if (isDemoModeActive() && tourTask) {
     const {tour, task} = tourTask;
     updateDemoWalkthroughTask({task, status: 'complete', completionSeen: true});
-    fetchOrganizationDetails(api, org.slug);
-    demoEndModal({tour, orgSlug});
+    demoEndModal({tour});
   }
 
   const user = ConfigStore.get('user');

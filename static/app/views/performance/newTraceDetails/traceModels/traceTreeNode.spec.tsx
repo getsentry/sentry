@@ -1,11 +1,10 @@
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   makeSpan,
   makeTraceError,
   makeTracePerformanceIssue,
   makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
-
-import type {TraceTree} from '../traceModels/traceTree';
 
 import {TraceTreeNode} from './traceTreeNode';
 
@@ -40,7 +39,7 @@ describe('TraceTreeNode', () => {
       }),
       metadata
     );
-    expect(node.performance_issues.has(issue)).toBe(true);
+    expect(node.occurrences.has(issue)).toBe(true);
   });
 
   it('stores error on node', () => {

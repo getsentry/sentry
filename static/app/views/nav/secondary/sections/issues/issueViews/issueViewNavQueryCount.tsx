@@ -5,9 +5,11 @@ import {motion} from 'framer-motion';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
+import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
 import {useFetchIssueCounts} from 'sentry/views/issueList/queries/useFetchIssueCounts';
+import type {NavIssueView} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
 
 const TAB_MAX_COUNT = 99;
 
@@ -29,12 +31,16 @@ const constructCountTimeFrame = (
 };
 
 interface IssueViewNavQueryCountProps {
-  view: IssueView;
+  isActive: boolean;
+  view: NavIssueView;
 }
 
-export function IssueViewNavQueryCount({view}: IssueViewNavQueryCountProps) {
+export function IssueViewNavQueryCount({view, isActive}: IssueViewNavQueryCountProps) {
   const organization = useOrganization();
   const theme = useTheme();
+  const location = useLocation();
+
+  const queryIssueViewParams = createIssueViewFromUrl({query: location.query});
 
   const {
     data: queryCount,
@@ -43,10 +49,12 @@ export function IssueViewNavQueryCount({view}: IssueViewNavQueryCountProps) {
     isError,
   } = useFetchIssueCounts({
     orgSlug: organization.slug,
-    query: [view.unsavedChanges?.query ?? view.query],
-    project: view.unsavedChanges?.projects ?? view.projects,
-    environment: view.unsavedChanges?.environments ?? view.environments,
-    ...constructCountTimeFrame(view.unsavedChanges?.timeFilters ?? view.timeFilters),
+    query: [isActive ? queryIssueViewParams.query : view.query],
+    project: isActive ? queryIssueViewParams.projects : view.projects,
+    environment: isActive ? queryIssueViewParams.environments : view.environments,
+    ...constructCountTimeFrame(
+      isActive ? queryIssueViewParams.timeFilters : view.timeFilters
+    ),
   });
 
   // The endpoint's response type looks like this: { <query1>: <count>, <query2>: <count> }
@@ -59,9 +67,7 @@ export function IssueViewNavQueryCount({view}: IssueViewNavQueryCountProps) {
       : undefined;
   const count = isError
     ? 0
-    : (queryCount?.[view.unsavedChanges?.query ?? view.query] ??
-      queryCount?.[defaultQuery ?? ''] ??
-      0);
+    : (queryCount?.[view.query] ?? queryCount?.[defaultQuery ?? ''] ?? 0);
 
   return (
     <QueryCountBubble
@@ -102,7 +108,7 @@ const QueryCountBubble = styled(motion.span)`
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   color: ${p => p.theme.subText};
   margin-left: 0;
   font-weight: ${p => p.theme.fontWeightBold};

@@ -45,7 +45,7 @@ describe('withDomainRequired', function () {
   });
 
   afterEach(function () {
-    window.location = originalLocation;
+    window.location = originalLocation as typeof window.location & string;
     ConfigStore.loadInitialData(configState);
   });
 

@@ -1042,9 +1042,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert response.data["meta"]["dataset"] == self.dataset
 
         rows = data[0:6]
-        for test in zip(event_counts, rows):
-            assert test[1][1][0]["count"] == test[0]
-            assert test[1][1][0]["comparisonCount"] == test[0] / 2
+        for expected, actual in zip(event_counts, rows):
+            assert actual[1][0]["count"] == expected
+            assert actual[1][0]["comparisonCount"] == expected / 2
 
     def test_comparison_delta_with_empty_comparison_values(self):
         event_counts = [6, 0, 6, 4, 0, 4]
@@ -1678,7 +1678,109 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[2][1][0]["count"] == 0.0
         assert response.data["meta"]["dataset"] == self.dataset
 
-    @pytest.mark.xfail(reason="https://github.com/getsentry/eap-planning/issues/237")
+    def test_http_response_rate(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "description 1", "sentry_tags": {"status_code": "500"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"description": "description 1", "sentry_tags": {"status_code": "400"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"description": "description 2", "sentry_tags": {"status_code": "500"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {"description": "description 2", "sentry_tags": {"status_code": "500"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {"description": "description 2", "sentry_tags": {"status_code": "500"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {"description": "description 2", "sentry_tags": {"status_code": "400"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=4),
+                "interval": "1m",
+                "query": "",
+                "yAxis": ["http_response_rate(5)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data
+
+        assert data["data"][0][1][0]["count"] == 0.0
+        assert data["data"][1][1][0]["count"] == 0.5
+        assert data["data"][2][1][0]["count"] == 0.75
+
+    def test_http_response_rate_multiple_series(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "description 1", "sentry_tags": {"status_code": "500"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"description": "description 1", "sentry_tags": {"status_code": "400"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"description": "description 2", "sentry_tags": {"status_code": "500"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {"description": "description 2", "sentry_tags": {"status_code": "500"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {"description": "description 2", "sentry_tags": {"status_code": "500"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {"description": "description 2", "sentry_tags": {"status_code": "400"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=4),
+                "interval": "1m",
+                "query": "",
+                "yAxis": ["http_response_rate(4)", "http_response_rate(5)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data
+
+        assert data["http_response_rate(4)"]["data"][0][1][0]["count"] == 0.0
+        assert data["http_response_rate(4)"]["data"][1][1][0]["count"] == 0.5
+        assert data["http_response_rate(4)"]["data"][2][1][0]["count"] == 0.25
+
+        assert data["http_response_rate(5)"]["data"][0][1][0]["count"] == 0.0
+        assert data["http_response_rate(5)"]["data"][1][1][0]["count"] == 0.5
+        assert data["http_response_rate(5)"]["data"][2][1][0]["count"] == 0.75
+
+    @pytest.mark.xfail(reason="https://github.com/getsentry/snuba/pull/7067")
     def test_downsampling_single_series(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
@@ -1713,6 +1815,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[1][1][0]["count"] == 512  # The preflight table is 1/512 of the full table
         assert data[2][1][0]["count"] == 0
         assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataScanned"] == "partial"
 
         response = self._do_request(
             data={
@@ -1730,11 +1833,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         data = response.data["data"]
         assert len(data) == 3
         assert data[0][1][0]["count"] == 0
-        assert data[1][1][0]["count"] == 1
+        assert data[1][1][0]["count"] == 2
         assert data[2][1][0]["count"] == 0
         assert response.data["meta"]["dataset"] == self.dataset
+        assert response.data["meta"]["dataScanned"] == "full"
 
-    @pytest.mark.xfail(reason="https://github.com/getsentry/eap-planning/issues/237")
+    @pytest.mark.xfail(reason="https://github.com/getsentry/snuba/pull/7067")
     def test_downsampling_top_events(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
