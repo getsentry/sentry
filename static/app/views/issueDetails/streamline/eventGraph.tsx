@@ -1,3 +1,4 @@
+import type React from 'react';
 import {
   type CSSProperties,
   useCallback,
@@ -18,7 +19,6 @@ import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -30,6 +30,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -562,17 +563,16 @@ function GraphButton({
   ...props
 }: {isActive: boolean; label: string; count?: string} & Partial<ButtonProps>) {
   return (
-    <Callout
+    <CalloutButton
       isActive={isActive}
       aria-label={`${t('Toggle graph series')} - ${label}`}
       {...props}
     >
-      <InteractionStateLayer hidden={isActive} />
       <Flex column>
         <Label isActive={isActive}>{label}</Label>
         <Count isActive={isActive}>{count ? formatAbbreviatedNumber(count) : '-'}</Count>
       </Flex>
-    </Callout>
+    </CalloutButton>
   );
 }
 
@@ -593,21 +593,27 @@ const SummaryContainer = styled('div')`
   }
 `;
 
-const Callout = styled(Button)<{isActive: boolean}>`
-  cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
-  border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-  background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-  padding: ${space(0.5)} ${space(2)};
-  box-shadow: none;
-  height: unset;
-  overflow: hidden;
-  &:disabled {
-    opacity: 1;
-  }
-  &:hover {
+const CalloutButton = withChonk(
+  styled(Button)<{isActive: boolean}>`
+    cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
     border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-  }
-`;
+    background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
+    padding: ${space(0.5)} ${space(2)};
+    box-shadow: none;
+    height: unset;
+    overflow: hidden;
+    &:disabled {
+      opacity: 1;
+    }
+    &:hover {
+      border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
+    }
+  `,
+  styled(Button)<never>`
+    height: unset;
+    padding: ${space(0.5)} ${space(1.5)};
+  `
+);
 
 const Label = styled('div')<{isActive: boolean}>`
   line-height: 1;

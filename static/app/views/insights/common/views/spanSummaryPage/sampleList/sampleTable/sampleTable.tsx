@@ -12,7 +12,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {SamplesTableColumnHeader} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import {SpanSamplesTable} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
+import type {
+  NonDefaultSpanSampleFields,
+  SpanSample,
+} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
 import type {
@@ -31,7 +34,7 @@ type Props = {
   groupId: string;
   moduleName: ModuleName;
   transactionName: string;
-  additionalFields?: string[];
+  additionalFields?: NonDefaultSpanSampleFields[];
   additionalFilters?: Record<string, string>;
   columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
@@ -95,9 +98,9 @@ function SampleTable({
   const {setPageError} = usePageAlert();
 
   const {
-    data: spans,
+    data: spanSamplesData,
     isFetching: isFetchingSamples,
-    isEnabled: isSamplesEnabled,
+    isPending: isPendingSamples,
     error: sampleError,
     refetch,
   } = useSpanSamples({
@@ -109,6 +112,8 @@ function SampleTable({
     spanSearch,
     additionalFields,
   });
+
+  const spans = spanSamplesData?.data ?? [];
 
   const {
     data: transactions,
@@ -151,7 +156,7 @@ function SampleTable({
   const isLoading =
     isFetchingSpanMetrics ||
     isFetchingSamples ||
-    !isSamplesEnabled ||
+    isPendingSamples ||
     (!areNoSamples && isFetchingTransactions && !isTransactionsEnabled);
 
   if (sampleError || transactionError) {

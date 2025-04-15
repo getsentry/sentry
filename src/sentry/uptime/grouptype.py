@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
@@ -18,7 +17,18 @@ class UptimeDomainCheckFailure(GroupType):
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
-
-
-# XXX: Temporary hack to work around pickling issues
-grouptype.UptimeDomainCheckFailure = UptimeDomainCheckFailure  # type: ignore[attr-defined]
+    detector_config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "A representation of an uptime alert",
+        "type": "object",
+        "required": ["mode", "environment"],
+        "properties": {
+            "mode": {
+                "type": ["integer"],
+                # TODO: Enable this when we can move this grouptype out of this file
+                # "enum": [mode.value for mode in ProjectUptimeSubscriptionMode],
+            },
+            "environment": {"type": ["string"]},
+        },
+        "additionalProperties": False,
+    }

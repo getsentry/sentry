@@ -36,6 +36,7 @@ import type {
   EChartChartReadyHandler,
   EChartClickHandler,
   EChartDataZoomHandler,
+  EChartDownplayHandler,
   EChartEventHandler,
   EChartFinishedHandler,
   EChartHighlightHandler,
@@ -209,6 +210,7 @@ export interface BaseChartProps {
   onChartReady?: EChartChartReadyHandler;
   onClick?: EChartClickHandler;
   onDataZoom?: EChartDataZoomHandler;
+  onDownplay?: EChartDownplayHandler;
   onFinished?: EChartFinishedHandler;
   onHighlight?: EChartHighlightHandler;
   onLegendSelectChanged?: EChartEventHandler<{
@@ -358,6 +360,7 @@ function BaseChart({
   onClick,
   onLegendSelectChanged,
   onHighlight,
+  onDownplay,
   onMouseOut,
   onMouseOver,
   onDataZoom,
@@ -616,6 +619,7 @@ function BaseChart({
         },
 
         highlight: (props: any, instance: ECharts) => onHighlight?.(props, instance),
+        downplay: (props: any, instance: ECharts) => onDownplay?.(props, instance),
         mouseout: (props: any, instance: ECharts) => onMouseOut?.(props, instance),
         mouseover: (props: any, instance: ECharts) => onMouseOver?.(props, instance),
         datazoom: (props: any, instance: ECharts) => onDataZoom?.(props, instance),
@@ -635,6 +639,7 @@ function BaseChart({
     [
       onClick,
       onHighlight,
+      onDownplay,
       onLegendSelectChanged,
       onMouseOut,
       onMouseOver,

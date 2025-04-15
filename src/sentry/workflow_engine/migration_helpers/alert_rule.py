@@ -26,6 +26,7 @@ from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,
     DataCondition,
+    DataConditionAlertRuleTrigger,
     DataConditionGroup,
     DataConditionGroupAction,
     DataSource,
@@ -288,7 +289,10 @@ def migrate_metric_data_conditions(
         type=threshold_type,
         condition_group=detector_data_condition_group,
     )
-
+    DataConditionAlertRuleTrigger.objects.create(
+        data_condition=detector_trigger,
+        alert_rule_trigger_id=alert_rule_trigger.id,
+    )
     # create an "action filter": if the detector's status matches a certain priority level,
     # then the condition result is set to true
     data_condition_group = DataConditionGroup.objects.create(
@@ -572,7 +576,7 @@ def dual_write_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) ->
     """
     with transaction.atomic(router.db_for_write(Detector)):
         # step 1: migrate the alert rule
-        migrate_alert_rule(alert_rule)
+        migrate_alert_rule(alert_rule, user)
         triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
         # step 2: migrate each trigger
         for trigger in triggers:

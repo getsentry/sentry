@@ -15,6 +15,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavTourModal, navTourModalCss} from 'sentry/views/nav/tour/tourModal';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
@@ -151,7 +152,12 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           break;
         case StackedNavigationTour.EXPLORE:
           if (activeGroup !== PrimaryNavGroup.EXPLORE) {
-            navigate(normalizeUrl(`/${prefix}/explore/traces/`), {replace: true});
+            navigate(
+              normalizeUrl(`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`),
+              {
+                replace: true,
+              }
+            );
           }
           break;
         case StackedNavigationTour.DASHBOARDS:
@@ -161,12 +167,12 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           break;
         case StackedNavigationTour.INSIGHTS:
           if (activeGroup !== PrimaryNavGroup.INSIGHTS) {
-            navigate(normalizeUrl(`/${prefix}/insights/`), {replace: true});
+            navigate(normalizeUrl(`/${prefix}/insights/frontend/`), {replace: true});
           }
           break;
         case StackedNavigationTour.SETTINGS:
           if (activeGroup !== PrimaryNavGroup.SETTINGS) {
-            navigate(normalizeUrl(`/${prefix}/settings/organization/`), {
+            navigate(normalizeUrl(`/settings/${organization.slug}/`), {
               replace: true,
             });
           }
@@ -175,7 +181,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           break;
       }
     },
-    [activeGroup, navigate, organization.slug]
+    [activeGroup, navigate, organization]
   );
 
   return (

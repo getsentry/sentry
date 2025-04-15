@@ -1,7 +1,6 @@
 import type {AccuracyStats, Confidence} from 'sentry/types/organization';
 import type {DataUnit} from 'sentry/utils/discover/fields';
-
-import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 type AttributeValueType =
   | 'number'
@@ -51,7 +50,7 @@ export type TabularMeta<TFields extends string = string> = {
 
 export type TabularRow<TFields extends string = string> = Record<
   TFields,
-  number | string | null
+  number | string | string[] | null
 >;
 
 export type TabularData<TFields extends string = string> = {
@@ -60,9 +59,12 @@ export type TabularData<TFields extends string = string> = {
 };
 
 export type ErrorProp = Error | string;
+export interface ErrorPropWithResponseJSON extends Error {
+  responseJSON?: {detail: string};
+}
 
 export interface StateProps {
-  error?: ErrorProp;
+  error?: ErrorProp | ErrorPropWithResponseJSON;
   isLoading?: boolean;
   onRetry?: () => void;
 }

@@ -50,6 +50,12 @@ DEFAULT_IGNORE_LIMIT: int = 3
 DEFAULT_EXPIRY_TIME: timedelta = timedelta(hours=24)
 
 
+class InvalidGroupTypeError(ValueError):
+    def __init__(self, group_type_id: int) -> None:
+        super().__init__(f"No group type with the id {group_type_id} is registered.")
+        self.group_type_id = group_type_id
+
+
 @dataclass()
 class GroupTypeRegistry:
     _registry: dict[int, type[GroupType]] = field(default_factory=dict)
@@ -107,7 +113,7 @@ class GroupTypeRegistry:
 
     def get_by_type_id(self, id_: int) -> type[GroupType]:
         if id_ not in self._registry:
-            raise ValueError(f"No group type with the id {id_} is registered.")
+            raise InvalidGroupTypeError(id_)
         return self._registry[id_]
 
 
@@ -183,8 +189,8 @@ class GroupType:
 
         if not cls.released:
             features.add(cls.build_visible_feature_name(), OrganizationFeature, True)
-            features.add(cls.build_ingest_feature_name(), OrganizationFeature)
-            features.add(cls.build_post_process_group_feature_name(), OrganizationFeature)
+            features.add(cls.build_ingest_feature_name(), OrganizationFeature, True)
+            features.add(cls.build_post_process_group_feature_name(), OrganizationFeature, True)
 
     def __post_init__(self) -> None:
         valid_categories = [category.value for category in GroupCategory]
@@ -218,7 +224,7 @@ class GroupType:
 
     @classmethod
     def build_base_feature_name(cls) -> str:
-        return f"organizations:{cls.build_feature_name_slug()}"
+        return f"organizations:issue-{cls.build_feature_name_slug()}"
 
     @classmethod
     def build_visible_feature_name(cls) -> str:
@@ -281,6 +287,7 @@ class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, 
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
     released = True
+    use_flagpole_for_all_features = True
 
 
 @dataclass(frozen=True)
@@ -384,19 +391,7 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
     noise_config = NoiseConfig(ignore_limit=20)
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
-
-
-# experimental
-@dataclass(frozen=True)
-class PerformanceDurationRegressionGroupType(GroupType):
-    type_id = 1017
-    slug = "performance_duration_regression"
-    description = "Transaction Duration Regression (Experimental)"
-    category = GroupCategory.PERFORMANCE.value
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-    default_priority = PriorityLevel.LOW
-    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
+    released = True
 
 
 @dataclass(frozen=True)
@@ -432,6 +427,7 @@ class ProfileFileIOGroupType(GroupType):
     description = "File I/O on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
+    released = True
 
 
 @dataclass(frozen=True)
@@ -441,6 +437,7 @@ class ProfileImageDecodeGroupType(GroupType):
     description = "Image Decoding on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
+    released = True
 
 
 @dataclass(frozen=True)
@@ -450,25 +447,7 @@ class ProfileJSONDecodeType(GroupType):
     description = "JSON Decoding on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
-
-
-@dataclass(frozen=True)
-class ProfileCoreDataExperimentalType(GroupType):
-    type_id = 2004
-    slug = "profile_core_data_main_exp"
-    description = "Core Data on Main Thread"
-    category = GroupCategory.PERFORMANCE.value
-    default_priority = PriorityLevel.LOW
-
-
-# 2005 was ProfileRegexExperimentalType
-@dataclass(frozen=True)
-class ProfileViewIsSlowExperimentalType(GroupType):
-    type_id = 2006
-    slug = "profile_view_is_slow_experimental"
-    description = "View Render/Layout/Update is slow"
-    category = GroupCategory.PERFORMANCE.value
-    default_priority = PriorityLevel.LOW
+    released = True
 
 
 @dataclass(frozen=True)
@@ -482,15 +461,6 @@ class ProfileRegexType(GroupType):
 
 
 @dataclass(frozen=True)
-class ProfileFrameDropExperimentalType(GroupType):
-    type_id = 2008
-    slug = "profile_frame_drop_experimental"
-    description = "Frame Drop"
-    category = GroupCategory.PERFORMANCE.value
-    default_priority = PriorityLevel.LOW
-
-
-@dataclass(frozen=True)
 class ProfileFrameDropType(GroupType):
     type_id = 2009
     slug = "profile_frame_drop"
@@ -499,17 +469,6 @@ class ProfileFrameDropType(GroupType):
     noise_config = NoiseConfig(ignore_limit=2000)
     released = True
     default_priority = PriorityLevel.LOW
-
-
-@dataclass(frozen=True)
-class ProfileFunctionRegressionExperimentalType(GroupType):
-    type_id = 2010
-    slug = "profile_function_regression_exp"
-    description = "Function Duration Regression (Experimental)"
-    category = GroupCategory.PERFORMANCE.value
-    enable_auto_resolve = False
-    default_priority = PriorityLevel.LOW
-    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 @dataclass(frozen=True)
@@ -551,16 +510,6 @@ class MonitorCheckInTimeout(MonitorIncidentType):
 class MonitorCheckInMissed(MonitorIncidentType):
     # This is deprecated, only kept around for it's type_id
     type_id = 4003
-
-
-@dataclass(frozen=True)
-class ReplayDeadClickType(ReplayGroupTypeDefaults, GroupType):
-    # This is not currently used
-    type_id = 5001
-    slug = "replay_click_dead"
-    description = "Dead Click Detected"
-    category = GroupCategory.REPLAY.value
-    default_priority = PriorityLevel.MEDIUM
 
 
 @dataclass(frozen=True)

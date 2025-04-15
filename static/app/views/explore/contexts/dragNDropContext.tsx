@@ -12,7 +12,10 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 
-import {type Column, useDragNDropColumns} from '../hooks/useDragNDropColumns';
+import {
+  type Column,
+  useDragNDropColumns,
+} from 'sentry/views/explore/hooks/useDragNDropColumns';
 
 interface DragNDropContextProps {
   children: (props: {
@@ -22,7 +25,7 @@ interface DragNDropContextProps {
     updateColumnAtIndex: (i: number, column: string) => void;
   }) => React.ReactNode;
   columns: string[];
-  setColumns: (columns: string[]) => void;
+  setColumns: (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => void;
 }
 
 export function DragNDropContext({columns, setColumns, children}: DragNDropContextProps) {

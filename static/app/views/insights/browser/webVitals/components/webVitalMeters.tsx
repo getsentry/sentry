@@ -15,7 +15,7 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
+import {makePerformanceScoreColors} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
   STATUS_TEXT,
@@ -245,7 +245,7 @@ const MeterBarContainer = styled('div')<{clickable?: boolean}>`
 `;
 
 const MeterBarBody = styled('div')`
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   border-bottom: none;
   padding: ${space(1)} 0 ${space(0.5)} 0;
@@ -285,12 +285,12 @@ function MeterBarFooter({score}: {score: number | undefined}) {
 }
 
 const MeterBarFooterContainer = styled('div')<{
-  status: keyof typeof PERFORMANCE_SCORE_COLORS;
+  status: keyof ReturnType<typeof makePerformanceScoreColors>;
 }>`
-  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].border]};
+  background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
+  border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].border};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.5)};
   text-align: center;

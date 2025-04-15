@@ -4,8 +4,8 @@ import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 import {
   hasLaravelInsightsFeature,
-  useIsLaravelInsightsEnabled,
-} from 'sentry/views/insights/pages/backend/laravel/features';
+  useIsLaravelInsightsAvailable,
+} from 'sentry/views/insights/pages/platform/laravel/features';
 
 import ProjectDetail from './projectDetail';
 
@@ -17,7 +17,7 @@ function ProjectDetailContainer(
 ) {
   const {organization} = props;
   const {projects} = useProjects();
-  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
+  const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
 
   const project = projects.find(p => p.slug === props.params.projectId);
   useRouteAnalyticsParams(
@@ -32,7 +32,7 @@ function ProjectDetailContainer(
   if (
     project?.platform === 'php-laravel' &&
     hasLaravelInsightsFeature(organization) &&
-    isLaravelInsightsEnabled
+    isLaravelInsightsAvailable
   ) {
     return (
       <Redirect
