@@ -6,11 +6,11 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {ISSUE_PROPERTY_FIELDS} from 'sentry/utils/fields';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
@@ -40,6 +40,7 @@ function GroupEvents({group}: GroupEventsProps) {
   const environments = useEnvironmentsFromUrl();
   const params = useParams<{groupId: string}>();
   const organization = useOrganization();
+  const navigate = useNavigate();
 
   useCleanQueryParamsOnRouteLeave({
     fieldsToClean: ['cursor', 'query'],
@@ -48,14 +49,15 @@ function GroupEvents({group}: GroupEventsProps) {
   });
 
   const handleSearch = useCallback(
-    (query: string) =>
-      browserHistory.push(
+    (query: string) => {
+      navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/issues/${params.groupId}/events/`,
           query: {...location.query, query},
         })
-      ),
-    [location, organization, params.groupId]
+      );
+    },
+    [location, organization, params.groupId, navigate]
   );
 
   const query = (location.query?.query ?? '') as string;
