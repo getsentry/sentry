@@ -5,15 +5,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 
-class WidgetImportError extends Error {
-  constructor(options?: ErrorOptions) {
-    const message =
-      'Unable to import widget: widget file not found or widget not exported as default export.';
-    super(message, options);
-    this.name = 'WidgetImportError';
-  }
-}
-
 interface Props extends LoadableChartWidgetProps {
   /**
    * ID of the Chart
@@ -45,7 +36,11 @@ export function ChartWidgetLoader(props: Props) {
   const Component = query.data?.default;
 
   if (query.isError || !Component) {
-    const error = query.error || new WidgetImportError();
+    const error =
+      query.error ||
+      new Error(
+        'Unable to import widget: widget file not found or widget not exported as default export.'
+      );
     // eslint-disable-next-line no-console
     console.error(error);
     captureException(error);
