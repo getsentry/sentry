@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Sequence
-from typing import NamedTuple, TypeAlias
+from collections.abc import Mapping, Sequence
+from typing import Any, NamedTuple, TypeAlias
 
 from sentry import tsdb
 from sentry.digests.types import Notification, Record, RecordWithRuleObjects
@@ -22,7 +22,7 @@ Digest: TypeAlias = dict[Rule, dict[Group, list[RecordWithRuleObjects]]]
 class DigestInfo(NamedTuple):
     digest: Digest
     event_counts: dict[int, int]
-    user_counts: dict[int, int]
+    user_counts: Mapping[Any, int]
 
 
 def split_key(
@@ -113,7 +113,7 @@ def _group_records(
 
 
 def _sort_digest(
-    digest: Digest, event_counts: dict[int, int], user_counts: dict[int, int]
+    digest: Digest, event_counts: dict[int, int], user_counts: Mapping[Any, int]
 ) -> Digest:
     # sort inner groups dict by (event_count, user_count) descending
     for key, rule_groups in digest.items():
@@ -142,7 +142,7 @@ def _build_digest_impl(
     groups: dict[int, Group],
     rules: dict[int, Rule],
     event_counts: dict[int, int],
-    user_counts: dict[int, int],
+    user_counts: Mapping[Any, int],
 ) -> Digest:
     # sans-io implementation details
     bound_records = _bind_records(records, groups, rules)

@@ -590,7 +590,7 @@ class BaseTSDB(Service):
     def get_distinct_counts_totals(
         self,
         model: TSDBModel,
-        keys: Sequence[int],
+        keys: Sequence[TSDBKey],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
@@ -601,7 +601,7 @@ class BaseTSDB(Service):
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
         group_on_time: bool = False,
-    ) -> dict[int, Any]:
+    ) -> Mapping[TSDBKey, int]:
         """
         Count distinct items during a time range with optional conditions
         """
