@@ -229,7 +229,33 @@ function getChartColorPalette<Length extends ValidLengthArgument>(
   return CHART_PALETTE[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
 }
 
-export const generateThemeAliases = (colors: Colors) => ({
+const generateTokens = (_colors: Colors) => ({
+  content: {
+    primary: '',
+    muted: '',
+    accent: '',
+    promotion: '',
+    danger: '',
+    warning: '',
+    success: '',
+  },
+  background: {
+    primary: '',
+    secondary: '',
+    tertiary: '',
+  },
+  border: {
+    primary: '',
+    muted: '',
+    accent: '',
+    promotion: '',
+    danger: '',
+    warning: '',
+    success: '',
+  },
+});
+
+const generateThemeAliases = (colors: Colors) => ({
   /**
    * Heading text color
    */
@@ -1266,6 +1292,9 @@ const commonTheme = {
 // Redeclare as we dont want to use the deprecation
 const getColorPalette = getChartColorPalette;
 
+const lightTokens = generateTokens(lightColors);
+const darkTokens = generateTokens(darkColors);
+
 // Light and dark theme definitions
 const lightAliases = generateThemeAliases(lightColors);
 const darkAliases = generateThemeAliases(darkColors);
@@ -1280,9 +1309,11 @@ export const lightTheme = {
   ...lightColors,
   ...lightAliases,
   ...lightShadows,
+  tokens: lightTokens,
   inverted: {
     ...darkColors,
     ...darkAliases,
+    tokens: darkTokens,
   },
   ...generateThemeUtils(lightColors, lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
@@ -1332,9 +1363,11 @@ export const darkTheme: typeof lightTheme = {
   ...darkColors,
   ...darkAliases,
   ...darkShadows,
+  tokens: darkTokens,
   inverted: {
     ...lightColors,
     ...lightAliases,
+    tokens: lightTokens,
   },
   ...generateThemeUtils(darkColors, darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
