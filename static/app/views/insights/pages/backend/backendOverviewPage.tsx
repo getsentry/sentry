@@ -279,8 +279,7 @@ function GenericBackendOverviewPage() {
         'sum(span.duration)',
       ],
     },
-    'api.performance.landing-table',
-    true
+    'api.performance.landing-table'
   );
 
   return (
