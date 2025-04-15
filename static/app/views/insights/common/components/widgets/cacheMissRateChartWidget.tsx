@@ -9,7 +9,7 @@ import {SpanFunction} from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
 
-export default function CacheMissRateWidget(props: LoadableChartWidgetProps) {
+export default function CacheMissRateChartWidget(props: LoadableChartWidgetProps) {
   const {isPending, data, error} = useSpanMetricsSeries(
     {
       yAxis: [`${CACHE_MISS_RATE}()`],
