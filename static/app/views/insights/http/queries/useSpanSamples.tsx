@@ -12,7 +12,7 @@ import type {
 } from 'sentry/views/insights/common/queries/useSpanSamples';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/insights/types';
+import type {SpanIndexedResponse} from 'sentry/views/insights/types';
 
 interface UseSpanSamplesOptions<Fields> {
   enabled?: boolean;
@@ -49,15 +49,8 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
 
   const dateConditions = getDateConditions(selection);
 
-  type DataRow = Pick<
-    SpanIndexedResponse,
-    | Fields[number]
-    | DefaultSpanSampleFields // These fields are returned by default
-    | SpanIndexedField.TRANSACTION_ID // TODO: Remove `Transaction_id` with `useInsightsEap`
-  >;
-
-  const result = useApiQuery<{
-    data: DataRow[];
+  return useApiQuery<{
+    data: Array<Pick<SpanIndexedResponse, Fields[number] | DefaultSpanSampleFields>>;
     meta: EventsMetaType;
   }>(
     [
@@ -87,17 +80,4 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
       retry: false,
     }
   );
-
-  // TODO: Remove this `Omit` and mapping once we remove `useInsightsEap`
-  const finalData: Array<Omit<DataRow, SpanIndexedField.TRANSACTION_ID>> | undefined =
-    result.data?.data.map(row => {
-      return {
-        ...row,
-        [SpanIndexedField.TRANSACTION_SPAN_ID]: useEap
-          ? row[SpanIndexedField.TRANSACTION_SPAN_ID]
-          : row[SpanIndexedField.TRANSACTION_ID],
-      };
-    });
-
-  return {...result, data: {...result.data, data: finalData}};
 };
