@@ -6,12 +6,15 @@ from sentry.api.endpoints.organization_member.utils import (
     ROLE_CHOICES,
     MemberConflictValidationError,
 )
+from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberinvite import InviteStatus, OrganizationMemberInvite
 from sentry.models.team import Team, TeamStatus
 from sentry.roles import organization_roles
 from sentry.users.api.parsers.email import AllowedEmailField
 from sentry.users.services.user.service import user_service
+
+ERR_WRONG_METHOD = "You cannot reject an invite request via this method."
 
 
 class OrganizationMemberInviteRequestValidator(serializers.Serializer):
@@ -25,6 +28,13 @@ class OrganizationMemberInviteRequestValidator(serializers.Serializer):
         help_text="The organization-level role of the new member. Roles include:",  # choices will follow in the docs
     )
     teams = serializers.ListField(required=False, allow_null=False, default=[])
+
+    reinvite = serializers.BooleanField(
+        required=False,
+        help_text="Whether or not to re-invite a user who has already been invited to the organization. Defaults to True.",
+    )
+
+    regenerate = serializers.BooleanField(required=False)
 
     def validate_email(self, email):
         users = user_service.get_many_by_email(
@@ -60,6 +70,13 @@ class OrganizationMemberInviteRequestValidator(serializers.Serializer):
         return email
 
     def validate_orgRole(self, role):
+        # if the user is making a PUT request and updating the org role to one that can't have teams
+        # assignments, but the existing invite has team assignments, raise an error
+        if self.context.get("teams", []) and not organization_roles.get(role).is_team_roles_allowed:
+            raise serializers.ValidationError(
+                f"The '{role}' role cannot be set on an invited user with team assignments."
+            )
+
         if role == "billing" and features.has(
             "organizations:invite-billing", self.context["organization"]
         ):
@@ -125,12 +142,33 @@ class OrganizationMemberInviteRequestValidator(serializers.Serializer):
                     "You cannot assign members to teams you are not a member of."
                 )
 
-        if (
-            has_teams
-            and not organization_roles.get(self.initial_data.get("orgRole")).is_team_roles_allowed
-        ):
+        # if we're making a PUT request and not changing the org role, then orgRole will be None in the initial data
+        org_role = (
+            self.initial_data.get("orgRole")
+            if self.initial_data.get("orgRole") is not None
+            else self.context["org_role"]
+        )
+        if has_teams and not organization_roles.get(org_role).is_team_roles_allowed:
             raise serializers.ValidationError(
-                f"The user with a '{self.initial_data.get("orgRole")}' role cannot have team-level permissions."
+                f"The user with a '{org_role}' role cannot have team-level permissions."
             )
 
         return valid_teams
+
+
+class ApproveInviteRequestValidator(serializers.Serializer):
+    approve = serializers.BooleanField(required=True, write_only=True)
+
+    def validate_approve(self, approve):
+        invited_member = self.context["invited_member"]
+        allowed_roles = self.context["allowed_roles"]
+        # you can't reject an invite request via a PUT request
+        if approve is False:
+            raise serializers.ValidationError(ERR_WRONG_METHOD)
+
+        try:
+            invited_member.validate_invitation(allowed_roles)
+        except UnableToAcceptMemberInvitationException as err:
+            raise serializers.ValidationError(str(err))
+
+        return approve
