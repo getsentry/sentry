@@ -32,16 +32,11 @@ const FREQUENCY_OPTIONS = [
   {value: '43200', label: t('30 days')},
 ];
 
-const model = new FormModel(flattie(initialState));
+const model = new FormModel({initialData: flattie(initialState)});
 
 export default function AutomationForm() {
   const title = useDocumentTitle();
   const {state, dispatch} = useAutomationBuilderReducer();
-
-  useEffect(() => {
-    const flattened = flattie(state);
-    model.setInitialData(flattened);
-  });
 
   useEffect(() => {
     model.setValue('name', title);
