@@ -406,12 +406,12 @@ const TopSection = styled('div')`
   grid-column: 1/3;
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${space(1)};
 `;
 
 const FilterSection = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: minmax(300px, auto) 1fr;

@@ -13,6 +13,7 @@ import {Button, LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
@@ -248,7 +249,7 @@ export function ToolbarSaveAs() {
   }
 
   return (
-    <ToolbarSection data-test-id="section-save-as">
+    <StyledToolbarSection data-test-id="section-save-as">
       <ButtonBar gap={1}>
         <DropdownMenu
           items={items}
@@ -289,12 +290,17 @@ export function ToolbarSaveAs() {
           >{`${t('Compare Queries')}`}</LinkButton>
         )}
       </ButtonBar>
-    </ToolbarSection>
+    </StyledToolbarSection>
   );
 }
 
 const DisabledText = styled('span')`
   color: ${p => p.theme.disabled};
+`;
+
+const StyledToolbarSection = styled(ToolbarSection)`
+  border-top: 1px solid ${p => p.theme.border};
+  padding-top: ${space(2)};
 `;
 
 const SaveAsButton = styled(Button)`
