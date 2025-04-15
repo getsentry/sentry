@@ -1,5 +1,5 @@
 import {EvidencePreview} from 'sentry/components/groupPreviewTooltip/evidencePreview';
-import {IssueCategory, type IssueType} from 'sentry/types/group';
+import type {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 
@@ -48,22 +48,22 @@ function GroupPreviewTooltip({
     );
   }
 
-  if (issueCategory === IssueCategory.ERROR) {
+  if (issueTypeConfig?.usesIssuePlatform) {
     return (
-      <StackTracePreview
-        groupId={groupId}
-        groupingCurrentLevel={groupingCurrentLevel}
-        query={query}
-      >
+      <EvidencePreview groupId={groupId} query={query}>
         {children}
-      </StackTracePreview>
+      </EvidencePreview>
     );
   }
 
   return (
-    <EvidencePreview groupId={groupId} query={query}>
+    <StackTracePreview
+      groupId={groupId}
+      groupingCurrentLevel={groupingCurrentLevel}
+      query={query}
+    >
       {children}
-    </EvidencePreview>
+    </StackTracePreview>
   );
 }
 
