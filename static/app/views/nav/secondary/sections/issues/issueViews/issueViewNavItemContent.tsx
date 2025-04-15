@@ -1,11 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion, Reorder, useDragControls} from 'framer-motion';
-import type {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -17,18 +14,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import type {
-  IssueView,
-  IssueViewParams,
-} from 'sentry/views/issueList/issueViews/issueViews';
-import {normalizeProjectsEnvironments} from 'sentry/views/issueList/issueViewsHeader';
-import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
 import {useNavContext} from 'sentry/views/nav/context';
 import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import IssueViewNavEditableTitle from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavEditableTitle';
 import {IssueViewNavEllipsisMenu} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavEllipsisMenu';
-import {constructViewLink} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
+import {
+  constructViewLink,
+  type NavIssueView,
+} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
 import {IssueViewNavQueryCount} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavQueryCount';
 
 export interface IssueViewNavItemContentProps {
@@ -46,21 +41,9 @@ export interface IssueViewNavItemContentProps {
    */
   isLastView: boolean;
   /**
-   * A callback function that's fired when the user clicks "Delete" on the view.
-   */
-  onDeleteView: () => void;
-  /**
-   * A callback function that's fired when the user clicks "Duplicate" on the view.
-   */
-  onDuplicateView: () => void;
-  /**
    * A callback function that is called when the user has completed a reorder.
    */
   onReorderComplete: () => void;
-  /**
-   * A callback function that updates the view with new params.
-   */
-  onUpdateView: (updatedView: IssueView) => void;
   /**
    * A callback function that updates the isDragging state.
    */
@@ -68,7 +51,7 @@ export interface IssueViewNavItemContentProps {
   /**
    * The issue view to display
    */
-  view: IssueView;
+  view: NavIssueView;
   /**
    * Ref to the body of the section that contains the reorderable items.
    * This is used as the portal container for the ellipsis menu, and as
@@ -81,9 +64,6 @@ export function IssueViewNavItemContent({
   view,
   sectionRef,
   isActive,
-  onUpdateView,
-  onDeleteView,
-  onDuplicateView,
   onReorderComplete,
   isLastView,
   isDragging,
@@ -97,6 +77,7 @@ export function IssueViewNavItemContent({
 
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const [isEditing, setIsEditing] = useState(false);
+  const {hasUnsavedChanges, changedParams} = useIssueViewUnsavedChanges();
 
   const {projects} = useProjects();
 
@@ -106,22 +87,9 @@ export function IssueViewNavItemContent({
         navigate(constructViewLink(baseUrl, view), {replace: true});
         return;
       }
-      const unsavedChanges = hasUnsavedChanges(view, location.query);
-
-      if (unsavedChanges && !isEqual(unsavedChanges, view.unsavedChanges)) {
-        onUpdateView({
-          ...view,
-          unsavedChanges,
-        });
-      } else if (!unsavedChanges && view.unsavedChanges) {
-        onUpdateView({
-          ...view,
-          unsavedChanges: undefined,
-        });
-      }
     }
     return;
-  }, [view, isActive, location.query, navigate, baseUrl, onUpdateView]);
+  }, [view, isActive, location.query, navigate, baseUrl]);
 
   const projectPlatforms = projects
     .filter(p => view.projects.map(String).includes(p.id))
@@ -194,15 +162,11 @@ export function IssueViewNavItemContent({
               e.preventDefault();
             }}
           >
-            <IssueViewNavQueryCount view={view} />
+            <IssueViewNavQueryCount view={view} isActive={isActive} />
             <IssueViewNavEllipsisMenu
               isLastView={isLastView}
               setIsEditing={setIsEditing}
               view={view}
-              onUpdateView={onUpdateView}
-              onDeleteView={onDeleteView}
-              onDuplicateView={onDuplicateView}
-              baseUrl={baseUrl}
               sectionRef={sectionRef}
             />
           </TrailingItemsWrapper>
@@ -223,22 +187,15 @@ export function IssueViewNavItemContent({
         analyticsItemName="issues_view_starred"
       >
         <IssueViewNavEditableTitle
-          label={view.label}
+          view={view}
           isEditing={isEditing}
-          isSelected={isActive}
-          onChange={value => {
-            onUpdateView({...view, label: value});
-            trackAnalytics('issue_views.renamed_view', {
-              leftNav: true,
-              organization: organization.slug,
-            });
-          }}
           setIsEditing={setIsEditing}
           isDragging={!!isDragging}
+          isActive={isActive}
         />
-        {view.unsavedChanges && (
+        {isActive && hasUnsavedChanges && changedParams && (
           <Tooltip
-            title={constructUnsavedTooltipTitle(view.unsavedChanges)}
+            title={constructUnsavedTooltipTitle(changedParams)}
             position="top"
             skipWrapper
           >
@@ -262,98 +219,25 @@ const READABLE_PARAM_MAPPING = {
   timeFilters: t('time range'),
 };
 
-const constructUnsavedTooltipTitle = (unsavedChanges: Partial<IssueViewParams>) => {
-  const changedParams = Object.keys(unsavedChanges)
-    .filter(k => unsavedChanges[k as keyof IssueViewParams] !== undefined)
-    .map(k => READABLE_PARAM_MAPPING[k as keyof IssueViewParams]);
+const constructUnsavedTooltipTitle = (changedParams: {
+  environments: boolean;
+  projects: boolean;
+  query: boolean;
+  querySort: boolean;
+  timeFilters: boolean;
+}) => {
+  const changedParamsArray = Object.keys(changedParams)
+    .filter(k => changedParams[k as keyof typeof changedParams])
+    .map(k => READABLE_PARAM_MAPPING[k as keyof typeof READABLE_PARAM_MAPPING]);
 
   return (
     <Fragment>
       {t(
         "This view's %s filters are not saved.",
-        <BoldTooltipText>{oxfordizeArray(changedParams)}</BoldTooltipText>
+        <BoldTooltipText>{oxfordizeArray(changedParamsArray)}</BoldTooltipText>
       )}
     </Fragment>
   );
-};
-
-// TODO(msun): Once nuqs supports native array query params, we can use that here and replace this absurd function
-const hasUnsavedChanges = (
-  view: IssueView,
-  queryParams: Location['query']
-): false | Partial<IssueViewParams> => {
-  const {
-    query: originalQuery,
-    querySort: originalSort,
-    projects: originalProjects,
-    environments: originalEnvironments,
-    timeFilters: originalTimeFilters,
-  } = view;
-  const {
-    query: queryQuery,
-    sort: querySort,
-    project,
-    environment,
-    start,
-    end,
-    statsPeriod,
-    utc,
-  } = queryParams;
-
-  const queryTimeFilters =
-    start || end || statsPeriod || utc
-      ? {
-          start: statsPeriod ? null : (start?.toString() ?? null),
-          end: statsPeriod ? null : (end?.toString() ?? null),
-          period: statsPeriod?.toString() ?? null,
-          utc: statsPeriod ? null : utc?.toString() === 'true',
-        }
-      : undefined;
-
-  const {queryEnvs, queryProjects} = normalizeProjectsEnvironments(
-    project ?? [],
-    environment ?? []
-  );
-
-  const issueSortOption = Object.values(IssueSortOptions).includes(
-    querySort?.toString() as IssueSortOptions
-  )
-    ? (querySort as IssueSortOptions)
-    : undefined;
-
-  const newUnsavedChanges: Partial<IssueViewParams> = {
-    query:
-      queryQuery !== null &&
-      queryQuery !== undefined &&
-      queryQuery.toString() !== originalQuery
-        ? queryQuery.toString()
-        : undefined,
-    querySort:
-      querySort && issueSortOption !== originalSort ? issueSortOption : undefined,
-    projects: isEqual(queryProjects?.sort(), originalProjects.sort())
-      ? undefined
-      : queryProjects,
-    environments: isEqual(queryEnvs?.sort(), originalEnvironments.sort())
-      ? undefined
-      : queryEnvs,
-    timeFilters:
-      queryTimeFilters &&
-      !isEqual(
-        normalizeDateTimeParams(originalTimeFilters),
-        normalizeDateTimeParams(queryTimeFilters)
-      )
-        ? queryTimeFilters
-        : undefined,
-  };
-
-  const hasNoChanges = Object.values(newUnsavedChanges).every(
-    value => value === undefined
-  );
-  if (hasNoChanges) {
-    return false;
-  }
-
-  return newUnsavedChanges;
 };
 
 // Reorder.Item does handle lifting an item being dragged above other items out of the box,

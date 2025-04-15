@@ -24,5 +24,12 @@ export function useIssueViewUnsavedChanges() {
 
   return {
     hasUnsavedChanges,
+    changedParams: {
+      query: !isEqual(currentViewData.query, viewFromUrl.query),
+      querySort: !isEqual(currentViewData.querySort, viewFromUrl.querySort),
+      projects: !isEqual(currentViewData.projects, viewFromUrl.projects),
+      environments: !isEqual(currentViewData.environments, viewFromUrl.environments),
+      timeFilters: !isEqual(currentViewData.timeFilters, viewFromUrl.timeFilters),
+    },
   };
 }
