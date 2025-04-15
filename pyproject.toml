@@ -136,7 +136,6 @@ module = [
     "sentry.integrations.slack.webhooks.event",
     "sentry.integrations.utils.sync",
     "sentry.integrations.vsts.integration",
-    "sentry.integrations.vsts.issues",
     "sentry.issues.search",
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
