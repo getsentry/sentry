@@ -16,16 +16,16 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
-import {Referrer} from 'sentry/views/insights/pages/backend/laravel/referrers';
+import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {
   ModalChartContainer,
   ModalTableWrapper,
   SeriesColorIndicator,
   WidgetFooterTable,
-} from 'sentry/views/insights/pages/backend/laravel/styles';
-import {Toolbar} from 'sentry/views/insights/pages/backend/laravel/toolbar';
-import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
-import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
+} from 'sentry/views/insights/pages/platform/laravel/styles';
+import {Toolbar} from 'sentry/views/insights/pages/platform/laravel/toolbar';
+import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
+import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {ModuleName} from 'sentry/views/insights/types';
 import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 

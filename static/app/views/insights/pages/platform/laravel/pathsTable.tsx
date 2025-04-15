@@ -22,8 +22,8 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
-import {Referrer} from 'sentry/views/insights/pages/backend/laravel/referrers';
-import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
+import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
+import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 interface DiscoverQueryResponse {
