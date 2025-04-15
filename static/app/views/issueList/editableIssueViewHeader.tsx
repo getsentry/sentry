@@ -1,8 +1,10 @@
 import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import {GrowingInput} from 'sentry/components/growingInput';
 import {IconEdit} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -64,10 +66,16 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
       }}
     />
   ) : (
-    <ViewTitle onDoubleClick={handleBeginEditing}>
-      {view.name}
-      <StyledIconEdit data-edit-icon onClick={handleBeginEditing} />
-    </ViewTitle>
+    <ViewTitleWrapper>
+      <ViewTitle onDoubleClick={handleBeginEditing}>{view.name}</ViewTitle>
+      <Button
+        icon={<IconEdit />}
+        onClick={handleBeginEditing}
+        aria-label={t('Edit view name')}
+        size="sm"
+        borderless
+      />
+    </ViewTitleWrapper>
   );
 }
 
@@ -113,18 +121,30 @@ function EditingViewTitle({
   );
 }
 
+const ViewTitleWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+
+  :not(:hover, :focus-within) {
+    button {
+      visibility: hidden;
+    }
+
+    div {
+      border-bottom-color: transparent;
+    }
+  }
+`;
+
 const ViewTitle = styled('div')`
   height: 40px;
   white-space: nowrap;
   letter-spacing: normal;
-  margin-right: 1px;
+  margin-right: ${space(0.25)};
   font-size: inherit;
-
-  :not(:hover) {
-    [data-edit-icon] {
-      opacity: 0;
-    }
-  }
+  display: flex;
+  align-items: center;
+  border-bottom: 1px dotted ${p => p.theme.border};
 `;
 
 const StyledGrowingInput = styled(GrowingInput)`
@@ -139,6 +159,7 @@ const StyledGrowingInput = styled(GrowingInput)`
   text-overflow: ellipsis;
   cursor: text;
   font-size: inherit;
+  line-height: inherit;
 
   &,
   &:focus,
@@ -146,9 +167,4 @@ const StyledGrowingInput = styled(GrowingInput)`
   &:hover {
     box-shadow: none;
   }
-`;
-
-const StyledIconEdit = styled(IconEdit)`
-  margin-left: ${space(1)};
-  cursor: pointer;
 `;
