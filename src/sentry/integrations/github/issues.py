@@ -18,6 +18,7 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import all_silo_function
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 
@@ -103,7 +104,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User, **kwargs: Any
+        self, group: Group | None, user: User | RpcUser, **kwargs: Any
     ) -> list[dict[str, Any]]:
         """
         We use the `group` to get three things: organization_slug, project

@@ -16,10 +16,11 @@ interface MockedTagValue
 function renderWithProvider({
   widgetQuery,
   onSearch,
+  onClose,
 }: ComponentProps<typeof SpansSearchBar>) {
   return render(
     <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-      <SpansSearchBar widgetQuery={widgetQuery} onSearch={onSearch} />
+      <SpansSearchBar widgetQuery={widgetQuery} onSearch={onSearch} onClose={onClose} />
     </SpanTagsProvider>
   );
 }
@@ -107,6 +108,7 @@ describe('SpansSearchBar', () => {
     renderWithProvider({
       widgetQuery: WidgetQueryFixture({conditions: 'span.op:function'}),
       onSearch: jest.fn(),
+      onClose: jest.fn(),
     });
 
     await screen.findByLabelText('span.op:function');
@@ -115,7 +117,11 @@ describe('SpansSearchBar', () => {
   it('calls onSearch with the correct query', async () => {
     const onSearch = jest.fn();
 
-    renderWithProvider({widgetQuery: WidgetQueryFixture({conditions: ''}), onSearch});
+    renderWithProvider({
+      widgetQuery: WidgetQueryFixture({conditions: ''}),
+      onSearch,
+      onClose: jest.fn(),
+    });
 
     const searchInput = await screen.findByRole('combobox', {
       name: 'Add a search term',
@@ -128,6 +134,25 @@ describe('SpansSearchBar', () => {
 
     await waitFor(() => {
       expect(onSearch).toHaveBeenCalledWith('span.op:function', expect.anything());
+    });
+  });
+
+  it('triggers onClose when the query changes', async () => {
+    const onClose = jest.fn();
+
+    renderWithProvider({
+      widgetQuery: WidgetQueryFixture({conditions: ''}),
+      onSearch: jest.fn(),
+      onClose,
+    });
+
+    const searchInput = await screen.findByRole('combobox', {
+      name: 'Add a search term',
+    });
+    await userEvent.type(searchInput, 'span.op:function');
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalled();
     });
   });
 });
