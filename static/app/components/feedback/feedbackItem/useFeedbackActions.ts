@@ -5,15 +5,13 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import useRefetchFeedbackList from 'sentry/components/feedback/list/useRefetchFeedbackList';
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
-import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import {t} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -24,14 +22,7 @@ export default function useFeedbackActions({feedbackItem}: Props) {
   const organization = useOrganization();
   const projectId = feedbackItem.project?.id;
 
-  const queryClient = useQueryClient();
-  const {listQueryKey, resetListHeadTime} = useFeedbackQueryKeys();
-  const {invalidateListCache} = useFeedbackCache();
-  const reloadListData = useCallback(() => {
-    queryClient.invalidateQueries({queryKey: listQueryKey});
-    resetListHeadTime();
-    invalidateListCache();
-  }, [queryClient, listQueryKey, resetListHeadTime, invalidateListCache]);
+  const {refetchFeedbackList} = useRefetchFeedbackList();
 
   const mutationOptions = useMemo(
     () => ({
@@ -40,10 +31,10 @@ export default function useFeedbackActions({feedbackItem}: Props) {
       },
       onSuccess: () => {
         addSuccessMessage(t('Updated feedback'));
-        reloadListData();
+        refetchFeedbackList();
       },
     }),
-    [reloadListData]
+    [refetchFeedbackList]
   );
 
   const {markAsRead, resolve} = useMutateFeedback({
@@ -51,7 +42,7 @@ export default function useFeedbackActions({feedbackItem}: Props) {
     organization,
     projectIds: feedbackItem.project ? [feedbackItem.project.id] : [],
   });
-  const onDelete = useDeleteFeedback([feedbackItem.id], projectId, reloadListData);
+  const onDelete = useDeleteFeedback([feedbackItem.id], projectId);
   const hasDelete = organization.features.includes('issue-platform-deletion-ui');
   const disableDelete = !organization.access.includes('event:admin');
 
