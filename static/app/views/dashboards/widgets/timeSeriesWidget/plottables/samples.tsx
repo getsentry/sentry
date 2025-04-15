@@ -266,7 +266,11 @@ export class Samples implements Plottable {
         return symbol;
       },
       markLine: config.baselineValue
-        ? BaselineMarkLine({value: config.baselineValue, label: config.baselineLabel})
+        ? BaselineMarkLine({
+            theme,
+            value: config.baselineValue,
+            label: config.baselineLabel,
+          })
         : undefined,
       animation: false,
       emphasis: {
