@@ -26,6 +26,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import Filter, {
   filterToSearchConditions,
@@ -159,20 +160,35 @@ function EventsContent(props: Props) {
     webVital,
   ]);
 
+  const isEAP = organization.features.includes('performance-transaction-summary-eap');
+
+  const table = isEAP ? (
+    <ServiceEntrySpansTable
+      eventView={eventView}
+      handleDropdownChange={() => {}}
+      totalValues={null}
+      transactionName={transactionName}
+      supportsInvestigationRule={false}
+      isFullPageMode
+    />
+  ) : (
+    <EventsTable
+      theme={theme}
+      eventView={eventView}
+      organization={organization}
+      routes={routes}
+      location={location}
+      setError={setError}
+      columnTitles={titles}
+      transactionName={transactionName}
+      domainViewFilters={domainViewFilters}
+    />
+  );
+
   return (
     <Layout.Main fullWidth>
       <Search {...props} eventView={eventView} />
-      <EventsTable
-        theme={theme}
-        eventView={eventView}
-        organization={organization}
-        routes={routes}
-        location={location}
-        setError={setError}
-        columnTitles={titles}
-        transactionName={transactionName}
-        domainViewFilters={domainViewFilters}
-      />
+      {table}
     </Layout.Main>
   );
 }

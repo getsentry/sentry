@@ -112,6 +112,7 @@ type Props = {
   handleDropdownChange: (k: string) => void;
   totalValues: Record<string, number> | null;
   transactionName: string;
+  isFullPageMode?: boolean;
   showViewSampledEventsButton?: boolean;
   supportsInvestigationRule?: boolean;
 };
@@ -121,6 +122,7 @@ export function ServiceEntrySpansTable({
   handleDropdownChange,
   totalValues,
   transactionName,
+  isFullPageMode,
   supportsInvestigationRule,
   showViewSampledEventsButton,
 }: Props) {
@@ -192,12 +194,14 @@ export function ServiceEntrySpansTable({
   return (
     <Fragment>
       <Header>
-        <CompactSelect
-          triggerProps={{prefix: t('Filter'), size: 'xs'}}
-          value={selected.value}
-          options={options}
-          onChange={opt => handleDropdownChange(opt.value)}
-        />
+        {!isFullPageMode && (
+          <CompactSelect
+            triggerProps={{prefix: t('Filter'), size: 'xs'}}
+            value={selected.value}
+            options={options}
+            onChange={opt => handleDropdownChange(opt.value)}
+          />
+        )}
         <HeaderButtonWrapper>
           {supportsInvestigationRule && (
             <InvestigationRuleWrapper>
@@ -218,11 +222,13 @@ export function ServiceEntrySpansTable({
             </Button>
           )}
         </HeaderButtonWrapper>
-        <CustomPagination
-          pageLinks={pageLinks}
-          onCursor={handleCursor}
-          isLoading={isLoading}
-        />
+        {!isFullPageMode && (
+          <CustomPagination
+            pageLinks={pageLinks}
+            onCursor={handleCursor}
+            isLoading={isLoading}
+          />
+        )}
       </Header>
 
       <GridEditable
