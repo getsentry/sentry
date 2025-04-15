@@ -1,3 +1,6 @@
+from typing import Any
+
+from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
@@ -17,9 +20,26 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
         for condition in value:
             condition_validator = BaseDataConditionValidator(data=condition)
             condition_validator.is_valid(raise_exception=True)
-
-            # TODO Use the validator.create() method when it exists
-            condition = DataCondition(condition_validator.validated_data)
-            conditions.append(condition)
+            conditions.append(condition_validator.validated_data)
 
         return conditions
+
+    def create(self, validated_data: dict[str, Any]) -> DataConditionGroup:
+        with transaction.atomic(router.db_for_write(DataConditionGroup)):
+            condition_group = DataConditionGroup.objects.create(
+                logic_type=validated_data["logic_type"],
+                organization_id=validated_data["organization_id"],
+            )
+
+            for condition in validated_data["conditions"]:
+                if not condition.get("condition_group_id"):
+                    condition["condition_group_id"] = condition_group.id
+
+                DataCondition(
+                    condition_group_id=condition["condition_group_id"],
+                    type=condition["type"],
+                    comparison=condition["comparison"],
+                    condition_result=condition["condition_result"],
+                ).save()
+
+            return condition_group
