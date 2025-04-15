@@ -16,8 +16,8 @@ import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import SchemaHintsList, {
   SchemaHintsSection,
-} from 'sentry/views/explore/components/schemaHintsList';
-import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
+} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,

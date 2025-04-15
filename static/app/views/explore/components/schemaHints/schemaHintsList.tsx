@@ -26,13 +26,13 @@ import {
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
+import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHints/schemaHintsDrawer';
 import {
   getSchemaHintsListOrder,
   removeHiddenKeys,
   SchemaHintsSources,
   USER_IDENTIFIER_KEY,
-} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
+} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import type {LogPageParamsUpdate} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {WritablePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
