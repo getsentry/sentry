@@ -60,17 +60,15 @@ function SchemaHintsDrawer({
     return [...new Set(keysWithoutNegation)];
   }, [currentQuery]);
 
-  const sortedSelectedHints = useMemo(() => {
-    const sortedKeys = selectedFilterKeys.toSorted((a, b) => {
-      return prettifyTagKey(a).localeCompare(prettifyTagKey(b));
-    });
-    return sortedKeys
+  const sortedAndFilteredHints = useMemo(() => {
+    const sortedSelectedHints = selectedFilterKeys
+      .toSorted((a, b) => {
+        return prettifyTagKey(a).localeCompare(prettifyTagKey(b));
+      })
       .map(key => hints.find(hint => hint.key === key))
       .filter(tag => !!tag);
-  }, [hints, selectedFilterKeys]);
 
-  const sortedHints = useMemo(() => {
-    return [
+    const sortedHints = [
       ...new Set([
         ...sortedSelectedHints,
         ...hints.toSorted((a, b) => {
@@ -80,9 +78,7 @@ function SchemaHintsDrawer({
         }),
       ]),
     ];
-  }, [hints, sortedSelectedHints]);
 
-  const sortedAndFilteredHints = useMemo(() => {
     if (!searchQuery.trim()) {
       return sortedHints;
     }
@@ -92,7 +88,7 @@ function SchemaHintsDrawer({
     return sortedHints.filter(hint =>
       prettifyTagKey(hint.key).toLocaleLowerCase().trim().includes(searchFor)
     );
-  }, [sortedHints, searchQuery]);
+  }, [selectedFilterKeys, hints, searchQuery]);
 
   const virtualizer = useVirtualizer({
     count: sortedAndFilteredHints.length,
