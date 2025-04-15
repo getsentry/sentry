@@ -40,9 +40,7 @@ export default function useSessionHealthBreakdown({
       {
         query: {
           ...locationQuery.query,
-          interval: pageFilters
-            ? getSessionsInterval(pageFilters.datetime)
-            : getSessionsInterval(datetime),
+          interval: getSessionsInterval(pageFilters ? pageFilters.datetime : datetime),
           field: ['sum(session)'],
           groupBy: ['session.status'],
         },

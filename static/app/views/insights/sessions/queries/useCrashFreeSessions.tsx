@@ -36,9 +36,7 @@ export default function useCrashFreeSessions({pageFilters}: {pageFilters?: PageF
       {
         query: {
           ...locationQuery.query,
-          interval: pageFilters
-            ? getSessionsInterval(pageFilters.datetime)
-            : getSessionsInterval(datetime),
+          interval: getSessionsInterval(pageFilters ? pageFilters.datetime : datetime),
           field: ['sum(session)'],
           groupBy: ['session.status', 'release'],
         },

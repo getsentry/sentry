@@ -34,9 +34,10 @@ export default function useReleaseNewIssues({pageFilters}: {pageFilters?: PageFi
         query: {
           ...locationQuery.query,
           category: 'issue',
-          interval: pageFilters
-            ? getInterval(pageFilters.datetime, 'issues-metrics')
-            : getInterval(datetime, 'issues-metrics'),
+          interval: getInterval(
+            pageFilters ? pageFilters.datetime : datetime,
+            'issues-metrics'
+          ),
         },
       },
     ],

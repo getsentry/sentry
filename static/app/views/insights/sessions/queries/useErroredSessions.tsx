@@ -31,9 +31,7 @@ export default function useErroredSessions({pageFilters}: {pageFilters?: PageFil
       {
         query: {
           ...locationQuery,
-          interval: pageFilters
-            ? getSessionsInterval(pageFilters.datetime)
-            : getSessionsInterval(datetime),
+          interval: getSessionsInterval(pageFilters ? pageFilters.datetime : datetime),
           field: ['sum(session)'],
           groupBy: ['session.status'],
         },

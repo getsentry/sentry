@@ -37,9 +37,7 @@ export default function useSessionProjectTotal({
       {
         query: {
           ...locationQuery.query,
-          interval: pageFilters
-            ? getSessionsInterval(pageFilters.datetime)
-            : getSessionsInterval(datetime),
+          interval: getSessionsInterval(pageFilters ? pageFilters.datetime : datetime),
           field: ['sum(session)'],
           groupBy: ['project'],
         },

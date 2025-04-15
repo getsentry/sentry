@@ -40,9 +40,10 @@ export default function useNewAndResolvedIssues({
         query: {
           ...locationQuery.query,
           category: type,
-          interval: pageFilters
-            ? getInterval(pageFilters.datetime, 'issues-metrics')
-            : getInterval(datetime, 'issues-metrics'),
+          interval: getInterval(
+            pageFilters ? pageFilters.datetime : datetime,
+            'issues-metrics'
+          ),
         },
       },
     ],
