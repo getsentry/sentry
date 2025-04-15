@@ -50,11 +50,15 @@ export function IssueViewNavEllipsisMenu({
   });
 
   const {mutate: deleteIssueView} = useDeleteGroupSearchView({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       trackAnalytics('issue_views.deleted_view', {
         leftNav: true,
         organization: organization.slug,
       });
+
+      if (variables.id === viewId) {
+        navigate(normalizeUrl(`/organizations/${organization.slug}/issues/`));
+      }
     },
     onError: () => {
       addErrorMessage(t('Failed to delete view'));
@@ -145,6 +149,7 @@ export function IssueViewNavEllipsisMenu({
                   projects: view.projects,
                   environments: view.environments,
                   timeFilters: view.timeFilters,
+                  starred: true,
                 }),
             },
             {
