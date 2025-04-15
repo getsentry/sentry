@@ -13,13 +13,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
-
-import type {DiscoverQueryPageSource} from '../utils';
+import type {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
   getIsMultiProject,
   getSelectedProjectPlatformsArray,
-} from '../utils';
+} from 'sentry/views/performance/utils';
 
 interface MetricEnhancedDataAlertProps extends MetricDataSwitcherOutcome {
   eventView: EventView;

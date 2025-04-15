@@ -17,7 +17,7 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
 jest.mock('sentry/utils/useReleaseStats');
 
-describe('HTTPSummaryPage', function () {
+describe('HTTPDomainSummaryPage', function () {
   const organization = OrganizationFixture({features: ['insights-initial-modules']});
 
   let throughputRequestMock!: jest.Mock;

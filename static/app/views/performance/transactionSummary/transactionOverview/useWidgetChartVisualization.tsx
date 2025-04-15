@@ -3,7 +3,9 @@ import {useTheme} from '@emotion/react';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -22,6 +24,7 @@ import DurationPercentileChart from './durationPercentileChart/chart';
 const REFERRER = 'transaction-summary-charts-widget';
 
 type Options = {
+  query: string;
   selectedWidget: EAPWidgetType;
   transactionName: string;
 };
@@ -35,15 +38,18 @@ type Options = {
 export function useWidgetChartVisualization({
   selectedWidget,
   transactionName,
+  query,
 }: Options): React.ReactNode {
   const durationBreakdownVisualization = useDurationBreakdownVisualization({
     enabled: selectedWidget === EAPWidgetType.DURATION_BREAKDOWN,
     transactionName,
+    query,
   });
 
   const durationPercentilesVisualization = useDurationPercentilesVisualization({
     enabled: selectedWidget === EAPWidgetType.DURATION_PERCENTILES,
     transactionName,
+    query,
   });
 
   if (selectedWidget === EAPWidgetType.DURATION_BREAKDOWN) {
@@ -59,26 +65,37 @@ export function useWidgetChartVisualization({
 
 type DurationBreakdownVisualizationOptions = {
   enabled: boolean;
+  query: string;
   transactionName: string;
 };
 
 function useDurationBreakdownVisualization({
   enabled,
   transactionName,
+  query,
 }: DurationBreakdownVisualizationOptions) {
   const location = useLocation();
   const spanCategoryUrlParam = decodeScalar(
     location.query?.[SpanIndexedField.SPAN_CATEGORY]
   );
+  const {selection} = usePageFilters();
+  const organization = useOrganization();
 
-  const query = new MutableSearch('');
-  query.addFilterValue('transaction', transactionName);
-  query.addFilterValue('is_transaction', '1');
+  const {releases: releasesWithDate} = useReleaseStats(selection);
+  const releases =
+    releasesWithDate?.map(({date, version}) => ({
+      timestamp: date,
+      version,
+    })) ?? [];
+
+  const newQuery = new MutableSearch(query);
+  newQuery.addFilterValue('transaction', transactionName);
+  newQuery.addFilterValue('is_transaction', '1');
 
   // If a span category is selected, the chart will focus on that span category rather than just the service entry span
   if (spanCategoryUrlParam) {
-    query.addFilterValue('span.category', spanCategoryUrlParam);
-    query.removeFilterValue('is_transaction', '1');
+    newQuery.addFilterValue('span.category', spanCategoryUrlParam);
+    newQuery.removeFilterValue('is_transaction', '1');
   }
 
   const {
@@ -96,7 +113,7 @@ function useDurationBreakdownVisualization({
         'p75(span.duration)',
         'p50(span.duration)',
       ],
-      search: query,
+      search: newQuery,
       transformAliasToInputFormat: true,
       enabled,
     },
@@ -112,20 +129,30 @@ function useDurationBreakdownVisualization({
   }
 
   const timeSeries = eapSeriesDataToTimeSeries(spanSeriesData);
-
   const plottables = timeSeries.map(series => new Line(series));
 
-  return <TimeSeriesWidgetVisualization plottables={plottables} />;
+  const enableReleaseBubblesProps = organization.features.includes('release-bubbles-ui')
+    ? ({releases, showReleaseAs: 'bubble'} as const)
+    : {};
+
+  return (
+    <TimeSeriesWidgetVisualization
+      plottables={plottables}
+      {...enableReleaseBubblesProps}
+    />
+  );
 }
 
 type DurationPercentilesVisualizationOptions = {
   enabled: boolean;
+  query: string;
   transactionName: string;
 };
 
 function useDurationPercentilesVisualization({
   enabled,
   transactionName,
+  query,
 }: DurationPercentilesVisualizationOptions) {
   const location = useLocation();
   const {selection} = usePageFilters();
@@ -135,9 +162,9 @@ function useDurationPercentilesVisualization({
     location.query?.[SpanIndexedField.SPAN_CATEGORY]
   );
 
-  const query = new MutableSearch('');
-  query.addFilterValue('transaction', transactionName);
-  query.addFilterValue('is_transaction', '1');
+  const newQuery = new MutableSearch(query);
+  newQuery.addFilterValue('transaction', transactionName);
+  newQuery.addFilterValue('is_transaction', '1');
 
   const {
     data: durationPercentilesData,
@@ -153,7 +180,7 @@ function useDurationPercentilesVisualization({
         'p99(span.duration)',
         'p100(span.duration)',
       ],
-      search: query,
+      search: newQuery,
       pageFilters: selection,
       enabled,
     },

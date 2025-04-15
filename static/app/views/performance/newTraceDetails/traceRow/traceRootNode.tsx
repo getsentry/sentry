@@ -1,23 +1,28 @@
 import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
-
-import {isEAPTraceNode, isTraceNode} from '../traceGuards';
-import {TraceIcons} from '../traceIcons';
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import {makeTraceNodeBarColor, TraceBar} from '../traceRow/traceBar';
+import {
+  isEAPTraceNode,
+  isTraceNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {
+  makeTraceNodeBarColor,
+  TraceBar,
+} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
   TraceChildrenButton,
   TraceRowConnectors,
   type TraceRowProps,
-} from '../traceRow/traceRow';
-import {useHasTraceNewUi} from '../useHasTraceNewUi';
+} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 const NO_ERRORS = new Set<TraceTree.TraceError>();
-const NO_OCCURENCES = new Set<TraceTree.TraceOccurence>();
+const NO_OCCURENCES = new Set<TraceTree.TraceOccurrence>();
 const NO_PROFILES: any = [];
 
 export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>>) {
@@ -89,7 +94,7 @@ export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>
               color={makeTraceNodeBarColor(props.theme, props.node)}
               node_space={props.node.space}
               errors={NO_ERRORS}
-              occurences={NO_OCCURENCES}
+              occurrences={NO_OCCURENCES}
               profiles={NO_PROFILES}
             />
             <button

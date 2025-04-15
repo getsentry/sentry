@@ -73,12 +73,7 @@ describe('Uptime Overview', function () {
   it('renders', async function () {
     const {organization, router} = initializeOrg({
       organization: {
-        features: [
-          'insights-initial-modules',
-          'insights-entry-points',
-          'insights-uptime',
-          'uptime',
-        ],
+        features: ['insights-initial-modules', 'insights-entry-points', 'uptime'],
       },
       router: RouterFixture({
         location: LocationFixture({pathname: '/insights/backend/uptime'}),

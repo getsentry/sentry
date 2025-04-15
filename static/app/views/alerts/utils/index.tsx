@@ -16,9 +16,8 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-
-import type {CombinedAlerts, Incident, IncidentStats} from '../types';
-import {AlertRuleStatus, CombinedAlertType} from '../types';
+import type {CombinedAlerts, Incident, IncidentStats} from 'sentry/views/alerts/types';
+import {AlertRuleStatus, CombinedAlertType} from 'sentry/views/alerts/types';
 
 /**
  * Gets start and end date query parameters from stats

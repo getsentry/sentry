@@ -6,10 +6,10 @@ import partition from 'lodash/partition';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {useUpdateOnboardingTasks} from 'sentry/actionCreators/onboardingTasks';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
@@ -29,6 +29,7 @@ import {space} from 'sentry/styles/space';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {DemoTour, DemoTourStep, useDemoTours} from 'sentry/utils/demoMode/demoTours';
 import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -255,9 +256,11 @@ interface TaskProps {
 
 function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
   const organization = useOrganization();
-  const updateOnboardingTasks = useUpdateOnboardingTasks();
+  const mutateOnboardingTasks = useMutateOnboardingTasks();
   const router = useRouter();
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
+
+  const tours = useDemoTours();
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -271,7 +274,14 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       e.stopPropagation();
 
       if (isDemoModeActive()) {
-        DemoWalkthroughStore.activateGuideAnchor(task.task);
+        // Performance guide is updated to use the new tour
+        if (task.task === OnboardingTaskKey.PERFORMANCE_GUIDE) {
+          tours?.[DemoTour.PERFORMANCE]?.startTour(DemoTourStep.PERFORMANCE_TABLE);
+        } else if (task.task === OnboardingTaskKey.RELEASE_GUIDE) {
+          tours?.[DemoTour.RELEASES]?.startTour();
+        } else {
+          DemoWalkthroughStore.activateGuideAnchor(task.task);
+        }
       }
 
       if (task.actionType === 'external') {
@@ -293,7 +303,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       }
       hidePanel();
     },
-    [task, organization, router, hidePanel]
+    [task, organization, router, hidePanel, tours]
   );
 
   const handleMarkSkipped = useCallback(() => {
@@ -311,14 +321,14 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       action: 'skipped',
     });
 
-    updateOnboardingTasks.mutate([
+    mutateOnboardingTasks.mutate([
       {
         task: task.task,
         status: 'skipped',
         completionSeen: true,
       },
     ]);
-  }, [task, organization, updateOnboardingTasks]);
+  }, [task, organization, mutateOnboardingTasks]);
 
   const iconTooltipText = useMemo(() => {
     switch (task.status) {
@@ -416,7 +426,7 @@ function ExpandedTaskGroup({
   hidePanel,
   taskKeyForWaitingIndicator,
 }: ExpandedTaskGroupProps) {
-  const updateOnboardingTasks = useUpdateOnboardingTasks();
+  const mutateOnboardingTasks = useMutateOnboardingTasks();
 
   const markCompletionTimeout = useRef<number | undefined>(undefined);
 
@@ -437,9 +447,9 @@ function ExpandedTaskGroup({
         updateDemoWalkthroughTask(unseenDoneTask);
       }
     } else {
-      updateOnboardingTasks.mutate(unseenDoneTasks);
+      mutateOnboardingTasks.mutate(unseenDoneTasks);
     }
-  }, [updateOnboardingTasks, sortedTasks]);
+  }, [mutateOnboardingTasks, sortedTasks]);
 
   const markSeenOnOpen = useCallback(
     async function () {

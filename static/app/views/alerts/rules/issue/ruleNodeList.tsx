@@ -16,14 +16,13 @@ import type {
 import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/types';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   COMPARISON_INTERVAL_CHOICES,
   COMPARISON_TYPE_CHOICE_VALUES,
   COMPARISON_TYPE_CHOICES,
 } from 'sentry/views/alerts/utils/constants';
-
-import {AlertRuleComparisonType} from '../metric/types';
 
 import RuleNode from './ruleNode';
 

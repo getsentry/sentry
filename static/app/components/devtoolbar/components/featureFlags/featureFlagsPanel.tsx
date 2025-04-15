@@ -2,21 +2,20 @@ import {type Dispatch, Fragment, type SetStateAction, useState} from 'react';
 import {css} from '@emotion/react';
 
 import {Input} from 'sentry/components/core/input';
-import {resetButtonCss, resetFlexRowCss} from 'sentry/components/devtoolbar/styles/reset';
-import {PanelTable} from 'sentry/components/panels/panelTable';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {IconChevron, IconClose} from 'sentry/icons';
-
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
+import PanelLayout from 'sentry/components/devtoolbar/components/panelLayout';
 import {
   buttonRightCss,
   panelHeadingRightCss,
   panelInsetContentCss,
   panelSectionCss,
   panelSectionCssNoBorder,
-} from '../../styles/panel';
-import {smallCss} from '../../styles/typography';
-import AnalyticsProvider from '../analyticsProvider';
-import PanelLayout from '../panelLayout';
+} from 'sentry/components/devtoolbar/styles/panel';
+import {resetButtonCss, resetFlexRowCss} from 'sentry/components/devtoolbar/styles/reset';
+import {smallCss} from 'sentry/components/devtoolbar/styles/typography';
+import {PanelTable} from 'sentry/components/panels/panelTable';
+import {IconChevron, IconClose} from 'sentry/icons';
 
 import CustomOverride from './customOverride';
 import FeatureFlagItem from './featureFlagItem';
