@@ -44,6 +44,9 @@ export const typeAwareLintRules = {
     '@typescript-eslint/await-thenable': 'error',
     '@typescript-eslint/no-array-delete': 'error',
     '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+    '@typescript-eslint/prefer-optional-chain': 'error',
+    '@typescript-eslint/consistent-type-exports': 'error',
+    '@typescript-eslint/consistent-type-imports': 'error',
   },
 };
 
@@ -506,11 +509,6 @@ export default typescript.config([
       '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
-
-      // migrated from biome
-      '@typescript-eslint/prefer-optional-chain': 'error',
-      '@typescript-eslint/consistent-type-exports': 'error',
-      '@typescript-eslint/consistent-type-imports': 'error',
 
       // Customization
       '@typescript-eslint/no-unused-vars': [
