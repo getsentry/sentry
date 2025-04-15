@@ -1137,19 +1137,38 @@ def determine_profile_type(profile: Profile) -> EventType:
     raise UnknownProfileTypeException
 
 
-def track_latest_sdk(project: Project, profile: Profile) -> None:
-    event_type = determine_profile_type(profile)
-
+def determine_client_sdk(profile: Profile, event_type: EventType) -> tuple[str, str]:
     client_sdk = profile.get("client_sdk")
 
-    if not client_sdk:
-        raise UnknownClientSDKException
+    if client_sdk:
+        sdk_name = client_sdk.get("name")
+        sdk_version = client_sdk.get("version")
 
-    sdk_name = client_sdk.get("name")
-    sdk_version = client_sdk.get("version")
+        if sdk_name and sdk_version:
+            return sdk_name, sdk_version
 
-    if not sdk_name or not sdk_version:
-        raise UnknownClientSDKException
+    # some older sdks were sending the profile chunk without the
+    # sdk info, here we hard code a few and assign them a guaranteed
+    # outdated version
+    if event_type == EventType.PROFILE_CHUNK:
+        if profile["platform"] == "python":
+            return "sentry.python", "0.0.0"
+        elif profile["platform"] == "cocoa":
+            return "sentry.cocoa", "0.0.0"
+        elif profile["platform"] == "node":
+            # there are other node platforms but it's not straight forward
+            # to figure out which it is here so collapse them all into just node
+            return "sentry.javascript.node", "0.0.0"
+
+        # Other platforms do not have a version released where it sends
+        # a profile chunk without the client sdk info
+
+    raise UnknownClientSDKException
+
+
+def track_latest_sdk(project: Project, profile: Profile) -> None:
+    event_type = determine_profile_type(profile)
+    sdk_name, sdk_version = determine_client_sdk(profile, event_type)
 
     try:
         ProjectSDK.update_with_newest_version_or_create(
