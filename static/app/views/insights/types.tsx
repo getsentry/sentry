@@ -540,6 +540,7 @@ export type MetricsResponse = {
 
 export enum DiscoverFields {
   ID = 'id',
+  SPAN_ID = 'span_id',
   TRACE = 'trace',
   USER_DISPLAY = 'user.display',
   TRANSACTION = 'transaction',
@@ -599,6 +600,7 @@ export type DiscoverNumberFields =
 
 export type DiscoverStringFields =
   | DiscoverFields.ID
+  | DiscoverFields.SPAN_ID
   | DiscoverFields.TRACE
   | DiscoverFields.USER_DISPLAY
   | DiscoverFields.TRANSACTION

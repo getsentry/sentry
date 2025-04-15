@@ -11,13 +11,16 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SamplesTableColumnHeader} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import {SpanSamplesTable} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {
+  useDiscoverOrEap,
+  useSpanMetrics,
+} from 'sentry/views/insights/common/queries/useDiscover';
 import type {
   NonDefaultSpanSampleFields,
   SpanSample,
 } from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
-import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   ModuleName,
   SpanMetricsQueryFilters,
@@ -62,6 +65,8 @@ function SampleTable({
   additionalFilters,
   subregions,
 }: Props) {
+  const useEap = useInsightsEap();
+
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
     transaction: transactionName,
@@ -114,6 +119,8 @@ function SampleTable({
   });
 
   const spans = spanSamplesData?.data ?? [];
+  const transactionIds = spans.map(span => span['transaction.span_id']);
+  const durationField = useEap ? 'span.duration' : 'transaction.duration';
 
   const {
     data: transactions,
@@ -121,8 +128,11 @@ function SampleTable({
     isEnabled: isTransactionsEnabled,
     isPending: isLoadingTransactions,
     error: transactionError,
-  } = useTransactions(
-    spans.map(span => span['transaction.span_id']),
+  } = useDiscoverOrEap(
+    {
+      search: `id:[${transactionIds.join(',')}]`,
+      fields: ['id', 'timestamp', 'project', durationField, 'trace'],
+    },
     'api.starfish.span-summary-panel-samples-table-transactions'
   );
 

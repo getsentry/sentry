@@ -61,7 +61,7 @@ type SpanTableRow = {
   op: string;
   trace: string;
   transaction: {
-    'project.name': string;
+    project: string;
     timestamp: string;
     'transaction.duration': number;
   };
