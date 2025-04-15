@@ -15,7 +15,10 @@ const {
 export function ResourceSummaryAverageSizeChartWidget(props: LoadableChartWidgetProps) {
   const {groupId} = useParams();
 
-  const {data, isPending, error} = useResourceSummarySeries({groupId});
+  const {data, isPending, error} = useResourceSummarySeries({
+    groupId,
+    pageFilters: props.pageFilters,
+  });
 
   if (data) {
     data[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`].lineStyle = {

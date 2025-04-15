@@ -7,7 +7,9 @@ import {SpanMetricsField} from 'sentry/views/insights/types';
 const {SPAN_SELF_TIME} = SpanMetricsField;
 
 export function ResourceLandingDurationChartWidget(props: LoadableChartWidgetProps) {
-  const {data, isPending, error} = useResourceLandingSeries();
+  const {data, isPending, error} = useResourceLandingSeries({
+    pageFilters: props.pageFilters,
+  });
 
   return (
     <InsightsLineChartWidget

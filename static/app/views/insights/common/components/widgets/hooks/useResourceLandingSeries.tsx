@@ -1,3 +1,4 @@
+import type {PageFilters} from 'sentry/types/core';
 import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getResourceTypeFilter} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
@@ -33,7 +34,11 @@ const buildDiscoverQueryConditions = (appliedFilters: ModuleFilters) => {
   return result.join(' ');
 };
 
-export function useResourceLandingSeries() {
+interface Props {
+  pageFilters?: PageFilters;
+}
+
+export function useResourceLandingSeries(props?: Props) {
   const filters = useResourceModuleFilters();
 
   const spanTimeChartsFilters: ModuleFilters = {
@@ -62,6 +67,7 @@ export function useResourceLandingSeries() {
       yAxis: ['epm()', `avg(${SPAN_SELF_TIME})`],
       transformAliasToInputFormat: true,
     },
-    'api.starfish.span-time-charts'
+    'api.starfish.span-time-charts',
+    props.pageFilters
   );
 }

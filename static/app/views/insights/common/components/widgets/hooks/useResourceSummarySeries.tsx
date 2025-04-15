@@ -1,3 +1,4 @@
+import type {PageFilters} from 'sentry/types/core';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
@@ -12,7 +13,12 @@ const {
   RESOURCE_RENDER_BLOCKING_STATUS,
 } = SpanMetricsField;
 
-export function useResourceSummarySeries({groupId}: {groupId?: string}) {
+interface Props {
+  groupId?: string;
+  pageFilters?: PageFilters;
+}
+
+export function useResourceSummarySeries({pageFilters, groupId}: Props) {
   const filters = useResourceModuleFilters();
 
   const mutableSearch = MutableSearch.fromQueryObject({
@@ -42,6 +48,7 @@ export function useResourceSummarySeries({groupId}: {groupId?: string}) {
       enabled: Boolean(groupId),
       transformAliasToInputFormat: true,
     },
-    Referrer.RESOURCE_SUMMARY_CHARTS
+    Referrer.RESOURCE_SUMMARY_CHARTS,
+    pageFilters
   );
 }

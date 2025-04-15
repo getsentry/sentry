@@ -4,7 +4,9 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import {getThroughputChartTitle} from 'sentry/views/insights/common/views/spans/types';
 
 export function ResourceLandingThroughputChartWidget(props: LoadableChartWidgetProps) {
-  const {data, isPending, error} = useResourceLandingSeries();
+  const {data, isPending, error} = useResourceLandingSeries({
+    pageFilters: props.pageFilters,
+  });
 
   return (
     <InsightsLineChartWidget

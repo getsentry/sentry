@@ -10,7 +10,10 @@ const {SPAN_SELF_TIME} = SpanMetricsField;
 export function ResourceSummaryDurationChartWidget(props: LoadableChartWidgetProps) {
   const {groupId} = useParams();
 
-  const {data, isPending, error} = useResourceSummarySeries({groupId});
+  const {data, isPending, error} = useResourceSummarySeries({
+    groupId,
+    pageFilters: props.pageFilters,
+  });
 
   return (
     <InsightsLineChartWidget
