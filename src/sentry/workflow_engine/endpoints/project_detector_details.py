@@ -89,7 +89,9 @@ class ProjectDetectorDetailsEndpoint(ProjectEndpoint):
         request=PolymorphicProxySerializer(
             "GenericDetectorSerializer",
             serializers=[
-                gt.detector_validator for gt in grouptype.registry.all() if gt.detector_validator
+                gt.detector_config.validator
+                for gt in grouptype.registry.all()
+                if gt.detector_config and gt.detector_config.validator
             ],
             resource_type_field_name=None,
         ),

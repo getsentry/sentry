@@ -25,7 +25,7 @@ from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Dat
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorConfig, DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import MockModel
 
 
@@ -119,7 +119,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
                 slug="test_type",
                 description="no handler",
                 category=GroupCategory.METRIC_ALERT.value,
-                detector_validator=MetricAlertsDetectorValidator,
+                detector_config=DetectorConfig(validator=MetricAlertsDetectorValidator),
             )
             validator = self.validator_class()
             result = validator.validate_detector_type("test_type")
@@ -141,7 +141,6 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
                 slug="test_type",
                 description="no handler",
                 category=GroupCategory.METRIC_ALERT.value,
-                detector_validator=None,
             )
             validator = self.validator_class()
             with pytest.raises(

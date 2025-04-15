@@ -14,7 +14,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult, DetectorHandler
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorConfig, DetectorGroupKey, DetectorPriorityLevel
 
 
 @region_silo_test
@@ -43,7 +43,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             slug = MetricAlertFire.slug
             description = "Metric alert"
             category = GroupCategory.METRIC_ALERT.value
-            detector_handler = MockDetectorHandler
+            detector_config = DetectorConfig(handler=MockDetectorHandler)
             released = True
 
         @dataclass(frozen=True)
@@ -52,7 +52,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             slug = MonitorIncidentType.slug
             description = "Crons"
             category = GroupCategory.CRON.value
-            detector_handler = MockDetectorHandler
+            detector_handler = DetectorConfig(handler=MockDetectorHandler)
             released = True
 
         @dataclass(frozen=True)
@@ -61,7 +61,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             slug = UptimeDomainCheckFailure.slug
             description = "Uptime"
             category = GroupCategory.UPTIME.value
-            detector_handler = MockDetectorHandler
+            detector_config = DetectorConfig(handler=MockDetectorHandler)
             released = True
 
         # Should not be included in the response

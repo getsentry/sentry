@@ -87,7 +87,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             )
             return None
 
-        if not group_type.detector_handler:
+        if not group_type.detector_config or not group_type.detector_config.handler:
             logger.error(
                 "Registered grouptype for detector has no detector_handler",
                 extra={
@@ -97,7 +97,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 },
             )
             return None
-        return group_type.detector_handler(self)
+        return group_type.detector_config.handler(self)
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name}
@@ -121,8 +121,10 @@ def enforce_config_schema(sender, instance: Detector, **kwargs):
     if not group_type:
         raise ValueError(f"No group type found with type {instance.type}")
 
+    if not group_type.detector_config:
+        raise ValueError(f"No detector_config specified for this group type {instance.type}")
+
     if not isinstance(instance.config, dict):
         raise ValidationError("Detector config must be a dictionary")
 
-    config_schema = group_type.detector_config_schema
-    instance.validate_config(config_schema)
+    instance.validate_config(group_type.detector_config.config_schema)
