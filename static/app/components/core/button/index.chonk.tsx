@@ -51,7 +51,9 @@ function chonkSizeMapping(size: ButtonProps['size']): ChonkButtonSize {
 }
 
 export function getChonkButtonStyles(
-  p: ButtonProps & {theme: DO_NOT_USE_ChonkTheme}
+  p: Pick<ButtonProps, 'size' | 'priority' | 'busy' | 'disabled' | 'borderless'> & {
+    theme: DO_NOT_USE_ChonkTheme;
+  }
 ): StrictCSSObject {
   const type = chonkPriorityToType(p.priority);
   const size = chonkSizeMapping(p.size);
@@ -150,7 +152,7 @@ export function getChonkButtonStyles(
             },
           },
 
-          '&:active, &[aria-expanded="true"]': {
+          '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
             '&::after': {
               transform: 'translateY(0px)',
             },
@@ -159,7 +161,7 @@ export function getChonkButtonStyles(
             },
           },
 
-          '&:disabled': {
+          '&:disabled, &[aria-disabled="true"]': {
             '&::after': {
               transform: 'translateY(0px)',
             },
