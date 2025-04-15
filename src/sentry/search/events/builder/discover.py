@@ -53,9 +53,6 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
         "trace.parent_span",
     }
     duration_fields = {"transaction.duration", "span.duration"}
-    column_remapping = {
-        "span.duration": "transaction.duration",
-    }
 
     def load_config(
         self,
