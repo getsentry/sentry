@@ -13,8 +13,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
-import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
-import type {GroupSearchView, StarredGroupSearchView} from 'sentry/views/issueList/types';
+import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 type LeftNavViewsHeaderProps = {
@@ -34,19 +33,6 @@ function LeftNavViewsHeader({selectedProjectIds}: LeftNavViewsHeaderProps) {
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
     onMutate: variables => {
-      if (variables.starred) {
-        setApiQueryData<StarredGroupSearchView[]>(
-          queryClient,
-          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-          oldStarredViews => [...(oldStarredViews ?? []), variables.view]
-        );
-      } else {
-        setApiQueryData<StarredGroupSearchView[]>(
-          queryClient,
-          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-          oldStarredViews => oldStarredViews?.filter(view => view.id !== variables.id)
-        );
-      }
       setApiQueryData<GroupSearchView>(
         queryClient,
         makeFetchGroupSearchViewKey({
@@ -60,19 +46,6 @@ function LeftNavViewsHeader({selectedProjectIds}: LeftNavViewsHeaderProps) {
       );
     },
     onError: (_error, variables) => {
-      if (variables.starred) {
-        setApiQueryData<StarredGroupSearchView[]>(
-          queryClient,
-          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-          data => data?.filter(view => view.id !== variables.id)
-        );
-      } else {
-        setApiQueryData<StarredGroupSearchView[]>(
-          queryClient,
-          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-          data => [...(data ?? []), variables.view]
-        );
-      }
       setApiQueryData<GroupSearchView>(
         queryClient,
         makeFetchGroupSearchViewKey({
