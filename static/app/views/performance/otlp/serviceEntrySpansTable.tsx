@@ -106,6 +106,7 @@ const COLUMN_ORDER: Column[] = [
 
 const PAGINATION_CURSOR_SIZE = 'xs';
 const CURSOR_NAME = 'serviceEntrySpansCursor';
+const FULL_PAGE_MODE_LIMIT = 50;
 
 type Props = {
   eventView: EventView;
@@ -155,6 +156,7 @@ export function ServiceEntrySpansTable({
     transactionName,
     p95,
     selected,
+    limit: isFullPageMode ? FULL_PAGE_MODE_LIMIT : undefined,
   });
 
   const consolidatedData = tableData?.map(row => {
