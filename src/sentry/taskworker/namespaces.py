@@ -11,13 +11,13 @@ crons_tasks = taskregistry.create_namespace("crons")
 
 deletion_tasks = taskregistry.create_namespace(
     "deletions",
-    processing_deadline_duration=60 * 3,
+    processing_deadline_duration=60 * 4,
 )
 
 deletion_control_tasks = taskregistry.create_namespace(
     "deletions.control",
     # Deletions can take several minutes, so we have a long processing deadline.
-    processing_deadline_duration=60 * 3,
+    processing_deadline_duration=60 * 4,
 )
 
 demomode_tasks = taskregistry.create_namespace("demomode")
