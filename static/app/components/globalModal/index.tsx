@@ -284,7 +284,7 @@ const Container = styled('div')`
   overflow-y: auto;
 `;
 
-const Modal = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
+const Modal = styled(motion.div)`
   max-width: 100%;
   width: 640px;
   pointer-events: auto;
