@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
@@ -10,13 +11,15 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-def save_feedback_event(event_data: dict[str, Any], project_id: int):
+def save_feedback_event(event_data: Mapping[str, Any], project_id: int):
     """Saves a feedback from a feedback event envelope.
 
     If the save is successful and the `associated_event_id` field is present, this will
     also save a UserReport in Postgres. This is to ensure the feedback can be queried by
     group_id, which is hard to associate in clickhouse.
     """
+    if not isinstance(event_data, dict):
+        event_data = dict(event_data)
 
     # Produce to issue platform
     fixed_event_data = create_feedback_issue(

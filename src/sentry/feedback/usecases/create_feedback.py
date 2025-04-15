@@ -284,7 +284,7 @@ def should_filter_feedback(
 
 
 def create_feedback_issue(
-    event, project_id: int, source: FeedbackCreationSource
+    event: dict[str, Any], project_id: int, source: FeedbackCreationSource
 ) -> dict[str, Any] | None:
     """
     Produces a feedback issue occurrence to kafka for issues processing. Applies filters, spam filters, and event validation.
