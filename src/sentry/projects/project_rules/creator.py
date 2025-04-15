@@ -10,7 +10,11 @@ from sentry import features
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.types.actor import Actor
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
+from sentry.utils.locking import UnableToAcquireLock
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import (
+    IssueAlertMigrator,
+    UnableToAcquireLockApiError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,22 +33,26 @@ class ProjectRuleCreator:
     request: Request | None = None
 
     def run(self) -> Rule:
-        with transaction.atomic(router.db_for_write(Rule)):
-            self.rule = self._create_rule()
+        try:
+            with transaction.atomic(router.db_for_write(Rule)):
+                self.rule = self._create_rule()
 
-            if features.has(
-                "organizations:workflow-engine-issue-alert-dual-write", self.project.organization
-            ):
-                # uncaught errors will rollback the transaction
-                workflow = IssueAlertMigrator(
-                    self.rule, self.request.user.id if self.request else None
-                ).run()
-                logger.info(
-                    "workflow_engine.issue_alert.migrated",
-                    extra={"rule_id": self.rule.id, "workflow_id": workflow.id},
-                )
+                if features.has(
+                    "organizations:workflow-engine-issue-alert-dual-write",
+                    self.project.organization,
+                ):
+                    # uncaught errors will rollback the transaction
+                    workflow = IssueAlertMigrator(
+                        self.rule, self.request.user.id if self.request else None
+                    ).run()
+                    logger.info(
+                        "workflow_engine.issue_alert.migrated",
+                        extra={"rule_id": self.rule.id, "workflow_id": workflow.id},
+                    )
+        except UnableToAcquireLock:
+            raise UnableToAcquireLockApiError
 
-            return self.rule
+        return self.rule
 
     def _create_rule(self) -> Rule:
         kwargs = self._get_kwargs()
