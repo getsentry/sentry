@@ -13,58 +13,49 @@ import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFet
 import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import type {GroupSearchView, StarredGroupSearchView} from 'sentry/views/issueList/types';
 
-type UpdateGroupSearchViewVariables = Pick<
-  GroupSearchView,
-  'id' | 'name' | 'query' | 'querySort' | 'projects' | 'environments' | 'timeFilters'
->;
-
-export const useUpdateGroupSearchView = (
+type DeleteGroupSearchViewVariables = {
+  id: string;
+};
+export const useDeleteGroupSearchView = (
   options: Omit<
-    UseMutationOptions<GroupSearchView, RequestError, UpdateGroupSearchViewVariables>,
+    UseMutationOptions<GroupSearchView, RequestError, DeleteGroupSearchViewVariables>,
     'mutationFn'
   > = {}
 ) => {
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const organization = useOrganization();
 
-  return useMutation<GroupSearchView, RequestError, UpdateGroupSearchViewVariables>({
+  return useMutation<GroupSearchView, RequestError, DeleteGroupSearchViewVariables>({
     ...options,
-    mutationFn: ({id, ...groupSearchView}: UpdateGroupSearchViewVariables) =>
+    mutationFn: ({id}: DeleteGroupSearchViewVariables) =>
       api.requestPromise(
         `/organizations/${organization.slug}/group-search-views/${id}/`,
         {
-          method: 'PUT',
-          data: groupSearchView,
+          method: 'DELETE',
         }
       ),
     onSuccess: (data, parameters, context) => {
-      // Update the specific view cache
-      setApiQueryData<GroupSearchView>(
-        queryClient,
-        makeFetchGroupSearchViewKey({orgSlug: organization.slug, id: parameters.id}),
-        data
-      );
+      // Invalidate the view in cache
+      queryClient.invalidateQueries({
+        queryKey: makeFetchGroupSearchViewKey({
+          orgSlug: organization.slug,
+          id: parameters.id,
+        }),
+      });
 
       // Update any matching starred views in cache
       setApiQueryData<StarredGroupSearchView[]>(
         queryClient,
         makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
         oldGroupSearchViews => {
-          return (
-            oldGroupSearchViews?.map(view => {
-              if (view.id === parameters.id) {
-                return {...view, ...parameters};
-              }
-              return view;
-            }) ?? []
-          );
+          return oldGroupSearchViews?.filter(view => view.id !== parameters.id) ?? [];
         }
       );
       options.onSuccess?.(data, parameters, context);
     },
     onError: (error, variables, context) => {
-      addErrorMessage(t('Failed to update view'));
+      addErrorMessage(t('Failed to delete view'));
       options.onError?.(error, variables, context);
     },
   });
