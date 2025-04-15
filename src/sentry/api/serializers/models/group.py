@@ -110,6 +110,7 @@ class BaseGroupResponseOptional(TypedDict, total=False):
     userCount: int
     firstSeen: datetime
     lastSeen: datetime
+    lifetime: dict[str, Any]
 
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
@@ -363,7 +364,7 @@ class GroupSerializerBase(Serializer, ABC):
             group_dict["isUnhandled"] = attrs["is_unhandled"]
         if is_seen_stats(attrs):
             group_dict.update(self._convert_seen_stats(attrs))
-        if "lifetime" in attrs:
+        if "lifetime" in attrs and attrs["lifetime"]:
             group_dict["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
         return group_dict
 
