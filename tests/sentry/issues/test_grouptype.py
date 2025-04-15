@@ -162,10 +162,10 @@ class GroupRegistryTest(BaseGroupTypeTest):
         registry.add(UptimeDomainCheckFailure)
         registry.add(MetricIssuePOC)
         assert registry.get_visible(self.organization) == []
-        with self.feature(UptimeDomainCheckFailure.build_visible_flagpole_feature_name()):
+        with self.feature(UptimeDomainCheckFailure.build_visible_feature_name()):
             assert registry.get_visible(self.organization) == [UptimeDomainCheckFailure]
         registry.add(ErrorGroupType)
-        with self.feature(UptimeDomainCheckFailure.build_visible_flagpole_feature_name()):
+        with self.feature(UptimeDomainCheckFailure.build_visible_feature_name()):
             assert set(registry.get_visible(self.organization)) == {
                 UptimeDomainCheckFailure,
                 ErrorGroupType,

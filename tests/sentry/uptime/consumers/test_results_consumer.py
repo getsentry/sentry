@@ -79,7 +79,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 datetime.now(),
             )
         )
-        with self.feature(UptimeDomainCheckFailure.build_ingest_flagpole_feature_name()):
+        with self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
             if consumer is None:
                 factory = UptimeResultsStrategyFactory(mode=self.strategy_processing_mode)
                 commit = mock.Mock()
