@@ -236,7 +236,7 @@ class DetectorValidatorTest(BaseValidatorTest):
 
     def test_validate_detector_type_incompatible(self):
         with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
-            mock_get.return_value = mock.Mock(detector_validator=None)
+            mock_get.return_value = mock.Mock(detector_settings=None)
             validator = MockDetectorValidator(
                 data={**self.valid_data, "detectorType": "incompatible_type"}
             )
