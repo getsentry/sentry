@@ -6,6 +6,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {type EAPSpanProperty, SpanIndexedField} from 'sentry/views/insights/types';
+import {SERVICE_ENTRY_SPANS_CURSOR_NAME} from 'sentry/views/performance/transactionSummary/transactionOverview/content';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
 type Options = {
@@ -17,7 +18,6 @@ type Options = {
 };
 
 const LIMIT = 5;
-const CURSOR_NAME = 'serviceEntrySpansCursor';
 
 const FIELDS: EAPSpanProperty[] = [
   'span_id',
@@ -113,7 +113,7 @@ type UseSingleQueryOptions = {
 // Hook for executing the default query to fetch table data for spans when no category is selected
 function useSingleQuery(options: UseSingleQueryOptions) {
   const location = useLocation();
-  const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
+  const cursor = decodeScalar(location.query?.[SERVICE_ENTRY_SPANS_CURSOR_NAME]);
   const {selection} = usePageFilters();
   const {query, sort, p95, selected, enabled} = options;
   const newQuery = new MutableSearch(query);
@@ -159,7 +159,7 @@ type UseMultipleQueriesOptions = {
 function useMultipleQueries(options: UseMultipleQueriesOptions) {
   const {transactionName, sort, p95, selected, enabled} = options;
   const location = useLocation();
-  const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
+  const cursor = decodeScalar(location.query?.[SERVICE_ENTRY_SPANS_CURSOR_NAME]);
   const {selection} = usePageFilters();
   const spanCategoryUrlParam = decodeScalar(
     location.query?.[SpanIndexedField.SPAN_CATEGORY]

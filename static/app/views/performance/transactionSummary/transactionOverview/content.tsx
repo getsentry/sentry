@@ -93,6 +93,8 @@ type Props = {
   transactionName: string;
 };
 
+export const SERVICE_ENTRY_SPANS_CURSOR_NAME = 'serviceEntrySpansCursor';
+
 function OTelSummaryContentInner({
   eventView,
   location,
@@ -129,7 +131,11 @@ function OTelSummaryContentInner({
   function handleTransactionsListSortChange(value: string) {
     const target = {
       pathname: location.pathname,
-      query: {...location.query, showTransactions: value, transactionCursor: undefined},
+      query: {
+        ...location.query,
+        showTransactions: value,
+        [SERVICE_ENTRY_SPANS_CURSOR_NAME]: undefined,
+      },
     };
 
     navigate(target);
