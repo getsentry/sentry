@@ -85,11 +85,10 @@ describe('ProductSelectionAvailability', function () {
         }
       );
 
-      // Error Monitoring
-      // disabled: false - it's not disabled because of the styles, but it behaves as if it were disabled
-      // checked: true
-      expect(await screen.findByRole('button', {name: 'Error Monitoring'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeChecked();
+      expect(
+        await screen.findByRole('button', {name: 'Error Monitoring'})
+      ).toBeDisabled();
+      expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeChecked();
       // Tooltip
       await userEvent.hover(screen.getByRole('button', {name: 'Error Monitoring'}));
       expect(
@@ -100,7 +99,7 @@ describe('ProductSelectionAvailability', function () {
       // disabled: false
       // checked: true - by default, it's checked
       expect(screen.getByRole('button', {name: 'Tracing'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeChecked();
+      expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();
       // Tooltip
       await userEvent.hover(screen.getByRole('button', {name: 'Tracing'}));
       expect(
@@ -111,7 +110,7 @@ describe('ProductSelectionAvailability', function () {
       // disabled: false
       // checked: true - by default, it's checked
       expect(screen.getByRole('button', {name: 'Session Replay'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeChecked();
+      expect(screen.getByRole('presentation', {name: 'Session Replay'})).toBeChecked();
       // Tooltip
       await userEvent.hover(screen.getByRole('button', {name: 'Session Replay'}));
       expect(
@@ -134,17 +133,16 @@ describe('ProductSelectionAvailability', function () {
         }
       );
 
-      // Error Monitoring
-      // disabled: false - it's not disabled because of the styles, but it behaves as if it were disabled
-      // checked: true
-      expect(await screen.findByRole('button', {name: 'Error Monitoring'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeChecked();
+      expect(
+        await screen.findByRole('button', {name: 'Error Monitoring'})
+      ).toBeDisabled();
+      expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeChecked();
 
       // Tracing
       // disabled: true
       // checked: false
       expect(screen.getByRole('button', {name: 'Tracing'})).toBeDisabled();
-      expect(screen.getByRole('checkbox', {name: 'Tracing'})).not.toBeChecked();
+      expect(screen.getByRole('presentation', {name: 'Tracing'})).not.toBeChecked();
       // Tooltip
       await userEvent.hover(screen.getByRole('button', {name: 'Tracing'}));
       expect(
@@ -155,7 +153,9 @@ describe('ProductSelectionAvailability', function () {
       // disabled: true
       // checked: false
       expect(screen.getByRole('button', {name: 'Session Replay'})).toBeDisabled();
-      expect(screen.getByRole('checkbox', {name: 'Session Replay'})).not.toBeChecked();
+      expect(
+        screen.getByRole('presentation', {name: 'Session Replay'})
+      ).not.toBeChecked();
       // Tooltip
       await userEvent.hover(screen.getByRole('button', {name: 'Session Replay'}));
       expect(
@@ -189,23 +189,23 @@ describe('ProductSelectionAvailability', function () {
         }
       );
 
-      // Error Monitoring
-      // disabled: false - it's not disabled because of the styles, but it behaves as if it were disabled
-      // checked: true
-      expect(await screen.findByRole('button', {name: 'Error Monitoring'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeChecked();
-
+      expect(
+        await screen.findByRole('button', {name: 'Error Monitoring'})
+      ).toBeDisabled();
+      expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeChecked();
       // Tracing
       // disabled: false
       // checked: true - by default, it's checked
       expect(screen.getByRole('button', {name: 'Tracing'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeChecked();
+      expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();
 
       // Session Replay
       // disabled: true
       // checked: false
       expect(screen.getByRole('button', {name: 'Session Replay'})).toBeDisabled();
-      expect(screen.getByRole('checkbox', {name: 'Session Replay'})).not.toBeChecked();
+      expect(
+        screen.getByRole('presentation', {name: 'Session Replay'})
+      ).not.toBeChecked();
     });
   });
 
@@ -240,11 +240,10 @@ describe('ProductSelectionAvailability', function () {
         }
       );
 
-      // Error Monitoring
-      // disabled: false - it's not disabled because of the styles, but it behaves as if it were disabled
-      // checked: true
-      expect(await screen.findByRole('button', {name: 'Error Monitoring'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeChecked();
+      expect(
+        await screen.findByRole('button', {name: 'Error Monitoring'})
+      ).toBeDisabled();
+      expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeChecked();
       // Tooltip
       await userEvent.hover(screen.getByRole('button', {name: 'Error Monitoring'}));
       expect(
@@ -255,7 +254,7 @@ describe('ProductSelectionAvailability', function () {
       // disabled: false
       // checked: true - by default, it's checked
       expect(screen.getByRole('button', {name: 'Tracing'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeChecked();
+      expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();
       // Tooltip
       await userEvent.hover(screen.getByRole('button', {name: 'Tracing'}));
       expect(
@@ -266,7 +265,7 @@ describe('ProductSelectionAvailability', function () {
       // disabled: false
       // checked: true - by default, it's checked
       expect(screen.getByRole('button', {name: 'Session Replay'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeChecked();
+      expect(screen.getByRole('presentation', {name: 'Session Replay'})).toBeChecked();
       // Tooltip
       await userEvent.hover(screen.getByRole('button', {name: 'Session Replay'}));
       expect(
@@ -293,17 +292,15 @@ describe('ProductSelectionAvailability', function () {
         }
       );
 
-      // Error Monitoring
-      // disabled: false - it's not disabled because of the styles, but it behaves as if it were disabled
-      // checked: true
-      expect(await screen.findByRole('button', {name: 'Error Monitoring'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeChecked();
+      expect(
+        await screen.findByRole('button', {name: 'Error Monitoring'})
+      ).toBeDisabled();
+      expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeChecked();
 
       // Tracing
-      // disabled: true
-      // checked: false
+      // disabled: true      // checked: false
       expect(screen.getByRole('button', {name: 'Tracing'})).toBeDisabled();
-      expect(screen.getByRole('checkbox', {name: 'Tracing'})).not.toBeChecked();
+      expect(screen.getByRole('presentation', {name: 'Tracing'})).not.toBeChecked();
       // Tooltip
       await userEvent.hover(screen.getByRole('button', {name: 'Tracing'}));
       expect(
@@ -314,8 +311,10 @@ describe('ProductSelectionAvailability', function () {
       // disabled: true - We don't display an upsell modal to users on MM* plans
       // checked: false
       expect(screen.getByRole('button', {name: 'Session Replay'})).toBeDisabled();
-      expect(screen.getByRole('checkbox', {name: 'Session Replay'})).not.toBeChecked();
-      expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeDisabled();
+      expect(
+        screen.getByRole('presentation', {name: 'Session Replay'})
+      ).not.toBeChecked();
+      expect(screen.getByRole('presentation', {name: 'Session Replay'})).toBeDisabled();
       // Tooltip
       await userEvent.hover(screen.getByRole('button', {name: 'Session Replay'}));
       expect(
@@ -375,24 +374,24 @@ describe('ProductSelectionAvailability', function () {
         }
       );
 
-      // Error Monitoring
-      // disabled: false - it's not disabled because of the styles, but it behaves as if it were disabled
-      // checked: true
-      expect(await screen.findByRole('button', {name: 'Error Monitoring'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeChecked();
+      expect(
+        await screen.findByRole('button', {name: 'Error Monitoring'})
+      ).toBeDisabled();
+      expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeChecked();
 
       // Tracing
       // disabled: false
       // checked: true - by default, it's checked
       expect(screen.getByRole('button', {name: 'Tracing'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeChecked();
+      expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();
 
       // Session Replay
       // disabled: false - By clicking on the button, an upsell modal is shown
       // checked: false
       expect(screen.getByRole('button', {name: 'Session Replay'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Session Replay'})).not.toBeChecked();
-      expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeDisabled();
+      expect(
+        screen.getByRole('presentation', {name: 'Session Replay'})
+      ).not.toBeChecked();
       // Tooltip
       await userEvent.hover(screen.getByRole('button', {name: 'Session Replay'}));
       expect(
@@ -452,18 +451,16 @@ describe('ProductSelectionAvailability', function () {
         }
       );
 
-      // Error Monitoring
-      // disabled: false - it's not disabled because of the styles, but it behaves as if it were disabled
-      // checked: true
-      expect(await screen.findByRole('button', {name: 'Error Monitoring'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeChecked();
+      expect(
+        await screen.findByRole('button', {name: 'Error Monitoring'})
+      ).toBeDisabled();
+      expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeChecked();
 
       // Tracing
       // disabled: false
       // checked: true - by default, it's checked
       expect(screen.getByRole('button', {name: 'Tracing'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeChecked();
-
+      expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();
       // Session Replay (not rendered)
       expect(
         screen.queryByRole('button', {name: 'Session Replay'})
@@ -473,7 +470,7 @@ describe('ProductSelectionAvailability', function () {
       // disabled: false
       // checked: true - by default, it's checked
       expect(screen.getByRole('button', {name: 'Profiling'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeChecked();
+      expect(screen.getByRole('presentation', {name: 'Profiling'})).toBeChecked();
     });
 
     it('without profiling and without session replay', async function () {
@@ -502,17 +499,16 @@ describe('ProductSelectionAvailability', function () {
         }
       );
 
-      // Error Monitoring
-      // disabled: false - it's not disabled because of the styles, but it behaves as if it were disabled
-      // checked: true
-      expect(await screen.findByRole('button', {name: 'Error Monitoring'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeChecked();
+      expect(
+        await screen.findByRole('button', {name: 'Error Monitoring'})
+      ).toBeDisabled();
+      expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeChecked();
 
       // Tracing
       // disabled: false
       // checked: true - by default, it's checked
       expect(screen.getByRole('button', {name: 'Tracing'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeChecked();
+      expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();
 
       // Session Replay (not rendered)
       expect(
@@ -523,8 +519,8 @@ describe('ProductSelectionAvailability', function () {
       // disabled: false
       // checked: false
       expect(screen.getByRole('button', {name: 'Profiling'})).toBeDisabled();
-      expect(screen.getByRole('checkbox', {name: 'Profiling'})).not.toBeChecked();
-      expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeDisabled();
+      expect(screen.getByRole('presentation', {name: 'Profiling'})).not.toBeChecked();
+      expect(screen.getByRole('presentation', {name: 'Profiling'})).toBeDisabled();
       // Tooltip
       await userEvent.hover(screen.getByRole('button', {name: 'Profiling'}));
       expect(
@@ -602,11 +598,11 @@ describe('ProductSelectionAvailability', function () {
       );
       // Tracing
       expect(screen.getByRole('button', {name: 'Tracing'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeChecked();
+      expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();
 
       // Profiling
       expect(screen.getByRole('button', {name: 'Profiling'})).toBeEnabled();
-      expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeChecked();
+      expect(screen.getByRole('presentation', {name: 'Profiling'})).toBeChecked();
 
       await userEvent.click(screen.getByRole('button', {name: 'Profiling'}));
       // profiling is removed from the query string
