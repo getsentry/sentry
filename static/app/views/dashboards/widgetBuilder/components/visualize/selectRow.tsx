@@ -16,6 +16,7 @@ import {
   parseFunction,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -36,6 +37,7 @@ import {
   DEFAULT_VISUALIZATION_AGGREGATE,
   DEFAULT_VISUALIZATION_FIELD,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type AggregateFunction = [
   AggregationKeyWithAlias,
@@ -266,6 +268,7 @@ export function SelectRow({
             openColumnSelect();
           } else {
             if (currentField.kind === FieldValueKind.FUNCTION) {
+              const originalFunction = currentField.function[0];
               // Handle setting an aggregate from an aggregate
               currentField.function[0] = parseAggregateFromValueKey(
                 dropdownSelection.value as string
@@ -276,6 +279,30 @@ export function SelectRow({
                 // field to the default
                 state.dataset === WidgetType.SPANS &&
                 currentField.function[0] === DEFAULT_VISUALIZATION_AGGREGATE
+              ) {
+                currentField.function[1] = DEFAULT_VISUALIZATION_FIELD;
+
+                // Wipe out the remaining parameters that are unnecessary
+                for (let i = 1; i < MAX_FUNCTION_PARAMETERS; i++) {
+                  currentField.function[i + 1] = undefined;
+                }
+              } else if (
+                // when switching to the count_unique aggregate, we want to reset the
+                // field to the default
+                state.dataset === WidgetType.SPANS &&
+                currentField.function[0] === AggregationKey.COUNT_UNIQUE
+              ) {
+                currentField.function[1] = SpanIndexedField.SPAN_OP;
+
+                // Wipe out the remaining parameters that are unnecessary
+                for (let i = 1; i < MAX_FUNCTION_PARAMETERS; i++) {
+                  currentField.function[i + 1] = undefined;
+                }
+              } else if (
+                // when switching away from the count_unique aggregate, we want to reset the
+                // field to the default
+                state.dataset === WidgetType.SPANS &&
+                originalFunction === AggregationKey.COUNT_UNIQUE
               ) {
                 currentField.function[1] = DEFAULT_VISUALIZATION_FIELD;
 

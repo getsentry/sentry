@@ -42,8 +42,6 @@ import {
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/backend/backendTable';
-import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
-import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/backend/laravel/features';
 import {
   BACKEND_LANDING_TITLE,
   DEFAULT_SORT,
@@ -58,6 +56,8 @@ import {
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
+import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {
