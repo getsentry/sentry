@@ -47,12 +47,12 @@ from sentry.search.eap.columns import (
     VirtualColumnDefinition,
 )
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
-from sentry.search.eap.types import SAMPLING_MODES, SearchResolverConfig
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.utils import validate_sampling
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 
 
 @dataclass(frozen=True)

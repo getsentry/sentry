@@ -21,7 +21,8 @@ from sentry.search.eap.spans.attributes import (
     SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     SPANS_PRIVATE_ATTRIBUTES,
 )
-from sentry.search.eap.types import SAMPLING_MODES, SupportedTraceItemType
+from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.events.types import SAMPLING_MODES
 
 # TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
 BINARY_FORMULA_OPERATOR_MAP = {

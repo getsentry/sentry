@@ -6,8 +6,9 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 
-from sentry.search.eap.types import SAMPLING_MODES, SupportedTraceItemType
+from sentry.search.eap.types import SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, DurationUnit, SizeUnit
+from sentry.search.events.types import SAMPLING_MODES
 
 # Mapping from our supported string enum types to the protobuf enum types
 SUPPORTED_TRACE_ITEM_TYPE_MAP = {

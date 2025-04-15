@@ -32,10 +32,9 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.search.eap.constants import SAMPLING_MODE_MAP
-from sentry.search.eap.types import SAMPLING_MODES
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.utils import DATASET_LABELS, DATASET_OPTIONS, get_dataset
