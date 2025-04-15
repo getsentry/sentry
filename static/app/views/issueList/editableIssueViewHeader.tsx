@@ -90,7 +90,6 @@ function EditingViewTitle({
     switch (e.key) {
       case 'Enter':
         onSave(title);
-        stopEditing();
         break;
       case 'Escape':
         stopEditing();
@@ -158,7 +157,7 @@ const StyledGrowingInput = styled(GrowingInput)`
   text-overflow: ellipsis;
   cursor: text;
 
-  /* Title styles */
+  /* <Layout.Title /> styles */
   font-size: 1.625rem;
   font-weight: 600;
   line-height: 40px;
@@ -168,6 +167,5 @@ const StyledGrowingInput = styled(GrowingInput)`
   &:active,
   &:hover {
     box-shadow: none;
-    border-bottom: 1px dotted ${p => p.theme.border};
   }
 `;

@@ -11,18 +11,21 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {TraceContextProfiles} from 'sentry/views/performance/newTraceDetails/traceContextProfiles';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
 import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
 import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceViewLogsSection} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
 
 type Props = {
+  onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
   tree: TraceTree;
 };
 
-export function TraceContextPanel({tree, rootEvent}: Props) {
+export function TraceContextPanel({tree, rootEvent, onScrollToNode}: Props) {
   const renderTags = useCallback(() => {
     if (!rootEvent.data) {
       return null;
@@ -70,18 +73,21 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
       <VitalMetersContainer id={TraceContextSectionKeys.WEB_VITALS}>
         <TraceContextVitals tree={tree} />
       </VitalMetersContainer>
-      <TraceTagsContainer>
+      <ContextRow>
         <FoldSection
           sectionKey={TraceContextSectionKeys.TAGS as string as SectionKey}
           title={t('Trace Tags')}
         >
           {renderTags()}
         </FoldSection>
-      </TraceTagsContainer>
+      </ContextRow>
+      <ContextRow>
+        <TraceContextProfiles tree={tree} onScrollToNode={onScrollToNode} />
+      </ContextRow>
       <Feature features={['ourlogs-enabled']}>
-        <TraceTagsContainer>
+        <ContextRow>
           <TraceViewLogsSection />
-        </TraceTagsContainer>
+        </ContextRow>
       </Feature>
     </Container>
   );
@@ -103,7 +109,7 @@ const VitalMetersContainer = styled('div')`
   width: 100%;
 `;
 
-const TraceTagsContainer = styled('div')`
+const ContextRow = styled('div')`
   background-color: ${p => p.theme.background};
   width: 100%;
   border: 1px solid ${p => p.theme.border};
