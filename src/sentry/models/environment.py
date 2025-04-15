@@ -113,12 +113,11 @@ class Environment(Model):
 
         if cache.get(cache_key) is None:
             if in_random_rollout("environmentproject.new_add_project.rollout"):
-                _, created = EnvironmentProject.objects.get_or_create(
+                EnvironmentProject.objects.get_or_create(
                     project=project, environment=self, defaults={"is_hidden": is_hidden}
                 )
-                if not created:
-                    # We've already created the object, should still cache the action.
-                    cache.set(cache_key, 1, 3600)
+                # The object already exists, we cache the action to reduce the load on the database.
+                cache.set(cache_key, 1, 3600)
             else:
                 try:
                     with transaction.atomic(router.db_for_write(EnvironmentProject)):
