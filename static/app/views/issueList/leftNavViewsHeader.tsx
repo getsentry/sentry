@@ -75,12 +75,14 @@ function LeftNavViewsHeader({selectedProjectIds}: LeftNavViewsHeaderProps) {
                     view: groupSearchView,
                   });
                 }}
-              >
-                <IconStar
-                  isSolid={groupSearchView?.starred}
-                  color={groupSearchView?.starred ? 'yellow300' : 'subText'}
-                />
-              </Button>
+                aria-label={groupSearchView?.starred ? t('Unstar view') : t('Star view')}
+                icon={
+                  <IconStar
+                    isSolid={groupSearchView?.starred}
+                    color={groupSearchView?.starred ? 'yellow300' : 'subText'}
+                  />
+                }
+              />
             </Fragment>
           ) : (
             t('Issues')
