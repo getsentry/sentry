@@ -31,6 +31,7 @@ import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transa
 import Filter, {
   filterToSearchConditions,
 } from 'sentry/views/performance/transactionSummary/filter';
+import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
 import type {SetStateAction} from 'sentry/views/performance/transactionSummary/types';
 import {
   platformToPerformanceType,
@@ -203,6 +204,7 @@ function Search(props: Props) {
     eventsDisplayFilterName,
     onChangeEventsDisplayFilter,
     percentileValues,
+    transactionName,
   } = props;
 
   const navigate = useNavigate();
@@ -236,14 +238,19 @@ function Search(props: Props) {
   };
 
   const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
+  const isEAP = organization.features.includes('performance-transaction-summary-eap');
 
   return (
     <FilterActions>
-      <Filter
-        organization={organization}
-        currentFilter={spanOperationBreakdownFilter}
-        onChangeFilter={onChangeSpanOperationBreakdownFilter}
-      />
+      {isEAP ? (
+        <SpanCategoryFilter serviceEntrySpanName={transactionName} />
+      ) : (
+        <Filter
+          organization={organization}
+          currentFilter={spanOperationBreakdownFilter}
+          onChangeFilter={onChangeSpanOperationBreakdownFilter}
+        />
+      )}
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter />
