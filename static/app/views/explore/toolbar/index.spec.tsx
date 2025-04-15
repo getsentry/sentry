@@ -226,7 +226,7 @@ describe('ExploreToolbar', function () {
     ]);
   });
 
-  it('defaults count_unique argument to user', async function () {
+  it('defaults count_unique argument to span.op', async function () {
     let visualizes: any;
     function Component() {
       visualizes = useExploreVisualizes();

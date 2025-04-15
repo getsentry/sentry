@@ -1391,7 +1391,7 @@ describe('Visualize', () => {
     );
   });
 
-  it('defaults count_unique argument to user', async function () {
+  it('defaults count_unique argument to span.op', async function () {
     render(
       <WidgetBuilderProvider>
         <Visualize />

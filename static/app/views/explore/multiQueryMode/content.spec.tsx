@@ -189,7 +189,7 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
-  it('defaults count_unique argument to user', async function () {
+  it('defaults count_unique argument to span.op', async function () {
     let queries: any;
     function Component() {
       queries = useReadQueriesFromLocation();

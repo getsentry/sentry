@@ -100,7 +100,7 @@ describe('EAPField', () => {
     expect(screen.getByText('spans')).toBeInTheDocument();
   });
 
-  it('defaults count_unique argument to user', async function () {
+  it('defaults count_unique argument to span.op', async function () {
     function Component() {
       const [aggregate, setAggregate] = useState('count(span.duration)');
       return (

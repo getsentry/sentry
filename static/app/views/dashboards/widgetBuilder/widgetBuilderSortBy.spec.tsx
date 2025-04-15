@@ -968,7 +968,7 @@ describe('WidgetBuilder', function () {
       await screen.findByText('Sort by a y-axis');
       await selectEvent.openMenu(screen.getAllByText('count(\u2026)')[1]!);
 
-      // 12 options in the dropdown
+      // Check the number of options in the dropdown
       expect(screen.queryAllByTestId('menu-list-item-label')).toHaveLength(13);
 
       // Appears once in the y-axis section, dropdown, and in the sort by field
