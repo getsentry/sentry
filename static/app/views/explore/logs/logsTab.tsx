@@ -39,6 +39,7 @@ import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {HiddenColumnEditorLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -69,7 +70,7 @@ export function LogsTabContent({
   const timeseriesResult = useSortedTimeSeries(
     {
       search: logsSearch,
-      yAxis: ['count(message)'],
+      yAxis: [`count(${OurLogKnownFieldKey.MESSAGE})`],
       interval,
     },
     'explore.ourlogs.main-chart',
@@ -78,7 +79,7 @@ export function LogsTabContent({
   const [visualizes, setVisualizes] = useState<Visualize[]>([
     {
       chartType: ChartType.BAR,
-      yAxes: ['count(message)'],
+      yAxes: [`count(${OurLogKnownFieldKey.MESSAGE})`],
       label: 'A',
     },
   ]);
