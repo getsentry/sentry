@@ -133,7 +133,6 @@ class IncidentManager(BaseManager["Incident"]):
 
 
 class IncidentType(Enum):
-    DETECTED = 0
     ALERT_TRIGGERED = 2
 
 
