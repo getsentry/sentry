@@ -233,7 +233,6 @@ export function HTTPSamplesPanel() {
     search,
     fields: [
       SpanIndexedField.TRACE,
-      SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.RESPONSE_CODE,
     ],

@@ -30,6 +30,14 @@ class AuthChannelLoginView(AuthOrganizationLoginView):
         # Checking for duplicate orgs
         auth_provider_model = AuthProvider.objects.filter(provider=channel, config=config_data)
 
+        if not auth_provider_model.exists():
+            # After moving away from partner plan we append "-non-partner" to the provider name
+            # But coming to Sentry from partner's website would still use the partner provider name
+            # So we need to check both
+            auth_provider_model = AuthProvider.objects.filter(
+                provider=f"{channel}-non-partner", config=config_data
+            )
+
         if not auth_provider_model.exists() or len(auth_provider_model) > 1:
             return self.redirect(reverse("sentry-login"))
 
