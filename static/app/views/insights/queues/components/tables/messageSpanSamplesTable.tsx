@@ -171,7 +171,7 @@ function renderBodyCell(
         projectSlug={row.project}
         traceId={row.trace}
         timestamp={row.timestamp}
-        transactionId={row[SpanIndexedField.TRANSACTION_ID]}
+        transactionId={row[SpanIndexedField.TRANSACTION_SPAN_ID]}
         spanId={row[SpanIndexedField.SPAN_ID]}
         source={TraceViewSources.QUEUES_MODULE}
         location={location}

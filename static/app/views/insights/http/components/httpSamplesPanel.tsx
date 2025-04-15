@@ -38,6 +38,7 @@ import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDisc
 import {useSpanMetricsTopNSeries} from 'sentry/views/insights/common/queries/useSpanMetricsTopNSeries';
 import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
 import {findSampleFromDataPoint} from 'sentry/views/insights/common/utils/findDataPoint';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {
   DataTitles,
   getThroughputTitle,
@@ -65,6 +66,7 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 export function HTTPSamplesPanel() {
   const navigate = useNavigate();
   const location = useLocation();
+  const useEap = useInsightsEap();
 
   const query = useLocationQuery({
     fields: {
@@ -255,7 +257,7 @@ export function HTTPSamplesPanel() {
       fields: [
         SpanIndexedField.PROJECT,
         SpanIndexedField.TRACE,
-        SpanIndexedField.TRANSACTION_ID,
+        useEap ? SpanIndexedField.TRANSACTION_SPAN_ID : SpanIndexedField.TRANSACTION_ID,
         SpanIndexedField.SPAN_ID,
         SpanIndexedField.TIMESTAMP,
         SpanIndexedField.SPAN_DESCRIPTION,
