@@ -5,12 +5,15 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
+from django.conf import settings
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 from django.db.models import Q
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils import redis
+from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 if TYPE_CHECKING:
@@ -18,6 +21,8 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = 10000
 
 
 # copied constants and enums
@@ -147,6 +152,27 @@ def backfill_group_open_periods(apps: StateApps, schema_editor: BaseDatabaseSche
 
     if batch:
         GroupOpenPeriod.objects.bulk_create(batch)
+
+
+def backfill_group_open_periods(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
+    Group = apps.get_model("sentry", "Group")
+
+    backfill_key = "backfill_group_open_periods_from_activity"
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
+    progress_id = int(redis_client.get(backfill_key) or 0)
+    for groups in chunked(
+        RangeQuerySetWrapperWithProgressBarApprox(
+            Group.objects.filter(id__gt=progress_id).values_list(
+                "id", "first_seen", "status", "project_id"
+            ),
+            result_value_getter=lambda item: item[0],
+        ),
+        CHUNK_SIZE,
+    ):
+        _backfill_group_open_periods(apps, groups)
+        # Save progress to redis in case we have to restart
+        redis_client.set(backfill_key, groups[-1][0], ex=60 * 60 * 24 * 7)
 
 
 class Migration(CheckedMigration):
