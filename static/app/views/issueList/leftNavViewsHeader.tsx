@@ -67,22 +67,26 @@ function LeftNavViewsHeader({selectedProjectIds}: LeftNavViewsHeaderProps) {
           {groupSearchView ? (
             <Fragment>
               {groupSearchView.name}
-              <Button
-                onClick={() => {
-                  mutateViewStarred({
-                    id: groupSearchView.id,
-                    starred: !groupSearchView?.starred,
-                    view: groupSearchView,
-                  });
-                }}
-                aria-label={groupSearchView?.starred ? t('Unstar view') : t('Star view')}
-                icon={
-                  <IconStar
-                    isSolid={groupSearchView?.starred}
-                    color={groupSearchView?.starred ? 'yellow300' : 'subText'}
-                  />
-                }
-              />
+              {organization.features.includes('issue-view-sharing') ? (
+                <Button
+                  onClick={() => {
+                    mutateViewStarred({
+                      id: groupSearchView.id,
+                      starred: !groupSearchView?.starred,
+                      view: groupSearchView,
+                    });
+                  }}
+                  aria-label={
+                    groupSearchView?.starred ? t('Unstar view') : t('Star view')
+                  }
+                  icon={
+                    <IconStar
+                      isSolid={groupSearchView?.starred}
+                      color={groupSearchView?.starred ? 'yellow300' : 'subText'}
+                    />
+                  }
+                />
+              ) : null}
             </Fragment>
           ) : (
             t('Issues')
