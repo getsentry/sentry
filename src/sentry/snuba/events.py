@@ -632,6 +632,7 @@ class Columns(Enum):
         issue_platform_name="transaction_duration",
         alias="transaction.duration",
     )
+    # span.duration is here to help migrate the frontend to EAP
     SPAN_DURATION = Column(
         group_name=None,
         event_name=None,
