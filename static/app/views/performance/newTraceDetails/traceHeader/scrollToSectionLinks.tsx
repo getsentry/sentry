@@ -13,12 +13,14 @@ export const enum TraceContextSectionKeys {
   TAGS = 'trace-context-tags',
   WEB_VITALS = 'trace-context-web-vitals',
   LOGS = 'trace-context-logs',
+  PROFILES = 'trace-context-profiles',
 }
 
 const sectionLabels: Partial<Record<TraceContextSectionKeys, string>> = {
   [TraceContextSectionKeys.TAGS]: t('Tags'),
   [TraceContextSectionKeys.WEB_VITALS]: t('Web Vitals'),
   [TraceContextSectionKeys.LOGS]: t('Logs'),
+  [TraceContextSectionKeys.PROFILES]: t('Profiles'),
 };
 
 function SectionLink({
@@ -55,6 +57,7 @@ function SectionLink({
 function ScrollToSectionLinks({tree}: {tree: TraceTree}) {
   const location = useLocation();
   const hasValidVitals = treeHasValidVitals(tree);
+  const hasProfiles = tree.profiled_events.size > 0;
 
   return (
     <Wrapper>
@@ -66,6 +69,9 @@ function ScrollToSectionLinks({tree}: {tree: TraceTree}) {
         />
       )}
       <SectionLink sectionKey={TraceContextSectionKeys.TAGS} location={location} />
+      {hasProfiles && (
+        <SectionLink sectionKey={TraceContextSectionKeys.PROFILES} location={location} />
+      )}
       <Feature features={['ourlogs-enabled']}>
         <SectionLink sectionKey={TraceContextSectionKeys.LOGS} location={location} />
       </Feature>

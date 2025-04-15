@@ -14,6 +14,7 @@ import {
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
+import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 
 const LazyIssuesTraceWaterfall = lazy(() =>
   import('sentry/views/performance/newTraceDetails/issuesTraceWaterfall').then(
@@ -49,7 +50,25 @@ interface SpanEvidenceTraceViewProps {
   traceId: string;
 }
 
-export function SpanEvidenceTraceView({
+export function SpanEvidenceTraceView(props: SpanEvidenceTraceViewProps) {
+  const preferences = useMemo(
+    () =>
+      loadTraceViewPreferences('issue-details-trace-view-preferences') ||
+      DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
+    []
+  );
+
+  return (
+    <TraceStateProvider
+      initialPreferences={preferences}
+      preferencesStorageKey="issue-details-trace-view-preferences"
+    >
+      <SpanEvidenceTraceViewImpl {...props} />
+    </TraceStateProvider>
+  );
+}
+
+function SpanEvidenceTraceViewImpl({
   event,
   organization,
   traceId,
@@ -67,42 +86,34 @@ export function SpanEvidenceTraceView({
   const shouldLoadTraceRoot = !trace.isPending && trace.data;
 
   const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data : null);
-  const preferences = useMemo(
-    () =>
-      loadTraceViewPreferences('issue-details-trace-view-preferences') ||
-      DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
-    []
-  );
 
   const params = useTraceQueryParams({timestamp});
   const traceEventView = useTraceEventView(traceId, params);
+
+  const traceWaterfallModels = useTraceWaterfallModels();
 
   if (!traceId) {
     return null;
   }
 
   return (
-    <TraceStateProvider
-      initialPreferences={preferences}
-      preferencesStorageKey="issue-details-view-preferences"
-    >
-      <IssuesTraceContainer>
-        <Suspense fallback={null}>
-          <LazyIssuesTraceWaterfall
-            tree={tree}
-            trace={trace}
-            traceSlug={traceId}
-            rootEvent={rootEvent}
-            organization={organization}
-            traceEventView={traceEventView}
-            meta={meta}
-            source="issues"
-            replay={null}
-            event={event}
-          />
-        </Suspense>
-      </IssuesTraceContainer>
-    </TraceStateProvider>
+    <IssuesTraceContainer>
+      <Suspense fallback={null}>
+        <LazyIssuesTraceWaterfall
+          tree={tree}
+          trace={trace}
+          traceSlug={traceId}
+          rootEvent={rootEvent}
+          organization={organization}
+          traceEventView={traceEventView}
+          meta={meta}
+          source="issues"
+          replay={null}
+          event={event}
+          traceWaterfallModels={traceWaterfallModels}
+        />
+      </Suspense>
+    </IssuesTraceContainer>
   );
 }
 
