@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {
   addErrorMessage,
@@ -20,25 +20,9 @@ interface Props {
   feedbackItem: FeedbackIssue;
 }
 
-const mutationOptions = {
-  onError: () => {
-    addErrorMessage(t('An error occurred while updating the feedback.'));
-  },
-  onSuccess: () => {
-    addSuccessMessage(t('Updated feedback'));
-  },
-};
-
 export default function useFeedbackActions({feedbackItem}: Props) {
   const organization = useOrganization();
   const projectId = feedbackItem.project?.id;
-
-  const {markAsRead, resolve} = useMutateFeedback({
-    feedbackIds: [feedbackItem.id],
-    organization,
-    projectIds: feedbackItem.project ? [feedbackItem.project.id] : [],
-  });
-  const deleteFeedback = useDeleteFeedback([feedbackItem.id], projectId);
 
   const queryClient = useQueryClient();
   const {listQueryKey, resetListHeadTime} = useFeedbackQueryKeys();
@@ -48,6 +32,26 @@ export default function useFeedbackActions({feedbackItem}: Props) {
     resetListHeadTime();
     invalidateListCache();
   }, [queryClient, listQueryKey, resetListHeadTime, invalidateListCache]);
+
+  const mutationOptions = useMemo(
+    () => ({
+      onError: () => {
+        addErrorMessage(t('An error occurred while updating the feedback.'));
+      },
+      onSuccess: () => {
+        addSuccessMessage(t('Updated feedback'));
+        reloadListData();
+      },
+    }),
+    [reloadListData]
+  );
+
+  const {markAsRead, resolve} = useMutateFeedback({
+    feedbackIds: [feedbackItem.id],
+    organization,
+    projectIds: feedbackItem.project ? [feedbackItem.project.id] : [],
+  });
+  const deleteFeedback = useDeleteFeedback([feedbackItem.id], projectId);
 
   const hasDelete = organization.features.includes('issue-platform-deletion-ui');
   const disableDelete = !organization.access.includes('event:admin');
@@ -61,8 +65,7 @@ export default function useFeedbackActions({feedbackItem}: Props) {
     addLoadingMessage(t('Updating feedback...'));
     const newStatus = isResolved ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
     resolve(newStatus, mutationOptions);
-    reloadListData();
-  }, [isResolved, resolve, reloadListData]);
+  }, [isResolved, resolve, mutationOptions]);
 
   // reuse the issues ignored category for spam feedbacks
   const isSpam = feedbackItem.status === GroupStatus.IGNORED;
@@ -77,15 +80,13 @@ export default function useFeedbackActions({feedbackItem}: Props) {
         type: 'details',
       });
     }
-    reloadListData();
-  }, [isSpam, organization, resolve, reloadListData]);
+  }, [isSpam, organization, resolve, mutationOptions]);
 
   const hasSeen = feedbackItem.hasSeen;
   const onMarkAsReadClick = useCallback(() => {
     addLoadingMessage(t('Updating feedback...'));
     markAsRead(!hasSeen, mutationOptions);
-    reloadListData();
-  }, [hasSeen, markAsRead, reloadListData]);
+  }, [hasSeen, markAsRead, mutationOptions]);
 
   return {
     disableDelete,
