@@ -124,9 +124,6 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     def send_invite_email(self, referrer: str | None = None):
         pass
 
-    def send_sso_linked_email(self, sending_user_email: str, provider):
-        pass
-
     def generate_token(self):
         return secrets.token_hex(nbytes=32)
 
@@ -218,10 +215,6 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     @property
     def token_expired(self):
         return self.token_expires_at <= timezone.now()
-
-    @property
-    def is_scim_provisioned(self):
-        return self.organization_member.user_id is not None
 
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
