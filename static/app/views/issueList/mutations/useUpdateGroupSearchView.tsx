@@ -17,7 +17,7 @@ type UpdateGroupSearchViewVariables = Pick<
   GroupSearchView,
   'id' | 'name' | 'query' | 'querySort' | 'projects' | 'environments' | 'timeFilters'
 > & {
-  optimisticlyUpdate?: boolean;
+  optimistic?: boolean;
 };
 
 export const useUpdateGroupSearchView = (
@@ -42,8 +42,8 @@ export const useUpdateGroupSearchView = (
       ),
 
     onMutate: variables => {
-      const {optimisticlyUpdate, ...viewParams} = variables;
-      if (optimisticlyUpdate) {
+      const {optimistic, ...viewParams} = variables;
+      if (optimistic) {
         // Update the specific view cache
         setApiQueryData<GroupSearchView>(
           queryClient,
@@ -70,7 +70,7 @@ export const useUpdateGroupSearchView = (
       options.onMutate?.(variables);
     },
     onSuccess: (data, parameters, context) => {
-      if (!parameters.optimisticlyUpdate) {
+      if (!parameters.optimistic) {
         // Update the specific view cache
         setApiQueryData<GroupSearchView>(
           queryClient,

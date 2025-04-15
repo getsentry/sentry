@@ -1,8 +1,9 @@
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {GrowingInput} from 'sentry/components/growingInput';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,8 +26,6 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
     },
   });
 
-  const inputRef = useRef<HTMLInputElement>(null);
-
   const handleOnSave = (title: string) => {
     if (title !== view.name) {
       updateGroupSearchView({
@@ -37,7 +36,7 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
         querySort: view.querySort,
         timeFilters: view.timeFilters,
         environments: view.environments,
-        optimisticlyUpdate: true,
+        optimistic: true,
       });
     }
     requestAnimationFrame(() => {
@@ -46,10 +45,6 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
   };
 
   const handleBeginEditing = () => {
-    requestAnimationFrame(() => {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    });
     setIsEditing(true);
   };
 
@@ -57,12 +52,8 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
     <EditingViewTitle
       initialTitle={view.name}
       onSave={handleOnSave}
-      inputRef={inputRef}
       stopEditing={() => {
-        setTimeout(() => {
-          inputRef.current?.blur();
-          setIsEditing(false);
-        });
+        setIsEditing(false);
       }}
     />
   ) : (
@@ -82,14 +73,13 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
 function EditingViewTitle({
   initialTitle,
   onSave,
-  inputRef,
   stopEditing,
 }: {
   initialTitle: string;
-  inputRef: React.RefObject<HTMLInputElement | null>;
   onSave: (title: string) => void;
   stopEditing: () => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(initialTitle);
 
   const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,33 +87,40 @@ function EditingViewTitle({
   };
 
   const handleOnKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      onSave(title);
-      stopEditing();
+    switch (e.key) {
+      case 'Enter':
+        onSave(title);
+        stopEditing();
+        break;
+      case 'Escape':
+        stopEditing();
+        break;
+      default:
+        break;
     }
   };
 
-  const handleOnBlur = () => {
-    inputRef.current?.blur();
-    setTitle(initialTitle);
-    stopEditing();
-  };
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
 
   return (
     <StyledGrowingInput
       value={title}
       onChange={handleOnChange}
       onKeyDown={handleOnKeyDown}
-      onBlur={handleOnBlur}
+      onBlur={() => stopEditing()}
       ref={inputRef}
       maxLength={128}
     />
   );
 }
 
-const ViewTitleWrapper = styled('div')`
+const ViewTitleWrapper = styled(Layout.Title)`
   display: flex;
   align-items: center;
+  width: min-content;
 
   :not(:hover, :focus-within) {
     button {
@@ -145,6 +142,8 @@ const ViewTitle = styled('div')`
   display: flex;
   align-items: center;
   border-bottom: 1px dotted ${p => p.theme.border};
+
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledGrowingInput = styled(GrowingInput)`
@@ -158,14 +157,17 @@ const StyledGrowingInput = styled(GrowingInput)`
   border-radius: 0px;
   text-overflow: ellipsis;
   cursor: text;
-  font-size: inherit;
-  line-height: inherit;
-  border-bottom: 1px dotted ${p => p.theme.border};
+
+  /* Title styles */
+  font-size: 1.625rem;
+  font-weight: 600;
+  line-height: 40px;
 
   &,
   &:focus,
   &:active,
   &:hover {
     box-shadow: none;
+    border-bottom: 1px dotted ${p => p.theme.border};
   }
 `;

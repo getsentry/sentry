@@ -14,31 +14,32 @@ type LeftNavViewsHeaderProps = {
   selectedProjectIds: number[];
 };
 
+function PageTitle() {
+  const organization = useOrganization();
+  const {data: groupSearchView} = useSelectedGroupSearchView();
+
+  if (organization.features.includes('issue-view-sharing')) {
+    if (groupSearchView) {
+      return <EditableIssueViewHeader view={groupSearchView} />;
+    }
+
+    return <Layout.Title>{t('Issues')}</Layout.Title>;
+  }
+
+  return <Layout.Title>{groupSearchView?.name ?? t('Issues')}</Layout.Title>;
+}
+
 function LeftNavViewsHeader({selectedProjectIds}: LeftNavViewsHeaderProps) {
   const {projects} = useProjects();
   const prefersStackedNav = usePrefersStackedNav();
-  const organization = useOrganization();
-
   const selectedProjects = projects.filter(({id}) =>
     selectedProjectIds.includes(Number(id))
-  );
-
-  const {data: groupSearchView} = useSelectedGroupSearchView();
-
-  const issuesTitleComponent = organization.features.includes('issue-view-sharing') ? (
-    groupSearchView ? (
-      <EditableIssueViewHeader view={groupSearchView} />
-    ) : (
-      t('Issues')
-    )
-  ) : (
-    (groupSearchView?.name ?? t('Issues'))
   );
 
   return (
     <Layout.Header noActionWrap unified={prefersStackedNav}>
       <Layout.HeaderContent unified={prefersStackedNav}>
-        <Layout.Title>{issuesTitleComponent}</Layout.Title>
+        <PageTitle />
       </Layout.HeaderContent>
       <Layout.HeaderActions />
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
