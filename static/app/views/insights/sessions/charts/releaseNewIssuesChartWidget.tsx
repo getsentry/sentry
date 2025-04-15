@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
-import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
+import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import ChartWithIssues from 'sentry/views/insights/sessions/charts/chartWithIssues';
@@ -18,9 +18,10 @@ export default function ReleaseNewIssuesChart(props: LoadableChartWidgetProps) {
   const colorPalette = theme.chart.getColorPalette(series.length - 2);
   const plottables = series.map(
     (ts, index) =>
-      new Line(convertSeriesToTimeseries(ts), {
+      new Bars(convertSeriesToTimeseries(ts), {
         alias: ts.seriesName,
         color: colorPalette[index],
+        stack: 'all',
       })
   );
 
