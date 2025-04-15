@@ -44,6 +44,7 @@ TOP_EVENTS_DATASETS = {
     metrics_performance,
     metrics_enhanced_performance,
     spans_metrics,
+    spans_rpc,
     errors,
     transactions,
 }
