@@ -127,7 +127,7 @@ const ViewTitleWrapper = styled('div')`
 
   :not(:hover, :focus-within) {
     button {
-      visibility: hidden;
+      opacity: 0;
     }
 
     div {
@@ -160,6 +160,7 @@ const StyledGrowingInput = styled(GrowingInput)`
   cursor: text;
   font-size: inherit;
   line-height: inherit;
+  border-bottom: 1px dotted ${p => p.theme.border};
 
   &,
   &:focus,
