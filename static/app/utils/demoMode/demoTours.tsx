@@ -245,6 +245,11 @@ export function DemoTourElement({
   );
 }
 
+/**
+ * A component that renders either a DemoTourElement or regular TourElement depending on whether
+ * demo mode is active. This allows the same tour content to be shared between demo mode and
+ * regular product tours.
+ */
 export function SharedTourElement<T extends TourEnumType>({
   id,
   demoTourId,
@@ -252,6 +257,7 @@ export function SharedTourElement<T extends TourEnumType>({
   description,
   children,
   tourContext,
+  ...props
 }: TourElementProps<T> & {demoTourId: DemoTourStep}) {
   if (isDemoModeActive()) {
     return (
@@ -263,6 +269,7 @@ export function SharedTourElement<T extends TourEnumType>({
 
   return (
     <TourElement
+      {...props}
       id={id}
       title={title}
       description={description}
