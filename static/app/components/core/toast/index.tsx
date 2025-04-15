@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
@@ -12,12 +13,28 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 
-type Props = {
+interface ToastProps {
   indicator: Indicator;
   onDismiss: (indicator: Indicator, event: React.MouseEvent) => void;
-};
+}
 
-export function Toast({indicator, onDismiss, ...props}: Props) {
+export function Toast({indicator, onDismiss, ...props}: ToastProps) {
+  // The types are allowing us to render an undo toast without an undo function, which defeats the purpose
+  // of an undo toast. Log these to Sentry so we can fix the issue.
+  useEffect(() => {
+    if (indicator.type === 'undo' && !indicator.options?.undo) {
+      Sentry.logger.error(
+        'Rendered undo toast without undo function, this should not happen.',
+        {
+          toast:
+            typeof indicator.message === 'string'
+              ? indicator.message
+              : '<Unknown React Node />',
+        }
+      );
+    }
+  }, [indicator]);
+
   return (
     <ToastContainer
       onClick={
@@ -58,15 +75,15 @@ function ToastIcon({type}: {type: Indicator['type']}) {
       return <ToastLoadingIndicator mini />;
     case 'success':
       return (
-        <IconContainer>
+        <ToastIconContainer>
           <IconCheckmark size="lg" isCircled color="successText" />
-        </IconContainer>
+        </ToastIconContainer>
       );
     case 'error':
       return (
-        <IconContainer>
-          <IconClose size="lg" isCircled color="successText" />
-        </IconContainer>
+        <ToastIconContainer>
+          <IconClose size="lg" isCircled color="errorText" />
+        </ToastIconContainer>
       );
     case 'undo':
       return null;
@@ -92,7 +109,7 @@ const ToastContainer = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   position: relative;
 `;
 
-const IconContainer = styled('div')`
+const ToastIconContainer = styled('div')`
   margin-right: ${space(0.75)};
   svg {
     display: block;
