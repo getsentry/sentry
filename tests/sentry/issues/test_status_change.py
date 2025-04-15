@@ -4,13 +4,15 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import patch
 
+from sentry.incidents.grouptype import MetricAlertFire
 from sentry.issues.ignored import IGNORED_CONDITION_FIELDS
 from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.models.activity import Activity
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
@@ -91,9 +93,14 @@ class InferSubstatusTest(TestCase):
         )
 
 
+@apply_feature_flag_on_cls("organizations:issue-open-periods")
 class HandleStatusChangeTest(TestCase):
     def create_issue(self, status: int, substatus: int | None = None) -> None:
         self.group = self.create_group(status=status)
+        self.group.type = MetricAlertFire.type_id
+        self.group.save()
+
+        assert self.group.type == MetricAlertFire.type_id
         self.group_list = [self.group]
         self.group_ids = [self.group]
         self.projects = [self.group.project]
@@ -122,7 +129,6 @@ class HandleStatusChangeTest(TestCase):
             group=self.group, status=GroupHistoryStatus.UNRESOLVED
         ).exists()
 
-    @with_feature("organizations:issue-open-periods")
     @patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolve_resolved_issue(self, issue_unresolved: Any) -> None:
         from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -202,3 +208,87 @@ class HandleStatusChangeTest(TestCase):
         assert GroupHistory.objects.filter(
             group=self.group, status=GroupHistoryStatus.IGNORED
         ).exists()
+
+    def test_regressed_group_without_existing_open_period(self) -> None:
+        # create, resolve, regress, then resolve a group
+        self.create_issue(GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+        Group.objects.update_group_status(
+            groups=[self.group],
+            status=GroupStatus.RESOLVED,
+            substatus=None,
+            activity_type=ActivityType.SET_RESOLVED,
+            send_activity_notification=False,
+            from_substatus=GroupSubStatus.NEW,
+        )
+
+        Group.objects.update_group_status(
+            groups=[self.group],
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.REGRESSED,
+            activity_type=ActivityType.SET_REGRESSION,
+            send_activity_notification=False,
+            from_substatus=GroupSubStatus.NEW,
+        )
+
+        Group.objects.update_group_status(
+            groups=[self.group],
+            status=GroupStatus.RESOLVED,
+            substatus=None,
+            activity_type=ActivityType.SET_RESOLVED,
+            send_activity_notification=False,
+            from_substatus=GroupSubStatus.NEW,
+        )
+
+        # delete all open periods to test cases where groups were
+        # resolved before open periods were supported
+        GroupOpenPeriod.objects.all().delete()
+
+        assert not GroupOpenPeriod.objects.filter(group=self.group).exists()
+
+        handle_status_update(
+            self.group_list,
+            self.projects,
+            self.project_lookup,
+            acting_user=self.user,
+            new_status=GroupStatus.UNRESOLVED,
+            new_substatus=GroupSubStatus.ONGOING,
+            is_bulk=False,
+            status_details={},
+            sender=self,
+        )
+
+        assert len(GroupOpenPeriod.objects.filter(group=self.group)) == 1
+        open_period = GroupOpenPeriod.objects.filter(group=self.group).first()
+        assert open_period.date_started is not None
+        assert open_period.date_ended is None
+
+    def test_new_group_without_existing_open_period(self) -> None:
+        self.create_issue(GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+        Group.objects.update_group_status(
+            groups=[self.group],
+            status=GroupStatus.RESOLVED,
+            substatus=None,
+            activity_type=ActivityType.SET_RESOLVED,
+            send_activity_notification=False,
+            from_substatus=GroupSubStatus.NEW,
+        )
+
+        GroupOpenPeriod.objects.all().delete()
+        assert not GroupOpenPeriod.objects.filter(group=self.group).exists()
+
+        handle_status_update(
+            self.group_list,
+            self.projects,
+            self.project_lookup,
+            acting_user=self.user,
+            new_status=GroupStatus.UNRESOLVED,
+            new_substatus=GroupSubStatus.ONGOING,
+            is_bulk=False,
+            status_details={},
+            sender=self,
+        )
+
+        assert len(GroupOpenPeriod.objects.filter(group=self.group)) == 1
+        open_period = GroupOpenPeriod.objects.filter(group=self.group).first()
+        assert open_period.date_started is not None
+        assert open_period.date_ended is None

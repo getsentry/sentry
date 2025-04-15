@@ -1209,20 +1209,43 @@ def update_group_open_period(
     if new_status not in (GroupStatus.RESOLVED, GroupStatus.UNRESOLVED):
         return
 
-    find_open = new_status != GroupStatus.UNRESOLVED
+    is_open = new_status == GroupStatus.RESOLVED
     open_period = (
-        GroupOpenPeriod.objects.filter(group=group, date_ended__isnull=find_open)
+        GroupOpenPeriod.objects.filter(group=group, date_ended__isnull=is_open)
         .order_by("-date_started")
         .first()
     )
+
+    # If we can't find an open period, we need to create the missing open period using the previous activity.
+    # This is a temporary solution to until we backfill the GroupOpenPeriod table.
     if not open_period:
-        logger.error(
-            "Unable to update open period, no open period found",
+        logger.warning(
+            "update_group_open_period: no open period found to update, creating a new one",
             extra={"group_id": group.id},
         )
-        return
+        # Regardless of the new status, we want to find the time of the last regression event.
+        # If the group is going to be resolved, the regression marks the start of the open period.
+        # Similarly, if the group is going to be unresolved, we extend the open period which started with the regression.
+        previous_activity = (
+            Activity.objects.filter(group=group, type=ActivityType.SET_REGRESSION.value)
+            .order_by("-datetime")
+            .first()
+        )
+        date_started = previous_activity.datetime if previous_activity else group.first_seen
+
+        open_period = GroupOpenPeriod.objects.create(
+            group=group,
+            project_id=group.project_id,
+            date_started=date_started,
+        )
 
     if new_status == GroupStatus.RESOLVED:
+        if not activity:
+            logger.warning(
+                "update_group_open_period: missing activity to resolve open period",
+                extra={"group_id": group.id},
+            )
+
         open_period.update(
             date_ended=group.resolved_at if group.resolved_at else timezone.now(),
             resolution_activity=activity,
