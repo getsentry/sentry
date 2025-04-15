@@ -14,9 +14,10 @@ type Options = {
   selected: DropdownOption;
   sort: Sort;
   transactionName: string;
+  limit?: number;
 };
 
-const LIMIT = 5;
+const DEFAULT_LIMIT = 5;
 const CURSOR_NAME = 'serviceEntrySpansCursor';
 
 const FIELDS: EAPSpanProperty[] = [
@@ -42,6 +43,7 @@ export function useServiceEntrySpansQuery({
   sort,
   p95,
   selected,
+  limit = DEFAULT_LIMIT,
 }: Options) {
   const location = useLocation();
   const spanCategoryUrlParam = decodeScalar(
@@ -63,6 +65,7 @@ export function useServiceEntrySpansQuery({
     p95,
     selected,
     enabled: isSingleQueryEnabled,
+    limit,
   });
 
   const isMultipleQueriesEnabled = Boolean(
@@ -81,6 +84,7 @@ export function useServiceEntrySpansQuery({
     p95,
     selected,
     enabled: isMultipleQueriesEnabled,
+    limit,
   });
 
   if (isSingleQueryEnabled) {
@@ -103,6 +107,7 @@ export function useServiceEntrySpansQuery({
 }
 
 type UseSingleQueryOptions = {
+  limit: number;
   p95: number;
   query: string;
   selected: DropdownOption;
@@ -115,7 +120,7 @@ function useSingleQuery(options: UseSingleQueryOptions) {
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
   const {selection} = usePageFilters();
-  const {query, sort, p95, selected, enabled} = options;
+  const {query, sort, p95, selected, enabled, limit} = options;
   const newQuery = new MutableSearch(query);
 
   if (selected.value === TransactionFilterOptions.SLOW && p95) {
@@ -131,7 +136,7 @@ function useSingleQuery(options: UseSingleQueryOptions) {
       search: newQuery,
       fields: FIELDS,
       sorts: [sort],
-      limit: LIMIT,
+      limit,
       cursor,
       pageFilters: selection,
       enabled,
@@ -149,6 +154,7 @@ function useSingleQuery(options: UseSingleQueryOptions) {
 }
 
 type UseMultipleQueriesOptions = {
+  limit: number;
   p95: number;
   selected: DropdownOption;
   sort: Sort;
@@ -157,7 +163,7 @@ type UseMultipleQueriesOptions = {
 };
 
 function useMultipleQueries(options: UseMultipleQueriesOptions) {
-  const {transactionName, sort, p95, selected, enabled} = options;
+  const {transactionName, sort, p95, selected, enabled, limit} = options;
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
   const {selection} = usePageFilters();
@@ -188,7 +194,7 @@ function useMultipleQueries(options: UseMultipleQueriesOptions) {
           kind: sort.kind,
         },
       ],
-      limit: LIMIT,
+      limit,
       cursor,
       pageFilters: selection,
       enabled,
@@ -217,7 +223,7 @@ function useMultipleQueries(options: UseMultipleQueriesOptions) {
       fields: FIELDS,
       cursor,
       sorts: [sort],
-      limit: LIMIT,
+      limit,
       enabled: !!categorizedSpanIds && categorizedSpanIds.length > 0,
     },
     'api.performance.service-entry-spans-table-with-category'

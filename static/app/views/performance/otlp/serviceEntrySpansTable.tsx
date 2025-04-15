@@ -138,7 +138,7 @@ export function ServiceEntrySpansTable({
   const {selected, options} = getOTelTransactionsListSort(location, spanCategory);
 
   const p95 = totalValues?.['p95()'] ?? 0;
-  const eventViewQuery = new MutableSearch(eventView.query);
+  const eventViewQuery = new MutableSearch('');
   if (selected.value === TransactionFilterOptions.SLOW && p95) {
     eventViewQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
   }
@@ -246,6 +246,9 @@ export function ServiceEntrySpansTable({
             renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
         }}
       />
+      {isFullPageMode && (
+        <Pagination pageLinks={pageLinks} onCursor={handleCursor} size="md" />
+      )}
     </Fragment>
   );
 }
