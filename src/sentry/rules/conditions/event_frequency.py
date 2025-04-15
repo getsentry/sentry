@@ -348,7 +348,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
-        group_on_time: bool = True,
+        group_on_time: bool = False,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
             model=model,
@@ -458,7 +458,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         start: datetime,
         end: datetime,
         environment_id: int,
-        group_on_time: bool = True,
+        group_on_time: bool = False,
     ) -> dict[int, int | float]:
         batch_sums: dict[int, int | float] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
@@ -939,7 +939,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix="alert_event_frequency_percent",
-                group_on_time=True,
+                group_on_time=False,
             )[event.group_id]
 
             if issue_count > avg_sessions_in_interval:

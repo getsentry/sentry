@@ -116,6 +116,7 @@ class BaseTSDB(Service):
         [
             "get_range",
             "get_sums",
+            "get_timeseries_sums",
             "get_distinct_counts_series",
             "get_distinct_counts_totals",
             "get_frequency_series",
@@ -436,7 +437,7 @@ class BaseTSDB(Service):
         """
         raise NotImplementedError
 
-    def get_sums(
+    def get_timeseries_sums(
         self,
         model: TSDBModel,
         keys: Sequence[TSDBKey],
@@ -450,7 +451,7 @@ class BaseTSDB(Service):
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
         group_on_time: bool = True,
-    ) -> Mapping[TSDBKey, int] | Mapping[TSDBKey, list[tuple[int, int]]]:
+    ) -> Mapping[int, list[tuple[int, int]]]:
         range_set: Mapping[TSDBKey, list[tuple[int, int]]] = self.get_range(
             model,
             keys,
@@ -463,15 +464,42 @@ class BaseTSDB(Service):
             tenant_ids=tenant_ids,
             referrer_suffix=referrer_suffix,
             conditions=conditions,
-            group_on_time=group_on_time,
         )
-        if not group_on_time:
-            return range_set
-
         sum_set: Mapping[TSDBKey, int] = {
             key: sum(p for _, p in points) for (key, points) in range_set.items()
         }
         return sum_set
+
+    def get_sums(
+        self,
+        model: TSDBModel,
+        keys: Sequence[TSDBKey],
+        start: datetime,
+        end: datetime,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer_suffix: str | None = None,
+        conditions: list[SnubaCondition] | None = None,
+        group_on_time: bool = False,
+    ) -> Mapping[TSDBKey, int]:
+        result: Mapping[TSDBKey, int] = self.get_sums_data(
+            model,
+            keys,
+            start,
+            end,
+            rollup,
+            [environment_id],
+            group_on_time=group_on_time,
+            conditions=conditions,
+            use_cache=use_cache,
+            jitter_value=jitter_value,
+            tenant_ids=tenant_ids,
+            referrer_suffix=referrer_suffix,
+        )
+        return result
 
     def _add_jitter_to_series(
         self, series: list[int], start: datetime, rollup: int, jitter_value: int | None

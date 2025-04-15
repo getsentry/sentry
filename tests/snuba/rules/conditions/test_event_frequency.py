@@ -8,7 +8,8 @@ import pytest
 from django.utils import timezone
 from snuba_sdk import Op
 
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.constants import get_issue_tsdb_group_model
+from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -191,25 +192,32 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         start = before_now(days=7)
         end = timezone.now()
 
-        # data is missing when we group on time
-        batch_query = condition_inst.batch_query_hook(
+        batch_query = condition_inst.get_chunked_result(
+            tsdb_function=condition_inst.tsdb.get_timeseries_sums,
+            model=get_issue_tsdb_group_model(GroupCategory.ERROR),
             group_ids=[group_1_id, group_2_id],
+            organization_id=self.organization.id,
             start=start,
             end=end,
             environment_id=None,
+            referrer_suffix="batch_alert_event_frequency",
             group_on_time=True,
         )
+
         assert batch_query == {
             group_1_id: 1,
             group_2_id: 2,
         }
 
-        # data is not missing when we do not group on time
-        batch_query = condition_inst.batch_query_hook(
+        batch_query = condition_inst.get_chunked_result(
+            tsdb_function=condition_inst.tsdb.get_sums,
+            model=get_issue_tsdb_group_model(GroupCategory.ERROR),
             group_ids=[group_1_id, group_2_id],
+            organization_id=self.organization.id,
             start=start,
             end=end,
             environment_id=None,
+            referrer_suffix="batch_alert_event_frequency",
             group_on_time=False,
         )
         assert batch_query == {
