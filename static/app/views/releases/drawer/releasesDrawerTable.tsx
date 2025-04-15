@@ -16,6 +16,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -34,13 +35,9 @@ type ReleaseHealthItem = {
   release: string;
 };
 
-interface Props {
-  end: string;
-  environments: readonly string[];
+interface Props extends PageFilters {
   onMouseOutRelease: (release: string) => void;
   onMouseOverRelease: (release: string) => void;
-  projects: readonly number[];
-  start: string;
 }
 
 type ReleaseHealthGridItem = Pick<ReleaseHealthItem, 'date' | 'release' | 'error_count'>;
@@ -59,10 +56,9 @@ const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
  * especially with the in-drawer navigation.
  */
 export function ReleaseDrawerTable({
-  end,
+  datetime,
   environments,
   projects,
-  start,
   onMouseOverRelease,
   onMouseOutRelease,
 }: Props) {
@@ -78,10 +74,7 @@ export function ReleaseDrawerTable({
           project: projects,
           environment: environments,
           cursor: location.query.releaseCursor,
-          ...normalizeDateTimeParams({
-            start,
-            end,
-          }),
+          ...normalizeDateTimeParams(datetime),
           per_page: 15,
         },
       },
