@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
-import type {ScatterSeriesOption, SeriesOption} from 'echarts';
+import type {EChartsType, ScatterSeriesOption, SeriesOption} from 'echarts';
 
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -96,33 +96,40 @@ export class Samples implements Plottable {
     this.chartRef = chartRef;
   }
 
-  highlight(sample: TabularRow) {
-    if (!this.chartRef) {
-      warn('`Samples.highlight` invoked before chart ref is ready');
-      return;
+  /**
+   * Dispatch an action on a data point to the chart instance, if possible. If not possible, log the error, but noop. In all current cases, failing to dispatch an action is harmless, and only happens if the chart is removed from the DOM, in which case there's nothing to dispatch to, anyway. Telemetry added in case this happens a lot and we want to track down what's dispatching actions to a removed chart.
+   */
+  #dispatchPointAction(action: string, dataIndex: number): void {
+    let chart: EChartsType | undefined = undefined;
+
+    try {
+      chart = this.chartRef?.getEchartsInstance();
+    } catch (e) {
+      warn(
+        '`Samples` could not dispatch action because the chart was removed from the DOM'
+      );
+      return undefined;
     }
 
-    const chart = this.chartRef.getEchartsInstance();
-    const seriesName = this.name;
+    if (!chart) {
+      return undefined;
+    }
 
+    chart.dispatchAction({type: action, seriesName: this.name, dataIndex});
+    return undefined;
+  }
+
+  highlight(sample: TabularRow) {
     if (sample && isValidSampleRow(sample)) {
       const dataIndex = this.sampleTableData.data.indexOf(sample);
-      chart.dispatchAction({type: 'highlight', seriesName, dataIndex});
+      this.#dispatchPointAction('highlight', dataIndex);
     }
   }
 
   downplay(sample: TabularRow) {
-    if (!this.chartRef) {
-      warn('`Samples.downplay` invoked before chart ref is ready');
-      return;
-    }
-
-    const chart = this.chartRef.getEchartsInstance();
-    const seriesName = this.name;
-
     if (sample && isValidSampleRow(sample)) {
       const dataIndex = this.sampleTableData.data.indexOf(sample);
-      chart.dispatchAction({type: 'downplay', seriesName, dataIndex});
+      this.#dispatchPointAction('downplay', dataIndex);
     }
   }
 
