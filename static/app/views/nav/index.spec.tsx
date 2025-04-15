@@ -114,9 +114,11 @@ describe('Nav', function () {
       ).getAllByRole('link');
       expect(links).toHaveLength(5);
 
-      ['Issues', 'Explore', 'Dash', 'Insights', 'Settings'].forEach((title, index) => {
-        expect(links[index]).toHaveAccessibleName(title);
-      });
+      ['Issues', 'Explore', 'Dashboards', 'Insights', 'Settings'].forEach(
+        (title, index) => {
+          expect(links[index]).toHaveAccessibleName(title);
+        }
+      );
     });
 
     it('displays the current primary route as active', function () {

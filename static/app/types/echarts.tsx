@@ -64,6 +64,21 @@ export interface EChartsHighlightEventParam {
 
 export type EChartHighlightHandler = EChartEventHandler<EChartsHighlightEventParam>;
 
+export interface EChartsDownplayEventParam {
+  type: 'downplay';
+  batch?: Array<{
+    dataIndex: number;
+    dataIndexInside: number;
+    escapeConnect: boolean;
+    notBlur: boolean;
+    seriesIndex: number;
+    type: string;
+  }>;
+  name?: string;
+}
+
+export type EChartDownplayHandler = EChartEventHandler<EChartsHighlightEventParam>;
+
 /**
  * XXX: These are incomplete types and can also vary depending on the component type
  *

@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 function asChartPoint(point: [number, number]): {name: number | string; value: number} {
   return {
@@ -69,6 +70,14 @@ function GroupStatusChart({
       return {colors: undefined, emphasisColors: undefined, series};
     }
 
+    const marklineColor = isChonkTheme(theme)
+      ? theme.colors.content.muted
+      : theme.gray200;
+    const marklineLabelColor = isChonkTheme(theme)
+      ? theme.colors.content.primary
+      : theme.gray300;
+    const chartColor = isChonkTheme(theme) ? theme.colors.content.primary : theme.gray300;
+
     const series: Series[] = [
       {
         seriesName: t('Events'),
@@ -78,7 +87,7 @@ function GroupStatusChart({
             ? MarkLine({
                 silent: true,
                 lineStyle: {
-                  color: theme.gray200,
+                  color: marklineColor,
                   type: [4, 3], // Sets line type to "dashed" with 4 length and 3 gap
                   opacity: 0.6,
                   cap: 'round', // Rounded edges for the dashes
@@ -93,7 +102,7 @@ function GroupStatusChart({
                   show: true,
                   position: 'end',
                   opacity: 1,
-                  color: `${theme.gray300}`,
+                  color: marklineLabelColor,
                   fontFamily: 'Rubik',
                   fontSize: 10,
                   formatter: `${formattedMarkLine}`,
@@ -102,15 +111,9 @@ function GroupStatusChart({
             : undefined,
       },
     ];
-    return {colors: [theme.gray300], emphasisColors: [theme.gray300], series};
-  }, [
-    showSecondaryPoints,
-    secondaryStats,
-    showMarkLine,
-    stats,
-    theme.gray200,
-    theme.gray300,
-  ]);
+
+    return {colors: [chartColor], emphasisColors: [chartColor], series};
+  }, [showSecondaryPoints, secondaryStats, showMarkLine, stats, theme]);
 
   return (
     <LazyRender containerHeight={showMarkLine ? 26 : height}>

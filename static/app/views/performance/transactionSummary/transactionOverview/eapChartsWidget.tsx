@@ -71,10 +71,11 @@ function getWidgetContents(widgetType: EAPWidgetType, spanCategory?: string) {
 }
 
 type EAPChartsWidgetProps = {
+  query: string;
   transactionName: string;
 };
 
-export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
+export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -105,6 +106,7 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
   const visualization = useWidgetChartVisualization({
     selectedWidget: selectedChart,
     transactionName,
+    query,
   });
 
   const handleChartChange = (option: SelectOption<string>) => {
