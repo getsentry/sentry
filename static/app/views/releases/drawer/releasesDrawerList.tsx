@@ -23,7 +23,7 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {ReleaseDrawerTable} from './releasesDrawerTable';
 
 interface ReleasesDrawerListProps {
-  subPageFilters: PageFilters;
+  pageFilters: PageFilters;
   chart?: string;
 }
 
@@ -80,8 +80,8 @@ const unhighlightMarkLines = createMarkLineUpdater({});
  * Renders the a chart + releases table for use in the Global Drawer.
  * Allows users to view releases of a specific timebucket.
  */
-export function ReleasesDrawerList({chart, subPageFilters}: ReleasesDrawerListProps) {
-  const {releases} = useReleaseStats(subPageFilters);
+export function ReleasesDrawerList({chart, pageFilters}: ReleasesDrawerListProps) {
+  const {releases} = useReleaseStats(pageFilters);
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const chartHeight = '220px'; // TODO: this will change based on chart id
 
@@ -129,14 +129,14 @@ export function ReleasesDrawerList({chart, subPageFilters}: ReleasesDrawerListPr
           <ChartContainer style={{height: chartHeight}}>
             <ChartWidgetLoader
               id={chart}
-              subPageFilters={subPageFilters}
+              pageFilters={pageFilters}
               showReleaseAs="line"
             />
           </ChartContainer>
         ) : null}
 
         <ReleaseDrawerTable
-          {...subPageFilters}
+          {...pageFilters}
           onMouseOverRelease={handleMouseOverRelease}
           onMouseOutRelease={handleMouseOutRelease}
         />

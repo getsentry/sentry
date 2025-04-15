@@ -39,7 +39,7 @@ export function ReleasesDrawer() {
   const start = getDateFromTimestamp(rdStart);
   const end = getDateFromTimestamp(rdEnd);
   const defaultPageFilters = usePageFilters();
-  const subPageFilters = {
+  const pageFilters = {
     projects: Array.isArray(rdProject)
       ? rdProject.map(Number)
       : defaultPageFilters.selection.projects,
@@ -72,7 +72,7 @@ export function ReleasesDrawer() {
   }
 
   if (start && end) {
-    return <ReleasesDrawerList chart={rdChart} subPageFilters={subPageFilters} />;
+    return <ReleasesDrawerList chart={rdChart} pageFilters={pageFilters} />;
   }
 
   return (
