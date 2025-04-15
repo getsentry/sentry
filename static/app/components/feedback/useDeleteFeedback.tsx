@@ -3,6 +3,7 @@ import {useCallback} from 'react';
 import {bulkDelete} from 'sentry/actionCreators/group';
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
+import useRefetchFeedbackList from 'sentry/components/feedback/list/useRefetchFeedbackList';
 import {t} from 'sentry/locale';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
@@ -19,6 +20,8 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
   const navigate = useNavigate();
   const {query: locationQuery} = useLocation();
 
+  const {refetchFeedbackList} = useRefetchFeedbackList();
+
   return useCallback(() => {
     openConfirmModal({
       onConfirm: () => {
@@ -32,6 +35,7 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
           },
           {
             complete: () => {
+              refetchFeedbackList();
               navigate(
                 normalizeUrl({
                   pathname: makeFeedbackPathname({
@@ -63,5 +67,6 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
     navigate,
     organization,
     projectId,
+    refetchFeedbackList,
   ]);
 };
