@@ -37,7 +37,7 @@ export function StarSavedQueryButton() {
     );
   }, [starQuery]);
 
-  if (isLoading) {
+  if (isLoading || !locationId) {
     return null;
   }
   return (
