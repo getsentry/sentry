@@ -9,12 +9,10 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -28,17 +26,36 @@ export function useConfigureSdk({
 }: {
   onComplete: (selectedPlatform: OnboardingSelectedSDK) => void;
 }) {
-  const api = useApi();
   const {teams, fetching: isLoadingTeams} = useTeams();
   const {projects} = useProjects();
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
+  const createProject = useCreateProject({
+    onLoading: () => {
+      addLoadingMessage(t('Loading SDK configuration\u2026'));
+    },
+    onSuccess: ({platform}) => {
+      onboardingContext.setSelectedPlatform(platform);
+      trackAnalytics('growth.onboarding_set_up_your_project', {
+        platform: platform.key,
+        organization,
+      });
+
+      clearIndicators();
+      setTimeout(() => onComplete(platform));
+    },
+    onError: error => {
+      addErrorMessage(t('Failed to load SDK configuration'));
+      Sentry.captureException(error);
+      clearIndicators();
+    },
+  });
 
   const firstAccessTeam = teams.find(team => team.access.includes('team:admin'));
   const firstTeamSlug = firstAccessTeam?.slug;
 
   const createPlatformProject = useCallback(
-    async (selectedPlatform?: OnboardingSelectedSDK) => {
+    (selectedPlatform?: OnboardingSelectedSDK) => {
       if (!selectedPlatform) {
         return;
       }
@@ -61,45 +78,13 @@ export function useConfigureSdk({
         return;
       }
 
-      try {
-        addLoadingMessage(t('Loading SDK configuration\u2026'));
-
-        // A default team should always be created for a new organization.
-        // If teams are loaded but no first team is found, fallback to the experimental project.
-        if (!firstTeamSlug) {
-          Sentry.captureException('No team slug found for new org during onboarding');
-        }
-        const url = firstTeamSlug
-          ? `/teams/${organization.slug}/${firstTeamSlug}/projects/`
-          : `/organizations/${organization.slug}/experimental/projects/`;
-
-        const response = (await api.requestPromise(url, {
-          method: 'POST',
-          data: {
-            platform: createProjectForPlatform.key,
-            name: createProjectForPlatform.key,
-            default_rules: true,
-            origin: 'ui',
-          },
-        })) as Project;
-
-        ProjectsStore.onCreateSuccess(response, organization.slug);
-
-        onboardingContext.setSelectedPlatform(createProjectForPlatform);
-
-        trackAnalytics('growth.onboarding_set_up_your_project', {
-          platform: selectedPlatform.key,
-          organization,
-        });
-
-        clearIndicators();
-        setTimeout(() => onComplete(createProjectForPlatform));
-      } catch (err) {
-        addErrorMessage(t('Failed to load SDK configuration'));
-        Sentry.captureException(err);
-      }
+      createProject.mutate({
+        name: createProjectForPlatform.key,
+        platform: createProjectForPlatform,
+        firstTeamSlug,
+      });
     },
-    [onboardingContext, api, organization, firstTeamSlug, projects, onComplete]
+    [createProject, firstTeamSlug, onboardingContext, onComplete, projects, organization]
   );
 
   const configureSdk = useCallback(
@@ -132,6 +117,7 @@ export function useConfigureSdk({
               createPlatformProject(selectedFramework);
             }}
             onSkip={() => createPlatformProject(selectedPlatform)}
+            configuringSDK={createProject.isPending}
             newOrg
           />
         ),
@@ -147,7 +133,7 @@ export function useConfigureSdk({
         }
       );
     },
-    [createPlatformProject, onboardingContext, organization]
+    [createPlatformProject, onboardingContext, organization, createProject.isPending]
   );
 
   return {configureSdk, isLoadingData: isLoadingTeams};

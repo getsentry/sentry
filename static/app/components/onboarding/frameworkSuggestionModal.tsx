@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
@@ -112,13 +112,14 @@ export const languageDescriptions: Partial<Record<PlatformKey, string>> = {
   ),
 };
 
-type Props = ModalRenderProps & {
+interface FrameworkSuggestionModalProps extends ModalRenderProps {
   onConfigure: (selectedFramework: OnboardingSelectedSDK) => void;
   onSkip: () => void;
   organization: Organization;
   selectedPlatform: OnboardingSelectedSDK;
+  configuringSDK?: boolean;
   newOrg?: boolean;
-};
+}
 
 export function FrameworkSuggestionModal({
   Body,
@@ -130,10 +131,13 @@ export function FrameworkSuggestionModal({
   CloseButton,
   organization,
   newOrg,
-}: Props) {
+  configuringSDK,
+}: FrameworkSuggestionModalProps) {
   const [selectedFramework, setSelectedFramework] = useState<
     OnboardingSelectedSDK | undefined
   >(selectedPlatform);
+
+  const configureSDKClicked = useRef(false);
 
   const frameworks = platforms.filter(
     platform =>
@@ -193,6 +197,12 @@ export function FrameworkSuggestionModal({
     );
   }, [selectedPlatform.key, organization, newOrg]);
 
+  useEffect(() => {
+    if (!configuringSDK) {
+      configureSDKClicked.current = false;
+    }
+  }, [configuringSDK]);
+
   const handleConfigure = useCallback(() => {
     if (!selectedFramework) {
       return;
@@ -224,6 +234,20 @@ export function FrameworkSuggestionModal({
     );
     onSkip();
   }, [selectedPlatform, organization, onSkip, newOrg]);
+
+  const handleClicked = useCallback(() => {
+    if (configureSDKClicked.current) {
+      return;
+    }
+
+    configureSDKClicked.current = true;
+
+    if (selectedFramework?.key === selectedPlatform.key) {
+      handleSkip();
+    } else {
+      handleConfigure();
+    }
+  }, [selectedFramework, selectedPlatform, handleSkip, handleConfigure]);
 
   const listEntries: PlatformIntegration[] = [
     ...topFrameworksOrdered,
@@ -292,9 +316,8 @@ export function FrameworkSuggestionModal({
       <Footer>
         <Button
           priority="primary"
-          onClick={
-            selectedFramework?.key === selectedPlatform.key ? handleSkip : handleConfigure
-          }
+          onClick={handleClicked}
+          busy={configureSDKClicked.current === true}
         >
           {t('Configure SDK')}
         </Button>

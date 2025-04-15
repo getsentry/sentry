@@ -1,0 +1,65 @@
+import * as Sentry from '@sentry/react';
+
+import ProjectsStore from 'sentry/stores/projectsStore';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {Project} from 'sentry/types/project';
+import {useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+
+interface UseCreateProjectProps {
+  onError?: (error: RequestError) => void;
+  onLoading?: () => void;
+  onSuccess?: (props: {platform: OnboardingSelectedSDK; project: Project}) => void;
+}
+
+interface Variables {
+  platform: OnboardingSelectedSDK;
+  default_rules?: boolean;
+  firstTeamSlug?: string;
+  name?: string;
+}
+
+export function useCreateProject({
+  onLoading,
+  onSuccess,
+  onError,
+}: UseCreateProjectProps = {}) {
+  const api = useApi();
+  const organization = useOrganization();
+
+  return useMutation<Project, RequestError, Variables>({
+    mutationFn: ({firstTeamSlug, name, platform, default_rules}) => {
+      // A default team should always be created for a new organization.
+      // If teams are loaded but no first team is found, fallback to the experimental project.
+      if (!firstTeamSlug) {
+        Sentry.captureException('No team slug found for new org during onboarding');
+      }
+      return api.requestPromise(
+        firstTeamSlug
+          ? `/teams/${organization.slug}/${firstTeamSlug}/projects/`
+          : `/organizations/${organization.slug}/experimental/projects/`,
+        {
+          method: 'POST',
+          data: {
+            platform: platform.key,
+            name,
+            default_rules: default_rules ?? true,
+            origin: 'ui',
+          },
+        }
+      );
+    },
+    onMutate: () => {
+      onLoading?.();
+    },
+    onSuccess: (response, variables) => {
+      ProjectsStore.onCreateSuccess(response, organization.slug);
+      onSuccess?.({platform: variables.platform, project: response});
+    },
+    onError: error => {
+      onError?.(error);
+    },
+  });
+}
