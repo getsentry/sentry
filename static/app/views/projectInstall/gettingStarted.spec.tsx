@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
-import PlatformOrIntegration from './platformOrIntegration';
+import PlatformOrIntegration from './gettingStarted';
 
 type ProjectWithBadPlatform = Omit<Project, 'platform'> & {
   platform: string;
