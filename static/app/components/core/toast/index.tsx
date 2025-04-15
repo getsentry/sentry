@@ -8,10 +8,19 @@ import type {Indicator} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconCheckmark, IconClose} from 'sentry/icons';
+import {IconCheckmark, IconRefresh, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
+import {withChonk} from 'sentry/utils/theme/withChonk';
+
+import {
+  ChonkToastContainer,
+  ChonkToastIconContainer,
+  ChonkToastLoadingIndicator,
+  ChonkToastMessage,
+  ChonkToastUndoButton,
+} from './index.chonk';
 
 interface ToastProps {
   indicator: Indicator;
@@ -42,6 +51,7 @@ export function Toast({indicator, onDismiss, ...props}: ToastProps) {
       }
       data-test-id={indicator.type ? `toast-${indicator.type}` : 'toast'}
       className={classNames('ref-toast', `ref-${indicator.type}`)}
+      type={indicator.type}
       {...TOAST_TRANSITION}
       {...props}
     >
@@ -50,7 +60,11 @@ export function Toast({indicator, onDismiss, ...props}: ToastProps) {
         <TextOverflow>{indicator.message}</TextOverflow>
       </ToastMessage>
       {typeof indicator.options?.undo === 'function' ? (
-        <ToastUndoButton priority="link" onClick={indicator.options.undo}>
+        <ToastUndoButton
+          priority="link"
+          onClick={indicator.options.undo}
+          icon={<IconRefresh size="xs" />}
+        >
           {t('Undo')}
         </ToastUndoButton>
       ) : null}
@@ -72,17 +86,21 @@ const TOAST_TRANSITION = {
 function ToastIcon({type}: {type: Indicator['type']}) {
   switch (type) {
     case 'loading':
-      return <ToastLoadingIndicator mini />;
+      return (
+        <ToastIconContainer type={type}>
+          <ToastLoadingIndicator size={16} />
+        </ToastIconContainer>
+      );
     case 'success':
       return (
-        <ToastIconContainer>
-          <IconCheckmark size="lg" isCircled color="successText" />
+        <ToastIconContainer type={type}>
+          <IconCheckmark />
         </ToastIconContainer>
       );
     case 'error':
       return (
-        <ToastIconContainer>
-          <IconClose size="lg" isCircled color="errorText" />
+        <ToastIconContainer type={type}>
+          <IconWarning />
         </ToastIconContainer>
       );
     case 'undo':
@@ -95,43 +113,68 @@ function ToastIcon({type}: {type: Indicator['type']}) {
   }
 }
 
-const ToastContainer = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
-  display: flex;
-  align-items: center;
-  height: 40px;
-  max-width: calc(100vw - ${space(4)} * 2);
-  padding: 0 15px 0 10px;
-  margin-top: 15px;
-  background: ${p => p.theme.inverted.background};
-  color: ${p => p.theme.inverted.textColor};
-  border-radius: 44px 7px 7px 44px;
-  box-shadow: ${p => p.theme.dropShadowHeavy};
-  position: relative;
-`;
+const ToastContainer = withChonk(
+  styled(motion.div)<React.HTMLAttributes<HTMLDivElement> & {type: Indicator['type']}>`
+    display: flex;
+    align-items: center;
+    height: 40px;
+    max-width: calc(100vw - ${space(4)} * 2);
+    padding: 0 15px 0 10px;
+    margin-top: 15px;
+    background: ${p => p.theme.inverted.background};
+    color: ${p => p.theme.inverted.textColor};
+    border-radius: 44px 7px 7px 44px;
+    box-shadow: ${p => p.theme.dropShadowHeavy};
+    position: relative;
+  `,
+  ChonkToastContainer
+);
 
-const ToastIconContainer = styled('div')`
-  margin-right: ${space(0.75)};
-  svg {
-    display: block;
-  }
-`;
+const ToastIconContainer = withChonk(
+  styled('div')<{type: Indicator['type']}>`
+    margin-right: ${space(0.75)};
 
-const ToastMessage = styled('div')`
-  flex: 1;
-`;
+    svg {
+      width: 16px;
+      height: 16px;
+      color: ${p =>
+        p.type === 'success'
+          ? p.theme.successText
+          : p.type === 'error'
+            ? p.theme.errorText
+            : p.theme.textColor};
+    }
+  `,
+  ChonkToastIconContainer
+);
 
-const ToastUndoButton = styled(Button)`
-  color: ${p => p.theme.inverted.linkColor};
-  margin-left: ${space(2)};
+const ToastMessage = withChonk(
+  styled('div')`
+    flex: 1;
+  `,
+  ChonkToastMessage
+);
 
-  &:hover {
-    color: ${p => p.theme.inverted.linkHoverColor};
-  }
-`;
+const ToastUndoButton = withChonk(
+  styled(Button)`
+    color: ${p => p.theme.inverted.linkColor};
+    margin-left: ${space(2)};
 
-const ToastLoadingIndicator = styled(LoadingIndicator)`
-  .loading-indicator {
-    border-color: ${p => p.theme.inverted.border};
-    border-left-color: ${p => p.theme.inverted.purple300};
-  }
-`;
+    &:hover {
+      color: ${p => p.theme.inverted.linkHoverColor};
+    }
+  `,
+  ChonkToastUndoButton
+);
+
+const ToastLoadingIndicator = withChonk(
+  styled(LoadingIndicator)`
+    margin: 0;
+
+    .loading-indicator {
+      border-color: ${p => p.theme.inverted.border};
+      border-left-color: ${p => p.theme.inverted.purple300};
+    }
+  `,
+  ChonkToastLoadingIndicator
+);

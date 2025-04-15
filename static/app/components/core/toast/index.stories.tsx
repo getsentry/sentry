@@ -28,7 +28,10 @@ export default storyBook('Toast', (story, APIReference) => {
               options: {},
               id: 'success-toast',
             }}
-            onDismiss={() => {}}
+            onDismiss={() => {
+              // eslint-disable-next-line no-alert
+              alert('Dismissed!');
+            }}
           />
           <Toast
             indicator={{
@@ -37,7 +40,10 @@ export default storyBook('Toast', (story, APIReference) => {
               options: {},
               id: 'error-toast',
             }}
-            onDismiss={() => {}}
+            onDismiss={() => {
+              // eslint-disable-next-line no-alert
+              alert('Dismissed!');
+            }}
           />
           <Toast
             indicator={{
@@ -46,7 +52,10 @@ export default storyBook('Toast', (story, APIReference) => {
               options: {},
               id: 'loading-toast',
             }}
-            onDismiss={() => {}}
+            onDismiss={() => {
+              // eslint-disable-next-line no-alert
+              alert('Dismissed!');
+            }}
           />
           <Toast
             indicator={{
@@ -60,7 +69,10 @@ export default storyBook('Toast', (story, APIReference) => {
               },
               id: 'undo-toast',
             }}
-            onDismiss={() => {}}
+            onDismiss={() => {
+              // eslint-disable-next-line no-alert
+              alert('Dismissed!');
+            }}
           />
         </SideBySide>
       </Fragment>
