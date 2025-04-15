@@ -474,32 +474,35 @@ class SearchResolver:
                     context_definition,
                 )
             elif term.operator == "=":
-                TraceItemFilter(
-                    or_filter=OrFilter(
-                        filters=[
-                            TraceItemFilter(
-                                not_filter=NotFilter(
-                                    filters=[
-                                        TraceItemFilter(
-                                            exists_filter=ExistsFilter(
-                                                key=resolved_column.proto_definition,
-                                            )
+                return (
+                    TraceItemFilter(
+                        or_filter=OrFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    not_filter=NotFilter(
+                                        filters=[
+                                            TraceItemFilter(
+                                                exists_filter=ExistsFilter(
+                                                    key=resolved_column.proto_definition,
+                                                )
+                                            ),
+                                        ]
+                                    )
+                                ),
+                                TraceItemFilter(
+                                    comparison_filter=ComparisonFilter(
+                                        key=resolved_column.proto_definition,
+                                        op=operator,
+                                        value=self._resolve_search_value(
+                                            resolved_column, term.operator, value
                                         ),
-                                    ]
-                                )
-                            ),
-                            TraceItemFilter(
-                                comparison_filter=ComparisonFilter(
-                                    key=resolved_column.proto_definition,
-                                    op=operator,
-                                    value=self._resolve_search_value(
-                                        resolved_column, term.operator, value
-                                    ),
-                                )
-                            ),
-                        ]
-                    )
-                ), context_definition
+                                    )
+                                ),
+                            ]
+                        )
+                    ),
+                    context_definition,
+                )
             else:
                 raise InvalidSearchQuery(f"Unsupported operator for empty strings {term.operator}")
 
