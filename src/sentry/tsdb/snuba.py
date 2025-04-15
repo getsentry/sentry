@@ -705,6 +705,46 @@ class SnubaTSDB(BaseTSDB):
                     else:
                         self.unnest(val, aggregated_as)
 
+    def get_sums_data(
+        self,
+        model: TSDBModel,
+        keys: Sequence[TSDBKey],
+        start: datetime,
+        end: datetime,
+        rollup: int | None = None,
+        environment_ids: Sequence[int] | None = None,
+        conditions=None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer_suffix: str | None = None,
+        group_on_time: bool = True,
+    ) -> Mapping[TSDBKey, int]:
+        model_query_settings = self.model_query_settings.get(model)
+        assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
+
+        if model_query_settings.dataset == Dataset.Outcomes:
+            aggregate_function = "sum"
+        else:
+            aggregate_function = "count()"
+
+        result: Mapping[TSDBKey, int] = self.get_data(
+            model,
+            keys,
+            start,
+            end,
+            rollup,
+            environment_ids,
+            aggregation=aggregate_function,
+            group_on_time=group_on_time,
+            conditions=conditions,
+            use_cache=use_cache,
+            jitter_value=jitter_value,
+            tenant_ids=tenant_ids,
+            referrer_suffix=referrer_suffix,
+        )
+        return result
+
     def get_range(
         self,
         model: TSDBModel,
@@ -720,22 +760,13 @@ class SnubaTSDB(BaseTSDB):
         referrer_suffix: str | None = None,
         group_on_time: bool = True,
     ) -> Mapping[TSDBKey, list[tuple[int, int]]]:
-        model_query_settings = self.model_query_settings.get(model)
-        assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
-
-        if model_query_settings.dataset == Dataset.Outcomes:
-            aggregate_function = "sum"
-        else:
-            aggregate_function = "count()"
-
-        result = self.get_data(
+        result = self.get_sums_data(
             model,
             keys,
             start,
             end,
             rollup,
             environment_ids,
-            aggregation=aggregate_function,
             group_on_time=group_on_time,
             conditions=conditions,
             use_cache=use_cache,
@@ -743,8 +774,6 @@ class SnubaTSDB(BaseTSDB):
             tenant_ids=tenant_ids,
             referrer_suffix=referrer_suffix,
         )
-        if not group_on_time:
-            return result
         # convert
         #    {group:{timestamp:count, ...}}
         # into
