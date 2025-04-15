@@ -173,7 +173,7 @@ export function WidgetCardChartContainer({
               confidence={confidence}
               sampleCount={sampleCount}
               minTableColumnWidth={minTableColumnWidth}
-              isSampled={isSampled ?? undefined}
+              isSampled={isSampled}
             />
           </Fragment>
         );

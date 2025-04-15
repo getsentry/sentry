@@ -85,7 +85,7 @@ type WidgetCardChartProps = Pick<
   confidence?: Confidence;
   expandNumbers?: boolean;
   isMobile?: boolean;
-  isSampled?: boolean;
+  isSampled?: boolean | null;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: string;
   noPadding?: boolean;
