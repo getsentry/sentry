@@ -236,41 +236,40 @@ export function SpansTabContentImpl({
 
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
-      <Body
-        withToolbar={expanded}
-        withHints={organization.features.includes('traces-schema-hints')}
-      >
+      <Body withToolbar={expanded}>
         <TopSection>
-          <StyledPageFilterBar condensed>
-            <ProjectPageFilter />
-            <EnvironmentPageFilter />
-            <DatePageFilter
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={({arbitraryOptions}) => ({
-                ...arbitraryOptions,
-                ...relativeOptions,
-              })}
-            />
-          </StyledPageFilterBar>
-          <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
+          <FilterSection>
+            <StyledPageFilterBar condensed>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter />
+              <DatePageFilter
+                defaultPeriod={defaultPeriod}
+                maxPickableDays={maxPickableDays}
+                relativeOptions={({arbitraryOptions}) => ({
+                  ...arbitraryOptions,
+                  ...relativeOptions,
+                })}
+              />
+            </StyledPageFilterBar>
+            <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
+          </FilterSection>
+          <Feature features="organizations:traces-schema-hints">
+            <SchemaHintsSection>
+              <SchemaHintsList
+                supportedAggregates={
+                  mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
+                }
+                numberTags={numberTags}
+                stringTags={stringTags}
+                isLoading={numberTagsLoading || stringTagsLoading}
+                exploreQuery={query}
+                source={SchemaHintsSources.EXPLORE}
+                tableColumns={fields}
+                setPageParams={setExplorePageParams}
+              />
+            </SchemaHintsSection>
+          </Feature>
         </TopSection>
-        <Feature features="organizations:traces-schema-hints">
-          <SchemaHintsSection>
-            <SchemaHintsList
-              supportedAggregates={
-                mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
-              }
-              numberTags={numberTags}
-              stringTags={stringTags}
-              isLoading={numberTagsLoading || stringTagsLoading}
-              exploreQuery={query}
-              source={SchemaHintsSources.EXPLORE}
-              tableColumns={fields}
-              setPageParams={setExplorePageParams}
-            />
-          </SchemaHintsSection>
-        </Feature>
         <SideSection withToolbar={expanded}>
           <ExploreToolbar width={300} extras={toolbarExtras} />
         </SideSection>
@@ -336,18 +335,20 @@ function OnboardingContent(props: OnboardingContentProps) {
   return (
     <Layout.Body>
       <TopSection>
-        <StyledPageFilterBar condensed>
-          <ProjectPageFilter />
-          <EnvironmentPageFilter />
-          <DatePageFilter
-            defaultPeriod={props.defaultPeriod}
-            maxPickableDays={props.maxPickableDays}
-            relativeOptions={({arbitraryOptions}) => ({
-              ...arbitraryOptions,
-              ...props.relativeOptions,
-            })}
-          />
-        </StyledPageFilterBar>
+        <FilterSection>
+          <StyledPageFilterBar condensed>
+            <ProjectPageFilter />
+            <EnvironmentPageFilter />
+            <DatePageFilter
+              defaultPeriod={props.defaultPeriod}
+              maxPickableDays={props.maxPickableDays}
+              relativeOptions={({arbitraryOptions}) => ({
+                ...arbitraryOptions,
+                ...props.relativeOptions,
+              })}
+            />
+          </StyledPageFilterBar>
+        </FilterSection>
       </TopSection>
       <OnboardingContentSection>
         <Onboarding project={props.onboardingProject} organization={organization} />
@@ -383,17 +384,14 @@ function checkIsAllowedSelection(
   return selectedMinutes <= maxPickableMinutes;
 }
 
-const Body = styled(Layout.Body)<{
-  withHints: boolean;
-  withToolbar: boolean;
-}>`
+const Body = styled(Layout.Body)<{withToolbar: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: grid;
     ${p =>
       p.withToolbar
         ? `grid-template-columns: 300px minmax(100px, auto);`
         : `grid-template-columns: 0px minmax(100px, auto);`}
-    grid-template-rows: auto ${p => (p.withHints ? 'auto 1fr' : '1fr')};
+    grid-template-rows: auto 1fr;
     align-content: start;
     gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};
     transition: 700ms;
@@ -401,14 +399,18 @@ const Body = styled(Layout.Body)<{
 `;
 
 const TopSection = styled('div')`
+  grid-column: 1/3;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+`;
+
+const FilterSection = styled('div')`
   display: grid;
   gap: ${space(2)};
-  grid-column: 1/3;
-  margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: minmax(300px, auto) 1fr;
-    margin-bottom: 0;
   }
 `;
 
