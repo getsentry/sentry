@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from time import sleep
 
 from sentry.taskworker.namespaces import exampletasks
@@ -84,5 +85,6 @@ def at_most_once_task() -> None:
 
 @exampletasks.register(name="examples.timed")
 def timed_task(sleep_seconds: float | str) -> None:
-    sleep(float(sleep_seconds))
-    logger.debug("timed_task complete")
+    while True:
+        print(f"Running timed_stak with pid: {os.getpid()}")
+        sleep(0.5)
