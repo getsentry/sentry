@@ -22,7 +22,7 @@ def mock_save_userreport():
 
 
 @django_db_all
-def test_save_event_feedback_no_associated_error(
+def test_save_feedback_event_no_associated_error(
     default_project, mock_create_feedback_issue, mock_save_userreport
 ):
     event_data = mock_feedback_event(default_project.id)
@@ -37,7 +37,7 @@ def test_save_event_feedback_no_associated_error(
 
 
 @django_db_all
-def test_save_event_feedback_with_associated_error(
+def test_save_feedback_event_with_associated_error(
     default_project, mock_create_feedback_issue, mock_save_userreport
 ):
     event_data = mock_feedback_event(default_project.id)
