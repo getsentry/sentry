@@ -21,6 +21,7 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.search.eap.types import SAMPLING_MODES
 from sentry.users.services.user import RpcUser
 from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 
@@ -95,6 +96,7 @@ class SnubaParams:
     user: RpcUser | None = None
     teams: Iterable[Team] = field(default_factory=list)
     organization: Organization | None = None
+    sampling_mode: SAMPLING_MODES | None
 
     def __post_init__(self) -> None:
         if self.start:

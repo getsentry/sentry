@@ -48,3 +48,6 @@ class TraceItemAttribute(TypedDict):
 
 class EAPResponse(EventsResponse):
     confidence: ConfidenceData
+
+
+SAMPLING_MODES = Literal["BEST_EFFORT", "PREFLIGHT"]

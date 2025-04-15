@@ -6,7 +6,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 
-from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.eap.types import SAMPLING_MODES, SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, DurationUnit, SizeUnit
 
 # Mapping from our supported string enum types to the protobuf enum types
@@ -157,7 +157,7 @@ RESPONSE_CODE_MAP = {
     5: ["500", "501", "502", "503", "504", "505", "506", "507", "508", "509", "510", "511"],
 }
 
-SAMPLING_MODES = {
+SAMPLING_MODE_MAP: dict[SAMPLING_MODES, DownsampledStorageConfig.Mode.ValueType] = {
     "BEST_EFFORT": DownsampledStorageConfig.MODE_BEST_EFFORT,
     "PREFLIGHT": DownsampledStorageConfig.MODE_PREFLIGHT,
 }

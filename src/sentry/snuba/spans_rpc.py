@@ -13,7 +13,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.constants import DOUBLE, INT, STRING
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import EAPResponse, SearchResolverConfig
+from sentry.search.eap.types import SAMPLING_MODES, EAPResponse, SearchResolverConfig
 from sentry.search.eap.utils import handle_downsample_meta
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import EventsMeta, SnubaParams
@@ -46,7 +46,7 @@ def run_table_query(
     limit: int,
     referrer: str,
     config: SearchResolverConfig,
-    sampling_mode: str | None,
+    sampling_mode: SAMPLING_MODES | None,
     search_resolver: SearchResolver | None = None,
     debug: bool = False,
 ) -> EAPResponse:
