@@ -229,29 +229,29 @@ function getChartColorPalette<Length extends ValidLengthArgument>(
   return CHART_PALETTE[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
 }
 
-const generateTokens = (_colors: Colors) => ({
+const generateTokens = (colors: Colors) => ({
   content: {
-    primary: '',
-    muted: '',
-    accent: '',
-    promotion: '',
-    danger: '',
-    warning: '',
-    success: '',
+    primary: colors.gray400, // theme.textColor
+    muted: colors.gray300, // theme.subText
+    accent: colors.blue400, // new
+    promotion: colors.pink400, // new
+    danger: colors.red400, // theme.errorText
+    warning: colors.yellow400, // theme.warningText
+    success: colors.green400, // theme.successText
   },
   background: {
-    primary: '',
-    secondary: '',
-    tertiary: '',
+    primary: colors.surface300, // theme.background
+    secondary: colors.surface200, // theme.backgroundSecondary
+    tertiary: colors.surface100, // theme.backgroundTertiary
   },
   border: {
-    primary: '',
-    muted: '',
-    accent: '',
-    promotion: '',
-    danger: '',
-    warning: '',
-    success: '',
+    primary: colors.gray200, // theme.border
+    muted: colors.gray100, // theme.innerBorder
+    accent: colors.purple300, // theme.focusBorder
+    promotion: colors.pink400, // new
+    danger: colors.red200, // theme.errorFocus
+    warning: colors.yellow200, // theme.warningFocus
+    success: colors.green200, // theme.successFocus
   },
 });
 
