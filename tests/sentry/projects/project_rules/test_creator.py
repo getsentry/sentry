@@ -1,9 +1,17 @@
+from unittest.mock import patch
+
+import pytest
+
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.actor import Actor
+from sentry.utils.locking import UnableToAcquireLock
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import (
+    UnableToAcquireLockApiError,
+)
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
@@ -140,3 +148,39 @@ class TestProjectRuleCreator(TestCase):
 
         action = DataConditionGroupAction.objects.get(condition_group=action_filter).action
         assert action.type == Action.Type.PLUGIN
+
+    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
+    @patch("sentry.projects.project_rules.creator.IssueAlertMigrator.run")
+    def test_dual_create_workflow_engine__cant_acquire_lock(self, mock_run):
+        mock_run.side_effect = UnableToAcquireLock
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "key": "foo",
+                "match": "eq",
+                "value": "bar",
+            },
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "foo",
+                "match": "is",
+            },
+        ]
+
+        with pytest.raises(UnableToAcquireLockApiError):
+            ProjectRuleCreator(
+                name="New Cool Rule",
+                owner=Actor.from_id(user_id=self.user.id),
+                project=self.project,
+                action_match="any",
+                filter_match="all",
+                conditions=conditions,
+                environment=self.environment.id,
+                actions=[
+                    {
+                        "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                        "name": "Send a notification (for all legacy integrations)",
+                    }
+                ],
+                frequency=5,
+            ).run()
