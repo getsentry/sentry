@@ -20,12 +20,10 @@ import {
   makeFetchGroupSearchViewsKey,
   useFetchGroupSearchViews,
 } from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import {
   type GroupSearchView,
   GroupSearchViewCreatedBy,
   GroupSearchViewSort,
-  type StarredGroupSearchView,
 } from 'sentry/views/issueList/types';
 
 type IssueViewSectionProps = {
@@ -80,19 +78,6 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
           view.id === variables.id ? {...view, starred: variables.starred} : view
         );
       });
-      if (variables.starred) {
-        setApiQueryData<StarredGroupSearchView[]>(
-          queryClient,
-          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-          data => [...(data ?? []), variables.view]
-        );
-      } else {
-        setApiQueryData<StarredGroupSearchView[]>(
-          queryClient,
-          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-          data => data?.filter(view => view.id !== variables.id)
-        );
-      }
     },
     onError: (_error, variables) => {
       setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
@@ -100,13 +85,6 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
           view.id === variables.id ? {...view, starred: !variables.starred} : view
         );
       });
-      if (variables.starred) {
-        setApiQueryData<StarredGroupSearchView[]>(
-          queryClient,
-          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-          data => data?.filter(view => view.id !== variables.id)
-        );
-      }
     },
   });
 
