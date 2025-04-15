@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("sentry", "0865_file_offsets"),
-        ("workflow_engine", "0044_rm_detector_name_unique_constraint"),
+        ("workflow_engine", "0045_add_unique_constraint_alert_rule_detector"),
     ]
 
     operations = [

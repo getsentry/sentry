@@ -29,4 +29,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0031_translate_uptime_object_headers_to_lists_take_three
 
-workflow_engine: 0045_add_unique_constraint_alert_rule_detector
+workflow_engine: 0046_single_project_error_detector_constraint
