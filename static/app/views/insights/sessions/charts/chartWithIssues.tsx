@@ -11,7 +11,6 @@ import {GroupSummary} from 'sentry/components/stream/group';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
@@ -22,6 +21,7 @@ import type {WidgetTitleProps} from 'sentry/views/dashboards/widgets/widget/widg
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/laravel/styles';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import useRecentIssues from 'sentry/views/insights/sessions/queries/useRecentIssues';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
@@ -30,7 +30,6 @@ interface Props extends WidgetTitleProps {
   error: Error | null;
   isPending: boolean;
   plottables: Plottable[];
-  project: Project;
   series: DiscoverSeries[];
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
@@ -43,12 +42,12 @@ export default function ChartWithIssues({
   isPending,
   legendSelection,
   plottables,
-  project,
   series,
   title,
 }: Props) {
+  const {projects} = useProjectHasSessions();
   const {recentIssues, isPending: isPendingRecentIssues} = useRecentIssues({
-    projectId: project.id,
+    projectId: projects[0]?.id,
   });
   const pageFilters = usePageFilters();
 

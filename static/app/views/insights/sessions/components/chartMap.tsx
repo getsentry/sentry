@@ -1,39 +1,45 @@
 import type {ReactElement} from 'react';
 
-import type {Project} from 'sentry/types/project';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import CrashFreeSessionsChart from 'sentry/views/insights/sessions/charts/crashFreeSessionsChart';
+import CrashFreeSessionsChartWidget from 'sentry/views/insights/sessions/charts/crashFreeSessionsChartWidget';
 import NewAndResolvedIssueChart from 'sentry/views/insights/sessions/charts/newAndResolvedIssueChart';
 import ReleaseNewIssuesChart from 'sentry/views/insights/sessions/charts/releaseNewIssuesChart';
-import ReleaseSessionCountChart from 'sentry/views/insights/sessions/charts/releaseSessionCountChart';
-import ReleaseSessionPercentageChart from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChart';
-import SessionHealthCountChart from 'sentry/views/insights/sessions/charts/sessionHealthCountChart';
-import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessionHealthRateChart';
-import UnhealthySessionsChart from 'sentry/views/insights/sessions/charts/unhealthySessionsChart';
-import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
-import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
+import ReleaseSessionCountChartWidget from 'sentry/views/insights/sessions/charts/releaseSessionCountChartWidget';
+import ReleaseSessionPercentageChartWidget from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChartWidget';
+import SessionHealthCountChartWidget from 'sentry/views/insights/sessions/charts/sessionHealthCountChartWidget';
+import SessionHealthRateChartWidget from 'sentry/views/insights/sessions/charts/sessionHealthRateChartWidget';
+import UnhealthySessionsChartWidget from 'sentry/views/insights/sessions/charts/unhealthySessionsChartWidget';
+import UserHealthCountChartWidget from 'sentry/views/insights/sessions/charts/userHealthCountChartWidget';
+import UserHealthRateChartWidget from 'sentry/views/insights/sessions/charts/userHealthRateChartWidget';
 import type {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 
 export const CHART_MAP: Record<
   keyof typeof CHART_TITLES,
-  (props: {project: Project}) => ReactElement
+  (props: LoadableChartWidgetProps) => ReactElement
 > = {
-  CrashFreeSessionsChart,
-  UnhealthySessionsChart,
+  CrashFreeSessionsChartWidget,
+  UnhealthySessionsChartWidget,
+  ReleaseSessionCountChartWidget,
+  ReleaseSessionPercentageChartWidget,
+  SessionHealthCountChartWidget,
+  SessionHealthRateChartWidget,
+  UserHealthCountChartWidget,
+  UserHealthRateChartWidget,
   NewAndResolvedIssueChart,
   ReleaseNewIssuesChart,
-  ReleaseSessionCountChart,
-  ReleaseSessionPercentageChart,
-  SessionHealthCountChart,
-  SessionHealthRateChart,
-  UserHealthCountChart,
-  UserHealthRateChart,
 };
 
 export const CHART_RENAMES: Record<string, keyof typeof CHART_TITLES> = {
   // Map from the old name to the new
-  ErrorFreeSessionsChart: 'UnhealthySessionsChart',
-  ErroredSessionsChart: 'UnhealthySessionsChart',
+  ErrorFreeSessionsChart: 'UnhealthySessionsChartWidget',
+  ErroredSessionsChart: 'UnhealthySessionsChartWidget',
+  ReleaseSessionPercentageChart: 'ReleaseSessionPercentageChartWidget',
+  ReleaseSessionCountChart: 'ReleaseSessionCountChartWidget',
+  SessionHealthRateChart: 'SessionHealthRateChartWidget',
+  SessionHealthCountChart: 'SessionHealthCountChartWidget',
+  UserHealthRateChart: 'UserHealthRateChartWidget',
+  UserHealthCountChart: 'UserHealthCountChartWidget',
 };
 
 export const PAGE_CHART_OPTIONS: Record<
@@ -43,24 +49,24 @@ export const PAGE_CHART_OPTIONS: Record<
   frontend: [
     // ORDER MATTERS HERE
     // The order things are listed is the order rendered
-    'UnhealthySessionsChart',
+    'UnhealthySessionsChartWidget',
     'NewAndResolvedIssueChart',
-    'SessionHealthCountChart',
-    'SessionHealthRateChart',
-    'UserHealthCountChart',
-    'UserHealthRateChart',
+    'SessionHealthCountChartWidget',
+    'SessionHealthRateChartWidget',
+    'UserHealthCountChartWidget',
+    'UserHealthRateChartWidget',
   ],
   mobile: [
     // ORDER MATTERS HERE
     // The order things are listed is the order rendered
-    'CrashFreeSessionsChart',
+    'CrashFreeSessionsChartWidget',
     'ReleaseNewIssuesChart',
-    'ReleaseSessionCountChart',
-    'ReleaseSessionPercentageChart',
-    'SessionHealthCountChart',
-    'SessionHealthRateChart',
-    'UserHealthCountChart',
-    'UserHealthRateChart',
+    'ReleaseSessionCountChartWidget',
+    'ReleaseSessionPercentageChartWidget',
+    'SessionHealthCountChartWidget',
+    'SessionHealthRateChartWidget',
+    'UserHealthCountChartWidget',
+    'UserHealthRateChartWidget',
   ],
   backend: [],
   ai: [],
@@ -73,20 +79,20 @@ export const DEFAULT_LAYOUTS: Record<
   frontend: [
     // ORDER MATTERS HERE
     // The order represents the default chart layout for Frontend > Session Health
-    'UnhealthySessionsChart',
-    'UserHealthRateChart',
-    'SessionHealthRateChart',
-    'SessionHealthCountChart',
-    'UserHealthCountChart',
+    'UnhealthySessionsChartWidget',
+    'UserHealthRateChartWidget',
+    'SessionHealthRateChartWidget',
+    'SessionHealthCountChartWidget',
+    'UserHealthCountChartWidget',
   ],
   mobile: [
     // ORDER MATTERS HERE
     // The order represents the default chart layout for Mobile > Session Health
-    'CrashFreeSessionsChart',
-    'ReleaseSessionPercentageChart',
+    'CrashFreeSessionsChartWidget',
+    'ReleaseSessionPercentageChartWidget',
     'ReleaseNewIssuesChart',
-    'ReleaseSessionCountChart',
-    'UserHealthRateChart',
+    'ReleaseSessionCountChartWidget',
+    'UserHealthRateChartWidget',
   ],
   backend: [],
   ai: [],

@@ -11,14 +11,14 @@ export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/releases/setup/';
 export const MODULE_VISIBLE_FEATURES = ['insights-session-health-tab-ui'];
 
 export const CHART_TITLES = {
-  CrashFreeSessionsChart: t('Crash Free Sessions'),
-  UnhealthySessionsChart: t('Unhealthy Sessions'),
+  CrashFreeSessionsChartWidget: t('Crash Free Sessions'),
+  UnhealthySessionsChartWidget: t('Unhealthy Sessions'),
   NewAndResolvedIssueChart: t('Issues'),
   ReleaseNewIssuesChart: t('New Issues by Release'),
-  ReleaseSessionCountChart: t('Total Sessions by Release'),
-  ReleaseSessionPercentageChart: t('Release Adoption'),
-  SessionHealthCountChart: t('Session Counts'),
-  SessionHealthRateChart: t('Session Health'),
-  UserHealthCountChart: t('User Counts'),
-  UserHealthRateChart: t('User Health'),
+  ReleaseSessionCountChartWidget: t('Total Sessions by Release'),
+  ReleaseSessionPercentageChartWidget: t('Release Adoption'),
+  SessionHealthCountChartWidget: t('Session Counts'),
+  SessionHealthRateChartWidget: t('Session Health'),
+  UserHealthCountChartWidget: t('User Counts'),
+  UserHealthRateChartWidget: t('User Health'),
 };

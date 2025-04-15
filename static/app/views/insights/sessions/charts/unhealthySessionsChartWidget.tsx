@@ -1,30 +1,32 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
-import useSessionHealthBreakdown from 'sentry/views/insights/sessions/queries/useSessionHealthBreakdown';
+import useErroredSessions from 'sentry/views/insights/sessions/queries/useErroredSessions';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function SessionHealthCountChart() {
-  const {series, isPending, error} = useSessionHealthBreakdown({type: 'count'});
+export default function UnhealthySessionsChart(props: LoadableChartWidgetProps) {
+  const {series, isPending, error} = useErroredSessions({
+    pageFilters: props.pageFilters,
+  });
 
   const aliases = {
-    healthy_session_count: 'count_healthy(session)',
-    crashed_session_count: 'count_crashed(session)',
-    errored_session_count: 'count_errored(session)',
-    abnormal_session_count: 'count_abnormal(session)',
+    successful_session_rate: t('error_rate(sessions)'),
   };
 
   return (
     <InsightsLineChartWidget
-      title={CHART_TITLES.SessionHealthCountChart}
+      {...props}
+      id="unhealthySessionsChartWidget"
+      title={CHART_TITLES.UnhealthySessionsChartWidget}
       interactiveTitle={() => (
-        <ChartSelectionTitle title={CHART_TITLES.SessionHealthCountChart} />
+        <ChartSelectionTitle title={CHART_TITLES.UnhealthySessionsChartWidget} />
       )}
       height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
-        'The count of sessions with each health status. See [link:session status].',
+        'The percent of sessions ending normally, with no errors occurring during its lifetime. See [link:session status].',
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/product/releases/health/#session-status" />
@@ -35,9 +37,6 @@ export default function SessionHealthCountChart() {
       series={series}
       isLoading={isPending}
       error={error}
-      legendSelection={{
-        healthy_session_count: false,
-      }}
     />
   );
 }
