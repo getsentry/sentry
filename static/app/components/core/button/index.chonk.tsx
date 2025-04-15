@@ -140,7 +140,7 @@ export function getChonkButtonStyles(
 
           '&:hover': {
             color:
-              p.disabled || p.busy ? 'inherit' : getChonkButtonTheme(type, p.theme).color,
+              p.disabled || p.busy ? undefined : getChonkButtonTheme(type, p.theme).color,
 
             '&::after': {
               transform: `translateY(-3px)`,
