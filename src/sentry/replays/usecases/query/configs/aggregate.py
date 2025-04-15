@@ -101,6 +101,7 @@ search_config: dict[str, FieldProtocol] = {
     "count_infos": sum_field("count_info_events"),
     "count_rage_clicks": sum_field("click_is_rage"),
     "count_segments": count_field("segment_id"),
+    "count_traces": sum_length_field("trace_ids"),
     "count_urls": sum_field("count_urls"),
     "count_warnings": sum_field("count_warning_events"),
     "dead.selector": ComputedField(parse_selector, SumOfDeadClickSelectorComposite),
