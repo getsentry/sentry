@@ -2,11 +2,13 @@ import {createContext, useCallback, useContext, useMemo} from 'react';
 
 import {recordFinish} from 'sentry/actionCreators/guides';
 import {
+  TourElement,
   TourElementContent,
   type TourElementProps,
 } from 'sentry/components/tours/components';
 import {
   type TourContextType,
+  type TourEnumType,
   type TourState,
   useTourReducer,
 } from 'sentry/components/tours/tourContext';
@@ -31,9 +33,9 @@ export const enum DemoTourStep {
   SIDEBAR_DISCOVER = 'demo-tour-sidebar-discover',
   // Issues steps
   ISSUES_STREAM = 'demo-tour-issues-stream',
-  ISSUES_TAGS = 'demo-tour-issues-tags',
-  ISSUES_STACKTRACE = 'demo-tour-issues-stacktrace',
-  ISSUES_BREADCRUMBS = 'demo-tour-issues-breadcrumbs',
+  ISSUES_AGGREGATES = 'demo-tour-issues-aggregates',
+  ISSUES_EVENT_DETAILS = 'demo-tour-issues-event-details',
+  ISSUES_DETAIL_SIDEBAR = 'demo-tour-issues-detail-sidebar',
   // Releases steps
   RELEASES_COMPARE = 'demo-tour-releases-compare',
   RELEASES_DETAILS = 'demo-tour-releases-details',
@@ -80,9 +82,9 @@ const TOUR_STEPS: Record<DemoTour, DemoTourStep[]> = {
   ],
   [DemoTour.ISSUES]: [
     DemoTourStep.ISSUES_STREAM,
-    DemoTourStep.ISSUES_TAGS,
-    DemoTourStep.ISSUES_STACKTRACE,
-    DemoTourStep.ISSUES_BREADCRUMBS,
+    DemoTourStep.ISSUES_AGGREGATES, // Metadata and metrics // view data in aggregate 1/6
+    DemoTourStep.ISSUES_EVENT_DETAILS, // Explore details // Explore details 3/6
+    DemoTourStep.ISSUES_DETAIL_SIDEBAR, // Share updates // 6/6
   ],
   [DemoTour.RELEASES]: [
     DemoTourStep.RELEASES_COMPARE,
@@ -240,5 +242,40 @@ export function DemoTourElement({
     >
       {children}
     </TourElementContent>
+  );
+}
+
+/**
+ * A component that renders either a DemoTourElement or regular TourElement depending on whether
+ * demo mode is active. This allows the same tour content to be shared between demo mode and
+ * regular product tours.
+ */
+export function SharedTourElement<T extends TourEnumType>({
+  id,
+  demoTourId,
+  title,
+  description,
+  children,
+  tourContext,
+  ...props
+}: TourElementProps<T> & {demoTourId: DemoTourStep}) {
+  if (isDemoModeActive()) {
+    return (
+      <DemoTourElement id={demoTourId} title={title} description={description}>
+        {children}
+      </DemoTourElement>
+    );
+  }
+
+  return (
+    <TourElement
+      {...props}
+      id={id}
+      title={title}
+      description={description}
+      tourContext={tourContext}
+    >
+      {children}
+    </TourElement>
   );
 }

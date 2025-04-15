@@ -54,9 +54,6 @@ export function getTourTask(
       return {tour: 'tabs', task: OnboardingTaskKey.SIDEBAR_GUIDE};
     case 'issues':
       return {tour: 'issues', task: OnboardingTaskKey.ISSUE_GUIDE};
-    // TODO(ogi): Remove this once we merge the new issues tour
-    case 'issues_v3':
-      return {tour: 'issues', task: OnboardingTaskKey.ISSUE_GUIDE};
     case 'releases':
       return {tour: 'releases', task: OnboardingTaskKey.RELEASE_GUIDE};
     case 'performance':
@@ -68,17 +65,7 @@ export function getTourTask(
 }
 
 export function getDemoGuides() {
-  return [
-    {guide: 'sidebar_v2', seen: false},
-    {guide: 'issues_v3', seen: false},
-    {guide: 'releases', seen: false},
-    // {guide: 'react-release', seen: false},
-    // {guide: 'release-details_v2', seen: false},e
-    {guide: 'performance', seen: false},
-    // {guide: 'transaction_summary', seen: false},
-    // {guide: 'transaction_details_v2', seen: false},
-    {guide: 'issue_stream_v3', seen: false},
-  ];
+  return [{guide: 'sidebar_v2', seen: false}];
 }
 
 export function getDemoModeGuides(): GuidesContent {
@@ -122,49 +109,6 @@ export function getDemoModeGuides(): GuidesContent {
           target: 'discover',
           description: t(
             `Query and unlock insights into the health of your entire system and get answers to critical business questions all in one place.`
-          ),
-          nextText: t('Got it'),
-        },
-      ],
-    },
-    {
-      guide: 'issue_stream_v3',
-      requiredTargets: ['issue_stream'],
-      steps: [
-        {
-          title: t('Issues'),
-          target: 'issue_stream',
-          description: t(
-            `Sentry automatically groups similar events together into an issue. Similarity is
-            determined by stack trace and other factors. Click on an issue to learn more.`
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'issues_v3',
-      requiredTargets: ['tags'],
-      steps: [
-        {
-          title: t('Metadata and metrics'),
-          target: 'tags',
-          description: t(
-            `See tags like specific users affected by the event, device, OS, and browser type.
-            On the right side of the page you can view the number of affected users and exception frequency overtime.`
-          ),
-        },
-        {
-          title: t('Find your broken code'),
-          target: 'stacktrace',
-          description: t(
-            `View the stack trace to see the exact sequence of function calls leading to the error in question.`
-          ),
-        },
-        {
-          title: t('Retrace your steps'),
-          target: 'breadcrumbs',
-          description: t(
-            `Sentry automatically captures breadcrumbs for events so you can see the sequence of events leading up to the error.`
           ),
           nextText: t('Got it'),
         },
