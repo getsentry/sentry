@@ -69,13 +69,11 @@ function LeftNavViewsHeader({selectedProjectIds}: LeftNavViewsHeaderProps) {
               {groupSearchView.name}
               <Button
                 onClick={() => {
-                  if (groupSearchView?.id) {
-                    mutateViewStarred({
-                      id: groupSearchView.id,
-                      starred: !groupSearchView?.starred,
-                      view: groupSearchView,
-                    });
-                  }
+                  mutateViewStarred({
+                    id: groupSearchView.id,
+                    starred: !groupSearchView?.starred,
+                    view: groupSearchView,
+                  });
                 }}
               >
                 <IconStar
