@@ -26,6 +26,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
@@ -254,13 +255,13 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get(f"/repos/{repo}/commits/{sha}/pulls")
 
-    def get_pullrequest_files(self, repo: str, pull_number: str) -> Any:
+    def get_pullrequest_files(self, repo: Repository, pr: PullRequest) -> Any:
         """
         https://docs.github.com/en/rest/pulls/pulls#list-pull-requests-files
 
         Returns up to 30 files associated with a pull request. Responses are paginated.
         """
-        return self.get(f"/repos/{repo}/pulls/{pull_number}/files")
+        return self.get(f"/repos/{repo.name}/pulls/{pr.key}/files")
 
     def get_repo(self, repo: str) -> Any:
         """

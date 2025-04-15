@@ -18,6 +18,7 @@ from sentry.integrations.source_code_management.commit_context import (
     SourceLineInfo,
 )
 from sentry.integrations.source_code_management.repository import RepositoryClient
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
@@ -375,3 +376,6 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
                 "org_integration_id": self.org_integration_id,
             },
         )
+
+    def get_pullrequest_files(self, repo: Repository, pr: PullRequest) -> Any:
+        raise NotImplementedError

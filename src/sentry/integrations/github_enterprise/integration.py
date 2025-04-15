@@ -24,8 +24,17 @@ from sentry.integrations.github.issues import GitHubIssuesSpec
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository.model import RpcRepository
-from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    CommitContextIntegration,
+    CommitContextOrganizationOptionKeys,
+    CommitContextReferrerIds,
+    CommitContextReferrers,
+    PullRequestFile,
+    PullRequestIssue,
+)
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
@@ -231,6 +240,59 @@ class GitHubEnterpriseIntegration(
     def has_repo_access(self, repo: RpcRepository) -> bool:
         # TODO: define this, used to migrate repositories
         return False
+
+    # CommitContextIntegration methods
+
+    @property
+    def commit_context_referrers(self) -> CommitContextReferrers:
+        raise NotImplementedError
+
+    @property
+    def commit_context_referrer_ids(self) -> CommitContextReferrerIds:
+        raise NotImplementedError
+
+    @property
+    def commit_context_organization_option_keys(self) -> CommitContextOrganizationOptionKeys:
+        raise NotImplementedError
+
+    def format_pr_comment(self, issue_ids: list[int]) -> str:
+        raise NotImplementedError
+
+    def build_pr_comment_data(
+        self,
+        organization: Organization,
+        repo: Repository,
+        pr_key: str,
+        comment_body: str,
+        issue_ids: list[int],
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
+    def queue_comment_task(self, pullrequest_id: int, project_id: int) -> None:
+        raise NotImplementedError
+
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        raise NotImplementedError
+
+    def get_pr_files_safe_for_comment(
+        self, repo: Repository, pr: PullRequest
+    ) -> list[dict[str, str]]:
+        raise NotImplementedError
+
+    def get_pr_files(self, pr_files: list[dict[str, str]]) -> list[PullRequestFile]:
+        raise NotImplementedError
+
+    def format_open_pr_comment(self, issue_tables: list[str]) -> str:
+        raise NotImplementedError
+
+    def format_issue_table(
+        self,
+        diff_filename: str,
+        issues: list[PullRequestIssue],
+        patch_parsers: dict[str, Any],
+        toggle: bool,
+    ) -> str:
+        raise NotImplementedError
 
 
 class InstallationForm(forms.Form):

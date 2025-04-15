@@ -26,12 +26,24 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.github.constants import RATE_LIMITED_MESSAGE
+from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
+from sentry.integrations.github.tasks.utils import GithubAPIErrorType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import RpcRepository, repository_service
-from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    OPEN_PR_MAX_FILES_CHANGED,
+    OPEN_PR_MAX_LINES_CHANGED,
+    OPEN_PR_METRICS_BASE,
+    CommitContextIntegration,
+    CommitContextOrganizationOptionKeys,
+    CommitContextReferrerIds,
+    CommitContextReferrers,
+    PullRequestFile,
+    PullRequestIssue,
+)
+from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
@@ -39,12 +51,18 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.snuba.referrer import Referrer
+from sentry.templatetags.sentry_helpers import small_count
+from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER, GITHUB_PR_BOT_REFERRER
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import determine_active_organization
@@ -173,11 +191,9 @@ def get_document_origin(org) -> str:
 class GitHubIntegration(
     RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration
 ):
-    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
+    integration_name = "github"
 
-    @property
-    def integration_name(self) -> str:
-        return "github"
+    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self) -> GitHubBaseClient:
         if not self.org_integration:
@@ -289,6 +305,248 @@ class GitHubIntegration(
         resp = self.get_client().search_issues(query)
         assert isinstance(resp, dict)
         return resp
+
+    # CommitContextIntegration methods
+
+    commit_context_referrers = CommitContextReferrers(
+        pr_comment_bot=Referrer.GITHUB_PR_COMMENT_BOT,
+    )
+    commit_context_referrer_ids = CommitContextReferrerIds(
+        pr_bot=GITHUB_PR_BOT_REFERRER,
+        open_pr_bot=GITHUB_OPEN_PR_BOT_REFERRER,
+    )
+    commit_context_organization_option_keys = CommitContextOrganizationOptionKeys(
+        pr_bot="sentry:github_pr_bot",
+    )
+
+    def format_comment_url(self, url: str, referrer: str) -> str:
+        return url + "?referrer=" + referrer
+
+    def format_pr_comment(self, issue_ids: list[int]) -> str:
+        single_issue_template = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
+        comment_body_template = """\
+## Suspect Issues
+This pull request was deployed and Sentry observed the following issues:
+
+{issue_list}
+
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+
+        def format_subtitle(subtitle: str) -> str:
+            return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
+
+        issues = Group.objects.filter(id__in=issue_ids).order_by("id").all()
+
+        issue_list = "\n".join(
+            single_issue_template.format(
+                title=issue.title,
+                subtitle=format_subtitle(issue.culprit),
+                url=self.format_comment_url(
+                    issue.get_absolute_url(), referrer=self.commit_context_referrer_ids.pr_bot
+                ),
+            )
+            for issue in issues
+        )
+
+        return comment_body_template.format(issue_list=issue_list)
+
+    def build_pr_comment_data(
+        self,
+        organization: Organization,
+        repo: Repository,
+        pr_key: str,
+        comment_body: str,
+        issue_ids: list[int],
+    ) -> dict[str, Any]:
+        enabled_copilot = features.has("organizations:gen-ai-features", organization)
+
+        comment_data = {
+            "body": comment_body,
+        }
+        if enabled_copilot:
+            comment_data["actions"] = [
+                {
+                    "name": f"Root cause #{i + 1}",
+                    "type": "copilot-chat",
+                    "prompt": f"@sentry root cause issue {str(issue_id)} with PR URL https://github.com/{repo.name}/pull/{str(pr_key)}",
+                }
+                for i, issue_id in enumerate(issue_ids[:3])
+            ]
+
+        return comment_data
+
+    def queue_comment_task(self, pullrequest_id: int, project_id: int) -> None:
+        from sentry.integrations.github.tasks.pr_comment import github_comment_workflow
+
+        github_comment_workflow.delay(pullrequest_id=pullrequest_id, project_id=project_id)
+
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        if api_error.json:
+            if ISSUE_LOCKED_ERROR_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "issue_locked_error"},
+                )
+                return True
+
+            elif RATE_LIMITED_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "rate_limited_error"},
+                )
+                return True
+
+        return False
+
+    def get_pr_files_safe_for_comment(
+        self, repo: Repository, pr: PullRequest
+    ) -> list[dict[str, str]]:
+        client = self.get_client()
+
+        logger.info("github.open_pr_comment.check_safe_for_comment")
+        try:
+            pr_files = client.get_pullrequest_files(repo=repo, pr=pr)
+        except ApiError as e:
+            logger.info("github.open_pr_comment.api_error")
+            if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(integration="github", key="api_error"),
+                    tags={"type": GithubAPIErrorType.RATE_LIMITED.value, "code": e.code},
+                )
+            elif e.code == 404:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(integration="github", key="api_error"),
+                    tags={"type": GithubAPIErrorType.MISSING_PULL_REQUEST.value, "code": e.code},
+                )
+            else:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(integration="github", key="api_error"),
+                    tags={"type": GithubAPIErrorType.UNKNOWN.value, "code": e.code},
+                )
+                logger.exception(
+                    "github.open_pr_comment.unknown_api_error", extra={"error": str(e)}
+                )
+            return []
+
+        changed_file_count = 0
+        changed_lines_count = 0
+        filtered_pr_files = []
+
+        patch_parsers = PATCH_PARSERS
+        # NOTE: if we are testing beta patch parsers, add check here
+
+        for file in pr_files:
+            filename = file["filename"]
+            # we only count the file if it's modified and if the file extension is in the list of supported file extensions
+            # we cannot look at deleted or newly added files because we cannot extract functions from the diffs
+            if file["status"] != "modified" or filename.split(".")[-1] not in patch_parsers:
+                continue
+
+            changed_file_count += 1
+            changed_lines_count += file["changes"]
+            filtered_pr_files.append(file)
+
+            if changed_file_count > OPEN_PR_MAX_FILES_CHANGED:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(integration="github", key="rejected_comment"),
+                    tags={"reason": "too_many_files"},
+                )
+                return []
+            if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
+                metrics.incr(
+                    OPEN_PR_METRICS_BASE.format(integration="github", key="rejected_comment"),
+                    tags={"reason": "too_many_lines"},
+                )
+                return []
+
+        return filtered_pr_files
+
+    def get_pr_files(self, pr_files: list[dict[str, str]]) -> list[PullRequestFile]:
+        # new files will not have sentry issues associated with them
+        # only fetch Python files
+        pullrequest_files = [
+            PullRequestFile(filename=file["filename"], patch=file["patch"])
+            for file in pr_files
+            if "patch" in file
+        ]
+
+        logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pullrequest_files)})
+
+        return pullrequest_files
+
+    def format_open_pr_comment(self, issue_tables: list[str]) -> str:
+        comment_body_template = """\
+## 🔍 Existing Issues For Review
+Your pull request is modifying functions with the following pre-existing issues:
+
+{issue_tables}
+---
+
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+
+        return comment_body_template.format(issue_tables="\n".join(issue_tables))
+
+    def format_issue_table(
+        self,
+        diff_filename: str,
+        issues: list[PullRequestIssue],
+        patch_parsers: dict[str, Any],
+        toggle: bool,
+    ) -> str:
+        description_length = 52
+
+        issue_table_template = """\
+📄 File: **{filename}**
+
+| Function | Unhandled Issue |
+| :------- | :----- |
+{issue_rows}"""
+
+        issue_table_toggle_template = """\
+<details>
+<summary><b>📄 File: {filename} (Click to Expand)</b></summary>
+
+| Function | Unhandled Issue |
+| :------- | :----- |
+{issue_rows}
+</details>"""
+
+        def format_subtitle(title_length: int, subtitle: str) -> str:
+            # the title length + " " + subtitle should be <= 52
+            subtitle_length = description_length - title_length - 1
+            return (
+                subtitle[: subtitle_length - 3] + "..."
+                if len(subtitle) > subtitle_length
+                else subtitle
+            )
+
+        language_parser = patch_parsers.get(diff_filename.split(".")[-1], None)
+
+        if not language_parser:
+            return ""
+
+        issue_row_template = language_parser.issue_row_template
+
+        issue_rows = "\n".join(
+            [
+                issue_row_template.format(
+                    title=issue.title,
+                    subtitle=format_subtitle(len(issue.title), issue.subtitle),
+                    url=self.format_comment_url(
+                        issue.url, referrer=self.commit_context_referrer_ids.open_pr_bot
+                    ),
+                    event_count=small_count(issue.event_count),
+                    function_name=issue.function_name,
+                    affected_users=small_count(issue.affected_users),
+                )
+                for issue in issues
+            ]
+        )
+
+        if toggle:
+            return issue_table_toggle_template.format(filename=diff_filename, issue_rows=issue_rows)
+
+        return issue_table_template.format(filename=diff_filename, issue_rows=issue_rows)
 
 
 class GitHubIntegrationProvider(IntegrationProvider):
