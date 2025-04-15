@@ -398,7 +398,7 @@ const Body = styled(Layout.Body)<{withToolbar: boolean}>`
     grid-template-rows: auto 1fr;
     align-content: start;
     gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};
-    transition: 700ms;
+    transition: grid-template 250ms ease-out;
   }
 `;
 
