@@ -18,7 +18,7 @@ interface Props {
   pageFilters?: PageFilters;
 }
 
-export function useResourceSummarySeries({pageFilters, groupId}: Props) {
+export function useResourceSummarySeries({pageFilters, groupId}: Props = {}) {
   const filters = useResourceModuleFilters();
 
   const mutableSearch = MutableSearch.fromQueryObject({

@@ -38,7 +38,7 @@ interface Props {
   pageFilters?: PageFilters;
 }
 
-export function useResourceLandingSeries(props?: Props) {
+export function useResourceLandingSeries(props: Props = {}) {
   const filters = useResourceModuleFilters();
 
   const spanTimeChartsFilters: ModuleFilters = {
