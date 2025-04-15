@@ -116,10 +116,11 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
   );
 
-  // TODO: Remove `Transaction_id` with `useInsightsEap`
   type DataRow = Pick<
     SpanIndexedResponse,
-    Fields[number] | DefaultSpanSampleFields | SpanIndexedField.TRANSACTION_ID
+    | Fields[number]
+    | DefaultSpanSampleFields // These fields are returned by default
+    | SpanIndexedField.TRANSACTION_ID // TODO: Remove `Transaction_id` with `useInsightsEap`
   >;
 
   const result = useApiQuery<{
