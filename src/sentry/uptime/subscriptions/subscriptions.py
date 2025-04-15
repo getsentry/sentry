@@ -455,9 +455,9 @@ def check_url_limits(url):
     In the case that it has a `MaxUrlsForDomainReachedException` will be raised.
     """
     url_parts = extract_domain_parts(url)
-    existing_count = ProjectUptimeSubscription.objects.filter(
-        uptime_subscription__url_domain=url_parts.domain,
-        uptime_subscription__url_domain_suffix=url_parts.suffix,
+    existing_count = UptimeSubscription.objects.filter(
+        url_domain=url_parts.domain,
+        url_domain_suffix=url_parts.suffix,
     ).count()
 
     if existing_count >= MAX_MONITORS_PER_DOMAIN:
