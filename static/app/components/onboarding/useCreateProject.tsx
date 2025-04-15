@@ -8,12 +8,6 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface UseCreateProjectProps {
-  onError?: (error: RequestError) => void;
-  onLoading?: () => void;
-  onSuccess?: (props: {platform: OnboardingSelectedSDK; project: Project}) => void;
-}
-
 interface Variables {
   platform: OnboardingSelectedSDK;
   default_rules?: boolean;
@@ -21,11 +15,7 @@ interface Variables {
   name?: string;
 }
 
-export function useCreateProject({
-  onLoading,
-  onSuccess,
-  onError,
-}: UseCreateProjectProps = {}) {
+export function useCreateProject() {
   const api = useApi();
   const organization = useOrganization();
 
@@ -51,15 +41,8 @@ export function useCreateProject({
         }
       );
     },
-    onMutate: () => {
-      onLoading?.();
-    },
-    onSuccess: (response, variables) => {
+    onSuccess: response => {
       ProjectsStore.onCreateSuccess(response, organization.slug);
-      onSuccess?.({platform: variables.platform, project: response});
-    },
-    onError: error => {
-      onError?.(error);
     },
   });
 }

@@ -53,7 +53,6 @@ export type IssueAlertFragment = Parameters<
 
 function CreateProject() {
   const [errors, setErrors] = useState(false);
-  const [inFlight, setInFlight] = useState(false);
   const [alertRuleConfig, setAlertRuleConfig] = useState<IssueAlertFragment | undefined>(
     undefined
   );
@@ -124,53 +123,7 @@ function CreateProject() {
     ]
   );
 
-  const createProject = useCreateProject({
-    onSuccess: async ({platform, project}) => {
-      const ruleIds = await createRules(project);
-
-      trackAnalytics('project_creation_page.created', {
-        organization,
-        issue_alert: defaultRules
-          ? 'Default'
-          : shouldCreateCustomRule
-            ? 'Custom'
-            : 'No Rule',
-        project_id: project.id,
-        platform: platform.key,
-        rule_ids: ruleIds,
-      });
-
-      addSuccessMessage(
-        team
-          ? t('Created project %s', `${project.slug}`)
-          : t('Created %s under new team %s', `${project.slug}`, `#${project.team.slug}`)
-      );
-
-      browserHistory.push(
-        normalizeUrl(
-          makeProjectsPathname({
-            orgSlug: organization.slug,
-            path: `/${project.slug}/getting-started/`,
-          })
-        )
-      );
-    },
-    onError: error => {
-      setInFlight(false);
-      setErrors(!!error.responseJSON);
-      addErrorMessage(t('Failed to create project %s', `${projectName}`));
-
-      // Only log this if the error is something other than:
-      // * The user not having access to create a project, or,
-      // * A project with that slug already exists
-      if (error.status !== 403 && error.status !== 409) {
-        Sentry.withScope(scope => {
-          scope.setExtra('err', error);
-          Sentry.captureMessage('Project creation failed');
-        });
-      }
-    },
-  });
+  const createProject = useCreateProject();
 
   const autoFill =
     location.query.referrer === 'getting-started' &&
@@ -196,7 +149,7 @@ function CreateProject() {
   );
 
   const configurePlatform = useCallback(
-    (selectedFramework?: OnboardingSelectedSDK) => {
+    async (selectedFramework?: OnboardingSelectedSDK) => {
       const selectedPlatform = selectedFramework ?? platform;
 
       if (!selectedPlatform) {
@@ -204,16 +157,72 @@ function CreateProject() {
         return;
       }
 
-      setInFlight(true);
+      try {
+        const project = await createProject.mutateAsync({
+          name: projectName,
+          platform: selectedPlatform,
+          default_rules: alertRuleConfig?.defaultRules ?? true,
+          firstTeamSlug: team,
+        });
 
-      createProject.mutate({
-        name: projectName,
-        platform: selectedPlatform,
-        default_rules: alertRuleConfig?.defaultRules ?? true,
-        firstTeamSlug: team,
-      });
+        const ruleIds = await createRules(project);
+
+        trackAnalytics('project_creation_page.created', {
+          organization,
+          issue_alert: defaultRules
+            ? 'Default'
+            : shouldCreateCustomRule
+              ? 'Custom'
+              : 'No Rule',
+          project_id: project.id,
+          platform: selectedPlatform.key,
+          rule_ids: ruleIds,
+        });
+
+        addSuccessMessage(
+          team
+            ? t('Created project %s', `${project.slug}`)
+            : t(
+                'Created %s under new team %s',
+                `${project.slug}`,
+                `#${project.team.slug}`
+              )
+        );
+
+        browserHistory.push(
+          normalizeUrl(
+            makeProjectsPathname({
+              orgSlug: organization.slug,
+              path: `/${project.slug}/getting-started/`,
+            })
+          )
+        );
+      } catch (error) {
+        setErrors(!!error.responseJSON);
+        addErrorMessage(t('Failed to create project %s', `${projectName}`));
+
+        // Only log this if the error is something other than:
+        // * The user not having access to create a project, or,
+        // * A project with that slug already exists
+        if (error.status !== 403 && error.status !== 409) {
+          Sentry.withScope(scope => {
+            scope.setExtra('err', error);
+            Sentry.captureMessage('Project creation failed');
+          });
+        }
+      }
     },
-    [createProject, projectName, platform, alertRuleConfig, team]
+    [
+      createProject,
+      projectName,
+      platform,
+      alertRuleConfig,
+      team,
+      createRules,
+      organization,
+      defaultRules,
+      shouldCreateCustomRule,
+    ]
   );
 
   const handleProjectCreation = useCallback(async () => {
@@ -304,7 +313,8 @@ function CreateProject() {
     isMissingMessagingIntegrationChannel,
   ].filter(value => value).length;
 
-  const canSubmitForm = !inFlight && canUserCreateProject && formErrorCount === 0;
+  const canSubmitForm =
+    !createProject.isPending && canUserCreateProject && formErrorCount === 0;
 
   let submitTooltipText: string = t('Please select a team');
   if (formErrorCount > 1) {

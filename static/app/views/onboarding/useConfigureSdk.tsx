@@ -30,32 +30,13 @@ export function useConfigureSdk({
   const {projects} = useProjects();
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
-  const createProject = useCreateProject({
-    onLoading: () => {
-      addLoadingMessage(t('Loading SDK configuration\u2026'));
-    },
-    onSuccess: ({platform}) => {
-      onboardingContext.setSelectedPlatform(platform);
-      trackAnalytics('growth.onboarding_set_up_your_project', {
-        platform: platform.key,
-        organization,
-      });
-
-      clearIndicators();
-      setTimeout(() => onComplete(platform));
-    },
-    onError: error => {
-      addErrorMessage(t('Failed to load SDK configuration'));
-      Sentry.captureException(error);
-      clearIndicators();
-    },
-  });
+  const createProject = useCreateProject();
 
   const firstAccessTeam = teams.find(team => team.access.includes('team:admin'));
   const firstTeamSlug = firstAccessTeam?.slug;
 
   const createPlatformProject = useCallback(
-    (selectedPlatform?: OnboardingSelectedSDK) => {
+    async (selectedPlatform?: OnboardingSelectedSDK) => {
       if (!selectedPlatform) {
         return;
       }
@@ -78,11 +59,25 @@ export function useConfigureSdk({
         return;
       }
 
-      createProject.mutate({
-        name: createProjectForPlatform.key,
-        platform: createProjectForPlatform,
-        firstTeamSlug,
-      });
+      try {
+        addLoadingMessage(t('Loading SDK configuration\u2026'));
+        await createProject.mutateAsync({
+          name: createProjectForPlatform.key,
+          platform: createProjectForPlatform,
+          firstTeamSlug,
+        });
+        onboardingContext.setSelectedPlatform(createProjectForPlatform);
+        trackAnalytics('growth.onboarding_set_up_your_project', {
+          platform: createProjectForPlatform.key,
+          organization,
+        });
+        setTimeout(() => onComplete(createProjectForPlatform));
+      } catch (error) {
+        addErrorMessage(t('Failed to load SDK configuration'));
+        Sentry.captureException(error);
+      } finally {
+        clearIndicators();
+      }
     },
     [createProject, firstTeamSlug, onboardingContext, onComplete, projects, organization]
   );
