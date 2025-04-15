@@ -184,6 +184,7 @@ function Segment<Value extends string>({
       size={size}
       isSelected={isSelected}
       isDisabled={isDisabled}
+      priority={priority}
       data-test-id={props.value}
       aria-checked={isSelected}
     >
@@ -250,6 +251,7 @@ const GroupWrap = withChonk(
 const SegmentWrap = withChonk(
   styled('label')<{
     isSelected: boolean;
+    priority: Priority;
     size: FormSize;
     isDisabled?: boolean;
   }>`

@@ -1,3 +1,5 @@
+import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
+
 import {getChonkButtonStyles} from 'sentry/components/core/button/index.chonk';
 import type {FormSize} from 'sentry/utils/theme';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
@@ -37,6 +39,7 @@ export const ChonkStyledGroupWrap = chonkStyled('div')<{
 
 export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   isSelected: boolean;
+  priority: Priority;
   size: FormSize;
   isDisabled?: boolean;
 }>`
@@ -51,7 +54,7 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   ${p => p.theme.buttonPadding[p.size]}
   font-weight: ${p => p.theme.fontWeightNormal};
 
-  ${p => ({...getChonkButtonStyles(p)})}
+  ${p => ({...getChonkButtonStyles({...p, priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default'})})}
 
   &:has(input:focus-visible) {
     ${p => p.theme.focusRing};
@@ -76,9 +79,30 @@ export const ChonkStyledVisibleLabel = chonkStyled('span')<{
   isDisabled?: boolean;
 }>`
 ${p => p.theme.overflowEllipsis}
-  transition: color 0.25s ease-out;
-
   user-select: none;
   font-weight: ${p => p.theme.fontWeightNormal};
   text-align: center;
+  color: ${p => getTextColor(p)};
 `;
+
+function getTextColor({
+  isDisabled,
+  isSelected,
+  priority,
+  theme,
+}: {
+  isSelected: boolean;
+  priority: Priority;
+  theme: DO_NOT_USE_ChonkTheme;
+  isDisabled?: boolean;
+}) {
+  if (isDisabled) {
+    return theme.subText;
+  }
+
+  if (isSelected) {
+    return priority === 'default' ? theme.colors.blue500 : undefined;
+  }
+
+  return theme.subText;
+}
