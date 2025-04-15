@@ -10,8 +10,8 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
-import {makeFetchGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
+import type {GroupSearchView, StarredGroupSearchView} from 'sentry/views/issueList/types';
 
 type UpdateGroupSearchViewVariables = Pick<
   GroupSearchView,
@@ -47,9 +47,9 @@ export const useUpdateGroupSearchView = (
       );
 
       // Update any matching starred views in cache
-      setApiQueryData<GroupSearchView[]>(
+      setApiQueryData<StarredGroupSearchView[]>(
         queryClient,
-        makeFetchGroupSearchViewsKey({orgSlug: organization.slug}),
+        makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
         oldGroupSearchViews => {
           return (
             oldGroupSearchViews?.map(view => {

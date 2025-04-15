@@ -237,7 +237,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       nodes?.find(n => isSpanNode(n) || isNonTransactionEAPSpanNode(n)) ||
       nodes?.find(n => isTransactionNode(n) || isEAPTransactionNode(n));
 
-    const index = node ? props.tree.list.indexOf(node) : -1;
+    const index = node ? IssuesTraceTree.EnforceVisibility(props.tree, node) : -1;
 
     if (node) {
       const preserveNodes: Array<TraceTreeNode<TraceTree.NodeValue>> = [node];

@@ -1044,6 +1044,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Temporary killswitch for making a second request to Seer to store the incoming event when we have
+# a hybrid fingerprint and none of the matches returned by Seer is a fingerprint match
+register(
+    "seer.similarity.ingest.store_hybrid_fingerprint_non_matches",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
 # TODO: Once Seer grouping is GA-ed, we probably either want to turn this down or get rid of it in
 # favor of the default 10% sample rate
 register(
@@ -2807,6 +2817,14 @@ register(
     type=Dict,
     default={"limit": 1000, "window": 300, "concurrent_limit": 15},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for EnvironmentProject.get_or_create refactor
+register(
+    "environmentproject.new_add_project.rollout",
+    default=0.0,
+    type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Killswitch for Postgres query timeout error handling

@@ -226,6 +226,74 @@ describe('ExploreToolbar', function () {
     ]);
   });
 
+  it('defaults count_unique argument to span.op', async function () {
+    let visualizes: any;
+    function Component() {
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {enableRouterMocks: false}
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+
+    // this is the default
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.BAR,
+        label: 'A',
+        yAxes: ['count(span.duration)'],
+      },
+    ]);
+
+    // try changing the aggregate
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
+
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.BAR,
+        label: 'A',
+        yAxes: ['count_unique(span.op)'],
+      },
+    ]);
+
+    // try changing the aggregate + field
+    await userEvent.click(within(section).getByRole('button', {name: 'count_unique'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+
+    // try changing the field
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.BAR,
+        label: 'A',
+        yAxes: ['avg(span.self_time)'],
+      },
+    ]);
+    //
+    // try changing the aggregate back to count_unique
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
+
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.BAR,
+        label: 'A',
+        yAxes: ['count_unique(span.op)'],
+      },
+    ]);
+  });
+
   it('allows changing visualizes', async function () {
     let fields, visualizes: any;
     function Component() {

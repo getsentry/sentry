@@ -39,48 +39,48 @@ describe('Onboarding Product Selection', function () {
     });
 
     // Error monitoring shall be checked and disabled by default
-    expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeChecked();
+    expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeChecked();
 
     // Tooltip with explanation shall be displayed on hover
-    await userEvent.hover(screen.getByRole('checkbox', {name: 'Error Monitoring'}));
+    await userEvent.hover(screen.getByRole('presentation', {name: 'Error Monitoring'}));
     expect(
       await screen.findByText(/Let's admit it, we all have errors/)
     ).toBeInTheDocument();
 
     // Try to uncheck error monitoring
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Error Monitoring'}));
+    await userEvent.click(screen.getByRole('presentation', {name: 'Error Monitoring'}));
     expect(router.push).not.toHaveBeenCalled();
 
     // Tracing shall be checked and enabled by default
-    expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeChecked();
-    expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeEnabled();
+    expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();
+    expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeEnabled();
 
     // Tooltip with explanation shall be displayed on hover
-    await userEvent.hover(screen.getByRole('checkbox', {name: 'Tracing'}));
+    await userEvent.hover(screen.getByRole('presentation', {name: 'Tracing'}));
     expect(
       await screen.findByText(/Automatic performance issue detection/)
     ).toBeInTheDocument();
 
     // Uncheck tracing
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Tracing'}));
+    await userEvent.click(screen.getByRole('presentation', {name: 'Tracing'}));
     expect(router.replace).toHaveBeenCalledWith({
       pathname: undefined,
       query: {product: [ProductSolution.SESSION_REPLAY]},
     });
 
     // Session replay shall be checked and enabled by default
-    expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeChecked();
-    expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeEnabled();
+    expect(screen.getByRole('presentation', {name: 'Session Replay'})).toBeChecked();
+    expect(screen.getByRole('presentation', {name: 'Session Replay'})).toBeEnabled();
 
     // Uncheck sesseion replay
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Session Replay'}));
+    await userEvent.click(screen.getByRole('presentation', {name: 'Session Replay'}));
     expect(router.replace).toHaveBeenCalledWith({
       pathname: undefined,
       query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
     });
 
     // Tooltip with explanation shall be displayed on hover
-    await userEvent.hover(screen.getByRole('checkbox', {name: 'Session Replay'}));
+    await userEvent.hover(screen.getByRole('presentation', {name: 'Session Replay'}));
     expect(
       await screen.findByText(/Video-like reproductions of user sessions/)
     ).toBeInTheDocument();
@@ -114,9 +114,9 @@ describe('Onboarding Product Selection', function () {
     );
 
     // Tracing shall be unchecked and disabled by default
-    expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeDisabled();
-    expect(screen.getByRole('checkbox', {name: 'Tracing'})).not.toBeChecked();
-    await userEvent.hover(screen.getByRole('checkbox', {name: 'Tracing'}));
+    expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeDisabled();
+    expect(screen.getByRole('presentation', {name: 'Tracing'})).not.toBeChecked();
+    await userEvent.hover(screen.getByRole('presentation', {name: 'Tracing'}));
 
     // A tooltip with explanation why the option is disabled shall be displayed on hover
     expect(
@@ -124,7 +124,7 @@ describe('Onboarding Product Selection', function () {
         disabledProducts[ProductSolution.PERFORMANCE_MONITORING].reason
       )
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Tracing'}));
+    await userEvent.click(screen.getByRole('presentation', {name: 'Tracing'}));
 
     // Try to uncheck tracing
     await waitFor(() => expect(router.push).not.toHaveBeenCalled());
@@ -149,7 +149,7 @@ describe('Onboarding Product Selection', function () {
     });
 
     expect(
-      screen.queryByRole('checkbox', {name: 'Session Replay'})
+      screen.queryByRole('presentation', {name: 'Session Replay'})
     ).not.toBeInTheDocument();
 
     expect(router.replace).not.toHaveBeenCalled();
@@ -169,7 +169,7 @@ describe('Onboarding Product Selection', function () {
       router,
     });
 
-    expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeInTheDocument();
+    expect(screen.getByRole('presentation', {name: 'Profiling'})).toBeInTheDocument();
 
     expect(router.replace).not.toHaveBeenCalled();
   });
@@ -195,11 +195,9 @@ describe('Onboarding Product Selection', function () {
       router,
     });
 
-    expect(screen.getByRole('checkbox', {name: 'Error Monitoring'})).toBeEnabled();
-
-    expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeDisabled();
-
-    expect(screen.getByRole('checkbox', {name: 'Session Replay'})).toBeDisabled();
+    expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeDisabled();
+    expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeDisabled();
+    expect(screen.getByRole('presentation', {name: 'Session Replay'})).toBeDisabled();
   });
 
   it('does not select any products by default', function () {
@@ -242,7 +240,7 @@ describe('Onboarding Product Selection', function () {
       }
     );
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Profiling'}));
+    await userEvent.click(screen.getByRole('presentation', {name: 'Profiling'}));
     expect(handleChange).toHaveBeenCalledWith(['performance-monitoring', 'profiling']);
   });
 
@@ -260,7 +258,7 @@ describe('Onboarding Product Selection', function () {
       router,
     });
 
-    expect(screen.getByRole('checkbox', {name: 'Tracing'})).toBeChecked();
+    expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();
 
     expect(router.replace).not.toHaveBeenCalled();
   });
