@@ -96,6 +96,9 @@ export class Samples implements Plottable {
     this.chartRef = chartRef;
   }
 
+  /**
+   * Dispatch an action on a data point to the chart instance, if possible. If not possible, log the error, but noop. In all current cases, failing to dispatch an action is harmless, and only happens if the chart is removed from the DOM, in which case there's nothing to dispatch to, anyway. Telemetry added in case this happens a lot and we want to track down what's dispatching actions to a removed chart.
+   */
   #dispatchPointAction(action: string, dataIndex: number): void {
     let chart: EChartsType | undefined = undefined;
 
@@ -103,7 +106,7 @@ export class Samples implements Plottable {
       chart = this.chartRef?.getEchartsInstance();
     } catch (e) {
       warn(
-        '`Samples.#getChart` could not get chart instance because the chart was removed from the DOM'
+        '`Samples` could not dispatch action because the chart was removed from the DOM'
       );
       return undefined;
     }
