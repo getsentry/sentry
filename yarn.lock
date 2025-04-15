@@ -9442,11 +9442,6 @@ neo-async@^2.6.2:
   resolved "https://registry.yarnpkg.com/neo-async/-/neo-async-2.6.2.tgz#b4aafb93e3aeb2d8174ca53cf163ab7d7308305f"
   integrity sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==
 
-nestie@^1.0.3:
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/nestie/-/nestie-1.0.3.tgz#87abb5b6d44cc9ebdbe6385a1de401be07a6417c"
-  integrity sha512-971uBUL8p6TuISghZ4Qxx35DKgRKVuOLNBl9Q6CJNIcwh79zAB07d3bkrN3Sh3xbOhyzdUS9V7t0KV6/gyOl+g==
-
 no-case@^3.0.4:
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/no-case/-/no-case-3.0.4.tgz#d361fd5c9800f558551a8369fc0dcd4662b6124d"
