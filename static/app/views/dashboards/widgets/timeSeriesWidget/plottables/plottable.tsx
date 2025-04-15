@@ -62,6 +62,10 @@ export interface Plottable {
    */
   onClick?: (dataIndex: number) => void;
   /**
+   * `TimeSeriesWidgetVisualization` will call this function if the user moves the highlighting (via mouse, or imperatively) from one point to another point on a series that originated from this plottable.
+   */
+  onDownplay?: (dataIndex: number) => void;
+  /**
    * `TimeSeriesWidgetVisualization` will call this function if the user highlights (via mouse, or imperatively) a point on a series that originated from this plottable.
    */
   onHighlight?: (dataIndex: number) => void;
