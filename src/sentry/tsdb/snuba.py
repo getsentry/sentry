@@ -719,7 +719,7 @@ class SnubaTSDB(BaseTSDB):
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
         group_on_time: bool = True,
-    ) -> dict[TSDBKey, list[tuple[int, int]]]:
+    ) -> Mapping[TSDBKey, list[tuple[int, int]]]:
         model_query_settings = self.model_query_settings.get(model)
         assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
 

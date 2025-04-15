@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Literal, Protocol, TypedDict
+from typing import Any, ClassVar, Literal, Protocol, TypedDict, cast
 
 from django.core.cache import cache
 from django.db.models import QuerySet
@@ -49,7 +49,8 @@ class TSDBFunction(Protocol):
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
-    ) -> dict[int, int]: ...
+        group_on_time: bool = True,
+    ) -> Mapping[int, int] | Mapping[int, list[tuple[int, int]]]: ...
 
 
 class InvalidFilter(Exception):
@@ -101,8 +102,9 @@ class BaseEventFrequencyQueryHandler(ABC):
         environment_id: int | None,
         referrer_suffix: str,
         conditions: list[SnubaCondition] | None = None,
-    ) -> Mapping[int, int]:
-        result: Mapping[int, int] = tsdb_function(
+        group_on_time: bool = True,
+    ) -> Mapping[int, int] | Mapping[int, list[tuple[int, int]]]:
+        result = tsdb_function(
             model=model,
             keys=keys,
             start=start,
@@ -113,6 +115,7 @@ class BaseEventFrequencyQueryHandler(ABC):
             tenant_ids={"organization_id": organization_id},
             referrer_suffix=referrer_suffix,
             conditions=conditions,
+            group_on_time=group_on_time,
         )
         return result
 
@@ -127,6 +130,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         environment_id: int | None,
         referrer_suffix: str,
         filters: list[QueryFilter] | None = None,
+        group_on_time: bool = True,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
@@ -143,8 +147,11 @@ class BaseEventFrequencyQueryHandler(ABC):
                 environment_id=environment_id,
                 referrer_suffix=referrer_suffix,
                 conditions=conditions,
+                group_on_time=group_on_time,
             )
-            batch_totals.update(result)
+            if group_on_time:
+                result = cast(dict[int, int], result)
+                batch_totals.update(result)
         return batch_totals
 
     def get_group_ids_by_category(
@@ -349,6 +356,7 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
                     environment_id=environment_id,
                     referrer_suffix="batch_alert_event_frequency",
                     filters=filters,
+                    group_on_time=True,
                 )
             except InvalidFilter:
                 # Filter is not supported for this issue type
@@ -394,6 +402,7 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
                     environment_id=environment_id,
                     referrer_suffix="batch_alert_event_uniq_user_frequency",
                     filters=filters,
+                    group_on_time=True,
                 )
             except InvalidFilter:
                 # Filter is not supported for this issue type
@@ -483,6 +492,7 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_frequency",
                 filters=filters,
+                group_on_time=True,
             )
             for group_id, count in results.items():
                 percent: float = 100 * round(count / avg_sessions_in_interval, 4)
