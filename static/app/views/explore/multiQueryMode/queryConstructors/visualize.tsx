@@ -6,12 +6,13 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {
-  DEFAULT_VISUALIZATION,
   DEFAULT_VISUALIZATION_AGGREGATE,
   DEFAULT_VISUALIZATION_FIELD,
+  updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
@@ -30,7 +31,7 @@ type Props = {
 };
 
 export function VisualizeSection({query, index}: Props) {
-  const parsedFunction = query.yAxes.map(parseFunction).find(defined);
+  const [yAxis, parsedFunction] = findFirstFunction(query.yAxes);
 
   // We want to lock down the fields dropdown when using count so that we can
   // render `count(spans)` for better legibility. However, for backwards
@@ -53,6 +54,7 @@ export function VisualizeSection({query, index}: Props) {
   );
   const defaultFieldOptions: Array<SelectOption<string>> = useVisualizeFields({
     yAxes: query.yAxes,
+    yAxis,
   });
   const fieldOptions = lockOptions ? countFieldOptions : defaultFieldOptions;
 
@@ -85,10 +87,11 @@ export function VisualizeSection({query, index}: Props) {
             options={aggregateOptions}
             value={parsedFunction?.name}
             onChange={newAggregate => {
-              const newYAxis =
-                newAggregate.value === DEFAULT_VISUALIZATION_AGGREGATE
-                  ? DEFAULT_VISUALIZATION
-                  : `${newAggregate.value}(${parsedFunction!.arguments[0]})`;
+              const newYAxis = updateVisualizeAggregate({
+                newAggregate: newAggregate.value,
+                oldAggregate: parsedFunction!.name,
+                oldArgument: parsedFunction!.arguments[0]!,
+              });
               updateYAxis({yAxes: [newYAxis]});
             }}
           />
@@ -106,6 +109,19 @@ export function VisualizeSection({query, index}: Props) {
       </Fragment>
     </Section>
   );
+}
+
+function findFirstFunction(
+  yAxes: ReadableExploreQueryParts['yAxes']
+): [string | undefined, ParsedFunction | undefined] {
+  for (const yAxis of yAxes) {
+    const parsed = parseFunction(yAxis);
+    if (defined(parsed)) {
+      return [yAxis, parsed];
+    }
+  }
+
+  return [undefined, undefined];
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`

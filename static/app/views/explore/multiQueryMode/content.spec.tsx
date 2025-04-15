@@ -189,6 +189,100 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
+  it('defaults count_unique argument to span.op', async function () {
+    let queries: any;
+    function Component() {
+      queries = useReadQueriesFromLocation();
+      return <MultiQueryModeContent />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {enableRouterMocks: false}
+    );
+
+    const section = await screen.findByTestId('section-visualize-0');
+
+    expect(queries).toEqual([
+      {
+        chartType: 1,
+        yAxes: ['count(span.duration)'],
+        sortBys: [
+          {
+            field: 'span.duration',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.duration'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
+
+    expect(queries).toEqual([
+      {
+        chartType: 1,
+        yAxes: ['count_unique(span.op)'],
+        sortBys: [
+          {
+            field: 'id',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.op'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count_unique'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(queries).toEqual([
+      {
+        chartType: 1,
+        yAxes: ['avg(span.self_time)'],
+        sortBys: [
+          {
+            field: 'id',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.self_time'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
+
+    expect(queries).toEqual([
+      {
+        chartType: 1,
+        yAxes: ['count_unique(span.op)'],
+        sortBys: [
+          {
+            field: 'id',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.op'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+  });
+
   it('updates visualization and outdated sorts', async function () {
     let queries: any;
     function Component() {

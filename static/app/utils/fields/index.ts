@@ -829,6 +829,7 @@ export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
 
 export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.COUNT, // DO NOT RE-ORDER: the first element is used as the default
+  AggregationKey.COUNT_UNIQUE,
   AggregationKey.AVG,
   AggregationKey.P50,
   AggregationKey.P75,
