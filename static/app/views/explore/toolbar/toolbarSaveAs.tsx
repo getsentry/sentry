@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -15,7 +16,9 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -32,6 +35,7 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {ToolbarSection} from 'sentry/views/explore/toolbar/styles';
@@ -190,6 +194,71 @@ export function ToolbarSaveAs() {
     });
   }
 
+  const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
+
+  const shouldHighlightSaveButton = useMemo(() => {
+    if (isLoadingSavedQuery || savedQuery === undefined) {
+      return false;
+    }
+    // Compares editable fields from saved query with location params to check for changes
+    const queryIsEqual = valueIsEqual(query, savedQuery?.query[0]?.query);
+    const groupBysIsEqual = valueIsEqual(groupBys, savedQuery?.query[0]?.groupby);
+    const sortByString = sortBys[0] ? encodeSort(sortBys[0]) : undefined;
+    const sortByIsEqual = valueIsEqual(sortByString, savedQuery?.query[0]?.orderby);
+    const fieldsIsEqual = valueIsEqual(fields, savedQuery?.query[0]?.fields);
+    const visualizesIsEqual = valueIsEqual(
+      visualizes.map(({chartType, yAxes}) => ({chartType, yAxes})),
+      savedQuery?.query[0]?.visualize,
+      true
+    );
+    const startIsEqual =
+      (defined(savedQuery.start) ? new Date(savedQuery.start).getTime() : null) ===
+      (pageFilters.selection.datetime.start
+        ? new Date(pageFilters.selection.datetime.start).getTime()
+        : null);
+    const endIsEqual =
+      (defined(savedQuery.end) ? new Date(savedQuery.end).getTime() : null) ===
+      (pageFilters.selection.datetime.end
+        ? new Date(pageFilters.selection.datetime.end).getTime()
+        : null);
+    const periodIsEqual =
+      (savedQuery.range ?? null) === pageFilters.selection.datetime.period;
+    const projectIsEqual = valueIsEqual(
+      savedQuery.projects,
+      pageFilters.selection.projects
+    );
+    const environmentIsEqual = valueIsEqual(
+      savedQuery.environment,
+      pageFilters.selection.environments
+    );
+
+    return (
+      !queryIsEqual ||
+      !groupBysIsEqual ||
+      !sortByIsEqual ||
+      !fieldsIsEqual ||
+      !visualizesIsEqual ||
+      !startIsEqual ||
+      !endIsEqual ||
+      !periodIsEqual ||
+      !projectIsEqual ||
+      !environmentIsEqual
+    );
+  }, [
+    isLoadingSavedQuery,
+    savedQuery,
+    query,
+    groupBys,
+    sortBys,
+    fields,
+    visualizes,
+    pageFilters.selection.datetime.start,
+    pageFilters.selection.datetime.end,
+    pageFilters.selection.datetime.period,
+    pageFilters.selection.projects,
+    pageFilters.selection.environments,
+  ]);
+
   if (items.length === 0) {
     return null;
   }
@@ -202,6 +271,7 @@ export function ToolbarSaveAs() {
           trigger={triggerProps => (
             <SaveAsButton
               {...triggerProps}
+              priority={shouldHighlightSaveButton ? 'primary' : 'default'}
               aria-label={t('Save as')}
               onClick={e => {
                 e.stopPropagation();
@@ -210,7 +280,7 @@ export function ToolbarSaveAs() {
                 triggerProps.onClick?.(e);
               }}
             >
-              {`${t('Save as')}\u2026`}
+              {shouldHighlightSaveButton ? `${t('Save')}` : `${t('Save as')}\u2026`}
             </SaveAsButton>
           )}
         />
