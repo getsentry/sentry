@@ -5,7 +5,6 @@ import contextlib
 import dataclasses
 import logging
 import multiprocessing
-import os
 import queue
 import signal
 import sys
@@ -122,7 +121,6 @@ def child_worker(
         If we hit an alarm in a child, we need to push a result
         and terminate the child.
         """
-        print(f"Got SIGALRM on : {os.getpid()}")
         current = current_task()
         if current:
             processed_tasks.put(
@@ -157,7 +155,6 @@ def child_worker(
                     "taskname": current.taskname,
                 },
             )
-        print(f"Exit with code 1 on : {os.getpid()}")
         sys.exit(1)
 
     while True:
@@ -473,18 +470,14 @@ class TaskWorker:
         """
         Add a task to child tasks queue. Returns False if no new task was fetched.
         """
-        print("_add_task")
         if self._child_tasks.full():
-            print("_child_tasks queue is full")
             return False
 
         task = self.fetch_task()
         if task:
             try:
                 start_time = time.monotonic()
-                print("putting task in queue...")
                 self._child_tasks.put(task)
-                print("done putting task in queue")
                 metrics.distribution(
                     "taskworker.worker.child_task.put.duration",
                     time.monotonic() - start_time,
@@ -603,13 +596,9 @@ class TaskWorker:
     def _spawn_children(self) -> None:
         while True:
             self._children = [child for child in self._children if child.is_alive()]
-            print(f"active children: {[child.pid for child in self._children]}")
             if len(self._children) >= self._concurrency:
-                print(f"no additional children to spawn")
                 continue
-            print(f"========= going to spawn {self._concurrency - len(self._children)} children")
             for i in range(self._concurrency - len(self._children)):
-                print(f"spawning child {i}")
                 process = mp_context.Process(
                     target=child_worker,
                     args=(
@@ -626,8 +615,6 @@ class TaskWorker:
                 #     "taskworker.spawn_child",
                 #     extra={"pid": process.pid, "processing_pool": self._processing_pool_name},
                 # )
-                print(f"child {i} spawned")
-            print("!!!!!!!! done spawning children")
 
     def fetch_task(self) -> TaskActivation | None:
         # Use the shutdown_event as a sleep mechanism
