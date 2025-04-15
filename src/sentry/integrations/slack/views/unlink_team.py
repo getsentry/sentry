@@ -17,7 +17,7 @@ INSUFFICIENT_ACCESS = (
 
 def build_team_unlinking_url(
     integration: Integration | RpcIntegration,
-    organization_id: str,
+    organization_id: int,
     slack_id: str,
     channel_id: str,
     channel_name: str,

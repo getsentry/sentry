@@ -147,7 +147,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
 
         associate_url = build_team_unlinking_url(
             integration=integration,
-            organization_id=str(found.organization.id),
+            organization_id=found.organization.id,
             slack_id=slack_request.user_id,
             channel_id=slack_request.channel_id,
             channel_name=slack_request.channel_name,
