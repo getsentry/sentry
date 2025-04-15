@@ -29,7 +29,7 @@ def save_feedback_event(event_data: dict[str, Any], project_id: int):
         associated_event_id = get_path(
             fixed_event_data, "contexts", "feedback", "associated_event_id"
         )
-        if associated_event_id:
+        if fixed_event_data and associated_event_id:
             feedback_context = fixed_event_data["contexts"]["feedback"]
             project = Project.objects.get_from_cache(id=project_id)
             save_userreport(

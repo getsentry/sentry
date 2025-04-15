@@ -43,7 +43,7 @@ def update_user_reports(**kwargs: Any) -> None:
     )
 
     # We do one query per project, just to avoid the small case that two projects have the same event ID
-    project_map: dict[int, UserReport] = {}
+    project_map: dict[int, list[UserReport]] = {}
     for r in user_reports:
         project_map.setdefault(r.project_id, []).append(r)
 

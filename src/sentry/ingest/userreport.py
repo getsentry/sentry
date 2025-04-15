@@ -84,7 +84,9 @@ def save_userreport(
         report["project_id"] = project.id
 
         # Use the associated event to validate and update the report.
-        event: Event | None = eventstore.backend.get_event_by_id(project.id, report["event_id"])
+        event: Event | GroupEvent | None = eventstore.backend.get_event_by_id(
+            project.id, report["event_id"]
+        )
 
         euser = find_event_user(event)
 
