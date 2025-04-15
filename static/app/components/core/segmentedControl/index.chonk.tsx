@@ -54,7 +54,7 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   ${p => p.theme.buttonPadding[p.size]}
   font-weight: ${p => p.theme.fontWeightNormal};
 
-  ${p => ({...getChonkButtonStyles({...p, priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default'})})}
+  ${p => ({...getChonkButtonStyles({...p, disabled: p.isDisabled, priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default'})})}
 
   &:has(input:focus-visible) {
     ${p => p.theme.focusRing};
@@ -76,7 +76,6 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
 export const ChonkStyledVisibleLabel = chonkStyled('span')<{
   isSelected: boolean;
   priority: Priority;
-  isDisabled?: boolean;
 }>`
 ${p => p.theme.overflowEllipsis}
   user-select: none;
@@ -86,7 +85,6 @@ ${p => p.theme.overflowEllipsis}
 `;
 
 function getTextColor({
-  isDisabled,
   isSelected,
   priority,
   theme,
@@ -96,10 +94,6 @@ function getTextColor({
   theme: DO_NOT_USE_ChonkTheme;
   isDisabled?: boolean;
 }) {
-  if (isDisabled) {
-    return theme.subText;
-  }
-
   if (isSelected) {
     return priority === 'default' ? theme.colors.blue500 : undefined;
   }

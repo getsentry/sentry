@@ -97,13 +97,13 @@ export default storyBook('SegmentedControl', story => {
           const [value, setValue] = useState('two');
           return (
             <SegmentedControl value={value} onChange={setValue}>
-              <SegmentedControl.Item key="one" tooltip="One">
+              <SegmentedControl.Item key="one" {...props}>
                 One
               </SegmentedControl.Item>
               <SegmentedControl.Item key="two" {...props}>
                 Two
               </SegmentedControl.Item>
-              <SegmentedControl.Item key="three" tooltip="Three">
+              <SegmentedControl.Item key="three" {...props}>
                 Three
               </SegmentedControl.Item>
             </SegmentedControl>

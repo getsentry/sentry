@@ -161,7 +161,7 @@ export function getChonkButtonStyles(
             },
           },
 
-          '&:disabled': {
+          '&:disabled, &[aria-disabled="true"]': {
             '&::after': {
               transform: 'translateY(0px)',
             },

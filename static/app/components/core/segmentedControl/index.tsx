@@ -187,6 +187,7 @@ function Segment<Value extends string>({
       priority={priority}
       data-test-id={props.value}
       aria-checked={isSelected}
+      aria-disabled={isDisabled}
     >
       <SegmentInput {...inputProps} ref={ref} />
       {!isDisabled && !theme.isChonk && (
