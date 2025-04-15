@@ -61,12 +61,6 @@ const seeFullListTag: Tag = {
   kind: undefined,
 };
 
-const hideListTag: Tag = {
-  key: 'hideList',
-  name: t('Hide list'),
-  kind: undefined,
-};
-
 function getTagsFromKeys(keys: string[], tags: TagCollection): Tag[] {
   return keys
     .map(key => {
@@ -114,7 +108,7 @@ function SchemaHintsList({
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const organization = useOrganization();
-  const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
+  const {openDrawer, isDrawerOpen} = useDrawer();
   const {dispatch, query} = useSearchQueryBuilder();
 
   const functionTags = useMemo(() => {
@@ -149,6 +143,10 @@ function SchemaHintsList({
   }, [functionTags, numberTags, stringTags, source]);
 
   const [visibleHints, setVisibleHints] = useState([seeFullListTag]);
+  const [tagListState, setTagListState] = useState<{
+    containerRect: DOMRect;
+    tagsRect: DOMRect[];
+  } | null>(null);
 
   useEffect(() => {
     // debounce calculation to prevent 'flickering' when resizing
@@ -158,52 +156,73 @@ function SchemaHintsList({
       }
 
       const container = schemaHintsContainerRef.current;
+      const containerRect = container.getBoundingClientRect();
 
-      // Create a temporary div to measure items without rendering them
-      const measureDiv = document.createElement('div');
-      measureDiv.style.visibility = 'hidden';
-      document.body.appendChild(measureDiv);
+      let lastVisibleIndex;
 
-      // Clone the container styles
-      const styles = window.getComputedStyle(container);
-      measureDiv.style.display = styles.display;
-      measureDiv.style.gap = styles.gap;
-      measureDiv.style.width = styles.width;
+      // don't use the tagListState if the full list hasn't loaded yet
+      if (tagListState && !isLoading) {
+        // last element of allTags is the see full list tag
+        lastVisibleIndex =
+          tagListState.tagsRect.findIndex(
+            tagRect =>
+              tagRect.right >
+              // Note: containerRect.right does not correctly correspond to the right of the tags elements
+              // which is why we are using the width of the container
+              tagListState.containerRect.left +
+                containerRect.width -
+                (tagListState.tagsRect[tagListState.tagsRect.length - 1]?.width ?? 0)
+          ) - 1;
+      } else {
+        // Create a temporary div to measure items without rendering them
+        const measureDiv = document.createElement('div');
+        measureDiv.style.visibility = 'hidden';
+        document.body.appendChild(measureDiv);
 
-      // Render items in hidden div to measure
-      [...filterTagsSorted, seeFullListTag].forEach(hint => {
-        const el = container.children[0]?.cloneNode(true) as HTMLElement;
-        el.innerHTML = getHintText(hint);
-        measureDiv.appendChild(el);
-      });
+        // Clone the container styles
+        const styles = window.getComputedStyle(container);
+        measureDiv.style.display = styles.display;
+        measureDiv.style.gap = styles.gap;
+        measureDiv.style.width = styles.width;
 
-      // Get all rendered items
-      const items = Array.from(measureDiv.children) as HTMLElement[];
+        const measureDivRect = measureDiv.getBoundingClientRect();
+        // Render items in hidden div to measure
+        [...filterTagsSorted, seeFullListTag].forEach(hint => {
+          const el = container.children[0]?.cloneNode(true) as HTMLElement;
+          el.innerHTML = getHintText(hint);
+          measureDiv.appendChild(el);
+        });
 
-      const seeFullListTagRect = Array.from(measureDiv.children)[
-        Array.from(measureDiv.children).length - 1
-      ]?.getBoundingClientRect();
+        // Get all rendered items
+        const items = Array.from(measureDiv.children) as HTMLElement[];
 
-      const measureDivRect = measureDiv.getBoundingClientRect();
-      // Find the last item that fits within the container
-      let lastVisibleIndex =
-        items.findIndex(item => {
-          const itemRect = item.getBoundingClientRect();
-          return itemRect.right > measureDivRect.right - (seeFullListTagRect?.width ?? 0);
-        }) - 1;
+        const seeFullListTagRect = Array.from(measureDiv.children)[
+          Array.from(measureDiv.children).length - 1
+        ]?.getBoundingClientRect();
+
+        const itemsRects = items.map(item => item.getBoundingClientRect());
+        // Find the last item that fits within the container
+        lastVisibleIndex =
+          itemsRects.findIndex(itemRect => {
+            return (
+              itemRect.right > measureDivRect.right - (seeFullListTagRect?.width ?? 0)
+            );
+          }) - 1;
+
+        // save the states of the tag list and container to be used for future calculations
+        // preventing renders of the hidden tag list on resize
+        setTagListState({containerRect: measureDivRect, tagsRect: itemsRects});
+
+        // Remove the temporary div
+        document.body.removeChild(measureDiv);
+      }
 
       // If all items fit, show them all
       if (lastVisibleIndex < 0) {
-        lastVisibleIndex = items.length;
+        lastVisibleIndex = filterTagsSorted.length;
       }
 
-      setVisibleHints([
-        ...filterTagsSorted.slice(0, lastVisibleIndex),
-        isDrawerOpen ? hideListTag : seeFullListTag,
-      ]);
-
-      // Remove the temporary div
-      document.body.removeChild(measureDiv);
+      setVisibleHints([...filterTagsSorted.slice(0, lastVisibleIndex), seeFullListTag]);
     }, 30);
 
     // initial calculation
@@ -215,7 +234,7 @@ function SchemaHintsList({
     }
 
     return () => resizeObserver.disconnect();
-  }, [filterTagsSorted, isDrawerOpen]);
+  }, [filterTagsSorted, isDrawerOpen, isLoading, tagListState]);
 
   const onHintClick = useCallback(
     (hint: Tag) => {
@@ -239,12 +258,6 @@ function SchemaHintsList({
               drawerCss: css`
                 height: calc(100% - ${space(4)});
               `,
-              transitionProps: {
-                key: 'schema-hints-drawer',
-                type: 'tween',
-                duration: 0.7,
-                ease: 'easeOut',
-              },
               shouldCloseOnLocationChange: newLocation => {
                 return (
                   location.pathname !== newLocation.pathname ||
@@ -270,13 +283,6 @@ function SchemaHintsList({
               },
             }
           );
-        }
-        return;
-      }
-
-      if (hint.key === hideListTag.key) {
-        if (isDrawerOpen) {
-          closeDrawer();
         }
         return;
       }
@@ -314,20 +320,19 @@ function SchemaHintsList({
     [
       query,
       tableColumns,
+      setPageParams,
       dispatch,
       organization,
       isDrawerOpen,
       openDrawer,
       filterTagsSorted,
-      setPageParams,
       location.pathname,
       location.query,
-      closeDrawer,
     ]
   );
 
   const getHintText = (hint: Tag) => {
-    if (hint.key === seeFullListTag.key || hint.key === hideListTag.key) {
+    if (hint.key === seeFullListTag.key) {
       return hint.name;
     }
 
@@ -335,7 +340,7 @@ function SchemaHintsList({
   };
 
   const getHintElement = (hint: Tag) => {
-    if (hint.key === seeFullListTag.key || hint.key === hideListTag.key) {
+    if (hint.key === seeFullListTag.key) {
       return hint.name;
     }
 
