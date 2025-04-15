@@ -196,11 +196,7 @@ export function PageOverview() {
                   <BrowserTypeSelector />
                 </TopMenuContainer>
                 <Flex>
-                  <PerformanceScoreBreakdownChart
-                    transaction={transaction}
-                    browserTypes={browserTypes}
-                    subregions={subregions}
-                  />
+                  <PerformanceScoreBreakdownChart />
                 </Flex>
                 <WebVitalMetersContainer>
                   {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
