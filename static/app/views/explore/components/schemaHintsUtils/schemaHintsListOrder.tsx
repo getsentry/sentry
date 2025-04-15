@@ -3,13 +3,11 @@ import {FieldKey} from 'sentry/utils/fields';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
-const FRONTEND_HINT_KEYS = [SpanIndexedField.BROWSER_NAME, SpanIndexedField.USER];
+export const USER_IDENTIFIER_KEY = 'user.key';
 
-const MOBILE_HINT_KEYS = [
-  FieldKey.OS_NAME,
-  FieldKey.DEVICE_FAMILY,
-  SpanIndexedField.USER,
-];
+const FRONTEND_HINT_KEYS = [SpanIndexedField.BROWSER_NAME, USER_IDENTIFIER_KEY];
+
+const MOBILE_HINT_KEYS = [FieldKey.OS_NAME, FieldKey.DEVICE_FAMILY, USER_IDENTIFIER_KEY];
 
 const COMMON_HINT_KEYS = [
   SpanIndexedField.IS_TRANSACTION,
