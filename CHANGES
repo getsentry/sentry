@@ -1,3 +1,58 @@
+25.4.0
+------
+
+### Automate Code Mappings & In-App Stack Trace Rules for Java projects (ongoing)
+
+Currently, we ask developers to set up their Java code mappings manually (because the SDK cannot determine it):
+https://docs.sentry.io/platforms/java/source-context/&#35;setting-up-code-mappings
+
+Unfortunately, many stack traces do not contain in-app frames, thus, many Sentry features are not available (e.g. SCM linking, suspect commit).
+
+This tracks using the code mappings derivation system to automatically add the code mappings and stack trace rules to mark in-app frames as such.
+
+This will automatically enable the following Sentry features :
+- Suspect Commits
+- GitHub pull request comments
+- Auto-assignments (if Codeowners imported)
+- Stack trace linking
+- Code coverage (if the customer also has an account)
+
+This will only be available to customers with the GitHub integration installed.
+
+You can read more about the system here:
+https://blog.sentry.io/code-mappings-and-why-they-matter/
+
+By: @armenzg (#89389, #89302, #89211, #88952, #88787, #88676, #88673, #88557, #88475, #88440, #88372, #88251, #88087, #88073, #87842, #87915, #87912, #87776, #87630, #87581, #87437, #87498, #87399, #86598)
+
+### Various fixes & improvements
+
+- :wrench: chore: fix slack webhook commands endpoint typing (#89579) by @iamrajjoshi
+- chore(issue-platform): Clean up issue platform feature flags now that we're using flagpole (#89451) by @wedamija
+- fix(issues): Open drawers without resetting scroll (#89574) by @scttcper
+- feat(ourlogs): Strip ANSI escape codes (#89619) by @colin-sentry
+- fix(schema-hints): Replace user tag with an available `user.*` tags (#89509) by @nikkikapadia
+- feat(explore): Remove feature flag for get traces rpc (#89621) by @Zylphrex
+- styles(explore): Reorganization explore for tours (#89616) by @Zylphrex
+- feat(logs): minor accordion cleanup (#89531) by @doralchan
+- ref: the first arg of prep_search is unused (#89611) by @asottile-sentry
+- ref: fix types for sentry.api.base (#89601) by @asottile-sentry
+- :wrench: chore: update msteams notifications typing (#89577) by @iamrajjoshi
+- ref(profiling): rename filestore profiles options (#89608) by @viglia
+- :wrench: chore: fix slack notifications typing (#89578) by @iamrajjoshi
+- fix(ui): make sure hovering disabled buttons doesn't change their textColor (#89588) by @TkDodo
+- feat(explore): Add support for count_unique in eap (#89558) by @Zylphrex
+- feat(demo-mode): issues tour (#89399) by @obostjancic
+- fix(dashboards-eap): Pass along sampled flag for disabling message (#89528) by @narsaynorath
+- fix(taskworker) Increase timeouts for deletion tasks (#89541) by @markstory
+- feat(explore): Switch trace samples over to rpc (#89575) by @Zylphrex
+- fix(dashboards): Fix typo in code comment (#89606) by @gggritso
+- Revert "feat(features) Add testing feature flag for region condition (#89405)" (12c54bb3) by @getsentry-bot
+- feat(profiling): Detect chunks without client sdk (#89195) by @Zylphrex
+- ref(laravel-insights): Move components (#89600) by @ArthurKnaus
+- feat(ui): chonkify segmentedControl (#89589) by @TkDodo
+
+_Plus 2007 more_
+
 25.3.0
 ------
 
