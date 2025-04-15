@@ -112,6 +112,7 @@ function EventNavigationButton({
             query: {...location.query, referrer},
           }}
           disabled={disabled}
+          preventScrollReset
         />
       </div>
     </Tooltip>

@@ -10,6 +10,7 @@ import {getHasTag} from 'sentry/components/events/searchBar';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -30,11 +31,13 @@ import {
   getSchemaHintsListOrder,
   removeHiddenKeys,
   SchemaHintsSources,
+  USER_IDENTIFIER_KEY,
 } from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import type {LogPageParamsUpdate} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {WritablePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 export const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
 
@@ -65,7 +68,18 @@ const hideListTag: Tag = {
 };
 
 function getTagsFromKeys(keys: string[], tags: TagCollection): Tag[] {
-  return keys.map(key => tags[key]).filter(tag => !!tag);
+  return keys
+    .map(key => {
+      if (key === USER_IDENTIFIER_KEY) {
+        return (
+          tags[SpanIndexedField.USER_EMAIL] ||
+          tags[SpanIndexedField.USER_USERNAME] ||
+          tags[SpanIndexedField.USER_ID]
+        );
+      }
+      return tags[key];
+    })
+    .filter(tag => !!tag);
 }
 
 export function addFilterToQuery(
@@ -74,7 +88,7 @@ export function addFilterToQuery(
   isBoolean: boolean
 ) {
   filterQuery.addFilterValue(
-    isBoolean || tag.kind === FieldKind.MEASUREMENT ? tag.key : `!${tag.key}`,
+    tag.key,
     isBoolean ? 'True' : tag.kind === FieldKind.MEASUREMENT ? '>0' : ''
   );
 }
@@ -93,7 +107,6 @@ function SchemaHintsList({
   numberTags,
   stringTags,
   isLoading,
-  exploreQuery,
   tableColumns,
   setPageParams,
   source = SchemaHintsSources.EXPLORE,
@@ -102,6 +115,7 @@ function SchemaHintsList({
   const location = useLocation();
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
+  const {dispatch, query} = useSearchQueryBuilder();
 
   const functionTags = useMemo(() => {
     return getFunctionTags(supportedAggregates);
@@ -211,10 +225,10 @@ function SchemaHintsList({
             () => (
               <SchemaHintsDrawer
                 hints={filterTagsSorted}
-                exploreQuery={exploreQuery}
+                exploreQuery={query}
                 tableColumns={tableColumns}
                 setPageParams={setPageParams}
-                source={source}
+                searchBarDispatch={dispatch}
               />
             ),
             {
@@ -267,7 +281,7 @@ function SchemaHintsList({
         return;
       }
 
-      const newSearchQuery = new MutableSearch(exploreQuery);
+      const newSearchQuery = new MutableSearch(query);
       const isBoolean =
         getFieldDefinition(hint.key, 'span', hint.kind)?.valueType ===
         FieldValueType.BOOLEAN;
@@ -278,17 +292,18 @@ function SchemaHintsList({
         : [...tableColumns, hint.key];
       const newQuery = newSearchQuery.formatString();
 
-      setPageParams(
-        source === SchemaHintsSources.LOGS
-          ? {
-              search: newSearchQuery,
-              fields: newTableColumns,
-            }
-          : {
-              query: newQuery,
-              fields: newTableColumns,
-            }
-      );
+      setPageParams({
+        fields: newTableColumns,
+      });
+
+      dispatch({
+        type: 'UPDATE_QUERY',
+        query: newQuery,
+        focusOverride: {
+          itemKey: `filter:${newSearchQuery.getFilterKeys().indexOf(hint.key)}`,
+          part: 'value',
+        },
+      });
 
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
@@ -297,14 +312,14 @@ function SchemaHintsList({
       });
     },
     [
-      exploreQuery,
+      query,
       tableColumns,
-      setPageParams,
-      source,
+      dispatch,
       organization,
       isDrawerOpen,
       openDrawer,
       filterTagsSorted,
+      setPageParams,
       location.pathname,
       location.query,
       closeDrawer,

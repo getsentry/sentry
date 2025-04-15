@@ -8,7 +8,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button, LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -31,7 +30,6 @@ import {
   useExploreSortBys,
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
@@ -95,12 +93,7 @@ export function ToolbarSaveAs() {
     if (defined(id)) {
       items.push({
         key: 'update-query',
-        label: (
-          <span>
-            {t('Existing Query')}
-            <FeatureBadge type="alpha" />
-          </span>
-        ),
+        label: <span>{t('Existing Query')}</span>,
         onAction: async () => {
           try {
             addLoadingMessage(t('Updating query...'));
@@ -120,22 +113,10 @@ export function ToolbarSaveAs() {
     }
     items.push({
       key: 'save-query',
-      label: (
-        <span>
-          {t('A New Query')}
-          <FeatureBadge type="alpha" />
-        </span>
-      ),
+      label: <span>{t('A New Query')}</span>,
       onAction: () => {
         openSaveQueryModal({
           organization,
-          queries: [
-            {
-              query,
-              groupBys: mode === Mode.AGGREGATE ? groupBys : [],
-              visualizes,
-            },
-          ],
           saveQuery,
         });
       },

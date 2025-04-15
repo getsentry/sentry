@@ -781,7 +781,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         return jira_projects
 
     @all_silo_function
-    def get_create_issue_config(self, group: Group | None, user: User, **kwargs):
+    def get_create_issue_config(self, group: Group | None, user: User | RpcUser, **kwargs):
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're

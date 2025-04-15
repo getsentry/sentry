@@ -10,13 +10,17 @@ export function getUploadSourceMapsStep({
   projectId,
   newOrg,
   isSelfHosted,
+  title,
+  description,
 }: DocsParams & {
-  guideLink: string;
+  description?: React.ReactNode;
+  guideLink?: string;
+  title?: string;
 }) {
   const urlParam = isSelfHosted ? '' : '--saas';
   return {
-    title: t('Upload Source Maps'),
-    description: (
+    title: title ?? t('Upload Source Maps'),
+    description: description ?? (
       <p>
         {tct(
           'Automatically upload your source maps to enable readable stack traces for Errors. If you prefer to manually set up source maps, please follow [guideLink:this guide].',

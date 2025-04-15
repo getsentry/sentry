@@ -58,6 +58,7 @@ from sentry.relocation.models.relocationtransfer import (
     RegionRelocationTransfer,
     RelocationTransferState,
 )
+from sentry.relocation.tasks import relocation_tasks
 from sentry.relocation.tasks.transfer import process_relocation_transfer_region
 from sentry.relocation.utils import (
     TASK_TO_STEP,
@@ -74,6 +75,8 @@ from sentry.relocation.utils import (
 from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.retry import LastAction, Retry
 from sentry.types.region import get_local_region
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
@@ -160,6 +163,13 @@ ERR_COMPLETED_INTERNAL = "Internal error during relocation wrap-up."
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def uploading_start(uuid: UUID, replying_region_name: str | None, org_slug: str | None) -> None:
     """
@@ -320,6 +330,11 @@ def uploading_start(uuid: UUID, replying_region_name: str | None, org_slug: str 
     # 10 minutes per try.
     soft_time_limit=60 * 10,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=60 * 10,
+        retry=Retry(times=4, on=(Exception,), times_exceeded=LastAction.Discard),
+    ),
 )
 def fulfill_cross_region_export_request(
     uuid_str: str,
@@ -431,6 +446,13 @@ def fulfill_cross_region_export_request(
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def cross_region_export_timeout_check(
     uuid: UUID,
@@ -488,6 +510,13 @@ def cross_region_export_timeout_check(
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def uploading_complete(uuid: UUID) -> None:
     """
@@ -535,6 +564,13 @@ def uploading_complete(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=MEDIUM_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=MEDIUM_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def preprocessing_scan(uuid: UUID) -> None:
     """
@@ -709,6 +745,13 @@ def preprocessing_scan(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=MEDIUM_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=MEDIUM_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def preprocessing_transfer(uuid: UUID) -> None:
     """
@@ -797,6 +840,13 @@ def preprocessing_transfer(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=MEDIUM_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=MEDIUM_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def preprocessing_baseline_config(uuid: UUID) -> None:
     """
@@ -848,6 +898,13 @@ def preprocessing_baseline_config(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=MEDIUM_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=MEDIUM_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def preprocessing_colliding_users(uuid: UUID) -> None:
     """
@@ -897,6 +954,13 @@ def preprocessing_colliding_users(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=MEDIUM_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=MEDIUM_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def preprocessing_complete(uuid: UUID) -> None:
     """
@@ -1115,6 +1179,13 @@ def _update_relocation_validation_attempt(
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def validating_start(uuid: UUID) -> None:
     """
@@ -1194,6 +1265,11 @@ def validating_start(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(times=MAX_VALIDATION_POLLS, on=(Exception,), times_exceeded=LastAction.Discard),
+    ),
 )
 def validating_poll(uuid: UUID, build_id: str) -> None:
     """
@@ -1292,6 +1368,13 @@ def validating_poll(uuid: UUID, build_id: str) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def validating_complete(uuid: UUID, build_id: str) -> None:
     """
@@ -1380,6 +1463,13 @@ def validating_complete(uuid: UUID, build_id: str) -> None:
     acks_late=True,
     soft_time_limit=SLOW_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=SLOW_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_SLOW_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def importing(uuid: UUID) -> None:
     """
@@ -1442,6 +1532,13 @@ def importing(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def postprocessing(uuid: UUID) -> None:
     """
@@ -1534,6 +1631,13 @@ def postprocessing(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def notifying_unhide(uuid: UUID) -> None:
     """
@@ -1580,6 +1684,13 @@ def notifying_unhide(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def notifying_users(uuid: UUID) -> None:
     """
@@ -1654,6 +1765,13 @@ def notifying_users(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def notifying_owner(uuid: UUID) -> None:
     """
@@ -1702,6 +1820,13 @@ def notifying_owner(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def completed(uuid: UUID) -> None:
     """

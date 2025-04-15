@@ -1,15 +1,19 @@
 import {createContext, useCallback, useContext, useMemo} from 'react';
 
 import {recordFinish} from 'sentry/actionCreators/guides';
-import {TourElementContent} from 'sentry/components/tours/components';
+import {
+  TourElement,
+  TourElementContent,
+  type TourElementProps,
+} from 'sentry/components/tours/components';
 import {
   type TourContextType,
+  type TourEnumType,
   type TourState,
   useTourReducer,
 } from 'sentry/components/tours/tourContext';
-import useOrganization from 'sentry/utils/useOrganization';
-
-import {useLocalStorageState} from '../useLocalStorageState';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 export const DEMO_TOURS_STATE_KEY = 'demo-mode:tours';
 
@@ -29,17 +33,17 @@ export const enum DemoTourStep {
   SIDEBAR_DISCOVER = 'demo-tour-sidebar-discover',
   // Issues steps
   ISSUES_STREAM = 'demo-tour-issues-stream',
-  ISSUES_TAGS = 'demo-tour-issues-tags',
-  ISSUES_STACKTRACE = 'demo-tour-issues-stacktrace',
-  ISSUES_BREADCRUMBS = 'demo-tour-issues-breadcrumbs',
+  ISSUES_AGGREGATES = 'demo-tour-issues-aggregates',
+  ISSUES_EVENT_DETAILS = 'demo-tour-issues-event-details',
+  ISSUES_DETAIL_SIDEBAR = 'demo-tour-issues-detail-sidebar',
   // Releases steps
   RELEASES_COMPARE = 'demo-tour-releases-compare',
   RELEASES_DETAILS = 'demo-tour-releases-details',
   RELEASES_STATES = 'demo-tour-releases-states',
   // Performance steps
   PERFORMANCE_TABLE = 'demo-tour-performance-table',
-  PERFORMANCE_TRANSACTION_SUMMARY = 'demo-tour-performance-transaction-summary',
-  PERFORMANCE_TRANSACTIONS_TABLE = 'demo-tour-performance-transactions-table',
+  PERFORMANCE_USER_MISERY = 'demo-tour-performance-user-misery',
+  PERFORMANCE_TRANSACTION_SUMMARY_TABLE = 'demo-tour-performance-transaction-summary-table',
   PERFORMANCE_SPAN_TREE = 'demo-tour-performance-span-tree',
 }
 
@@ -52,12 +56,19 @@ type DemoToursContextType = {
 
 const DemoToursContext = createContext<DemoToursContextType | null>(null);
 
-export function useDemoTours(tourKey: DemoTour): TourContextType<DemoTourStep> {
+export function useDemoTours(): DemoToursContextType | null {
   const tourContext = useContext(DemoToursContext);
 
+  return tourContext;
+}
+
+export function useDemoTour(tourKey: DemoTour): TourContextType<DemoTourStep> | null {
+  const tourContext = useDemoTours();
+
   if (!tourContext) {
-    throw new Error('Must be used within a TourContextProvider');
+    return null;
   }
+
   return tourContext[tourKey];
 }
 
@@ -71,9 +82,9 @@ const TOUR_STEPS: Record<DemoTour, DemoTourStep[]> = {
   ],
   [DemoTour.ISSUES]: [
     DemoTourStep.ISSUES_STREAM,
-    DemoTourStep.ISSUES_TAGS,
-    DemoTourStep.ISSUES_STACKTRACE,
-    DemoTourStep.ISSUES_BREADCRUMBS,
+    DemoTourStep.ISSUES_AGGREGATES, // Metadata and metrics // view data in aggregate 1/6
+    DemoTourStep.ISSUES_EVENT_DETAILS, // Explore details // Explore details 3/6
+    DemoTourStep.ISSUES_DETAIL_SIDEBAR, // Share updates // 6/6
   ],
   [DemoTour.RELEASES]: [
     DemoTourStep.RELEASES_COMPARE,
@@ -82,8 +93,8 @@ const TOUR_STEPS: Record<DemoTour, DemoTourStep[]> = {
   ],
   [DemoTour.PERFORMANCE]: [
     DemoTourStep.PERFORMANCE_TABLE,
-    DemoTourStep.PERFORMANCE_TRANSACTION_SUMMARY,
-    DemoTourStep.PERFORMANCE_TRANSACTIONS_TABLE,
+    DemoTourStep.PERFORMANCE_USER_MISERY,
+    DemoTourStep.PERFORMANCE_TRANSACTION_SUMMARY_TABLE,
     DemoTourStep.PERFORMANCE_SPAN_TREE,
   ],
 };
@@ -119,7 +130,6 @@ const TOUR_STATE_INITIAL_VALUE: Record<DemoTour, TourState<any>> = {
 };
 
 export function DemoToursProvider({children}: {children: React.ReactNode}) {
-  const org = useOrganization();
   const [tourState, setTourState] = useLocalStorageState<
     Record<DemoTour, TourState<any>>
   >(DEMO_TOURS_STATE_KEY, TOUR_STATE_INITIAL_VALUE);
@@ -144,9 +154,9 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
           isCompleted: true,
         },
       }));
-      recordFinish(tourKey, org.id, org.slug, org);
+      recordFinish(tourKey, null);
     },
-    [setTourState, org]
+    [setTourState]
   );
 
   const getTourOptions = useCallback(
@@ -191,7 +201,6 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
   return <DemoToursContext value={tours}>{children}</DemoToursContext>;
 }
 
-// Helper to get tour category from step remains the same
 const getTourFromStep = (step: DemoTourStep): DemoTour => {
   for (const [category, steps] of Object.entries(TOUR_STEPS)) {
     if (steps.includes(step)) {
@@ -201,32 +210,72 @@ const getTourFromStep = (step: DemoTourStep): DemoTour => {
   throw new Error(`Unknown tour step: ${step}`);
 };
 
+type DemoTourElementProps = Omit<
+  TourElementProps<DemoTourStep>,
+  'tourContextValue' | 'tourContext'
+> & {disabled?: boolean};
+
 export function DemoTourElement({
   id,
   title,
   description,
   children,
-}: {
-  children: React.ReactNode;
-  description: string;
-  id: DemoTourStep;
-  title: string;
-}) {
+  position = 'top-start',
+  disabled = false,
+  ...props
+}: DemoTourElementProps) {
   const tourKey = getTourFromStep(id);
-  const tourContextValue = useDemoTours(tourKey);
+  const tourContextValue = useDemoTour(tourKey);
 
-  if (!tourContextValue) {
+  if (!isDemoModeActive() || !tourContextValue || disabled) {
     return children;
   }
 
   return (
     <TourElementContent
+      {...props}
       id={id}
       title={title}
       description={description}
       tourContextValue={tourContextValue}
+      position={position}
     >
       {children}
     </TourElementContent>
+  );
+}
+
+/**
+ * A component that renders either a DemoTourElement or regular TourElement depending on whether
+ * demo mode is active. This allows the same tour content to be shared between demo mode and
+ * regular product tours.
+ */
+export function SharedTourElement<T extends TourEnumType>({
+  id,
+  demoTourId,
+  title,
+  description,
+  children,
+  tourContext,
+  ...props
+}: TourElementProps<T> & {demoTourId: DemoTourStep}) {
+  if (isDemoModeActive()) {
+    return (
+      <DemoTourElement id={demoTourId} title={title} description={description}>
+        {children}
+      </DemoTourElement>
+    );
+  }
+
+  return (
+    <TourElement
+      {...props}
+      id={id}
+      title={title}
+      description={description}
+      tourContext={tourContext}
+    >
+      {children}
+    </TourElement>
   );
 }
