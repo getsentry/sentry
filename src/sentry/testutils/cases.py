@@ -3484,6 +3484,8 @@ class TraceTestCase(SpanTestCase):
         if "sentry_tags" not in span_data:
             span_data["sentry_tags"] = {}
 
+        span_data["measurements"] = event.data["measurements"]
+
         span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
         span_data["sentry_tags"]["transaction"] = event.data["transaction"]
         span_data["sentry_tags"]["sdk.name"] = event.data["sdk"]["name"]

@@ -341,7 +341,18 @@ def run_trace_query(
         "profiler.id",
         "span.duration",
         "sdk.name",
+        "measurements.time_to_initial_display",
+        "measurements.time_to_full_display",
     ]
+    for key in {
+        "lcp",
+        "fcp",
+        "inp",
+        "cls",
+        "ttfb",
+    }:
+        trace_attributes.append(f"measurements.{key}")
+        trace_attributes.append(f"measurements.score.{key}")
     resolver = get_resolver(params=params, config=SearchResolverConfig())
     columns, _ = resolver.resolve_attributes(trace_attributes)
     meta = resolver.resolve_meta(referrer=referrer)
