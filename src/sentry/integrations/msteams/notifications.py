@@ -47,12 +47,13 @@ SUPPORTED_NOTIFICATION_TYPES = [
     EscalatingActivityNotification,
 ]
 
-GROUP_MESSAGE_BUILDERS = {
-    "IssueNotificationMessageBuilder": MSTeamsIssueNotificationsMessageBuilder,
-}
-
 BASE_MESSAGE_BUILDERS = {
     "SlackNotificationsMessageBuilder": MSTeamsNotificationsMessageBuilder,
+}
+
+# For Group-based notifications, it is possible we use a builder that is generic OR uses a group-specific builder
+GROUP_MESSAGE_BUILDERS = BASE_MESSAGE_BUILDERS | {
+    "IssueNotificationMessageBuilder": MSTeamsIssueNotificationsMessageBuilder,
 }
 
 
