@@ -52,6 +52,17 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
                     "environment": 1,
                 },
             )
+
+        with pytest.raises(ValidationError):
+            self.create_detector(
+                name=self.uptime_monitor.name,
+                project_id=self.project.id,
+                type=UptimeDomainCheckFailure.slug,
+                config={
+                    "mode": 0,
+                    "environment": "hi",
+                },
+            )
         with pytest.raises(ValidationError):
             self.create_detector(
                 name=self.uptime_monitor.name,
