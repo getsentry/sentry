@@ -34,7 +34,7 @@ type IssueViewSectionProps = {
 
 function useIssueViewSort(): GroupSearchViewSort {
   const location = useLocation();
-  const sort = location.query.sort ?? GroupSearchViewSort.VISITED_DESC;
+  const sort = location.query.sort ?? GroupSearchViewSort.POPULARITY_DESC;
 
   return sort as GroupSearchViewSort;
 }
@@ -100,6 +100,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
         handleStarView={view => {
           mutateViewStarred({id: view.id, starred: !view.starred, view});
         }}
+        hideCreatedBy={createdBy === GroupSearchViewCreatedBy.ME}
       />
       <Pagination
         pageLinks={pageLinks}
