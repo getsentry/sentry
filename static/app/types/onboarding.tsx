@@ -31,11 +31,6 @@ export enum OnboardingTaskKey {
   PERFORMANCE_GUIDE = 'performance_guide',
 }
 
-export type OnboardingSupplementComponentProps = {
-  task: OnboardingTask;
-  onCompleteTask?: () => void;
-};
-
 export type OnboardingCustomComponentProps = {
   onboardingContext: OnboardingContextProps;
   organization: Organization;
@@ -55,10 +50,6 @@ interface OnboardingTaskDescriptorBase {
   skippable: boolean;
   task: OnboardingTaskKey;
   title: string;
-  /**
-   * An extra component that may be rendered within the onboarding task item.
-   */
-  SupplementComponent?: React.ComponentType<OnboardingSupplementComponentProps>;
   /**
    * The group that this task belongs to, e.g. basic and level up
    */

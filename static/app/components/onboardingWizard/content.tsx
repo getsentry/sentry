@@ -96,44 +96,30 @@ function TaskCard({
 }
 
 interface TaskStatusIconProps {
-  progress?: number;
-  status?: 'complete' | 'inProgress' | 'skipped';
+  status: 'complete' | 'skipped';
   tooltipText?: string;
 }
 
-function TaskStatusIcon({status, tooltipText, progress}: TaskStatusIconProps) {
-  const theme = useTheme();
-
-  const progressValue = progress ?? 0;
-
+function TaskStatusIcon({status, tooltipText}: TaskStatusIconProps) {
   return (
     <Tooltip title={tooltipText} disabled={!tooltipText} containerDisplayMode="flex">
       {status === 'complete' ? (
         <IconCheckmark
           data-test-id="task-status-icon-complete"
           css={css`
-            color: ${theme.success};
-            height: ${theme.fontSizeLarge};
-            width: ${theme.fontSizeLarge};
+            opacity: 50%;
           `}
-          isCircled
+          color="purple400"
+          size="sm"
         />
-      ) : status === 'skipped' ? (
+      ) : (
         <IconNot
           data-test-id="task-status-icon-skipped"
           css={css`
-            color: ${theme.disabled};
-            height: ${theme.fontSizeLarge};
-            width: ${theme.fontSizeLarge};
+            opacity: 50%;
           `}
-        />
-      ) : (
-        <ProgressRing
-          data-test-id="task-status-icon-progress"
-          value={progressValue * 100}
-          progressEndcaps="round"
-          size={16}
-          barWidth={2}
+          color="purple400"
+          size="sm"
         />
       )}
     </Tooltip>
@@ -235,10 +221,9 @@ interface TaskProps {
   hidePanel: () => void;
   task: OnboardingTask;
   completed?: boolean;
-  showWaitingIndicator?: boolean;
 }
 
-function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
+function Task({task, hidePanel}: TaskProps) {
   const organization = useOrganization();
   const mutateOnboardingTasks = useMutateOnboardingTasks();
   const router = useRouter();
@@ -353,35 +338,30 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
             ? undefined
             : handleClick
         }
-        icon={<TaskStatusIcon status={task?.status} tooltipText={iconTooltipText} />}
+        icon={
+          task.status === 'complete' || task.status === 'skipped' ? (
+            <TaskStatusIcon status={task.status} tooltipText={iconTooltipText} />
+          ) : task.skippable ? (
+            <Button
+              icon={<IconNot size="sm" color="subText" />}
+              aria-label={t('Skip Task')}
+              onClick={event => {
+                event.stopPropagation();
+                setShowSkipConfirmation(!showSkipConfirmation);
+              }}
+              size="zero"
+              borderless
+              title={t('Skip Task')}
+            />
+          ) : undefined
+        }
         description={task.description}
         title={<strong>{task.title}</strong>}
         actions={
           task.status === 'complete' || task.status === 'skipped' ? undefined : (
-            <TaskActions>
-              {task.skippable && (
-                <Button
-                  borderless
-                  size="zero"
-                  aria-label={t('Skip Task')}
-                  title={t('Skip Task')}
-                  icon={<IconClose color="gray300" isCircled />}
-                  onClick={event => {
-                    event.stopPropagation();
-                    setShowSkipConfirmation(!showSkipConfirmation);
-                  }}
-                  css={css`
-                    /* If the pulsing indicator is active, the close button
-                        * should be above it so it's clickable.
-                        */
-                    z-index: 1;
-                  `}
-                />
-              )}
-              {task.SupplementComponent && showWaitingIndicator && (
-                <task.SupplementComponent task={task} />
-              )}
-            </TaskActions>
+            <ClickIndicator>
+              <IconChevron direction="right" size="xs" color="gray300" />
+            </ClickIndicator>
           )
         }
       />
@@ -401,15 +381,10 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
 interface ExpandedTaskGroupProps {
   hidePanel: () => void;
   sortedTasks: OnboardingTask[];
-  taskKeyForWaitingIndicator: OnboardingTaskKey | undefined;
 }
 
-function ExpandedTaskGroup({
-  sortedTasks,
-  hidePanel,
-  taskKeyForWaitingIndicator,
-}: ExpandedTaskGroupProps) {
-  const mutateOnboardingTasks = useMutateOnboardingTasks();
+function ExpandedTaskGroup({sortedTasks, hidePanel}: ExpandedTaskGroupProps) {
+  const updateOnboardingTasks = useUpdateOnboardingTasks();
 
   const markCompletionTimeout = useRef<number | undefined>(undefined);
 
@@ -457,12 +432,7 @@ function ExpandedTaskGroup({
       <TaskGroupBody>
         <AnimatePresence initial={false}>
           {sortedTasks.map(sortedTask => (
-            <Task
-              key={sortedTask.task}
-              task={sortedTask}
-              hidePanel={hidePanel}
-              showWaitingIndicator={taskKeyForWaitingIndicator === sortedTask.task}
-            />
+            <Task key={sortedTask.task} task={sortedTask} hidePanel={hidePanel} />
           ))}
         </AnimatePresence>
       </TaskGroupBody>
@@ -476,7 +446,6 @@ interface TaskGroupProps {
    */
   group: 'getting_started' | 'beyond_basics';
   hidePanel: () => void;
-  taskKeyForWaitingIndicator: OnboardingTaskKey | undefined;
   tasks: OnboardingTask[];
   title: string;
   expanded?: boolean;
@@ -488,10 +457,10 @@ function TaskGroup({
   tasks,
   expanded,
   hidePanel,
-  taskKeyForWaitingIndicator,
   toggleable = true,
   group,
 }: TaskGroupProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(expanded);
   const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
@@ -547,10 +516,18 @@ function TaskGroup({
         hasProgress={doneTasks.length > 0}
         onClick={toggleable ? () => setIsExpanded(!isExpanded) : undefined}
         icon={
-          <TaskStatusIcon
-            status={doneTasks.length === tasks.length ? 'complete' : 'inProgress'}
-            progress={doneTasks.length / tasks.length}
-          />
+          doneTasks.length === tasks.length ? (
+            <TaskStatusIcon status="complete" />
+          ) : (
+            <ProgressRing
+              value={(doneTasks.length / tasks.length) * 100}
+              backgroundColor={theme.gray200}
+              progressEndcaps="round"
+              progressColor={theme.purple400}
+              size={22}
+              barWidth={4}
+            />
+          )
         }
         actions={
           <Button
@@ -566,7 +543,6 @@ function TaskGroup({
         <ExpandedTaskGroup
           sortedTasks={[...incompletedTasks, ...completedTasks]}
           hidePanel={hidePanel}
-          taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
         />
       )}
     </TaskGroupWrapper>
@@ -592,12 +568,6 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
       orderedBeyondBasicsTasks.indexOf(a.task) - orderedBeyondBasicsTasks.indexOf(b.task)
   );
 
-  const taskKeyForWaitingIndicator = useMemo(() => {
-    return [...sortedGettingStartedTasks, ...sortedBeyondBasicsTasks].find(
-      task => !taskIsDone(task) && !!task.SupplementComponent
-    )?.task;
-  }, [sortedGettingStartedTasks, sortedBeyondBasicsTasks]);
-
   return (
     <Content data-test-id="quick-start-content">
       <TaskGroup
@@ -608,7 +578,6 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
           groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length > 0
         }
         toggleable={sortedBeyondBasicsTasks.length > 0}
-        taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
         group="getting_started"
       />
       {sortedBeyondBasicsTasks.length > 0 && (
@@ -621,7 +590,6 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
               0 &&
             groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
           }
-          taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
           group="beyond_basics"
         />
       )}
@@ -667,7 +635,7 @@ const TaskGroupWrapper = styled('div')`
 
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
   p {
-    color: ${p => (p.hasProgress ? p.theme.successText : p.theme.subText)};
+    color: ${p => (p.hasProgress ? p.theme.purple400 : p.theme.subText)};
   }
 `;
 
@@ -680,19 +648,23 @@ const TaskGroupBody = styled('ul')`
 
 const TaskWrapper = styled(motion.li)`
   gap: ${space(1)};
+  p {
+    color: ${p => p.theme.subText};
+  }
 `;
 
-const TaskActions = styled('div')`
+const ClickIndicator = styled('div')`
+  width: 20px;
+  height: 100%;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: ${space(1)};
+  justify-content: center;
 `;
 
 const TaskCardWrapper = styled('div')`
   position: relative;
   display: grid;
-  grid-template-columns: max-content 1fr max-content;
+  grid-template-columns: 22px 1fr max-content;
   gap: ${space(1.5)};
   cursor: ${p => (p.onClick ? 'pointer' : 'default')};
   border-radius: ${p => p.theme.borderRadius};
@@ -701,15 +673,27 @@ const TaskCardWrapper = styled('div')`
     margin: 0;
     font-size: ${p => p.theme.fontSizeSmall};
   }
+  button {
+    visibility: hidden;
+  }
+  :hover {
+    button {
+      visibility: visible;
+    }
+  }
 `;
 
 const TaskCardDescription = styled('div')`
   line-height: 20px;
+  strong {
+    color: ${p => p.theme.headingColor};
+  }
 `;
 
 const TaskCardIcon = styled('div')`
   display: flex;
   align-items: center;
+  justify-content: center;
   height: 20px;
 `;
 
