@@ -5,7 +5,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import {
   hasLaravelInsightsFeature,
   useIsLaravelInsightsAvailable,
-} from 'sentry/views/insights/pages/backend/laravel/features';
+} from 'sentry/views/insights/pages/platform/laravel/features';
 
 import ProjectDetail from './projectDetail';
 

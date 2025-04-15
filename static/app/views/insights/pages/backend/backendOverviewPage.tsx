@@ -35,8 +35,6 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
-import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/backend/laravel/features';
 import {
   BACKEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
@@ -50,6 +48,8 @@ import {
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
+import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
   generateBackendPerformanceEventView,

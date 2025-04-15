@@ -23,7 +23,7 @@ import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/backend/laravel/features';
+import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   isModuleConsideredNew,
