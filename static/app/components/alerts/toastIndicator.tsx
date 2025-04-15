@@ -1,10 +1,12 @@
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
 import {motion} from 'framer-motion';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import TextOverflow from 'sentry/components/textOverflow';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,56 +18,65 @@ type Props = {
   className?: string;
 };
 
-function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
-  let icon: React.ReactNode;
-  const {options, message, type} = indicator;
-  const {undo, disableDismiss} = options || {};
-  const showUndo = typeof undo === 'function';
-  const handleClick = (e: React.MouseEvent) => {
-    if (disableDismiss) {
-      return;
-    }
-    if (typeof onDismiss === 'function') {
-      onDismiss(indicator, e);
-    }
-  };
+const TOAST_TRANSITION = {
+  initial: {opacity: 0, y: 70},
+  animate: {opacity: 1, y: 0},
+  exit: {opacity: 0, y: 70},
+  transition: testableTransition({
+    type: 'spring',
+    stiffness: 450,
+    damping: 25,
+  }),
+};
 
-  if (type === 'success') {
-    icon = <IconCheckmark size="lg" isCircled />;
-  } else if (type === 'error') {
-    icon = <IconClose size="lg" isCircled />;
-  }
-
-  // TODO(billy): Remove ref- className after removing usage from getsentry
-
+export function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
   return (
     <Toast
-      onClick={handleClick}
-      data-test-id={type ? `toast-${type}` : 'toast'}
-      className={classNames(className, 'ref-toast', `ref-${type}`)}
-      initial={{opacity: 0, y: 70}}
-      animate={{opacity: 1, y: 0}}
-      exit={{opacity: 0, y: 70}}
-      transition={testableTransition({
-        type: 'spring',
-        stiffness: 450,
-        damping: 25,
-      })}
+      onClick={
+        indicator.options?.disableDismiss ? undefined : e => onDismiss(indicator, e)
+      }
+      data-test-id={indicator.type ? `toast-${indicator.type}` : 'toast'}
+      className={classNames(className, 'ref-toast', `ref-${indicator.type}`)}
+      {...TOAST_TRANSITION}
       {...props}
     >
-      {type === 'loading' ? (
-        <StyledLoadingIndicator mini />
-      ) : (
-        <Icon type={type}>{icon}</Icon>
-      )}
-      <Message>{message}</Message>
-      {showUndo && (
-        <Undo priority="link" onClick={undo}>
+      <ToastIcon type={indicator.type} />
+      <Message>
+        <TextOverflow>{indicator.message}</TextOverflow>
+      </Message>
+      {typeof indicator.options?.undo === 'function' && (
+        <Undo priority="link" onClick={indicator.options.undo}>
           {t('Undo')}
         </Undo>
       )}
     </Toast>
   );
+}
+
+function ToastIcon({type}: {type: Indicator['type']}) {
+  switch (type) {
+    case 'loading':
+      return <StyledLoadingIndicator mini />;
+    case 'success':
+      return (
+        <IconContainer type={type}>
+          <IconCheckmark size="lg" isCircled />
+        </IconContainer>
+      );
+    case 'error':
+      return (
+        <IconContainer type={type}>
+          <IconClose size="lg" isCircled />
+        </IconContainer>
+      );
+    case 'undo':
+      return null;
+    case '':
+      return null;
+    default:
+      Sentry.captureException(new Error(`Unknown toast type: ${type}`));
+      return null;
+  }
 }
 
 const Toast = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
@@ -82,7 +93,9 @@ const Toast = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   position: relative;
 `;
 
-const Icon = styled('div', {shouldForwardProp: p => p !== 'type'})<{type: string}>`
+const IconContainer = styled('div', {shouldForwardProp: p => p !== 'type'})<{
+  type: string;
+}>`
   margin-right: ${space(0.75)};
   svg {
     display: block;
@@ -93,7 +106,6 @@ const Icon = styled('div', {shouldForwardProp: p => p !== 'type'})<{type: string
 
 const Message = styled('div')`
   flex: 1;
-  ${p => p.theme.overflowEllipsis}
 `;
 
 const Undo = styled(Button)`
@@ -111,5 +123,3 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
     border-left-color: ${p => p.theme.inverted.purple300};
   }
 `;
-
-export default ToastIndicator;

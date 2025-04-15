@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
 import {removeIndicator} from 'sentry/actionCreators/indicator';
-import ToastIndicator from 'sentry/components/alerts/toastIndicator';
+import {ToastIndicator} from 'sentry/components/alerts/toastIndicator';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
