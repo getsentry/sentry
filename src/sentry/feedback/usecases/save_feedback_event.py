@@ -6,7 +6,6 @@ from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, cre
 from sentry.ingest.userreport import save_userreport
 from sentry.models.project import Project
 from sentry.utils import metrics
-from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +22,14 @@ def save_feedback_event(event_data: dict[str, Any], project_id: int):
     fixed_event_data = create_feedback_issue(
         event_data, project_id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
     )
+    if not fixed_event_data:
+        return
 
     try:
         # Shim to UserReport
-        associated_event_id = get_path(
-            fixed_event_data, "contexts", "feedback", "associated_event_id"
-        )
-        if fixed_event_data and associated_event_id:
-            feedback_context = fixed_event_data["contexts"]["feedback"]
+        feedback_context = fixed_event_data["contexts"]["feedback"]
+        associated_event_id = feedback_context.get("associated_event_id")
+        if associated_event_id:
             project = Project.objects.get_from_cache(id=project_id)
             save_userreport(
                 project,
@@ -48,6 +47,17 @@ def save_feedback_event(event_data: dict[str, Any], project_id: int):
                 start_time=datetime.fromtimestamp(fixed_event_data["timestamp"], UTC),
             )
             metrics.incr("feedback.shim_to_userreport.success")
+
     except Exception:
         metrics.incr("feedback.shim_to_userreport.failed")
-        logger.exception("Error saving user report")
+        logger.exception(
+            "Error shimming from feedback event to user report.",
+            extra={
+                "associated_event_id": associated_event_id,
+                "project_id": project_id,
+                "environment_id": fixed_event_data.get("environment"),
+                "username": feedback_context.get("name"),
+                "email": feedback_context.get("contact_email"),
+                "comments": feedback_context.get("message"),
+            },
+        )
