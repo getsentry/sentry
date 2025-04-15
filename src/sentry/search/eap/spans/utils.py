@@ -38,3 +38,11 @@ WEB_VITALS_MEASUREMENTS = [
     "measurements.score.ttfb",
     "measurements.score.inp",
 ]
+
+WEB_VITALS_MEASUREMENT_NAMES = [
+    "measurements.lcp",
+    "measurements.fid",
+    "measurements.cls",
+    "measurements.fcp",
+    "measurements.fp",
+]

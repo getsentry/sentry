@@ -28,6 +28,7 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.spans.utils import (
+    WEB_VITALS_MEASUREMENT_NAMES,
     WEB_VITALS_MEASUREMENTS,
     operate_multiple_columns,
     transform_vital_score_to_ratio,
@@ -613,5 +614,16 @@ SPAN_FORMULA_DEFINITIONS = {
     ),
     "epm": FormulaDefinition(
         default_search_type="rate", arguments=[], formula_resolver=epm, is_aggregate=True
+    ),
+    "count_web_vitals": FormulaDefinition(
+        default_search_type="number",
+        arguments=[
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(WEB_VITALS_MEASUREMENT_NAMES),
+            )
+        ],
+        formula_resolver=count_web_vitals,
+        is_aggregate=True,
     ),
 }

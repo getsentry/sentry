@@ -9,7 +9,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.utils import handle_query_errors
 from sentry.search.events.fields import get_function_alias
-from sentry.snuba import discover
+from sentry.snuba import discover, spans_eap, spans_rpc
 
 
 @region_silo_endpoint
@@ -64,35 +64,54 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
                 )
 
         with handle_query_errors():
-            events_results = dataset.query(
-                selected_columns=selected_columns,
-                query=request.GET.get("query"),
-                snuba_params=snuba_params,
-                # Results should only ever have 1 result
-                limit=1,
-                referrer="api.events.vitals",
-                auto_fields=True,
-                auto_aggregations=False,
-                use_aggregate_conditions=False,
-                allow_metric_aggregates=allow_metric_aggregates,
-                transform_alias_to_input_format=False,
+            results = {}
+
+            events_results = (
+                spans_rpc.run_table_query(
+                    params=snuba_params,
+                    query_string=request.GET.get("query") or "",
+                    selected_columns=selected_columns,
+                    offset=0,
+                    limit=1,
+                    orderby=None,
+                    referrer="api.events.vitals",
+                    config=None,
+                    sampling_mode=None,
+                )
+                if dataset == spans_eap
+                else dataset.query(
+                    selected_columns=selected_columns,
+                    query=request.GET.get("query"),
+                    snuba_params=snuba_params,
+                    referrer="api.events.vitals",
+                    auto_fields=True,
+                    auto_aggregations=False,
+                    use_aggregate_conditions=False,
+                    allow_metric_aggregates=allow_metric_aggregates,
+                    transform_alias_to_input_format=False,
+                )
             )
 
-        results = {}
-        if len(events_results["data"]) == 1:
-            event_data = events_results["data"][0]
-            for vital in vitals:
-                results[vital] = {
-                    "p75": event_data.get(get_function_alias(f"p75({vital})")),
-                    "total": event_data.get(get_function_alias(f"count_web_vitals({vital}, any)"))
-                    or 0,
-                    "good": event_data.get(get_function_alias(f"count_web_vitals({vital}, good)"))
-                    or 0,
-                    "meh": event_data.get(get_function_alias(f"count_web_vitals({vital}, meh)"))
-                    or 0,
-                    "poor": event_data.get(get_function_alias(f"count_web_vitals({vital}, poor)"))
-                    or 0,
-                }
-        results["meta"] = {"isMetricsData": events_results["meta"].get("isMetricsData", False)}
+            if len(events_results["data"]) == 1:
+                event_data = events_results["data"][0]
+                for vital in vitals:
+                    results[vital] = {
+                        "p75": event_data.get(get_function_alias(f"p75({vital})")),
+                        "total": event_data.get(
+                            get_function_alias(f"count_web_vitals({vital}, any)")
+                        )
+                        or 0,
+                        "good": event_data.get(
+                            get_function_alias(f"count_web_vitals({vital}, good)")
+                        )
+                        or 0,
+                        "meh": event_data.get(get_function_alias(f"count_web_vitals({vital}, meh)"))
+                        or 0,
+                        "poor": event_data.get(
+                            get_function_alias(f"count_web_vitals({vital}, poor)")
+                        )
+                        or 0,
+                    }
+            results["meta"] = {"isMetricsData": events_results["meta"].get("isMetricsData", False)}
 
         return Response(results)
