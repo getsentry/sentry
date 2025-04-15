@@ -49,8 +49,8 @@ class TSDBFunction(Protocol):
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
-        group_on_time: bool = True,
-    ) -> Mapping[int, int]: ...
+        group_on_time: bool = False,
+    ) -> dict[int, int]: ...
 
 
 class InvalidFilter(Exception):

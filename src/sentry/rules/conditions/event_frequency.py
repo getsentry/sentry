@@ -374,7 +374,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
-        group_on_time: bool = True,
+        group_on_time: bool = False,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
