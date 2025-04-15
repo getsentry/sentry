@@ -30,7 +30,6 @@ import {
   useExploreSortBys,
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
@@ -118,13 +117,6 @@ export function ToolbarSaveAs() {
       onAction: () => {
         openSaveQueryModal({
           organization,
-          queries: [
-            {
-              query,
-              groupBys: mode === Mode.AGGREGATE ? groupBys : [],
-              visualizes,
-            },
-          ],
           saveQuery,
         });
       },

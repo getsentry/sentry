@@ -1838,6 +1838,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert response.data["meta"]["dataset"] == self.dataset
         assert response.data["meta"]["dataScanned"] == "full"
 
+    @pytest.mark.xfail(reason="https://github.com/getsentry/snuba/pull/7067")
     def test_downsampling_top_events(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},

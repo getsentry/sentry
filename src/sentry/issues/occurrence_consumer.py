@@ -21,7 +21,7 @@ from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 from sentry import features, nodestore, options
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import get_group_type_by_type_id
+from sentry.issues.grouptype import InvalidGroupTypeError, get_group_type_by_type_id
 from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
@@ -314,6 +314,8 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
                 return {"occurrence_data": occurrence_data}
 
+    except InvalidGroupTypeError:
+        raise
     except (KeyError, ValueError) as e:
         raise InvalidEventPayloadError(e)
 
@@ -413,6 +415,10 @@ def _process_message(
                     sample_rate=1.0,
                     tags={"payload_type": payload_type},
                 )
+        except InvalidGroupTypeError as e:
+            metrics.incr(
+                "occurrence_ingest.invalid_group_type", tags={"occurrence_type": e.group_type_id}
+            )
         except (ValueError, KeyError) as e:
             txn.set_tag("result", "error")
             raise InvalidEventPayloadError(e)
