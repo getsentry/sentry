@@ -37,7 +37,9 @@ export function getIsMetricsDataFromSeriesResponse(
     // One non-metrics series will cause all of them to be marked as such
     .reduce((acc, value) => (acc === false ? false : value), undefined);
 
-  return isMultiSeriesStats(result) ? multiIsMetricsData : result.isMetricsData;
+  return isMultiSeriesStats(result)
+    ? multiIsMetricsData
+    : (result as EventsStats).isMetricsData;
 }
 
 type Props = {
