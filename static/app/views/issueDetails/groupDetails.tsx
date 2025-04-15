@@ -93,7 +93,8 @@ type FetchGroupDetailsState = {
   refetchGroup: () => void;
 };
 
-interface GroupDetailsContentProps extends GroupDetailsProps, FetchGroupDetailsState {
+interface GroupDetailsContentProps extends GroupDetailsProps {
+  event: Event | null;
   group: Group;
   project: Project;
 }
@@ -834,11 +835,12 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
       TourContext={IssueDetailsTourContext}
     >
       <GroupDetailsContent
-        {...props}
         project={projectWithFallback}
         group={props.group}
         event={props.event ?? injectedEvent}
-      />
+      >
+        {props.children}
+      </GroupDetailsContent>
     </TourContextProvider>
   );
 }
