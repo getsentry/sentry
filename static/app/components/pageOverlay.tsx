@@ -31,31 +31,18 @@ const subItemAnimation = {
   },
 };
 
-const Header = styled(
-  (
-    props: React.ComponentProps<typeof motion.h2> &
-      React.HTMLAttributes<HTMLHeadingElement>
-  ) => (
-    <motion.h2 variants={subItemAnimation} transition={testableTransition()} {...props} />
-  )
-)`
+const Header = styled((props: React.ComponentProps<typeof motion.h2>) => (
+  <motion.h2 variants={subItemAnimation} transition={testableTransition()} {...props} />
+))`
   display: flex;
   align-items: center;
   font-weight: ${p => p.theme.fontWeightNormal};
   margin-bottom: ${space(1)};
 `;
 
-const Body = styled(
-  (
-    props: React.ComponentProps<typeof motion.div> & React.HTMLAttributes<HTMLDivElement>
-  ) => (
-    <motion.div
-      variants={subItemAnimation}
-      transition={testableTransition()}
-      {...props}
-    />
-  )
-)`
+const Body = styled((props: React.ComponentProps<typeof motion.div>) => (
+  <motion.div variants={subItemAnimation} transition={testableTransition()} {...props} />
+))`
   margin-bottom: ${space(2)};
 `;
 
