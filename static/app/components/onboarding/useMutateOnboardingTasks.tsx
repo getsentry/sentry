@@ -7,7 +7,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 /**
  * Custom hook to update multiple onboarding tasks in parallel.
  */
-export function useUpdateOnboardingTasks() {
+export function useMutateOnboardingTasks() {
   const api = useApi();
   const organization = useOrganization();
 

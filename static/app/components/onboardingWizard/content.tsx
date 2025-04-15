@@ -6,10 +6,10 @@ import partition from 'lodash/partition';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {useUpdateOnboardingTasks} from 'sentry/actionCreators/onboardingTasks';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
@@ -256,7 +256,7 @@ interface TaskProps {
 
 function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
   const organization = useOrganization();
-  const updateOnboardingTasks = useUpdateOnboardingTasks();
+  const mutateOnboardingTasks = useMutateOnboardingTasks();
   const router = useRouter();
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
@@ -321,14 +321,14 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       action: 'skipped',
     });
 
-    updateOnboardingTasks.mutate([
+    mutateOnboardingTasks.mutate([
       {
         task: task.task,
         status: 'skipped',
         completionSeen: true,
       },
     ]);
-  }, [task, organization, updateOnboardingTasks]);
+  }, [task, organization, mutateOnboardingTasks]);
 
   const iconTooltipText = useMemo(() => {
     switch (task.status) {
@@ -426,7 +426,7 @@ function ExpandedTaskGroup({
   hidePanel,
   taskKeyForWaitingIndicator,
 }: ExpandedTaskGroupProps) {
-  const updateOnboardingTasks = useUpdateOnboardingTasks();
+  const mutateOnboardingTasks = useMutateOnboardingTasks();
 
   const markCompletionTimeout = useRef<number | undefined>(undefined);
 
@@ -447,9 +447,9 @@ function ExpandedTaskGroup({
         updateDemoWalkthroughTask(unseenDoneTask);
       }
     } else {
-      updateOnboardingTasks.mutate(unseenDoneTasks);
+      mutateOnboardingTasks.mutate(unseenDoneTasks);
     }
-  }, [updateOnboardingTasks, sortedTasks]);
+  }, [mutateOnboardingTasks, sortedTasks]);
 
   const markSeenOnOpen = useCallback(
     async function () {
