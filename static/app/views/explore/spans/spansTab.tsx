@@ -43,6 +43,7 @@ import {
   useExploreVisualizes,
   useSetExplorePageParams,
   useSetExploreQuery,
+  useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
@@ -86,6 +87,7 @@ export function SpansTabContentImpl({
   const {selection} = usePageFilters();
   const mode = useExploreMode();
   const visualizes = useExploreVisualizes();
+  const setVisualizes = useSetExploreVisualizes();
   const [samplesTab, setSamplesTab] = useTab();
 
   const {tags: numberTags, isLoading: numberTagsLoading} = useSpanTags('number');
@@ -282,6 +284,8 @@ export function SpansTabContentImpl({
               query={query}
               timeseriesResult={timeseriesResult}
               isProgressivelyLoading={timeseriesIsProgressivelyLoading}
+              visualizes={visualizes}
+              setVisualizes={setVisualizes}
             />
             <ExploreTables
               aggregatesTableResult={aggregatesTableResult}
@@ -402,12 +406,12 @@ const TopSection = styled('div')`
   grid-column: 1/3;
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${space(1)};
 `;
 
 const FilterSection = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: minmax(300px, auto) 1fr;
