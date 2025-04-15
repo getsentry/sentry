@@ -431,17 +431,17 @@ class TaskWorker:
         """
         self.do_imports()
         self.start_result_thread()
-        self._spawn_children()
+        threading.Thread(target=self._spawn_children).start()
 
         atexit.register(self.shutdown)
 
         while True:
             self.run_once()
+            time.sleep(0.1)
 
     def run_once(self) -> None:
         """Access point for tests to run a single worker loop"""
         self._add_task()
-        self._spawn_children()
 
     def shutdown(self) -> None:
         """
@@ -602,34 +602,34 @@ class TaskWorker:
             return None
 
     def _spawn_children(self) -> None:
-        active_children = [child for child in self._children if child.is_alive()]
-        print(f"active children: {[child.pid for child in self._children if child.is_alive()]}")
-        time.sleep(0.1)
-        if len(active_children) >= self._concurrency:
-            print(f"no additional children to spawn")
-            return
-        print(f"going to spawn {self._concurrency - len(active_children)} children")
-        for i in range(self._concurrency - len(active_children)):
-            print(f"spawning {i} children")
-            process = mp_context.Process(
-                target=child_worker,
-                args=(
-                    self._child_tasks,
-                    self._processed_tasks,
-                    self._shutdown_event,
-                    self._max_child_task_count,
-                    self._processing_pool_name,
-                ),
-            )
-            process.start()
-            active_children.append(process)
-            logger.info(
-                "taskworker.spawn_child",
-                extra={"pid": process.pid, "processing_pool": self._processing_pool_name},
-            )
-            print(f"child {i} spawned")
-
-        self._children = active_children
+        while True:
+            self._children = [child for child in self._children if child.is_alive()]
+            print(f"active children: {[child.pid for child in self._children]}")
+            time.sleep(0.1)
+            if len(self._children) >= self._concurrency:
+                print(f"no additional children to spawn")
+                continue
+            print(f"========= going to spawn {self._concurrency - len(self._children)} children")
+            for i in range(self._concurrency - len(self._children)):
+                print(f"spawning child {i}")
+                process = mp_context.Process(
+                    target=child_worker,
+                    args=(
+                        self._child_tasks,
+                        self._processed_tasks,
+                        self._shutdown_event,
+                        self._max_child_task_count,
+                        self._processing_pool_name,
+                    ),
+                )
+                process.start()
+                self._children.append(process)
+                # logger.info(
+                #     "taskworker.spawn_child",
+                #     extra={"pid": process.pid, "processing_pool": self._processing_pool_name},
+                # )
+                print(f"child {i} spawned")
+            print("!!!!!!!! done spawning children")
 
     def fetch_task(self) -> TaskActivation | None:
         # Use the shutdown_event as a sleep mechanism
