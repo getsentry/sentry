@@ -10,7 +10,8 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {makeFetchGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
+import type {GroupSearchView, StarredGroupSearchView} from 'sentry/views/issueList/types';
 
 type UpdateGroupSearchViewStarredOrderVariables = {
   orgSlug: string;
@@ -40,9 +41,9 @@ export const useUpdateGroupSearchViewStarredOrder = () => {
         .map(id => groupSearchViews.find(view => parseInt(view.id, 10) === id))
         .filter(defined);
 
-      setApiQueryData<GroupSearchView[]>(
+      setApiQueryData<StarredGroupSearchView[]>(
         queryClient,
-        makeFetchGroupSearchViewsKey({orgSlug: parameters.orgSlug}),
+        makeFetchStarredGroupSearchViewsKey({orgSlug: parameters.orgSlug}),
         newViewsOrder
       );
     },

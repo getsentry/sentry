@@ -6,7 +6,7 @@ import {IssueViewNavQueryCount} from 'sentry/views/nav/secondary/sections/issues
 describe('IssueViewNavQueryCount', () => {
   const mockView = {
     id: '1',
-    name: 'Test View',
+    label: 'Test View',
     query: 'is:unresolved',
     querySort: IssueSortOptions.DATE,
     environments: ['37'],
@@ -17,9 +17,7 @@ describe('IssueViewNavQueryCount', () => {
       end: null,
       utc: null,
     },
-    isCommitted: true,
-    key: 'test-view',
-    label: 'Test View',
+    lastVisited: null,
   };
 
   beforeEach(() => {
@@ -35,7 +33,7 @@ describe('IssueViewNavQueryCount', () => {
       },
     });
 
-    render(<IssueViewNavQueryCount view={mockView} />);
+    render(<IssueViewNavQueryCount view={mockView} isActive />);
 
     expect(await screen.findByText('71')).toBeInTheDocument();
   });
@@ -49,7 +47,7 @@ describe('IssueViewNavQueryCount', () => {
       },
     });
 
-    render(<IssueViewNavQueryCount view={mockView} />);
+    render(<IssueViewNavQueryCount view={mockView} isActive />);
 
     expect(await screen.findByText('99+')).toBeInTheDocument();
   });

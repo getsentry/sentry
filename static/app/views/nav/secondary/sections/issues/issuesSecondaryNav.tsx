@@ -4,7 +4,6 @@ import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 import {useFetchStarredGroupSearchViews} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
@@ -39,38 +38,7 @@ export function IssuesSecondaryNav() {
           </SecondaryNav.Item>
         </SecondaryNav.Section>
         {starredGroupSearchViews && (
-          <IssueViewNavItems
-            loadedViews={starredGroupSearchViews.map(
-              (
-                {
-                  id,
-                  name,
-                  query: viewQuery,
-                  querySort: viewQuerySort,
-                  environments: viewEnvironments,
-                  projects: viewProjects,
-                  timeFilters: viewTimeFilters,
-                },
-                index
-              ): IssueView => {
-                const tabId = id ?? `default${index.toString()}`;
-
-                return {
-                  id: tabId,
-                  key: tabId,
-                  label: name,
-                  query: viewQuery,
-                  querySort: viewQuerySort,
-                  environments: viewEnvironments,
-                  projects: viewProjects,
-                  timeFilters: viewTimeFilters,
-                  isCommitted: true,
-                };
-              }
-            )}
-            sectionRef={sectionRef}
-            baseUrl={baseUrl}
-          />
+          <IssueViewNavItems sectionRef={sectionRef} baseUrl={baseUrl} />
         )}
         <ConfigureSection baseUrl={baseUrl} />
       </SecondaryNav.Body>

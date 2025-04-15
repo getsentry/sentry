@@ -7,8 +7,8 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeFetchGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
+import type {GroupSearchView, StarredGroupSearchView} from 'sentry/views/issueList/types';
 
 interface CreateGroupSearchViewData
   extends Partial<
@@ -36,9 +36,9 @@ export function useCreateGroupSearchView(
     ...options,
     onSuccess: (data, variables, context) => {
       if (variables.starred) {
-        setApiQueryData<GroupSearchView[]>(
+        setApiQueryData<StarredGroupSearchView[]>(
           queryClient,
-          makeFetchGroupSearchViewsKey({
+          makeFetchStarredGroupSearchViewsKey({
             orgSlug: organization.slug,
           }),
           existingViews => [...(existingViews ?? []), data]
