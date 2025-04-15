@@ -268,6 +268,7 @@ export interface NewQuery {
   expired?: boolean;
   id?: string;
   interval?: string;
+  multiSort?: boolean;
   orderby?: string | string[];
   projects?: readonly number[];
   query?: string;
