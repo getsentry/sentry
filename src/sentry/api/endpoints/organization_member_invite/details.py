@@ -88,7 +88,7 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
         Update and/or approve an invite request to an organization.
 
         :pparam string organization_id_or_slug: the id or slug of the organization the member will belong to
-        :param string member_id: the member ID
+        :param string invited_member_id: the invite ID
         :param boolean approve: allows the member to be invited
         :param string orgRole: the suggested org-role of the new member
         :param array teams: the teams which the member should belong to.
