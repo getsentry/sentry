@@ -193,6 +193,7 @@ export function useEAPSpanSearchQueryBuilderProps({
   supportedAggregates = [],
   projects,
   portalTarget,
+  onChange,
 }: EAPSpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -270,6 +271,7 @@ export function useEAPSpanSearchQueryBuilderProps({
     recentSearches: SavedSearchType.SPAN,
     showUnsubmittedIndicator: true,
     portalTarget,
+    onChange,
   };
 }
 
@@ -299,7 +301,8 @@ export function EAPSpanSearchQueryBuilder({
     supportedAggregates,
     projects,
     portalTarget,
+    onChange,
   });
 
-  return <SearchQueryBuilder {...searchQueryBuilderProps} onChange={onChange} />;
+  return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }
