@@ -65,6 +65,7 @@ ATTR_CHOICES: dict[str, Columns | None] = {
     "app.in_foreground": Columns.APP_IN_FOREGROUND,
     "os.distribution_name": Columns.OS_DISTRIBUTION_NAME,
     "os.distribution_version": Columns.OS_DISTRIBUTION_VERSION,
+    "symbolicated_in_app": Columns.SYMBOLICATED_IN_APP,
 }
 
 
