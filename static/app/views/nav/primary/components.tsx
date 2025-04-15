@@ -77,6 +77,7 @@ export function SidebarMenu({
   label,
   forceLabel,
 }: SidebarItemDropdownProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {layout} = useNavContext();
 
@@ -98,7 +99,9 @@ export function SidebarMenu({
               }}
               isMobile={layout === NavLayout.MOBILE}
             >
-              <InteractionStateLayer hasSelectedBackground={isOpen} />
+              {theme.isChonk ? null : (
+                <InteractionStateLayer hasSelectedBackground={isOpen} />
+              )}
               {children}
               {showLabel ? label : null}
             </NavButton>
@@ -117,6 +120,7 @@ export function SidebarLink({
   analyticsKey,
   label,
 }: SidebarItemLinkProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
@@ -135,7 +139,7 @@ export function SidebarLink({
       >
         {layout === NavLayout.MOBILE ? (
           <Fragment>
-            <InteractionStateLayer />
+            {theme.isChonk ? null : <InteractionStateLayer />}
             {children}
             {label}
           </Fragment>
