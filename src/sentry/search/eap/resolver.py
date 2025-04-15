@@ -450,8 +450,23 @@ class SearchResolver:
 
         if value == "" and context_definition is None:
             exists_filter = TraceItemFilter(
-                exists_filter=ExistsFilter(
-                    key=resolved_column.proto_definition,
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(
+                            exists_filter=ExistsFilter(
+                                key=resolved_column.proto_definition,
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=resolved_column.proto_definition,
+                                op=operator,
+                                value=self._resolve_search_value(
+                                    resolved_column, term.operator, value
+                                ),
+                            )
+                        ),
+                    ]
                 )
             )
             if term.operator == "=":
