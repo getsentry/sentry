@@ -174,7 +174,7 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
   );
 }
 
-export function NewTraceViewImpl({replay}: {replay: undefined | ReplayRecord}) {
+function NewTraceViewImpl({replay}: {replay: undefined | ReplayRecord}) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {eventView, indexComplete, indexError, replayTraces} = useReplayTraces({

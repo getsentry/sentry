@@ -2,7 +2,7 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import Trace, {NewTraceViewImpl} from 'sentry/views/replays/detail/trace/trace';
+import Trace, {NewTraceView} from 'sentry/views/replays/detail/trace/trace';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 const features = ['organizations:performance-view'];
@@ -29,7 +29,7 @@ function TraceFeature({replayRecord}: {replayRecord: ReplayRecord | undefined}) 
       renderDisabled={PerfDisabled}
     >
       {organization.features.includes('replay-trace-view-v1') ? (
-        <NewTraceViewImpl replay={replayRecord} />
+        <NewTraceView replay={replayRecord} />
       ) : (
         <Trace replay={replayRecord} />
       )}
