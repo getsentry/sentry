@@ -7,7 +7,7 @@ import useSessionHealthBreakdown from 'sentry/views/insights/sessions/queries/us
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function SessionHealthCountChart(props: LoadableChartWidgetProps) {
+export default function SessionHealthCountChartWidget(props: LoadableChartWidgetProps) {
   const {series, isPending, error} = useSessionHealthBreakdown({
     type: 'count',
     pageFilters: props.pageFilters,

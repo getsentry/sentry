@@ -7,7 +7,7 @@ import useUserHealthBreakdown from 'sentry/views/insights/sessions/queries/useUs
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function UserHealthRateChart(props: LoadableChartWidgetProps) {
+export default function UserHealthRateChartWidget(props: LoadableChartWidgetProps) {
   const {series, isPending, error} = useUserHealthBreakdown({
     type: 'rate',
     pageFilters: props.pageFilters,

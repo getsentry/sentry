@@ -9,7 +9,7 @@ import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chart
 import useNewAndResolvedIssues from 'sentry/views/insights/sessions/queries/useNewAndResolvedIssues';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 
-export default function NewAndResolvedIssueChart(props: LoadableChartWidgetProps) {
+export default function NewAndResolvedIssueChartWidget(props: LoadableChartWidgetProps) {
   const {series, isPending, error} = useNewAndResolvedIssues({
     type: 'issue',
     pageFilters: props.pageFilters,

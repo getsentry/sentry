@@ -7,7 +7,9 @@ import useReleaseSessionPercentage from 'sentry/views/insights/sessions/queries/
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function ReleaseSessionPercentageChart(props: LoadableChartWidgetProps) {
+export default function ReleaseSessionPercentageChartWidget(
+  props: LoadableChartWidgetProps
+) {
   const {series, releases, isPending, error} = useReleaseSessionPercentage({
     pageFilters: props.pageFilters,
   });

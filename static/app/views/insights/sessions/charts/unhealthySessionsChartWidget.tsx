@@ -7,7 +7,7 @@ import useErroredSessions from 'sentry/views/insights/sessions/queries/useErrore
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function UnhealthySessionsChart(props: LoadableChartWidgetProps) {
+export default function UnhealthySessionsChartWidget(props: LoadableChartWidgetProps) {
   const {series, isPending, error} = useErroredSessions({
     pageFilters: props.pageFilters,
   });

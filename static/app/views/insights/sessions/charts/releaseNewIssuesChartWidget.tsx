@@ -9,7 +9,7 @@ import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chart
 import useReleaseNewIssues from 'sentry/views/insights/sessions/queries/useReleaseNewIssues';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 
-export default function ReleaseNewIssuesChart(props: LoadableChartWidgetProps) {
+export default function ReleaseNewIssuesChartWidget(props: LoadableChartWidgetProps) {
   const {series, isPending, error} = useReleaseNewIssues({
     pageFilters: props.pageFilters,
   });
