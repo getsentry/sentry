@@ -3836,6 +3836,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         ]
         assert meta["dataset"] == self.dataset
 
+    @pytest.mark.xfail(reason="https://github.com/getsentry/snuba/pull/7067")
     def test_preflight_request(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
