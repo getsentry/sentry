@@ -26,7 +26,6 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
 import {
@@ -41,6 +40,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
@@ -126,6 +126,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
   const organization = useOrganization();
   const largeViewport = useMedia(`(min-width: ${theme.breakpoints.large})`);
   const defaultIssueEvent = useDefaultIssueEvent();
+  const navigate = useNavigate();
 
   if (!largeViewport) {
     return null;
@@ -207,7 +208,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
           case EventNavDropdownOption.RECOMMENDED:
           case EventNavDropdownOption.LATEST:
           case EventNavDropdownOption.OLDEST:
-            browserHistory.push({
+            navigate({
               pathname: normalizeUrl(
                 makeBaseEventsPath({organization, group}) + selectedOption.value + '/'
               ),
@@ -216,7 +217,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
             break;
           case EventNavDropdownOption.ALL: {
             const searchTermWithoutQuery = omit(location.query, 'query');
-            browserHistory.push({
+            navigate({
               pathname: normalizeUrl(
                 `/organizations/${organization.slug}/issues/${group.id}/events/`
               ),
