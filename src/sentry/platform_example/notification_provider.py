@@ -6,7 +6,7 @@ from typing import Generic, TypeVar
 from sentry.platform_example.notification_renderer import NotificationRenderer
 from sentry.platform_example.notification_target import NotificationType
 
-T = TypeVar("T")
+RendererReturnTypeT = TypeVar("RendererReturnTypeT")
 
 
 class ProviderResourceType(StrEnum):
@@ -21,16 +21,18 @@ class ProviderTarget:
     resource_type: ProviderResourceType
 
 
-class NotificationProvider(abc.ABC, Generic[T]):
+class NotificationProvider(abc.ABC, Generic[RendererReturnTypeT]):
     @abc.abstractmethod
     def send_notification(
         self,
-        notification_content: T,
+        notification_content: RendererReturnTypeT,
         notification_type: NotificationType,
         target: ProviderTarget,
     ) -> None:
         raise NotImplementedError("Subclasses must implement this method")
 
     @abc.abstractmethod
-    def get_renderer(self, notification_type: NotificationType) -> NotificationRenderer[T]:
+    def get_renderer(
+        self, notification_type: NotificationType
+    ) -> NotificationRenderer[RendererReturnTypeT]:
         raise NotImplementedError("Subclasses must implement this method")

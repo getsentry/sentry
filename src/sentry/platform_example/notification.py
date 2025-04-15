@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import abc
 import uuid
-from abc import ABC
-from dataclasses import dataclass
-from typing import Any, Generic, TypeVar
+from typing import Generic
 
 from django.db import models
 from django.utils import timezone
@@ -18,10 +15,10 @@ from sentry.platform_example.notification_target import (
     NotificationUserTarget,
 )
 from sentry.platform_example.registry import ProviderRegistry
-
-
-class NotificationData(abc.ABC):
-    pass
+from sentry.platform_example.template.template_base import (
+    NotificationTemplate,
+    NotificationTemplateDataT,
+)
 
 
 class Notification(Model):
@@ -33,16 +30,7 @@ class Notification(Model):
     delivered_at = models.DateTimeField(null=False, default=timezone.now)
 
 
-T = TypeVar("T", bound=NotificationData)
-
-
-@dataclass
-class NotificationTemplate(Generic[T], ABC):
-    template_data: dict[str, Any]
-    notification_type: NotificationType
-
-
-class NotificationService(Generic[T]):
+class NotificationService(Generic[NotificationTemplateDataT]):
     """
     Service for sending notifications to targets.
 
@@ -57,8 +45,8 @@ class NotificationService(Generic[T]):
     @staticmethod
     def notify(
         target: NotificationTarget,
-        template: NotificationTemplate[T],
-        data: T,
+        template: NotificationTemplate[NotificationTemplateDataT],
+        data: NotificationTemplateDataT,
         thread_id: str | None = None,
     ) -> str:
         """
@@ -96,8 +84,8 @@ class NotificationService(Generic[T]):
     @staticmethod
     def notify_many(
         targets: list[NotificationTarget],
-        template: NotificationTemplate[T],
-        data: T,
+        template: NotificationTemplate[NotificationTemplateDataT],
+        data: NotificationTemplateDataT,
         thread_id: str | None = None,
     ) -> str:
         """

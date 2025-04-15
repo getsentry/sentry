@@ -2,19 +2,16 @@ from dataclasses import dataclass
 from typing import Any
 
 from sentry.models.organization import Organization
-from sentry.platform_example.notification import (
-    NotificationData,
-    NotificationService,
-    NotificationTemplate,
-)
+from sentry.platform_example.notification import NotificationService
 from sentry.platform_example.notification_target import NotificationType
 from sentry.platform_example.notification_target_strategies import (
     NotificationOrganizationTargetStrategy,
 )
+from sentry.platform_example.template.template_base import NotificationTemplate, TemplateData
 
 
 @dataclass
-class ExampleNotificationData(NotificationData):
+class ExampleNotificationData(TemplateData):
     message: str
 
 
