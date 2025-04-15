@@ -98,7 +98,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
         Submit User Feedback
         ````````````````````
 
-        *This endpoint is not recommended unless you are using a platform where the [User Feedback API](https://docs.sentry.io/platforms/javascript/user-feedback/#user-feedback-api) is not supported. To check if your platform is supported, visit [our docs](https://docs.sentry.io/platforms/javascript/user-feedback/#user-feedback-api) and select your platform from the top-left dropdown. Some other alternatives are the User Feedback Widget or older Crash Report API. See the [list of supported platforms](https://docs.sentry.io/product/user-feedback/setup/).*
+        *We only recommend this endpoint if your Sentry SDK does not support the User Feedback API. See the [list of supported platforms](https://docs.sentry.io/product/user-feedback/setup/#supported-sdks-for-user-feedback-api).*
 
         Submit and associate user feedback with an issue.
 
