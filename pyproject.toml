@@ -161,8 +161,6 @@ module = [
     "sentry.tasks.base",
     "sentry.testutils.cases",
     "sentry.web.frontend.auth_login",
-    "sentry.web.frontend.react_page",
-    "sentry.web.frontend.shared_group_details",
     "sentry_plugins.github.plugin",
     "sentry_plugins.jira.plugin",
     "tests.sentry.api.helpers.test_group_index",
