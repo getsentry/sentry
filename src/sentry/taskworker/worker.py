@@ -437,7 +437,6 @@ class TaskWorker:
 
         while True:
             self.run_once()
-            time.sleep(0.1)
 
     def run_once(self) -> None:
         """Access point for tests to run a single worker loop"""
@@ -605,7 +604,6 @@ class TaskWorker:
         while True:
             self._children = [child for child in self._children if child.is_alive()]
             print(f"active children: {[child.pid for child in self._children]}")
-            time.sleep(0.1)
             if len(self._children) >= self._concurrency:
                 print(f"no additional children to spawn")
                 continue
