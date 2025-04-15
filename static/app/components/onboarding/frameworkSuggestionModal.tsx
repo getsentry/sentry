@@ -1,8 +1,9 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
+import throttle from 'lodash/throttle';
 import {PlatformIcon} from 'platformicons';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -137,8 +138,6 @@ export function FrameworkSuggestionModal({
     OnboardingSelectedSDK | undefined
   >(selectedPlatform);
 
-  const configureSDKClicked = useRef(false);
-
   const frameworks = platforms.filter(
     platform =>
       createablePlatforms.has(platform.id) &&
@@ -197,12 +196,6 @@ export function FrameworkSuggestionModal({
     );
   }, [selectedPlatform.key, organization, newOrg]);
 
-  useEffect(() => {
-    if (!configuringSDK) {
-      configureSDKClicked.current = false;
-    }
-  }, [configuringSDK]);
-
   const handleConfigure = useCallback(() => {
     if (!selectedFramework) {
       return;
@@ -235,18 +228,18 @@ export function FrameworkSuggestionModal({
     onSkip();
   }, [selectedPlatform, organization, onSkip, newOrg]);
 
-  const handleClicked = useCallback(() => {
-    if (configureSDKClicked.current) {
-      return;
-    }
-
-    configureSDKClicked.current = true;
-
-    if (selectedFramework?.key === selectedPlatform.key) {
-      handleSkip();
-    } else {
-      handleConfigure();
-    }
+  const throttledHandleClick = useMemo(() => {
+    return throttle(
+      () => {
+        if (selectedFramework?.key === selectedPlatform.key) {
+          handleSkip();
+        } else {
+          handleConfigure();
+        }
+      },
+      2000,
+      {trailing: false}
+    );
   }, [selectedFramework, selectedPlatform, handleSkip, handleConfigure]);
 
   const listEntries: PlatformIntegration[] = [
@@ -314,11 +307,7 @@ export function FrameworkSuggestionModal({
         </StyledPanel>
       </Body>
       <Footer>
-        <Button
-          priority="primary"
-          onClick={handleClicked}
-          busy={configureSDKClicked.current === true}
-        >
+        <Button priority="primary" onClick={throttledHandleClick} busy={configuringSDK}>
           {t('Configure SDK')}
         </Button>
       </Footer>
