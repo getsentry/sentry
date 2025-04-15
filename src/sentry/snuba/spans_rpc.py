@@ -70,7 +70,7 @@ def run_timeseries_query(
     y_axes: list[str],
     referrer: str,
     config: SearchResolverConfig,
-    sampling_mode: str | None,
+    sampling_mode: SAMPLING_MODES | None,
     comparison_delta: timedelta | None = None,
 ) -> SnubaTSResult:
     """Make the query"""
