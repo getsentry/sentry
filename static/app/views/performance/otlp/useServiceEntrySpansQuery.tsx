@@ -136,8 +136,7 @@ function useSingleQuery(options: UseSingleQueryOptions) {
       pageFilters: selection,
       enabled,
     },
-    'api.performance.service-entry-spans-table',
-    true
+    'api.performance.service-entry-spans-table'
   );
 
   return {
@@ -194,8 +193,7 @@ function useMultipleQueries(options: UseMultipleQueriesOptions) {
       pageFilters: selection,
       enabled,
     },
-    'api.performance.service-entry-spans-table',
-    true
+    'api.performance.service-entry-spans-table'
   );
 
   const specificSpansQuery = new MutableSearch('');
@@ -222,8 +220,7 @@ function useMultipleQueries(options: UseMultipleQueriesOptions) {
       limit: LIMIT,
       enabled: !!categorizedSpanIds && categorizedSpanIds.length > 0,
     },
-    'api.performance.service-entry-spans-table-with-category',
-    true
+    'api.performance.service-entry-spans-table-with-category'
   );
 
   return {
