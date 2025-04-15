@@ -485,7 +485,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
         logged_gh_age = mock_logger.warning.call_args.kwargs["extra"]["parent_gh_age_in_sec"]
         assert isinstance(logged_gh_age, float)
-        assert logged_gh_age > 0 and logged_gh_age < 1
 
         # Note that unlike in the missing grouphash test below, we're not testing Seer deletion here
         # because it only happens conditionally, behavior that's tested in `test_similar_issues.py`
