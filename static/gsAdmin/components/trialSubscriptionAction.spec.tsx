@@ -116,7 +116,6 @@ describe('TrialSubscriptionAction', function () {
             isFree: true,
           })}
           startEnterpriseTrial
-          canUseTrialOverride
           {...deps}
         />
       ),
@@ -136,32 +135,6 @@ describe('TrialSubscriptionAction', function () {
       trialTier: PlanTier.AM3,
       trialPlanOverride: 'am3_t_ent_ds',
     });
-  });
-
-  it('cannot use trialPlanOverride if disabled', async function () {
-    jest.mock('sentry/components/core/alert');
-
-    openAdminConfirmModal({
-      onConfirm,
-      renderModalSpecificContent: deps => (
-        <TrialSubscriptionAction
-          subscription={SubscriptionFixture({
-            organization,
-            plan: 'am3_f',
-            isFree: true,
-          })}
-          startEnterpriseTrial
-          {...deps}
-        />
-      ),
-    });
-
-    renderGlobalModal();
-
-    await userEvent.click(screen.getByTestId('trial-plan-tier-choices'));
-    const trialTierInputs = within(screen.getByRole('dialog')).getAllByRole('textbox');
-    await userEvent.click(trialTierInputs[0]!);
-    expect(screen.queryByText('am3 with Dynamic Sampling')).not.toBeInTheDocument();
   });
 
   it('displays correct trial end date when starting trial', async function () {
