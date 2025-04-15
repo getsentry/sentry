@@ -11,7 +11,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
-export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
+export const useDeleteFeedback = (
+  feedbackIds: any,
+  projectId: any,
+  reloadListData: () => void
+) => {
   const organization = useOrganization();
   const api = useApi({
     persistInFlight: false,
@@ -32,6 +36,7 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
           },
           {
             complete: () => {
+              reloadListData();
               navigate(
                 normalizeUrl({
                   pathname: makeFeedbackPathname({
@@ -63,5 +68,6 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
     navigate,
     organization,
     projectId,
+    reloadListData,
   ]);
 };
