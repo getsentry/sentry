@@ -50,11 +50,15 @@ export type SamplesConfig = {
    */
   baselineValue?: number;
   /**
-   * Callback for ECharts' `onClick` mouse event. Called with the sample that corresponds to the highlighted sample in the chart
+   * Callback for ECharts' `onClick` mouse event. Called with the sample that corresponds to the clicked sample in the chart
    */
   onClick?: (datum: ValidSampleRow) => void;
   /**
-   * Callback for ECharts' `onHighlight`. Called with the sample that corresponds to the clicked sample in the chart
+   * Callback for ECharts' `onDownplay`. Called with the sample that corresponds to the downplayed sample in the chart.
+   */
+  onDownplay?: (datum: ValidSampleRow) => void;
+  /**
+   * Callback for ECharts' `onHighlight`. Called with the sample that corresponds to the highlighted sample in the chart.
    */
   onHighlight?: (datum: ValidSampleRow) => void;
 };
@@ -92,9 +96,7 @@ export class Samples implements Plottable {
     this.chartRef = chartRef;
   }
 
-  highlight(sample: TabularRow | undefined) {
-    const {config} = this;
-
+  highlight(sample: TabularRow) {
     if (!this.chartRef) {
       warn('`Samples.highlight` invoked before chart ref is ready');
       return;
@@ -106,9 +108,21 @@ export class Samples implements Plottable {
     if (sample && isValidSampleRow(sample)) {
       const dataIndex = this.sampleTableData.data.indexOf(sample);
       chart.dispatchAction({type: 'highlight', seriesName, dataIndex});
-      config.onHighlight?.(sample);
-    } else {
-      chart.dispatchAction({type: 'downplay', seriesName});
+    }
+  }
+
+  downplay(sample: TabularRow) {
+    if (!this.chartRef) {
+      warn('`Samples.downplay` invoked before chart ref is ready');
+      return;
+    }
+
+    const chart = this.chartRef.getEchartsInstance();
+    const seriesName = this.name;
+
+    if (sample && isValidSampleRow(sample)) {
+      const dataIndex = this.sampleTableData.data.indexOf(sample);
+      chart.dispatchAction({type: 'downplay', seriesName, dataIndex});
     }
   }
 
@@ -221,6 +235,15 @@ export class Samples implements Plottable {
     const sample = this.#getSampleByIndex(dataIndex);
     if (sample) {
       config.onHighlight?.(sample);
+    }
+  }
+
+  onDownplay(dataIndex: number): void {
+    const {config} = this;
+
+    const sample = this.#getSampleByIndex(dataIndex);
+    if (sample) {
+      config.onDownplay?.(sample);
     }
   }
 
