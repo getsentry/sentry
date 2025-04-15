@@ -44,6 +44,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
   const navigate = useNavigate();
   const location = useLocation();
   const sort = useIssueViewSort();
+  const query = typeof location.query.query === 'string' ? location.query.query : '';
   const cursor =
     typeof location.query[cursorQueryParam] === 'string'
       ? location.query[cursorQueryParam]
@@ -61,6 +62,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
     limit,
     sort,
     cursor,
+    query,
   });
 
   const tableQueryKey = makeFetchGroupSearchViewsKey({
@@ -69,6 +71,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
     limit,
     cursor,
     sort,
+    query,
   });
 
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
@@ -185,7 +188,7 @@ export default function IssueViewsList() {
               onSearch={newQuery => {
                 navigate({
                   pathname: location.pathname,
-                  query: {query: newQuery},
+                  query: {...location.query, query: newQuery},
                 });
               }}
               placeholder=""
