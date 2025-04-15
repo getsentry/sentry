@@ -423,7 +423,7 @@ class BaseTSDB(Service):
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
         group_on_time: bool = True,
-    ) -> dict[TSDBKey, list[tuple[int, int]]]:
+    ) -> Mapping[TSDBKey, list[tuple[int, int]]]:
         """
         To get a range of data for group ID=[1, 2, 3]:
 
@@ -439,7 +439,7 @@ class BaseTSDB(Service):
     def get_sums(
         self,
         model: TSDBModel,
-        keys: list[int],
+        keys: Sequence[TSDBKey],
         start: datetime,
         end: datetime,
         rollup: int | None = None,
@@ -450,8 +450,8 @@ class BaseTSDB(Service):
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
         group_on_time: bool = True,
-    ) -> dict[int, int] | dict[int, list[tuple[int, int]]]:
-        range_set = self.get_range(
+    ) -> Mapping[TSDBKey, int] | Mapping[TSDBKey, list[tuple[int, int]]]:
+        range_set: Mapping[TSDBKey, list[tuple[int, int]]] = self.get_range(
             model,
             keys,
             start,
@@ -468,7 +468,9 @@ class BaseTSDB(Service):
         if not group_on_time:
             return range_set
 
-        sum_set = {key: sum(p for _, p in points) for (key, points) in range_set.items()}
+        sum_set: Mapping[TSDBKey, int] = {
+            key: sum(p for _, p in points) for (key, points) in range_set.items()
+        }
         return sum_set
 
     def _add_jitter_to_series(
