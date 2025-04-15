@@ -16,6 +16,7 @@ export enum OurLogKnownFieldKey {
   // From the EAP dataset directly not using a column alias.
   ID = 'sentry.item_id',
   MESSAGE = 'message',
+  TEMPLATE = 'sentry.message.template',
   SEVERITY_NUMBER = 'severity_number',
   SEVERITY_TEXT = 'severity_text',
   ORGANIZATION_ID = 'organization.id',

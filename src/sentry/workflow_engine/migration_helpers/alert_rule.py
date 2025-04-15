@@ -576,7 +576,7 @@ def dual_write_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) ->
     """
     with transaction.atomic(router.db_for_write(Detector)):
         # step 1: migrate the alert rule
-        migrate_alert_rule(alert_rule)
+        migrate_alert_rule(alert_rule, user)
         triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
         # step 2: migrate each trigger
         for trigger in triggers:
