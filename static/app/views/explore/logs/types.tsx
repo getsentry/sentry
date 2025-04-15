@@ -9,9 +9,7 @@ import type {
 
 type OurLogCustomFieldKey = string; // We could brand this for nominal types.
 
-// This enum is used to represent known fields or attributes in the logs response.
-// Should always map to the public alias from the backend (.../search/eap/ourlogs/attributes.py)
-export enum OurLogKnownFieldKey {
+enum OurlogKnownFieldKeyStatic {
   TRACE_ID = 'trace',
   // From the EAP dataset directly not using a column alias.
   ID = 'sentry.item_id',
@@ -27,6 +25,20 @@ export enum OurLogKnownFieldKey {
   // From the EAP dataset directly not using a column alias, should be hidden.
   ITEM_TYPE = 'sentry.item_type',
 }
+
+export enum OurLogKnownFieldKeyPrefix {
+  SENTRY_MESSAGE_PARAMS = 'sentry.message.param.*', // Old version of sdks (Apr 15, 2025) can be removed is this message is 90 days old.
+  SENTRY_MESSAGE_PARAMETERS = 'sentry.message.parameters.*',
+}
+
+// This enum is used to represent known fields or attributes in the logs response.
+// Should always map to the public alias from the backend (.../search/eap/ourlogs/attributes.py)
+export const OurLogKnownFieldKey = {
+  ...OurlogKnownFieldKeyStatic,
+  ...OurLogKnownFieldKeyPrefix,
+} as const;
+
+type OurLogKnownFieldKey = (typeof OurLogKnownFieldKey)[keyof typeof OurLogKnownFieldKey];
 
 export type OurLogFieldKey = OurLogCustomFieldKey | OurLogKnownFieldKey;
 

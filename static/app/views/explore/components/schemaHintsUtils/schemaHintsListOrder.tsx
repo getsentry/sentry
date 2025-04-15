@@ -1,6 +1,8 @@
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKey} from 'sentry/utils/fields';
+import {HiddenSchemaHintsLogFields} from 'sentry/views/explore/logs/constants';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {getPrefixFieldFilter} from 'sentry/views/explore/logs/utils';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
 const FRONTEND_HINT_KEYS = [SpanIndexedField.BROWSER_NAME, SpanIndexedField.USER];
@@ -45,11 +47,7 @@ const SCHEMA_HINTS_LIST_ORDER_KEYS_EXPLORE = [
   ...new Set([...FRONTEND_HINT_KEYS, ...MOBILE_HINT_KEYS, ...COMMON_HINT_KEYS]),
 ];
 
-const SCHEMA_HINTS_HIDDEN_KEYS_LOGS = [
-  OurLogKnownFieldKey.SEVERITY_NUMBER, // Severity number is a detail saved by the OTel protocol, and may not be required. 'level' is a mandatory field on the new 'log' ItemType schema.
-  OurLogKnownFieldKey.ITEM_TYPE, // This is a detail internal to the trace items table.
-  OurLogKnownFieldKey.ID, // This is a detail internal to the trace items table.
-];
+const SCHEMA_HINTS_HIDDEN_KEYS_LOGS = HiddenSchemaHintsLogFields;
 
 // Unlike ORDER_KEYS, hidden keys are completely omitted from the schema hints list.
 export const SCHEMA_HINTS_HIDDEN_KEYS: string[] = [
@@ -71,8 +69,14 @@ export const getSchemaHintsListOrder = (source: SchemaHintsSources) => {
 
 export const removeHiddenKeys = (tagCollection: TagCollection): TagCollection => {
   const result: TagCollection = {};
+  const prefixFilter = getPrefixFieldFilter(Object.values(SCHEMA_HINTS_HIDDEN_KEYS));
   for (const key in tagCollection) {
-    if (key && !SCHEMA_HINTS_HIDDEN_KEYS.includes(key) && tagCollection[key]) {
+    if (
+      key &&
+      !SCHEMA_HINTS_HIDDEN_KEYS.includes(key) &&
+      !prefixFilter(key) &&
+      tagCollection[key]
+    ) {
       result[key] = tagCollection[key];
     }
   }

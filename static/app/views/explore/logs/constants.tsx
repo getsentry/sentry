@@ -4,7 +4,11 @@ import {
   SENTRY_LOG_NUMBER_TAGS,
   SENTRY_LOG_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {
+  type OurLogFieldKey,
+  OurLogKnownFieldKey,
+  OurLogKnownFieldKeyPrefix,
+} from 'sentry/views/explore/logs/types';
 
 export const LogAttributesHumanLabel: Partial<Record<OurLogFieldKey, string>> = {
   [OurLogKnownFieldKey.TIMESTAMP]: t('Timestamp'),
@@ -41,6 +45,12 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
 ];
 
 export const HiddenColumnEditorLogFields: OurLogFieldKey[] = [...AlwaysHiddenLogFields];
+
+export const HiddenSchemaHintsLogFields: OurLogFieldKey[] = [
+  ...AlwaysHiddenLogFields,
+  OurLogKnownFieldKey.SEVERITY_NUMBER, // Severity number is a detail saved by the OTel protocol, and may not be required. 'level' is a mandatory field on the new 'log' ItemType schema.
+  ...Object.values(OurLogKnownFieldKeyPrefix),
+];
 
 const LOGS_FILTERS: FilterKeySection = {
   value: 'logs_filters',

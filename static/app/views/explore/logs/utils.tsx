@@ -223,3 +223,16 @@ export function logRowItemToTableColumn(
 export function adjustLogTraceID(traceID: string) {
   return traceID.replace(/-/g, '');
 }
+
+export function getPrefixFieldFilter(filteringFields: string[]) {
+  // If filtering fields ends with asterisk.
+  const prefixFilters = filteringFields
+    .filter(filter => filter.endsWith('*'))
+    .map(filter => filter.replace('*', ''));
+  if (prefixFilters.length > 0) {
+    return (fieldName: string) => {
+      return prefixFilters.some(filter => fieldName.startsWith(filter));
+    };
+  }
+  return () => true;
+}
