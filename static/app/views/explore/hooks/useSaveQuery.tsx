@@ -9,6 +9,7 @@ import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   type SavedQuery,
   useInvalidateSavedQueries,
+  useInvalidateSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 const TRACE_EXPLORER_DATASET = 'spans';
@@ -24,6 +25,7 @@ export function useSaveQuery() {
   const api = useApi();
   const organization = useOrganization();
   const invalidateSavedQueries = useInvalidateSavedQueries();
+  const invalidateSavedQuery = useInvalidateSavedQuery(id);
 
   const visualize = visualizes.map(({chartType, yAxes}) => ({
     chartType,
@@ -81,9 +83,10 @@ export function useSaveQuery() {
         }
       );
       invalidateSavedQueries();
+      invalidateSavedQuery();
       return response;
     },
-    [api, organization.slug, data, invalidateSavedQueries]
+    [api, organization.slug, data, invalidateSavedQueries, invalidateSavedQuery]
   );
 
   const updateQuery = useCallback(async () => {
@@ -95,8 +98,9 @@ export function useSaveQuery() {
       }
     );
     invalidateSavedQueries();
+    invalidateSavedQuery();
     return response;
-  }, [api, organization.slug, id, data, invalidateSavedQueries]);
+  }, [api, organization.slug, id, data, invalidateSavedQueries, invalidateSavedQuery]);
 
   const saveQueryFromSavedQuery = useCallback(
     async (savedQuery: SavedQuery) => {

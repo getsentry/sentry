@@ -94,9 +94,9 @@ export function getExploreUrlFromSavedQueryUrl({
       title: savedQuery.name,
       selection: {
         datetime: {
-          end: savedQuery.end,
-          period: savedQuery.range,
-          start: savedQuery.start,
+          end: savedQuery.end ?? null,
+          period: savedQuery.range ?? null,
+          start: savedQuery.start ?? null,
           utc: null,
         },
         environments: savedQuery.environment,
@@ -115,9 +115,9 @@ export function getExploreUrlFromSavedQueryUrl({
     mode: savedQuery.query[0].mode as Mode,
     selection: {
       datetime: {
-        end: savedQuery.end,
-        period: savedQuery.range,
-        start: savedQuery.start,
+        end: savedQuery.end ?? null,
+        period: savedQuery.range ?? null,
+        start: savedQuery.start ?? null,
         utc: null,
       },
       environments: savedQuery.environment,
