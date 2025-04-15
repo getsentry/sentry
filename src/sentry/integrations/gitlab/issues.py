@@ -8,12 +8,19 @@ from django.urls import reverse
 
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.models.group import Group
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiUnauthorized,
+    IntegrationError,
+    IntegrationFormError,
+)
 from sentry.silo.base import all_silo_function
 from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
 
 ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r".+:(.+)#(.+)")
+
+GITLAB_ISSUE_TITLE_MAX_LENGTH = 255
 
 
 class GitlabIssuesSpec(SourceCodeIssueIntegration):
@@ -85,10 +92,16 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         if not project_id:
             raise IntegrationError("project kwarg must be provided")
 
+        if (title := data.get("title")) is None:
+            raise IntegrationFormError({"title": ["Title is required"]})
+
+        if len(title) > GITLAB_ISSUE_TITLE_MAX_LENGTH:
+            title = title[: GITLAB_ISSUE_TITLE_MAX_LENGTH - 3] + "..."
+
         try:
             issue = client.create_issue(
                 project=project_id,
-                data={"title": data["title"], "description": data["description"]},
+                data={"title": title, "description": data["description"]},
             )
             project = client.get_project(project_id)
         except ApiError as e:
@@ -97,7 +110,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         project_and_issue_iid = "{}#{}".format(project["path_with_namespace"], issue["iid"])
         return {
             "key": project_and_issue_iid,
-            "title": issue["title"],
+            "title": title,
             "description": issue["description"],
             "url": issue["web_url"],
             "project": project_id,

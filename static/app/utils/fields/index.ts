@@ -106,6 +106,7 @@ export enum FieldKey {
   STACK_PACKAGE = 'stack.package',
   STACK_RESOURCE = 'stack.resource',
   STACK_STACK_LEVEL = 'stack.stack_level',
+  STATUS = 'status',
   TIMESTAMP = 'timestamp',
   TIMESTAMP_TO_DAY = 'timestamp.to_day',
   TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
@@ -1703,6 +1704,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NUMBER,
   },
+  [FieldKey.STATUS]: {
+    desc: t('Status of the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.TIMES_SEEN]: {
     desc: t('Total number of events'),
     kind: FieldKind.FIELD,
@@ -1993,6 +1999,7 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new
   FieldKey.STACK_MODULE,
   FieldKey.STACK_PACKAGE,
   FieldKey.STACK_STACK_LEVEL,
+  FieldKey.STATUS,
   FieldKey.TIMESTAMP,
   FieldKey.TITLE,
   FieldKey.TRACE,

@@ -211,7 +211,7 @@ const getTourFromStep = (step: DemoTourStep): DemoTour => {
 type DemoTourElementProps = Omit<
   TourElementProps<DemoTourStep>,
   'tourContextValue' | 'tourContext'
->;
+> & {disabled?: boolean};
 
 export function DemoTourElement({
   id,
@@ -219,12 +219,13 @@ export function DemoTourElement({
   description,
   children,
   position = 'top-start',
+  disabled = false,
   ...props
 }: DemoTourElementProps) {
   const tourKey = getTourFromStep(id);
   const tourContextValue = useDemoTour(tourKey);
 
-  if (!isDemoModeActive() || !tourContextValue) {
+  if (!isDemoModeActive() || !tourContextValue || disabled) {
     return children;
   }
 
