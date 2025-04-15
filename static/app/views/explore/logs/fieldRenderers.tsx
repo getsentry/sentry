@@ -135,7 +135,7 @@ export function TraceIDRenderer(props: LogFieldRendererProps) {
   return <Link to={target}>{props.basicRendered}</Link>;
 }
 
-export function LogBodyAndTemplateRenderer(props: LogFieldRendererProps) {
+export function LogBodyRenderer(props: LogFieldRendererProps) {
   const attribute_value = props.item.value as string;
   const highlightTerm = props.extra?.highlightTerms[0] ?? '';
   // TODO: Allow more than one highlight term to be highlighted at once.
@@ -194,8 +194,7 @@ export const LogAttributesRendererMap: Record<
     return TimestampRenderer(props);
   },
   [OurLogKnownFieldKey.SEVERITY_TEXT]: SeverityTextRenderer,
-  [OurLogKnownFieldKey.MESSAGE]: LogBodyAndTemplateRenderer,
-  [OurLogKnownFieldKey.TEMPLATE]: LogBodyAndTemplateRenderer,
+  [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
   [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
 };
 
