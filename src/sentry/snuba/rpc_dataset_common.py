@@ -104,7 +104,7 @@ def get_timeseries_query(
     y_axes: list[str],
     groupby: list[str],
     referrer: str,
-    sampling_mode: str | None,
+    sampling_mode: SAMPLING_MODES | None,
     extra_conditions: TraceItemFilter | None = None,
 ) -> tuple[
     TimeSeriesRequest,
