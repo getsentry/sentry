@@ -14,7 +14,9 @@ logger = logging.getLogger(__name__)
 def save_feedback_event(event_data: dict[str, Any], project_id: int):
     """Saves a feedback from a feedback event envelope.
 
-    If the save is successful and the `associated_event_id` field is present, this will also save a UserReport in Postgres. This is to ensure the feedback can be queried by group_id, which is hard to associate in clickhouse.
+    If the save is successful and the `associated_event_id` field is present, this will
+    also save a UserReport in Postgres. This is to ensure the feedback can be queried by
+    group_id, which is hard to associate in clickhouse.
     """
 
     # Produce to issue platform
@@ -35,7 +37,8 @@ def save_feedback_event(event_data: dict[str, Any], project_id: int):
                 {
                     "event_id": associated_event_id,
                     "project_id": project_id,
-                    # XXX(aliu): including environment ensures the update_user_reports task will not shim the report back to feedback.
+                    # XXX(aliu): including environment ensures the update_user_reports task
+                    # will not shim the report back to feedback.
                     "environment_id": fixed_event_data["environment"],
                     "name": feedback_context["name"],
                     "email": feedback_context["contact_email"],
