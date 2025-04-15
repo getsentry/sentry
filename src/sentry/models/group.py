@@ -1224,6 +1224,10 @@ def update_group_open_period(
 
     if new_status == GroupStatus.RESOLVED:
         if activity is None:
+            logger.warning(
+                "Missing activity for group resolution, querying for it",
+                extra={"group_id": group.id},
+            )
             activity = (
                 Activity.objects.filter(
                     group=group,
@@ -1240,4 +1244,4 @@ def update_group_open_period(
             user_id=activity.user_id if activity else None,
         )
     elif new_status == GroupStatus.UNRESOLVED and should_reopen_open_period:
-        open_period.update(date_ended=None, resolution_activity=None)
+        open_period.update(date_ended=None, resolution_activity=None, user_id=None)
