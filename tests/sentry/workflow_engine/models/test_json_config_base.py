@@ -104,7 +104,7 @@ class TestMetricAlertFireDetectorConfig(JSONConfigBaseTest, APITestCase):
             description = "Metric alert fired"
             category = GroupCategory.METRIC_ALERT.value
             detector_settings = DetectorSettings(
-                config_schema=MetricAlertFire.detector_config.config_schema,
+                config_schema=MetricAlertFire.detector_settings.config_schema,
             )
 
     def test_detector_correct_schema(self):
