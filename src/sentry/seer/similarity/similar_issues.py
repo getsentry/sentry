@@ -134,6 +134,17 @@ def get_similarity_data_from_seer(
         )
         return []
 
+    # TODO: Temporary log to prove things are working as they should. This should come in a pair
+    # with the `get_seer_similar_issues.follow_up_seer_request` log in `seer.py`.
+    if referrer == "ingest_follow_up":
+        logger.info(
+            "get_similarity_data_from_seer.ingest_follow_up",
+            extra={
+                "hash": request_hash,
+                "response_data": response_data,  # Should always be an empty list
+            },
+        )
+
     if not response_data:
         metrics.incr(
             "seer.similar_issues_request",
