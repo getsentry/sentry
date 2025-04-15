@@ -262,7 +262,6 @@ def calculate_stats_period(
 
 
 def prep_search(
-    cls: Any,
     request: Request,
     project: Project,
     extra_query_kwargs: dict[str, Any] | None = None,
