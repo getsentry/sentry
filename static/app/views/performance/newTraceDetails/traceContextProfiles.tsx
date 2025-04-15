@@ -16,6 +16,8 @@ export function TraceContextProfiles({
   onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   tree: TraceTree;
 }) {
+  const hasProfiles = tree.profiled_events.size > 0;
+
   return (
     <FoldSection
       sectionKey={TraceContextSectionKeys.PROFILES as string as SectionKey}
@@ -23,7 +25,7 @@ export function TraceContextProfiles({
     >
       {tree.type === 'loading' ? (
         <LoadingIndicator />
-      ) : tree.type === 'trace' ? (
+      ) : tree.type === 'trace' && hasProfiles ? (
         <TraceProfiles tree={tree} onScrollToNode={onScrollToNode} />
       ) : (
         <EmptyStateWarning withIcon>
