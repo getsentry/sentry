@@ -6,11 +6,14 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
+import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
+import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import {t} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -37,18 +40,31 @@ export default function useFeedbackActions({feedbackItem}: Props) {
   });
   const deleteFeedback = useDeleteFeedback([feedbackItem.id], projectId);
 
+  const queryClient = useQueryClient();
+  const {listQueryKey, resetListHeadTime} = useFeedbackQueryKeys();
+  const {invalidateListCache} = useFeedbackCache();
+  const reloadListData = useCallback(() => {
+    queryClient.invalidateQueries({queryKey: listQueryKey});
+    resetListHeadTime();
+    invalidateListCache();
+  }, [queryClient, listQueryKey, resetListHeadTime, invalidateListCache]);
+
   const hasDelete = organization.features.includes('issue-platform-deletion-ui');
   const disableDelete = !organization.access.includes('event:admin');
-  const onDelete = deleteFeedback;
+  const onDelete = () => {
+    deleteFeedback();
+    reloadListData();
+  };
 
-  // reuse the issues ignored category for spam feedbacks
   const isResolved = feedbackItem.status === GroupStatus.RESOLVED;
   const onResolveClick = useCallback(() => {
     addLoadingMessage(t('Updating feedback...'));
     const newStatus = isResolved ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
     resolve(newStatus, mutationOptions);
-  }, [isResolved, resolve]);
+    reloadListData();
+  }, [isResolved, resolve, reloadListData]);
 
+  // reuse the issues ignored category for spam feedbacks
   const isSpam = feedbackItem.status === GroupStatus.IGNORED;
   const onSpamClick = useCallback(() => {
     addLoadingMessage(t('Updating feedback...'));
@@ -61,13 +77,15 @@ export default function useFeedbackActions({feedbackItem}: Props) {
         type: 'details',
       });
     }
-  }, [isSpam, organization, resolve]);
+    reloadListData();
+  }, [isSpam, organization, resolve, reloadListData]);
 
   const hasSeen = feedbackItem.hasSeen;
   const onMarkAsReadClick = useCallback(() => {
     addLoadingMessage(t('Updating feedback...'));
     markAsRead(!hasSeen, mutationOptions);
-  }, [hasSeen, markAsRead]);
+    reloadListData();
+  }, [hasSeen, markAsRead, reloadListData]);
 
   return {
     disableDelete,
