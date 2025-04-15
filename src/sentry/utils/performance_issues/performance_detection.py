@@ -22,6 +22,7 @@ from sentry.utils.safe import get_path
 from .base import DetectorType, PerformanceDetector
 from .detectors.consecutive_db_detector import ConsecutiveDBSpanDetector
 from .detectors.consecutive_http_detector import ConsecutiveHTTPSpanDetector
+from .detectors.dummy_n_plus_one_api_calls_detector import DummyNPlusOneAPICallsDetector
 from .detectors.http_overhead_detector import HTTPOverheadDetector
 from .detectors.io_main_thread_detector import DBMainThreadDetector, FileIOMainThreadDetector
 from .detectors.large_payload_detector import LargeHTTPPayloadDetector
@@ -322,6 +323,7 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     NPlusOneDBSpanDetectorExtended,
     FileIOMainThreadDetector,
     NPlusOneAPICallsDetector,
+    DummyNPlusOneAPICallsDetector,
     MNPlusOneDBSpanDetector,
     UncompressedAssetSpanDetector,
     LargeHTTPPayloadDetector,
