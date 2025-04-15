@@ -43,6 +43,7 @@ import {
   useExploreVisualizes,
   useSetExplorePageParams,
   useSetExploreQuery,
+  useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
@@ -86,6 +87,7 @@ export function SpansTabContentImpl({
   const {selection} = usePageFilters();
   const mode = useExploreMode();
   const visualizes = useExploreVisualizes();
+  const setVisualizes = useSetExploreVisualizes();
   const [samplesTab, setSamplesTab] = useTab();
 
   const {tags: numberTags, isLoading: numberTagsLoading} = useSpanTags('number');
@@ -282,6 +284,8 @@ export function SpansTabContentImpl({
               query={query}
               timeseriesResult={timeseriesResult}
               isProgressivelyLoading={timeseriesIsProgressivelyLoading}
+              visualizes={visualizes}
+              setVisualizes={setVisualizes}
             />
             <ExploreTables
               aggregatesTableResult={aggregatesTableResult}
