@@ -3,8 +3,8 @@ import type {ReactElement} from 'react';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import CrashFreeSessionsChartWidget from 'sentry/views/insights/sessions/charts/crashFreeSessionsChartWidget';
-import NewAndResolvedIssueChart from 'sentry/views/insights/sessions/charts/newAndResolvedIssueChart';
-import ReleaseNewIssuesChart from 'sentry/views/insights/sessions/charts/releaseNewIssuesChart';
+import NewAndResolvedIssueChartWidget from 'sentry/views/insights/sessions/charts/newAndResolvedIssueChartWidget';
+import ReleaseNewIssuesChartWidget from 'sentry/views/insights/sessions/charts/releaseNewIssuesChartWidget';
 import ReleaseSessionCountChartWidget from 'sentry/views/insights/sessions/charts/releaseSessionCountChartWidget';
 import ReleaseSessionPercentageChartWidget from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChartWidget';
 import SessionHealthCountChartWidget from 'sentry/views/insights/sessions/charts/sessionHealthCountChartWidget';
@@ -26,8 +26,8 @@ export const CHART_MAP: Record<
   SessionHealthRateChartWidget,
   UserHealthCountChartWidget,
   UserHealthRateChartWidget,
-  NewAndResolvedIssueChart,
-  ReleaseNewIssuesChart,
+  NewAndResolvedIssueChartWidget,
+  ReleaseNewIssuesChartWidget,
 };
 
 export const CHART_RENAMES: Record<string, keyof typeof CHART_TITLES> = {
@@ -40,6 +40,8 @@ export const CHART_RENAMES: Record<string, keyof typeof CHART_TITLES> = {
   SessionHealthCountChart: 'SessionHealthCountChartWidget',
   UserHealthRateChart: 'UserHealthRateChartWidget',
   UserHealthCountChart: 'UserHealthCountChartWidget',
+  NewAndResolvedIssueChart: 'NewAndResolvedIssueChartWidget',
+  ReleaseNewIssuesChart: 'ReleaseNewIssuesChartWidget',
 };
 
 export const PAGE_CHART_OPTIONS: Record<
@@ -50,7 +52,7 @@ export const PAGE_CHART_OPTIONS: Record<
     // ORDER MATTERS HERE
     // The order things are listed is the order rendered
     'UnhealthySessionsChartWidget',
-    'NewAndResolvedIssueChart',
+    'NewAndResolvedIssueChartWidget',
     'SessionHealthCountChartWidget',
     'SessionHealthRateChartWidget',
     'UserHealthCountChartWidget',
@@ -60,7 +62,7 @@ export const PAGE_CHART_OPTIONS: Record<
     // ORDER MATTERS HERE
     // The order things are listed is the order rendered
     'CrashFreeSessionsChartWidget',
-    'ReleaseNewIssuesChart',
+    'ReleaseNewIssuesChartWidget',
     'ReleaseSessionCountChartWidget',
     'ReleaseSessionPercentageChartWidget',
     'SessionHealthCountChartWidget',
@@ -90,7 +92,7 @@ export const DEFAULT_LAYOUTS: Record<
     // The order represents the default chart layout for Mobile > Session Health
     'CrashFreeSessionsChartWidget',
     'ReleaseSessionPercentageChartWidget',
-    'ReleaseNewIssuesChart',
+    'ReleaseNewIssuesChartWidget',
     'ReleaseSessionCountChartWidget',
     'UserHealthRateChartWidget',
   ],

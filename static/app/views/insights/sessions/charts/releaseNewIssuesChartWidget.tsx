@@ -26,9 +26,11 @@ export default function ReleaseNewIssuesChart(props: LoadableChartWidgetProps) {
 
   return (
     <ChartWithIssues
-      title={CHART_TITLES.ReleaseNewIssuesChart}
+      {...props}
+      id="releaseNewIssuesChartWidget"
+      title={CHART_TITLES.ReleaseNewIssuesChartWidget}
       interactiveTitle={() => (
-        <ChartSelectionTitle title={CHART_TITLES.ReleaseNewIssuesChart} />
+        <ChartSelectionTitle title={CHART_TITLES.ReleaseNewIssuesChartWidget} />
       )}
       series={series}
       description={t(

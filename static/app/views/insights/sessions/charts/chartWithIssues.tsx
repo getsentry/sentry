@@ -18,6 +18,7 @@ import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/p
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {WidgetTitleProps} from 'sentry/views/dashboards/widgets/widget/widgetTitle';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/laravel/styles';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
@@ -25,7 +26,7 @@ import useProjectHasSessions from 'sentry/views/insights/sessions/queries/usePro
 import useRecentIssues from 'sentry/views/insights/sessions/queries/useRecentIssues';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-interface Props extends WidgetTitleProps {
+interface Props extends WidgetTitleProps, Partial<LoadableChartWidgetProps> {
   description: string;
   error: Error | null;
   isPending: boolean;

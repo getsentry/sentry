@@ -33,9 +33,11 @@ export default function NewAndResolvedIssueChart(props: LoadableChartWidgetProps
 
   return (
     <ChartWithIssues
-      title={CHART_TITLES.NewAndResolvedIssueChart}
+      {...props}
+      id="newAndResolvedIssueChartWidget"
+      title={CHART_TITLES.NewAndResolvedIssueChartWidget}
       interactiveTitle={() => (
-        <ChartSelectionTitle title={CHART_TITLES.NewAndResolvedIssueChart} />
+        <ChartSelectionTitle title={CHART_TITLES.NewAndResolvedIssueChartWidget} />
       )}
       series={series}
       description={t('New and resolved issue counts over time.')}
