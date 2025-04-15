@@ -18,7 +18,7 @@ export default function AutomationBuilder() {
   const context = useContext(AutomationBuilderContext);
   const formContext = useContext(FormContext);
   if (!context || !formContext) {
-    throw new Error('stop what ur doin');
+    throw new Error('No AutomationBuilderContext found');
   }
   const {state, dispatch} = context;
 
@@ -132,7 +132,7 @@ function ActionFilterBlock({
 }: ActionFilterBlockProps) {
   const context = useContext(AutomationBuilderContext);
   if (!context) {
-    throw new Error('stop what ur doin');
+    throw new Error('No AutomationBuilderContext found');
   }
   const {state} = context;
   const actionFilterBlock = state.actionFilters[id];

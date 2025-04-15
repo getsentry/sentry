@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -64,12 +63,16 @@ const RuleRowContainer = styled('div')<{incompatible?: boolean}>`
   border-color: ${p => (p.incompatible ? p.theme.red200 : 'none')};
 `;
 
-const RuleRow = styled(Flex)`
+const RuleRow = styled('div')`
+  display: flex;
+  flex-direction: row;
   align-items: center;
   padding: ${space(1)};
 `;
 
-const Rule = styled(Flex)`
+const Rule = styled('div')`
+  display: flex;
+  flex-direction: row;
   align-items: center;
   flex: 1;
   flex-wrap: wrap;

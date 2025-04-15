@@ -32,7 +32,7 @@ const FREQUENCY_OPTIONS = [
   {value: '43200', label: t('30 days')},
 ];
 
-const model = new FormModel({initialData: flattie(initialState)});
+const model = new FormModel({initialData: {...flattie(initialState), frequency: '1440'}});
 
 export default function AutomationForm() {
   const title = useDocumentTitle();
@@ -74,7 +74,8 @@ export default function AutomationForm() {
   );
 }
 
-export const SectionBody = styled(Flex)`
+const SectionBody = styled('div')`
+  display: flex;
   flex-direction: column;
   background-color: ${p => p.theme.backgroundElevated};
   border: 1px solid ${p => p.theme.border};
@@ -82,7 +83,7 @@ export const SectionBody = styled(Flex)`
   padding: ${space(2)} ${space(2)};
 `;
 
-export const Heading = styled('h2')`
+const Heading = styled('h2')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1.5)};
 `;
