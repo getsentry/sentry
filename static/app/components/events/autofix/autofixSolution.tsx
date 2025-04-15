@@ -634,7 +634,7 @@ function AutofixSolutionDisplay({
                   : null
               }
               isAgentComment
-              blockName={t('Solution')}
+              blockName={t('Autofix is uncertain of the solution...')}
             />
           )}
         </AnimatePresence>
