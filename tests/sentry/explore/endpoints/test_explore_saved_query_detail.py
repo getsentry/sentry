@@ -1,7 +1,11 @@
 import pytest
 from django.urls import NoReverseMatch, reverse
 
-from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryProject
+from sentry.explore.models import (
+    ExploreSavedQuery,
+    ExploreSavedQueryProject,
+    ExploreSavedQueryStarred,
+)
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 
 
@@ -26,6 +30,7 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         model.set_projects(self.project_ids)
 
         self.query_id = model.id
+        self.model = model
 
         invalid = ExploreSavedQuery.objects.create(
             organization=self.org_without_access, name="Query without access", query=query
@@ -71,6 +76,24 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             response = self.client.get(url)
 
         assert response.status_code == 403, response.content
+
+    def test_get_starred(self):
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=self.model,
+            position=1,
+        )
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.query_id)
+        assert response.data["starred"] is True
+        assert response.data["position"] == 1
 
     def test_put(self):
         with self.feature(self.feature_name):
