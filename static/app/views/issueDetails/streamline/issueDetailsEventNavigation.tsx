@@ -134,6 +134,7 @@ export function IssueDetailsEventNavigation({
               pathname: `${baseEventsPath}${event?.previousEventID}/`,
               query: {...location.query, referrer: 'previous-event'},
             }}
+            preventScrollReset
             css={grayText}
             onMouseEnter={handleHoverPagination(
               'previous',
@@ -158,6 +159,7 @@ export function IssueDetailsEventNavigation({
               pathname: `${baseEventsPath}${event?.nextEventID}/`,
               query: {...location.query, referrer: 'next-event'},
             }}
+            preventScrollReset
             css={grayText}
             onMouseEnter={handleHoverPagination('next', defined(event?.nextEventID))}
             onClick={() => {
