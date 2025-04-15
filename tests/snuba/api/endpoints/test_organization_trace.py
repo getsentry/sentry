@@ -42,6 +42,14 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert len(root["children"]) == 5
         transaction_children = self.get_transaction_children(root)
         assert len(transaction_children) == 3
+        assert (
+            root["measurements"]["measurements.lcp"]
+            == self.root_event.data["measurements"]["lcp"]["value"]
+        )
+        assert (
+            root["measurements"]["measurements.fcp"]
+            == self.root_event.data["measurements"]["fcp"]["value"]
+        )
         self.assert_performance_issues(root)
 
         for i, gen1 in enumerate(transaction_children):
