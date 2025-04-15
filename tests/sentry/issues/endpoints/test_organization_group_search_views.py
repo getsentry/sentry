@@ -131,18 +131,18 @@ class OrganizationGroupSearchViewsGetTest(GroupSearchViewAPITestCase):
         assert response.data[0]["id"] == str(self.my_view_2.id)
         assert response.data[0]["name"] == "My View 2"
         assert response.data[0]["stars"] == 1
-        assert response.data[0]["owner_id"] == str(self.user.id)
+        assert response.data[0]["createdBy"]["id"] == str(self.user.id)
         assert response.data[0]["starred"]
         assert response.data[1]["id"] == str(self.my_view_3.id)
         assert response.data[1]["name"] == "My View 3"
         assert response.data[1]["stars"] == 1
-        assert response.data[1]["owner_id"] == str(self.user.id)
+        assert response.data[1]["createdBy"]["id"] == str(self.user.id)
         assert response.data[1]["starred"]
         # View 1 should appear last since it's the only non-starred view
         assert response.data[2]["id"] == str(self.my_view_1.id)
         assert response.data[2]["name"] == "My View 1"
         assert response.data[2]["stars"] == 0
-        assert response.data[2]["owner_id"] == str(self.user.id)
+        assert response.data[2]["createdBy"]["id"] == str(self.user.id)
         assert not response.data[2]["starred"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
@@ -157,13 +157,13 @@ class OrganizationGroupSearchViewsGetTest(GroupSearchViewAPITestCase):
         assert response.data[0]["id"] == str(self.other_view_2.id)
         assert response.data[0]["name"] == "Other View 2"
         assert response.data[0]["stars"] == 2
-        assert response.data[0]["owner_id"] == str(self.user_2.id)
+        assert response.data[0]["createdBy"]["id"] == str(self.user_2.id)
         assert response.data[0]["starred"]
         # View 1 should appear last since it's not starred
         assert response.data[1]["id"] == str(self.other_view_1.id)
         assert response.data[1]["name"] == "Other View 1"
         assert response.data[1]["stars"] == 0
-        assert response.data[1]["owner_id"] == str(self.user_2.id)
+        assert response.data[1]["createdBy"]["id"] == str(self.user_2.id)
         assert not response.data[1]["starred"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})

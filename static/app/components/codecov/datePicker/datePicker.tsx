@@ -3,12 +3,11 @@ import {useEffect} from 'react';
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import type {DateSelectorProps} from 'sentry/components/codecov/datePicker/dateSelector';
 import {DateSelector} from 'sentry/components/codecov/datePicker/dateSelector';
+import {isValidCodecovRelativePeriod} from 'sentry/components/codecov/utils';
 import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-
-import {isValidCodecovRelativePeriod} from '../utils';
 
 const CODECOV_DEFAULT_RELATIVE_PERIOD = '24h';
 export const CODECOV_DEFAULT_RELATIVE_PERIODS = {

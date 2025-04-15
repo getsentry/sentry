@@ -20,8 +20,8 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {WidgetTitleProps} from 'sentry/views/dashboards/widgets/widget/widgetTitle';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {ModalChartContainer} from 'sentry/views/insights/pages/backend/laravel/styles';
-import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
+import {ModalChartContainer} from 'sentry/views/insights/pages/platform/laravel/styles';
+import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import useRecentIssues from 'sentry/views/insights/sessions/queries/useRecentIssues';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 

@@ -63,6 +63,7 @@ export default function GroupReplaysPlayer({
               <ReplayProcessingError processingErrors={replay.processingErrors()} />
             ) : (
               <ReplayPreviewPlayer
+                errorBeforeReplayStart={replay.getErrorBeforeReplayStart()}
                 replayId={replayReaderResult.replayId}
                 replayRecord={replayReaderResult.replayRecord!}
                 handleBackClick={handleBackClick}

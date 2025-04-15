@@ -61,6 +61,7 @@ export default function ReplayClipPreviewPlayer({
               <ReplayProcessingError processingErrors={replay.processingErrors()} />
             ) : (
               <ReplayPreviewPlayer
+                errorBeforeReplayStart={replay.getErrorBeforeReplayStart()}
                 replayId={replayReaderResult.replayId}
                 fullReplayButtonProps={fullReplayButtonProps}
                 replayRecord={replayReaderResult.replayRecord!}
