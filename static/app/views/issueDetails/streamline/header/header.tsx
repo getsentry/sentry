@@ -61,8 +61,8 @@ export default function StreamlinedGroupHeader({
   const {baseUrl} = useGroupDetailsRoute();
 
   const {sort: _sort, ...query} = location.query;
-  const userCount = group.totalUserCount ?? group.userCount;
-  const eventCount = group.totalCount ?? group.count;
+  const userCount = group.lifetime ? group.lifetime.userCount : group.userCount;
+  const eventCount = group.lifetime ? group.lifetime.count : group.count;
   const {title: primaryTitle, subtitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const isComplete = group.status === 'resolved' || group.status === 'ignored';

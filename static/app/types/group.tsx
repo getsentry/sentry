@@ -710,7 +710,7 @@ export type GroupActivity =
 export type Activity = GroupActivity;
 
 interface GroupFiltered {
-  count: number;
+  count: string;
   firstSeen: string;
   lastSeen: string;
   stats: Record<string, TimeseriesValue[]>;
