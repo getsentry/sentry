@@ -157,7 +157,6 @@ module = [
     "sentry.search.events.datasets.metrics_layer",
     "sentry.search.events.filter",
     "sentry.search.snuba.executors",
-    "sentry.sentry_metrics.indexer.postgres.postgres_v2",
     "sentry.snuba.metrics.query_builder",
     "sentry.tasks.base",
     "sentry.testutils.cases",
