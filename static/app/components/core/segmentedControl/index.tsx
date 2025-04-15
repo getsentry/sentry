@@ -1,5 +1,5 @@
 import {useMemo, useRef} from 'react';
-import type {Theme} from '@emotion/react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaRadioProps} from '@react-aria/radio';
 import {useRadio, useRadioGroup} from '@react-aria/radio';
@@ -17,6 +17,14 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {FormSize} from 'sentry/utils/theme';
+import {withChonk} from 'sentry/utils/theme/withChonk';
+
+import {
+  ChonkStyledGroupWrap,
+  ChonkStyledSegmentWrap,
+  ChonkStyledVisibleLabel,
+  type Priority,
+} from './index.chonk';
 
 export interface SegmentedControlItemProps<Value extends string> {
   key: Value;
@@ -43,7 +51,6 @@ export interface SegmentedControlItemProps<Value extends string> {
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
 }
 
-type Priority = 'default' | 'primary';
 export interface SegmentedControlProps<Value extends string>
   extends Omit<RadioGroupProps, 'value' | 'defaultValue' | 'onChange' | 'isDisabled'> {
   children: CollectionChildren<Value>;
@@ -133,6 +140,7 @@ function Segment<Value extends string>({
   ...props
 }: SegmentProps<Value>) {
   const ref = useRef<HTMLInputElement>(null);
+  const theme = useTheme();
 
   const {inputProps} = useRadio(props, state, ref);
 
@@ -143,21 +151,52 @@ function Segment<Value extends string>({
   const showDivider = !isSelected && !nextOptionIsSelected;
 
   const {isDisabled} = props;
+
+  const label = theme.isChonk ? (
+    <VisibleLabel
+      isSelected={isSelected}
+      isDisabled={isDisabled}
+      priority={priority}
+      role="presentation"
+    >
+      {props.children}
+    </VisibleLabel>
+  ) : (
+    // Once an item is selected, it gets a heavier font weight and becomes slightly
+    // wider. To prevent layout shifts, we need a hidden container (HiddenLabel) that
+    // will always have normal weight to take up constant space; and a visible,
+    // absolutely positioned container (VisibleLabel) that doesn't affect the layout.
+    <InnerLabelWrap role="presentation">
+      <HiddenLabel aria-hidden>{props.children}</HiddenLabel>
+      <VisibleLabel
+        isSelected={isSelected}
+        isDisabled={isDisabled}
+        priority={priority}
+        role="presentation"
+      >
+        {props.children}
+      </VisibleLabel>
+    </InnerLabelWrap>
+  );
+
   const content = (
     <SegmentWrap
       size={size}
       isSelected={isSelected}
       isDisabled={isDisabled}
+      priority={priority}
       data-test-id={props.value}
+      aria-checked={isSelected}
+      aria-disabled={isDisabled}
     >
       <SegmentInput {...inputProps} ref={ref} />
-      {!isDisabled && (
+      {!isDisabled && !theme.isChonk && (
         <SegmentInteractionStateLayer
           nextOptionIsSelected={nextOptionIsSelected}
           prevOptionIsSelected={prevOptionIsSelected}
         />
       )}
-      {isSelected && (
+      {isSelected && !theme.isChonk && (
         <SegmentSelectionIndicator
           layoutId={layoutGroupId}
           transition={{type: 'tween', ease: 'easeOut', duration: 0.2}}
@@ -168,27 +207,13 @@ function Segment<Value extends string>({
         />
       )}
 
-      <Divider visible={showDivider} role="separator" aria-hidden />
+      {theme.isChonk ? null : (
+        <Divider visible={showDivider} role="separator" aria-hidden />
+      )}
 
       <LabelWrap size={size} role="presentation">
         {icon}
-        {/* Once an item is selected, it gets a heavier font weight and becomes slightly
-        wider. To prevent layout shifts, we need a hidden container (HiddenLabel) that
-        will always have normal weight to take up constant space; and a visible,
-        absolutely positioned container (VisibleLabel) that doesn't affect the layout. */}
-        {props.children && (
-          <InnerLabelWrap role="presentation">
-            <HiddenLabel aria-hidden>{props.children}</HiddenLabel>
-            <VisibleLabel
-              isSelected={isSelected}
-              isDisabled={isDisabled}
-              priority={priority}
-              role="presentation"
-            >
-              {props.children}
-            </VisibleLabel>
-          </InnerLabelWrap>
-        )}
+        {props.children && label}
       </LabelWrap>
     </SegmentWrap>
   );
@@ -208,39 +233,44 @@ function Segment<Value extends string>({
   return content;
 }
 
-const GroupWrap = styled('div')<{priority: Priority; size: FormSize}>`
-  position: relative;
-  display: inline-grid;
-  grid-auto-flow: column;
-  background: ${p =>
-    p.priority === 'primary' ? p.theme.background : p.theme.backgroundTertiary};
-  border: solid 1px ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  min-width: 0;
+const GroupWrap = withChonk(
+  styled('div')<{priority: Priority; size: FormSize}>`
+    position: relative;
+    display: inline-grid;
+    grid-auto-flow: column;
+    background: ${p =>
+      p.priority === 'primary' ? p.theme.background : p.theme.backgroundTertiary};
+    border: solid 1px ${p => p.theme.border};
+    border-radius: ${p => p.theme.borderRadius};
+    min-width: 0;
 
-  ${p => p.theme.form[p.size]}
-`;
+    ${p => p.theme.form[p.size]}
+  `,
+  ChonkStyledGroupWrap
+);
 
-const SegmentWrap = styled('label')<{
-  isSelected: boolean;
-  size: FormSize;
-  isDisabled?: boolean;
-}>`
-  position: relative;
-  display: flex;
-  align-items: center;
-  margin: 0;
-  border-radius: calc(${p => p.theme.borderRadius} - 1px);
-  cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
-  min-height: 0;
-  min-width: 0;
+const SegmentWrap = withChonk(
+  styled('label')<{
+    isSelected: boolean;
+    priority: Priority;
+    size: FormSize;
+    isDisabled?: boolean;
+  }>`
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 0;
+    border-radius: calc(${p => p.theme.borderRadius} - 1px);
+    cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
+    min-height: 0;
+    min-width: 0;
 
-  ${p => p.theme.buttonPadding[p.size]}
-  font-weight: ${p => p.theme.fontWeightNormal};
+    ${p => p.theme.buttonPadding[p.size]}
+    font-weight: ${p => p.theme.fontWeightNormal};
 
-  ${p =>
-    !p.isDisabled &&
-    `
+    ${p =>
+      !p.isDisabled &&
+      `
     &:hover {
       background-color: inherit;
 
@@ -250,8 +280,10 @@ const SegmentWrap = styled('label')<{
     }
   `}
 
-  ${p => p.isSelected && `z-index: 1;`}
-`;
+    ${p => p.isSelected && `z-index: 1;`}
+  `,
+  ChonkStyledSegmentWrap
+);
 
 const SegmentInput = styled('input')`
   appearance: none;
@@ -379,26 +411,29 @@ function getTextColor({
   return `color: ${theme.textColor};`;
 }
 
-const VisibleLabel = styled('span')<{
-  isSelected: boolean;
-  priority: Priority;
-  isDisabled?: boolean;
-}>`
-  ${p => p.theme.overflowEllipsis}
+const VisibleLabel = withChonk(
+  styled('span')<{
+    isSelected: boolean;
+    priority: Priority;
+    isDisabled?: boolean;
+  }>`
+    ${p => p.theme.overflowEllipsis}
 
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  transition: color 0.25s ease-out;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: color 0.25s ease-out;
 
-  user-select: none;
-  font-weight: ${p => (p.isSelected ? 600 : 400)};
-  letter-spacing: ${p => (p.isSelected ? '-0.015em' : 'inherit')};
-  text-align: center;
-  line-height: ${p => p.theme.text.lineHeightBody};
-  ${getTextColor}
-`;
+    user-select: none;
+    font-weight: ${p => (p.isSelected ? 600 : 400)};
+    letter-spacing: ${p => (p.isSelected ? '-0.015em' : 'inherit')};
+    text-align: center;
+    line-height: ${p => p.theme.text.lineHeightBody};
+    ${getTextColor}
+  `,
+  ChonkStyledVisibleLabel
+);
 
 const Divider = styled('div')<{visible: boolean}>`
   position: absolute;
