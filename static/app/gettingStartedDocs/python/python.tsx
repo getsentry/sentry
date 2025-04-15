@@ -288,7 +288,7 @@ export const performanceOnboarding: OnboardingConfig = {
       configurations: [
         {
           description: tct(
-            "Once this is done, Sentry's Python SDK captures all unhandled exceptions and transactions. Note that [code:enable_tracing] is available in Sentry Python SDK version [code:≥ 1.16.0]. To enable tracing in older SDK versions ([code:≥ 0.11.2]), use [code:traces_sample_rate=1.0].",
+            "Once this is done, Sentry's Python SDK captures all unhandled exceptions and transactions. To enable tracing, use [code:traces_sample_rate=1.0] in the sentry_sdk.init() call.",
             {code: <code />}
           ),
           language: 'python',
