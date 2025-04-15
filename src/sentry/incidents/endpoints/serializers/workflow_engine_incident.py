@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any, ClassVar
 
 from django.contrib.auth.models import AnonymousUser
@@ -20,10 +21,10 @@ from sentry.users.services.user.model import RpcUser
 
 
 class WorkflowEngineIncidentSerializer(Serializer):
-    priority_to_incident_status: ClassVar[dict[PriorityLevel, IncidentStatus]] = {
-        PriorityLevel.HIGH: IncidentStatus.CRITICAL,
-        PriorityLevel.MEDIUM: IncidentStatus.WARNING,
-        PriorityLevel.LOW: IncidentStatus.OPEN,
+    priority_to_incident_status: ClassVar[dict[int, int]] = {
+        PriorityLevel.HIGH.value: IncidentStatus.CRITICAL.value,
+        PriorityLevel.MEDIUM.value: IncidentStatus.WARNING.value,
+        PriorityLevel.LOW.value: IncidentStatus.OPEN.value,
     }
 
     def __init__(self, expand=None):
@@ -31,11 +32,11 @@ class WorkflowEngineIncidentSerializer(Serializer):
 
     def get_attrs(self, item_list, user, **kwargs):
 
-        results = {}
+        # TODO: improve typing here
+        results: dict[GroupOpenPeriod, dict[str, Any]] = {}
         for open_period in item_list:
             results[open_period] = {
                 "alert_rule": self.get_alert_rule(open_period),
-                "activities": self.get_incident_activities(open_period),
             }
 
         if "activities" in self.expand:
@@ -46,16 +47,54 @@ class WorkflowEngineIncidentSerializer(Serializer):
 
         return results
 
-    def get_incident_status(self, priority: PriorityLevel) -> IncidentStatus:
+    def get_incident_status(self, priority: int | None) -> int:
+        if priority is None:
+            raise ValueError("Priority is required to get an incident status")
         return self.priority_to_incident_status[priority]
 
     def get_incident_activities(
         self, open_period: GroupOpenPeriod
     ) -> list[IncidentActivitySerializerResponse]:
-        pass
+        # TODO: Implement this
+        return [
+            {
+                "id": "-1",
+                "incidentIdentifier": "-1",
+                "user": {},
+                "type": 1,
+                "value": "test",
+                "previousValue": "test",
+                "comment": "test",
+                "dateCreated": datetime.now(),
+            }
+        ]
 
     def get_alert_rule(self, open_period: GroupOpenPeriod) -> AlertRuleSerializerResponse:
-        pass
+        # TODO: Implement this
+        return {
+            "id": "-1",
+            "name": "Test Alert Rule",
+            "organizationId": "-1",
+            "status": 1,
+            "query": "test",
+            "aggregate": "test",
+            "timeWindow": 1,
+            "resolution": 1,
+            "thresholdPeriod": 1,
+            "triggers": [
+                {
+                    "id": "-1",
+                    "status": 1,
+                    "dateModified": datetime.now(),
+                    "dateCreated": datetime.now(),
+                }
+            ],
+            "dateModified": datetime.now(),
+            "dateCreated": datetime.now(),
+            "createdBy": {},
+            "description": "test",
+            "detectionType": "test",
+        }
 
     def serialize(
         self,
@@ -74,12 +113,12 @@ class WorkflowEngineIncidentSerializer(Serializer):
             "identifier": str(obj.id),
             "organizationId": str(obj.project.organization.id),
             "projects": [obj.project.slug],
-            "alertRule": attrs["alert_rule"],  # TODO: figure out how to replace this
+            "alertRule": attrs["alert_rule"],
             "activities": attrs["activities"] if "activities" in self.expand else None,
             "status": self.get_incident_status(obj.group.priority),
-            "statusMethod": IncidentStatusMethod.RULE_TRIGGERED,  # We don't allow manual updates or status updates based on detector config updates
-            "type": IncidentType.ALERT_TRIGGERED,  # IncidentType.Detected isn't used anymore
-            "title": obj.title,
+            "statusMethod": IncidentStatusMethod.RULE_TRIGGERED.value,  # We don't allow manual updates or status updates based on detector config updates
+            "type": IncidentType.ALERT_TRIGGERED.value,  # IncidentType.Detected isn't used anymore
+            "title": obj.group.title,
             "dateStarted": obj.date_started,
             "dateDetected": obj.date_started,  # In workflow engine, date_started is the date the incident was detected
             "dateCreated": obj.date_added,
@@ -104,13 +143,11 @@ class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer)
 
         return context
 
-    def get_snuba_query(self, open_period: GroupOpenPeriod) -> SnubaQuery:
-        pass
-
-    def _build_discover_query(self, open_period: GroupOpenPeriod, snuba_query: SnubaQuery) -> str:
+    def _build_discover_query(self, open_period: GroupOpenPeriod) -> str:
+        # TODO: Implement this
         return apply_dataset_query_conditions(
-            snuba_query.type,
-            snuba_query.query,
-            snuba_query.event_types,
+            SnubaQuery.Type.ERROR,
+            "test",
+            event_types=None,
             discover=True,
         )
