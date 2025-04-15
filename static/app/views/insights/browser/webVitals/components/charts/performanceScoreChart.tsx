@@ -16,15 +16,10 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import type {SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
-  browserTypes?: BrowserType[];
   isProjectScoreLoading?: boolean;
   projectScore?: ProjectScore;
-  subregions?: SubregionCode[];
-  transaction?: string;
   webVital?: WebVitals | null;
 };
 
@@ -33,10 +28,7 @@ export const ORDER: WebVitals[] = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
 export function PerformanceScoreChart({
   projectScore,
   webVital,
-  transaction,
   isProjectScoreLoading,
-  browserTypes,
-  subregions,
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
@@ -101,11 +93,7 @@ export function PerformanceScoreChart({
           </EmptyStateWarning>
         )}
       </PerformanceScoreLabelContainer>
-      <PerformanceScoreBreakdownChart
-        transaction={transaction}
-        browserTypes={browserTypes}
-        subregions={subregions}
-      />
+      <PerformanceScoreBreakdownChart />
     </Flex>
   );
 }
