@@ -639,6 +639,7 @@ class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestB
     viewname = "sentry-api-0-organization-spans-samples"
 
     def do_request(self, query, features=None, **kwargs):
+        query["dataset"] = "spans"
         return super().do_request(query, features, **kwargs)
 
     def test_simple(self):
