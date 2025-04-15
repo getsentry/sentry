@@ -13,7 +13,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
@@ -24,7 +24,7 @@ from sentry.models.project import Project
 
 
 @region_silo_endpoint
-class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
+class OrganizationIssueMetricsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 
