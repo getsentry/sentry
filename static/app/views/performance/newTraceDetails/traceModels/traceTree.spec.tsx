@@ -1844,13 +1844,7 @@ describe('TraceTree', () => {
         makeEventTransaction()
       );
 
-      const serialized = tree.build().serialize();
-
-      // Check that the prefetch span has the prefix
-      expect(serialized).toContain('http - (prefetch) GET /api/users');
-
-      // Check that the regular span doesn't have the prefix
-      expect(serialized).toContain('http - GET /api/users');
+      expect(tree.build().serialize()).toMatchSnapshot();
     });
 
     it('handles falsy prefetch attribute', () => {
@@ -1870,11 +1864,7 @@ describe('TraceTree', () => {
         makeEventTransaction()
       );
 
-      const serialized = tree.build().serialize();
-
-      // Check that the span with prefetch = false doesn't have the prefix
-      expect(serialized).toContain('http - GET /api/users');
-      expect(serialized).not.toContain('http - (prefetch) GET /api/users');
+      expect(tree.build().serialize()).toMatchSnapshot();
     });
   });
 });
