@@ -9,7 +9,7 @@ from django.conf import settings
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
-from django.db.models import Q
+from django.db.models import Max
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils import redis
@@ -48,21 +48,12 @@ def get_open_periods_for_group(
     status: int,
     project_id: int,
     first_seen: datetime,
-    query_end: datetime | None,
+    activities: list[Any],
     GroupOpenPeriod: Any,
 ) -> list[Any]:
-    Activity = apps.get_model("sentry", "Activity")
-
     # Filter to REGRESSION and RESOLVED activties to find the bounds of each open period.
     # The only UNRESOLVED activity we would care about is the first UNRESOLVED activity for the group creation,
     # but we don't create an entry for that.
-    filters = [
-        Q(group_id=group_id),
-        Q(type__in=[ActivityType.SET_REGRESSION.value, ActivityType.SET_RESOLVED.value]),
-    ]
-    if query_end:
-        filters.append(Q(datetime__lte=query_end))
-    activities = Activity.objects.filter(*filters).order_by("-datetime")
     open_periods = []
     start: datetime | None = None
     end: datetime | None = None
@@ -88,6 +79,11 @@ def get_open_periods_for_group(
             end_activity = activity
         elif activity.type == ActivityType.SET_REGRESSION.value:
             start = activity.datetime
+            if end is None:
+                logger.error(
+                    "No end activity found for group open period backfill",
+                    extra={"group_id": group_id, "starting_activity": activity.id},
+                )
             if start is not None and end is not None:
                 open_periods.append(
                     GroupOpenPeriod(
@@ -108,36 +104,52 @@ def get_open_periods_for_group(
             project_id=project_id,
             date_started=first_seen,
             date_ended=end if end else None,
-            resolution_activity=end_activity if end_activity else None,
+            resolution_activity=end_activity,
             user_id=end_activity.user_id if end_activity else None,
         )
     )
     return open_periods
 
 
-def backfill_group_open_periods(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
-    Group = apps.get_model("sentry", "Group")
+def _backfill_group_open_periods(
+    apps: StateApps, groups: list[tuple[int, datetime, int, int]]
+) -> None:
     GroupOpenPeriod = apps.get_model("sentry", "GroupOpenPeriod")
-
+    Activity = apps.get_model("sentry", "Activity")
     batch = []
-
-    for group_id, first_seen, status, project_id in RangeQuerySetWrapperWithProgressBarApprox(
-        Group.objects.all().values_list("id", "first_seen", "status", "project_id"),
-        result_value_getter=lambda item: item[0],
-    ):
+    open_periods: list[dict[str, Any]] = list(
+        GroupOpenPeriod.objects.filter(group_id__in=[group_id for group_id, _, _, _ in groups])
+        .values("group_id")
+        .annotate(Max("date_started"))
+    )
+    activities = list(
+        Activity.objects.filter(
+            group_id__in=[group_id for group_id, _, _, _ in groups],
+            type__in=[ActivityType.SET_REGRESSION.value, ActivityType.SET_RESOLVED.value],
+        )
+    )
+    for group_id, first_seen, status, project_id in groups:
         # Skip groups that already have open periods starting from the first seen date.
         # These groups were either already backfilled or were created after the open period
         # logic was added.
-        old_open_period = (
-            GroupOpenPeriod.objects.filter(group_id=group_id).order_by("date_started").first()
+        old_open_period = next(
+            (open_period for open_period in open_periods if open_period["group_id"] == group_id),
+            None,
         )
-        if old_open_period and old_open_period.date_started == first_seen:
+        if old_open_period and old_open_period["date_started"] == first_seen:
             continue
+        query_end = old_open_period["date_started"] if old_open_period else None
+
+        activities_for_group = [
+            activity
+            for activity in activities
+            if activity.group_id == group_id
+            and (query_end is None or activity.datetime < query_end)
+        ]
 
         # Backfill until the first open period that already exists.
-        query_end = old_open_period.date_started if old_open_period else None
         open_periods = get_open_periods_for_group(
-            apps, group_id, status, project_id, first_seen, query_end, GroupOpenPeriod
+            apps, group_id, status, project_id, first_seen, activities_for_group, GroupOpenPeriod
         )
 
         batch.extend(open_periods)
