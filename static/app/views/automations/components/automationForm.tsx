@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {flattie} from 'flattie';
 
@@ -9,16 +9,15 @@ import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
-import CollapsibleSection from 'sentry/components/workflowEngine/ui/collapsibleSection';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
 import {
   AutomationBuilderContext,
-  type AutomationBuilderState,
-} from 'sentry/views/automations/components/automationBuilderState';
+  initialState,
+  useAutomationBuilderReducer,
+} from 'sentry/views/automations/components/automationBuilderContext';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 
 const FREQUENCY_OPTIONS = [
@@ -33,22 +32,11 @@ const FREQUENCY_OPTIONS = [
   {value: '43200', label: t('30 days')},
 ];
 
-const initialState: AutomationBuilderState = {
-  triggers: {
-    id: 'when',
-    logicType: DataConditionGroupLogicType.ANY,
-    conditions: [],
-  },
-  actionFilters: [
-    {id: 'if.0', logicType: DataConditionGroupLogicType.ANY, conditions: []},
-  ],
-};
-
 const model = new FormModel(flattie(initialState));
 
 export default function AutomationForm() {
   const title = useDocumentTitle();
-  const [state, setState] = useState<AutomationBuilderState>(() => initialState);
+  const {state, dispatch} = useAutomationBuilderReducer();
 
   useEffect(() => {
     const flattened = flattie(state);
@@ -61,36 +49,48 @@ export default function AutomationForm() {
 
   return (
     <Form hideFooter model={model}>
-      <AutomationBuilderContext.Provider value={{state, setState}}>
+      <AutomationBuilderContext.Provider value={{state, dispatch}}>
         <Flex column gap={space(1.5)} style={{padding: space(2)}}>
-          <CollapsibleSection title={t('Connect Monitors')} open>
+          <SectionBody>
+            <Heading>{t('Connect Monitors')}</Heading>
             <StyledConnectedMonitorsList monitors={[]} />
             <ButtonWrapper justify="space-between">
               <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
               <Button icon={<IconEdit />}>{t('Edit Monitors')}</Button>
             </ButtonWrapper>
-          </CollapsibleSection>
-          <CollapsibleSection title={t('Automation Builder')} open>
+          </SectionBody>
+          <SectionBody>
+            <Heading>{t('Automation Builder')}</Heading>
             <AutomationBuilder />
-          </CollapsibleSection>
-          <CollapsibleSection
-            title={t('Action Interval')}
-            description={t('Perform the set actions once per set interval')}
-            open
-          >
+          </SectionBody>
+          <SectionBody>
+            <Heading>{t('Action Interval')}</Heading>
             <EmbeddedSelectField
               name="frequency"
               inline={false}
               clearable={false}
               options={FREQUENCY_OPTIONS}
             />
-          </CollapsibleSection>
+          </SectionBody>
           <DebugForm />
         </Flex>
       </AutomationBuilderContext.Provider>
     </Form>
   );
 }
+
+export const SectionBody = styled(Flex)`
+  flex-direction: column;
+  background-color: ${p => p.theme.backgroundElevated};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(2)} ${space(2)};
+`;
+
+export const Heading = styled('h2')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin-bottom: ${space(1.5)};
+`;
 
 const StyledConnectedMonitorsList = styled(ConnectedMonitorsList)`
   margin: ${space(2)} 0;

@@ -8,67 +8,55 @@ import FormContext from 'sentry/components/forms/formContext';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
-import {
-  type AutomationBuilderAction,
-  AutomationBuilderContext,
-  automationReducer,
-} from 'sentry/views/automations/components/automationBuilderState';
+import type {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
+import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
+import {AutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import RuleNodeList from 'sentry/views/automations/components/ruleNodeList';
-
-// When to use ANY vs ANY_SHORT_CIRCUIT?
-const TRIGGER_MATCH_OPTIONS = [
-  {value: DataConditionGroupLogicType.ALL, label: t('all')},
-  {value: DataConditionGroupLogicType.ANY, label: t('any')},
-];
-
-const FILTER_MATCH_OPTIONS = [
-  {value: DataConditionGroupLogicType.ALL, label: t('all')},
-  {value: DataConditionGroupLogicType.ANY, label: t('any')},
-  {value: DataConditionGroupLogicType.NONE, label: t('none')},
-];
+import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 
 export default function AutomationBuilder() {
   const context = useContext(AutomationBuilderContext);
   const formContext = useContext(FormContext);
-  if (!context) {
+  if (!context || !formContext) {
     throw new Error('stop what ur doin');
   }
-  const {state, setState} = context;
-
-  function dispatch(action: AutomationBuilderAction) {
-    setState(currentState => automationReducer(currentState, action, formContext.form));
-  }
+  const {state, dispatch} = context;
 
   return (
     <Flex column gap={space(1)}>
-      <StepLead>
-        {/* TODO: Only make this a selector of "all" is originally selected */}
-        {tct('[when:When] [selector] of the following occur', {
-          when: <Badge />,
-          selector: (
-            <EmbeddedWrapper>
-              <EmbeddedSelectField
-                styles={{
-                  control: (provided: any) => ({
-                    ...provided,
-                    minHeight: '21px',
-                    height: '21px',
-                  }),
-                }}
-                inline={false}
-                isSearchable={false}
-                isClearable={false}
-                name="triggers.logicType"
-                required
-                flexibleControlStateSize
-                options={TRIGGER_MATCH_OPTIONS}
-                size="xs"
-              />
-            </EmbeddedWrapper>
-          ),
-        })}
-      </StepLead>
+      <Step>
+        <StepLead>
+          {/* TODO: Only make this a selector of "all" is originally selected */}
+          {tct('[when:When] [selector] of the following occur', {
+            when: <Badge />,
+            selector: (
+              <EmbeddedWrapper>
+                <EmbeddedSelectField
+                  styles={{
+                    control: (provided: any) => ({
+                      ...provided,
+                      minHeight: '21px',
+                      height: '21px',
+                    }),
+                  }}
+                  inline={false}
+                  isSearchable={false}
+                  isClearable={false}
+                  name="triggers.logicType"
+                  value={state.triggers.logicType}
+                  onChange={value =>
+                    dispatch({type: 'UPDATE_WHEN_LOGIC_TYPE', logicType: value})
+                  }
+                  required
+                  flexibleControlStateSize
+                  options={TRIGGER_MATCH_OPTIONS}
+                  size="xs"
+                />
+              </EmbeddedWrapper>
+            ),
+          })}
+        </StepLead>
+      </Step>
       <RuleNodeList
         placeholder={t('Select a trigger...')}
         conditions={state.triggers.conditions}
@@ -81,7 +69,7 @@ export default function AutomationBuilder() {
       />
 
       {state.actionFilters.map((_, index) => (
-        <IfThenBlock
+        <ActionFilterBlock
           key={index}
           id={index}
           onDelete={() => dispatch({type: 'REMOVE_IF', groupIndex: index})}
@@ -121,7 +109,7 @@ export default function AutomationBuilder() {
   );
 }
 
-interface IfThenBlockProps {
+interface ActionFilterBlockProps {
   addIfCondition: (groupIndex: number, type: string) => void;
   id: number;
   onDelete: () => void;
@@ -134,80 +122,82 @@ interface IfThenBlockProps {
   updateIfLogicType: (groupIndex: number, logicType: DataConditionGroupLogicType) => void;
 }
 
-function IfThenBlock({
+function ActionFilterBlock({
   id,
   onDelete,
   addIfCondition,
   removeIfCondition,
   updateIfCondition,
   updateIfLogicType,
-}: IfThenBlockProps) {
+}: ActionFilterBlockProps) {
   const context = useContext(AutomationBuilderContext);
   if (!context) {
     throw new Error('stop what ur doin');
   }
   const {state} = context;
-  const ifThenBlock = state.actionFilters[id];
+  const actionFilterBlock = state.actionFilters[id];
 
   return (
     <IfThenWrapper key={id}>
-      <Flex column gap={space(1)}>
-        <Flex justify="space-between">
-          <StepLead>
-            {tct('[if: If] [selector] of these filters match', {
-              if: <Badge />,
-              selector: (
-                <EmbeddedWrapper>
-                  <EmbeddedSelectField
-                    styles={{
-                      control: (provided: any) => ({
-                        ...provided,
-                        minHeight: '21px',
-                        height: '21px',
-                      }),
-                    }}
-                    inline={false}
-                    isSearchable={false}
-                    isClearable={false}
-                    name={`actionFilters.${id}.logicType`}
-                    required
-                    flexibleControlStateSize
-                    options={FILTER_MATCH_OPTIONS}
-                    size="xs"
-                    value={ifThenBlock?.logicType}
-                    onChange={value => updateIfLogicType(id, value)}
-                  />
-                </EmbeddedWrapper>
-              ),
-            })}
-          </StepLead>
-          <DeleteButton
-            aria-label={t('Delete actionFilters/Then Block')}
-            size="sm"
-            icon={<IconDelete />}
-            borderless
-            onClick={onDelete}
+      <Step>
+        <Flex column gap={space(0.75)}>
+          <Flex justify="space-between">
+            <StepLead>
+              {tct('[if: If] [selector] of these filters match', {
+                if: <Badge />,
+                selector: (
+                  <EmbeddedWrapper>
+                    <EmbeddedSelectField
+                      styles={{
+                        control: (provided: any) => ({
+                          ...provided,
+                          minHeight: '21px',
+                          height: '21px',
+                        }),
+                      }}
+                      inline={false}
+                      isSearchable={false}
+                      isClearable={false}
+                      name={`actionFilters.${id}.logicType`}
+                      required
+                      flexibleControlStateSize
+                      options={FILTER_MATCH_OPTIONS}
+                      size="xs"
+                      value={actionFilterBlock?.logicType}
+                      onChange={value => updateIfLogicType(id, value)}
+                    />
+                  </EmbeddedWrapper>
+                ),
+              })}
+            </StepLead>
+            <DeleteButton
+              aria-label={t('Delete If/Then Block')}
+              size="sm"
+              icon={<IconDelete />}
+              borderless
+              onClick={onDelete}
+            />
+          </Flex>
+          <RuleNodeList
+            placeholder={t('Filter by...')}
+            group={`actionFilters.${id}`}
+            conditions={actionFilterBlock?.conditions || []}
+            onAddRow={type => addIfCondition(id, type)}
+            onDeleteRow={index => removeIfCondition(id, index)}
+            updateCondition={(index, comparison) =>
+              updateIfCondition(id, index, comparison)
+            }
           />
         </Flex>
-        <RuleNodeList
-          placeholder={t('Filter by...')}
-          group={`actionFilters.${id}`}
-          conditions={ifThenBlock?.conditions || []}
-          onAddRow={type => addIfCondition(id, type)}
-          onDeleteRow={index => removeIfCondition(id, index)}
-          updateCondition={(index, comparison) =>
-            updateIfCondition(id, index, comparison)
-          }
-        />
-      </Flex>
-      <Flex column gap={space(1)}>
+      </Step>
+      <Step>
         <StepLead>
           {tct('[then:Then] perform these actions', {
             then: <Badge />,
           })}
         </StepLead>
         {/* TODO: add actions dropdown here */}
-      </Flex>
+      </Step>
     </IfThenWrapper>
   );
 }
@@ -215,6 +205,12 @@ function IfThenBlock({
 const PurpleTextButton = styled(Button)`
   color: ${p => p.theme.purple300};
   font-weight: normal;
+  padding: 0;
+`;
+
+const Step = styled(Flex)`
+  flex-direction: column;
+  gap: ${space(0.75)};
 `;
 
 const StepLead = styled(Flex)`
@@ -247,7 +243,7 @@ const EmbeddedWrapper = styled('div')`
 
 const IfThenWrapper = styled(Flex)`
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${space(1.5)};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1.5)};

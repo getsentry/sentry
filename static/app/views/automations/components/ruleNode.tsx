@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -6,13 +7,28 @@ import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
-import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
+import {
+  DataConditionNodeContext,
+  dataConditionNodesMap,
+  useDataConditionNodeContext,
+} from 'sentry/views/automations/components/dataConditionNodes';
 
 interface RuleNodeProps {
   condition: Omit<DataCondition, 'condition_group' | 'type' | 'id'>;
   condition_id: string;
   onDelete: () => void;
   onUpdate: (comparison: Record<string, any>) => void;
+}
+
+function Node() {
+  const {condition} = useDataConditionNodeContext();
+  const node = dataConditionNodesMap[condition.comparison_type];
+
+  if (node?.configNode) {
+    return node.configNode();
+  }
+
+  return <Fragment>{node?.label}</Fragment>;
 }
 
 export default function RuleNode({
@@ -25,14 +41,9 @@ export default function RuleNode({
     <RuleRowContainer>
       <RuleRow>
         <Rule>
-          {(() => {
-            const node = dataConditionNodesMap[condition.comparison_type];
-            const configNode = node?.configNode;
-            if (configNode) {
-              return configNode(condition, condition_id, onUpdate);
-            }
-            return node?.label;
-          })()}
+          <DataConditionNodeContext.Provider value={{condition, condition_id, onUpdate}}>
+            <Node />
+          </DataConditionNodeContext.Provider>
         </Rule>
         <DeleteButton
           aria-label={t('Delete Node')}
@@ -69,7 +80,9 @@ const DeleteButton = styled(Button)`
   flex-shrink: 0;
   opacity: 0;
 
-  ${RuleRowContainer}:hover & {
+  ${RuleRowContainer}:hover &,
+  ${RuleRowContainer}:focus-within &,
+  &:focus {
     opacity: 1;
   }
 `;

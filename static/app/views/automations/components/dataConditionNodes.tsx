@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {createContext, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 
 import NumberField from 'sentry/components/forms/fields/numberField';
@@ -9,13 +9,27 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 
+export interface DataConditionNodeProps {
+  condition: Omit<DataCondition, 'condition_group' | 'type' | 'id'>;
+  condition_id: string;
+  onUpdate: (condition: Record<string, any>) => void;
+}
+
+export const DataConditionNodeContext = createContext<DataConditionNodeProps | null>(
+  null
+);
+
+export function useDataConditionNodeContext(): DataConditionNodeProps {
+  const context = useContext(DataConditionNodeContext);
+  if (!context) {
+    throw new Error('stop what ur doin');
+  }
+  return context;
+}
+
 export type Node = {
   label: string;
-  configNode?: (
-    condition: Omit<DataCondition, 'condition_group' | 'type' | 'id'>,
-    condition_id: string,
-    onUpdate: (condition: Record<string, any>) => void
-  ) => React.ReactNode;
+  configNode?: () => React.ReactNode;
 };
 
 // TODO: split nodes into separate files
@@ -31,87 +45,85 @@ export const dataConditionNodesMap: Partial<Record<DataConditionType, Node>> = {
   },
   [DataConditionType.AGE_COMPARISON]: {
     label: t('Compare the age of an issue'),
-    configNode: (
-      condition: Omit<DataCondition, 'condition_group' | 'type' | 'id'>,
-      condition_id: string,
-      onUpdate: (comparison: Record<string, any>) => void
-    ) => (
-      <Fragment>
-        {tct('The issue is [comparison_type] [value] [time]', {
-          comparison_type: (
-            <InlineSelectControl
-              styles={selectControlStyles}
-              name={`${condition_id}.comparison.type`}
-              value={condition.comparison.type}
-              options={[
-                {value: 'older', label: 'older than'},
-                {value: 'newer', label: 'newer than'},
-              ]}
-              onChange={(value: DataConditionType) => {
-                onUpdate({
-                  type: value,
-                });
-              }}
-            />
-          ),
-          value: (
-            <InlineNumberInput
-              name={`${condition_id}.comparison.value`}
-              min={0}
-              step={1}
-              onChange={(value: string) => {
-                onUpdate({
-                  value: parseInt(value, 10),
-                });
-              }}
-            />
-          ),
-          time: (
-            <InlineSelectControl
-              styles={selectControlStyles}
-              name={`${condition_id}.comparison.time`}
-              value={condition.comparison.time}
-              options={[
-                {value: 'minutes', label: 'minute(s)'},
-                {value: 'hours', label: 'hour(s)'},
-                {value: 'days', label: 'day(s)'},
-              ]}
-              onChange={(value: string) => {
-                onUpdate({
-                  time: value,
-                });
-              }}
-            />
-          ),
-        })}
-      </Fragment>
-    ),
+    configNode: function ConfigNode() {
+      const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+      return (
+        <Fragment>
+          {tct('The issue is [comparison_type] [value] [time]', {
+            comparison_type: (
+              <InlineSelectControl
+                styles={selectControlStyles}
+                name={`${condition_id}.comparison.type`}
+                value={condition.comparison.type}
+                options={[
+                  {value: 'older', label: 'older than'},
+                  {value: 'newer', label: 'newer than'},
+                ]}
+                onChange={(value: DataConditionType) => {
+                  onUpdate({
+                    type: value,
+                  });
+                }}
+              />
+            ),
+            value: (
+              <InlineNumberInput
+                name={`${condition_id}.comparison.value`}
+                min={0}
+                step={1}
+                onChange={(value: string) => {
+                  onUpdate({
+                    value: parseInt(value, 10),
+                  });
+                }}
+              />
+            ),
+            time: (
+              <InlineSelectControl
+                styles={selectControlStyles}
+                name={`${condition_id}.comparison.time`}
+                value={condition.comparison.time}
+                options={[
+                  {value: 'minutes', label: 'minute(s)'},
+                  {value: 'hours', label: 'hour(s)'},
+                  {value: 'days', label: 'day(s)'},
+                ]}
+                onChange={(value: string) => {
+                  onUpdate({
+                    time: value,
+                  });
+                }}
+              />
+            ),
+          })}
+        </Fragment>
+      );
+    },
   },
   [DataConditionType.ISSUE_OCCURRENCES]: {
     label: t('Check how many times an issue has occurred'),
-    configNode: (
-      condition: Omit<DataCondition, 'condition_group' | 'type' | 'id'>,
-      condition_id: string,
-      onUpdate: (comparison: Record<string, any>) => void
-    ) => (
-      <Fragment>
-        {tct('The issue has happened at least [value] times', {
-          value: (
-            <InlineNumberInput
-              name={`${condition_id}.comparison.value`}
-              value={condition.comparison.value}
-              min={1}
-              step={1}
-              onChange={(value: string) => {
-                onUpdate({
-                  value,
-                });
-              }}
-            />
-          ),
-        })}
-      </Fragment>
-    ),
+    configNode: function ConfigNode() {
+      const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
+      return (
+        <Fragment>
+          {tct('The issue has happened at least [value] times', {
+            value: (
+              <InlineNumberInput
+                name={`${condition_id}.comparison.value`}
+                value={condition.comparison.value}
+                min={1}
+                step={1}
+                onChange={(value: string) => {
+                  onUpdate({
+                    value,
+                  });
+                }}
+              />
+            ),
+          })}
+        </Fragment>
+      );
+    },
   },
 };
 

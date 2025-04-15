@@ -15,6 +15,12 @@ interface RuleNodeListProps {
   updateCondition: (index: number, condition: Record<string, any>) => void;
 }
 
+// TODO: only show data conditions that are returned by the API
+const options = Object.entries(dataConditionNodesMap).map(([value, node]) => ({
+  value,
+  label: node.label,
+}));
+
 export default function RuleNodeList({
   group,
   placeholder,
@@ -23,22 +29,17 @@ export default function RuleNodeList({
   onDeleteRow,
   updateCondition,
 }: RuleNodeListProps) {
-  const options = Object.entries(dataConditionNodesMap).map(([value, node]) => ({
-    value,
-    label: node.label,
-  }));
-
   return (
     <Fragment>
-      {Object.entries(conditions).map(([i, condition]) => (
+      {conditions.map((condition, i) => (
         <RuleNode
           key={`${group}.conditions.${i}`}
           condition_id={`${group}.conditions.${i}`}
           condition={condition}
           onDelete={() => {
-            onDeleteRow(parseInt(i, 10));
+            onDeleteRow(i);
           }}
-          onUpdate={newCondition => updateCondition(parseInt(i, 10), newCondition)}
+          onUpdate={newCondition => updateCondition(i, newCondition)}
         />
       ))}
       <StyledSelectControl
