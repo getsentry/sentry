@@ -1,17 +1,17 @@
 import type {ReactElement} from 'react';
 
+import CrashFreeSessionsChartWidget from 'sentry/views/insights/common/components/widgets/crashFreeSessionsChartWidget';
+import NewAndResolvedIssueChartWidget from 'sentry/views/insights/common/components/widgets/newAndResolvedIssueChartWidget';
+import ReleaseNewIssuesChartWidget from 'sentry/views/insights/common/components/widgets/releaseNewIssuesChartWidget';
+import ReleaseSessionCountChartWidget from 'sentry/views/insights/common/components/widgets/releaseSessionCountChartWidget';
+import ReleaseSessionPercentageChartWidget from 'sentry/views/insights/common/components/widgets/releaseSessionPercentageChartWidget';
+import SessionHealthCountChartWidget from 'sentry/views/insights/common/components/widgets/sessionHealthCountChartWidget';
+import SessionHealthRateChartWidget from 'sentry/views/insights/common/components/widgets/sessionHealthRateChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
+import UnhealthySessionsChartWidget from 'sentry/views/insights/common/components/widgets/unhealthySessionsChartWidget';
+import UserHealthCountChartWidget from 'sentry/views/insights/common/components/widgets/userHealthCountChartWidget';
+import UserHealthRateChartWidget from 'sentry/views/insights/common/components/widgets/userHealthRateChartWidget';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import CrashFreeSessionsChartWidget from 'sentry/views/insights/sessions/charts/crashFreeSessionsChartWidget';
-import NewAndResolvedIssueChartWidget from 'sentry/views/insights/sessions/charts/newAndResolvedIssueChartWidget';
-import ReleaseNewIssuesChartWidget from 'sentry/views/insights/sessions/charts/releaseNewIssuesChartWidget';
-import ReleaseSessionCountChartWidget from 'sentry/views/insights/sessions/charts/releaseSessionCountChartWidget';
-import ReleaseSessionPercentageChartWidget from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChartWidget';
-import SessionHealthCountChartWidget from 'sentry/views/insights/sessions/charts/sessionHealthCountChartWidget';
-import SessionHealthRateChartWidget from 'sentry/views/insights/sessions/charts/sessionHealthRateChartWidget';
-import UnhealthySessionsChartWidget from 'sentry/views/insights/sessions/charts/unhealthySessionsChartWidget';
-import UserHealthCountChartWidget from 'sentry/views/insights/sessions/charts/userHealthCountChartWidget';
-import UserHealthRateChartWidget from 'sentry/views/insights/sessions/charts/userHealthRateChartWidget';
 import type {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 
 export const CHART_MAP: Record<
