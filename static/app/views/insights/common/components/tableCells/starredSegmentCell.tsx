@@ -17,7 +17,7 @@ export function StarredSegmentCell({segmentName, initialIsStarred, projectSlug}:
 
   const {toggleStarredTransaction, isPending, isStarred} = useStarredSegment({
     initialIsStarred,
-    project,
+    projectId: project?.id,
     segmentName,
   });
 
