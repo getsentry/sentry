@@ -3624,29 +3624,50 @@
   dependencies:
     "@typescript-eslint/utils" "^8.18.1"
 
-"@tanstack/query-core@5.64.1":
-  version "5.64.1"
-  resolved "https://registry.yarnpkg.com/@tanstack/query-core/-/query-core-5.64.1.tgz#d56e26b3e29fc68a89d140f1fd92900bc8f3fc86"
-  integrity sha512-978Wx4Wl4UJZbmvU/rkaM9cQtXXrbhK0lsz/UZhYIbyKYA8E4LdomTwyh2GHZ4oU0BKKoDH4YlKk2VscCUgNmg==
-
-"@tanstack/query-devtools@5.62.16":
-  version "5.62.16"
-  resolved "https://registry.yarnpkg.com/@tanstack/query-devtools/-/query-devtools-5.62.16.tgz#a4b71c6b5bbf7575861437ef9a9f232333569255"
-  integrity sha512-3ff6UBJr0H3nIhfLSl9911rvKqXf0u4B58jl0uYdDWLqPk9pCvYIbxC35cGxK2+8INl4IaFVUHb/IdgWrNkg3Q==
-
-"@tanstack/react-query-devtools@^5.64.1":
-  version "5.64.1"
-  resolved "https://registry.yarnpkg.com/@tanstack/react-query-devtools/-/react-query-devtools-5.64.1.tgz#e3ccf56b1b30453a4baed2b05d4fa717885ddf97"
-  integrity sha512-8ajcGE3wXYlb4KuJnkFYkJwJKc/qmPNTpQD7YTgLRMBPTGGp1xk7VMzxL87DoXuweO8luplUUblJJ3noVs/luQ==
+"@tanstack/query-async-storage-persister@^5.72.1":
+  version "5.72.1"
+  resolved "https://registry.yarnpkg.com/@tanstack/query-async-storage-persister/-/query-async-storage-persister-5.72.1.tgz#2d4c230efbab7670fa03d483196232ff34a465c1"
+  integrity sha512-5l6NuV1GMz0Y2qGJ9B1JYgpDmLb92fs4c56/cxgNACwwi+bWyzEySQZocyXxiEW4ZG8fSQ/la57nAAw+OSsp0w==
   dependencies:
-    "@tanstack/query-devtools" "5.62.16"
+    "@tanstack/query-persist-client-core" "5.72.1"
 
-"@tanstack/react-query@^5.64.1":
-  version "5.64.1"
-  resolved "https://registry.yarnpkg.com/@tanstack/react-query/-/react-query-5.64.1.tgz#46b4182f5b045299e4be8d0a91c549ac5dc0a20c"
-  integrity sha512-vW5ggHpIO2Yjj44b4sB+Fd3cdnlMJppXRBJkEHvld6FXh3j5dwWJoQo7mGtKI2RbSFyiyu/PhGAy0+Vv5ev9Eg==
+"@tanstack/query-core@5.72.1":
+  version "5.72.1"
+  resolved "https://registry.yarnpkg.com/@tanstack/query-core/-/query-core-5.72.1.tgz#c46e3e5eecf1628c478965c0540cae98838e24fe"
+  integrity sha512-nOu0EEkZuJ0BZnYgeaEfo44+psq1jBO7/zp3KudixD4dvgOVerrhAhDEKsWx2N7MxB59mjO4r0ddP/VqWGPK+Q==
+
+"@tanstack/query-devtools@5.72.1":
+  version "5.72.1"
+  resolved "https://registry.yarnpkg.com/@tanstack/query-devtools/-/query-devtools-5.72.1.tgz#3ef35de317a55a688072a13cb628931ddec0f097"
+  integrity sha512-D0vEoQaiVq9ayCqvvxA9XkDq7TIesyPpvgP69arRtt5FQF6n/Hrta4SlkfXC4m9BCvFLlhLDcKGYa2eMQ4ZIIA==
+
+"@tanstack/query-persist-client-core@5.72.1":
+  version "5.72.1"
+  resolved "https://registry.yarnpkg.com/@tanstack/query-persist-client-core/-/query-persist-client-core-5.72.1.tgz#65ba35375677723fc51d28295cdaddfb20d65855"
+  integrity sha512-sceggk1lnJVNlvAUFoWZgaC1SVPgxyhoShHGczlAZHZIn7uLkEJcICXUQlvTSeJn4nr8XdFxBSW8ie/6YPmr6A==
   dependencies:
-    "@tanstack/query-core" "5.64.1"
+    "@tanstack/query-core" "5.72.1"
+
+"@tanstack/react-query-devtools@^5.72.1":
+  version "5.72.1"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-query-devtools/-/react-query-devtools-5.72.1.tgz#9822a0799125dc67ff1bd846cf01a524b12fa998"
+  integrity sha512-ckNRgABst3MLjpM2nD/CzQToCiaT3jb3Xhtf+GP/0/9ij9SPT/SC+lc3wUDSkT0OupnHobBBF5E1/Xp6B+XZLg==
+  dependencies:
+    "@tanstack/query-devtools" "5.72.1"
+
+"@tanstack/react-query-persist-client@^5.72.1":
+  version "5.72.1"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-query-persist-client/-/react-query-persist-client-5.72.1.tgz#9564de508fb25ef1d63430b6ad3cea3f9727f28a"
+  integrity sha512-VJ1wqgfDblyjjxdrm910bQflHNC6IVcqKMN6/DIhC7AGw8jeSKWDc7AVZW4d9L57tblyYdQfUfwTOBfpGk646Q==
+  dependencies:
+    "@tanstack/query-persist-client-core" "5.72.1"
+
+"@tanstack/react-query@^5.72.1":
+  version "5.72.1"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-query/-/react-query-5.72.1.tgz#7c8bcb94bfc64e57377bfa3c5b2a764c4ae83229"
+  integrity sha512-4UEMyRx54xj144D2nDvDIMiXSG5BrqyCJrmyNoGbymNS+VWODcBDFrmRk9p2fe12UGZ4JtKPTNuW2Jg0aisUgQ==
+  dependencies:
+    "@tanstack/query-core" "5.72.1"
 
 "@tanstack/react-virtual@^3.5.1":
   version "3.5.1"
@@ -7718,6 +7739,11 @@ icss-utils@^5.0.0, icss-utils@^5.1.0:
   version "5.1.0"
   resolved "https://registry.yarnpkg.com/icss-utils/-/icss-utils-5.1.0.tgz#c6be6858abd013d768e98366ae47e25d5887b1ae"
   integrity sha512-soFhflCVWLfRNOPU3iv5Z9VUdT44xFRbzjLsEzSr5AQmgqPMTHdU3PMT1Cf1ssx8fLNJDA1juftYl+PUcv3MqA==
+
+idb-keyval@^6.2.1:
+  version "6.2.1"
+  resolved "https://registry.yarnpkg.com/idb-keyval/-/idb-keyval-6.2.1.tgz#94516d625346d16f56f3b33855da11bfded2db33"
+  integrity sha512-8Sb3veuYCyrZL+VBt9LJfZjLUPWVvqn8tG28VqYNFCo43KHcKuq+b4EiXGeuaLAQWL2YmyDgMp2aSpH9JHsEQg==
 
 ieee754@^1.2.1:
   version "1.2.1"
