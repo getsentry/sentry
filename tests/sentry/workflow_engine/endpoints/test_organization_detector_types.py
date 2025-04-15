@@ -52,7 +52,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             slug = MonitorIncidentType.slug
             description = "Crons"
             category = GroupCategory.CRON.value
-            detector_handler = DetectorConfig(handler=MockDetectorHandler)
+            detector_config = DetectorConfig(handler=MockDetectorHandler)
             released = True
 
         @dataclass(frozen=True)
@@ -79,7 +79,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
     def test_simple(self):
         response = self.get_success_response(self.organization.slug, status_code=200)
-        assert len(response.data) == 3
         assert response.data == [
             MetricAlertFire.slug,
             MonitorIncidentType.slug,

@@ -122,7 +122,7 @@ def enforce_config_schema(sender, instance: Detector, **kwargs):
         raise ValueError(f"No group type found with type {instance.type}")
 
     if not group_type.detector_config:
-        raise ValueError(f"No detector_config specified for this group type {instance.type}")
+        return
 
     if not isinstance(instance.config, dict):
         raise ValidationError("Detector config must be a dictionary")
