@@ -1027,9 +1027,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
             self.environment_ids,
         )
         lifetime_result = self._parse_seen_stats_results(
-            self._execute_lifetime_seen_stats_query(
+            self._execute_error_seen_stats_query(
                 item_list=error_issue_list,
             ),
+            error_issue_list,
+            False,
         )
         for item in error_issue_list:
             result[item].update({"lifetime": lifetime_result.get(item, {})})
@@ -1051,9 +1053,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
             self.environment_ids,
         )
         lifetime_result = self._parse_seen_stats_results(
-            self._execute_lifetime_seen_stats_query(
+            self._execute_generic_seen_stats_query(
                 item_list=generic_issue_list,
             ),
+            generic_issue_list,
+            False,
         )
         for item in generic_issue_list:
             result[item].update({"lifetime": lifetime_result.get(item, {})})
