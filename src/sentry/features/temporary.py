@@ -519,9 +519,6 @@ def register_temporary_features(manager: FeatureManager):
     # Enable Relay extracting logs from breadcrumbs for a project.
     manager.add("projects:ourlogs-breadcrumb-extraction", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
-    # no-op feature to test region config
-    manager.add("organizations:region-test", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-
     # NOTE: Don't add features down here! Add them to their specific group and sort
     #       them alphabetically! The order features are registered is not important.
 
