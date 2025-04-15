@@ -792,7 +792,7 @@ class SnubaTSDB(BaseTSDB):
     def get_distinct_counts_series(
         self,
         model,
-        keys: Sequence[int],
+        keys: Sequence[TSDBKey],
         start,
         end=None,
         rollup=None,
@@ -830,7 +830,7 @@ class SnubaTSDB(BaseTSDB):
         referrer_suffix=None,
         conditions=None,
         group_on_time: bool = False,
-    ):
+    ) -> Mapping[TSDBKey, int]:
         return self.get_data(
             model,
             keys,

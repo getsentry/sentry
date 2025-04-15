@@ -25,7 +25,7 @@ from sentry.rules.conditions.event_frequency import (
     STANDARD_INTERVALS,
 )
 from sentry.rules.match import MatchType
-from sentry.tsdb.base import SnubaCondition, TSDBModel
+from sentry.tsdb.base import SnubaCondition, TSDBKey, TSDBModel
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import Registry
 from sentry.utils.snuba import options_override
@@ -39,7 +39,7 @@ class TSDBFunction(Protocol):
     def __call__(
         self,
         model: TSDBModel,
-        keys: list[int],
+        keys: list[TSDBKey],
         start: datetime,
         end: datetime,
         rollup: int | None = None,
@@ -50,7 +50,7 @@ class TSDBFunction(Protocol):
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
         group_on_time: bool = False,
-    ) -> dict[int, int]: ...
+    ) -> Mapping[TSDBKey, int]: ...
 
 
 class InvalidFilter(Exception):
@@ -104,7 +104,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         conditions: list[SnubaCondition] | None = None,
         group_on_time: bool = False,
     ) -> Mapping[int, int]:
-        result = tsdb_function(
+        result: Mapping[int, int] = tsdb_function(
             model=model,
             keys=keys,
             start=start,
