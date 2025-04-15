@@ -144,6 +144,10 @@ export type SpanIndexedQueryFilters = Partial<Record<SpanStringFields, string>> 
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 
+// TODO: This will be the final field type for eap spans
+export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> &
+  Partial<Record<SpanBooleanFields, 'true' | 'false'>>;
+
 export type SpanStringArrayFields = 'span.domain';
 
 export const COUNTER_AGGREGATES = ['sum', 'avg', 'min', 'max', 'p100'] as const;
@@ -254,6 +258,7 @@ export enum SpanIndexedField {
   ENVIRONMENT = 'environment',
   RESOURCE_RENDER_BLOCKING_STATUS = 'resource.render_blocking_status',
   HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
+  TRANSACTION_SPAN_ID = 'transaction.span_id',
   SPAN_CATEGORY = 'span.category',
   SPAN_DURATION = 'span.duration',
   SPAN_SELF_TIME = 'span.self_time',
@@ -340,6 +345,7 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.SPAN_DESCRIPTION]: string;
   [SpanIndexedField.SPAN_OP]: string;
   [SpanIndexedField.SPAN_AI_PIPELINE_GROUP]: string;
+  [SpanIndexedField.TRANSACTION_SPAN_ID]: string;
   [SpanIndexedField.SPAN_STATUS]:
     | 'ok'
     | 'cancelled'

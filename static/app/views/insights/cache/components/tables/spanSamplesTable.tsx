@@ -22,7 +22,7 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 
 type DataRowKeys =
   | SpanIndexedField.PROJECT
-  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.TRANSACTION_SPAN_ID
   | SpanIndexedField.TRACE
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_ID
@@ -35,10 +35,10 @@ type ColumnKeys =
   | SpanIndexedField.SPAN_DESCRIPTION
   | SpanIndexedField.CACHE_HIT
   | SpanIndexedField.CACHE_ITEM_SIZE
-  | 'transaction.duration';
+  | SpanIndexedField.SPAN_DURATION;
 
 export type DataRow = Pick<SpanIndexedResponse, DataRowKeys> & {
-  'transaction.duration': number;
+  [SpanIndexedField.SPAN_DURATION]: number;
 };
 
 type Column = GridColumnHeader<ColumnKeys>;
@@ -55,7 +55,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'transaction.duration',
+    key: SpanIndexedField.SPAN_DURATION,
     name: t('Transaction Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -132,7 +132,7 @@ function renderBodyCell(
         projectSlug={row.project}
         traceId={row.trace}
         timestamp={row.timestamp}
-        transactionId={row[SpanIndexedField.TRANSACTION_ID]}
+        transactionId={row[SpanIndexedField.TRANSACTION_SPAN_ID]}
         spanId={row[SpanIndexedField.SPAN_ID]}
         source={TraceViewSources.CACHES_MODULE}
         location={location}

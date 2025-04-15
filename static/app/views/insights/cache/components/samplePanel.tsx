@@ -29,13 +29,15 @@ import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDr
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
+  useDiscoverOrEap,
   useMetrics,
   useSpanMetrics,
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
+import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
 import {findSampleFromDataPoint} from 'sentry/views/insights/common/utils/findDataPoint';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {
   DataTitles,
   getThroughputTitle,
@@ -43,7 +45,6 @@ import {
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
 import {
   MetricsFields,
-  type MetricsQueryFilters,
   ModuleName,
   SpanFunction,
   SpanIndexedField,
@@ -51,6 +52,7 @@ import {
   type SpanIndexedResponse,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
+  type SpanQueryFilters,
 } from 'sentry/views/insights/types';
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
@@ -59,6 +61,7 @@ export function CacheSamplePanel() {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const useEap = useInsightsEap();
 
   const query = useLocationQuery({
     fields: {
@@ -122,13 +125,18 @@ export function CacheSamplePanel() {
       Referrer.SAMPLES_CACHE_METRICS_RIBBON
     );
 
+  const durationField = useEap
+    ? MetricsFields.SPAN_DURATION
+    : MetricsFields.TRANSACTION_DURATION;
+  const search: SpanQueryFilters = useEap
+    ? {transaction: query.transaction, is_transaction: 'true'}
+    : {transaction: query.transaction};
+
   const {data: transactionDurationData, isPending: isTransactionDurationLoading} =
     useMetrics(
       {
-        search: MutableSearch.fromQueryObject({
-          transaction: query.transaction,
-        } satisfies MetricsQueryFilters),
-        fields: [`avg(${MetricsFields.TRANSACTION_DURATION})`],
+        search: MutableSearch.fromQueryObject(search),
+        fields: [`avg(${durationField})`],
       },
       Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
     );
@@ -153,7 +161,7 @@ export function CacheSamplePanel() {
         fields: [
           SpanIndexedField.PROJECT,
           SpanIndexedField.TRACE,
-          SpanIndexedField.TRANSACTION_ID,
+          SpanIndexedField.TRANSACTION_SPAN_ID,
           SpanIndexedField.SPAN_ID,
           SpanIndexedField.TIMESTAMP,
           SpanIndexedField.SPAN_DESCRIPTION,
@@ -189,16 +197,24 @@ export function CacheSamplePanel() {
     data: cacheMissSamples,
     isFetching: isCacheMissesFetching,
     refetch: refetchCacheMisses,
+    meta: spansMeta,
   } = useIndexedCacheSpans('false', cacheMissSamplesLimit);
 
   const cacheSamples = [...(cacheHitSamples || []), ...(cacheMissSamples || [])];
+
+  const transactionIds = cacheSamples?.map(span => span['transaction.span_id']);
 
   const {
     data: transactionData,
     error: transactionError,
     isFetching: isFetchingTransactions,
-  } = useTransactions(
-    cacheSamples?.map(span => span['transaction.id']) || [],
+    meta: transactionsMeta,
+  } = useDiscoverOrEap(
+    {
+      fields: ['id', 'timestamp', 'project', durationField, 'trace'],
+      enabled: Boolean(transactionIds.length),
+      search: `span_id:[${transactionIds.join(',')}]`,
+    },
     Referrer.SAMPLES_CACHE_SPAN_SAMPLES
   );
 
@@ -207,9 +223,11 @@ export function CacheSamplePanel() {
   const spansWithDuration =
     cacheSamples?.map(span => ({
       ...span,
-      'transaction.duration':
-        transactionDurationsMap[span['transaction.id']]?.['transaction.duration']!,
+      'span.duration':
+        transactionDurationsMap[span['transaction.span_id']]?.[durationField]!,
     })) || [];
+
+  const meta = combineMeta(transactionsMeta, spansMeta);
 
   const {projects} = useProjects();
   const project = projects.find(p => query.project === p.id);
@@ -261,11 +279,7 @@ export function CacheSamplePanel() {
 
               <MetricReadout
                 title={DataTitles[`avg(${MetricsFields.TRANSACTION_DURATION})`]}
-                value={
-                  transactionDurationData?.[0]?.[
-                    `avg(${MetricsFields.TRANSACTION_DURATION})`
-                  ]
-                }
+                value={transactionDurationData?.[0]?.[`avg(${durationField})`]}
                 unit={DurationUnit.MILLISECOND}
                 isLoading={isTransactionDurationLoading}
               />
@@ -310,9 +324,7 @@ export function CacheSamplePanel() {
             <TransactionDurationChart
               samples={spansWithDuration}
               averageTransactionDuration={
-                transactionDurationData?.[0]?.[
-                  `avg(${MetricsFields.TRANSACTION_DURATION})`
-                ]!
+                transactionDurationData?.[0]?.[`avg(${durationField})`]!
               }
               highlightedSpanId={highlightedSpanId}
               onHighlight={highlights => {
@@ -326,7 +338,7 @@ export function CacheSamplePanel() {
                 const sample = findSampleFromDataPoint<(typeof spansWithDuration)[0]>(
                   firstHighlight.dataPoint,
                   spansWithDuration,
-                  'transaction.duration'
+                  'span.duration'
                 );
                 setHighlightedSpanId(sample?.span_id);
               }}
@@ -347,13 +359,7 @@ export function CacheSamplePanel() {
             <ModuleLayout.Full>
               <SpanSamplesTable
                 data={spansWithDuration ?? []}
-                meta={{
-                  fields: {
-                    'transaction.duration': 'duration',
-                    [SpanIndexedField.CACHE_ITEM_SIZE]: 'size',
-                  },
-                  units: {[SpanIndexedField.CACHE_ITEM_SIZE]: 'byte'},
-                }}
+                meta={meta}
                 isLoading={
                   isCacheHitsFetching || isCacheMissesFetching || isFetchingTransactions
                 }
