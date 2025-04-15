@@ -5,14 +5,15 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.environments import get_environment_func
 from sentry.api.serializers import SharedGroupSerializer, serialize
 from sentry.models.group import Group
 
 
 @region_silo_endpoint
-class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
+class SharedGroupDetailsEndpoint(Endpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -61,7 +62,7 @@ class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
             group,
             request.user,
             SharedGroupSerializer(
-                environment_func=self._get_environment_func(request, group.project.organization_id)
+                environment_func=get_environment_func(request, group.project.organization_id)
             ),
         )
         return Response(context)

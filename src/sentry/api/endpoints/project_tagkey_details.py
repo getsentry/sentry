@@ -4,9 +4,10 @@ from rest_framework.response import Response
 from sentry import audit_log, tagstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
 from sentry.constants import PROTECTED_TAG_KEYS
 from sentry.models.environment import Environment
@@ -14,7 +15,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @region_silo_endpoint
-class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
+class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
@@ -33,7 +34,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
         lookup_key = tagstore.backend.prefix_reserved_key(key)
 
         try:
-            environment_id = self._get_environment_id_from_request(request, project.organization_id)
+            environment_id = get_environment_id(request, project.organization_id)
         except Environment.DoesNotExist:
             # if the environment doesn't exist then the tag can't possibly exist
             raise ResourceDoesNotExist

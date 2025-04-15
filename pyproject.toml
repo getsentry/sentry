@@ -187,6 +187,7 @@ module = [
     "sentry.api.endpoints.release_thresholds.health_checks.*",
     "sentry.api.event_search",
     "sentry.api.helpers.deprecation",
+    "sentry.api.helpers.environments",
     "sentry.api.helpers.group_index.update",
     "sentry.api.helpers.source_map_helper",
     "sentry.api.permissions",

@@ -13,6 +13,7 @@ from rest_framework.response import Response
 
 from sentry import features, search
 from sentry.api.event_search import AggregateFilter, SearchFilter
+from sentry.api.helpers.environments import get_environment
 from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.constants import DEFAULT_SORT_OPTION
@@ -267,7 +268,7 @@ def prep_search(
     extra_query_kwargs: dict[str, Any] | None = None,
 ) -> tuple[CursorResult[Group], dict[str, Any]]:
     try:
-        environment = cls._get_environment_from_request(request, project.organization_id)
+        environment = get_environment(request, project.organization_id)
     except Environment.DoesNotExist:
         result = CursorResult[Group](
             [], Cursor(0, 0, 0), Cursor(0, 0, 0), hits=0, max_hits=SEARCH_MAX_HITS

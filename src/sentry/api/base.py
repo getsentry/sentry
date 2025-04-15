@@ -31,7 +31,6 @@ from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.auth.staff import has_staff_option
 from sentry.middleware import is_frontend_request
-from sentry.models.environment import Environment
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo.base import SiloLimit, SiloMode
@@ -70,7 +69,6 @@ from .permissions import (
 
 __all__ = [
     "Endpoint",
-    "EnvironmentMixin",
     "StatsMixin",
     "control_silo_endpoint",
     "region_silo_endpoint",
@@ -565,47 +563,6 @@ class Endpoint(APIView):
         if is_frontend_request(request):
             return QuerySource.FRONTEND
         return QuerySource.API
-
-
-class EnvironmentMixin:
-    def _get_environment_func(
-        self, request: Request, organization_id: int
-    ) -> Callable[[], Environment | None]:
-        """\
-        Creates a function that when called returns the ``Environment``
-        associated with a request object, or ``None`` if no environment was
-        provided. If the environment doesn't exist, an ``Environment.DoesNotExist``
-        exception will be raised.
-
-        This returns as a callable since some objects outside of the API
-        endpoint need to handle the "environment was provided but does not
-        exist" state in addition to the two non-exceptional states (the
-        environment was provided and exists, or the environment was not
-        provided.)
-        """
-        return functools.partial(self._get_environment_from_request, request, organization_id)
-
-    def _get_environment_id_from_request(
-        self, request: Request, organization_id: int
-    ) -> int | None:
-        environment = self._get_environment_from_request(request, organization_id)
-        return environment.id if environment is not None else None
-
-    def _get_environment_from_request(
-        self, request: Request, organization_id: int
-    ) -> Environment | None:
-        if not hasattr(request, "_cached_environment"):
-            environment_param = request.GET.get("environment")
-            if environment_param is None:
-                environment = None
-            else:
-                environment = Environment.get_for_organization_id(
-                    name=environment_param, organization_id=organization_id
-                )
-
-            request._cached_environment = environment
-
-        return request._cached_environment
 
 
 class StatsArgsDict(TypedDict):
