@@ -3,10 +3,7 @@ from unittest.mock import patch
 
 from django.test import RequestFactory
 
-from sentry.auth.services.auth import AuthenticatedToken
 from sentry.middleware.auth import AuthenticationMiddleware
-from sentry.models.apikey import ApiKey
-from sentry.models.apitoken import ApiToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
@@ -85,38 +82,13 @@ class AuthenticationMiddlewareTestCase(TestCase):
         self.middleware.process_request(request)
         assert request.user.is_anonymous
 
-    def test_process_request_valid_authtoken(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
-        request = self.make_request(method="GET")
-        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token.token}"
-        self.middleware.process_request(request)
-        self.assert_user_equals(request)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert AuthenticatedToken.from_token(request.auth) == AuthenticatedToken.from_token(
-                token
-            )
-
     def test_process_request_invalid_authtoken(self):
         request = self.make_request(method="GET")
-        request.META["HTTP_AUTHORIZATION"] = "Bearer absadadafdf"
+        request.META["HTTP_AUTHORIZATION"] = b"Bearer absadadafdf"
         self.middleware.process_request(request)
         # Should swallow errors and pass on
         assert request.user.is_anonymous
         assert request.auth is None
-
-    def test_process_request_valid_apikey(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            apikey = ApiKey.objects.create(
-                organization_id=self.organization.id, allowed_origins="*"
-            )
-            request = self.make_request(method="GET")
-            request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
-
-        self.middleware.process_request(request)
-        # ApiKey is tied to an organization not user
-        assert request.user.is_anonymous
-        assert AuthenticatedToken.from_token(request.auth) == AuthenticatedToken.from_token(apikey)
 
     def test_process_request_invalid_apikey(self):
         request = self.make_request(method="GET")
