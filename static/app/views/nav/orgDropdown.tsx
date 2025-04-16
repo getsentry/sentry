@@ -132,19 +132,24 @@ export function OrgDropdown({className}: {className?: string}) {
               key: 'switch-organization',
               label: t('Switch Organization'),
               isSubmenu: true,
-              disabled: !organizations?.length,
               hidden: config.singleOrganization || isDemoModeActive(),
               children: [
-                ...orderBy(organizations, ['status.id', 'name']).map(switchOrg => ({
-                  key: switchOrg.id,
-                  label: <OrganizationBadge organization={switchOrg} />,
-                  textValue: switchOrg.name,
-                  to: resolveRoute(
-                    `/organizations/${switchOrg.slug}/issues/`,
-                    organization,
-                    switchOrg
-                  ),
-                })),
+                ...orderBy(organizations, ['status.id', 'name']).map(switchOrg => {
+                  const pendingDeletion = switchOrg.status.id === 'pending_deletion';
+
+                  return {
+                    key: switchOrg.id,
+                    label: <OrganizationBadge organization={switchOrg} />,
+                    textValue: switchOrg.name,
+                    to: resolveRoute(
+                      `/organizations/${switchOrg.slug}/issues/`,
+                      organization,
+                      switchOrg
+                    ),
+                    priority: pendingDeletion ? ('danger' as const) : undefined,
+                    tooltip: pendingDeletion ? t('Pending deletion') : undefined,
+                  };
+                }),
                 createOrganizationMenuItem(),
               ],
             },
