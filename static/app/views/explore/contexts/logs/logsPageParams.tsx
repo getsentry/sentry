@@ -303,7 +303,7 @@ export function useLogsAnalyticsPageSource() {
 }
 
 function getLogCursorFromLocation(location: Location): string {
-  if (!location.query || !location.query[LOGS_CURSOR_KEY]) {
+  if (!location.query?.[LOGS_CURSOR_KEY]) {
     return '';
   }
 
