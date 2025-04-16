@@ -38,7 +38,9 @@ class WorkflowValidator(CamelSnakeSerializer):
         if not action:
             raise serializers.ValidationError("An action is required in the actionFilter")
 
-        condition_group = action_filter - action
+        condition_group_keys = action_filter.keys() - action.keys()
+        condition_group = {k: action_filter[k] for k in condition_group_keys}
+
         return action, condition_group
 
     def validate_config(self, value):
