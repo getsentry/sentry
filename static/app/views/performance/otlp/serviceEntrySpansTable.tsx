@@ -25,9 +25,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   type EAPSpanResponse,
   ModuleName,
@@ -113,7 +115,7 @@ type Props = {
   handleDropdownChange: (k: string) => void;
   totalValues: Record<string, number> | null;
   transactionName: string;
-  isFullPageMode?: boolean;
+  fullPageMode?: boolean;
   showViewSampledEventsButton?: boolean;
   supportsInvestigationRule?: boolean;
 };
@@ -123,7 +125,7 @@ export function ServiceEntrySpansTable({
   handleDropdownChange,
   totalValues,
   transactionName,
-  isFullPageMode,
+  fullPageMode,
   supportsInvestigationRule,
   showViewSampledEventsButton,
 }: Props) {
@@ -136,6 +138,7 @@ export function ServiceEntrySpansTable({
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
   const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
   const spanCategory = decodeScalar(location.query?.[SpanIndexedField.SPAN_CATEGORY]);
+  const {selection} = usePageFilters();
   const {selected, options} = getOTelTransactionsListSort(location, spanCategory);
 
   const p95 = totalValues?.['p95()'] ?? 0;
@@ -156,8 +159,27 @@ export function ServiceEntrySpansTable({
     transactionName,
     p95,
     selected,
-    limit: isFullPageMode ? FULL_PAGE_MODE_LIMIT : undefined,
+    limit: fullPageMode ? FULL_PAGE_MODE_LIMIT : undefined,
   });
+
+  const countQuery = new MutableSearch(eventViewQuery.formatString());
+  countQuery.addFilterValue('is_transaction', '1');
+
+  const {
+    data: numEvents,
+    isLoading: isNumEventsLoading,
+    error: numEventsError,
+  } = useEAPSpans(
+    {
+      search: countQuery,
+      fields: ['count()'],
+      enabled: fullPageMode,
+      pageFilters: selection,
+    },
+    'api.performance.service-entry-spans-table-count'
+  );
+
+  console.dir(numEvents);
 
   const consolidatedData = tableData?.map(row => {
     const user =
@@ -196,7 +218,7 @@ export function ServiceEntrySpansTable({
   return (
     <Fragment>
       <Header>
-        {!isFullPageMode && (
+        {!fullPageMode && (
           <CompactSelect
             triggerProps={{prefix: t('Filter'), size: 'xs'}}
             value={selected.value}
@@ -224,7 +246,7 @@ export function ServiceEntrySpansTable({
             </Button>
           )}
         </HeaderButtonWrapper>
-        {!isFullPageMode && (
+        {!fullPageMode && (
           <CustomPagination
             pageLinks={pageLinks}
             onCursor={handleCursor}
@@ -248,7 +270,7 @@ export function ServiceEntrySpansTable({
             renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
         }}
       />
-      {isFullPageMode && (
+      {fullPageMode && (
         <Pagination pageLinks={pageLinks} onCursor={handleCursor} size="md" />
       )}
     </Fragment>

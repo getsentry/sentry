@@ -170,7 +170,7 @@ function EventsContent(props: Props) {
       totalValues={null}
       transactionName={transactionName}
       supportsInvestigationRule={false}
-      isFullPageMode
+      fullPageMode
     />
   ) : (
     <EventsTable
