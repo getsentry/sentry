@@ -164,7 +164,7 @@ export function ServiceEntrySpansTable({
 
   const countQuery = new MutableSearch(eventViewQuery.formatString());
   countQuery.addFilterValue('is_transaction', '1');
-
+  countQuery.addFilterValue('transaction', transactionName);
   const {data: numEvents, error: numEventsError} = useEAPSpans(
     {
       search: countQuery,

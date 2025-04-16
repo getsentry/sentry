@@ -19,7 +19,6 @@ type Options = {
 };
 
 const DEFAULT_LIMIT = 5;
-const CURSOR_NAME = 'serviceEntrySpansCursor';
 
 const FIELDS: EAPSpanProperty[] = [
   'span_id',
