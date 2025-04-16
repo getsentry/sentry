@@ -122,11 +122,23 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
         value.occurrences.forEach(occurence => this.occurrences.add(occurence));
       }
 
-      if ('profile_id' in value && typeof value.profile_id === 'string') {
-        this.profiles.push({profile_id: value.profile_id});
-      }
-      if ('profiler_id' in value && typeof value.profiler_id === 'string') {
-        this.profiles.push({profiler_id: value.profiler_id});
+      const isNonTransactionEAPSpan = isEAPSpan(value) && !value.is_transaction;
+
+      if (!isNonTransactionEAPSpan) {
+        if (
+          'profile_id' in value &&
+          typeof value.profile_id === 'string' &&
+          value.profile_id.trim() !== ''
+        ) {
+          this.profiles.push({profile_id: value.profile_id});
+        }
+        if (
+          'profiler_id' in value &&
+          typeof value.profiler_id === 'string' &&
+          value.profiler_id.trim() !== ''
+        ) {
+          this.profiles.push({profiler_id: value.profiler_id});
+        }
       }
     }
 

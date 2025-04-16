@@ -49,6 +49,7 @@ import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
+import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {
@@ -65,7 +66,6 @@ import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks
 import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/useGroupDistributionsDrawer';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   getGroupReprocessingStatus,
@@ -93,7 +93,8 @@ type FetchGroupDetailsState = {
   refetchGroup: () => void;
 };
 
-interface GroupDetailsContentProps extends GroupDetailsProps, FetchGroupDetailsState {
+interface GroupDetailsContentProps extends GroupDetailsProps {
+  event: Event | null;
   group: Group;
   project: Project;
 }
@@ -834,11 +835,12 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
       TourContext={IssueDetailsTourContext}
     >
       <GroupDetailsContent
-        {...props}
         project={projectWithFallback}
         group={props.group}
         event={props.event ?? injectedEvent}
-      />
+      >
+        {props.children}
+      </GroupDetailsContent>
     </TourContextProvider>
   );
 }

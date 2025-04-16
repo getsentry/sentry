@@ -1,3 +1,5 @@
+import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -5,19 +7,22 @@ import {IssueViewNavQueryCount} from 'sentry/views/nav/secondary/sections/issues
 
 describe('IssueViewNavQueryCount', () => {
   const mockView = {
-    id: '1',
+    ...GroupSearchViewFixture({
+      id: '1',
+      name: 'Test View',
+      query: 'is:unresolved',
+      querySort: IssueSortOptions.DATE,
+      environments: ['37'],
+      projects: [73],
+      timeFilters: {
+        period: '1d',
+        start: null,
+        end: null,
+        utc: null,
+      },
+      lastVisited: null,
+    }),
     label: 'Test View',
-    query: 'is:unresolved',
-    querySort: IssueSortOptions.DATE,
-    environments: ['37'],
-    projects: [73],
-    timeFilters: {
-      period: '1d',
-      start: null,
-      end: null,
-      utc: null,
-    },
-    lastVisited: null,
   };
 
   beforeEach(() => {

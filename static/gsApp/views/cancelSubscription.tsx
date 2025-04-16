@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -20,6 +20,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -80,6 +81,7 @@ type State = {
 
 function CancelSubscriptionForm() {
   const organization = useOrganization();
+  const navigate = useNavigate();
   const {data: subscription, isPending} = useApiQuery<Subscription>(
     [`/customers/${organization.slug}/`],
     {staleTime: 0}
@@ -142,7 +144,9 @@ function CancelSubscriptionForm() {
     const msg = resp?.responseJSON?.details || t('Successfully cancelled subscription');
 
     addSuccessMessage(msg);
-    browserHistory.push(normalizeUrl(`/settings/${organization.slug}/billing/`));
+    navigate({
+      pathname: normalizeUrl(`/settings/${organization.slug}/billing/`),
+    });
   };
 
   return (
@@ -239,9 +243,15 @@ function CancelSubscriptionWrapper({
 }: CancelSubscriptionWrapperProps) {
   const api = useApi();
   const organization = useOrganization();
+  const navigate = useNavigate();
   const {refetch} = usePromotionTriggerCheck(organization);
-  const switchToBillingOverview = () =>
-    browserHistory.push('/settings/billing/overview/');
+  const switchToBillingOverview = useCallback(() => {
+    navigate(
+      normalizeUrl({
+        pathname: `/settings/${organization.slug}/billing/overview/`,
+      })
+    );
+  }, [navigate, organization.slug]);
   useEffect(() => {
     // when we mount, we know someone is thinking about canceling their subscription
     if (promotionData) {
@@ -254,7 +264,7 @@ function CancelSubscriptionWrapper({
         onAcceptConditions: switchToBillingOverview,
       });
     }
-  }, [api, organization, refetch, subscription, promotionData]);
+  }, [api, organization, refetch, subscription, promotionData, switchToBillingOverview]);
 
   const title = t('Cancel Subscription');
   return (
