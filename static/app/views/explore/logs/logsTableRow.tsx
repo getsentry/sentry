@@ -24,7 +24,7 @@ import {
 import {HiddenLogDetailFields} from 'sentry/views/explore/logs/constants';
 import {
   LogAttributesRendererMap,
-  LogBodyAndTemplateRenderer,
+  LogBodyRenderer,
   LogFieldRenderer,
   SeverityCircleRenderer,
 } from 'sentry/views/explore/logs/fieldRenderers';
@@ -259,7 +259,7 @@ function LogRowDetails({
           <Fragment>
             <DetailsContent>
               <DetailsBody>
-                {LogBodyAndTemplateRenderer({
+                {LogBodyRenderer({
                   item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
                   extra: {
                     highlightTerms,

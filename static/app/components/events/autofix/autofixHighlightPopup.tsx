@@ -309,7 +309,9 @@ function AutofixHighlightPopupContent({
       {commentThread?.is_completed !== true && (
         <InputWrapper onSubmit={handleSubmit}>
           <StyledInput
-            placeholder={t('Questions? Instructions?')}
+            placeholder={
+              isAgentComment ? t('Share your context...') : t('Questions? Instructions?')
+            }
             value={comment}
             onChange={e => setComment(e.target.value)}
             maxLength={4096}
@@ -383,8 +385,12 @@ function AutofixHighlightPopup(props: Props) {
     }
 
     const updatePosition = () => {
+      if (!referenceElement || !popupRef.current) {
+        return;
+      }
+
       const referenceRect = referenceElement.getBoundingClientRect();
-      const popupRect = popupRef.current!.getBoundingClientRect();
+      const popupRect = popupRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
 
       const drawerElement = document.querySelector('.drawer-panel');
