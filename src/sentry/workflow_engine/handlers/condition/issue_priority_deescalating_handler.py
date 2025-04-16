@@ -12,7 +12,10 @@ class IssuePriorityDeescalatingConditionHandler(DataConditionHandler[WorkflowEve
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
-        previous_status = event_data.event.occurrence.evidence_data["previous_status"]
+        occurrence = event_data.event.occurrence
+        if occurrence is None:
+            raise Exception("Metric issue missing occurrence")
+        previous_status = occurrence.evidence_data["previous_status"]
 
         group = event_data.event.group
         current_status = group.priority
