@@ -1,33 +1,38 @@
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
-import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
-import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {CHART_HEIGHT} from 'sentry/views/insights/http/settings';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 
 interface Props {
   isLoading: boolean;
-  series: Series[];
+  series: DiscoverSeries[];
   error?: Error | null;
 }
 
 export function ResponseCodeCountChart({series, isLoading, error}: Props) {
+  // TODO: Temporary hack. `DiscoverSeries` meta field and the series name don't
+  // match. This is annoying to work around, and will become irrelevant soon
+  // enough. For now, just specify the correct meta for these series since
+  // they're known and simple
+  const seriesWithMeta: DiscoverSeries[] = series.map(discoverSeries => {
+    const transformedSeries: DiscoverSeries = {
+      ...discoverSeries,
+      meta: {
+        fields: {
+          [discoverSeries.seriesName]: 'integer',
+        },
+        units: {},
+      },
+    };
+
+    return transformedSeries;
+  });
+
   return (
-    <ChartPanel title={t('Top 5 Response Codes')}>
-      <Chart
-        showLegend
-        height={CHART_HEIGHT}
-        grid={{
-          left: '4px',
-          right: '0',
-          top: '8px',
-          bottom: '0',
-        }}
-        data={series}
-        loading={isLoading}
-        error={error}
-        type={ChartType.LINE}
-        aggregateOutputFormat="number"
-      />
-    </ChartPanel>
+    <InsightsLineChartWidget
+      title={t('Top 5 Response Codes')}
+      series={seriesWithMeta}
+      isLoading={isLoading}
+      error={error ?? null}
+    />
   );
 }
