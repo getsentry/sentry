@@ -13,7 +13,7 @@ interface PageFilterBarProps extends React.HTMLAttributes<HTMLDivElement> {
   condensed?: boolean;
 }
 
-const PageFilterBar = styled(({children, ...props}: PageFilterBarProps) => {
+const PageFilterBar = styled(({children, condensed, ...props}: PageFilterBarProps) => {
   if (Children.count(children) <= 1) {
     if (isValidElement(children)) {
       return cloneElement(children, props);
@@ -22,8 +22,14 @@ const PageFilterBar = styled(({children, ...props}: PageFilterBarProps) => {
     return children;
   }
 
-  return <div {...props} />;
-})<PageFilterBarProps>`
+  return (
+    <StyledPageFilterBar condensed={condensed} {...props}>
+      {children}
+    </StyledPageFilterBar>
+  );
+})``;
+
+const StyledPageFilterBar = styled('div')<{condensed?: boolean}>`
   ${p => (p.theme.isChonk ? chonkPageFilterBarStyles(p as any) : pageFilterBarStyles(p))}
 `;
 
