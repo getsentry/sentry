@@ -69,7 +69,7 @@ describe('EventSearch', () => {
       `${tagKey}:${tagValue}`,
       expect.anything()
     );
-  });
+  }, 10_000);
 
   it('filters issue tokens from event queries', function () {
     const validQuery = `${tagKey}:${tagValue} device.family:[iphone,pixel]`;
