@@ -105,7 +105,19 @@ def update_group(
             status_code=403, body="The user does not have access to the organization."
         )
 
-    return update_groups(request=request, groups=[group], user=user, data=data)
+    resp = update_groups(request=request, groups=[group], user=user, data=data)
+    if resp.status_code != 200:
+        _logger.error(
+            "slack.action.update-group-error",
+            extra={
+                "group_id": group.id,
+                "user_id": user.id,
+                "data": data,
+                "response": str(resp),
+            },
+        )
+
+    return resp
 
 
 def get_rule(slack_request: SlackActionRequest) -> Rule | None:
