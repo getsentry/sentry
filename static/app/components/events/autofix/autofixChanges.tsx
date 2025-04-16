@@ -341,7 +341,7 @@ export function AutofixChanges({
                       : null
                   }
                   isAgentComment
-                  blockName={t('Code Changes')}
+                  blockName={t('Autofix is uncertain of the code changes...')}
                 />
               )}
             </AnimatePresence>
