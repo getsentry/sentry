@@ -93,7 +93,6 @@ from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
@@ -1087,13 +1086,6 @@ class Factories:
                 )
 
         return group
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_group_open_period(project, group, date_started, **kwargs):
-        return GroupOpenPeriod.objects.create(
-            group=group, project=project, date_started=date_started, **kwargs
-        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

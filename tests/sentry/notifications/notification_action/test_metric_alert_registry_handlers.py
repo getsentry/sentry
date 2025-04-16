@@ -19,6 +19,7 @@ from sentry.incidents.typings.metric_detector import (
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
@@ -66,8 +67,10 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         )
         self.group.priority = PriorityLevel.HIGH.value
         self.group.save()
-        self.open_period = self.create_group_open_period(
-            project=self.project, group=self.group, date_started=self.group_event.group.first_seen
+        self.open_period, _ = GroupOpenPeriod.objects.get_or_create(
+            group=self.group,
+            project=self.project,
+            date_started=self.group_event.group.first_seen,
         )
         self.event_data = WorkflowEventData(
             event=self.group_event, workflow_env=self.workflow.environment
