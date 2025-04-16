@@ -82,7 +82,6 @@ const StyledBadge = styled('span')<BadgeProps>`
   transition: background 100ms linear;
 
   /* @TODO(jonasbadalic) why are these needed? */
-  font-size: 75%;
   padding: 0 5px;
   margin-left: ${space(0.5)};
   position: relative;
