@@ -37,7 +37,7 @@ describe('AutofixChanges', () => {
       type: AutofixStepType.CHANGES,
       changes: [AutofixCodebaseChangeData()],
     }) as AutofixChangesStep,
-  };
+  } satisfies React.ComponentProps<typeof AutofixChanges>;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
