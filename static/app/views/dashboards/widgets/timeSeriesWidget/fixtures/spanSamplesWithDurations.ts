@@ -14,17 +14,17 @@ export const spanSamplesWithDurations: TabularData = {
     {
       id: 'ad1453eb469473f5',
       'p99(span.duration)': 170.63336816976206,
-      timestamp: '2024-10-24T16:28:28-04:00',
+      timestamp: 1729801708000, // '2024-10-24T16:28:28-04:00'
     },
     {
       id: '8c6aa95b24d15772',
       'p99(span.duration)': 218.91675989347792,
-      timestamp: '2024-10-25T05:00:01-04:00',
+      timestamp: 1729846801000, // '2024-10-25T05:00:01-04:00'
     },
     {
       id: '8831cccebb865893',
       'p99(span.duration)': 74.50192368733187,
-      timestamp: '2024-10-25T13:21:12-04:00',
+      timestamp: 1729875672000, // '2024-10-25T13:21:12-04:00'
     },
   ],
 };

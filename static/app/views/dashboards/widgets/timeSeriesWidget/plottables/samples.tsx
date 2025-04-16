@@ -29,7 +29,7 @@ type ScatterPlotDatum = [timestamp: string, value: number, id: string];
 type ValidSampleRow = {
   [key: string]: string | number | null;
   id: string;
-  timestamp: string;
+  timestamp: number;
 };
 
 type SamplesConfig = {
@@ -79,7 +79,7 @@ type SamplesPlottingOptions = {
  */
 export class Samples implements Plottable {
   sampleTableData: Readonly<TabularData>;
-  #timestamps: readonly string[];
+  #timestamps: readonly number[];
   config: Readonly<SamplesConfig>;
   chartRef?: ReactEchartsRef;
 
@@ -153,11 +153,11 @@ export class Samples implements Plottable {
     return this.sampleTableData.meta.units[this.config.attributeName] ?? null;
   }
 
-  get start(): string | null {
+  get start(): number | null {
     return this.#timestamps.at(0) ?? null;
   }
 
-  get end(): string | null {
+  get end(): number | null {
     return this.#timestamps.at(-1) ?? null;
   }
 
@@ -301,7 +301,7 @@ export class Samples implements Plottable {
 }
 
 function isValidSampleRow(row: TabularRow): row is ValidSampleRow {
-  if (typeof row.id === 'string' && typeof row.timestamp === 'string') {
+  if (typeof row.id === 'string' && typeof row.timestamp === 'number') {
     return true;
   }
 

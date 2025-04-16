@@ -7,7 +7,7 @@ import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAnd
 
 describe('splitSeriesIntoCompleteAndIncomplete', () => {
   beforeEach(() => {
-    setMockDate(new Date('2024-10-24T15:59:00.000Z'));
+    setMockDate(new Date('2024-10-24T15:59:00.000Z')); // Unix: 1729591140000
   });
 
   afterEach(() => {
@@ -20,15 +20,15 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       data: [
         {
           value: 90,
-          timestamp: '2024-10-24T15:54:00.000Z',
+          timestamp: 1729590840000, // '2024-10-24T15:54:00.000Z'
         },
         {
           value: 100,
-          timestamp: '2024-10-24T15:55:00.000Z',
+          timestamp: 1729590900000, // '2024-10-24T15:55:00.000Z'
         },
         {
           value: 110,
-          timestamp: '2024-10-24T15:56:00.000Z',
+          timestamp: 1729590960000, // '2024-10-24T15:56:00.000Z'
         },
       ],
       meta: {
@@ -45,15 +45,15 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
     expect(completeSerie?.data).toEqual([
       {
         value: 90,
-        timestamp: '2024-10-24T15:54:00.000Z',
+        timestamp: 1729590840000, // '2024-10-24T15:54:00.000Z'
       },
       {
         value: 100,
-        timestamp: '2024-10-24T15:55:00.000Z',
+        timestamp: 1729590900000, // '2024-10-24T15:55:00.000Z'
       },
       {
         value: 110,
-        timestamp: '2024-10-24T15:56:00.000Z',
+        timestamp: 1729590960000, // '2024-10-24T15:56:00.000Z'
       },
     ]);
 
@@ -66,19 +66,19 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       data: [
         {
           value: 90,
-          timestamp: '2024-10-24T15:58:05.000Z',
+          timestamp: 1729591085000, // '2024-10-24T15:58:05.000Z'
         },
         {
           value: 100,
-          timestamp: '2024-10-24T15:58:10.000Z',
+          timestamp: 1729591090000, // '2024-10-24T15:58:10.000Z'
         },
         {
           value: 110,
-          timestamp: '2024-10-24T15:58:15.000Z',
+          timestamp: 1729591095000, // '2024-10-24T15:58:15.000Z'
         },
         {
           value: 120,
-          timestamp: '2024-10-24T15:58:20.000Z',
+          timestamp: 1729591100000, // '2024-10-24T15:58:20.000Z'
         },
       ],
       meta: {
@@ -97,19 +97,19 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
     expect(incompleteSerie?.data).toEqual([
       {
         value: 90,
-        timestamp: '2024-10-24T15:58:05.000Z',
+        timestamp: 1729591085000, // '2024-10-24T15:58:05.000Z'
       },
       {
         value: 100,
-        timestamp: '2024-10-24T15:58:10.000Z',
+        timestamp: 1729591090000, // '2024-10-24T15:58:10.000Z'
       },
       {
         value: 110,
-        timestamp: '2024-10-24T15:58:15.000Z',
+        timestamp: 1729591095000, // '2024-10-24T15:58:15.000Z'
       },
       {
         value: 120,
-        timestamp: '2024-10-24T15:58:20.000Z',
+        timestamp: 1729591100000, // '2024-10-24T15:58:20.000Z'
       },
     ]);
   });
@@ -120,23 +120,23 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       data: [
         {
           value: 100,
-          timestamp: '2024-10-24T15:55:00.000Z',
+          timestamp: 1729590900000, // '2024-10-24T15:55:00.000Z'
         },
         {
           value: 110,
-          timestamp: '2024-10-24T15:56:00.000Z',
+          timestamp: 1729590960000, // '2024-10-24T15:56:00.000Z'
         },
         {
           value: 120,
-          timestamp: '2024-10-24T15:57:00.000Z',
+          timestamp: 1729591020000, // '2024-10-24T15:57:00.000Z'
         },
         {
           value: 130,
-          timestamp: '2024-10-24T15:58:00.000Z',
+          timestamp: 1729591080000, // '2024-10-24T15:58:00.000Z'
         },
         {
           value: 140,
-          timestamp: '2024-10-24T15:59:00.000Z',
+          timestamp: 1729591140000, // '2024-10-24T15:59:00.000Z'
         },
       ],
       meta: {
@@ -153,30 +153,30 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
     expect(completeSerie?.data).toEqual([
       {
         value: 100,
-        timestamp: '2024-10-24T15:55:00.000Z',
+        timestamp: 1729590900000, // '2024-10-24T15:55:00.000Z'
       },
       {
         value: 110,
-        timestamp: '2024-10-24T15:56:00.000Z',
+        timestamp: 1729590960000, // '2024-10-24T15:56:00.000Z'
       },
     ]);
 
     expect(incompleteSerie?.data).toEqual([
       {
         value: 110,
-        timestamp: '2024-10-24T15:56:00.000Z',
+        timestamp: 1729590960000, // '2024-10-24T15:56:00.000Z'
       },
       {
         value: 120,
-        timestamp: '2024-10-24T15:57:00.000Z',
+        timestamp: 1729591020000, // '2024-10-24T15:57:00.000Z'
       },
       {
         value: 130,
-        timestamp: '2024-10-24T15:58:00.000Z',
+        timestamp: 1729591080000, // '2024-10-24T15:58:00.000Z'
       },
       {
         value: 140,
-        timestamp: '2024-10-24T15:59:00.000Z',
+        timestamp: 1729591140000, // '2024-10-24T15:59:00.000Z'
       },
     ]);
   });
@@ -189,19 +189,19 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       data: [
         {
           value: 110,
-          timestamp: '2024-10-24T12:00:00.000Z',
+          timestamp: 1729576800000, // '2024-10-24T12:00:00.000Z'
         },
         {
           value: 120,
-          timestamp: '2024-10-24T13:00:00.000Z',
+          timestamp: 1729580400000, // '2024-10-24T13:00:00.000Z'
         },
         {
           value: 130,
-          timestamp: '2024-10-24T14:00:00.000Z',
+          timestamp: 1729584000000, // '2024-10-24T14:00:00.000Z'
         },
         {
           value: 140,
-          timestamp: '2024-10-24T15:00:00.000Z',
+          timestamp: 1729587600000, // '2024-10-24T15:00:00.000Z'
         },
       ],
       meta: {
@@ -218,26 +218,26 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
     expect(completeSerie?.data).toEqual([
       {
         value: 110,
-        timestamp: '2024-10-24T12:00:00.000Z',
+        timestamp: 1729576800000, // '2024-10-24T12:00:00.000Z'
       },
       {
         value: 120,
-        timestamp: '2024-10-24T13:00:00.000Z',
+        timestamp: 1729580400000, // '2024-10-24T13:00:00.000Z'
       },
       {
         value: 130,
-        timestamp: '2024-10-24T14:00:00.000Z',
+        timestamp: 1729584000000, // '2024-10-24T14:00:00.000Z'
       },
     ]);
 
     expect(incompleteSerie?.data).toEqual([
       {
         value: 130,
-        timestamp: '2024-10-24T14:00:00.000Z',
+        timestamp: 1729584000000, // '2024-10-24T14:00:00.000Z'
       },
       {
         value: 140,
-        timestamp: '2024-10-24T15:00:00.000Z',
+        timestamp: 1729587600000, // '2024-10-24T15:00:00.000Z'
       },
     ]);
   });

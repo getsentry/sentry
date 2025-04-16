@@ -53,7 +53,7 @@ export function eapSeriesDataToTimeSeries(data: EAPSeriesData) {
       },
       data:
         value.data.map(item => ({
-          timestamp: item.name.toString(),
+          timestamp: new Date(item.name).getTime(),
           value: item.value,
         })) ?? [],
     });
