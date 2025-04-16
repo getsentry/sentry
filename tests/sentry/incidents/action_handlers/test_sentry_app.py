@@ -2,9 +2,12 @@ from unittest.mock import patch
 
 import responses
 
+from sentry.api.serializers import serialize
 from sentry.incidents.action_handlers import SentryAppActionHandler
+from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.sentry_apps.metrics import SentryAppWebhookHaltReason
 from sentry.testutils.asserts import (
@@ -64,7 +67,18 @@ class SentryAppActionHandlerTest(FireTest):
         data = responses.calls[0].request.body
         assert (
             json.dumps(
-                build_incident_attachment(incident, IncidentStatus(incident.status), metric_value)
+                build_incident_attachment(
+                    alert_context=AlertContext.from_alert_rule_incident(incident),
+                    metric_issue_context=MetricIssueContext.from_legacy_models(
+                        incident,
+                        IncidentStatus(incident.status),
+                        metric_value,
+                    ),
+                    incident_serialized_response=serialize(
+                        incident, serializer=IncidentSerializer()
+                    ),
+                    organization=self.organization,
+                )
             )
             in data
         )
@@ -227,13 +241,20 @@ class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
                 action=self.action,
                 incident=incident,
                 project=self.project,
-                new_status=IncidentStatus(incident.status),
+                new_status=IncidentStatus(incident.status).value,
                 metric_value=metric_value,
             )
         data = responses.calls[0].request.body
         assert (
             json.dumps(
-                build_incident_attachment(incident, IncidentStatus(incident.status), metric_value)
+                build_incident_attachment(
+                    AlertContext.from_alert_rule_incident(self.alert_rule),
+                    MetricIssueContext.from_legacy_models(
+                        incident, IncidentStatus(incident.status), metric_value
+                    ),
+                    serialize(incident, serializer=IncidentSerializer()),
+                    self.organization,
+                )
             )
             in data
         )
