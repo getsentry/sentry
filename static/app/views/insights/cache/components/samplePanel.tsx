@@ -240,7 +240,8 @@ export function CacheSamplePanel() {
     transactionDurationData?.[0]?.[`avg(${MetricsFields.TRANSACTION_DURATION})`] ?? 0;
 
   const samplesPlottable = useMemo(() => {
-    // TODO: Explain this nonsense, why am I constructing this data? It's to stitch the data from before
+    // Create a `TabularData` object from multiple datasets. This requires
+    // setting the meta manually. A little annoying, but the meta is simple.
     const sampleData = {
       data: spansWithDuration,
       meta: {
