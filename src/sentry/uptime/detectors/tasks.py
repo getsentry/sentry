@@ -27,8 +27,8 @@ from sentry.uptime.detectors.ranking import (
 from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.uptime.subscriptions.subscriptions import (
     create_project_uptime_subscription,
-    delete_project_uptime_subscription,
-    get_auto_monitored_subscriptions_for_project,
+    delete_uptime_detector,
+    get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
 )
 from sentry.uptime.types import ProjectUptimeSubscriptionMode
@@ -254,8 +254,8 @@ def monitor_url_for_project(project: Project, url: str) -> ProjectUptimeSubscrip
     Start monitoring a url for a project. Creates a subscription using our onboarding interval and links the project to
     it. Also deletes any other auto-detected monitors since this one should replace them.
     """
-    for monitored_subscription in get_auto_monitored_subscriptions_for_project(project):
-        delete_project_uptime_subscription(monitored_subscription)
+    for uptime_detector in get_auto_monitored_detectors_for_project(project):
+        delete_uptime_detector(uptime_detector)
     metrics.incr("uptime.detectors.candidate_url.monitor_created", sample_rate=1.0)
     return create_project_uptime_subscription(
         project,

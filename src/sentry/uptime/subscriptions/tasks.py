@@ -12,11 +12,11 @@ from sentry.taskworker.namespaces import uptime_tasks
 from sentry.taskworker.retry import Retry
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import (
-    ProjectUptimeSubscription,
     UptimeRegionScheduleMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
+    get_detector,
 )
 from sentry.uptime.types import CheckConfig, ProjectUptimeSubscriptionMode
 from sentry.utils import metrics
@@ -214,17 +214,19 @@ def broken_monitor_checker(**kwargs):
     """
     This checks for auto created uptime monitors that have been broken for a long time and disables them.
     """
-    from sentry.uptime.subscriptions.subscriptions import disable_project_uptime_subscription
+    from sentry.uptime.subscriptions.subscriptions import disable_uptime_detector
 
     count = 0
-    for uptime_monitor in RangeQuerySetWrapper(
-        ProjectUptimeSubscription.objects.filter(
+    for uptime_subscription in RangeQuerySetWrapper(
+        UptimeSubscription.objects.filter(
             uptime_status=UptimeStatus.FAILED,
             uptime_status_update_date__lt=timezone.now() - BROKEN_MONITOR_AGE_LIMIT,
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         )
     ):
-        disable_project_uptime_subscription(uptime_monitor)
-        count += 1
+        detector = get_detector(uptime_subscription)
+        assert detector
+        if detector.config["mode"] == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE:
+            disable_uptime_detector(detector)
+            count += 1
 
     metrics.incr("uptime.subscriptions.disable_broken", amount=count, sample_rate=1.0)
