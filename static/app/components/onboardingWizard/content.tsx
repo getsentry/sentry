@@ -22,7 +22,7 @@ import {space} from 'sentry/styles/space';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {DemoTour, DemoTourStep, useDemoTours} from 'sentry/utils/demoMode/demoTours';
+import {DemoTour, useDemoTours} from 'sentry/utils/demoMode/demoTours';
 import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -258,11 +258,12 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       e.stopPropagation();
 
       if (isDemoModeActive()) {
-        // Performance guide is updated to use the new tour
         if (task.task === OnboardingTaskKey.PERFORMANCE_GUIDE) {
-          tours?.[DemoTour.PERFORMANCE]?.startTour(DemoTourStep.PERFORMANCE_TABLE);
+          tours?.[DemoTour.PERFORMANCE]?.startTour();
         } else if (task.task === OnboardingTaskKey.RELEASE_GUIDE) {
           tours?.[DemoTour.RELEASES]?.startTour();
+        } else if (task.task === OnboardingTaskKey.ISSUE_GUIDE) {
+          tours?.[DemoTour.ISSUES]?.startTour();
         } else {
           DemoWalkthroughStore.activateGuideAnchor(task.task);
         }
