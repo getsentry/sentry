@@ -11,7 +11,7 @@ interface Props {
   search: string;
 }
 
-export default function ListSearchInput({
+export default function DistributionSearchInput({
   includeFeatureFlagsTab,
   search,
   onChange,

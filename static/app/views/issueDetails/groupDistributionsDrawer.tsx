@@ -13,9 +13,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import DistributionSearchInput from 'sentry/views/issueDetails/groupDistributions/distributionSearchInput';
 import GroupDistributionCrumbs from 'sentry/views/issueDetails/groupDistributions/groupDistributionCrumbs';
 import HeaderTitle from 'sentry/views/issueDetails/groupDistributions/headerTitle';
-import ListSearchInput from 'sentry/views/issueDetails/groupDistributions/listSearchInput';
 import TagExportDropdown from 'sentry/views/issueDetails/groupDistributions/tagExportDropdown';
 import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
@@ -67,7 +67,7 @@ function BaseGroupDistributionsDrawer({
       />
     ) : tagKey && tab === DrawerTab.FEATURE_FLAGS ? null : (
       <ButtonBar gap={1}>
-        <ListSearchInput
+        <DistributionSearchInput
           includeFeatureFlagsTab={includeFeatureFlagsTab}
           search={search}
           onChange={value => {
