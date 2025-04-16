@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import {
   IconCodecov,
@@ -159,7 +160,9 @@ export function PrimaryNavigationItems() {
         />
         <Hook name="sidebar:billing-status" organization={organization} />
         <PrimaryNavigationServiceIncidents />
-        <PrimaryNavigationOnboarding />
+        <ErrorBoundary customComponent={null}>
+          <PrimaryNavigationOnboarding />
+        </ErrorBoundary>
       </SidebarFooter>
     </Fragment>
   );
