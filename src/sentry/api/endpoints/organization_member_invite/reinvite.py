@@ -17,7 +17,6 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.organizationmemberinvite import (
     OrganizationMemberReinviteRequestValidator,
 )
-from sentry.auth.services.auth.service import auth_service
 from sentry.models.organization import Organization
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.utils import metrics
@@ -73,39 +72,32 @@ class OrganizationMemberReinviteEndpoint(OrganizationEndpoint):
         if not invited_member.invite_approved:
             return Response({"detail": ERR_INVITE_UNAPPROVED}, status=400)
 
-        if invited_member.is_scim_provisioned:
-            auth_provider = auth_service.get_auth_provider(organization_id=organization.id)
+        if ratelimits.for_organization_member_invite(
+            organization=organization,
+            email=invited_member.email,
+            user=request.user,
+            auth=request.auth,
+        ):
+            metrics.incr(
+                "member-invite.attempt",
+                instance="rate_limited",
+                skip_internal=True,
+                sample_rate=1.0,
+            )
+            return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
-            if auth_provider and not (invited_member.sso_linked):
-                invited_member.send_sso_linked_email(request.user.email, auth_provider)
+        if regenerate:
+            if request.access.has_scope("member:admin"):
+                with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
+                    invited_member.regenerate_token()
+                    invited_member.save()
+            else:
+                return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
 
-        else:
-            if ratelimits.for_organization_member_invite(
-                organization=organization,
-                email=invited_member.email,
-                user=request.user,
-                auth=request.auth,
-            ):
-                metrics.incr(
-                    "member-invite.attempt",
-                    instance="rate_limited",
-                    skip_internal=True,
-                    sample_rate=1.0,
-                )
-                return Response({"detail": ERR_RATE_LIMITED}, status=429)
+        if invited_member.token_expired:
+            return Response({"detail": ERR_EXPIRED}, status=400)
 
-            if regenerate:
-                if request.access.has_scope("member:admin"):
-                    with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
-                        invited_member.regenerate_token()
-                        invited_member.save()
-                else:
-                    return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
-
-            if invited_member.token_expired:
-                return Response({"detail": ERR_EXPIRED}, status=400)
-
-            invited_member.send_invite_email()
+        invited_member.send_invite_email()
 
         self.create_audit_entry(
             request=request,
