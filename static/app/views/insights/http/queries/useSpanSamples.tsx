@@ -12,7 +12,7 @@ import type {
 } from 'sentry/views/insights/common/queries/useSpanSamples';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/insights/types';
+import type {SpanIndexedResponse} from 'sentry/views/insights/types';
 
 interface UseSpanSamplesOptions<Fields> {
   enabled?: boolean;
@@ -72,7 +72,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
           firstBound: max && max * (1 / 3),
           secondBound: max && max * (2 / 3),
           upperBound: max,
-          additionalFields: [SpanIndexedField.ID, ...fields],
+          additionalFields: fields,
           sort: '-timestamp',
           referrer,
           useRpc: useInsightsEap() ? '1' : undefined,
