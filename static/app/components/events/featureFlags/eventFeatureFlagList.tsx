@@ -14,7 +14,9 @@ import FeatureFlagSettingsButton from 'sentry/components/events/featureFlags/fea
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {
   FlagControlOptions,
+  ORDER_BY_OPTIONS,
   OrderBy,
+  SORT_BY_OPTIONS,
   SortBy,
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
@@ -251,10 +253,18 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagListP
             onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
           />
           <FeatureFlagSort
+            sortByOptions={SORT_BY_OPTIONS}
+            orderByOptions={ORDER_BY_OPTIONS}
+            onChange={selection => {
+              trackAnalytics('flags.sort_flags', {
+                organization,
+                sortMethod: selection.value,
+              });
+            }}
             orderBy={orderBy}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
             setOrderBy={setOrderBy}
+            setSortBy={setSortBy}
+            sortBy={sortBy}
           />
         </Fragment>
       )}

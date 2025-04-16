@@ -1,28 +1,40 @@
 import {Button} from 'sentry/components/core/button';
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
+import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import {
   getDefaultOrderBy,
   getSelectionType,
-  ORDER_BY_OPTIONS,
   type OrderBy,
-  SORT_BY_OPTIONS,
   type SortBy,
 } from 'sentry/components/events/featureFlags/utils';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   orderBy: OrderBy;
+  orderByOptions: Array<{
+    label: string;
+    value: OrderBy;
+  }>;
   setOrderBy: (value: React.SetStateAction<OrderBy>) => void;
   setSortBy: (value: React.SetStateAction<SortBy>) => void;
   sortBy: SortBy;
+  sortByOptions: Array<{
+    label: string;
+    value: SortBy;
+  }>;
+  onChange?: (selection: SelectOption<SortBy | OrderBy>) => void;
 }
 
-export default function FeatureFlagSort({sortBy, orderBy, setOrderBy, setSortBy}: Props) {
-  const organization = useOrganization();
-
+export default function FeatureFlagSort({
+  onChange,
+  sortBy,
+  orderBy,
+  setOrderBy,
+  setSortBy,
+  orderByOptions,
+  sortByOptions,
+}: Props) {
   return (
     <CompositeSelect
       trigger={triggerProps => (
@@ -43,24 +55,18 @@ export default function FeatureFlagSort({sortBy, orderBy, setOrderBy, setSortBy}
             setOrderBy(getDefaultOrderBy(selection.value));
           }
           setSortBy(selection.value);
-          trackAnalytics('flags.sort_flags', {
-            organization,
-            sortMethod: selection.value,
-          });
+          onChange?.(selection);
         }}
-        options={SORT_BY_OPTIONS}
+        options={sortByOptions}
       />
       <CompositeSelect.Region
         label={t('Order By')}
         value={orderBy}
         onChange={selection => {
           setOrderBy(selection.value);
-          trackAnalytics('flags.sort_flags', {
-            organization,
-            sortMethod: selection.value,
-          });
+          onChange?.(selection);
         }}
-        options={ORDER_BY_OPTIONS.map(o => {
+        options={orderByOptions.map(o => {
           const selectionType = getSelectionType(o.value);
           return selectionType === sortBy ? o : {...o, disabled: true};
         })}
