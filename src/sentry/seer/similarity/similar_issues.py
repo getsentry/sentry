@@ -71,6 +71,7 @@ def get_similarity_data_from_seer(
             json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}).encode(
                 "utf8"
             ),
+            metric_tags={"referrer": referrer} if referrer else {},
         )
     # See `SEER_GROUPING_TIMEOUT` in `sentry.conf.server`
     except (TimeoutError, MaxRetryError) as e:
