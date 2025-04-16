@@ -6,7 +6,6 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
 import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import RuleNodeList from 'sentry/views/automations/components/ruleNodeList';
@@ -62,28 +61,7 @@ export default function AutomationBuilder() {
       />
 
       {state.actionFilters.map((_, index) => (
-        <ActionFilterBlock
-          key={index}
-          id={index}
-          onDelete={() => dispatch({type: 'REMOVE_IF', groupIndex: index})}
-          addIfCondition={(groupIndex, type) =>
-            dispatch({type: 'ADD_IF_CONDITION', groupIndex, conditionType: type})
-          }
-          removeIfCondition={(groupIndex, conditionIndex) =>
-            dispatch({type: 'REMOVE_IF_CONDITION', groupIndex, conditionIndex})
-          }
-          updateIfCondition={(groupIndex, conditionIndex, comparison) =>
-            dispatch({
-              type: 'UPDATE_IF_CONDITION',
-              groupIndex,
-              conditionIndex,
-              comparison,
-            })
-          }
-          updateIfLogicType={(groupIndex, logicType) =>
-            dispatch({type: 'UPDATE_IF_LOGIC_TYPE', groupIndex, logicType})
-          }
-        />
+        <ActionFilterBlock key={index} id={index} />
       ))}
       <span>
         <PurpleTextButton
@@ -103,27 +81,11 @@ export default function AutomationBuilder() {
 }
 
 interface ActionFilterBlockProps {
-  addIfCondition: (groupIndex: number, type: string) => void;
   id: number;
-  onDelete: () => void;
-  removeIfCondition: (groupIndex: number, conditionIndex: number) => void;
-  updateIfCondition: (
-    groupIndex: number,
-    conditionIndex: number,
-    comparison: any
-  ) => void;
-  updateIfLogicType: (groupIndex: number, logicType: DataConditionGroupLogicType) => void;
 }
 
-function ActionFilterBlock({
-  id,
-  onDelete,
-  addIfCondition,
-  removeIfCondition,
-  updateIfCondition,
-  updateIfLogicType,
-}: ActionFilterBlockProps) {
-  const {state} = useAutomationBuilderContext();
+function ActionFilterBlock({id}: ActionFilterBlockProps) {
+  const {state, dispatch} = useAutomationBuilderContext();
   const actionFilterBlock = state.actionFilters[id];
 
   return (
@@ -153,7 +115,13 @@ function ActionFilterBlock({
                       options={FILTER_MATCH_OPTIONS}
                       size="xs"
                       value={actionFilterBlock?.logicType}
-                      onChange={value => updateIfLogicType(id, value)}
+                      onChange={value =>
+                        dispatch({
+                          type: 'UPDATE_IF_LOGIC_TYPE',
+                          groupIndex: id,
+                          logicType: value,
+                        })
+                      }
                     />
                   </EmbeddedWrapper>
                 ),
@@ -164,17 +132,35 @@ function ActionFilterBlock({
               size="sm"
               icon={<IconDelete />}
               borderless
-              onClick={onDelete}
+              onClick={() =>
+                dispatch({
+                  type: 'REMOVE_IF',
+                  groupIndex: id,
+                })
+              }
             />
           </Flex>
           <RuleNodeList
             placeholder={t('Filter by...')}
             group={`actionFilters.${id}`}
             conditions={actionFilterBlock?.conditions || []}
-            onAddRow={type => addIfCondition(id, type)}
-            onDeleteRow={index => removeIfCondition(id, index)}
+            onAddRow={type =>
+              dispatch({type: 'ADD_IF_CONDITION', groupIndex: id, conditionType: type})
+            }
+            onDeleteRow={index =>
+              dispatch({
+                type: 'REMOVE_IF_CONDITION',
+                groupIndex: id,
+                conditionIndex: index,
+              })
+            }
             updateCondition={(index, comparison) =>
-              updateIfCondition(id, index, comparison)
+              dispatch({
+                type: 'UPDATE_IF_CONDITION',
+                groupIndex: id,
+                conditionIndex: index,
+                comparison,
+              })
             }
           />
         </Flex>
