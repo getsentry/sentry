@@ -3,12 +3,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as indicatorActions from 'sentry/actionCreators/indicator';
+import * as formIndicatorActions from 'sentry/components/forms/formIndicators';
 import Indicators from 'sentry/components/indicators';
 import * as RegionUtils from 'sentry/utils/regions';
 import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
-jest.mock('sentry/actionCreators/indicator');
+jest.mock('static/app/components/forms/formIndicator');
 jest.mock('sentry/utils/regions');
 
 describe('OrganizationSettingsForm', function () {
@@ -52,7 +52,7 @@ describe('OrganizationSettingsForm', function () {
     const input = screen.getByRole('textbox', {name: 'Display Name'});
 
     const undoableFormChangeMessage = jest.spyOn(
-      indicatorActions,
+      formIndicatorActions,
       'addUndoableFormChangeMessage'
     );
 
