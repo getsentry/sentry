@@ -50,6 +50,8 @@ import {
 } from 'sentry/views/insights/pages/mobile/settings';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
+import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
   generateBackendPerformanceEventView,
@@ -94,8 +96,11 @@ export const BACKEND_COLUMN_TITLES = [
 function BackendOverviewPage() {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
+  const isNextJsPageAvailable = useIsNextJsInsightsAvailable();
   return isLaravelPageAvailable ? (
     <LaravelOverviewPage />
+  ) : isNextJsPageAvailable ? (
+    <NextJsOverviewPage headerTitle={BACKEND_LANDING_TITLE} />
   ) : (
     <GenericBackendOverviewPage />
   );
@@ -321,11 +326,15 @@ function GenericBackendOverviewPage() {
 function BackendOverviewPageWithProviders() {
   const organization = useOrganization();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
+  const isNextJsPageAvailable = useIsNextJsInsightsAvailable();
+
   const {maxPickableDays} = limitMaxPickableDays(organization);
 
   return (
     <DomainOverviewPageProviders
-      maxPickableDays={isLaravelPageAvailable ? maxPickableDays : undefined}
+      maxPickableDays={
+        isLaravelPageAvailable || isNextJsPageAvailable ? maxPickableDays : undefined
+      }
     >
       <BackendOverviewPage />
     </DomainOverviewPageProviders>
