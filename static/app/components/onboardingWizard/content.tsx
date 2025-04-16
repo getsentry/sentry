@@ -157,7 +157,7 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
               size="zero"
               aria-label={t('Just Skip')}
               title={t('Just Skip')}
-              icon={<IconClose color="gray300" isCircled />}
+              icon={<IconClose color="subText" isCircled />}
               onClick={event => {
                 event.stopPropagation();
                 onConfirm();
@@ -168,7 +168,7 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
               triggerProps={{
                 'aria-label': t('Help'),
                 title: t('Help'),
-                icon: <IconSupport color="gray300" />,
+                icon: <IconSupport color="subText" />,
                 showChevron: false,
                 size: 'zero',
                 borderless: true,
@@ -204,7 +204,7 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
               size="zero"
               aria-label={t('Dismiss Skip')}
               title={t('Dismiss Skip')}
-              icon={<IconClose color="gray300" />}
+              icon={<IconClose color="subText" />}
               onClick={event => {
                 event.stopPropagation();
                 onDismiss();
@@ -360,7 +360,7 @@ function Task({task, hidePanel}: TaskProps) {
         actions={
           task.status === 'complete' || task.status === 'skipped' ? undefined : (
             <ClickIndicator>
-              <IconChevron direction="right" size="xs" color="gray300" />
+              <IconChevron direction="right" size="xs" color="subText" />
             </ClickIndicator>
           )
         }
