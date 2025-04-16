@@ -112,33 +112,35 @@ def get_open_periods_for_group(
 
 
 def _backfill_group_open_periods(
-    apps: StateApps, groups: list[tuple[int, datetime, int, int]]
+    apps: StateApps, group_data: list[tuple[int, datetime, int, int]]
 ) -> None:
     GroupOpenPeriod = apps.get_model("sentry", "GroupOpenPeriod")
     Activity = apps.get_model("sentry", "Activity")
-    batch = []
-    open_periods: list[dict[str, Any]] = list(
-        GroupOpenPeriod.objects.filter(group_id__in=[group_id for group_id, _, _, _ in groups])
+
+    old_open_periods = list(
+        GroupOpenPeriod.objects.filter(group_id__in=[group_id for group_id, _, _, _ in group_data])
         .values("group_id")
         .annotate(Max("date_started"))
     )
     activities = list(
         Activity.objects.filter(
-            group_id__in=[group_id for group_id, _, _, _ in groups],
+            group_id__in=[group_id for group_id, _, _, _ in group_data],
             type__in=[ActivityType.SET_REGRESSION.value, ActivityType.SET_RESOLVED.value],
-        )
+        ).order_by("-datetime")
     )
-    for group_id, first_seen, status, project_id in groups:
+
+    open_periods = []
+    for group_id, first_seen, status, project_id in group_data:
         # Skip groups that already have open periods starting from the first seen date.
         # These groups were either already backfilled or were created after the open period
         # logic was added.
         old_open_period = next(
-            (open_period for open_period in open_periods if open_period["group_id"] == group_id),
+            (open_period for open_period in old_open_periods if open_period.group_id == group_id),
             None,
         )
-        if old_open_period and old_open_period["date_started"] == first_seen:
+        if old_open_period and old_open_period.date_started == first_seen:
             continue
-        query_end = old_open_period["date_started"] if old_open_period else None
+        query_end = old_open_period.date_started if old_open_period else None
 
         activities_for_group = [
             activity
@@ -146,24 +148,20 @@ def _backfill_group_open_periods(
             if activity.group_id == group_id
             and (query_end is None or activity.datetime < query_end)
         ]
-
         # Backfill until the first open period that already exists.
-        open_periods = get_open_periods_for_group(
-            apps, group_id, status, project_id, first_seen, activities_for_group, GroupOpenPeriod
+        open_periods.extend(
+            get_open_periods_for_group(
+                apps,
+                group_id,
+                status,
+                project_id,
+                first_seen,
+                activities_for_group,
+                GroupOpenPeriod,
+            )
         )
 
-        batch.extend(open_periods)
-
-        if len(batch) >= BATCH_SIZE:
-            logger.info(
-                "Processing batch for group open period backfill",
-                extra={"group_id": group_id},
-            )
-            GroupOpenPeriod.objects.bulk_create(batch)
-            batch = []
-
-    if batch:
-        GroupOpenPeriod.objects.bulk_create(batch)
+    GroupOpenPeriod.objects.bulk_create(open_periods)
 
 
 def backfill_group_open_periods(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
@@ -173,7 +171,7 @@ def backfill_group_open_periods(apps: StateApps, schema_editor: BaseDatabaseSche
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     progress_id = int(redis_client.get(backfill_key) or 0)
-    for groups in chunked(
+    for group_data in chunked(
         RangeQuerySetWrapperWithProgressBarApprox(
             Group.objects.filter(id__gt=progress_id).values_list(
                 "id", "first_seen", "status", "project_id"
@@ -182,9 +180,13 @@ def backfill_group_open_periods(apps: StateApps, schema_editor: BaseDatabaseSche
         ),
         CHUNK_SIZE,
     ):
-        _backfill_group_open_periods(apps, groups)
+        logger.info(
+            "Processing batch for group open period backfill",
+            extra={"last_group_id": group_data[-1][0]},
+        )
+        _backfill_group_open_periods(apps, group_data)
         # Save progress to redis in case we have to restart
-        redis_client.set(backfill_key, groups[-1][0], ex=60 * 60 * 24 * 7)
+        redis_client.set(backfill_key, group_data[-1][0], ex=60 * 60 * 24 * 7)
 
 
 class Migration(CheckedMigration):
