@@ -275,9 +275,9 @@ export function SpansTabContentImpl({
         <SideSection withToolbar={expanded}>
           <ExploreToolbar width={300} extras={toolbarExtras} />
         </SideSection>
-        <section>
+        <MainContent>
           {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
-          <MainContent>
+          <div>
             <ExploreCharts
               canUsePreviousResults={canUsePreviousResults}
               confidences={confidences}
@@ -305,8 +305,8 @@ export function SpansTabContentImpl({
                 onClick={() => setExpanded(!expanded)}
               />
             </Toggle>
-          </MainContent>
-        </section>
+          </div>
+        </MainContent>
       </Body>
     </SearchQueryBuilderProvider>
   );
@@ -398,7 +398,8 @@ const Body = styled(Layout.Body)<{withToolbar: boolean}>`
     grid-template-rows: auto 1fr;
     align-content: start;
     gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};
-    transition: 700ms;
+    will-change: grid-template;
+    transition: grid-template 200ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 `;
 
@@ -419,14 +420,18 @@ const FilterSection = styled('div')`
 `;
 
 const SideSection = styled('aside')<{withToolbar: boolean}>`
+  position: relative;
+  z-index: 0;
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     ${p => !p.withToolbar && 'overflow: hidden;'}
   }
 `;
 
-const MainContent = styled('div')`
+const MainContent = styled('section')`
   position: relative;
+  z-index: 1;
   max-width: 100%;
+  background: ${p => p.theme.background};
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
