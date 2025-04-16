@@ -265,6 +265,10 @@ function GenericBackendOverviewPage() {
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
   ];
 
+  if (useEap) {
+    existingQuery.addFilterValue('is_transaction', 'true');
+  }
+
   const response = useEAPSpans(
     {
       search: existingQuery,
