@@ -429,6 +429,7 @@ class TaskWorker:
         self._shutdown_event = self.mp_context.Event()
         self._task_receive_timing: dict[str, float] = {}
         self._result_thread: threading.Thread | None = None
+        self._spawn_children_thread: threading.Thread | None = None
 
         self._gettask_backoff_seconds = 0
         self._setstatus_backoff_seconds = 0
@@ -451,7 +452,7 @@ class TaskWorker:
         """
         self.do_imports()
         self.start_result_thread()
-        threading.Thread(target=self._spawn_children).start()
+        self.start_spawn_children_thread()
 
         atexit.register(self.shutdown)
 
@@ -488,6 +489,9 @@ class TaskWorker:
                 self._send_result(result, fetch=False)
             except queue.Empty:
                 break
+
+        if self._spawn_children_thread:
+            self._spawn_children_thread.join()
 
     def _add_task(self) -> bool:
         """
@@ -616,30 +620,35 @@ class TaskWorker:
             )
             return None
 
-    def _spawn_children(self) -> None:
-        while not self._shutdown_event.is_set():
-            self._children = [child for child in self._children if child.is_alive()]
-            if len(self._children) >= self._concurrency:
-                time.sleep(0.1)
-                continue
-            for i in range(self._concurrency - len(self._children)):
-                process = self.mp_context.Process(
-                    target=child_worker,
-                    args=(
-                        self._child_tasks,
-                        self._processed_tasks,
-                        self._shutdown_event,
-                        self._max_child_task_count,
-                        self._processing_pool_name,
-                        self._process_type,
-                    ),
-                )
-                process.start()
-                self._children.append(process)
-                logger.info(
-                    "taskworker.spawn_child",
-                    extra={"pid": process.pid, "processing_pool": self._processing_pool_name},
-                )
+    def start_spawn_children_thread(self) -> None:
+        def spawn_children_thread() -> None:
+            logger.debug("taskworker.worker.spawn_children_thread_started")
+            while not self._shutdown_event.is_set():
+                self._children = [child for child in self._children if child.is_alive()]
+                if len(self._children) >= self._concurrency:
+                    time.sleep(0.1)
+                    continue
+                for i in range(self._concurrency - len(self._children)):
+                    process = self.mp_context.Process(
+                        target=child_worker,
+                        args=(
+                            self._child_tasks,
+                            self._processed_tasks,
+                            self._shutdown_event,
+                            self._max_child_task_count,
+                            self._processing_pool_name,
+                            self._process_type,
+                        ),
+                    )
+                    process.start()
+                    self._children.append(process)
+                    logger.info(
+                        "taskworker.spawn_child",
+                        extra={"pid": process.pid, "processing_pool": self._processing_pool_name},
+                    )
+
+        self._spawn_children_thread = threading.Thread(target=spawn_children_thread)
+        self._spawn_children_thread.start()
 
     def fetch_task(self) -> TaskActivation | None:
         # Use the shutdown_event as a sleep mechanism
