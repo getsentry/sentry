@@ -5,7 +5,6 @@ import AnalyticsArea from 'sentry/components/analyticsArea';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -25,6 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import TagExportDropdown from 'sentry/views/issueDetails/groupDistributions/tagExportDropdown';
+import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import useDrawerTab from 'sentry/views/issueDetails/groupDistributions/useDrawerTab';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsDrawerContent';
@@ -115,21 +115,13 @@ function BaseGroupDistributionsDrawer({
           </InputGroup.TrailingItems>
         </InputGroup>
         {includeFeatureFlagsTab && (
-          <SegmentedControl
-            size="xs"
-            value={tab}
-            onChange={newTab => {
+          <TagFlagPicker
+            tab={tab}
+            setTab={newTab => {
               setTab(newTab);
               setSearch('');
             }}
-          >
-            <SegmentedControl.Item key={DrawerTab.TAGS}>
-              {t('All Tags')}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item key={DrawerTab.FEATURE_FLAGS}>
-              {t('All Feature Flags')}
-            </SegmentedControl.Item>
-          </SegmentedControl>
+          />
         )}
       </ButtonBar>
     );
