@@ -59,7 +59,6 @@ class ExploreSavedQuery(DefaultFieldsModel):
     dataset = BoundedPositiveIntegerField(
         choices=ExploreSavedQueryDataset.as_choices(), default=ExploreSavedQueryDataset.SPANS
     )
-    is_multi_query = models.BooleanField(default=False)
 
     class Meta:
         app_label = "explore"
