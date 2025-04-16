@@ -26,7 +26,7 @@ import type {
   SpanMetricsQueryFilters,
   SubregionCode,
 } from 'sentry/views/insights/types';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
@@ -125,6 +125,10 @@ function SampleTable({
 
   const isTransactionsEnabled = Boolean(transactionIds.length);
 
+  const search = useEap
+    ? `${SpanIndexedField.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] is_transaction:true`
+    : `id:[${transactionIds.join(',')}]`;
+
   const {
     data: transactions,
     isFetching: isFetchingTransactions,
@@ -132,7 +136,7 @@ function SampleTable({
     error: transactionError,
   } = useDiscoverOrEap(
     {
-      search: `${transactionIdField}:[${transactionIds.join(',')}]`,
+      search,
       enabled: isTransactionsEnabled,
       fields: ['id', 'timestamp', 'project', 'span.duration', 'trace'],
     },
