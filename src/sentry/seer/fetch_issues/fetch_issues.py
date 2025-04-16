@@ -362,6 +362,7 @@ def get_issues_related_to_function_names(
         logger_extra = {"file": filename, "run_id": run_id}
         logger.info("Processing file", extra=logger_extra)
 
+        # Only add the file to filename_to_issues if it makes it to the querying step.
         if not function_names:
             logger.warning("No function names", extra=logger_extra)
             continue
@@ -415,10 +416,9 @@ def get_issues_related_to_file_patches(
 
     filename_to_function_names = {}
     for file in pullrequest_files:
-        logger_extra = {"file": file.filename, "run_id": run_id}
         file_extension = file.filename.split(".")[-1]
         if file_extension not in patch_parsers_more:
-            logger.warning("No language parser", extra=logger_extra)
+            logger.warning("No language parser", extra={"file": file.filename, "run_id": run_id})
             continue
         language_parser = patch_parsers_more[file_extension]
         function_names = language_parser.extract_functions_from_patch(file.patch)

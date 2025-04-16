@@ -261,7 +261,7 @@ class TestGetIssues(IntegrationTestCase, CreateEventTestCase):
         mock_get_projects_and_filenames_from_source_file.return_value = ({self.project}, {"foo.py"})
 
         filename_to_function_names_related = {"foo.py": ["world", "planet"]}
-        filename_to_function_names_unrelated = {"no_function_names.py": []}
+        filename_to_function_names_unrelated: dict[str, list[str]] = {"no_function_names.py": []}
         filename_to_issues_expected = {
             filename: self.issues_with_event_details
             for filename in filename_to_function_names_related
