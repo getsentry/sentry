@@ -9,7 +9,7 @@ interface Props {
 }
 
 export function ResponseCodeCountChart({series, isLoading, error}: Props) {
-  // Temporary hack. `DiscoverSeries` meta field and the series name don't
+  // TODO: Temporary hack. `DiscoverSeries` meta field and the series name don't
   // match. This is annoying to work around, and will become irrelevant soon
   // enough. For now, just specify the correct meta for these series since
   // they're known and simple
