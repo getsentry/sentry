@@ -82,6 +82,11 @@ interface ReplayReaderParams {
    * If provided, the replay will be clipped to this window.
    */
   clipWindow?: ClipWindow;
+  /**
+   * Relates to the setting of the clip window. If the event timestamp is before the replay started,
+   * the clip window will be set to the start of the replay.
+   */
+  eventTimestampMs?: number;
 }
 
 type RequiredNotNull<T> = {
@@ -153,6 +158,7 @@ export default class ReplayReader {
     replayRecord,
     clipWindow,
     fetching,
+    eventTimestampMs,
   }: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
       return null;
@@ -165,6 +171,7 @@ export default class ReplayReader {
         replayRecord,
         fetching,
         clipWindow,
+        eventTimestampMs,
       });
     } catch (err) {
       Sentry.captureException(err);
@@ -179,6 +186,7 @@ export default class ReplayReader {
         fetching,
         replayRecord,
         clipWindow,
+        eventTimestampMs,
       });
     }
   }
@@ -189,6 +197,7 @@ export default class ReplayReader {
     fetching,
     replayRecord,
     clipWindow,
+    eventTimestampMs,
   }: RequiredNotNull<ReplayReaderParams>) {
     this._cacheKey = domId('replayReader-');
     this._fetching = fetching;
@@ -280,7 +289,7 @@ export default class ReplayReader {
     this._duration = replayRecord.duration;
 
     if (clipWindow) {
-      this._applyClipWindow(clipWindow);
+      this._applyClipWindow(clipWindow, eventTimestampMs);
     }
   }
 
@@ -300,15 +309,16 @@ export default class ReplayReader {
   private _clipWindow: ClipWindow | undefined = undefined;
   private _errorBeforeReplayStart = false;
 
-  private _applyClipWindow = (clipWindow: ClipWindow) => {
+  private _applyClipWindow = (clipWindow: ClipWindow, eventTimestampMs?: number) => {
     let clipStartTimestampMs;
     let clipEndTimestampMs;
     const replayStart = this._replayRecord.started_at.getTime();
     const replayEnd = this._replayRecord.finished_at.getTime();
 
-    // error event is before the replay started. use the start of the replay as the start of the clip
-    // set the clip to be at most 10 seconds long
-    if (clipWindow.startTimestampMs < this._replayRecord.started_at.getTime()) {
+    // error event for this clip is before the replay started.
+    // use the start of the replay as the start of the clip.
+    // set the clip to be at most 10 seconds long.
+    if (eventTimestampMs && eventTimestampMs < replayStart) {
       clipStartTimestampMs = replayStart;
       clipEndTimestampMs = Math.min(replayStart + 10 * 1000, replayEnd);
       this._errorBeforeReplayStart = true;

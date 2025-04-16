@@ -3,8 +3,9 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.helpers.environments import get_environment_func
 from sentry.api.helpers.releases import get_group_ids_resolved_in_release
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
@@ -12,7 +13,7 @@ from sentry.models.group import Group
 
 
 @region_silo_endpoint
-class ProjectIssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
+class ProjectIssuesResolvedInReleaseEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -39,7 +40,7 @@ class ProjectIssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
             list(groups),
             request.user,
             GroupSerializer(
-                environment_func=self._get_environment_func(request, project.organization_id)
+                environment_func=get_environment_func(request, project.organization_id)
             ),
         )
 
