@@ -237,7 +237,7 @@ export function FrameworkSuggestionModal({
   }, [handleSkip, handleConfigure, selectedFramework, selectedPlatform]);
 
   const debounceHandleClick = useMemo(
-    () => debounce(handleClick, 500, {leading: true, trailing: false}),
+    () => debounce(handleClick, 2000, {leading: true, trailing: false}),
     [handleClick]
   );
 
