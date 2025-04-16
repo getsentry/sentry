@@ -255,7 +255,7 @@ export function HTTPSamplesPanel() {
       fields: [
         SpanIndexedField.PROJECT,
         SpanIndexedField.TRACE,
-        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.TRANSACTION_SPAN_ID,
         SpanIndexedField.SPAN_ID,
         SpanIndexedField.TIMESTAMP,
         SpanIndexedField.SPAN_DESCRIPTION,
