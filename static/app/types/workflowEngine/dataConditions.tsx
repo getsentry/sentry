@@ -72,6 +72,7 @@ export interface NewDataCondition {
   comparison_type: DataConditionType;
   condition_group?: DataConditionGroup;
 }
+
 export interface DataCondition extends Readonly<NewDataCondition> {
   condition_result: any;
   id: string;
