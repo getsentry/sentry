@@ -2,7 +2,7 @@ import type {Dispatch, SetStateAction} from 'react';
 
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {SearchInput} from 'sentry/components/events/eventDrawer';
-import {IconSearch} from 'sentry/icons';
+import {IconSearch} from 'sentry/icons/iconSearch';
 import {t} from 'sentry/locale';
 
 interface Props {
