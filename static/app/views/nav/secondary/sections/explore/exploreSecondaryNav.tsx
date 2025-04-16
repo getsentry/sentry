@@ -71,7 +71,7 @@ export function ExploreSecondaryNav() {
             {t('Releases')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        <Feature features="performance-saved-queries">
+        <Feature features={['performance-trace-explorer', 'performance-view']}>
           <SecondaryNav.Section title={t('Starred Queries')}>
             {starredQueries && starredQueries.length > 0 && (
               <ExploreSavedQueryNavItems queries={starredQueries} />
