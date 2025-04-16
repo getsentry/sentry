@@ -384,7 +384,7 @@ interface ExpandedTaskGroupProps {
 }
 
 function ExpandedTaskGroup({sortedTasks, hidePanel}: ExpandedTaskGroupProps) {
-  const updateOnboardingTasks = useUpdateOnboardingTasks();
+  const mutateOnboardingTasks = useMutateOnboardingTasks();
 
   const markCompletionTimeout = useRef<number | undefined>(undefined);
 
