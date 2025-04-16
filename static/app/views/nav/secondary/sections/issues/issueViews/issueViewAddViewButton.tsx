@@ -63,6 +63,10 @@ export function IssueViewAddViewButton() {
     }
   };
 
+  if (organization.features.includes('issue-view-sharing')) {
+    return null;
+  }
+
   return (
     <AddViewButton
       borderless
