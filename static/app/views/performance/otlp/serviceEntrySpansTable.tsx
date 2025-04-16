@@ -175,12 +175,13 @@ export function ServiceEntrySpansTable({
     'api.performance.service-entry-spans-table-count'
   );
 
-  const paginationCaption = numEvents[0]?.['count()']
-    ? tct('Showing [pageEventsCount] of [totalEventsCount] events', {
-        pageEventsCount: FULL_PAGE_MODE_LIMIT.toLocaleString(),
-        totalEventsCount: numEvents[0]?.['count()'].toLocaleString(),
-      })
-    : '...';
+  const paginationCaption = tct(
+    'Showing [pageEventsCount] of [totalEventsCount] events',
+    {
+      pageEventsCount: FULL_PAGE_MODE_LIMIT.toLocaleString(),
+      totalEventsCount: numEvents[0]?.['count()']?.toLocaleString() ?? '...',
+    }
+  );
 
   const consolidatedData = tableData?.map(row => {
     const user =
