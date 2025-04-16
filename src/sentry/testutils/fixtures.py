@@ -310,6 +310,17 @@ class Fixtures:
             project = self.project
         return Factories.create_group(project, *args, **kwargs)
 
+    def create_group_open_period(
+        self, project=None, group=None, date_started=None, *args, **kwargs
+    ):
+        if project is None:
+            project = self.project
+        if group is None:
+            group = self.group
+        if date_started is None:
+            date_started = timezone.now()
+        return Factories.create_group_open_period(project, group, date_started, *args, **kwargs)
+
     def create_file(self, **kwargs):
         return Factories.create_file(**kwargs)
 

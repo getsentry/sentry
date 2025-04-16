@@ -204,7 +204,7 @@ class OpenPeriodContext:
 
     @classmethod
     def from_group(cls, group: Group) -> OpenPeriodContext:
-        open_period = GroupOpenPeriod.objects.get(group=group).order_by("-date_started").first()
+        open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
         if open_period is None:
             raise ValueError("No open periods found for group")
         return cls(

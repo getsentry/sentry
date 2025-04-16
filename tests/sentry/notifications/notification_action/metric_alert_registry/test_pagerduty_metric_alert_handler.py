@@ -43,6 +43,11 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
+        self.group.priority = PriorityLevel.HIGH.value
+        self.group.save()
+        self.open_period = self.create_group_open_period(
+            project=self.project, group=self.group, date_started=self.group_event.group.first_seen
+        )
         self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
         self.handler = PagerDutyMetricAlertHandler()
 
@@ -122,6 +127,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
 
         self.assert_open_period_context(
             open_period_context,
+            id=self.open_period.id,
             date_started=self.group_event.group.first_seen,
             date_closed=None,
         )

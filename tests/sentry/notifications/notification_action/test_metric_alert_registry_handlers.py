@@ -166,10 +166,12 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
     def assert_open_period_context(
         self,
         open_period_context: OpenPeriodContext,
+        id: int,
         date_started: datetime,
         date_closed: datetime | None,
     ):
         assert asdict(open_period_context) == {
+            "id": id,
             "date_started": date_started,
             "date_closed": date_closed,
         }
