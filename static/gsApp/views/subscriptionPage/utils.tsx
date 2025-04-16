@@ -63,7 +63,10 @@ export function calculateCategorySpend(
   const isMonthly = subscription.planDetails.billingInterval === 'monthly';
   // Put prepaid prices into monthly terms
   const prepaidPrice = priceBucket.price / (isMonthly ? 1 : 12);
-  const percentPrepaidUsed = Math.min(reservedUse / eventsByPrice, 1);
+  const percentPrepaidUsed = Math.min(
+    eventsByPrice === 0 ? 0 : reservedUse / eventsByPrice,
+    1
+  );
   const prepaidSpent = percentPrepaidUsed * prepaidPrice;
   const onDemandSpent = categoryInfo.onDemandSpendUsed ?? 0;
 
