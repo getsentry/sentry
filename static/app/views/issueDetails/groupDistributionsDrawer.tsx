@@ -1,5 +1,4 @@
 import {useRef, useState} from 'react';
-import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
@@ -20,7 +19,7 @@ import {
   ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {IconDownload, IconSearch} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -28,6 +27,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useUrlParams from 'sentry/utils/useUrlParams';
+import HeaderTitle from 'sentry/views/issueDetails/groupDistributions/headerTitle';
+import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsDrawerContent';
 import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
@@ -35,12 +36,6 @@ import TagDrawerContent from 'sentry/views/issueDetails/groupTags/tagDrawerConte
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
-
-// Used for `tab` state and URL param.
-export enum DrawerTab {
-  TAGS = 'tags',
-  FEATURE_FLAGS = 'featureFlags',
-}
 
 function useDrawerTab({enabled}: {enabled: boolean}) {
   const {getParamValue: getTabParam, setParamValue: setTabParam} = useUrlParams(
@@ -54,20 +49,6 @@ function useDrawerTab({enabled}: {enabled: boolean}) {
         setTab: setTabParam,
       }
     : {tab: DrawerTab.TAGS, setTab: (_tab: string) => {}};
-}
-
-function getHeaderTitle(
-  tagKey: string | undefined,
-  tab: DrawerTab,
-  includeFeatureFlagsTab: boolean
-) {
-  if (tagKey) {
-    return tab === DrawerTab.TAGS
-      ? tct('Tag Details - [tagKey]', {tagKey})
-      : tct('Feature Flag Details - [tagKey]', {tagKey});
-  }
-
-  return includeFeatureFlagsTab ? t('Tags & Feature Flags') : t('All Tags');
 }
 
 /**
@@ -230,7 +211,11 @@ function BaseGroupDistributionsDrawer({
         />
       </EventDrawerHeader>
       <EventNavigator>
-        <Header>{getHeaderTitle(tagKey, tab, includeFeatureFlagsTab)}</Header>
+        <HeaderTitle
+          includeFeatureFlagsTab={includeFeatureFlagsTab}
+          tab={tab}
+          tagKey={tagKey}
+        />
         {headerActions}
       </EventNavigator>
       <EventDrawerBody>
@@ -261,10 +246,3 @@ function BaseGroupDistributionsDrawer({
     </EventDrawerContainer>
   );
 }
-
-const Header = styled('h3')`
-  ${p => p.theme.overflowEllipsis};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
-  margin: 0;
-`;
