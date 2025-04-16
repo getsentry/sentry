@@ -6,7 +6,6 @@ import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
@@ -28,6 +27,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useUrlParams from 'sentry/utils/useUrlParams';
+import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
+import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsDrawerContent';
 import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
@@ -35,12 +36,6 @@ import TagDrawerContent from 'sentry/views/issueDetails/groupTags/tagDrawerConte
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
-
-// Used for `tab` state and URL param.
-export enum DrawerTab {
-  TAGS = 'tags',
-  FEATURE_FLAGS = 'featureFlags',
-}
 
 function useDrawerTab({enabled}: {enabled: boolean}) {
   const {getParamValue: getTabParam, setParamValue: setTabParam} = useUrlParams(
@@ -174,21 +169,13 @@ function BaseGroupDistributionsDrawer({
           </InputGroup.TrailingItems>
         </InputGroup>
         {includeFeatureFlagsTab && (
-          <SegmentedControl
-            size="xs"
-            value={tab}
-            onChange={newTab => {
+          <TagFlagPicker
+            tab={tab}
+            setTab={newTab => {
               setTab(newTab);
               setSearch('');
             }}
-          >
-            <SegmentedControl.Item key={DrawerTab.TAGS}>
-              {t('All Tags')}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item key={DrawerTab.FEATURE_FLAGS}>
-              {t('All Feature Flags')}
-            </SegmentedControl.Item>
-          </SegmentedControl>
+          />
         )}
       </ButtonBar>
     );
