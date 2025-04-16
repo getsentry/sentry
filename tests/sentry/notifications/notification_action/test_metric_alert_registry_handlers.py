@@ -1,7 +1,7 @@
 import uuid
 from collections.abc import Mapping
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 from unittest import mock
 
@@ -18,14 +18,12 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
-from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
@@ -66,19 +64,13 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
                 },
             ),
         )
-
-        self.save_group_with_open_period(self.group)
-        self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
-
-    def save_group_with_open_period(self, group: Group) -> None:
-        # test a new group has an open period
-        group.type = MetricIssuePOC.type_id
-        group.save()
-        Activity.objects.create(
-            group=group,
-            project=group.project,
-            type=ActivityType.SET_RESOLVED.value,
-            datetime=timezone.now() + timedelta(days=1),
+        self.group.priority = PriorityLevel.HIGH.value
+        self.group.save()
+        self.open_period = self.create_group_open_period(
+            project=self.project, group=self.group, date_started=self.group_event.group.first_seen
+        )
+        self.event_data = WorkflowEventData(
+            event=self.group_event, workflow_env=self.workflow.environment
         )
 
     def create_issue_occurrence(

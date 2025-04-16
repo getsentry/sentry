@@ -15,9 +15,7 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.uti
     get_incident_serializer,
 )
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
@@ -26,9 +24,6 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
 class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self):
         super().setUp()
-        self.project = self.create_project()
-        self.detector = self.create_detector(project=self.project)
-        self.workflow = self.create_workflow(environment=self.environment)
         self.action = self.create_action(
             type=Action.Type.DISCORD,
             integration_id=1234567890,
@@ -37,26 +32,7 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
                 "target_type": ActionTarget.SPECIFIC,
             },
         )
-        self.snuba_query = self.create_snuba_query()
 
-        self.group, self.event, self.group_event = self.create_group_event(
-            occurrence=self.create_issue_occurrence(
-                initial_issue_priority=PriorityLevel.HIGH.value,
-                level="error",
-                evidence_data={
-                    "snuba_query_id": self.snuba_query.id,
-                    "metric_value": 123.45,
-                },
-            ),
-        )
-        self.group.priority = PriorityLevel.HIGH.value
-        self.group.save()
-        self.open_period = self.create_group_open_period(
-            project=self.project, group=self.group, date_started=self.group_event.group.first_seen
-        )
-        self.event_data = WorkflowEventData(
-            event=self.group_event, workflow_env=self.workflow.environment
-        )
         self.handler = DiscordMetricAlertHandler()
 
     @mock.patch("sentry.integrations.discord.actions.metric_alert.send_incident_alert_notification")
