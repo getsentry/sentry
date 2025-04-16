@@ -18,7 +18,9 @@ import {
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {
   FlagControlOptions,
+  ORDER_BY_OPTIONS,
   type OrderBy,
+  SORT_BY_OPTIONS,
   type SortBy,
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
@@ -33,7 +35,9 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface FlagDrawerProps {
   event: Event;
@@ -54,6 +58,7 @@ export function FeatureFlagDrawer({
   hydratedFlags,
   focusControl: initialFocusControl,
 }: FlagDrawerProps) {
+  const organization = useOrganization();
   const [sortBy, setSortBy] = useState<SortBy>(initialSortBy);
   const [orderBy, setOrderBy] = useState<OrderBy>(initialOrderBy);
   const [search, setSearch] = useState('');
@@ -80,10 +85,18 @@ export function FeatureFlagDrawer({
         </InputGroup.TrailingItems>
       </InputGroup>
       <FeatureFlagSort
+        sortByOptions={SORT_BY_OPTIONS}
+        orderByOptions={ORDER_BY_OPTIONS}
+        onChange={selection => {
+          trackAnalytics('flags.sort_flags', {
+            organization,
+            sortMethod: selection.value,
+          });
+        }}
         orderBy={orderBy}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
         setOrderBy={setOrderBy}
+        setSortBy={setSortBy}
+        sortBy={sortBy}
       />
     </ButtonBar>
   );
