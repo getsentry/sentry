@@ -43,7 +43,6 @@ export default function useFeedbackActions({feedbackItem}: Props) {
     projectIds: feedbackItem.project ? [feedbackItem.project.id] : [],
   });
   const onDelete = useDeleteFeedback([feedbackItem.id], projectId);
-  const hasDelete = organization.features.includes('issue-platform-deletion-ui');
   const disableDelete = !organization.access.includes('event:admin');
 
   const isResolved = feedbackItem.status === GroupStatus.RESOLVED;
@@ -76,7 +75,6 @@ export default function useFeedbackActions({feedbackItem}: Props) {
 
   return {
     disableDelete,
-    hasDelete,
     onDelete,
     isResolved,
     onResolveClick,
