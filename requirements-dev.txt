@@ -1,6 +1,6 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
-sentry-devenv>=1.16
+sentry-devenv>=1.18
 devservices>=1.0.18
 
 covdefaults>=2.3.0
