@@ -30,9 +30,14 @@ type LeftNavViewsHeaderProps = {
 function PageTitle() {
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
+  const user = useUser();
   const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
 
-  if (hasIssueViewSharing && groupSearchView) {
+  if (
+    hasIssueViewSharing &&
+    groupSearchView &&
+    canEditIssueView({groupSearchView, user})
+  ) {
     return <EditableIssueViewHeader view={groupSearchView} />;
   }
 
