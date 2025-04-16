@@ -100,7 +100,7 @@ function IntegrationTabs({
       <Tabs value={activeTab} onChange={onTabChange}>
         <TabList>
           {tabs.map(tab => (
-            <TabList.Item key={tab}>
+            <TabList.Item key={tab} textValue={getTabDisplay ? getTabDisplay(tab) : tab}>
               <Capitalized>{renderTab(tab)}</Capitalized>
             </TabList.Item>
           ))}
