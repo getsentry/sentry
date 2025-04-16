@@ -85,7 +85,6 @@ export const FeatureBadge = styled(InnerFeatureBadge)``;
 
 const ChonkStyledBadge = chonkStyled(Badge)`
   text-transform: capitalize;
-  margin-left: ${space(0.75)};
 `;
 
 const StyledBadge = withChonk(
@@ -96,7 +95,6 @@ const StyledBadge = withChonk(
     font-weight: ${p => p.theme.fontWeightNormal};
     font-size: ${p => p.theme.fontSizeExtraSmall};
     vertical-align: middle;
-    margin-left: ${space(0.75)};
   `,
   ChonkStyledBadge
 );
