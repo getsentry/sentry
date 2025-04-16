@@ -2131,6 +2131,7 @@ export enum ReplayFieldKey {
   COUNT_RAGE_CLICKS = 'count_rage_clicks',
   COUNT_ERRORS = 'count_errors',
   COUNT_SEGMENTS = 'count_segments',
+  COUNT_TRACES = 'count_traces',
   COUNT_URLS = 'count_urls',
   DURATION = 'duration',
   ERROR_IDS = 'error_ids',
@@ -2176,6 +2177,7 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.COUNT_ERRORS,
   ReplayFieldKey.COUNT_SEGMENTS,
   ReplayFieldKey.COUNT_URLS,
+  ReplayFieldKey.COUNT_TRACES,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_FAMILY,
   FieldKey.DEVICE_MODEL_ID,
@@ -2235,6 +2237,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   },
   [ReplayFieldKey.COUNT_SEGMENTS]: {
     desc: t('Number of segments in the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  [ReplayFieldKey.COUNT_TRACES]: {
+    desc: t('Number of traces in the replay'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
