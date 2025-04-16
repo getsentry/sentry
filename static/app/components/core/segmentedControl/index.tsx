@@ -154,6 +154,7 @@ function Segment<Value extends string>({
 
   const label = theme.isChonk ? (
     <VisibleLabel
+      size={size}
       isSelected={isSelected}
       isDisabled={isDisabled}
       priority={priority}
@@ -169,6 +170,7 @@ function Segment<Value extends string>({
     <InnerLabelWrap role="presentation">
       <HiddenLabel aria-hidden>{props.children}</HiddenLabel>
       <VisibleLabel
+        size={size}
         isSelected={isSelected}
         isDisabled={isDisabled}
         priority={priority}
@@ -415,6 +417,7 @@ const VisibleLabel = withChonk(
   styled('span')<{
     isSelected: boolean;
     priority: Priority;
+    size: FormSize;
     isDisabled?: boolean;
   }>`
     ${p => p.theme.overflowEllipsis}
