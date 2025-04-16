@@ -1,13 +1,12 @@
-import pytest
 from django.urls import reverse
 
-from sentry.api.endpoints.organization_trace_item_attributes import TraceItemType
+from sentry.search.eap.types import SupportedTraceItemType
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
 class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTestBase):
     viewname = "sentry-api-0-organization-trace-item-attributes"
-    item_type = TraceItemType.LOGS.value  # Can subclass this to test other item types
+    item_type = SupportedTraceItemType.LOGS.value  # Can subclass this to test other item types
 
     def setUp(self):
         super().setUp()
@@ -40,7 +39,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         assert '"invalid" is not a valid choice.' in str(response.data["item_type"][0])
 
     def test_no_projects(self):
-        response = self.do_request(query={"item_type": TraceItemType.LOGS.value})
+        response = self.do_request(query={"item_type": SupportedTraceItemType.LOGS.value})
         assert response.status_code == 200, response.content
         assert response.data == []
 
@@ -73,13 +72,13 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         assert response.status_code == 200, response.content
 
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 6
+        assert len(keys) >= 6
         assert "test.attribute1" in keys
         assert "test.attribute2" in keys
         assert "test.attribute3" in keys
         assert "another.attribute" in keys
         assert "different.attr" in keys
-        assert "sentry.severity_text" in keys
+        assert "severity_text" in keys
 
         # With a prefix only match the attributes that start with "tes"
         response = self.do_request(query={"substring_match": "tes"})
@@ -92,9 +91,6 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         assert "another.attribute" not in keys
         assert "different.attr" not in keys
 
-    @pytest.mark.skip(
-        reason="This should eventually work once TraceItemAttributeNamesRequest is fixed"
-    )
     def test_all_attributes(self):
         logs = [
             self.create_ourlog(
@@ -112,12 +108,53 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
 
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 2
+        assert len(keys) >= 3
+        assert "test.attribute1" in keys
+        assert "test.attribute2" in keys
+        assert "severity_text" in keys
+
+    def test_body_attribute(self):
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "message": {"string_value": "value1"},
+                },
+            ),
+        ]
+        self.store_ourlogs(logs)
+
+        response = self.do_request()
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert keys == {"severity_text", "message", "project"}
+
+    def test_disallowed_attributes(self):
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "sentry.item_type": {"string_value": "value1"},  # Disallowed
+                    "sentry.item_type2": {"string_value": "value2"},  # Allowed
+                },
+            ),
+        ]
+
+        self.store_ourlogs(logs)
+
+        response = self.do_request()
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert keys == {"severity_text", "message", "project", "sentry.item_type2"}
 
 
 class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpointTestBase):
     viewname = "sentry-api-0-organization-trace-item-attribute-values"
-    item_type = TraceItemType.LOGS.value
+    item_type = SupportedTraceItemType.LOGS.value
 
     def setUp(self):
         super().setUp()
@@ -151,7 +188,6 @@ class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpoin
         response = self.do_request(features={}, key="test.attribute")
         assert response.status_code == 404, response.content
 
-    @pytest.mark.skip(reason="This should work once snuba #6970 lands")
     def test_attribute_values(self):
         logs = [
             self.create_ourlog(

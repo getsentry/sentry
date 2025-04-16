@@ -5,6 +5,7 @@ from typing import Any, ClassVar
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
+from django.db.models import SET_NULL
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -42,28 +43,15 @@ class OnboardingTaskStatus:
     SKIPPED = 3
 
 
-# NOTE: data fields for some event types are as follows:
-#
-#   FIRST_EVENT:      { 'platform':  'flask', }
-#   INVITE_MEMBER:    { 'invited_member': user.id, 'teams': [team.id] }
-#   SECOND_PLATFORM:  { 'platform': 'javascript' }
-#
-# NOTE: Currently the `PENDING` status is applicable for the following
-# onboarding tasks:
-#
-#   FIRST_EVENT:     User confirms that sdk has been installed
-#   INVITE_MEMBER:   Until the member has successfully joined org
-
-
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
     def record(self, organization_id, task, **kwargs):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
 
         if cache.get(cache_key) is None:
-            _, created = self.create_or_update(
+            _, created = self.update_or_create(
                 organization_id=organization_id,
                 task=task,
-                values=kwargs,
+                defaults=kwargs,
             )
 
             # Store marker to prevent running all the time
@@ -95,7 +83,9 @@ class AbstractOnboardingTask(Model):
     status = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in STATUS_CHOICES])
     completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
+    project = FlexibleForeignKey(
+        "sentry.Project", db_constraint=False, null=True, on_delete=SET_NULL
+    )
     # INVITE_MEMBER { invited_member: user.id }
     data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 

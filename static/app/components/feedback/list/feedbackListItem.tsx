@@ -1,5 +1,4 @@
 import type {CSSProperties} from 'react';
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -29,6 +28,7 @@ interface Props {
   feedbackItem: FeedbackIssueListItem;
   isSelected: 'all-selected' | boolean;
   onSelect: (isSelected: boolean) => void;
+  ref?: React.Ref<HTMLDivElement>;
   style?: CSSProperties;
 }
 
@@ -40,10 +40,7 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListI
   return feedbackId === feedbackItem.id;
 }
 
-const FeedbackListItem = forwardRef<HTMLDivElement, Props>(function FeedbackListItem(
-  {feedbackItem, isSelected, onSelect, style},
-  ref
-) {
+function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Props) {
   const organization = useOrganization();
   const isOpen = useIsSelectedFeedback({feedbackItem});
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
@@ -168,7 +165,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(function FeedbackList
       </LinkedFeedbackCard>
     </CardSpacing>
   );
-});
+}
 
 export default FeedbackListItem;
 
@@ -248,7 +245,7 @@ const ContactRow = styled(TextOverflow)`
 
 const ShortId = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const StyledTimeSince = styled(TimeSince)`

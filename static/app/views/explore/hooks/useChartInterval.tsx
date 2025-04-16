@@ -55,11 +55,15 @@ function useChartIntervalImpl({
   const interval: string = useMemo(() => {
     const decodedInterval = decodeScalar(location.query.interval);
 
+    // Default to the second largest option or largest option
+    const fallbackInterval =
+      intervalOptions[intervalOptions.length - 2]?.value ??
+      intervalOptions[intervalOptions.length - 1]!.value;
+
     return decodedInterval &&
       intervalOptions.some(option => option.value === decodedInterval)
       ? decodedInterval
-      : // Default to the largest option
-        intervalOptions[intervalOptions.length - 1]!.value;
+      : fallbackInterval;
   }, [location.query.interval, intervalOptions]);
 
   const setInterval = useCallback(
@@ -105,7 +109,7 @@ const MINIMUM_INTERVAL = new GranularityLadder([
 const MAXIMUM_INTERVAL = new GranularityLadder([
   [THIRTY_DAYS, '1d'],
   [TWO_WEEKS, '1d'],
-  [ONE_WEEK, '1d'],
+  [ONE_WEEK, '12h'],
   [FORTY_EIGHT_HOURS, '4h'],
   [SIX_HOURS, '1h'],
   [0, '15m'],

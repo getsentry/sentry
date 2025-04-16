@@ -48,7 +48,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     similarIssues: {enabled: false},
     usesIssuePlatform: true,
     useOpenPeriodChecks: true,
-    stats: {enabled: false},
+    stats: {enabled: true},
     tags: {enabled: false},
     issueSummary: {enabled: false},
   },

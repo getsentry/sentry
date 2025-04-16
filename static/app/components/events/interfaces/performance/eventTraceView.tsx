@@ -1,8 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -20,8 +20,8 @@ import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/trace
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {SwitchToNonEAPTraceButton} from 'sentry/views/performance/newTraceDetails/traceHeader';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import {
   loadTraceViewPreferences,
   type TracePreferencesState,
@@ -29,6 +29,7 @@ import {
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
+import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
@@ -37,7 +38,7 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer left': 0.33,
       'drawer right': 0.33,
       'drawer bottom': 0.4,
-      'trace context height': 150,
+      'trace grid height': 150,
     },
     layoutOptions: [],
   },
@@ -75,39 +76,31 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   const shouldLoadTraceRoot = !trace.isPending && trace.data;
 
   const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data : null);
-  const preferences = useMemo(
-    () =>
-      loadTraceViewPreferences('issue-details-trace-view-preferences') ||
-      DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
-    []
-  );
 
   const traceEventView = useTraceEventView(traceId, params);
+
+  const traceWaterfallModels = useTraceWaterfallModels();
 
   if (!traceId) {
     return null;
   }
 
   return (
-    <TraceStateProvider
-      initialPreferences={preferences}
-      preferencesStorageKey="issue-details-view-preferences"
-    >
-      <IssuesTraceContainer>
-        <IssuesTraceWaterfall
-          tree={tree}
-          trace={trace}
-          traceSlug={traceId}
-          rootEvent={rootEvent}
-          organization={organization}
-          traceEventView={traceEventView}
-          meta={meta}
-          source="issues"
-          replay={null}
-          event={event}
-        />
-      </IssuesTraceContainer>
-    </TraceStateProvider>
+    <IssuesTraceContainer>
+      <IssuesTraceWaterfall
+        tree={tree}
+        trace={trace}
+        traceSlug={traceId}
+        rootEvent={rootEvent}
+        organization={organization}
+        traceEventView={traceEventView}
+        meta={meta}
+        source="issues"
+        replay={null}
+        event={event}
+        traceWaterfallModels={traceWaterfallModels}
+      />
+    </IssuesTraceContainer>
   );
 }
 
@@ -141,12 +134,15 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   const traceId = event.contexts.trace?.trace_id;
   const location = useLocation();
 
-  // Performance issues have a Span Evidence section that contains the trace view
-  const isHiddenForPerformanceIssues =
-    group.issueCategory === IssueCategory.PERFORMANCE &&
-    organization.features.includes('issue-details-new-performance-trace-view');
+  const preferences = useMemo(
+    () =>
+      loadTraceViewPreferences('issue-details-trace-view-preferences') ||
+      DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
+    []
+  );
 
-  if (!traceId || isHiddenForPerformanceIssues) {
+  // Performance issues have a Span Evidence section that contains the trace view
+  if (!traceId || group.issueCategory === IssueCategory.PERFORMANCE) {
     return null;
   }
 
@@ -163,11 +159,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     TraceViewSources.ISSUE_DETAILS
   );
 
-  const hasProfilingFeature = organization.features.includes('profiling');
-  const hasTracePreviewFeature =
-    hasProfilingFeature &&
-    // Only display this for error or default events since performance events are handled elsewhere
-    group.issueCategory !== IssueCategory.PERFORMANCE;
+  const hasTracePreviewFeature = organization.features.includes('profiling');
 
   return (
     <InterimSection
@@ -175,7 +167,10 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       title={t('Trace Preview')}
       actions={
         <ButtonBar gap={1}>
-          <SwitchToNonEAPTraceButton location={location} organization={organization} />
+          <TraceHeaderComponents.ToggleTraceFormatButton
+            location={location}
+            organization={organization}
+          />
           <LinkButton
             size="xs"
             to={getTraceLinkForIssue(traceTarget)}
@@ -189,11 +184,16 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     >
       <OneOtherIssueEvent event={event} />
       {hasTracePreviewFeature && (
-        <EventTraceViewInner
-          event={event}
-          organization={organization}
-          traceId={traceId}
-        />
+        <TraceStateProvider
+          initialPreferences={preferences}
+          preferencesStorageKey="issue-details-view-preferences"
+        >
+          <EventTraceViewInner
+            event={event}
+            organization={organization}
+            traceId={traceId}
+          />
+        </TraceStateProvider>
       )}
     </InterimSection>
   );

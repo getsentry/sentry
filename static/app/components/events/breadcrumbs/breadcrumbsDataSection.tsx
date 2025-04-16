@@ -1,9 +1,10 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   BreadcrumbControlOptions,
@@ -33,6 +34,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export interface BreadcrumbsDataSectionProps {
   event: Event;
@@ -47,6 +49,8 @@ export default function BreadcrumbsDataSection({
   project,
   initialCollapse,
 }: BreadcrumbsDataSectionProps) {
+  const theme = useTheme();
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
@@ -61,7 +65,10 @@ export default function BreadcrumbsDataSection({
     BreadcrumbSort.NEWEST
   );
 
-  const enhancedCrumbs = useMemo(() => getEnhancedBreadcrumbs(event), [event]);
+  const enhancedCrumbs = useMemo(
+    () => getEnhancedBreadcrumbs(event, theme),
+    [event, theme]
+  );
   const summaryCrumbs = useMemo(
     () => getSummaryBreadcrumbs(enhancedCrumbs, sort),
     [enhancedCrumbs, sort]
@@ -92,6 +99,7 @@ export default function BreadcrumbsDataSection({
         ),
         {
           ariaLabel: 'breadcrumb drawer',
+          drawerKey: `breadcrumbs-drawer`,
           // We prevent a click on the 'View All' button from closing the drawer so that
           // we don't reopen it immediately, and instead let the button handle this itself.
           shouldCloseOnInteractOutside: element => {
@@ -157,7 +165,7 @@ export default function BreadcrumbsDataSection({
       key="breadcrumbs"
       type={SectionKey.BREADCRUMBS}
       title={
-        <GuideAnchor target="breadcrumbs" position="top">
+        <GuideAnchor target="breadcrumbs" position="top" disabled={hasStreamlinedUI}>
           {t('Breadcrumbs')}
         </GuideAnchor>
       }

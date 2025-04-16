@@ -29,11 +29,12 @@ from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
-from sentry.workflow_engine.handlers.condition.slow_condition_query_handlers import (
+from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
+    QueryResult,
     slow_condition_query_handler_registry,
 )
-from sentry.workflow_engine.models import Action, DataCondition, DataConditionGroup, Workflow
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Workflow
 from sentry.workflow_engine.models.data_condition import (
     PERCENT_CONDITIONS,
     SLOW_CONDITIONS,
@@ -45,10 +46,10 @@ from sentry.workflow_engine.processors.data_condition_group import evaluate_data
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+    create_workflow_fire_histories,
     evaluate_workflows_action_filters,
-    log_fired_workflows,
 )
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 logger = logging.getLogger("sentry.workflow_engine.processors.delayed_workflow")
 
@@ -74,6 +75,9 @@ class UniqueConditionQuery:
     environment_id: int | None
     comparison_interval: str | None = None
     filters: list[dict[str, Any]] | None = None
+
+    def __repr__(self):
+        return f"UniqueConditionQuery(handler={self.handler.__name__}, interval={self.interval}, environment_id={self.environment_id}, comparison_interval={self.comparison_interval}, filters={self.filters})"
 
 
 def fetch_project(project_id: int) -> Project | None:
@@ -228,7 +232,7 @@ def get_condition_query_groups(
 
 def get_condition_group_results(
     queries_to_groups: dict[UniqueConditionQuery, set[int]],
-) -> dict[UniqueConditionQuery, dict[int, int]]:
+) -> dict[UniqueConditionQuery, QueryResult]:
     condition_group_results = {}
     current_time = timezone.now()
 
@@ -262,7 +266,7 @@ def get_groups_to_fire(
     workflows_to_envs: WorkflowEnvMapping,
     dcg_to_workflow: dict[int, int],
     dcg_to_groups: DataConditionGroupGroups,
-    condition_group_results: dict[UniqueConditionQuery, dict[int, int]],
+    condition_group_results: dict[UniqueConditionQuery, QueryResult],
 ) -> dict[int, set[DataConditionGroup]]:
     groups_to_fire: dict[int, set[DataConditionGroup]] = defaultdict(set)
     for dcg in data_condition_groups:
@@ -272,7 +276,7 @@ def get_groups_to_fire(
         workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
 
         for group_id in dcg_to_groups[dcg.id]:
-            conditions_to_evaluate = []
+            conditions_to_evaluate: list[tuple[DataCondition, list[int | float]]] = []
             for condition in slow_conditions:
                 unique_queries = generate_unique_queries(condition, workflow_env)
                 query_values = [
@@ -305,8 +309,13 @@ def parse_dcg_group_event_data(
 
     for workflow_group_dcg, instance_data in workflow_event_dcg_data.items():
         data = workflow_group_dcg.split(":")
-        event_data = json.loads(instance_data)
 
+        group_id = int(data[1])
+        if group_id not in groups_to_dcg_ids:
+            # the group did not trigger any data condition groups
+            continue
+
+        event_data = json.loads(instance_data)
         event_id = event_data.get("event_id")
         if event_id:
             event_ids.add(event_id)
@@ -315,7 +324,6 @@ def parse_dcg_group_event_data(
         if occurrence_id:
             occurrence_ids.add(occurrence_id)
 
-        group_id = int(data[1])
         dcg_ids = [int(dcg_id) for dcg_id in data[2].split(",")]
 
         for dcg_id in dcg_ids:
@@ -391,8 +399,8 @@ def fire_actions_for_groups(
     group_to_groupevent: dict[Group, GroupEvent],
 ) -> None:
     for group, group_event in group_to_groupevent.items():
-        job = WorkflowJob({"event": group_event})
-        detector = get_detector_by_event(job)
+        event_data = WorkflowEventData(event=group_event)
+        detector = get_detector_by_event(event_data)
 
         workflow_triggers: set[DataConditionGroup] = set()
         action_filters: set[DataConditionGroup] = set()
@@ -403,43 +411,41 @@ def fire_actions_for_groups(
                 action_filters.add(dcg)
 
         # process action filters
-        filtered_actions: list[Action] = list(
-            filter_recently_fired_workflow_actions(action_filters, group)
-        )
+        filtered_actions = filter_recently_fired_workflow_actions(action_filters, event_data)
 
         # process workflow_triggers
         workflows = set(Workflow.objects.filter(when_condition_group_id__in=workflow_triggers))
-        filtered_actions.extend(list(evaluate_workflows_action_filters(workflows, job)))
+
+        # create WorkflowFireHistory (updated in evaluate_workflows_action_filters)
+        create_workflow_fire_histories(workflows, event_data)
+        filtered_actions = filtered_actions.union(
+            evaluate_workflows_action_filters(workflows, event_data)
+        )
 
         # temporary fetching of organization, so not passing in as parameter
         organization = group.project.organization
 
-        if features.has(
-            "organizations:workflow-engine-process-workflows",
-            organization,
-        ):
-            metrics.incr(
-                "workflow_engine.delayed_workflow.triggered_actions",
-                amount=len(filtered_actions),
-                tags={"event_type": group_event.group.type},
-            )
+        metrics.incr(
+            "workflow_engine.delayed_workflow.triggered_actions",
+            amount=len(filtered_actions),
+            tags={"event_type": group_event.group.type},
+        )
 
-        if features.has(
-            "organizations:workflow-engine-process-workflows-logs",
-            organization,
-        ):
-            log_fired_workflows(
-                log_name="workflow_engine.delayed_workflow.fired_workflow",
-                actions=filtered_actions,
-                job=job,
-            )
+        logger.info(
+            "workflow_engine.delayed_workflow.triggered_actions",
+            extra={
+                "workflow_ids": [workflow.id for workflow in workflows],
+                "actions": filtered_actions,
+                "event_data": event_data,
+            },
+        )
 
         if features.has(
             "organizations:workflow-engine-trigger-actions",
             organization,
         ):
             for action in filtered_actions:
-                action.trigger(job, detector)
+                action.trigger(event_data, detector)
 
 
 def cleanup_redis_buffer(
@@ -484,15 +490,39 @@ def process_delayed_workflows(
     _, workflows_to_envs = fetch_workflows_envs(list(dcg_to_workflow.values()))
     data_condition_groups = fetch_data_condition_groups(list(dcg_to_groups.keys()))
 
+    logger.info(
+        "delayed_workflow.workflows",
+        extra={"data": workflow_event_dcg_data, "workflows": set(dcg_to_workflow.values())},
+    )
+
     # Get unique query groups to query Snuba
     condition_groups = get_condition_query_groups(
         data_condition_groups, dcg_to_groups, dcg_to_workflow, workflows_to_envs
     )
+
+    if not condition_groups:
+        return
+
+    repr_condition_groups = {
+        repr(condition_group): group_ids for condition_group, group_ids in condition_groups.items()
+    }
     logger.info(
         "delayed_workflow.condition_query_groups",
-        extra={"condition_groups": len(condition_groups), "project_id": project_id},
+        extra={
+            "condition_groups": repr_condition_groups,
+            "num_condition_groups": len(condition_groups),
+            "project_id": project_id,
+        },
     )
     condition_group_results = get_condition_group_results(condition_groups)
+
+    serialized_results = {
+        str(query): count_dict for query, count_dict in condition_group_results.items()
+    }
+    logger.info(
+        "delayed_workflow.condition_group_results",
+        extra={"condition_group_results": serialized_results},
+    )
 
     # Evaluate DCGs
     groups_to_dcgs = get_groups_to_fire(
@@ -501,6 +531,11 @@ def process_delayed_workflows(
         dcg_to_workflow,
         dcg_to_groups,
         condition_group_results,
+    )
+
+    logger.info(
+        "delayed_workflow.groups_to_fire",
+        extra={"groups_to_dcgs": groups_to_dcgs},
     )
 
     dcg_group_to_event_data, event_ids, occurrence_ids = parse_dcg_group_event_data(

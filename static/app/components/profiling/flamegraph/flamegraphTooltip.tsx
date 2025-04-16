@@ -33,7 +33,6 @@ export function formatWeightToProfileDuration(
 }
 
 export interface FlamegraphTooltipProps {
-  canvasBounds: Rect;
   configSpaceCursor: vec2;
   flamegraph: Flamegraph | DifferentialFlamegraph;
   flamegraphCanvas: FlamegraphCanvas;
@@ -108,7 +107,6 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
     <BoundTooltip
       cursor={props.configSpaceCursor}
       canvas={props.flamegraphCanvas}
-      canvasBounds={props.canvasBounds}
       canvasView={props.flamegraphView}
     >
       <FlamegraphTooltipFrameMainInfo>
@@ -140,7 +138,6 @@ interface AggregateFlamegraphTooltipProps extends FlamegraphTooltipProps {
 function AggregateFlamegraphTooltip(props: AggregateFlamegraphTooltipProps) {
   return (
     <BoundTooltip
-      canvasBounds={props.canvasBounds}
       cursor={props.configSpaceCursor}
       canvas={props.flamegraphCanvas}
       canvasView={props.flamegraphView}
@@ -173,7 +170,6 @@ interface FlamechartTooltipProps extends FlamegraphTooltipProps {
 function FlamechartTooltip(props: FlamechartTooltipProps) {
   return (
     <BoundTooltip
-      canvasBounds={props.canvasBounds}
       cursor={props.configSpaceCursor}
       canvas={props.flamegraphCanvas}
       canvasView={props.flamegraphView}

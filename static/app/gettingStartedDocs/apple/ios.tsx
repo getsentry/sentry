@@ -14,6 +14,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {appleFeedbackOnboarding} from 'sentry/gettingStartedDocs/apple/macos';
 import {t, tct} from 'sentry/locale';
+import {appleProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/apple';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
 
@@ -35,10 +36,7 @@ const platformOptions = {
         value: InstallationMode.MANUAL,
       },
     ],
-    defaultValue:
-      navigator.userAgent.indexOf('Win') === -1
-        ? InstallationMode.AUTO
-        : InstallationMode.MANUAL,
+    defaultValue: InstallationMode.AUTO,
   },
 } satisfies BasePlatformOptions;
 
@@ -52,7 +50,7 @@ const getManualInstallSnippet = (params: Params) => `
 .package(url: "https://github.com/getsentry/sentry-cocoa", from: "${getPackageVersion(
   params,
   'sentry.cocoa',
-  '8.9.3'
+  '8.49.0'
 )}"),`;
 
 const getConfigurationSnippet = (params: Params) => `
@@ -85,22 +83,18 @@ func application(_ application: UIApplication,
         // Sample rate for profiling, applied on top of TracesSampleRate.
         // We recommend adjusting this value in production.
         options.profilesSampleRate = 1.0`
-            : ''
-        }
-    }${
-      params.isProfilingSelected &&
-      params.profilingOptions?.defaultProfilingMode === 'continuous'
-        ? `
+            : params.isProfilingSelected &&
+                params.profilingOptions?.defaultProfilingMode === 'continuous'
+              ? `
 
-    // Manually call startProfiler and stopProfiler
-    // to profile the code in between
-    SentrySDK.startProfiler()
-    // this code will be profiled
-    //
-    // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
-    // your application until the process exits or stopProfiler is called.
-    SentrySDK.stopProfiler()`
-        : ''
+        // Configure the profiler to start profiling when there is an active root span
+        // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
+        options.configureProfiling = {
+          $0.lifecycle = .trace
+          $0.sessionSampleRate = 1.0
+        }`
+              : ''
+        }
     }
 
     return true
@@ -134,22 +128,18 @@ struct SwiftUIApp: App {
             // Sample rate for profiling, applied on top of TracesSampleRate.
             // We recommend adjusting this value in production.
             options.profilesSampleRate = 1.0`
-                : ''
-            }
-        }${
-          params.isProfilingSelected &&
-          params.profilingOptions?.defaultProfilingMode === 'continuous'
-            ? `
+                : params.isProfilingSelected &&
+                    params.profilingOptions?.defaultProfilingMode === 'continuous'
+                  ? `
 
-        // Manually call startProfiler and stopProfiler
-        // to profile the code in between
-        SentrySDK.startProfiler()
-        // this code will be profiled
-        //
-        // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
-        // your application until the process exits or stopProfiler is called.
-        SentrySDK.stopProfiler()`
-            : ''
+            // Configure the profiler to start profiling when there is an active root span
+            // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
+            options.configureProfiling = {
+              $0.lifecycle = .trace
+              $0.sessionSampleRate = 1.0
+            }`
+                  : ''
+            }
         }
     }
 }`;
@@ -175,8 +165,8 @@ SentrySDK.start(configureOptions: { options in
 })`;
 
 const getReplayConfigurationSnippet = () => `
-options.sessionReplay.redactAllText = true
-options.sessionReplay.redactAllImages = true`;
+options.sessionReplay.maskAllText = true
+options.sessionReplay.maskAllImages = true`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
@@ -479,6 +469,7 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding: appleFeedbackOnboarding,
   platformOptions,
   replayOnboarding,
+  profilingOnboarding: appleProfilingOnboarding,
 };
 
 export default docs;

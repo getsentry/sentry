@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import keyBy from 'lodash/keyBy';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
@@ -25,6 +25,8 @@ import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useMetrics,
@@ -50,9 +52,6 @@ import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
-
-import {SampleDrawerBody} from '../../common/components/sampleDrawerBody';
-import {SampleDrawerHeaderTransaction} from '../../common/components/sampleDrawerHeaderTransaction';
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
 export function CacheSamplePanel() {
@@ -113,7 +112,7 @@ export function CacheSamplePanel() {
       {
         search: MutableSearch.fromQueryObject(filters),
         fields: [
-          `${SpanFunction.SPM}()`,
+          `${SpanFunction.EPM}()`,
           `${SpanFunction.CACHE_MISS_RATE}()`,
           `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
           `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
@@ -255,7 +254,7 @@ export function CacheSamplePanel() {
               />
               <MetricReadout
                 title={getThroughputTitle('cache')}
-                value={cacheTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
+                value={cacheTransactionMetrics?.[0]?.[`${SpanFunction.EPM}()`]}
                 unit={RateUnit.PER_MINUTE}
                 isLoading={areCacheTransactionMetricsFetching}
               />
@@ -319,7 +318,7 @@ export function CacheSamplePanel() {
               onHighlight={highlights => {
                 const firstHighlight = highlights[0];
 
-                if (!firstHighlight) {
+                if (!firstHighlight || !firstHighlight.dataPoint) {
                   setHighlightedSpanId(undefined);
                   return;
                 }

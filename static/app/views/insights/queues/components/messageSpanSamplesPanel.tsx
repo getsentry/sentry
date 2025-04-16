@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
@@ -21,6 +21,8 @@ import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
@@ -44,9 +46,6 @@ import {
   SpanIndexedField,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
-
-import {SampleDrawerBody} from '../../common/components/sampleDrawerBody';
-import {SampleDrawerHeaderTransaction} from '../../common/components/sampleDrawerHeaderTransaction';
 
 export function MessageSpanSamplesPanel() {
   const navigate = useNavigate();
@@ -178,7 +177,7 @@ export function MessageSpanSamplesPanel() {
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.duration)`]]);
 
   const {
-    data: durationSamplesData,
+    data: spanSamplesData,
     isFetching: isDurationSamplesDataFetching,
     error: durationSamplesDataError,
     refetch: refetchDurationSpanSamples,
@@ -189,7 +188,6 @@ export function MessageSpanSamplesPanel() {
     enabled: isPanelOpen && durationAxisMax > 0,
     fields: [
       SpanIndexedField.TRACE,
-      SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
       SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
@@ -199,6 +197,8 @@ export function MessageSpanSamplesPanel() {
       SpanIndexedField.SPAN_DURATION,
     ],
   });
+
+  const durationSamplesData = spanSamplesData?.data ?? [];
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(
     durationSamplesData,
@@ -289,7 +289,7 @@ export function MessageSpanSamplesPanel() {
               onHighlight={highlights => {
                 const firstHighlight = highlights[0];
 
-                if (!firstHighlight) {
+                if (!firstHighlight || !firstHighlight.dataPoint) {
                   setHighlightedSpanId(undefined);
                   return;
                 }

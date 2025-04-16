@@ -8,12 +8,19 @@ from django.urls import reverse
 
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.models.group import Group
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiUnauthorized,
+    IntegrationError,
+    IntegrationFormError,
+)
 from sentry.silo.base import all_silo_function
 from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
 
 ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r".+:(.+)#(.+)")
+
+GITLAB_ISSUE_TITLE_MAX_LENGTH = 255
 
 
 class GitlabIssuesSpec(SourceCodeIssueIntegration):
@@ -22,6 +29,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
 
     def get_issue_url(self, key: str) -> str:
         match = ISSUE_EXTERNAL_KEY_FORMAT.match(key)
+        assert match is not None
         project, issue_id = match.group(1), match.group(2)
         return "{}/{}/issues/{}".format(self.model.metadata["base_url"], project, issue_id)
 
@@ -34,10 +42,10 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         # XXX: In GitLab repositories are called projects but get_repository_choices
         # expects the param to be called 'repo', so we need to rename it here.
         # Django QueryDicts are immutable, so we need to copy it first.
-        params = params.copy()
-        params["repo"] = params.get("project") or defaults.get("project")
+        params_mut = dict(params)
+        params_mut["repo"] = params.get("project") or defaults.get("project")
 
-        default_project, project_choices = self.get_repository_choices(group, params, **kwargs)
+        default_project, project_choices = self.get_repository_choices(group, params_mut, **kwargs)
         return default_project, project_choices
 
     def create_default_repo_choice(self, default_repo):
@@ -84,10 +92,16 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         if not project_id:
             raise IntegrationError("project kwarg must be provided")
 
+        if (title := data.get("title")) is None:
+            raise IntegrationFormError({"title": ["Title is required"]})
+
+        if len(title) > GITLAB_ISSUE_TITLE_MAX_LENGTH:
+            title = title[: GITLAB_ISSUE_TITLE_MAX_LENGTH - 3] + "..."
+
         try:
             issue = client.create_issue(
                 project=project_id,
-                data={"title": data["title"], "description": data["description"]},
+                data={"title": title, "description": data["description"]},
             )
             project = client.get_project(project_id)
         except ApiError as e:
@@ -96,7 +110,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         project_and_issue_iid = "{}#{}".format(project["path_with_namespace"], issue["iid"])
         return {
             "key": project_and_issue_iid,
-            "title": issue["title"],
+            "title": title,
             "description": issue["description"],
             "url": issue["web_url"],
             "project": project_id,

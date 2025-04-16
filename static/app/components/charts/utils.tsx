@@ -22,7 +22,7 @@ import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
-const {error, fmt} = Sentry._experiment_log;
+const {error, fmt} = Sentry.logger;
 
 // In minutes
 export const SIXTY_DAYS = 86400;
@@ -126,7 +126,8 @@ export type Fidelity =
   | 'metrics'
   | 'issues'
   | 'spans'
-  | 'spans-low';
+  | 'spans-low'
+  | 'issues-metrics';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -139,8 +140,15 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     issues: issuesFidelityLadder,
     spans: spansFidelityLadder,
     'spans-low': spansLowFidelityLadder,
+    'issues-metrics': issuesMetricsFidelityLadder,
   }[fidelity].getInterval(diffInMinutes);
 }
+
+const issuesMetricsFidelityLadder = new GranularityLadder([
+  [ONE_WEEK, '86400000'], // 24h
+  [SIX_HOURS, '3600000'], // 1h
+  [0, '300000'], // 5m
+]);
 
 const highFidelityLadder = new GranularityLadder([
   [SIXTY_DAYS, '4h'],

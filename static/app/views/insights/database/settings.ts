@@ -18,10 +18,10 @@ export const BASE_URL = 'database';
 
 export const BASE_FILTERS = {
   'span.module': ModuleName.DB,
-  has: 'span.description',
+  has: 'sentry.normalized_description',
 };
 
-export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
+export const MIN_SDK_VERSION_BY_PLATFORM: Record<string, string> = {
   'sentry.python': '1.29.2',
   'sentry.javascript': '7.63.0',
   'sentry.laravel': '3.8.0',

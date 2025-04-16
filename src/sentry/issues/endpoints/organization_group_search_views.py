@@ -1,7 +1,7 @@
-import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
-from rest_framework import status
+from django.db.models import Count, Q
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,49 +10,60 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.helpers.group_index.validators import ValidationError
-from sentry.api.paginator import SequencePaginator
+from sentry.api.paginator import ChainPaginator, OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.groupsearchview import GroupSearchViewStarredSerializer
+from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer
 from sentry.api.serializers.rest_framework.groupsearchview import (
+    GroupSearchViewPostValidator,
     GroupSearchViewValidator,
     GroupSearchViewValidatorResponse,
 )
-from sentry.models.groupsearchview import DEFAULT_TIME_FILTER, GroupSearchView
-from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
+from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.savedsearch import SortOptions
 from sentry.models.team import Team
 from sentry.users.models.user import User
-
-DEFAULT_VIEWS: list[GroupSearchViewValidatorResponse] = [
-    {
-        "name": "Prioritized",
-        "query": "is:unresolved issue.priority:[high, medium]",
-        "querySort": SortOptions.DATE.value,
-        "position": 0,
-        "isAllProjects": False,
-        "environments": [],
-        "timeFilters": DEFAULT_TIME_FILTER,
-        "dateCreated": None,
-        "dateUpdated": None,
-    }
-]
 
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
         "GET": ["member:read", "member:write"],
+        "POST": ["member:read", "member:write"],
         "PUT": ["member:read", "member:write"],
     }
+
+
+SORT_MAP = {
+    "popularity": "popularity",
+    "-popularity": "-popularity",
+    "visited": "groupsearchviewlastvisited__last_visited",
+    "-visited": "-groupsearchviewlastvisited__last_visited",
+    "name": "name",
+    "-name": "-name",
+}
+
+
+class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
+    createdBy = serializers.ChoiceField(
+        choices=("me", "others"),
+        required=False,
+    )
+    sort = serializers.ChoiceField(
+        choices=list(SORT_MAP.keys()),
+        required=False,
+    )
+    query = serializers.CharField(required=False)
+
+    def validate_query(self, value: str | None) -> str | None:
+        return value.strip() if value else None
 
 
 @region_silo_endpoint
 class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
@@ -72,32 +83,13 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         has_global_views = features.has("organizations:global-views", organization)
 
-        query = GroupSearchView.objects.filter(
-            organization=organization, user_id=request.user.id
-        ).prefetch_related("projects")
+        serializer = OrganizationGroupSearchViewGetSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # Return only the default view(s) if user has no custom views yet
-        if not query.exists():
-            return self.paginate(
-                request=request,
-                paginator=SequencePaginator(
-                    [
-                        (
-                            idx,
-                            {
-                                **view,
-                                "projects": (
-                                    []
-                                    if has_global_views
-                                    else [pick_default_project(organization, request.user)]
-                                ),
-                            },
-                        )
-                        for idx, view in enumerate(DEFAULT_VIEWS)
-                    ]
-                ),
-                on_results=lambda results: serialize(results, request.user),
-            )
+        starred_view_ids = GroupSearchViewStarred.objects.filter(
+            organization=organization, user_id=request.user.id
+        ).values_list("group_search_view_id", flat=True)
 
         default_project = None
         if not has_global_views:
@@ -108,23 +100,127 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     data={"detail": "You do not have access to any projects."},
                 )
 
-        starred_views = GroupSearchViewStarred.objects.filter(
-            organization=organization, user_id=request.user.id
+        createdBy = serializer.validated_data.get("createdBy", "me")
+        sort = SORT_MAP[serializer.validated_data.get("sort", "-visited")]
+        query = serializer.validated_data.get("query")
+        base_queryset = (
+            GroupSearchView.objects.filter(organization=organization)
+            if not query
+            else GroupSearchView.objects.filter(
+                Q(query__icontains=query) | Q(name__icontains=query),
+                organization=organization,
+            )
         )
+
+        if createdBy == "me":
+            starred_query = (
+                base_queryset.filter(
+                    user_id=request.user.id,
+                    id__in=starred_view_ids,
+                )
+                .prefetch_related("projects")
+                .annotate(popularity=Count("groupsearchviewstarred"))
+                .order_by(sort)
+            )
+            non_starred_query = (
+                base_queryset.filter(
+                    user_id=request.user.id,
+                )
+                .exclude(id__in=starred_view_ids)
+                .prefetch_related("projects")
+                .annotate(popularity=Count("groupsearchviewstarred"))
+                .order_by(sort)
+            )
+        elif createdBy == "others":
+            starred_query = (
+                base_queryset.filter(
+                    visibility=GroupSearchViewVisibility.ORGANIZATION,
+                    id__in=starred_view_ids,
+                )
+                .exclude(user_id=request.user.id)
+                .prefetch_related("projects")
+                .annotate(popularity=Count("groupsearchviewstarred"))
+                .order_by(sort)
+            )
+            non_starred_query = (
+                base_queryset.filter(
+                    visibility=GroupSearchViewVisibility.ORGANIZATION,
+                )
+                .exclude(user_id=request.user.id)
+                .exclude(id__in=starred_view_ids)
+                .prefetch_related("projects")
+                .annotate(popularity=Count("groupsearchviewstarred"))
+                .order_by(sort)
+            )
 
         return self.paginate(
             request=request,
-            queryset=starred_views,
-            order_by="position",
+            sources=[starred_query, non_starred_query],
+            paginator_cls=ChainPaginator,
             on_results=lambda x: serialize(
                 x,
                 request.user,
-                serializer=GroupSearchViewStarredSerializer(
+                serializer=GroupSearchViewSerializer(
                     has_global_views=has_global_views,
                     default_project=default_project,
                     organization=organization,
                 ),
             ),
+        )
+
+    def post(self, request: Request, organization: Organization) -> Response:
+        """
+        Create a new custom view for the current organization member.
+        """
+        if not features.has(
+            "organizations:issue-stream-custom-views", organization, actor=request.user
+        ):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        serializer = GroupSearchViewPostValidator(
+            data=request.data, context={"organization": organization}
+        )
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        validated_data = serializer.validated_data
+
+        # Create the new view
+        view = GroupSearchView.objects.create(
+            organization=organization,
+            user_id=request.user.id,
+            name=validated_data["name"],
+            query=validated_data["query"],
+            query_sort=validated_data["querySort"],
+            is_all_projects=validated_data["isAllProjects"],
+            environments=validated_data["environments"],
+            time_filters=validated_data["timeFilters"],
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
+        )
+        view.projects.set(validated_data["projects"])
+
+        if validated_data.get("starred"):
+            GroupSearchViewStarred.objects.insert_starred_view(
+                organization=organization,
+                user_id=request.user.id,
+                view=view,
+            )
+
+        has_global_views = features.has("organizations:global-views", organization)
+        default_project = pick_default_project(organization, request.user)
+
+        return Response(
+            serialize(
+                view,
+                request.user,
+                serializer=GroupSearchViewSerializer(
+                    has_global_views=has_global_views,
+                    default_project=default_project,
+                    organization=organization,
+                ),
+            ),
+            status=status.HTTP_201_CREATED,
         )
 
     def put(self, request: Request, organization: Organization) -> Response:
@@ -139,114 +235,62 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         ):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = GroupSearchViewValidator(data=request.data)
+        serializer = GroupSearchViewValidator(
+            data=request.data, context={"organization": organization}
+        )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         validated_data = serializer.validated_data
 
-        for view in validated_data["views"]:
-            try:
-                validate_projects(organization, request.user, view)
-            except ValidationError as e:
-                sentry_sdk.capture_message(e.args[0])
-                return Response(status=status.HTTP_400_BAD_REQUEST, data={"detail": e.args[0]})
-
         try:
             with transaction.atomic(using=router.db_for_write(GroupSearchView)):
-                new_view_state = bulk_update_views(
+                new_view_ids_state = bulk_update_views(
                     organization, request.user.id, validated_data["views"]
                 )
-        except IntegrityError as e:
-            if (
-                len(e.args) > 0
-                and 'insert or update on table "sentry_groupsearchviewproject" violates foreign key constraint'
-                in e.args[0]
-            ):
-                sentry_sdk.capture_exception(e)
-                return Response(
-                    status=status.HTTP_400_BAD_REQUEST,
-                    data={"detail": "One or more projects do not exist"},
-                )
+        except IntegrityError:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        last_visited_views = GroupSearchViewLastVisited.objects.filter(
-            organization=organization,
-            user_id=request.user.id,
-            group_search_view_id__in=[view.id for view in new_view_state],
+        new_user_starred_views = (
+            GroupSearchView.objects.filter(id__in=new_view_ids_state)
+            .prefetch_related("projects")
+            .order_by("groupsearchviewstarred__position")
         )
-        last_visited_map = {lv.group_search_view_id: lv.last_visited for lv in last_visited_views}
+
+        has_global_views = features.has("organizations:global-views", organization)
+        default_project = pick_default_project(organization, request.user)
 
         return self.paginate(
             request=request,
-            paginator=SequencePaginator(
-                [
-                    (
-                        idx,
-                        {
-                            "id": str(view.id),
-                            "name": view.name,
-                            "query": view.query,
-                            "querySort": view.query_sort,
-                            "projects": list(view.projects.values_list("id", flat=True)),
-                            "isAllProjects": view.is_all_projects,
-                            "environments": view.environments,
-                            "timeFilters": view.time_filters,
-                            "dateCreated": view.date_added,
-                            "dateUpdated": view.date_updated,
-                            "lastVisited": last_visited_map.get(view.id, None),
-                            "position": idx,
-                        },
-                    )
-                    for idx, view in enumerate(new_view_state)
-                ]
+            queryset=new_user_starred_views,
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(
+                x,
+                request.user,
+                serializer=GroupSearchViewSerializer(
+                    has_global_views=has_global_views,
+                    default_project=default_project,
+                    organization=organization,
+                ),
             ),
-            on_results=lambda results: serialize(results, request.user),
         )
-
-
-def validate_projects(
-    org: Organization, user: User | AnonymousUser, view: GroupSearchViewValidatorResponse
-) -> None:
-    if "projects" in view and view["projects"] is not None:
-        if not features.has("organizations:global-views", org) and (
-            view["projects"] == [-1] or view["projects"] == [] or len(view["projects"]) > 1
-        ):
-            raise ValidationError("You do not have the multi project stream feature enabled")
-        elif view["projects"] == [-1]:
-            view["isAllProjects"] = True
-            view["projects"] = []
-        else:
-            view["isAllProjects"] = False
 
 
 def bulk_update_views(
     org: Organization, user_id: int, views: list[GroupSearchViewValidatorResponse]
-) -> list[GroupSearchView]:
+) -> list[int]:
     existing_view_ids = [view["id"] for view in views if "id" in view]
 
     _delete_missing_views(org, user_id, view_ids_to_keep=existing_view_ids)
-    created_views = []
+    created_view_ids = []
     for idx, view in enumerate(views):
         if "id" not in view:
-            created_views.append(_create_view(org, user_id, view, position=idx))
+            created_view_ids.append(_create_view(org, user_id, view, position=idx).id)
         else:
-            created_views.append(_update_existing_view(org, user_id, view, position=idx))
+            created_view_ids.append(_update_existing_view(org, user_id, view, position=idx).id)
 
-    return created_views
-
-
-def pick_default_project(org: Organization, user: User | AnonymousUser) -> int | None:
-    user_teams = Team.objects.get_for_user(organization=org, user=user)
-    user_team_ids = [team.id for team in user_teams]
-    default_user_project = (
-        Project.objects.get_for_team_ids(user_team_ids)
-        .order_by("slug")
-        .values_list("id", flat=True)
-        .first()
-    )
-    return default_user_project
+    return created_view_ids
 
 
 def _delete_missing_views(org: Organization, user_id: int, view_ids_to_keep: list[str]) -> None:
@@ -263,7 +307,6 @@ def _update_existing_view(
         gsv.name = view["name"]
         gsv.query = view["query"]
         gsv.query_sort = view["querySort"]
-        gsv.position = position
         gsv.is_all_projects = view.get("isAllProjects", False)
 
         if "projects" in view:
@@ -280,7 +323,10 @@ def _update_existing_view(
             organization=org,
             user_id=user_id,
             group_search_view=gsv,
-            defaults={"position": position},
+            defaults={
+                "position": position,
+                "visibility": GroupSearchViewVisibility.ORGANIZATION,
+            },
         )
         return gsv
     except GroupSearchView.DoesNotExist:
@@ -300,10 +346,10 @@ def _create_view(
         name=view["name"],
         query=view["query"],
         query_sort=view["querySort"],
-        position=position,
         is_all_projects=view.get("isAllProjects", False),
         environments=view.get("environments", []),
         time_filters=view.get("timeFilters", {"period": "14d"}),
+        visibility=GroupSearchViewVisibility.ORGANIZATION,
     )
     if "projects" in view:
         gsv.projects.set(view["projects"] or [])
@@ -315,3 +361,15 @@ def _create_view(
         position=position,
     )
     return gsv
+
+
+def pick_default_project(org: Organization, user: User | AnonymousUser) -> int | None:
+    user_teams = Team.objects.get_for_user(organization=org, user=user)
+    user_team_ids = [team.id for team in user_teams]
+    default_user_project = (
+        Project.objects.get_for_team_ids(user_team_ids)
+        .order_by("slug")
+        .values_list("id", flat=True)
+        .first()
+    )
+    return default_user_project

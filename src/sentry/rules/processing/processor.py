@@ -405,7 +405,7 @@ class RuleProcessor:
                 "post_process.process_rules.triggered_rule",
                 extra={
                     "rule_id": rule.id,
-                    "payload": state,
+                    "payload": state.__dict__,
                     "group_id": self.group.id,
                     "event_id": self.event.event_id,
                 },

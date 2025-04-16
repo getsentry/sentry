@@ -1,8 +1,9 @@
 import {Fragment, useMemo, useState} from 'react';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/gridEditable/useQueryBasedColumnResize';
 import Pagination from 'sentry/components/pagination';
-import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
@@ -15,7 +16,7 @@ import {
   getFlagActionLabel,
   type RawFlag,
 } from 'sentry/views/issueDetails/streamline/featureFlagUtils';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
+import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type ColumnKey = 'provider' | 'flag' | 'action' | 'createdAt';
@@ -35,6 +36,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const analyticsArea = useAnalyticsArea();
 
   const locationQuery = useLocationQuery({
     fields: {
@@ -88,7 +90,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
         return getFlagActionLabel(dataRow.action);
       }
       default:
-        return dataRow[column.key!];
+        return dataRow[column.key];
     }
   };
 
@@ -132,7 +134,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
           trackAnalytics('flags.logs-paginated', {
             direction: cursor?.endsWith(':1') ? 'prev' : 'next',
             organization,
-            surface: 'settings',
+            surface: analyticsArea,
           });
           navigate({
             pathname: path,
@@ -143,5 +145,3 @@ export function OrganizationFeatureFlagsAuditLogTable({
     </Fragment>
   );
 }
-
-export default OrganizationFeatureFlagsAuditLogTable;

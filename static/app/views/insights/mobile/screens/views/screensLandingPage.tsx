@@ -12,18 +12,17 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {NewQuery} from 'sentry/types/organization';
-import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import {
+  useMetrics,
+  useSpanMetrics,
+} from 'sentry/views/insights/common/queries/useDiscover';
 import {useMobileVitalsDrawer} from 'sentry/views/insights/common/utils/useMobileVitalsDrawer';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
@@ -49,11 +48,10 @@ import {
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
-export function ScreensLandingPage() {
+function ScreensLandingPage() {
   const moduleName = ModuleName.MOBILE_VITALS;
   const navigate = useNavigate();
   const location = useLocation();
-  const organization = useOrganization();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const handleProjectChange = useCallback(() => {
@@ -67,9 +65,8 @@ export function ScreensLandingPage() {
       {replace: true}
     );
   }, [location, navigate]);
-  const {selection} = usePageFilters();
 
-  const vitalItems: VitalItem[] = [
+  const vitalItems = [
     {
       title: t('Avg. Cold App Start'),
       description: t('Average Cold App Start duration'),
@@ -86,7 +83,7 @@ export function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#app-start-instrumentation',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#app-start-tracing',
       },
-      field: 'avg(measurements.app_start_cold)',
+      field: 'avg(measurements.app_start_cold)' as const,
       dataset: DiscoverDatasets.METRICS,
       getStatus: getColdAppStartPerformance,
     },
@@ -106,7 +103,7 @@ export function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#app-start-instrumentation',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#app-start-tracing',
       },
-      field: 'avg(measurements.app_start_warm)',
+      field: 'avg(measurements.app_start_warm)' as const,
       dataset: DiscoverDatasets.METRICS,
       getStatus: getWarmAppStartPerformance,
     },
@@ -123,7 +120,7 @@ export function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
-      field: `division(mobile.slow_frames,mobile.total_frames)`,
+      field: `division(mobile.slow_frames,mobile.total_frames)` as const,
       dataset: DiscoverDatasets.SPANS_METRICS,
       getStatus: getDefaultMetricPerformance,
     },
@@ -140,7 +137,7 @@ export function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
-      field: `division(mobile.frozen_frames,mobile.total_frames)`,
+      field: `division(mobile.frozen_frames,mobile.total_frames)` as const,
       dataset: DiscoverDatasets.SPANS_METRICS,
       getStatus: getDefaultMetricPerformance,
     },
@@ -159,7 +156,7 @@ export function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
         iOS: 'https://docs.sentry.io/platforms/apple/guides/ios/tracing/instrumentation/automatic-instrumentation/#slow-and-frozen-frames',
       },
-      field: `avg(mobile.frames_delay)`,
+      field: `avg(mobile.frames_delay)` as const,
       dataset: DiscoverDatasets.SPANS_METRICS,
       getStatus: getDefaultMetricPerformance,
     },
@@ -177,7 +174,7 @@ export function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#time-to-initial-display',
         iOS: 'https://docs.sentry.io/platforms/apple/features/experimental-features/',
       },
-      field: `avg(measurements.time_to_initial_display)`,
+      field: `avg(measurements.time_to_initial_display)` as const,
       dataset: DiscoverDatasets.METRICS,
       getStatus: getDefaultMetricPerformance,
     },
@@ -195,98 +192,51 @@ export function ScreensLandingPage() {
           'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#time-to-full-display',
         iOS: 'https://docs.sentry.io/platforms/apple/features/experimental-features/',
       },
-      field: `avg(measurements.time_to_full_display)`,
+      field: `avg(measurements.time_to_full_display)` as const,
       dataset: DiscoverDatasets.METRICS,
       getStatus: getDefaultMetricPerformance,
     },
-  ];
+  ] satisfies VitalItem[];
 
-  const metricsFields: string[] = [];
-  const spanMetricsFields: string[] = [];
+  const metricsFields = vitalItems
+    .filter(item => item.dataset === DiscoverDatasets.METRICS)
+    .map(item => item.field);
+
+  const spanMetricsFields = vitalItems
+    .filter(item => item.dataset === DiscoverDatasets.SPANS_METRICS)
+    .map(item => item.field);
+
   const [state, setState] = useState<{
     status: VitalStatus | undefined;
     vital: VitalItem | undefined;
   }>({status: undefined, vital: undefined});
 
-  vitalItems.forEach(element => {
-    if (element.dataset === DiscoverDatasets.METRICS) {
-      metricsFields.push(element.field);
-    } else if (element.dataset === DiscoverDatasets.SPANS_METRICS) {
-      spanMetricsFields.push(element.field);
-    }
-  });
-
   const query = new MutableSearch(['transaction.op:ui.load']);
   if (isProjectCrossPlatform) {
     query.addFilterValue('os.name', selectedPlatform);
   }
-  const metricsQuery: NewQuery = {
-    name: '',
-    fields: metricsFields,
-    query: query.formatString(),
-    dataset: DiscoverDatasets.METRICS,
-    version: 2,
-    projects: selection.projects,
-  };
-  const metricsQueryView: EventView = EventView.fromNewQueryWithLocation(
-    metricsQuery,
-    location
+
+  const metricsResult = useMetrics(
+    {
+      search: query,
+      limit: 25,
+      fields: metricsFields,
+    },
+    Referrer.SCREENS_METRICS
   );
 
-  const metricsResult = useDiscoverQuery({
-    eventView: metricsQueryView,
-    location,
-    cursor: '',
-    orgSlug: organization.slug,
-    limit: 25,
-    referrer: Referrer.SCREENS_METRICS,
-  });
-
-  const spanMetricsQuery: NewQuery = {
-    name: '',
-    fields: spanMetricsFields,
-    query: query.formatString(),
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    version: 2,
-    projects: selection.projects,
-  };
-
-  const spanMetricsQueryView = EventView.fromNewQueryWithLocation(
-    spanMetricsQuery,
-    location
+  const spanMetricsResult = useSpanMetrics(
+    {
+      search: query,
+      limit: 25,
+      fields: spanMetricsFields,
+    },
+    Referrer.SCREENS_METRICS
   );
 
-  const spanMetricsResult = useDiscoverQuery({
-    eventView: spanMetricsQueryView,
-    location,
-    cursor: '',
-    orgSlug: organization.slug,
-    limit: 25,
-    referrer: Referrer.SCREENS_METRICS,
-  });
-
-  const metricValueFor = (item: VitalItem): MetricValue | undefined => {
-    const dataset =
-      item.dataset === DiscoverDatasets.METRICS ? metricsResult : spanMetricsResult;
-
-    if (dataset.data) {
-      const row = dataset.data.data[0]!;
-      const units = dataset.data.meta?.units;
-      const fieldTypes = dataset.data.meta?.fields;
-
-      const value = row?.[item.field];
-      const unit = units?.[item.field];
-      const fieldType = fieldTypes?.[item.field];
-
-      return {
-        type: fieldType,
-        unit,
-        value,
-      };
-    }
-
-    return undefined;
-  };
+  const metricsData = {...metricsResult.data[0], ...spanMetricsResult.data[0]};
+  const metaUnits = {...metricsResult.meta?.units, ...spanMetricsResult.meta?.units};
+  const metaFields = {...metricsResult.meta?.fields, ...spanMetricsResult.meta?.fields};
 
   const {openVitalsDrawer} = useMobileVitalsDrawer({
     Component: <VitalDetailPanel vital={state.vital} status={state.status} />,
@@ -334,7 +284,12 @@ export function ScreensLandingPage() {
                   <Container>
                     <Flex data-test-id="mobile-vitals-top-metrics">
                       {vitalItems.map(item => {
-                        const metricValue = metricValueFor(item);
+                        const metricValue: MetricValue = {
+                          type: metaFields?.[item.field],
+                          value: metricsData?.[item.field],
+                          unit: metaUnits?.[item.field],
+                        };
+
                         const status =
                           (metricValue && item.getStatus(metricValue, item.field)) ??
                           STATUS_UNKNOWN;

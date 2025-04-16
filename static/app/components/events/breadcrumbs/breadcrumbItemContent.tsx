@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {StructuredData} from 'sentry/components/structuredEventData';
-import Timeline from 'sentry/components/timeline';
+import {Timeline} from 'sentry/components/timeline';
 import {space} from 'sentry/styles/space';
 import {
   BreadcrumbMessageFormat,
@@ -67,9 +67,16 @@ export default function BreadcrumbItemContent({
       )}
     </BreadcrumbText>
   ) : null;
-  const defaultData = defined(bc.data) ? (
+
+  const cleanedBreadcrumbData = cleanBreadcrumbData(bc.data);
+
+  const defaultData = defined(cleanedBreadcrumbData) ? (
     <Timeline.Data>
-      <StructuredData value={bc.data} meta={meta?.data} {...structuredDataProps} />
+      <StructuredData
+        value={cleanedBreadcrumbData}
+        meta={meta?.data}
+        {...structuredDataProps}
+      />
     </Timeline.Data>
   ) : null;
 
@@ -124,7 +131,12 @@ function HTTPCrumbContent({
   structuredDataProps: typeof DEFAULT_STRUCTURED_DATA_PROPS;
   meta?: Record<string, any>;
 }) {
-  const {method, url, status_code: statusCode, ...otherData} = breadcrumb?.data ?? {};
+  const {
+    method,
+    url,
+    status_code: statusCode,
+    ...otherData
+  } = cleanBreadcrumbData(breadcrumb?.data) ?? {};
   const isValidUrl = !meta && defined(url) && isUrl(url);
   return (
     <Fragment>
@@ -206,6 +218,26 @@ function ExceptionCrumbContent({
       ) : null}
     </Fragment>
   );
+}
+
+function cleanBreadcrumbData<B extends Record<string, any> | undefined | null>(
+  breadcrumbData: B
+): B {
+  if (!breadcrumbData) {
+    return breadcrumbData;
+  }
+
+  const cleanedBreadcrumbData = {...breadcrumbData};
+
+  // The JS SDK emits the __span property since forever (3+ years).
+  // Originally it was introduced to potentially be able to go from the breadcrumb to a particular span within a trace.
+  // Up until now, this link wasn't built. Showing the span property is extremely noisy within the interface so we hide it.
+  // We can at any point in time use this data again to link to a trace, however, to be able to link to a trace we need to be sure that the trace actually exists.
+  if ('__span' in cleanedBreadcrumbData) {
+    delete cleanedBreadcrumbData.__span;
+  }
+
+  return cleanedBreadcrumbData;
 }
 
 const Link = styled('a')`

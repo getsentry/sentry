@@ -156,7 +156,6 @@ function MergedItem({fingerprint, totalFingerprint}: Props) {
               <EventDetails>
                 <EventOrGroupHeader
                   data={latestEvent}
-                  organization={organization}
                   hideIcons
                   hideLevel
                   source="merged-item"

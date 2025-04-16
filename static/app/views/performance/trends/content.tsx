@@ -2,8 +2,8 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Alert} from 'sentry/components/core/alert';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -27,8 +27,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {TrendsHeader} from 'sentry/views/performance/trends/trendsHeader';
 import getSelectedQueryKey from 'sentry/views/performance/trends/utils/getSelectedQueryKey';
-
-import {getTransactionSearchQuery} from '../utils';
+import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 import ChangedTransactions from './changedTransactions';
 import type {TrendFunctionField, TrendView} from './types';

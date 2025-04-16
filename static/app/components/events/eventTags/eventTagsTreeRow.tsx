@@ -17,13 +17,14 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {generateQueryWithTag} from 'sentry/utils';
+import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
   getSearchInExploreTarget,
@@ -130,7 +131,7 @@ function EventTagsTreeRowDropdown({
   const location = useLocation();
   const hasNewTraceUi = useHasTraceNewUi();
   const organization = useOrganization();
-  const hasTraceDrawerAction = organization.features.includes('trace-drawer-action');
+  const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const {onClick: handleCopy} = useCopyToClipboard({
     text: content.value,
   });
@@ -149,7 +150,14 @@ function EventTagsTreeRowDropdown({
     project?.highlightTags &&
     // Skip tags already highlighted
     highlightTagSet.has(originalTag.key);
-  const query = generateQueryWithTag({referrer}, originalTag);
+  const query = generateQueryWithTag(
+    {referrer},
+    {
+      ...originalTag,
+      key: escapeIssueTagKey(originalTag.key),
+    }
+  );
+
   const isProjectAdmin = hasEveryAccess(['project:admin'], {
     organization,
     project,
@@ -163,7 +171,7 @@ function EventTagsTreeRowDropdown({
             key: 'tag-details',
             label: t('Tag breakdown'),
             to: {
-              pathname: `/organizations/${organization.slug}/issues/${event.groupID}/tags/${encodeURIComponent(originalTag.key)}/`,
+              pathname: `/organizations/${organization.slug}/issues/${event.groupID}/${TabPaths[Tab.DISTRIBUTIONS]}${encodeURIComponent(originalTag.key)}/`,
               query: location.query,
             },
           },
@@ -188,7 +196,7 @@ function EventTagsTreeRowDropdown({
     },
   ];
 
-  if (hasNewTraceUi && hasTraceDrawerAction) {
+  if (hasNewTraceUi && hasExploreEnabled) {
     items.push({
       key: 'view-traces',
       label: t('Find more samples with this value'),

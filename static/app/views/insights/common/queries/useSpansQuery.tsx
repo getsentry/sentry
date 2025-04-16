@@ -1,5 +1,6 @@
 import moment from 'moment-timezone';
 
+import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
@@ -7,9 +8,15 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {
+  SamplingMode,
+  SpansRPCQueryExtras,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   getRetryDelay,
   shouldRetryHandler,
@@ -17,6 +24,11 @@ import {
 import {TrackResponse} from 'sentry/views/insights/common/utils/trackResponse';
 
 export const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
+
+const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
+const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+const SIXTY_DAYS = 60 * 24 * 60 * 60 * 1000;
 
 export function useSpansQuery<T = any[]>({
   eventView,
@@ -27,6 +39,7 @@ export function useSpansQuery<T = any[]>({
   allowAggregateConditions,
   cursor,
   trackResponseAnalytics = true,
+  queryExtras,
 }: {
   allowAggregateConditions?: boolean;
   cursor?: string;
@@ -34,6 +47,7 @@ export function useSpansQuery<T = any[]>({
   eventView?: EventView;
   initialData?: T;
   limit?: number;
+  queryExtras?: SpansRPCQueryExtras;
   referrer?: string;
   trackResponseAnalytics?: boolean;
 }) {
@@ -55,6 +69,7 @@ export function useSpansQuery<T = any[]>({
       referrer,
       cursor,
       allowAggregateConditions,
+      samplingMode: queryExtras?.samplingMode,
     });
 
     if (trackResponseAnalytics) {
@@ -74,6 +89,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
   referrer,
   cursor,
   overriddenRoute,
+  samplingMode,
 }: {
   eventView: EventView;
   cursor?: string;
@@ -81,10 +97,21 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
   initialData?: any;
   overriddenRoute?: string;
   referrer?: string;
+  samplingMode?: SamplingMode;
 }) {
   const location = useLocation();
   const organization = useOrganization();
   const {isReady: pageFiltersReady} = usePageFilters();
+
+  const usesRelativeDateRange =
+    !defined(eventView.start) &&
+    !defined(eventView.end) &&
+    defined(eventView.statsPeriod);
+
+  const intervalInMilliseconds = eventView.interval
+    ? intervalToMilliseconds(eventView.interval)
+    : undefined;
+
   const result = useGenericDiscoverQuery<
     {
       data: any[];
@@ -105,13 +132,22 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
       cursor,
+      sampling:
+        eventView.dataset === DiscoverDatasets.SPANS_EAP_RPC && samplingMode
+          ? samplingMode
+          : undefined,
     }),
     options: {
       enabled: enabled && pageFiltersReady,
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
-      staleTime: Infinity,
+      staleTime:
+        usesRelativeDateRange &&
+        defined(intervalInMilliseconds) &&
+        intervalInMilliseconds !== 0
+          ? intervalInMilliseconds
+          : Infinity,
     },
     referrer,
   });
@@ -142,6 +178,7 @@ export function useWrappedDiscoverQuery<T>({
   cursor,
   noPagination,
   allowAggregateConditions,
+  samplingMode,
 }: {
   eventView: EventView;
   allowAggregateConditions?: boolean;
@@ -151,16 +188,29 @@ export function useWrappedDiscoverQuery<T>({
   limit?: number;
   noPagination?: boolean;
   referrer?: string;
+  samplingMode?: SamplingMode;
 }) {
   const location = useLocation();
   const organization = useOrganization();
   const {isReady: pageFiltersReady} = usePageFilters();
 
   const queryExtras: Record<string, string> = {};
+  if (eventView.dataset === DiscoverDatasets.SPANS_EAP_RPC && samplingMode) {
+    queryExtras.sampling = samplingMode;
+  }
 
   if (allowAggregateConditions !== undefined) {
     queryExtras.allowAggregateConditions = allowAggregateConditions ? '1' : '0';
   }
+
+  const usesRelativeDateRange =
+    !defined(eventView.start) &&
+    !defined(eventView.end) &&
+    defined(eventView.statsPeriod);
+
+  const staleTimeForRelativePeriod = getStaleTimeForRelativePeriodTable(
+    eventView.statsPeriod
+  );
 
   const result = useDiscoverQuery({
     eventView,
@@ -174,7 +224,7 @@ export function useWrappedDiscoverQuery<T>({
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
-      staleTime: Infinity,
+      staleTime: usesRelativeDateRange ? staleTimeForRelativePeriod : Infinity,
     },
     queryExtras,
     noPagination,
@@ -304,4 +354,29 @@ function mergeIntervals(first: Interval[], second: Interval[]) {
     target.push({interval: timestamp, group, ...rest});
   });
   return target;
+}
+
+function getStaleTimeForRelativePeriodTable(statsPeriod: string | undefined) {
+  if (!defined(statsPeriod)) {
+    return Infinity;
+  }
+  const periodInMs = intervalToMilliseconds(statsPeriod);
+
+  if (periodInMs <= SEVEN_DAYS) {
+    return 0;
+  }
+
+  if (periodInMs <= FOURTEEN_DAYS) {
+    return 10 * 1000;
+  }
+
+  if (periodInMs <= THIRTY_DAYS) {
+    return 30 * 1000;
+  }
+
+  if (periodInMs <= SIXTY_DAYS) {
+    return 60 * 1000;
+  }
+
+  return 5 * 60 * 1000;
 }

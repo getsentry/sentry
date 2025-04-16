@@ -2,7 +2,9 @@ import difflib
 import logging
 import os
 
+from django.apps import apps
 from django.contrib.contenttypes.management import RenameContentType
+from django.contrib.postgres.operations import CreateExtension
 from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.migration import Migration
 from django.db.migrations.operations import AlterField, SeparateDatabaseAndState
@@ -68,14 +70,25 @@ class SentryMigrationExecutor(MigrationExecutor):
         - RunSQL, RunPython need to provide hints['tables']
         """
 
-        if migration.app_label not in {"sentry", "getsentry"}:
+        app_config = apps.get_app_config(migration.app_label)
+        for prefix in ["sentry", "getsentry"]:
+            if app_config.name.startswith(prefix):
+                break
+        else:
             return
 
         def _check_operations(operations):
             failed_ops = []
             for operation in operations:
                 if isinstance(
-                    operation, (FieldOperation, ModelOperation, RenameContentType, IndexOperation)
+                    operation,
+                    (
+                        FieldOperation,
+                        ModelOperation,
+                        RenameContentType,
+                        IndexOperation,
+                        CreateExtension,
+                    ),
                 ):
                     continue
                 elif isinstance(operation, SeparateDatabaseAndState):

@@ -6,6 +6,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {
+  type SavedQuery,
+  useInvalidateSavedQueries,
+  useInvalidateSavedQuery,
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 const TRACE_EXPLORER_DATASET = 'spans';
 
@@ -19,6 +24,8 @@ export function useSaveQuery() {
 
   const api = useApi();
   const organization = useOrganization();
+  const invalidateSavedQueries = useInvalidateSavedQueries();
+  const invalidateSavedQuery = useInvalidateSavedQuery(id);
 
   const visualize = visualizes.map(({chartType, yAxes}) => ({
     chartType,
@@ -29,18 +36,22 @@ export function useSaveQuery() {
     return {
       name: title,
       dataset: TRACE_EXPLORER_DATASET, // Only supported for trace explorer for now
-      groupby: groupBys,
-      orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
-      visualize,
-      fields,
-      query: query ?? '',
-      mode,
       start,
       end,
       range: period,
       interval,
       projects,
       environment: environments,
+      query: [
+        {
+          fields,
+          orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
+          groupby: groupBys.filter(groupBy => groupBy !== ''),
+          query: query ?? '',
+          visualize,
+          mode,
+        },
+      ],
     };
   }, [
     groupBys,
@@ -59,7 +70,7 @@ export function useSaveQuery() {
   ]);
 
   const saveQuery = useCallback(
-    async (newTitle: string) => {
+    async (newTitle: string, starred = true) => {
       const response = await api.requestPromise(
         `/organizations/${organization.slug}/explore/saved/`,
         {
@@ -67,12 +78,15 @@ export function useSaveQuery() {
           data: {
             ...data,
             name: newTitle,
+            starred,
           },
         }
       );
+      invalidateSavedQueries();
+      invalidateSavedQuery();
       return response;
     },
-    [api, organization.slug, data]
+    [api, organization.slug, data, invalidateSavedQueries, invalidateSavedQuery]
   );
 
   const updateQuery = useCallback(async () => {
@@ -83,8 +97,44 @@ export function useSaveQuery() {
         data,
       }
     );
+    invalidateSavedQueries();
+    invalidateSavedQuery();
     return response;
-  }, [api, organization.slug, id, data]);
+  }, [api, organization.slug, id, data, invalidateSavedQueries, invalidateSavedQuery]);
 
-  return {saveQuery, updateQuery};
+  const saveQueryFromSavedQuery = useCallback(
+    async (savedQuery: SavedQuery) => {
+      const response = await api.requestPromise(
+        `/organizations/${organization.slug}/explore/saved/`,
+        {
+          method: 'POST',
+          data: {
+            ...savedQuery,
+          },
+        }
+      );
+      invalidateSavedQueries();
+      return response;
+    },
+    [api, organization.slug, invalidateSavedQueries]
+  );
+
+  const updateQueryFromSavedQuery = useCallback(
+    async (savedQuery: SavedQuery) => {
+      const response = await api.requestPromise(
+        `/organizations/${organization.slug}/explore/saved/${savedQuery.id}/`,
+        {
+          method: 'PUT',
+          data: {
+            ...savedQuery,
+          },
+        }
+      );
+      invalidateSavedQueries();
+      return response;
+    },
+    [api, organization.slug, invalidateSavedQueries]
+  );
+
+  return {saveQuery, updateQuery, saveQueryFromSavedQuery, updateQueryFromSavedQuery};
 }

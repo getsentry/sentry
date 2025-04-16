@@ -14,10 +14,10 @@ import {
   promptsUpdate,
 } from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
@@ -33,6 +33,7 @@ import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import {
@@ -247,15 +248,12 @@ function NoticeModal({
           )
         : t('To ensure uninterrupted service, upgrade your subscription.');
     } else {
-      if (subscription.planTier === PlanTier.AM3) {
-        subText = t(
-          `To ensure uninterrupted service, upgrade your subscription or increase your pay-as-you-go spend limit.`
-        );
-      } else {
-        subText = t(
-          `To ensure uninterrupted service, upgrade your subscription or increase your on-demand spend limit.`
-        );
-      }
+      subText = tct(
+        `To ensure uninterrupted service, upgrade your subscription or increase your [budgetTerm] spend limit.`,
+        {
+          budgetTerm: subscription.planDetails.budgetTerm,
+        }
+      );
     }
   }
 
@@ -302,10 +300,10 @@ type Props = {
 
 type State = {
   deactivatedMemberDismissed: boolean;
-  overageAlertDismissed: {[key in EventType]: boolean};
+  overageAlertDismissed: Record<EventType, boolean>;
 
-  overageWarningDismissed: {[key in EventType]: boolean};
-  productTrialDismissed: {[key in EventType]: boolean};
+  overageWarningDismissed: Record<EventType, boolean>;
+  productTrialDismissed: Record<EventType, boolean>;
 };
 
 class GSBanner extends Component<Props, State> {
@@ -810,7 +808,7 @@ class GSBanner extends Component<Props, State> {
     }
   }
 
-  get overageAlertActive(): {[key in EventType]: boolean} {
+  get overageAlertActive(): Record<EventType, boolean> {
     const {subscription} = this.props;
     if (subscription.hasOverageNotificationsDisabled) {
       return ALERTS_OFF;
@@ -846,7 +844,7 @@ class GSBanner extends Component<Props, State> {
     };
   }
 
-  get overageWarningActive(): {[key in EventType]: boolean} {
+  get overageWarningActive(): Record<EventType, boolean> {
     const {subscription} = this.props;
     // disable warnings if org has on-demand
     if (
@@ -928,7 +926,7 @@ class GSBanner extends Component<Props, State> {
 
   handleOverageSnooze(eventTypes: EventType[], isWarning: boolean) {
     const {organization, api} = this.props;
-    const dismissState: {[key in EventType]: boolean} = isWarning
+    const dismissState: Record<EventType, boolean> = isWarning
       ? this.state.overageWarningDismissed
       : this.state.overageAlertDismissed;
 
@@ -958,7 +956,7 @@ class GSBanner extends Component<Props, State> {
       });
     }
 
-    const dismissedState: {[key in EventType]: boolean} = {
+    const dismissedState: Record<EventType, boolean> = {
       error: true,
       attachment: true,
       replay: true,
@@ -982,6 +980,11 @@ class GSBanner extends Component<Props, State> {
     let overquotaPrompt: React.ReactNode;
     let eventTypes: EventType[] = [];
 
+    if (prefersStackedNav()) {
+      // new nav uses sidebar quota alert (see quotaExceededNavItem.tsx)
+      return null;
+    }
+
     const eventTypeToElement = (eventType: EventType): React.JSX.Element => {
       const onClick = () => {
         trackGetsentryAnalytics('quota_alert.clicked_link', {
@@ -992,7 +995,6 @@ class GSBanner extends Component<Props, State> {
           clicked_event: eventType,
         });
       };
-      // @ts-expect-error TS(2339): Property 'profileDuration' does not exist on type ... Remove this comment to see the full error message
       return {
         error: (
           <ExternalLink
@@ -1085,21 +1087,33 @@ class GSBanner extends Component<Props, State> {
             })}
           </ExternalLink>
         ),
-        // TODO(continuous profiling): Uncomment when we have a continuous profile doc link
-        // profile: (
-        //   <ExternalLink
-        //     key="profiles"
-        //     href={getDocsLinkForEventType(DataCategoryExact.PROFILE)}
-        //     onClick={onClick}
-        //   >
-        //     {getSingularCategoryName({
-        //       plan,
-        //       category: DataCategory.PROFILES,
-        //       capitalize: false,
-        //     })}
-        //   </ExternalLink>
-        // ),
-      }[eventType]!;
+        profileDuration: (
+          <ExternalLink
+            key="profiles"
+            href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)}
+            onClick={onClick}
+          >
+            {getSingularCategoryName({
+              plan,
+              category: DataCategory.PROFILE_DURATION,
+              capitalize: false,
+            })}
+          </ExternalLink>
+        ),
+        profileDurationUI: (
+          <ExternalLink
+            key="profiles-ui"
+            href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION_UI)}
+            onClick={onClick}
+          >
+            {getSingularCategoryName({
+              plan,
+              category: DataCategory.PROFILE_DURATION_UI,
+              capitalize: false,
+            })}
+          </ExternalLink>
+        ),
+      }[eventType];
     };
 
     let strictlyCronsOverage = false;
@@ -1151,8 +1165,7 @@ class GSBanner extends Component<Props, State> {
           {
             monitorTitle:
               eventTypes[0] === 'monitorSeat' ? 'Cron Monitors' : 'Uptime Monitors',
-            budgetType:
-              subscription.planTier === PlanTier.AM3 ? 'pay-as-you-go' : 'on-demand',
+            budgetType: subscription.planDetails.budgetTerm,
           }
         );
       } else {
@@ -1276,6 +1289,15 @@ class GSBanner extends Component<Props, State> {
     '/insights/backend/uptime/': {
       product: DataCategory.UPTIME,
       categories: [DataCategory.UPTIME],
+    },
+    // TODO(Continuous Profiling)
+    '/profile-duration/': {
+      product: DataCategory.PROFILE_DURATION,
+      categories: [DataCategory.PROFILE_DURATION],
+    },
+    '/profile-duration-ui/': {
+      product: DataCategory.PROFILE_DURATION_UI,
+      categories: [DataCategory.PROFILE_DURATION_UI],
     },
   };
 

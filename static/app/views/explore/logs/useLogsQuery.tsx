@@ -1,5 +1,5 @@
 import type EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   useLogsBaseSearch,
   useLogsCursor,
@@ -13,6 +13,7 @@ import {
   useTraceItemDetails,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOurlogs} from 'sentry/views/insights/common/queries/useDiscover';
 
 export interface OurLogsTableResult {
@@ -35,7 +36,7 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
   if (baseSearch) {
     search.tokens.push(...baseSearch.tokens);
   }
-  const {data, meta, isError, isPending, pageLinks} = useOurlogs(
+  const {data, meta, isError, isPending, pageLinks, error} = useOurlogs(
     {
       ...options,
       cursor,
@@ -47,37 +48,44 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
     'api.explore.logs-table'
   );
 
-  return {data, meta, isError, isPending, pageLinks};
+  return {data, meta, isError, isPending, pageLinks, error};
 }
 
 export function useExploreLogsTableRow(props: {
-  log_id: string | number;
-  project_id: string;
+  logId: string | number;
+  projectId: string;
+  traceId: string;
   enabled?: boolean;
 }) {
+  const {isReady: pageFiltersReady} = usePageFilters();
   return useTraceItemDetails({
-    traceItemId: String(props.log_id),
-    projectId: props.project_id,
-    dataset: DiscoverDatasets.OURLOGS,
+    traceItemId: String(props.logId),
+    projectId: props.projectId,
+    traceId: props.traceId,
+    traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details',
+    enabled: props.enabled && pageFiltersReady,
   });
 }
 
 export function usePrefetchLogTableRowOnHover({
   logId,
   projectId,
+  traceId,
   hoverPrefetchDisabled,
   sharedHoverTimeoutRef,
 }: {
   logId: string | number;
   projectId: string;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  traceId: string;
   hoverPrefetchDisabled?: boolean;
 }) {
   return usePrefetchTraceItemDetailsOnHover({
     traceItemId: String(logId),
     projectId,
-    dataset: DiscoverDatasets.OURLOGS,
+    traceId,
+    traceItemType: TraceItemDataset.LOGS,
     hoverPrefetchDisabled,
     sharedHoverTimeoutRef,
     referrer: 'api.explore.log-item-details',

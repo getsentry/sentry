@@ -84,7 +84,7 @@ export default function AutomationDetail() {
 
   return (
     <SentryDocumentTitle title={t('Automation')} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Automations'), to: '/automations'}}>
+      <BreadcrumbsProvider crumb={{label: t('Automations'), to: '/issues/automations'}}>
         <ActionsProvider actions={<Actions />}>
           <DetailLayout>
             <DetailLayout.Main>
@@ -109,7 +109,7 @@ function Actions() {
       <Button onClick={disable} size="sm">
         {t('Disable')}
       </Button>
-      <LinkButton to="/monitors/edit" priority="primary" icon={<IconEdit />} size="sm">
+      <LinkButton to="edit" priority="primary" icon={<IconEdit />} size="sm">
         {t('Edit')}
       </LinkButton>
     </Fragment>

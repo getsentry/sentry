@@ -126,7 +126,6 @@ def test_cache_versioning() -> None:
     true_value = "a"
 
     def reader() -> Iterator[None]:
-        nonlocal true_value
         last_length = 0
 
         while True:

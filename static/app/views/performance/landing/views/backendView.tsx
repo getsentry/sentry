@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import type {Organization} from 'sentry/types/organization';
 import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
@@ -7,13 +9,15 @@ import {
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import Table from '../../table';
-import {ProjectPerformanceType} from '../../utils';
-import {BACKEND_COLUMN_TITLES} from '../data';
-import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
-import {filterAllowedChartsMetrics} from '../widgets/utils';
-import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
+import {BACKEND_COLUMN_TITLES} from 'sentry/views/performance/landing/data';
+import {
+  DoubleChartRow,
+  TripleChartRow,
+} from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
+import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import Table from 'sentry/views/performance/table';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 import type {BasePerformanceViewProps} from './types';
 
@@ -57,6 +61,7 @@ function getAllowedChartsSmall(
 export function BackendView(props: BasePerformanceViewProps) {
   const mepSetting = useMEPSettingContext();
   const {setPageError} = usePageAlert();
+  const theme = useTheme();
   const organization = useOrganization();
 
   const doubleChartRowCharts = [
@@ -90,7 +95,12 @@ export function BackendView(props: BasePerformanceViewProps) {
           {...props}
           allowedCharts={getAllowedChartsSmall(props, mepSetting, organization)}
         />
-        <Table {...props} columnTitles={BACKEND_COLUMN_TITLES} setError={setPageError} />
+        <Table
+          {...props}
+          columnTitles={BACKEND_COLUMN_TITLES}
+          setError={setPageError}
+          theme={theme}
+        />
       </div>
     </PerformanceDisplayProvider>
   );

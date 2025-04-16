@@ -1,63 +1,72 @@
 import type {CSSProperties} from 'react';
-import {forwardRef} from 'react';
-import {useTheme} from '@emotion/react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import type {Color} from 'sentry/utils/theme';
-
-export interface ColorConfig {
-  icon: Color;
-  iconBorder: Color;
-  title: Color;
-}
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 export interface TimelineItemProps {
   icon: React.ReactNode;
   title: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
-  colorConfig?: ColorConfig;
+  colorConfig?: {
+    icon: string;
+    iconBorder: string;
+    title: string;
+  };
   isActive?: boolean;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
   onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
+  ref?: React.Ref<HTMLDivElement>;
   showLastLine?: boolean;
   style?: CSSProperties;
   timestamp?: React.ReactNode;
 }
 
-export const Item = forwardRef(function ItemInner(
-  {
-    title,
-    children,
-    icon,
-    colorConfig = {title: 'gray400', icon: 'gray300', iconBorder: 'gray200'},
-    timestamp,
-    isActive = false,
-    ...props
-  }: TimelineItemProps,
-  ref: React.ForwardedRef<HTMLDivElement>
-) {
+export function Item({
+  title,
+  children,
+  icon,
+  colorConfig,
+  timestamp,
+  isActive = false,
+  ref,
+  ...props
+}: TimelineItemProps) {
   const theme = useTheme();
+  const config = colorConfig ?? makeDefaultColorConfig(theme);
+
   return (
     <Row ref={ref} {...props}>
       <IconWrapper
         style={{
-          borderColor: isActive ? theme[colorConfig.iconBorder] : 'transparent',
-          color: theme[colorConfig.icon],
+          borderColor: isActive ? config.iconBorder : 'transparent',
+          color: config.icon,
         }}
         className="timeline-icon-wrapper"
       >
         {icon}
       </IconWrapper>
-      <Title style={{color: theme[colorConfig.title]}}>{title}</Title>
+      <Title style={{color: config.title}}>{title}</Title>
       {timestamp ?? <div />}
       <Spacer />
       <Content>{children}</Content>
     </Row>
   );
-});
+}
+
+function makeDefaultColorConfig(theme: Theme) {
+  if (isChonkTheme(theme)) {
+    return {
+      title: theme.colors.content.primary,
+      icon: theme.colors.content.muted,
+      iconBorder: theme.colors.content.muted,
+    };
+  }
+  return {title: theme.gray400, icon: theme.gray300, iconBorder: theme.gray200};
+}
 
 const Row = styled('div')<{showLastLine?: boolean}>`
   position: relative;
@@ -154,5 +163,3 @@ export const Timeline = {
   Item,
   Container,
 };
-
-export default Timeline;

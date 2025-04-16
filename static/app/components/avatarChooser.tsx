@@ -287,7 +287,7 @@ class AvatarChooser extends Component<Props, State> {
 
 const AvatarHelp = styled('p')`
   margin-right: auto;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: 14px;
   width: 50%;
 `;

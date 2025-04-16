@@ -7,8 +7,7 @@ import {
   type DispatchingReducerEmitter,
   useDispatchingReducer,
 } from 'sentry/utils/useDispatchingReducer';
-
-import {useHasTraceNewUi} from '../useHasTraceNewUi';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 import {TraceReducer, type TraceReducerAction, type TraceReducerState} from './index';
 import {storeTraceViewPreferences, type TracePreferencesState} from './tracePreferences';
@@ -109,12 +108,12 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
   }, [traceState.preferences, props.preferencesStorageKey]);
 
   return (
-    <TraceStateContext.Provider value={traceState}>
-      <TraceStateDispatchContext.Provider value={traceDispatch}>
-        <TraceStateEmitterContext.Provider value={traceStateEmitter}>
+    <TraceStateContext value={traceState}>
+      <TraceStateDispatchContext value={traceDispatch}>
+        <TraceStateEmitterContext value={traceStateEmitter}>
           {props.children}
-        </TraceStateEmitterContext.Provider>
-      </TraceStateDispatchContext.Provider>
-    </TraceStateContext.Provider>
+        </TraceStateEmitterContext>
+      </TraceStateDispatchContext>
+    </TraceStateContext>
   );
 }

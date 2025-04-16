@@ -8,7 +8,6 @@ import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
@@ -20,15 +19,13 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
-
 import {
   generateReleaseMarkLines,
   releaseComparisonChartTitles,
   releaseMarkLinesLabels,
-} from '../../utils';
+} from 'sentry/views/releases/detail/utils';
 
 type Props = {
   chartType: ReleaseComparisonChartType;
@@ -56,19 +53,18 @@ function ReleaseEventsChart({
   utc,
 }: Props) {
   const location = useLocation();
-  const router = useRouter();
   const api = useApi();
   const theme = useTheme();
 
   function getColors() {
-    const colors = getChartColorPalette(14);
+    const colors = theme.chart.getColorPalette(14);
     switch (chartType) {
       case ReleaseComparisonChartType.ERROR_COUNT:
-        return [colors[12]!];
+        return [colors[12]];
       case ReleaseComparisonChartType.TRANSACTION_COUNT:
-        return [colors[0]!];
+        return [colors[0]];
       case ReleaseComparisonChartType.FAILURE_RATE:
-        return [colors[9]!];
+        return [colors[9]];
       default:
         return undefined;
     }
@@ -167,7 +163,7 @@ function ReleaseEventsChart({
           field={getField()}
           colors={getColors()}
           api={api}
-          router={router}
+          location={location}
           organization={organization}
           disableReleases
           disablePrevious

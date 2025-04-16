@@ -7,7 +7,6 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  cleanup,
   render,
   renderGlobalModal,
   screen,
@@ -37,7 +36,7 @@ describe('SpendAllocations feature enable flow', () => {
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
-      new Date().getTime() / 1000,
+      Date.now() / 1000,
       new Date(subscription.onDemandPeriodStart + 'T00:00:00.000').getTime() / 1000
     );
     mockGet = MockApiClient.addMockResponse({
@@ -48,9 +47,6 @@ describe('SpendAllocations feature enable flow', () => {
       statusCode: 403,
       match: [MockApiClient.matchQuery({timestamp: dateTs})],
     });
-  });
-  afterEach(() => {
-    cleanup();
   });
 
   it('renders enable button for owners/billing in an org that has not enabled spend allocations', async () => {
@@ -177,7 +173,7 @@ describe('enabled Spend Allocations page', () => {
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
-      new Date().getTime() / 1000,
+      Date.now() / 1000,
       new Date(subscription.onDemandPeriodStart + 'T00:00:00.000').getTime() / 1000
     );
     MockApiClient.addMockResponse({
@@ -359,7 +355,7 @@ describe('enabled Spend Allocations page without root', () => {
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
-      new Date().getTime() / 1000,
+      Date.now() / 1000,
       new Date(subscription.onDemandPeriodStart + 'T00:00:00.000').getTime() / 1000
     );
     mockGet = MockApiClient.addMockResponse({
@@ -443,7 +439,7 @@ describe('POST Create spend allocation', () => {
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
-      new Date().getTime() / 1000,
+      Date.now() / 1000,
       new Date(subscription.onDemandPeriodStart + 'T00:00:00.000').getTime() / 1000
     );
     MockApiClient.addMockResponse({
@@ -535,7 +531,7 @@ describe('Disable Submit button in Spend Allocation', () => {
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
-      new Date().getTime() / 1000,
+      Date.now() / 1000,
       new Date(subscription.onDemandPeriodStart + 'T00:00:00.000').getTime() / 1000
     );
     MockApiClient.addMockResponse({
@@ -582,7 +578,7 @@ describe('DELETE spend allocation', () => {
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
-      new Date().getTime() / 1000,
+      Date.now() / 1000,
       new Date(subscription.onDemandPeriodStart + 'T00:00:00.000').getTime() / 1000
     );
     mockGet = MockApiClient.addMockResponse({
@@ -662,7 +658,7 @@ describe('PUT edit spend allocation', () => {
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
-      new Date().getTime() / 1000,
+      Date.now() / 1000,
       new Date(subscription.onDemandPeriodStart + 'T00:00:00.000').getTime() / 1000
     );
     MockApiClient.addMockResponse({
@@ -709,8 +705,7 @@ describe('PUT edit spend allocation', () => {
     await userEvent.click(screen.getByTestId('toggle-spend'));
 
     expect(screen.getByTestId('allocation-input')).toHaveValue(
-      (mockSpendAllocations[2]!.reservedQuantity! *
-        mockSpendAllocations[2]!.costPerItem!) /
+      (mockSpendAllocations[2]!.reservedQuantity * mockSpendAllocations[2]!.costPerItem) /
         100
     );
 

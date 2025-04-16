@@ -1,16 +1,11 @@
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Chevron} from 'sentry/components/chevron';
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
 export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'> {
-  /**
-   * Forward a ref to the button's root
-   */
-  forwardedRef?: React.ForwardedRef<HTMLButtonElement>;
   /**
    * Whether or not the button should render as open
    */
@@ -19,6 +14,10 @@ export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'
    * The fixed prefix text to show in the button eg: 'Sort By'
    */
   prefix?: React.ReactNode;
+  /**
+   * Forward a ref to the button's root
+   */
+  ref?: React.Ref<HTMLButtonElement>;
   /**
    * Should a chevron icon be shown?
    */
@@ -32,7 +31,7 @@ function DropdownButton({
   isOpen = false,
   showChevron = true,
   disabled = false,
-  forwardedRef,
+  ref,
   ...props
 }: DropdownButtonProps) {
   return (
@@ -43,20 +42,17 @@ function DropdownButton({
       disabled={disabled}
       isOpen={isOpen}
       size={size}
-      ref={forwardedRef}
+      ref={ref}
       {...props}
     >
       {prefix && <LabelText>{prefix}</LabelText>}
       {children}
       {showChevron && (
         <ChevronWrap>
-          <Chevron
-            light
+          <IconChevron
             color="subText"
-            size={size === 'xs' ? 'small' : 'medium'}
-            weight="medium"
             direction={isOpen ? 'up' : 'down'}
-            aria-hidden="true"
+            size={size === 'zero' || size === 'xs' ? 'xs' : 'sm'}
           />
         </ChevronWrap>
       )}
@@ -95,6 +91,4 @@ const LabelText = styled('span')`
   padding-right: ${space(0.75)};
 `;
 
-export default forwardRef<HTMLButtonElement, DropdownButtonProps>((props, ref) => (
-  <DropdownButton forwardedRef={ref} {...props} />
-));
+export default DropdownButton;

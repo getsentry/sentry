@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {LinkButton} from 'sentry/components/core/button';
 import DiscoverButton from 'sentry/components/discoverButton';
-import * as SpanEntryContext from 'sentry/components/events/interfaces/spans/context';
+import {SpanEntryContext} from 'sentry/components/events/interfaces/spans/context';
 import {
   getTraceDateTimeRange,
   scrollToSpan,
@@ -22,14 +22,16 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {SpanIndexedField} from 'sentry/views/insights/types';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-
-import {isTransactionNode} from '../../../../traceGuards';
-import {TraceTree} from '../../../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
-import {getTraceTabTitle} from '../../../../traceState/traceTabs';
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 type TransactionResult = {
   id: string;

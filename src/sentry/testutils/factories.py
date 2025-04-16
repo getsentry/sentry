@@ -35,6 +35,7 @@ from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -96,6 +97,7 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -170,6 +172,9 @@ from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.workflow_engine.models import (
     Action,
+    ActionAlertRuleTriggerAction,
+    AlertRuleDetector,
+    AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
     DataConditionGroupAction,
@@ -317,6 +322,10 @@ DEFAULT_EVENT_DATA = {
     "platform": "python",
 }
 
+default_detector_config_data = {
+    MetricAlertFire.slug: {"threshold_period": 1, "detection_type": "static"}
+}
+
 
 def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_files=None):
     with open(path, "rb") as fp:
@@ -420,6 +429,22 @@ class Factories:
             for team in teams:
                 Factories.create_team_membership(team=team, member=om, role=teamRole)
         return om
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_member_invite(
+        organization: Organization | None = None,
+        email: str | None = None,
+        **kwargs,
+    ) -> OrganizationMemberInvite:
+        if organization is None:
+            organization = Factories.create_organization()
+        if email is None:
+            email = f"{petname.generate().title()}@email.com"
+        om = OrganizationMember.objects.create(organization=organization)
+        return OrganizationMemberInvite.objects.create(
+            organization=organization, organization_member_id=om.id, email=email, **kwargs
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -540,7 +565,7 @@ class Factories:
         action_data=None,
         allow_no_action_data=False,
         condition_data=None,
-        name="",
+        name="Test Alert",
         action_match="all",
         filter_match="all",
         **kwargs,
@@ -1029,8 +1054,10 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_group(project, **kwargs):
+    def create_group(project, create_open_period=True, **kwargs):
         from sentry.models.group import GroupStatus
+        from sentry.models.groupopenperiod import GroupOpenPeriod
+        from sentry.testutils.helpers.datetime import before_now
         from sentry.types.group import GroupSubStatus
 
         kwargs.setdefault("message", "Hello world")
@@ -1046,7 +1073,19 @@ class Factories:
             kwargs["status"] = GroupStatus.UNRESOLVED
             kwargs["substatus"] = GroupSubStatus.NEW
 
-        return Group.objects.create(project=project, **kwargs)
+        group = Group.objects.create(project=project, **kwargs)
+        if create_open_period:
+            open_period = GroupOpenPeriod.objects.create(
+                group=group,
+                project=project,
+                date_started=group.first_seen or before_now(minutes=5),
+            )
+            if group.status == GroupStatus.RESOLVED:
+                open_period.update(
+                    date_ended=group.resolved_at if group.resolved_at else timezone.now()
+                )
+
+        return group
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1348,7 +1387,13 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_service_hook(actor=None, org=None, project=None, events=None, url=None, **kwargs):
+    def create_service_hook(
+        actor=None, org=None, project=None, events=None, url=None, project_ids=None, **kwargs
+    ):
+        if project:
+            if project_ids is not None:
+                raise ValueError("Cannot provide both project and project_ids")
+            project_ids = [project.id]
         if not actor:
             actor = Factories.create_user()
         if not org:
@@ -1356,8 +1401,8 @@ class Factories:
                 org = project.organization
             else:
                 org = Factories.create_organization(owner=actor)
-        if not project:
-            project = Factories.create_project(organization=org)
+        if project_ids is None:  # empty list for project_ids is valid and means no project filter
+            project_ids = [Factories.create_project(organization=org).id]
         if events is None:
             events = ["event.created"]
         if not url:
@@ -1374,7 +1419,7 @@ class Factories:
             actor_id=actor.id,
             installation_id=installation_id,
             organization_id=org.id,
-            project_ids=[project.id],
+            project_ids=project_ids,
             events=events,
             url=url,
         ).id
@@ -2161,7 +2206,7 @@ class Factories:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         if config is None:
-            config = {}
+            config = default_detector_config_data.get(kwargs["type"], {})
 
         return Detector.objects.create(
             name=name,
@@ -2198,15 +2243,30 @@ class Factories:
     def create_action(
         config: dict[str, Any] | None = None,
         type: Action.Type | None = None,
+        data: dict[str, Any] | None = None,
         **kwargs,
     ) -> Action:
+        if config is None and type is None and data is None:
+            # Default to a slack action with nice defaults so someone can just do
+            # self.create_action() and have a sane default
+            config = {
+                "target_identifier": "1",
+                "target_display": "Sentry User",
+                "target_type": ActionTarget.SPECIFIC,
+            }
+
+            data = {"notes": "bufos are great", "tags": "bufo-bot"}
+
         if config is None:
             config = {}
+
+        if data is None:
+            data = {}
 
         if type is None:
             type = Action.Type.SLACK
 
-        return Action.objects.create(type=type, config=config, **kwargs)
+        return Action.objects.create(type=type, config=config, data=data, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2220,6 +2280,62 @@ class Factories:
         if workflow is None:
             workflow = Factories.create_workflow()
         return DetectorWorkflow.objects.create(detector=detector, workflow=workflow, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_alert_rule_workflow(
+        alert_rule_id: int | None = None,
+        rule_id: int | None = None,
+        workflow: Workflow | None = None,
+        **kwargs,
+    ) -> AlertRuleWorkflow:
+        if rule_id is None and alert_rule_id is None:
+            raise ValueError("Either rule_id or alert_rule_id must be provided")
+
+        if rule_id is not None and alert_rule_id is not None:
+            raise ValueError("Only one of rule_id or alert_rule_id can be provided")
+
+        if workflow is None:
+            workflow = Factories.create_workflow()
+
+        return AlertRuleWorkflow.objects.create(
+            alert_rule_id=alert_rule_id, rule_id=rule_id, workflow=workflow, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_alert_rule_detector(
+        alert_rule_id: int | None = None,
+        rule_id: int | None = None,
+        detector: Detector | None = None,
+        **kwargs,
+    ) -> AlertRuleDetector:
+        if rule_id is None and alert_rule_id is None:
+            raise ValueError("Either rule_id or alert_rule_id must be provided")
+
+        if rule_id is not None and alert_rule_id is not None:
+            raise ValueError("Only one of rule_id or alert_rule_id can be provided")
+
+        if detector is None:
+            detector = Factories.create_detector()
+
+        return AlertRuleDetector.objects.create(
+            alert_rule_id=alert_rule_id, rule_id=rule_id, detector=detector, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_action_alert_rule_trigger_action(
+        alert_rule_trigger_action_id: int,
+        action: Action | None = None,
+        **kwargs,
+    ) -> ActionAlertRuleTriggerAction:
+        if action is None:
+            action = Factories.create_action()
+
+        return ActionAlertRuleTriggerAction.objects.create(
+            action=action, alert_rule_trigger_action_id=alert_rule_trigger_action_id
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

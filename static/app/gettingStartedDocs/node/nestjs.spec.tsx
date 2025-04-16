@@ -48,7 +48,7 @@ describe('Nest.js onboarding docs', function () {
       screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/profilesSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
   });
 
@@ -77,6 +77,7 @@ describe('Nest.js onboarding docs', function () {
         )
       )
     ).toBeInTheDocument();
+
     expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
@@ -103,17 +104,16 @@ describe('Nest.js onboarding docs', function () {
       )
     ).toBeInTheDocument();
 
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profileLifecycle: 'trace'/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1\.0/))
+    ).toBeInTheDocument();
+
     // Profiles sample rate should not be set for continuous profiling
     expect(
       screen.queryByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).not.toBeInTheDocument();
-
-    // Should have start and stop profiling calls
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.startProfiler/))
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.stopProfiler/))
-    ).toBeInTheDocument();
   });
 });

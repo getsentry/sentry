@@ -10,6 +10,7 @@ import ListLink from 'sentry/components/links/listLink';
 import {IconSentry, IconSliders} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import localStorage from 'sentry/utils/localStorage';
+// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
 import SystemAlerts from 'sentry/views/app/systemAlerts';
 

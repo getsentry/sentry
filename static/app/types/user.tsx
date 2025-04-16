@@ -53,8 +53,9 @@ export interface User extends Omit<AvatarUser, 'options'> {
     clock24Hours: boolean;
     defaultIssueEvent: 'recommended' | 'latest' | 'oldest';
     language: string;
-    prefersIssueDetailsStreamlinedUI: boolean;
-    prefersSpecializedProjectOverview: {[projectId: string]: boolean};
+    prefersChonkUI: boolean;
+    prefersIssueDetailsStreamlinedUI: boolean | null;
+    prefersNextjsInsightsOverview: boolean;
     prefersStackedNavigation: boolean;
     quickStartDisplay: QuickStartDisplay;
     stacktraceOrder: number;

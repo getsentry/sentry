@@ -131,6 +131,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 )
 
             filter_params = self.get_filter_params(request, organization)
+            query = request.GET.get("query", "")
             if quantize_date_params:
                 filter_params = self.quantize_date_params(request, filter_params)
             params = SnubaParams(
@@ -143,6 +144,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 ),
                 teams=self.get_teams(request, organization),
                 organization=organization,
+                query_string=query,
             )
 
             if check_global_views:
@@ -335,6 +337,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 isMetricsData = meta.pop("isMetricsData", False)
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 discoverSplitDecision = meta.pop("discoverSplitDecision", None)
+                full_scan = meta.pop("full_scan", None)
+                query = meta.pop("query", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
@@ -349,6 +353,16 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
                 if discoverSplitDecision is not None:
                     meta["discoverSplitDecision"] = discoverSplitDecision
+
+                if full_scan is not None:
+                    meta["dataScanned"] = "full" if full_scan else "partial"
+                else:
+                    # If this key isn't in meta there wasn't any sampling and we can assume all the data was scanned
+                    meta["dataScanned"] = "full"
+
+                # Only appears in meta when debug is passed to the endpoint
+                if query:
+                    meta["query"] = query
             else:
                 meta = fields_meta
 
@@ -422,6 +436,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     def get_rollup(
         self, request: Request, snuba_params: SnubaParams, top_events: int, use_rpc: bool
     ) -> int:
+        """TODO: we should eventually rely on `SnubaParams.granularity_secs` instead"""
         try:
             rollup = get_rollup_from_request(
                 request,
@@ -492,6 +507,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         return {"data": []}
 
                 rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
+                snuba_params.granularity_secs = rollup
                 self.validate_comparison_delta(comparison_delta, snuba_params, organization)
 
                 query_columns = get_query_columns(columns, rollup)
@@ -677,7 +693,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 row_value = row.get(column, None)
                 if row_value == 0 and null_zero:
                     row_value = None
-                serialized_values.append({"timestamp": timestamp, "value": row_value})
+                serialized_values.append(
+                    {
+                        "timestamp": timestamp,
+                        "value": row_value,
+                    }
+                )
         return serialized_values
 
 

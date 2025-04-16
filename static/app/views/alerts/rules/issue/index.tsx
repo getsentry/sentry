@@ -14,7 +14,6 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
@@ -59,7 +58,6 @@ import {
   IssueAlertFilterType,
 } from 'sentry/types/alerts';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Member, Organization, Team} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
@@ -75,13 +73,12 @@ import {PreviewIssues} from 'sentry/views/alerts/rules/issue/previewIssues';
 import SetupMessagingIntegrationButton, {
   MessagingIntegrationAnalyticsView,
 } from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
+import {getProjectOptions} from 'sentry/views/alerts/rules/utils';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/utils/constants';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
-
-import {getProjectOptions} from '../utils';
 
 import RuleNodeList from './ruleNodeList';
 
@@ -150,9 +147,7 @@ type Props = {
 
 type State = DeprecatedAsyncComponent['state'] & {
   configs: IssueAlertConfiguration | null;
-  detailedError: null | {
-    [key: string]: string[];
-  };
+  detailedError: null | Record<string, string[]>;
   environments: Environment[] | null;
   incompatibleConditions: number[] | null;
   incompatibleFilters: number[] | null;
@@ -433,6 +428,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         method: 'POST',
         data: {
           actions: rule?.actions ?? [],
+          name: rule?.name,
         },
       })
       .then(() => {
@@ -458,12 +454,6 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
     const {organization, router} = this.props;
     const {project} = this.state;
-    // The onboarding task will be completed on the server side when the alert
-    // is created
-    updateOnboardingTask(null, organization, {
-      task: OnboardingTaskKey.ALERT_RULE,
-      status: 'complete',
-    });
 
     metric.endSpan({name: 'saveAlertRule'});
 
@@ -673,7 +663,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
             ])
             .filter(([, initial]) => !!initial)
         )
-      : {};
+      : [];
   };
 
   handleResetRow = <T extends keyof IssueAlertRuleAction>(
@@ -1086,7 +1076,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
               disabled={disabled || isSavedAlertRule(rule)}
               value={selectedProject.id}
               styles={{
-                container: (provided: {[x: string]: string | number | boolean}) => ({
+                container: (provided: Record<string, string | number | boolean>) => ({
                   ...provided,
                   marginBottom: `${space(1)}`,
                 }),
@@ -1101,8 +1091,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                   ?.split(':')[1];
                 if (
                   ownerId &&
-                  nextSelectedProject.teams.find(({id}) => id === ownerId) ===
-                    undefined &&
+                  !nextSelectedProject.teams.some(({id}) => id === ownerId) &&
                   nextSelectedProject.teams.length
                 ) {
                   this.handleOwnerChange({value: nextSelectedProject.teams[0]!.id});

@@ -153,6 +153,6 @@ const Url = styled('div')`
 `;
 
 const DetailRow = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;

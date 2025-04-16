@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import sentry_sdk
 from django.db import router, transaction
 from django.http import Http404
 from django.utils.decorators import method_decorator
@@ -151,6 +152,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         try:
             installation.update_organization_config(request.data)
         except (IntegrationError, ApiError) as e:
+            sentry_sdk.capture_exception(e)
             return self.respond({"detail": [str(e)]}, status=400)
 
         return self.respond(status=200)

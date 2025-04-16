@@ -5,7 +5,6 @@ import {experimentConfig, unassignedValue} from 'sentry/data/experimentConfig';
 import type {
   ExperimentAssignment,
   ExperimentKey,
-  OrgExperiments,
   UserExperiments,
 } from 'sentry/types/experiments';
 import {ExperimentType} from 'sentry/types/experiments';
@@ -35,7 +34,7 @@ function useExperimentAssignment<E extends ExperimentKey>(
   }
 
   if (config.type === ExperimentType.ORGANIZATION) {
-    const key = experiment as keyof OrgExperiments;
+    const key = experiment;
     const assignment = organization.experiments?.[key];
     if (!defined(assignment)) {
       Sentry.withScope(scope => {

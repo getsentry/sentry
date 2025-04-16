@@ -1,16 +1,16 @@
-import {logout} from 'sentry/actionCreators/account';
-import {setForceHide} from 'sentry/actionCreators/guides';
-import {Client} from 'sentry/api';
+import * as Sentry from '@sentry/react';
 
-import {demoEmailModal, demoSignupModal} from '../../actionCreators/modal';
+import {setForceHide} from 'sentry/actionCreators/guides';
+import {demoSignupModal} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getUTMState} from 'sentry/utils/demoMode/utm';
 
 import {isDemoModeActive} from './index';
 
 const SIGN_UP_MODAL_DELAY = 2 * 60 * 1000;
 
 const DEMO_MODE_EMAIL_KEY = 'demo-mode:email';
-
-const INACTIVITY_TIMEOUT_MS = 10 * 1000;
 
 export function openDemoSignupModal() {
   if (!isDemoModeActive()) {
@@ -21,43 +21,67 @@ export function openDemoSignupModal() {
   }, SIGN_UP_MODAL_DELAY);
 }
 
-export function openDemoEmailModal() {
+export function initDemoMode(api: Client) {
+  if (!isDemoModeActive()) {
+    return;
+  }
+  initDemoAnalytics();
+  captureEmail(api);
+}
+
+async function captureEmail(api: Client) {
+  const email = localStorage.getItem(DEMO_MODE_EMAIL_KEY);
+
+  if (email === 'submitted') {
+    return;
+  }
+
+  const utmState = getUTMState();
+
+  try {
+    await api.requestPromise('/internal/demo/email-capture/', {
+      method: 'POST',
+      data: {
+        ...utmState.data,
+        email,
+      },
+    });
+
+    openDemoSignupModal();
+
+    localStorage.setItem(DEMO_MODE_EMAIL_KEY, 'submitted');
+    trackAnalytics('growth.demo_email_submitted', {organization: null});
+  } catch (error) {
+    // do nothing
+  } finally {
+    setForceHide(false);
+  }
+}
+
+function initDemoAnalytics() {
   if (!isDemoModeActive()) {
     return;
   }
 
-  // email already added
-  if (localStorage.getItem(DEMO_MODE_EMAIL_KEY)) {
+  if (document.getElementById('plausible-script')) {
     return;
   }
 
-  demoEmailModal({
-    onAddedEmail,
-    onFailure: () => {
-      setForceHide(false);
-    },
-  });
-}
+  try {
+    const mainScript = document.createElement('script');
+    mainScript.id = 'plausible-script';
+    mainScript.defer = true;
+    mainScript.setAttribute('data-domain', window.location.hostname);
+    mainScript.src = 'https://plausible.io/js/script.pageview-props.tagged-events.js';
 
-function onAddedEmail(email: string) {
-  setForceHide(false);
-  localStorage.setItem(DEMO_MODE_EMAIL_KEY, email);
-  openDemoSignupModal();
-}
+    const queueScript = document.createElement('script');
+    queueScript.id = 'plausible-queue-script';
+    queueScript.textContent =
+      'window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }';
 
-let inactivityTimeout: number | undefined;
-
-window.addEventListener('blur', () => {
-  if (isDemoModeActive()) {
-    inactivityTimeout = window.setTimeout(() => {
-      logout(new Client());
-    }, INACTIVITY_TIMEOUT_MS);
+    document.head.appendChild(mainScript);
+    document.head.appendChild(queueScript);
+  } catch (error) {
+    Sentry.captureException(error);
   }
-});
-
-window.addEventListener('focus', () => {
-  if (inactivityTimeout) {
-    window.clearTimeout(inactivityTimeout);
-    inactivityTimeout = undefined;
-  }
-});
+}

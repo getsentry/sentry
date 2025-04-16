@@ -18,8 +18,11 @@ from requests.exceptions import SSLError
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.exceptions import NotRegistered
 from sentry.http import safe_urlopen, safe_urlread
+from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.utils.metrics import (
+    IntegrationPipelineErrorReason,
+    IntegrationPipelineHaltReason,
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
@@ -203,7 +206,7 @@ class OAuth2Provider(Provider):
             )
             raise ApiError(formatted_error)
 
-    def refresh_identity(self, identity: Identity, **kwargs: Any) -> None:
+    def refresh_identity(self, identity: Identity | RpcIdentity, **kwargs: Any) -> None:
         refresh_token = identity.data.get("refresh_token")
 
         if not refresh_token:
@@ -366,28 +369,26 @@ class OAuth2CallbackView(PipelineView):
             code = request.GET.get("code")
 
             if error:
-                logger.info("identity.token-exchange-error", extra={"error": error})
                 lifecycle.record_failure(
-                    "token_exchange_error", extra={"failure_info": ERR_INVALID_STATE}
+                    IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
+                    extra={"error": error},
                 )
                 return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
 
             if state != pipeline.fetch_state("state"):
-                logger.info(
-                    "identity.token-exchange-error",
-                    extra={
-                        "error": "invalid_state",
-                        "state": state,
-                        "pipeline_state": pipeline.fetch_state("state"),
-                        "code": code,
-                    },
-                )
+                extra = {
+                    "error": "invalid_state",
+                    "state": state,
+                    "pipeline_state": pipeline.fetch_state("state"),
+                    "code": code,
+                }
                 lifecycle.record_failure(
-                    "token_exchange_error", extra={"failure_info": ERR_INVALID_STATE}
+                    IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE, extra=extra
                 )
                 return pipeline.error(ERR_INVALID_STATE)
 
             if code is None:
+                lifecycle.record_halt(IntegrationPipelineHaltReason.NO_CODE_PROVIDED)
                 return pipeline.error("no code was provided")
 
         # separate lifecycle event inside exchange_token

@@ -1,8 +1,8 @@
 from typing import cast
 
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
-from sentry.users.services.user import RpcUser
 
 MAX_ACTIONS = 3
 
@@ -11,6 +11,7 @@ ACTION_TYPE_TO_STRING = {
     AlertRuleTriggerAction.Type.SLACK.value: "Slack",
     AlertRuleTriggerAction.Type.MSTEAMS.value: "Microsoft Teams",
     AlertRuleTriggerAction.Type.OPSGENIE.value: "Opsgenie",
+    AlertRuleTriggerAction.Type.DISCORD.value: "Discord",
 }
 
 
@@ -22,11 +23,13 @@ def get_action_description(action: AlertRuleTriggerAction) -> str:
     if action.type == AlertRuleTriggerAction.Type.EMAIL.value:
         if action.target:
             if action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
-                action_target_user = cast(RpcUser, action.target)
-                return "Email " + action_target_user.email
+                action_target_user = cast(OrganizationMember, action.target)
+                return "Email " + action_target_user.get_email()
             elif action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
                 action_target_team = cast(Team, action.target)
                 return "Email #" + action_target_team.slug
+        else:
+            return "Email [removed]"
     elif action.type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
         return f"Notify {action.target_display}"
 

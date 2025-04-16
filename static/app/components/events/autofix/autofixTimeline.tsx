@@ -1,21 +1,26 @@
 import {useState} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
-import type {ColorConfig} from 'sentry/components/timeline';
-import Timeline from 'sentry/components/timeline';
+import type {TimelineItemProps} from 'sentry/components/timeline';
+import {Timeline} from 'sentry/components/timeline';
 import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
-import type {Color} from 'sentry/utils/theme';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import type {AutofixTimelineEvent} from './types';
 
 type Props = {
   events: AutofixTimelineEvent[];
-  activeColor?: Color;
+  groupId: string;
+  runId: string;
   getCustomIcon?: (event: AutofixTimelineEvent) => React.ReactNode;
+  retainInsightCardIndex?: number | null;
+  stepIndex?: number;
 };
 
 function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
@@ -37,26 +42,34 @@ function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
   }
 }
 
-function getEventColor(isActive?: boolean, activeColor?: Color): ColorConfig {
+function getEventColor(
+  theme: Theme,
+  isActive?: boolean
+): TimelineItemProps['colorConfig'] {
+  if (isChonkTheme(theme)) {
+    return {
+      title: theme.colors.content.primary,
+      icon: isActive ? theme.colors.pink400 : theme.colors.content.muted,
+      iconBorder: isActive ? theme.colors.pink400 : theme.colors.content.muted,
+    };
+  }
   return {
-    title: 'gray400',
-    icon: isActive ? (activeColor ?? 'pink400') : 'gray400',
-    iconBorder: isActive ? (activeColor ?? 'pink400') : 'gray400',
+    title: theme.gray400,
+    icon: isActive ? theme.pink400 : theme.gray400,
+    iconBorder: isActive ? theme.pink400 : theme.gray400,
   };
 }
 
-export function AutofixTimeline({events, activeColor, getCustomIcon}: Props) {
-  const [expandedItems, setExpandedItems] = useState<number[]>(() => {
-    if (!events?.length || events.length > 3) {
-      return [];
-    }
-
-    // For 3 or fewer items, find the first highlighted item or default to first item
-    const firstHighlightedIndex = events.findIndex(
-      event => event.is_most_important_event
-    );
-    return [firstHighlightedIndex === -1 ? 0 : firstHighlightedIndex];
-  });
+export function AutofixTimeline({
+  events,
+  getCustomIcon,
+  groupId,
+  runId,
+  stepIndex = 0,
+  retainInsightCardIndex = null,
+}: Props) {
+  const theme = useTheme();
+  const [expandedItems, setExpandedItems] = useState<number[]>([]);
 
   if (!events?.length) {
     return null;
@@ -82,11 +95,18 @@ export function AutofixTimeline({events, activeColor, getCustomIcon}: Props) {
                 isActive={isActive}
                 data-test-id={`autofix-root-cause-timeline-item-${index}`}
               >
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: singleLineRenderer(event.title),
-                  }}
-                />
+                <AutofixHighlightWrapper
+                  groupId={groupId}
+                  runId={runId}
+                  stepIndex={stepIndex}
+                  retainInsightCardIndex={retainInsightCardIndex}
+                >
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: singleLineRenderer(event.title),
+                    }}
+                  />
+                </AutofixHighlightWrapper>
                 <StyledIconChevron
                   direction={expandedItems.includes(index) ? 'down' : 'right'}
                   size="xs"
@@ -95,7 +115,7 @@ export function AutofixTimeline({events, activeColor, getCustomIcon}: Props) {
             }
             isActive={isActive}
             icon={getCustomIcon?.(event) ?? getEventIcon(event.timeline_item_type)}
-            colorConfig={getEventColor(isActive, activeColor)}
+            colorConfig={getEventColor(theme, isActive)}
           >
             <AnimatePresence>
               {expandedItems.includes(index) && (
@@ -106,13 +126,20 @@ export function AutofixTimeline({events, activeColor, getCustomIcon}: Props) {
                   transition={{duration: 0.2}}
                 >
                   <Timeline.Text>
-                    <StyledSpan
-                      dangerouslySetInnerHTML={{
-                        __html: singleLineRenderer(
-                          replaceHeadersWithBold(event.code_snippet_and_analysis)
-                        ),
-                      }}
-                    />
+                    <AutofixHighlightWrapper
+                      groupId={groupId}
+                      runId={runId}
+                      stepIndex={stepIndex}
+                      retainInsightCardIndex={retainInsightCardIndex}
+                    >
+                      <StyledSpan
+                        dangerouslySetInnerHTML={{
+                          __html: singleLineRenderer(
+                            replaceHeadersWithBold(event.code_snippet_and_analysis)
+                          ),
+                        }}
+                      />
+                    </AutofixHighlightWrapper>
                   </Timeline.Text>
                 </AnimatedContent>
               )}
@@ -158,7 +185,7 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   flex-shrink: 0;
   margin-right: ${space(0.25)};
 `;

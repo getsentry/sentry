@@ -11,12 +11,15 @@ import {
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import type {SpansRPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface UseExploreAggregatesTableOptions {
   enabled: boolean;
   limit: number;
   query: string;
+  queryExtras?: SpansRPCQueryExtras;
 }
 
 export interface AggregatesTableResult {
@@ -29,6 +32,18 @@ export function useExploreAggregatesTable({
   enabled,
   limit,
   query,
+}: UseExploreAggregatesTableOptions) {
+  return useProgressiveQuery<typeof useExploreAggregatesTableImp>({
+    queryHookImplementation: useExploreAggregatesTableImp,
+    queryHookArgs: {enabled, limit, query},
+  });
+}
+
+function useExploreAggregatesTableImp({
+  enabled,
+  limit,
+  query,
+  queryExtras,
 }: UseExploreAggregatesTableOptions): AggregatesTableResult {
   const {selection} = usePageFilters();
 
@@ -89,6 +104,7 @@ export function useExploreAggregatesTable({
     limit,
     referrer: 'api.explore.spans-aggregates-table',
     trackResponseAnalytics: false,
+    queryExtras,
   });
 
   return useMemo(() => {

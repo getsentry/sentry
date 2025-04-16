@@ -8,8 +8,8 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import MonitorForm from 'sentry/views/monitors/components/monitorForm';
-import type {Monitor} from 'sentry/views/monitors/types';
+import MonitorForm from 'sentry/views/insights/crons/components/monitorForm';
+import type {Monitor} from 'sentry/views/insights/crons/types';
 
 function CreateMonitor() {
   const organization = useOrganization();

@@ -12,6 +12,7 @@ import queuesPreviewImg from 'sentry-images/insights/module-upsells/insights-que
 import requestPreviewImg from 'sentry-images/insights/module-upsells/insights-requests-module-charts.svg';
 import screenLoadsPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-loads-module-charts.svg';
 import screenRenderingPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-rendering-module-charts.svg';
+import sessionHealthPreviewImg from 'sentry-images/insights/module-upsells/insights-session-health-module-charts.svg';
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
@@ -215,7 +216,7 @@ const SupportedSdkContainer = styled('div')`
   flex-direction: column;
   gap: ${space(1)};
   align-items: center;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const SupportedSdkList = styled('div')`
@@ -517,7 +518,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       t('Comparing adoption rates across different releases.'),
       t('Visualizing user adoption over time.'),
     ],
-    imageSrc: screenLoadsPreviewImg, // TODO: need new img
+    imageSrc: sessionHealthPreviewImg,
     supportedSdks: [
       'android',
       'flutter',

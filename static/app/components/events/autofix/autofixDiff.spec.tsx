@@ -96,9 +96,9 @@ describe('AutofixDiff', function () {
       screen.getAllByText('src/sentry/processing/backpressure/memory.py')
     ).toHaveLength(2); // one in the header of the diff and one in the popup
 
-    const textarea = screen.getByRole('textbox');
-    await userEvent.clear(textarea);
-    await userEvent.type(textarea, 'New content');
+    const textarea = screen.getAllByRole('textbox')[0];
+    await userEvent.clear(textarea!);
+    await userEvent.type(textarea!, 'New content');
 
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/update/',
@@ -136,9 +136,9 @@ describe('AutofixDiff', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Edit changes'}));
 
-    const textarea = screen.getByRole('textbox');
-    await userEvent.clear(textarea);
-    await userEvent.type(textarea, 'New content');
+    const textarea = screen.getAllByRole('textbox')[0];
+    await userEvent.clear(textarea!);
+    await userEvent.type(textarea!, 'New content');
 
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/update/',

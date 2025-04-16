@@ -21,6 +21,11 @@ describe('Subscription > Notifications', function () {
       body: {reservedPercent: [90], perProductOndemandPercent: [80, 50]},
     });
     MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/plan-migrations/`,
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
     });
@@ -46,11 +51,8 @@ describe('Subscription > Notifications', function () {
 
   it('renders', async function () {
     render(
-      <Notifications
-        {...RouteComponentPropsFixture()}
-        organization={organization}
-        subscription={subscription}
-      />
+      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
+      {organization}
     );
 
     expect(
@@ -76,11 +78,8 @@ describe('Subscription > Notifications', function () {
   it('renders an error for non-billing users', async function () {
     organization.access = [];
     render(
-      <Notifications
-        {...RouteComponentPropsFixture()}
-        organization={organization}
-        subscription={subscription}
-      />
+      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
+      {organization}
     );
     expect(await screen.findByTestId('permission-denied')).toBeInTheDocument();
     expect(
@@ -95,11 +94,8 @@ describe('Subscription > Notifications', function () {
     SubscriptionStore.set(organization.slug, subscription);
 
     render(
-      <Notifications
-        {...RouteComponentPropsFixture()}
-        organization={organization}
-        subscription={subscription}
-      />
+      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
+      {organization}
     );
 
     expect(
@@ -119,11 +115,8 @@ describe('Subscription > Notifications', function () {
     SubscriptionStore.set(organization.slug, subscription);
 
     render(
-      <Notifications
-        {...RouteComponentPropsFixture()}
-        organization={organization}
-        subscription={subscription}
-      />
+      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
+      {organization}
     );
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
@@ -141,11 +134,8 @@ describe('Subscription > Notifications', function () {
 
   it('allows 9 thresholds per section max', async function () {
     render(
-      <Notifications
-        {...RouteComponentPropsFixture()}
-        organization={organization}
-        subscription={subscription}
-      />
+      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
+      {organization}
     );
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
@@ -168,11 +158,8 @@ describe('Subscription > Notifications', function () {
 
   it('reverts to saved thresholds on reset', async function () {
     render(
-      <Notifications
-        {...RouteComponentPropsFixture()}
-        organization={organization}
-        subscription={subscription}
-      />
+      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
+      {organization}
     );
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
@@ -205,11 +192,8 @@ describe('Subscription > Notifications', function () {
     });
 
     render(
-      <Notifications
-        {...RouteComponentPropsFixture()}
-        organization={organization}
-        subscription={subscription}
-      />
+      <Notifications {...RouteComponentPropsFixture()} subscription={subscription} />,
+      {organization}
     );
 
     expect(await screen.findByText('90%')).toBeInTheDocument();

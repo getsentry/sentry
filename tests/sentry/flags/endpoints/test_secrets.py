@@ -20,7 +20,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
 
     @property
     def features(self):
-        return {"organizations:feature-flag-audit-log": True}
+        return {}
 
     def test_browse(self):
         org = self.create_organization()
@@ -48,10 +48,6 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
                     }
                 ]
             }
-
-    def test_browse_disabled(self):
-        response = self.client.get(self.url)
-        assert response.status_code == 404
 
     def test_post_launchdarkly(self):
         with self.feature(self.features):
@@ -103,10 +99,6 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
         models = FlagWebHookSigningSecretModel.objects.filter(provider="statsig").all()
         assert len(models) == 1
         assert models[0].secret == "webhook-Xk9pL8NQaR5Ym2cx7vHnWtBj4M3f6qyZdC12mnspk8"
-
-    def test_post_disabled(self):
-        response = self.client.post(self.url, data={})
-        assert response.status_code == 404, response.content
 
     def test_post_invalid_provider(self):
         with self.feature(self.features):
@@ -282,16 +274,12 @@ class OrganizationFlagsWebHookSigningSecretEndpointTestCase(APITestCase):
 
     @property
     def features(self):
-        return {"organizations:feature-flag-audit-log": True}
+        return {}
 
     def test_delete(self):
         with self.feature(self.features):
             response = self.client.delete(self.url)
             assert response.status_code == 204
-
-    def test_delete_disabled(self):
-        response = self.client.delete(self.url)
-        assert response.status_code == 404
 
     def test_delete_other_organization(self):
         """Attempt to delete a secret outside your organization."""

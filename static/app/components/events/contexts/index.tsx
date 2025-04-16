@@ -8,6 +8,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
   event: Event;
+  disableCollapsePersistence?: boolean;
   group?: Group;
 };
 
@@ -35,11 +36,22 @@ export function getOrderedContextItems(event: Event): ContextItem[] {
 
   // hide `flags` in the contexts section since we display this
   // info in the feature flag section below
-  const {feedback, response, flags: _, ...otherContexts} = contexts ?? {};
+  const {
+    feedback,
+    response,
+    browser,
+    runtime,
+    os,
+    flags: _,
+    ...otherContexts
+  } = contexts ?? {};
   const orderedContext: Array<[ContextItem['alias'], ContextValue]> = [
     ['response', response],
     ['feedback', feedback],
     ['user', {...userContext, ...(customUserData as any)}],
+    ['browser', browser],
+    ['runtime', runtime],
+    ['os', os],
     ...Object.entries(otherContexts),
   ];
   // For these context aliases, use the alias as 'type' rather than 'value.type'
@@ -70,7 +82,7 @@ export function getOrderedContextItems(event: Event): ContextItem[] {
   return items;
 }
 
-export function EventContexts({event, group}: Props) {
+export function EventContexts({event, group, disableCollapsePersistence}: Props) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === event.projectID);
   const {contexts, sdk} = event;
@@ -87,5 +99,12 @@ export function EventContexts({event, group}: Props) {
     }
   }, [usingOtel, sdk]);
 
-  return <ContextDataSection event={event} group={group} project={project} />;
+  return (
+    <ContextDataSection
+      event={event}
+      group={group}
+      project={project}
+      disableCollapsePersistence={disableCollapsePersistence}
+    />
+  );
 }

@@ -6,9 +6,9 @@ import capitalize from 'lodash/capitalize';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {APIRequestMethod} from 'sentry/api';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {ControlProps} from 'sentry/components/core/select';
 import NewBooleanField from 'sentry/components/forms/fields/booleanField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -32,15 +32,14 @@ import type {Subscription} from 'getsentry/types';
 import {SINGULAR_DATA_CATEGORY} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
-
-import {bigNumFormatter, BigNumUnits} from '../utils';
+import {bigNumFormatter, BigNumUnits} from 'getsentry/views/spendAllocations/utils';
 
 import ProjectSelectControl from './projectSelectControl';
 import {HalvedGrid} from './styles';
 import type {SpendAllocation} from './types';
 
 type AllocationFormProps = {
-  fetchSpendAllocations: () => void;
+  fetchSpendAllocations: () => Promise<void>;
   organization: Organization;
   rootAllocation: SpendAllocation | undefined;
   selectedMetric: string;
@@ -69,8 +68,7 @@ function AllocationForm({
     initializedData
       ? initializedData.billingMetric
       : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        ALLOCATION_SUPPORTED_CATEGORIES.indexOf(SINGULAR_DATA_CATEGORY[initialMetric]) >
-          -1
+        ALLOCATION_SUPPORTED_CATEGORIES.includes(SINGULAR_DATA_CATEGORY[initialMetric])
         ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           SINGULAR_DATA_CATEGORY[initialMetric]
         : ALLOCATION_SUPPORTED_CATEGORIES[0]
@@ -148,7 +146,7 @@ function AllocationForm({
       targetId &&
       !initializedData &&
       allocatedTargetIds[AllocationTargetTypes.PROJECT] &&
-      allocatedTargetIds[AllocationTargetTypes.PROJECT].indexOf(targetId) >= 0
+      allocatedTargetIds[AllocationTargetTypes.PROJECT].includes(targetId)
     ) {
       setTargetId(undefined);
       setAllocationVolume(0);

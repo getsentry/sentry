@@ -7,8 +7,8 @@ import set from 'lodash/set';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -215,7 +215,6 @@ class TransactionThresholdModal extends Component<Props, State> {
           <Input
             type="number"
             name="threshold"
-            required
             pattern="[0-9]*(\.[0-9]*)?"
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
               this.handleFieldChange('threshold')(event.target.value);

@@ -3,7 +3,6 @@ import {useMemo} from 'react';
 import type {Group} from 'sentry/types/group';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   orgSlug: string;
@@ -12,6 +11,7 @@ type Props = {
     endTimestampMs: number;
     startTimestampMs: number;
   };
+  eventTimestampMs?: number;
   group?: Group;
 };
 
@@ -24,6 +24,7 @@ export default function useLoadReplayReader({
   orgSlug,
   replaySlug,
   clipWindow,
+  eventTimestampMs,
   group,
 }: Props): ReplayReaderResult {
   const replayId = parseReplayId(replaySlug);
@@ -54,19 +55,17 @@ export default function useLoadReplayReader({
     );
   }, [clipWindow, firstMatchingError]);
 
-  const featureFlags = useOrganization().features;
-
   const replay = useMemo(
     () =>
       ReplayReader.factory({
         attachments,
         clipWindow: memoizedClipWindow,
         errors,
-        featureFlags,
         fetching,
         replayRecord,
+        eventTimestampMs,
       }),
-    [attachments, memoizedClipWindow, errors, featureFlags, fetching, replayRecord]
+    [attachments, memoizedClipWindow, errors, fetching, replayRecord, eventTimestampMs]
   );
 
   return {

@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -21,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import {
   useExploreQuery,
   useSetExploreQuery,
@@ -31,8 +33,6 @@ import {
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-
-import {ALLOWED_CELL_ACTIONS} from '../components/table';
 
 interface FieldProps {
   column: TableColumn<keyof TableDataRow>;
@@ -99,6 +99,7 @@ function BaseExploreFieldRenderer({
 }: BaseFieldProps) {
   const location = useLocation();
   const organization = useOrganization();
+  const theme = useTheme();
   const dateSelection = EventView.fromLocation(location).normalizeDateSelection(location);
   const query = new MutableSearch(userQuery);
   const field = column.name;
@@ -108,6 +109,7 @@ function BaseExploreFieldRenderer({
   let rendered = renderer(data, {
     location,
     organization,
+    theme,
     unit,
   });
 

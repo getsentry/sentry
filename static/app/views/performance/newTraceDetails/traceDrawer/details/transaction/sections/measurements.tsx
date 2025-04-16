@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -16,9 +17,11 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
-import {TraceDrawerActionValueKind} from '../../utils';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 type MeasurementsProps = {
   event: EventTransaction;
@@ -37,6 +40,7 @@ export function hasMeasurements(event: EventTransaction) {
 }
 
 export function Measurements({event, location, organization}: MeasurementsProps) {
+  const theme = useTheme();
   const measurementNames = Object.keys(event.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
     .filter(isNotMarkMeasurement)
@@ -58,7 +62,7 @@ export function Measurements({event, location, organization}: MeasurementsProps)
         ? FIELD_FORMATTERS[fieldType].renderFunc(
             name,
             {[name]: renderValue},
-            {location, organization, unit}
+            {location, organization, unit, theme}
           )
         : renderValue;
 

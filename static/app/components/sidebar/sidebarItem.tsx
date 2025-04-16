@@ -156,7 +156,7 @@ function SidebarItem({
   // label might be wrapped in a guideAnchor
   let labelString = label;
   if (isValidElement(label)) {
-    labelString = label?.props?.children ?? label;
+    labelString = (label?.props as any)?.children ?? label;
   }
   // If there is no active panel open and if path is active according to react-router
   const isActiveRouter =

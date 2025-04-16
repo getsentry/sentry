@@ -8,6 +8,7 @@ import datetime
 from collections.abc import Collection, Generator, Mapping
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+from django.http.request import HttpRequest
 from pydantic.fields import Field
 
 from sentry.hybridcloud.rpc import RpcModel
@@ -147,44 +148,24 @@ class AuthenticationContext(RpcModel):
         return self.user or AnonymousUser()
 
     @contextlib.contextmanager
-    def applied_to_request(self, request: Any = None) -> Generator[Any]:
+    def applied_to_request[T: HttpRequest](self, request: T) -> Generator[T]:
         """
         Some code still reaches for the global 'env' object when determining user or auth behaviors.  This bleeds the
         current request context into that code, but makes it difficult to carry RPC authentication context in an
         isolated, controlled way.  This method allows for a context handling an RPC or inter silo behavior to assume
         the correct user and auth context provided explicitly in a context.
         """
-        from sentry.app import env
+        old_user = request.user
+        old_auth = request.auth
 
-        if request is None:
-            request = env.request
-
-        if request is None:
-            # Contexts that lack a request
-            # Note -- if a request is setup in the env after this context manager, you run the risk of bugs.
-            yield request
-            return
-
-        has_user = hasattr(request, "user")
-        has_auth = hasattr(request, "auth")
-
-        old_user = getattr(request, "user", None)
-        old_auth = getattr(request, "auth", None)
-        request.user = self._get_user()
+        request.user = self._get_user()  # type: ignore[assignment]  # RpcUser vs. User
         request.auth = self.auth
 
         try:
             yield request
         finally:
-            if has_user:
-                request.user = old_user
-            else:
-                delattr(request, "user")
-
-            if has_auth:
-                request.auth = old_auth
-            else:
-                delattr(request, "auth")
+            request.user = old_user
+            request.auth = old_auth
 
 
 class RpcAuthProviderFlags(RpcModel):

@@ -51,7 +51,7 @@ const Wrapper = styled('div')`
 `;
 
 const Content = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   display: grid;
   gap: ${space(1.5)};

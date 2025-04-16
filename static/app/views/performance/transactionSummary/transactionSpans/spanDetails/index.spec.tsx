@@ -14,8 +14,13 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import SpanDetails from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+
+jest.mock('sentry/views/insights/pages/useFilters', () => ({
+  useDomainViewFilters: jest.fn(),
+}));
 
 function initializeData(settings: Parameters<typeof _initializeData>[0]) {
   const data = _initializeData(settings);
@@ -33,6 +38,11 @@ describe('Performance > Transaction Spans > Span Summary', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {data: [{'count()': 1}]},
+    });
+
+    (useDomainViewFilters as jest.Mock).mockReturnValue({
+      isInDomainView: true,
+      view: 'frontend',
     });
   });
 
@@ -662,7 +672,7 @@ describe('spanDetailsRouteWithQuery', function () {
     expect(target).toEqual(
       expect.objectContaining({
         pathname:
-          '/organizations/org-slug/performance/summary/spans/o%2Fp:aaaaaaaaaaaaaaaa/',
+          '/organizations/org-slug/insights/summary/spans/o%2Fp:aaaaaaaaaaaaaaaa/',
       })
     );
   });

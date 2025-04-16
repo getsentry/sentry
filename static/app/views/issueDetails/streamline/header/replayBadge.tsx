@@ -30,7 +30,6 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
       <ReplayButton
         type="button"
         priority="link"
-        size="zero"
         icon={<IconPlay size="xs" />}
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
@@ -47,7 +46,7 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
 }
 
 const ReplayButton = styled(LinkButton)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-decoration: underline;
   text-decoration-style: dotted;
 `;

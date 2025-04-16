@@ -9,7 +9,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorStatus,
-    MonitorType,
     ScheduleType,
 )
 from sentry.testutils.cases import AcceptanceTestCase
@@ -20,7 +19,7 @@ from sentry.testutils.silo import no_silo_test
 class OrganizationMontorsTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
-        self.path = f"/organizations/{self.organization.slug}/crons/"
+        self.path = f"/organizations/{self.organization.slug}/insights/backend/crons/"
         self.team = self.create_team(organization=self.organization, name="Mariachi Band")
 
         self.project = self.create_project(
@@ -37,6 +36,12 @@ class OrganizationMontorsTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.click_when_visible("[aria-label='Create php Monitor']")
+
+        # XXX(epurkihser): Will need to remove once we remove the guide for
+        # crons, for some reaosn the tour guide hovercard needs to be closed
+        # before we can click on the tabs
+        self.browser.click_when_visible("[aria-label='Got It']")
+
         self.browser.click_when_visible(xpath="//li[@role='tab']//*[text()='Manual']")
 
         self.browser.wait_until('[name="name"]')
@@ -79,7 +84,6 @@ class OrganizationMontorsTest(AcceptanceTestCase):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="My Monitor",
             config={
                 "schedule": "0 0 * * *",
@@ -118,7 +122,6 @@ class OrganizationMontorsTest(AcceptanceTestCase):
         Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="My Monitor",
             config={
                 "schedule": "0 0 * * *",

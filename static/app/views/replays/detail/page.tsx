@@ -188,7 +188,7 @@ const TimeContainer = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1.4;
 `;

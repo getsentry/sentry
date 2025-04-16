@@ -1,12 +1,12 @@
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {useTheme} from '@emotion/react';
+
 import {t} from 'sentry/locale';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import {renameDiscoverSeries} from 'sentry/views/insights/common/utils/renameDiscoverSeries';
 import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
 import {usePublishQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/usePublishQueuesTimeSeriesQuery';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
-
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {renameDiscoverSeries} from '../../common/utils/renameDiscoverSeries';
-import {FIELD_ALIASES} from '../settings';
+import {FIELD_ALIASES} from 'sentry/views/insights/queues/settings';
 
 interface Props {
   referrer: Referrer;
@@ -15,6 +15,7 @@ interface Props {
 }
 
 export function ThroughputChart({error, destination, referrer}: Props) {
+  const theme = useTheme();
   const {
     data: publishData,
     error: publishError,
@@ -39,17 +40,17 @@ export function ThroughputChart({error, destination, referrer}: Props) {
       series={[
         renameDiscoverSeries(
           {
-            ...publishData['spm()'],
-            color: CHART_PALETTE[2][1],
+            ...publishData['epm()'],
+            color: theme.chart.colors[2][1],
           },
-          'spm() span.op:queue.publish'
+          'epm() span.op:queue.publish'
         ),
         renameDiscoverSeries(
           {
-            ...processData['spm()'],
-            color: CHART_PALETTE[2][2],
+            ...processData['epm()'],
+            color: theme.chart.colors[2][2],
           },
-          'spm() span.op:queue.process'
+          'epm() span.op:queue.process'
         ),
       ]}
       aliases={FIELD_ALIASES}

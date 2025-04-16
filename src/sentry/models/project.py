@@ -20,7 +20,6 @@ from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
-from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -31,6 +30,11 @@ from sentry.db.models import (
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
+from sentry.db.pending_deletion import (
+    delete_pending_deletion_option,
+    rename_on_pending_deletion,
+    reset_pending_deletion_field_names,
+)
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.locks import locks
@@ -45,14 +49,13 @@ from sentry.utils.colors import get_hashed_color
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
     from sentry.models.options.project_option import ProjectOptionManager
     from sentry.models.options.project_template_option import ProjectTemplateOptionManager
     from sentry.users.models.user import User
-
-SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
 # NOTE:
 # - When you modify this list, ensure that the platform IDs listed in "sentry/static/app/data/platforms.tsx" match.
@@ -223,7 +226,7 @@ class ProjectManager(BaseManager["Project"]):
 
 @snowflake_id_model
 @region_silo_model
-class Project(Model, PendingDeletionMixin):
+class Project(Model):
     from sentry.models.projectteam import ProjectTeam
 
     """
@@ -356,8 +359,6 @@ class Project(Model, PendingDeletionMixin):
 
     __repr__ = sane_repr("team_id", "name", "slug", "organization_id")
 
-    _rename_fields_on_pending_delete = frozenset(["slug"])
-
     def __str__(self):
         return f"{self.name} ({self.slug})"
 
@@ -386,7 +387,7 @@ class Project(Model, PendingDeletionMixin):
                     max_length=50,
                 )
 
-        if SENTRY_USE_SNOWFLAKE:
+        if settings.SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "project_snowflake_key"
             save_with_snowflake_id(
                 instance=self,
@@ -632,6 +633,7 @@ class Project(Model, PendingDeletionMixin):
             with transaction.atomic(router.db_for_write(ProjectTeam)):
                 ProjectTeam.objects.create(project=self, team=team)
         except IntegrityError:
+            incr_rollback_metrics(ProjectTeam)
             return False
         else:
             return True
@@ -747,5 +749,21 @@ class Project(Model, PendingDeletionMixin):
 
         return old_pk
 
+    # pending deletion implementation
+    _pending_fields = ("slug",)
 
-pre_delete.connect(delete_pending_deletion_option, sender=Project, weak=False)
+    def rename_on_pending_deletion(self) -> None:
+        rename_on_pending_deletion(self.organization_id, self, self._pending_fields)
+
+    def reset_pending_deletion_field_names(self) -> bool:
+        return reset_pending_deletion_field_names(self.organization_id, self, self._pending_fields)
+
+    def delete_pending_deletion_option(self) -> None:
+        delete_pending_deletion_option(self.organization_id, self)
+
+
+pre_delete.connect(
+    lambda instance, **k: instance.delete_pending_deletion_option(),
+    sender=Project,
+    weak=False,
+)

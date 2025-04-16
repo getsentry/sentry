@@ -331,8 +331,21 @@ customer_domain_discover_link_regex = re.compile(
     r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/discover/(results|homepage)"
 )
 
+explore_link_regex = re.compile(
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/explore/discover/(results|homepage)"
+)
+
+customer_domain_explore_link_regex = re.compile(
+    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/discover/(results|homepage)"
+)
+
 discover_handler = Handler(
     fn=unfurl_discover,
-    matcher=[discover_link_regex, customer_domain_discover_link_regex],
+    matcher=[
+        discover_link_regex,
+        customer_domain_discover_link_regex,
+        explore_link_regex,
+        customer_domain_explore_link_regex,
+    ],
     arg_mapper=map_discover_query_args,
 )

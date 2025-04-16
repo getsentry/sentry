@@ -44,6 +44,7 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.integrations.types import ExternalProviders
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
@@ -184,13 +185,15 @@ class EmailActionHandler(ActionHandler):
             return set()
 
         if action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
-            assert isinstance(target, RpcUser)
+            assert isinstance(target, OrganizationMember)
             if RuleSnooze.objects.is_snoozed_for_user(
-                user_id=target.id, alert_rule=incident.alert_rule
+                user_id=target.user_id, alert_rule=incident.alert_rule
             ):
                 return set()
 
-            return {target.id}
+            if target.user_id:
+                return {target.user_id}
+            return set()
 
         elif action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
             assert isinstance(target, Team)
@@ -370,11 +373,22 @@ class OpsgenieActionHandler(DefaultActionHandler):
     ):
         from sentry.integrations.opsgenie.utils import send_incident_alert_notification
 
-        success = send_incident_alert_notification(
-            action=action,
+        if metric_value is None:
+            metric_value = get_metric_count_from_incident(incident)
+
+        notification_context = NotificationContext.from_alert_rule_trigger_action(action)
+        alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
+        metric_issue_context = MetricIssueContext.from_legacy_models(
             incident=incident,
             new_status=new_status,
             metric_value=metric_value,
+        )
+
+        success = send_incident_alert_notification(
+            notification_context=notification_context,
+            alert_context=alert_context,
+            metric_issue_context=metric_issue_context,
+            organization=incident.organization,
             notification_uuid=notification_uuid,
         )
         if success:

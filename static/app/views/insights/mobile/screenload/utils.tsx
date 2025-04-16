@@ -1,6 +1,6 @@
+import type {Theme} from '@emotion/react';
 import Color from 'color';
 
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -26,11 +26,7 @@ export function transformReleaseEvents({
   yAxes: YAxis[];
   primaryRelease?: string;
   secondaryRelease?: string;
-}): {
-  [yAxisName: string]: {
-    [releaseVersion: string]: Series;
-  };
-} {
+}): Record<string, Record<string, Series>> {
   const topTransactionsIndex = Object.fromEntries(
     topTransactions.map((e: any, i: any) => [e, i])
   );
@@ -81,16 +77,14 @@ export function transformDeviceClassEvents({
   primaryRelease,
   secondaryRelease,
   data,
+  theme,
 }: {
+  theme: Theme;
   yAxes: YAxis[];
   data?: TableData;
   primaryRelease?: string;
   secondaryRelease?: string;
-}): {
-  [yAxisName: string]: {
-    [releaseVersion: string]: Series;
-  };
-} {
+}): Record<string, Record<string, Series>> {
   const transformedData = yAxes.reduce(
     (acc, yAxis) => ({...acc, [YAXIS_COLUMNS[yAxis]]: {}}),
     {}
@@ -134,7 +128,7 @@ export function transformDeviceClassEvents({
             name: deviceClass,
             value: row[YAXIS_COLUMNS[val]],
             itemStyle: {
-              color: isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1],
+              color: isPrimary ? theme.chart.colors[3][0] : theme.chart.colors[3][1],
             },
           } as SeriesDataUnit;
         }

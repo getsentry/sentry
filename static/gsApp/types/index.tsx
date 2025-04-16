@@ -87,6 +87,7 @@ export type Plan = {
   availableCategories: string[];
   basePrice: number;
   billingInterval: 'monthly' | 'annual';
+  budgetTerm: 'pay-as-you-go' | 'on-demand';
   /**
    * Data categories on the plan (errors, transactions, etc.)
    */
@@ -95,26 +96,25 @@ export type Plan = {
   contractInterval: 'monthly' | 'annual';
   description: string;
   features: string[];
-  hasOnDemandModes: boolean;
 
+  hasOnDemandModes: boolean;
   id: string;
+  isTestPlan: boolean;
   maxMembers: number | null;
   name: string;
   onDemandCategories: string[];
   onDemandEventPrice: number;
-  planCategories: {
-    [categoryKey in DataCategories]?: EventBucket[];
-  };
+  planCategories: Partial<Record<DataCategories, EventBucket[]>>;
   price: number;
-  reservedMinimum: number;
 
+  reservedMinimum: number;
   retentionDays: number;
   totalPrice: number;
   trialPlan: string | null;
   userSelectable: boolean;
-  categoryDisplayNames?: {
-    [categoryKey in DataCategories]?: {plural: string; singular: string};
-  };
+  categoryDisplayNames?: Partial<
+    Record<DataCategories, {plural: string; singular: string}>
+  >;
   checkoutType?: CheckoutType;
 };
 
@@ -125,7 +125,7 @@ type PendingChanges = {
   customPricePcss: number | null;
   customPriceTransactions: number | null;
   // TODO:categories remove customPrice{Categories}
-  customPrices: {[categoryKey in DataCategories]?: number | null};
+  customPrices: Partial<Record<DataCategories, number | null>>;
   effectiveDate: string;
   onDemandBudgets: PendingOnDemandBudgets | null;
   onDemandEffectiveDate: string;
@@ -134,10 +134,10 @@ type PendingChanges = {
   planDetails: Plan;
   planName: string;
   // TODO:categories remove reserved{Categories}
-  reserved: {[categoryKey in DataCategories]?: number | null};
+  reserved: Partial<Record<DataCategories, number | null>>;
   reservedAttachments: number | null;
   reservedBudgets: PendingReservedBudget[];
-  reservedCpe: {[categoryKey in DataCategories]?: number | null};
+  reservedCpe: Partial<Record<DataCategories, number | null>>;
   reservedErrors: number | null;
   reservedEvents: number;
   reservedTransactions: number | null;
@@ -184,7 +184,7 @@ export enum OnDemandBudgetMode {
   PER_CATEGORY = 'per_category',
 }
 
-type SharedOnDemandBudget = {
+export type SharedOnDemandBudget = {
   budgetMode: OnDemandBudgetMode.SHARED;
   sharedMaxBudget: number;
 };
@@ -197,11 +197,13 @@ export type PerCategoryOnDemandBudget = {
   attachmentsBudget: number;
   budgetMode: OnDemandBudgetMode.PER_CATEGORY;
   // TODO:categories remove {categories}Budget
-  budgets: {[categoryKey in DataCategories]?: number};
+  budgets: Partial<Record<DataCategories, number>>;
   errorsBudget: number;
   replaysBudget: number;
   transactionsBudget: number;
   monitorSeatsBudget?: number;
+  profileDurationBudget?: number;
+  profileDurationUIBudget?: number;
   uptimeBudget?: number;
 };
 
@@ -210,7 +212,7 @@ type PerCategoryOnDemandBudgetWithSpends = PerCategoryOnDemandBudget & {
   errorSpendUsed: number;
   transactionSpendUsed: number;
   // TODO:categories remove {categories}SpendUsed
-  usedSpends: {[categoryKey in DataCategories]?: number};
+  usedSpends: Partial<Record<DataCategories, number>>;
 };
 
 export type OnDemandBudgets = SharedOnDemandBudget | PerCategoryOnDemandBudget;
@@ -254,9 +256,7 @@ export type Subscription = {
   /**
    * Current history per data category
    */
-  categories: {
-    [categoryKey in DataCategories]?: BillingMetricHistory;
-  };
+  categories: Partial<Record<DataCategories, BillingMetricHistory>>;
   contractInterval: 'monthly' | 'annual';
 
   contractPeriodEnd: string;
@@ -461,9 +461,7 @@ export type Feature = {
 export type BillingConfig = {
   annualDiscount: number;
   defaultPlan: string;
-  defaultReserved: {
-    [categoryKey in DataCategories]?: number;
-  };
+  defaultReserved: Partial<Record<DataCategories, number>>;
   featureList: Record<string, Feature>;
   freePlan: string;
   id: string;
@@ -506,9 +504,9 @@ export type CustomerUsage = {
   onDemandMaxSpend: number;
   periodEnd: string;
   periodStart: string;
-  stats: {[key: string]: BillingStats};
-  totals: {[key: string]: BillingStatTotal};
-  eventTotals?: {[key: string]: {[key: string]: BillingStatTotal}};
+  stats: Record<string, BillingStats>;
+  totals: Record<string, BillingStatTotal>;
+  eventTotals?: Record<string, Record<string, BillingStatTotal>>;
 };
 
 type StructuredAddress = {
@@ -638,13 +636,13 @@ export type BillingMetricHistory = {
   customPrice: number | null;
   free: number;
   onDemandBudget: number;
-  onDemandCpe: number | null;
   onDemandQuantity: number;
   onDemandSpendUsed: number;
   /**
    * List order for billing metrics
    */
   order: number;
+  paygCpe: number | null;
   prepaid: number;
   reserved: number | null;
   sentUsageWarning: boolean;
@@ -655,7 +653,7 @@ export type BillingMetricHistory = {
 };
 
 export type BillingHistory = {
-  categories: {[key: string]: BillingMetricHistory};
+  categories: Record<string, BillingMetricHistory>;
   hadCustomDynamicSampling: boolean;
   hasReservedBudgets: boolean;
   id: string;
@@ -672,13 +670,9 @@ export type BillingHistory = {
   periodStart: string;
   plan: string;
   planName: string;
-  reserved: {
-    [categoryKey in DataCategories]?: number | null;
-  };
+  reserved: Partial<Record<DataCategories, number | null>>;
   reservedBudgetCategories: string[];
-  usage: {
-    [categoryKey in DataCategories]?: number;
-  };
+  usage: Partial<Record<DataCategories, number>>;
   planDetails?: Plan;
   reservedBudgets?: ReservedBudget[];
 };
@@ -708,6 +702,7 @@ export enum CreditType {
   SPAN = 'span',
   SPAN_INDEXED = 'spanIndexed',
   PROFILE_DURATION = 'profileDuration',
+  PROFILE_DURATION_UI = 'profileDurationUI',
   ATTACHMENT = 'attachment',
   REPLAY = 'replay',
   MONITOR_SEAT = 'monitorSeat',
@@ -741,6 +736,7 @@ interface RecurringEventCredit extends BaseRecurringCredit {
     | CreditType.TRANSACTION
     | CreditType.SPAN
     | CreditType.PROFILE_DURATION
+    | CreditType.PROFILE_DURATION_UI
     | CreditType.ATTACHMENT
     | CreditType.REPLAY;
 }
@@ -777,18 +773,19 @@ export type NextPlanInfo = {
   errorCreditsMonths: number;
   id: string;
   name: string;
-  reserved: {
-    [categoryKey in DataCategories]?: number;
-  };
+  reserved: Partial<Record<DataCategories, number>>;
   reservedAttachments: number;
   reservedErrors: number;
   totalPrice: number;
-  categoryCredits?: {
-    [categoryKey in DataCategories]?: {
-      credits: number;
-      months: number;
-    };
-  };
+  categoryCredits?: Partial<
+    Record<
+      DataCategories,
+      {
+        credits: number;
+        months: number;
+      }
+    >
+  >;
   reservedTransactions?: number;
 };
 
@@ -827,6 +824,14 @@ export enum PlanTier {
    * Features and data volumes are tightly coupled.
    */
   MM1 = 'mm1',
+  /**
+   * No specified tier
+   */
+  ALL = 'all',
+  /**
+   * Test plans
+   */
+  TEST = 'test',
 }
 
 // Response from /organizations/:orgSlug/payments/:invoiceId/new/
@@ -864,14 +869,12 @@ export interface MonitorCountResponse {
 }
 
 export type PendingReservedBudget = {
-  categories: {[categoryKey in DataCategories]?: boolean | null};
+  categories: Partial<Record<DataCategories, boolean | null>>;
   reservedBudget: number;
 };
 
 export type ReservedBudget = {
-  categories: {
-    [categoryKey in DataCategories]?: ReservedBudgetMetricHistory;
-  };
+  categories: Partial<Record<DataCategories, ReservedBudgetMetricHistory>>;
   freeBudget: number;
   id: string;
   percentUsed: number;

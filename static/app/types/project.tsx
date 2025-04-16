@@ -79,6 +79,9 @@ export type Project = {
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
+  performanceIssueCreationRate?: number;
+  performanceIssueCreationThroughPlatform?: boolean;
+  performanceIssueSendToPlatform?: boolean;
   securityToken?: string;
   securityTokenHeader?: string;
   sessionStats?: {
@@ -165,6 +168,7 @@ export type PlatformKey =
   | 'c'
   | 'capacitor'
   | 'cfml'
+  | 'clojure'
   | 'cocoa'
   | 'cocoa-objc'
   | 'cocoa-swift'
@@ -298,6 +302,7 @@ export type PlatformKey =
   | 'ruby-rack'
   | 'ruby-rails'
   | 'rust'
+  | 'scala'
   | 'swift'
   | 'switt'
   | 'unity'

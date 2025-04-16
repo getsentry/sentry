@@ -5,26 +5,25 @@ import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import ButtonBar from 'sentry/components/buttonBar';
 import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import GroupList from 'sentry/components/issues/groupList';
 import Pagination from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-
-import type {ReleaseBounds} from '../../utils';
-import {getReleaseParams} from '../../utils';
-import {EmptyState} from '../commitsAndFiles/emptyState';
+import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
+import type {ReleaseBounds} from 'sentry/views/releases/utils';
+import {getReleaseParams} from 'sentry/views/releases/utils';
 
 enum IssuesType {
   NEW = 'new',
@@ -369,7 +368,13 @@ class ReleaseIssues extends Component<Props, State> {
     return (
       <Fragment>
         <ControlsWrapper>
-          <GuideAnchor target="release_states">
+          <DemoTourElement
+            id={DemoTourStep.RELEASES_STATES}
+            title={t('New and regressed issues')}
+            description={t(
+              `Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.`
+            )}
+          >
             <SegmentedControl
               aria-label={t('Issue type')}
               size="xs"
@@ -388,7 +393,7 @@ class ReleaseIssues extends Component<Props, State> {
                 </SegmentedControl.Item>
               ))}
             </SegmentedControl>
-          </GuideAnchor>
+          </DemoTourElement>
 
           <OpenInButtonBar gap={1}>
             <LinkButton to={this.getIssuesUrl()} size="xs">
@@ -406,7 +411,6 @@ class ReleaseIssues extends Component<Props, State> {
             canSelectGroups={false}
             queryFilterDescription={queryFilterDescription}
             withChart={withChart}
-            narrowGroups
             renderEmptyMessage={this.renderEmptyMessage}
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}

@@ -10,7 +10,6 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
@@ -19,9 +18,11 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import type {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useLocation} from 'sentry/utils/useLocation';
-
-import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
-import type {ViewProps} from '../types';
+import {
+  replaceSeriesName,
+  transformEventStatsSmoothed,
+} from 'sentry/views/performance/trends/utils';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 import {getMaxOfSeries, getVitalChartDefinitions, getVitalChartTitle} from './utils';
 
@@ -120,7 +121,7 @@ function VitalChartMetrics({
               })),
             })) as Series[] | undefined;
 
-            const colors = (data && getChartColorPalette(data.length - 2)) || [];
+            const colors = (data && theme.chart.getColorPalette(data.length - 2)) || [];
             const {smoothedResults} = transformEventStatsSmoothed(data);
 
             const smoothedSeries = smoothedResults

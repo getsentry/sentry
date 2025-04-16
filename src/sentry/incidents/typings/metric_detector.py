@@ -13,7 +13,7 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.models.group import Group, GroupStatus
+from sentry.models.group import Group, GroupStatus, get_open_periods_for_group
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action, Detector
@@ -114,6 +114,7 @@ class MetricIssueContext:
     new_status: IncidentStatus
     subscription: QuerySubscription | None
     metric_value: float | None
+    group: Group | None
 
     @classmethod
     def _get_new_status(cls, group: Group, occurrence: IssueOccurrence) -> IncidentStatus:
@@ -162,6 +163,7 @@ class MetricIssueContext:
             subscription=cls._get_subscription(occurrence),
             new_status=cls._get_new_status(group, occurrence),
             metric_value=cls._get_metric_value(occurrence),
+            group=group,
         )
 
     @classmethod
@@ -178,6 +180,7 @@ class MetricIssueContext:
             subscription=incident.subscription,
             new_status=new_status,
             metric_value=metric_value,
+            group=None,
         )
 
 
@@ -196,4 +199,14 @@ class OpenPeriodContext:
         return cls(
             date_started=incident.date_added,
             date_closed=incident.date_closed,
+        )
+
+    @classmethod
+    def from_group(cls, group: Group) -> OpenPeriodContext:
+        open_periods = get_open_periods_for_group(group, limit=1)
+        if len(open_periods) == 0:
+            raise ValueError("No open periods found for group")
+        return cls(
+            date_started=open_periods[0].start,
+            date_closed=open_periods[0].end,
         )

@@ -1,9 +1,8 @@
 import type {AccuracyStats, Confidence} from 'sentry/types/organization';
 import type {DataUnit} from 'sentry/utils/discover/fields';
+import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
-import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
-
-export type TimeSeriesValueType =
+type AttributeValueType =
   | 'number'
   | 'integer'
   | 'date'
@@ -14,18 +13,18 @@ export type TimeSeriesValueType =
   | 'string'
   | 'size'
   | 'rate'
+  | 'score'
   | null;
 
-export type TimeSeriesValueUnit = DataUnit | null;
+type AttributeValueUnit = DataUnit | null;
 
-export type Meta = {
+export type TimeSeriesValueType = AttributeValueType;
+export type TimeSeriesValueUnit = AttributeValueUnit;
+export type TimeSeriesMeta = {
   type: TimeSeriesValueType;
   unit: TimeSeriesValueUnit;
   isOther?: boolean;
 };
-
-type TableRow = Record<string, number | string | undefined>;
-export type TableData = TableRow[];
 
 export type TimeSeriesItem = {
   timestamp: string;
@@ -36,16 +35,36 @@ export type TimeSeriesItem = {
 export type TimeSeries = {
   data: TimeSeriesItem[];
   field: string;
-  meta: Meta;
+  meta: TimeSeriesMeta;
   confidence?: Confidence;
   sampleCount?: AccuracyStats<number>;
   samplingRate?: AccuracyStats<number | null>;
 };
 
+export type TabularValueType = AttributeValueType;
+export type TabularValueUnit = AttributeValueUnit;
+export type TabularMeta<TFields extends string = string> = {
+  fields: Record<TFields, TabularValueType>;
+  units: Record<TFields, TabularValueUnit>;
+};
+
+export type TabularRow<TFields extends string = string> = Record<
+  TFields,
+  number | string | string[] | null
+>;
+
+export type TabularData<TFields extends string = string> = {
+  data: Array<TabularRow<TFields>>;
+  meta: TabularMeta<TFields>;
+};
+
 export type ErrorProp = Error | string;
+export interface ErrorPropWithResponseJSON extends Error {
+  responseJSON?: {detail: string};
+}
 
 export interface StateProps {
-  error?: ErrorProp;
+  error?: ErrorProp | ErrorPropWithResponseJSON;
   isLoading?: boolean;
   onRetry?: () => void;
 }
@@ -57,4 +76,4 @@ export type Release = {
   version: string;
 };
 
-export type LegendSelection = {[key: string]: boolean};
+export type LegendSelection = Record<string, boolean>;

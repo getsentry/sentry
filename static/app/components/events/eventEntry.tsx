@@ -134,12 +134,7 @@ function EventEntryContent({
           />
         );
       }
-      return (
-        <Spans
-          event={event as EventTransaction}
-          organization={organization as Organization}
-        />
-      );
+      return <Spans event={event as EventTransaction} />;
 
     // this should not happen
     default:

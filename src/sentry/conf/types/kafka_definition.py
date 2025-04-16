@@ -43,6 +43,9 @@ class Topic(Enum):
     INGEST_METRICS_DLQ = "ingest-metrics-dlq"
     SNUBA_METRICS = "snuba-metrics"
     PROFILES = "profiles"
+    PROFILES_CALL_TREE = "profiles-call-tree"
+    PROFILE_CHUNKS = "snuba-profile-chunks"
+    PROCESSED_PROFILES = "processed-profiles"
     INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
     INGEST_GENERIC_METRICS_DLQ = "ingest-generic-metrics-dlq"
     SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
@@ -55,7 +58,6 @@ class Topic(Enum):
     MONITORS_INCIDENT_OCCURRENCES = "monitors-incident-occurrences"
     UPTIME_RESULTS = "uptime-results"
     SNUBA_UPTIME_RESULTS = "snuba-uptime-results"
-    UPTIME_CONFIGS = "uptime-configs"
     EVENTSTREAM_GENERIC = "generic-events"
     GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
     GROUP_ATTRIBUTES = "group-attributes"
@@ -64,7 +66,7 @@ class Topic(Enum):
     SNUBA_OURLOGS = "snuba-ourlogs"
     BUFFERED_SEGMENTS = "buffered-segments"
     BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
-    TASK_WORKER = "task-worker"
+    TASKWORKER = "taskworker"
 
 
 class ConsumerDefinition(TypedDict, total=False):

@@ -83,6 +83,7 @@ export enum DataCategory {
   SPANS = 'spans',
   SPANS_INDEXED = 'spansIndexed',
   PROFILE_CHUNKS = 'profileChunks',
+  PROFILE_CHUNKS_UI = 'profileChunksUI',
   UPTIME = 'uptime',
 }
 
@@ -107,6 +108,9 @@ export enum DataCategoryExact {
   SPAN = 'span',
   SPAN_INDEXED = 'spanIndexed',
   UPTIME = 'uptime',
+
+  LOG_ITEM = 'logItem',
+  LOG_BYTE = 'logByte',
 }
 
 export interface DataCategoryInfo {
@@ -118,6 +122,7 @@ export interface DataCategoryInfo {
   productName: string;
   titleName: string;
   uid: number;
+  snakeCasePlural?: string;
 }
 
 export type EventType = 'error' | 'transaction' | 'attachment';

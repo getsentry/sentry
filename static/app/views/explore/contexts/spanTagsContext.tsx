@@ -9,9 +9,11 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
+import {
+  SENTRY_SPAN_NUMBER_TAGS,
+  SENTRY_SPAN_STRING_TAGS,
+} from 'sentry/views/explore/constants';
 import {useSpanFieldCustomTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-
-import {SENTRY_SPAN_NUMBER_TAGS, SENTRY_SPAN_STRING_TAGS} from '../constants';
 
 type TypedSpanTags = {number: TagCollection; string: TagCollection};
 
@@ -80,9 +82,7 @@ export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderP
     };
   }, [allNumberTags, allStringTags, numberTagsLoading, stringTagsLoading]);
 
-  return (
-    <SpanTagsContext.Provider value={tagsResult}>{children}</SpanTagsContext.Provider>
-  );
+  return <SpanTagsContext value={tagsResult}>{children}</SpanTagsContext>;
 }
 
 export function useSpanTags(type?: 'number' | 'string') {

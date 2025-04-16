@@ -20,10 +20,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {useParams} from 'sentry/utils/useParams';
 
-interface OrganizationLoaderContextProps {
-  bootstrapIsPending: boolean;
-}
-
 interface Props {
   children: ReactNode;
 }
@@ -32,13 +28,6 @@ interface Props {
  * Holds the current organization if loaded.
  */
 export const OrganizationContext = createContext<Organization | null>(null);
-
-/**
- * Holds a function to load the organization.
- */
-export const OrganizationLoaderContext = createContext<OrganizationLoaderContextProps>({
-  bootstrapIsPending: false,
-});
 
 /**
  * Record if the organization was bootstrapped in the last 10 minutes
@@ -166,11 +155,5 @@ export function OrganizationContextProvider({children}: Props) {
     }
   }, [orgSlug]);
 
-  return (
-    <OrganizationLoaderContext.Provider value={{bootstrapIsPending}}>
-      <OrganizationContext.Provider value={organization}>
-        {children}
-      </OrganizationContext.Provider>
-    </OrganizationLoaderContext.Provider>
-  );
+  return <OrganizationContext value={organization}>{children}</OrganizationContext>;
 }

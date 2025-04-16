@@ -29,7 +29,7 @@ import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage(app,span.duration)' as const,
+  field: 'time_spent_percentage(span.duration)' as const,
   kind: 'desc' as const,
 };
 
@@ -46,9 +46,8 @@ function QueuesLandingPage() {
   });
 
   const sort =
-    decodeSorts(query[QueryParameterNames.DESTINATIONS_SORT])
-      .filter(isAValidSort)
-      .at(0) ?? DEFAULT_SORT;
+    decodeSorts(query[QueryParameterNames.DESTINATIONS_SORT]).find(isAValidSort) ??
+    DEFAULT_SORT;
 
   const handleSearch = (newDestination: string) => {
     trackAnalytics('insight.general.search', {

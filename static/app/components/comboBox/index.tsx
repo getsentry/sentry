@@ -3,26 +3,26 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useComboBox} from '@react-aria/combobox';
+import {mergeRefs} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import {type ComboBoxStateOptions, useComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 import omit from 'lodash/omit';
 
-import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
-import {ListBox} from 'sentry/components/compactSelect/listBox';
+import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
+import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import {
   getDisabledOptions,
   getEscapedKey,
   getHiddenOptions,
   getItemsWithKeys,
-} from 'sentry/components/compactSelect/utils';
+} from 'sentry/components/core/compactSelect/utils';
 import {Input} from 'sentry/components/core/input';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 import useOverlay from 'sentry/utils/useOverlay';
 
@@ -178,7 +178,7 @@ function ComboBox<Value extends string>({
         placeholder={placeholder}
         onMouseUp={handleInputMouseUp}
         onFocus={handleInputFocus}
-        ref={mergeRefs([inputRef, triggerProps.ref])}
+        ref={mergeRefs(inputRef, triggerProps.ref)}
         size={size}
       />
       <StyledPositionWrapper
@@ -480,8 +480,6 @@ const MenuTitle = styled('span')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
     margin: 0 ${space(0.5)} 0 ${space(1)};
-    height: 12px;
-    width: 12px;
   }
 `;
 

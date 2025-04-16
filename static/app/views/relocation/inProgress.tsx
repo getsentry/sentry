@@ -33,5 +33,3 @@ export function InProgress(props: StepProps) {
     </Wrapper>
   );
 }
-
-export default InProgress;
