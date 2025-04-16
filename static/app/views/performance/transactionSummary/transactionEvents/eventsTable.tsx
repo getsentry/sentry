@@ -138,7 +138,7 @@ function EventsTable({
   const [widths, setWidths] = useState<number[]>([]);
   const [lastFetchedCursor, setLastFetchedCursor] = useState('');
   const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
-  const [hasMinidumps, setHasMinidumps] = useState<boolean>(false);
+  const [hasMinidumps, setHasMinidumps] = useState(false);
 
   const replayLinkGenerator = useMemo(() => generateReplayLink(routes), [routes]);
 
