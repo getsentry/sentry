@@ -56,6 +56,7 @@
   {% endscript %}
 
   {% include "sentry/partial/preload-data.html" %}
+
   {% block scripts %}
   {% block scripts_main_entrypoint %}
     {% frontend_app_asset_url "sentry" "entrypoints/app.js" as asset_url %}
