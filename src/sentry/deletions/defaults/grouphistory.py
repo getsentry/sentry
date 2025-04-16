@@ -24,10 +24,11 @@ class GroupHistoryDeletionTask(ModelDeletionTask[GroupHistory]):
             # Delete history records for a single group in chunks of 10000
             queryset = self.model.objects.filter(group_id=group_id)
             while True:
-                # Get the first 10000 records
-                chunk = queryset.order_by("id")[:10000]
-                if not chunk.exists():
+                # Get IDs for the first 10000 records
+                chunk_ids = list(queryset.order_by("id").values_list("id", flat=True)[:10000])
+                if not chunk_ids:
                     break
-                chunk.delete()
+                # Delete records for these IDs
+                self.model.objects.filter(id__in=chunk_ids).delete()
 
         return False
