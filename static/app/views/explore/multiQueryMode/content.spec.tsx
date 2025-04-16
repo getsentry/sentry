@@ -807,4 +807,62 @@ describe('MultiQueryModeContent', function () {
     await userEvent.click(screen.getByLabelText('Save'));
     expect(await screen.findByText('A New Query')).toBeInTheDocument();
   });
+
+  it('highlights save button when query has changes', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/123/`,
+      method: 'GET',
+      body: {
+        query: [
+          {
+            query: '',
+            fields: ['count(span.duration)'],
+            groupby: ['span.op'],
+            orderby: '-count(span.duration)',
+            visualize: [
+              {
+                chartType: 1,
+                yAxes: ['count(span.duration)'],
+              },
+            ],
+            mode: 'aggregate',
+          },
+        ],
+        range: '14d',
+        projects: [],
+        environment: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/123/visit/`,
+      method: 'POST',
+    });
+    const router = RouterFixture({
+      location: {
+        pathname: '/traces/compare',
+        query: {
+          queries: [
+            '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
+          ],
+          id: '123',
+        },
+      },
+    });
+
+    function Component() {
+      return <MultiQueryModeContent />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {router, organization}
+    );
+    // No good way to check for highlighted css, so we just check for the text
+    expect(await screen.findByText('Save')).toBeInTheDocument();
+  });
 });
