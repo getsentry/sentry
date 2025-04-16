@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -19,13 +19,18 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {encodeSort} from 'sentry/utils/discover/eventView';
+import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveMultiQuery} from 'sentry/views/explore/hooks/useSaveMultiQuery';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
@@ -40,6 +45,7 @@ export const MAX_QUERIES_ALLOWED = 5;
 function Content() {
   const location = useLocation();
   const organization = useOrganization();
+  const pageFilters = usePageFilters();
   const {saveQuery, updateQuery} = useSaveMultiQuery();
   const {defaultPeriod, maxPickableDays, relativeOptions} =
     limitMaxPickableDays(organization);
@@ -54,6 +60,52 @@ function Content() {
       visitQuery(id);
     }
   }, [id, visitQuery]);
+
+  const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
+
+  const shouldHighlightSaveButton = useMemo(() => {
+    if (isLoadingSavedQuery || savedQuery === undefined) {
+      return false;
+    }
+    return queries.some(({sortBys, query, groupBys, fields, yAxes, chartType}, index) => {
+      const singleQuery = savedQuery?.query[index];
+      const locationSortByString = sortBys[0] ? encodeSort(sortBys[0]) : undefined;
+
+      // Compares editable fields from saved query with location params to check for changes
+      const hasChangesArray = [
+        !valueIsEqual(query, singleQuery?.query),
+        !valueIsEqual(groupBys, singleQuery?.groupby),
+        !valueIsEqual(locationSortByString, singleQuery?.orderby),
+        !valueIsEqual(fields, singleQuery?.fields),
+        !valueIsEqual(
+          yAxes.map(yAxis => ({yAxes: [yAxis], chartType})),
+          singleQuery?.visualize,
+          true
+        ),
+        !valueIsEqual(savedQuery.projects, pageFilters.selection.projects),
+        !valueIsEqual(savedQuery.environment, pageFilters.selection.environments),
+        (defined(savedQuery.start) ? new Date(savedQuery.start).getTime() : null) !==
+          (pageFilters.selection.datetime.start
+            ? new Date(pageFilters.selection.datetime.start).getTime()
+            : null),
+        (defined(savedQuery.end) ? new Date(savedQuery.end).getTime() : null) !==
+          (pageFilters.selection.datetime.end
+            ? new Date(pageFilters.selection.datetime.end).getTime()
+            : null),
+        (savedQuery.range ?? null) !== pageFilters.selection.datetime.period,
+      ];
+      return hasChangesArray.some(Boolean);
+    });
+  }, [
+    isLoadingSavedQuery,
+    savedQuery,
+    queries,
+    pageFilters.selection.projects,
+    pageFilters.selection.environments,
+    pageFilters.selection.datetime.start,
+    pageFilters.selection.datetime.end,
+    pageFilters.selection.datetime.period,
+  ]);
 
   return (
     <Layout.Body>
@@ -71,16 +123,6 @@ function Content() {
           <Feature features={['performance-saved-queries']}>
             <DropdownMenu
               items={[
-                {
-                  key: 'save-query',
-                  label: <span>{t('A New Query')}</span>,
-                  onAction: () => {
-                    openSaveQueryModal({
-                      organization,
-                      saveQuery,
-                    });
-                  },
-                },
                 ...(id
                   ? [
                       {
@@ -104,10 +146,21 @@ function Content() {
                       },
                     ]
                   : []),
+                {
+                  key: 'save-query',
+                  label: <span>{t('A New Query')}</span>,
+                  onAction: () => {
+                    openSaveQueryModal({
+                      organization,
+                      saveQuery,
+                    });
+                  },
+                },
               ]}
               trigger={triggerProps => (
                 <Button
                   {...triggerProps}
+                  priority={shouldHighlightSaveButton ? 'primary' : 'default'}
                   aria-label={t('Save')}
                   onClick={e => {
                     e.stopPropagation();
@@ -116,7 +169,7 @@ function Content() {
                     triggerProps.onClick?.(e);
                   }}
                 >
-                  {t('Save as...')}
+                  {shouldHighlightSaveButton ? `${t('Save')}` : `${t('Save as')}\u2026`}
                 </Button>
               )}
             />
