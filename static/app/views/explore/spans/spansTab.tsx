@@ -26,6 +26,7 @@ import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
 } from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreCharts} from 'sentry/views/explore/charts';
@@ -36,15 +37,14 @@ import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUti
 import {
   PageParamsProvider,
   useExploreDataset,
-  useExploreFields,
   useExploreId,
   useExploreMode,
   useExploreQuery,
   useExploreVisualizes,
   useSetExplorePageParams,
-  useSetExploreQuery,
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
+import {defaultFields} from 'sentry/views/explore/contexts/pageParamsContext/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   SpanTagsProvider,
@@ -94,8 +94,6 @@ export function SpansTabContentImpl({
   const {tags: stringTags, isLoading: stringTagsLoading} = useSpanTags('string');
 
   const query = useExploreQuery();
-  const setQuery = useSetExploreQuery();
-  const fields = useExploreFields();
   const setExplorePageParams = useSetExplorePageParams();
 
   const id = useExploreId();
@@ -205,7 +203,15 @@ export function SpansTabContentImpl({
   const eapSpanSearchQueryBuilderProps = {
     projects: selection.projects,
     initialQuery: query,
-    onSearch: setQuery,
+    onSearch: (newQuery: string) => {
+      const newFields = new MutableSearch(newQuery)
+        .getFilterKeys()
+        .map(key => (key.startsWith('!') ? key.slice(1) : key));
+      setExplorePageParams({
+        query: newQuery,
+        fields: [...new Set([...defaultFields(), ...newFields])],
+      });
+    },
     searchSource: 'explore',
     getFilterTokenWarning:
       mode === Mode.SAMPLES
@@ -266,8 +272,6 @@ export function SpansTabContentImpl({
                 isLoading={numberTagsLoading || stringTagsLoading}
                 exploreQuery={query}
                 source={SchemaHintsSources.EXPLORE}
-                tableColumns={fields}
-                setPageParams={setExplorePageParams}
               />
             </SchemaHintsSection>
           </Feature>
