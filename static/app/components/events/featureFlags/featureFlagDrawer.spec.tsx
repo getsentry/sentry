@@ -111,6 +111,7 @@ describe('FeatureFlagDrawer', function () {
     await userEvent.click(
       within(drawerScreen).getByRole('option', {name: 'Oldest First'})
     );
+    await userEvent.click(sortControl); // close dropdown
 
     // expect webVitalsFlag to be preceding enableReplay
     expect(
@@ -123,8 +124,8 @@ describe('FeatureFlagDrawer', function () {
     await userEvent.click(
       within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
     );
-    await userEvent.click(sortControl);
     await userEvent.click(within(drawerScreen).getByRole('option', {name: 'Z-A'}));
+    await userEvent.click(sortControl); // close dropdown
 
     // enableReplay follows webVitalsFlag in Z-A sort
     expect(
@@ -157,7 +158,6 @@ describe('FeatureFlagDrawer', function () {
     await userEvent.click(
       within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
     );
-    await userEvent.click(control);
     expect(
       within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
     ).toHaveAttribute('aria-selected', 'true');
@@ -167,7 +167,7 @@ describe('FeatureFlagDrawer', function () {
     );
   });
 
-  it('renders a sort dropdown which disables the appropriate options', async function () {
+  it('renders a sort dropdown which hides the invalid options', async function () {
     const drawerScreen = await renderFlagDrawer();
 
     const control = within(drawerScreen).getByRole('button', {name: 'Sort Flags'});
@@ -176,31 +176,27 @@ describe('FeatureFlagDrawer', function () {
     await userEvent.click(
       within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
     );
-    await userEvent.click(control);
     expect(
       within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
     ).toHaveAttribute('aria-selected', 'true');
     expect(
-      within(drawerScreen).getByRole('option', {name: 'Newest First'})
-    ).toHaveAttribute('aria-disabled', 'true');
+      within(drawerScreen).queryByRole('option', {name: 'Newest First'})
+    ).not.toBeInTheDocument();
     expect(
-      within(drawerScreen).getByRole('option', {name: 'Oldest First'})
-    ).toHaveAttribute('aria-disabled', 'true');
+      within(drawerScreen).queryByRole('option', {name: 'Oldest First'})
+    ).not.toBeInTheDocument();
 
     await userEvent.click(
       within(drawerScreen).getByRole('option', {name: 'Evaluation Order'})
     );
-    await userEvent.click(control);
     expect(
       within(drawerScreen).getByRole('option', {name: 'Evaluation Order'})
     ).toHaveAttribute('aria-selected', 'true');
-    expect(within(drawerScreen).getByRole('option', {name: 'Z-A'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
-    expect(within(drawerScreen).getByRole('option', {name: 'A-Z'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    expect(
+      within(drawerScreen).queryByRole('option', {name: 'Z-A'})
+    ).not.toBeInTheDocument();
+    expect(
+      within(drawerScreen).queryByRole('option', {name: 'A-Z'})
+    ).not.toBeInTheDocument();
   });
 });
