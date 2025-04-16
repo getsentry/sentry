@@ -79,17 +79,17 @@ function getChonkToastIconContainerTheme(
     case 'success':
       return {
         background: theme.colors.chonk.green400,
-        borderRight: `1px solid ${theme.colors.border.success}`,
+        borderRight: `1px solid ${theme.colors.chonk.green100}`,
       };
     case 'error':
       return {
         background: theme.colors.chonk.red400,
-        borderRight: `1px solid ${theme.colors.border.danger}`,
+        borderRight: `1px solid ${theme.colors.chonk.blue100}`,
       };
     default:
       return {
         background: theme.colors.background.primary,
-        borderRight: `1px solid ${theme.colors.border.accent}`,
+        borderRight: `1px solid ${theme.colors.chonk.blue100}`,
       };
   }
 }
@@ -115,4 +115,13 @@ export const ChonkToastLoadingIndicator = chonkStyled(LoadingIndicator)`
 `;
 
 export const ChonkToastUndoButton = chonkStyled(Button)`
+`;
+
+export const ChonkToastUndoButtonContainer = chonkStyled('div')<{
+  type: Indicator['type'];
+}>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 ${p => p.theme.space.lg};
 `;
