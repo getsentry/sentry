@@ -391,10 +391,11 @@ def migrate_resolve_threshold_data_conditions(
         workflow=alert_rule_workflow.workflow,
     )
 
+    # TODO: add resolution actions
     action_filter = DataCondition.objects.create(
-        comparison=DetectorPriorityLevel.OK,
+        comparison=None,
         condition_result=True,
-        type=Condition.ISSUE_PRIORITY_EQUALS,
+        type=Condition.ISSUE_PRIORITY_DEESCALATING,
         condition_group=data_condition_group,
     )
     return detector_trigger, action_filter
