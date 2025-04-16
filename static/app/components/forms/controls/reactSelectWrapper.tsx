@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-restricted-imports
+/* eslint-disable no-restricted-imports */
 import ReactSelect, {components} from 'react-select';
 
 // This file is a thin wrapper around react-select that removes defaultProps from functional components
