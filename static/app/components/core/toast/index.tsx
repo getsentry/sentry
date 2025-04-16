@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
@@ -20,6 +21,7 @@ import {
   ChonkToastLoadingIndicator,
   ChonkToastMessage,
   ChonkToastUndoButton,
+  ChonkToastUndoButtonContainer,
 } from './index.chonk';
 
 interface ToastProps {
@@ -28,6 +30,7 @@ interface ToastProps {
 }
 
 export function Toast({indicator, onDismiss, ...props}: ToastProps) {
+  const theme = useTheme();
   // The types are allowing us to render an undo toast without an undo function, which defeats the purpose
   // of an undo toast. Log these to Sentry so we can fix the issue.
   useEffect(() => {
@@ -60,13 +63,16 @@ export function Toast({indicator, onDismiss, ...props}: ToastProps) {
         <TextOverflow>{indicator.message}</TextOverflow>
       </ToastMessage>
       {typeof indicator.options?.undo === 'function' ? (
-        <ToastUndoButton
-          priority="link"
-          onClick={indicator.options.undo}
-          icon={<IconRefresh size="xs" />}
-        >
-          {t('Undo')}
-        </ToastUndoButton>
+        <ToastUndoButtonContainer type={indicator.type}>
+          <ToastUndoButton
+            priority={theme.isChonk ? 'primary' : 'link'}
+            size={theme.isChonk ? 'xs' : undefined}
+            onClick={indicator.options.undo}
+            icon={<IconRefresh size="xs" />}
+          >
+            {t('Undo')}
+          </ToastUndoButton>
+        </ToastUndoButtonContainer>
       ) : null}
     </ToastContainer>
   );
@@ -157,6 +163,9 @@ const ToastMessage = withChonk(
 
 const ToastUndoButton = withChonk(
   styled(Button)`
+    display: flex;
+    align-items: center;
+    gap: ${space(0.5)};
     color: ${p => p.theme.inverted.linkColor};
     margin-left: ${space(2)};
 
@@ -165,6 +174,17 @@ const ToastUndoButton = withChonk(
     }
   `,
   ChonkToastUndoButton
+);
+
+const ToastUndoButtonContainer = withChonk(
+  styled('div')<{type: Indicator['type']}>`
+    color: ${p => p.theme.inverted.linkColor};
+
+    &:hover {
+      color: ${p => p.theme.inverted.linkHoverColor};
+    }
+  `,
+  ChonkToastUndoButtonContainer
 );
 
 const ToastLoadingIndicator = withChonk(
