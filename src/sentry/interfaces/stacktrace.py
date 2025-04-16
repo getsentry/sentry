@@ -1,14 +1,14 @@
-__all__ = ("Stacktrace",)
-
 import math
 
 from django.utils.translation import gettext as _
 
 from sentry.app import env
-from sentry.interfaces.base import DataPath, Interface
+from sentry.interfaces.base import Interface
 from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.json import prune_empty_keys
 from sentry.web.helpers import render_to_string
+
+__all__ = ("Stacktrace",)
 
 
 def max_addr(cur, addr):
@@ -446,20 +446,18 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, datapath: DataPath | None = None, **kwargs):
+    def to_python(cls, data, **kwargs):
         data = dict(data)
         frame_list = []
         for i, f in enumerate(data.get("frames") or []):
             # XXX(dcramer): handle PHP sending an empty array for a frame
-            frame_list.append(
-                Frame.to_python(f or {}, datapath=datapath + ["frames", i] if datapath else None)
-            )
+            frame_list.append(Frame.to_python(f or {}))
 
         data["frames"] = frame_list
         data.setdefault("registers", None)
         data.setdefault("frames_omitted", None)
 
-        return super().to_python(data, datapath=datapath, **kwargs)
+        return super().to_python(data, **kwargs)
 
     def get_has_system_frames(self):
         # This is a simplified logic from how the normalizer works.
