@@ -21,8 +21,10 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import marked from 'sentry/utils/marked';
 import testableTransition from 'sentry/utils/testableTransition';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 
 const pulseAnimation = {
@@ -106,6 +108,7 @@ export function GroupSummaryWithAutofix({
   if (rootCauseDescription) {
     return (
       <AutofixSummary
+        group={group}
         rootCauseDescription={rootCauseDescription}
         solutionDescription={solutionDescription}
         solutionIsLoading={solutionIsLoading}
@@ -122,6 +125,7 @@ export function GroupSummaryWithAutofix({
 }
 
 function AutofixSummary({
+  group,
   rootCauseDescription,
   solutionDescription,
   solutionIsLoading,
@@ -133,6 +137,7 @@ function AutofixSummary({
 }: {
   codeChangesDescription: string | null;
   codeChangesIsLoading: boolean;
+  group: Group;
   openSeerDrawer: () => void;
   rootCauseCopyText: string | null;
   rootCauseDescription: string | null;
@@ -140,13 +145,21 @@ function AutofixSummary({
   solutionDescription: string | null;
   solutionIsLoading: boolean;
 }) {
+  const organization = useOrganization();
+
   const insightCards: InsightCardObject[] = [
     {
       id: 'root_cause_description',
       title: t('Root Cause'),
       insight: rootCauseDescription,
-      icon: <IconFocus size="sm" color="pink400" />,
-      onClick: openSeerDrawer,
+      icon: <IconFocus size="sm" />,
+      onClick: () => {
+        trackAnalytics('autofix.summary_root_cause_clicked', {
+          organization,
+          group_id: group.id,
+        });
+        openSeerDrawer();
+      },
       copyTitle: t('Copy root cause as Markdown'),
       copyText: rootCauseCopyText,
     },
@@ -157,9 +170,15 @@ function AutofixSummary({
             id: 'solution_description',
             title: t('Solution'),
             insight: solutionDescription,
-            icon: <IconFix size="sm" color="green400" />,
+            icon: <IconFix size="sm" />,
             isLoading: solutionIsLoading,
-            onClick: openSeerDrawer,
+            onClick: () => {
+              trackAnalytics('autofix.summary_solution_clicked', {
+                organization,
+                group_id: group.id,
+              });
+              openSeerDrawer();
+            },
             copyTitle: t('Copy solution as Markdown'),
             copyText: solutionCopyText,
           },
@@ -172,9 +191,15 @@ function AutofixSummary({
             id: 'code_changes',
             title: t('Code Changes'),
             insight: codeChangesDescription,
-            icon: <IconCode size="sm" color="blue400" />,
+            icon: <IconCode size="sm" />,
             isLoading: codeChangesIsLoading,
-            onClick: openSeerDrawer,
+            onClick: () => {
+              trackAnalytics('autofix.summary_code_changes_clicked', {
+                organization,
+                group_id: group.id,
+              });
+              openSeerDrawer();
+            },
           },
         ]
       : []),
@@ -190,14 +215,7 @@ function AutofixSummary({
             }
 
             return (
-              <InsightCardButton
-                key={card.id}
-                onClick={card.onClick}
-                role="button"
-                initial="initial"
-                animate={card.isLoading ? 'animate' : 'initial'}
-                variants={pulseAnimation}
-              >
+              <InsightCardButton key={card.id} onClick={card.onClick} role="button">
                 <InsightCard>
                   <CardTitle preview={card.isLoading}>
                     <CardTitleSpacer>
@@ -218,7 +236,13 @@ function AutofixSummary({
                   </CardTitle>
                   <CardContent>
                     {card.isLoading ? (
-                      <Placeholder height="1.5rem" />
+                      <motion.div
+                        initial="initial"
+                        animate="animate"
+                        variants={pulseAnimation}
+                      >
+                        <Placeholder height="1.5rem" />
+                      </motion.div>
                     ) : (
                       <React.Fragment>
                         {card.insightElement}
@@ -259,13 +283,7 @@ const Content = styled('div')`
   position: relative;
 `;
 
-const InsightGrid = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1.5)};
-`;
-
-const InsightCardButton = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
+const InsightCardButton = styled(motion.div)`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   width: 100%;
@@ -286,6 +304,24 @@ const InsightCardButton = styled(motion.div)<React.HTMLAttributes<HTMLDivElement
   }
 `;
 
+const InsightGrid = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
+  position: relative;
+
+  &:before {
+    content: '';
+    position: absolute;
+    left: ${space(3)};
+    top: ${space(4)};
+    bottom: ${space(2)};
+    width: 1px;
+    background: ${p => p.theme.border};
+    z-index: 0;
+  }
+`;
+
 const InsightCard = styled('div')`
   display: flex;
   flex-direction: column;
@@ -298,7 +334,7 @@ const CardTitle = styled('div')<{preview?: boolean}>`
   align-items: center;
   gap: ${space(1)};
   color: ${p => p.theme.subText};
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
+  padding: ${space(0.5)} ${space(0.5)} ${space(0.5)} ${space(1)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   justify-content: space-between;
 `;
@@ -307,13 +343,14 @@ const CardTitleSpacer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(0.75)};
 `;
 
 const CardTitleText = styled('p')`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
+  margin-top: 1px;
 `;
 
 const CardTitleIcon = styled('div')`
@@ -325,7 +362,7 @@ const CardTitleIcon = styled('div')`
 const CardContent = styled('div')`
   overflow-wrap: break-word;
   word-break: break-word;
-  padding: ${space(1.5)};
+  padding: ${space(1)};
   text-align: left;
   flex: 1;
 

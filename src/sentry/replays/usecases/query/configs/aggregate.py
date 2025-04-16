@@ -101,6 +101,7 @@ search_config: dict[str, FieldProtocol] = {
     "count_infos": sum_field("count_info_events"),
     "count_rage_clicks": sum_field("click_is_rage"),
     "count_segments": count_field("segment_id"),
+    "count_traces": sum_length_field("trace_ids"),
     "count_urls": sum_field("count_urls"),
     "count_warnings": sum_field("count_warning_events"),
     "dead.selector": ComputedField(parse_selector, SumOfDeadClickSelectorComposite),
@@ -158,7 +159,9 @@ search_config["trace_id"] = search_config["trace_ids"]
 search_config["trace"] = search_config["trace_ids"]
 search_config["url"] = search_config["urls"]
 search_config["user.ip"] = search_config["user.ip_address"]
-
+search_config["screens"] = search_config["urls"]
+search_config["screen"] = search_config["urls"]
+search_config["count_screens"] = search_config["count_urls"]
 
 # Field-names which could not be found in the set are tag-keys and will, by default, look for
 # the `*` key to find their search instructions. If this is not defined an error is returned.

@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
+from sentry.api.bases.group import GroupAiEndpoint
 from sentry.autofix.utils import get_autofix_state
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
@@ -26,7 +26,7 @@ from rest_framework.request import Request
 
 
 @region_silo_endpoint
-class GroupAutofixEndpoint(GroupEndpoint):
+class GroupAutofixEndpoint(GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -122,5 +122,11 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 )
 
             response_state["repositories"] = repositories
+
+            # Remove unnecessary or sensitive data to reduce returned payload size
+            for key in ["usage", "signals"]:
+                response_state.pop(key, None)
+            if "request" in response_state and "issue" in response_state["request"]:
+                del response_state["request"]["issue"]
 
         return Response({"autofix": response_state})

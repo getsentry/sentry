@@ -20,14 +20,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
+import {BREAKDOWN_SLICES} from 'sentry/views/explore/hooks/useTraces';
+import type {SpanResult} from 'sentry/views/explore/hooks/useTraceSpans';
 import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-
-import type {TraceResult} from '../../hooks/useTraces';
-import {BREAKDOWN_SLICES} from '../../hooks/useTraces';
-import type {SpanResult} from '../../hooks/useTraceSpans';
 
 import type {Field} from './data';
 import {getShortenedSdkName, getStylingSliceName} from './utils';
@@ -321,7 +320,9 @@ export function SpanBreakdownSliceRenderer({
   const relativeSliceStart = sliceStart - trace.start;
 
   const stylingSliceName = getStylingSliceName(sliceName, sliceSecondaryName);
-  const sliceColor = stylingSliceName ? pickBarColor(stylingSliceName) : theme.gray100;
+  const sliceColor = stylingSliceName
+    ? pickBarColor(stylingSliceName, theme)
+    : theme.gray100;
 
   const sliceWidth =
     sliceNumberWidth === undefined

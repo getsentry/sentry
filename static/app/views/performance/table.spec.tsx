@@ -33,7 +33,7 @@ const initializeData = (settings = {}, features: string[] = []) => {
 
 function WrappedComponent({data, ...rest}: any) {
   return (
-    <OrganizationContext.Provider value={data.organization}>
+    <OrganizationContext value={data.organization}>
       <MEPSettingProvider>
         <Table
           organization={data.organization}
@@ -44,7 +44,7 @@ function WrappedComponent({data, ...rest}: any) {
           {...rest}
         />
       </MEPSettingProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 

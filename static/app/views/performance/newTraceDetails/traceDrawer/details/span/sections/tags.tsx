@@ -1,10 +1,12 @@
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t} from 'sentry/locale';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
-import {TraceDrawerActionValueKind} from '../../utils';
 
 export function hasSpanTags(span: RawSpanType) {
   return !!span.tags && Object.keys(span.tags).length > 0;
@@ -12,7 +14,7 @@ export function hasSpanTags(span: RawSpanType) {
 
 export function Tags({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   const span = node.value;
-  const tags: {[tag_name: string]: string} | undefined = span?.tags;
+  const tags: Record<string, string> | undefined = span?.tags;
 
   if (!tags) {
     return null;

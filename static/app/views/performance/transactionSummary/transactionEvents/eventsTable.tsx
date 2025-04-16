@@ -1,5 +1,6 @@
 import type React from 'react';
 import {Component, Fragment, type ReactNode} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 import groupBy from 'lodash/groupBy';
@@ -40,16 +41,15 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-
-import {COLUMN_TITLES} from '../../data';
-import {TraceViewSources} from '../../newTraceDetails/traceHeader/breadcrumbs';
-import Tab from '../tabs';
+import {COLUMN_TITLES} from 'sentry/views/performance/data';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {
   generateProfileLink,
   generateReplayLink,
   generateTraceLink,
   normalizeSearchConditions,
-} from '../utils';
+} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {TitleProps} from './operationSort';
 import OperationSort from './operationSort';
@@ -92,6 +92,7 @@ type Props = {
   organization: Organization;
   routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
+  theme: Theme;
   transactionName: string;
   applyEnvironmentFilter?: boolean;
   columnTitles?: string[];
@@ -189,7 +190,8 @@ class EventsTable extends Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, location, transactionName, projectSlug} = this.props;
+    const {eventView, organization, location, transactionName, projectSlug, theme} =
+      this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -201,6 +203,7 @@ class EventsTable extends Component<Props, State> {
       organization,
       location,
       eventView,
+      theme,
       projectSlug,
     });
 
@@ -445,9 +448,9 @@ class EventsTable extends Component<Props, State> {
     totalEventsView.fields = [{field: 'count()', width: -1}];
 
     const {widths} = this.state;
-    const containsSpanOpsBreakdown = !!eventView
+    const containsSpanOpsBreakdown = eventView
       .getColumns()
-      .find(
+      .some(
         (col: TableColumn<string | number>) =>
           col.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
       );

@@ -14,7 +14,9 @@ import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import SidebarDropdownMenu from 'sentry/components/sidebar/sidebarDropdownMenu.styled';
 import SidebarMenuItem, {menuItemStyles} from 'sentry/components/sidebar/sidebarMenuItem';
+import type SidebarMenuItemLink from 'sentry/components/sidebar/sidebarMenuItemLink';
 import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
+import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -25,9 +27,6 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
-
-import type SidebarMenuItemLink from '../sidebarMenuItemLink';
-import type {CommonSidebarProps} from '../types';
 
 import Divider from './divider.styled';
 import SwitchOrganization from './switchOrganization';

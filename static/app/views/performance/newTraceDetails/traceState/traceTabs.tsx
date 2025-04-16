@@ -1,19 +1,19 @@
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
-
 import {
   isAutogroupedNode,
+  isEAPErrorNode,
   isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
-} from '../traceGuards';
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import {traceReducerExhaustiveActionCheck} from '../traceState';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
 export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (isTransactionNode(node)) {
@@ -37,6 +37,10 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
 
   if (isTraceErrorNode(node)) {
     return node.value.message ?? node.value.title ?? 'Error';
+  }
+
+  if (isEAPErrorNode(node)) {
+    return node.value.description ?? 'Error';
   }
 
   if (isTraceNode(node)) {

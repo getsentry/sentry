@@ -18,9 +18,9 @@ from sentry.models.repository import Repository
 from sentry.utils import metrics
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
-from .constants import METRIC_PREFIX
+from .constants import METRIC_PREFIX, SECOND_LEVEL_TLDS, STACK_ROOT_MAX_LEVEL
 from .integration_utils import InstallationNotFoundError, get_installation
-from .utils import PlatformConfig
+from .utils.platform import PlatformConfig
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ def derive_code_mappings(
     trees_helper = CodeMappingTreesHelper(trees)
     try:
         frame_filename = FrameInfo(frame, platform)
-        return trees_helper.list_file_matches(frame_filename)
+        return trees_helper.get_file_and_repo_matches(frame_filename)
     except NeedsExtension:
         logger.warning("Needs extension: %s", frame.get("filename"))
 
@@ -190,7 +190,7 @@ class CodeMappingTreesHelper:
 
         return list(self.code_mappings.values())
 
-    def list_file_matches(self, frame_filename: FrameInfo) -> list[dict[str, str]]:
+    def get_file_and_repo_matches(self, frame_filename: FrameInfo) -> list[dict[str, str]]:
         """List all the files in a repo that match the frame_filename"""
         file_matches = []
         for repo_full_name in self.trees.keys():
@@ -425,11 +425,8 @@ def convert_stacktrace_frame_path_to_source_path(
 
 def create_code_mapping(
     organization: Organization,
+    code_mapping: CodeMapping,
     project: Project,
-    stacktrace_root: str,
-    source_path: str,
-    repo_name: str,
-    branch: str,
 ) -> RepositoryProjectPathConfig:
     installation = get_installation(organization)
     # It helps with typing since org_integration can be None
@@ -437,21 +434,22 @@ def create_code_mapping(
         raise InstallationNotFoundError
 
     repository, _ = Repository.objects.get_or_create(
-        name=repo_name,
+        name=code_mapping.repo.name,
         organization_id=organization.id,
         defaults={"integration_id": installation.model.id},
     )
     new_code_mapping, _ = RepositoryProjectPathConfig.objects.update_or_create(
         project=project,
-        stack_root=stacktrace_root,
+        stack_root=code_mapping.stacktrace_root,
         defaults={
             "repository": repository,
             "organization_id": organization.id,
             "integration_id": installation.model.id,
             "organization_integration_id": installation.org_integration.id,
-            "source_root": source_path,
-            "default_branch": branch,
-            "automatically_generated": True,
+            "source_root": code_mapping.source_path,
+            "default_branch": code_mapping.repo.branch,
+            # This function is called from the UI, thus, we know that the code mapping is user generated
+            "automatically_generated": False,
         },
     )
 
@@ -587,23 +585,30 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
         # Split the module at the first '$' character and take the part before it
         # If there's no '$', use the entire module
         file_path = module.split("$", 1)[0] if "$" in module else module
-        stack_root = module.rsplit(".", 1)[0].replace(".", "/")
+        stack_root = module.rsplit(".", 1)[0].replace(".", "/") + "/"
         return stack_root, file_path.replace(".", "/")
 
     if "." not in module:
         raise DoesNotFollowJavaPackageNamingConvention
 
-    parts = module.split(".")
+    # Gets rid of the class name
+    parts = module.rsplit(".", 1)[0].split(".")
+    dirpath = "/".join(parts)
+    # a.Bar, Bar.kt -> stack_root: a/, file_path:  a/Bar.kt
+    granularity = 1
 
-    if len(parts) > 2:
+    if len(parts) > 1:
         # com.example.foo.bar.Baz$InnerClass, Baz.kt ->
         #    stack_root: com/example/
         #    file_path:  com/example/foo/bar/Baz.kt
-        stack_root = "/".join(parts[:2])
-        file_path = "/".join(parts[:-1]) + "/" + abs_path
-    else:
-        # a.Bar, Bar.kt -> stack_root: a/, file_path:  a/Bar.kt
-        stack_root = parts[0] + "/"
-        file_path = f"{stack_root}{abs_path}"
+        granularity = STACK_ROOT_MAX_LEVEL - 1
 
+        if parts[1] in SECOND_LEVEL_TLDS:
+            # uk.co.example.foo.bar.Baz$InnerClass, Baz.kt ->
+            #    stack_root: uk/co/example/
+            #    file_path:  uk/co/example/foo/bar/Baz.kt
+            granularity = STACK_ROOT_MAX_LEVEL
+
+    stack_root = "/".join(parts[:granularity]) + "/"
+    file_path = f"{dirpath}/{abs_path}"
     return stack_root, file_path

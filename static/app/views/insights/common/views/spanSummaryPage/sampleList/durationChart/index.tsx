@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import {t} from 'sentry/locale';
 import type {
   EChartClickHandler,
@@ -13,7 +15,10 @@ import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
+import type {
+  NonDefaultSpanSampleFields,
+  SpanSample,
+} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
@@ -25,7 +30,7 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 type Props = {
   groupId: string;
   transactionName: string;
-  additionalFields?: string[];
+  additionalFields?: NonDefaultSpanSampleFields[];
   additionalFilters?: Record<string, string>;
   highlightedSpanId?: string;
   onClickSample?: (sample: SpanSample) => void;
@@ -55,6 +60,7 @@ function DurationChart({
   additionalFilters,
 }: Props) {
   const {setPageError} = usePageAlert();
+  const theme = useTheme();
   const pageFilter = usePageFilters();
 
   const filters: SpanMetricsQueryFilters = {
@@ -109,7 +115,7 @@ function DurationChart({
   const avg = spanMetrics?.[`avg(${SPAN_SELF_TIME})`] || 0;
 
   const {
-    data: spans,
+    data: spanSamplesData,
     isPending: areSpanSamplesLoading,
     isRefetching: areSpanSamplesRefetching,
   } = useSpanSamples({
@@ -120,6 +126,8 @@ function DurationChart({
     spanSearch,
     additionalFields,
   });
+
+  const spans = spanSamplesData?.data ?? [];
 
   const baselineAvgSeries: Series = {
     seriesName: 'Average',
@@ -204,7 +212,7 @@ function DurationChart({
               ? undefined
               : sampledSpanDataSeries
           }
-          chartColors={[AVG_COLOR, 'black']}
+          chartColors={[AVG_COLOR(theme), 'black']}
           type={ChartType.LINE}
           definedAxisTicks={4}
         />

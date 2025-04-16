@@ -23,8 +23,12 @@ export function isSpanNode(
   );
 }
 
+export function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
+  return !!(value && 'is_transaction' in value);
+}
+
 export function isEAPTransaction(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
-  return !!(value && 'is_transaction' in value && value.is_transaction);
+  return isEAPSpan(value) && value.is_transaction;
 }
 
 export function isEAPTransactionNode(
@@ -36,7 +40,13 @@ export function isEAPTransactionNode(
 export function isEAPSpanNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.EAPSpan> {
-  return !!(node.value && 'is_transaction' in node.value);
+  return isEAPSpan(node.value);
+}
+
+export function isNonTransactionEAPSpanNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.EAPSpan> {
+  return isEAPSpanNode(node) && !isEAPTransactionNode(node);
 }
 
 export function isTransactionNode(
@@ -45,8 +55,24 @@ export function isTransactionNode(
   return (
     !!(node.value && 'transaction' in node.value) &&
     !isAutogroupedNode(node) &&
-    !isEAPSpanNode(node)
+    !isEAPSpanNode(node) &&
+    !isEAPErrorNode(node)
   );
+}
+
+export function isEAPError(value: TraceTree.NodeValue): value is TraceTree.EAPError {
+  return !!(
+    value &&
+    'event_type' in value &&
+    value.event_type === 'error' &&
+    'description' in value // a bit gross, but we won't need this soon as we remove the legacy error type
+  );
+}
+
+export function isEAPErrorNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.EAPError> {
+  return isEAPError(node.value);
 }
 
 export function isParentAutogroupedNode(
@@ -73,10 +99,14 @@ export function isCollapsedNode(
   return node instanceof CollapsedNode;
 }
 
+export function isTraceError(value: TraceTree.NodeValue): value is TraceTree.TraceError {
+  return !!(value && 'level' in value && 'message' in value);
+}
+
 export function isTraceErrorNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.TraceError> {
-  return !!(node.value && 'level' in node.value);
+  return isTraceError(node.value);
 }
 
 export function isRootNode(
@@ -177,8 +207,8 @@ export function getPageloadTransactionChildCount(
   return count;
 }
 
-export function isTracePerformanceIssue(
-  issue: TraceTree.TraceError | TraceTree.TracePerformanceIssue
-): issue is TraceTree.TracePerformanceIssue {
-  return 'suspect_spans' in issue;
+export function isTraceOccurence(
+  issue: TraceTree.TraceIssue
+): issue is TraceTree.TraceOccurrence {
+  return 'issue_id' in issue && issue.event_type !== 'error';
 }

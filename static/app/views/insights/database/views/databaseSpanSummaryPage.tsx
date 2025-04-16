@@ -11,6 +11,7 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import InsightIssuesList from 'sentry/views/insights/common/components/issues';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -25,6 +26,7 @@ import {
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   DataTitles,
@@ -45,9 +47,6 @@ import {
   SpanMetricsField,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
 
 type Query = {
   transaction: string;
@@ -100,11 +99,11 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         SpanMetricsField.SPAN_ACTION,
         SpanMetricsField.SPAN_DOMAIN,
         'count()',
-        `${SpanFunction.SPM}()`,
+        `${SpanFunction.EPM}()`,
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
         `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
-        `${SpanFunction.HTTP_ERROR_COUNT}()`,
+        `${SpanFunction.HTTP_RESPONSE_COUNT}(5)`,
       ],
       enabled: Boolean(groupId),
     },
@@ -125,11 +124,11 @@ export function DatabaseSpanSummaryPage({params}: Props) {
       fields: [
         'transaction',
         'transaction.method',
-        'spm()',
+        'epm()',
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
         'time_spent_percentage()',
-        `${SpanFunction.HTTP_ERROR_COUNT}()`,
+        `${SpanFunction.HTTP_RESPONSE_COUNT}(5)`,
       ],
       sorts: [sort],
       limit: TRANSACTIONS_TABLE_ROW_COUNT,
@@ -168,7 +167,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   } = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(filters),
-      yAxis: ['spm()'],
+      yAxis: ['epm()'],
       enabled: Boolean(groupId),
       transformAliasToInputFormat: true,
     },
@@ -218,7 +217,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                     <MetricReadout
                       title={getThroughputTitle('db')}
                       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                      value={spanMetrics?.[`${SpanFunction.SPM}()`]}
+                      value={spanMetrics?.[`${SpanFunction.EPM}()`]}
                       unit={RateUnit.PER_MINUTE}
                       isLoading={areSpanMetricsLoading}
                     />
@@ -275,7 +274,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                 <ChartContainer>
                   <InsightsLineChartWidget
                     title={getThroughputChartTitle('db')}
-                    series={[throughputData['spm()']]}
+                    series={[throughputData['epm()']]}
                     isLoading={isThroughputDataLoading}
                     error={throughputError}
                   />

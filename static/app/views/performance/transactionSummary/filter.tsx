@@ -1,3 +1,5 @@
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -50,12 +52,12 @@ type Props = {
 };
 
 function Filter(props: Props) {
+  const theme = useTheme();
   const {currentFilter, onChangeFilter} = props;
-
   const menuOptions = OPTIONS.map(operationName => ({
     value: operationName,
     label: operationName,
-    leadingItems: <OperationDot backgroundColor={pickBarColor(operationName)} />,
+    leadingItems: <OperationDot backgroundColor={pickBarColor(operationName, theme)} />,
   }));
 
   return (
@@ -127,12 +129,12 @@ export function filterToSearchConditions(
   }
 }
 
-export function filterToColor(option: SpanOperationBreakdownFilter) {
+export function filterToColor(option: SpanOperationBreakdownFilter, theme: Theme) {
   switch (option) {
     case SpanOperationBreakdownFilter.NONE:
-      return pickBarColor('');
+      return pickBarColor('', theme);
     default: {
-      return pickBarColor(option);
+      return pickBarColor(option, theme);
     }
   }
 }

@@ -66,3 +66,25 @@ class AuthOrganizationChannelLoginTest(TestCase):
         assert response.redirect_chain == [
             (f"/auth/login/{self.organization.slug}/", 302),
         ]
+
+
+@control_silo_test
+class AuthNonPartnerOrganizationChannelLoginTest(TestCase):
+    def create_auth_provider(self, partner_org_id, sentry_org_id):
+        config_data = FlyOAuth2Provider.build_config(resource={"id": partner_org_id})
+        AuthProvider.objects.create(
+            organization_id=sentry_org_id, provider="fly-non-partner", config=config_data
+        )
+
+    def setUp(self):
+        self.organization = self.create_organization(name="test org", owner=self.user)
+        self.create_auth_provider("fly-test-org", self.organization.id)
+        self.path = reverse("sentry-auth-channel", args=["fly", "fly-test-org"])
+
+    def test_with_next_uri(self):
+        self.login_as(self.user)
+        response = self.client.get(self.path + "?next=/projects/", follow=True)
+        assert response.status_code == 200
+        assert response.redirect_chain == [
+            ("/projects/", 302),
+        ]

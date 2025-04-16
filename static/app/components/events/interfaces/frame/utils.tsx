@@ -1,16 +1,16 @@
 import * as Sentry from '@sentry/react';
 
+import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {safeURL} from 'sentry/utils/url/safeURL';
-
-import {SymbolicatorStatus} from '../types';
 
 export function trimPackage(pkg: string) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -83,8 +83,8 @@ export function hasContextVars(frame: Frame) {
   return !isEmptyObject(frame.vars || {});
 }
 
-export function hasContextRegisters(registers: Record<string, string>) {
-  return !isEmptyObject(registers);
+export function hasContextRegisters(registers: StacktraceType['registers']) {
+  return !isEmptyObject(registers ?? {});
 }
 
 export function hasAssembly(frame: Frame, platform?: string) {
@@ -101,7 +101,7 @@ export function isExpandable({
   isOnlyFrame,
 }: {
   frame: Frame;
-  registers: Record<string, string>;
+  registers: StacktraceType['registers'];
   emptySourceNotation?: boolean;
   isOnlyFrame?: boolean;
   platform?: string;

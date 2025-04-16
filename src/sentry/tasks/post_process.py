@@ -937,10 +937,40 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
+    org = job["event"].project.organization
     # TODO: only fire one system. to test, fire from both systems and observe metrics
-    if not features.has(
-        "organizations:workflow-engine-process-workflows", job["event"].project.organization
-    ):
+    if not features.has("organizations:workflow-engine-process-workflows", org):
+        return
+
+    from sentry.workflow_engine.processors.workflow import process_workflows
+
+    # PostProcessJob event is optional, WorkflowEventData event is required
+    if "event" not in job:
+        logger.error("Missing event to create WorkflowEventData", extra={"job": job})
+        return
+
+    try:
+        workflow_event_data = WorkflowEventData(
+            event=job["event"],
+            group_state=job.get("group_state"),
+            has_reappeared=job.get("has_reappeared"),
+            has_escalated=job.get("has_escalated"),
+        )
+    except Exception:
+        logger.exception("Could not create WorkflowEventData", extra={"job": job})
+        return
+
+    with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
+        process_workflows(workflow_event_data)
+
+
+def process_workflow_engine_metric_issues(job: PostProcessJob) -> None:
+    if job["is_reprocessed"]:
+        return
+
+    org = job["event"].project.organization
+    # TODO: only fire one system. to test, fire from both systems and observe metrics
+    if not features.has("organizations:workflow-engine-process-metric-issue-workflows", org):
         return
 
     from sentry.workflow_engine.processors.workflow import process_workflows
@@ -1007,7 +1037,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
         return
 
     from sentry.issues.auto_source_code_config.stacktraces import get_frames_to_process
-    from sentry.issues.auto_source_code_config.utils import supported_platform
+    from sentry.issues.auto_source_code_config.utils.platform import supported_platform
     from sentry.tasks.auto_source_code_config import auto_source_code_config
 
     try:
@@ -1542,7 +1572,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         feedback_filter_decorator(process_rules),
     ],
     GroupCategory.METRIC_ALERT: [
-        process_workflow_engine,
+        process_workflow_engine_metric_issues,
     ],
 }
 

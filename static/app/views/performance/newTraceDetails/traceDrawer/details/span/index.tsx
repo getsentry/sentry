@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -26,17 +27,16 @@ import {
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {getProfileMeta} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-
-import type {TraceTreeNodeDetailsProps} from '../../../traceDrawer/tabs/traceTreeNodeDetails';
-import type {TraceTree} from '../../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
-import {useHasTraceNewUi} from '../../../useHasTraceNewUi';
-import {TraceDrawerComponents} from '.././styles';
-import {IssueList} from '../issues/issues';
-import {getProfileMeta} from '../utils';
 
 import Alerts from './sections/alerts';
 import {SpanDescription} from './sections/description';
@@ -142,6 +142,7 @@ function SpanSections({
   organization: Organization;
   project: Project | undefined;
 }) {
+  const theme = useTheme();
   const hasTraceNewUi = useHasTraceNewUi();
 
   if (!hasTraceNewUi) {
@@ -157,7 +158,7 @@ function SpanSections({
 
   const hasSpanSpecificData =
     hasSpanHTTPInfo(node.value) ||
-    hasSpanKeys(node) ||
+    hasSpanKeys(node, theme) ||
     hasSpanTags(node.value) ||
     hasSpanMeasurements(node.value);
 
@@ -176,7 +177,7 @@ function SpanSections({
           disableCollapsePersistence
         >
           <TraceDrawerComponents.SectionCardGroup>
-            {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
+            {hasSpanKeys(node, theme) ? <SpanKeys node={node} /> : null}
             {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
             {hasSpanTags(node.value) ? <Tags node={node} /> : null}
             {hasSpanMeasurements(node.value) ? (
@@ -208,6 +209,7 @@ function LegacySpanSections({
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
 }) {
+  const theme = useTheme();
   return (
     <TraceDrawerComponents.SectionCardGroup>
       <GeneralInfo
@@ -218,7 +220,7 @@ function LegacySpanSections({
       />
       {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
       {hasSpanTags(node.value) ? <Tags node={node} /> : null}
-      {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
+      {hasSpanKeys(node, theme) ? <SpanKeys node={node} /> : null}
     </TraceDrawerComponents.SectionCardGroup>
   );
 }
@@ -279,8 +281,8 @@ export function SpanNodeDetails({
   const hasNewTraceUi = useHasTraceNewUi();
   const {projects} = useProjects();
   const issues = useMemo(() => {
-    return [...node.errors, ...node.performance_issues];
-  }, [node.errors, node.performance_issues]);
+    return [...node.errors, ...node.occurrences];
+  }, [node.errors, node.occurrences]);
 
   const project = projects.find(proj => proj.slug === node.event?.projectSlug);
   const profileMeta = getProfileMeta(node.event) || '';
@@ -305,8 +307,10 @@ export function SpanNodeDetails({
             analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
           >
             <LogsPageDataProvider>
+              {issues.length > 0 ? (
+                <IssueList organization={organization} issues={issues} node={node} />
+              ) : null}
               <LogDetails />
-              <div>TO DO: EAP Span Details</div>
             </LogsPageDataProvider>
           </LogsPageParamsProvider>
         </TraceDrawerComponents.BodyContainer>

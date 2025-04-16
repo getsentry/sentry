@@ -1,20 +1,16 @@
-import type {MutableRefObject} from 'react';
-
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 
 export interface ChartRendererProps {
   /**
-   * This needs to be passed as a `ref` to the chart being rendered. The chart
-   * needs to forward the ref to ECharts component.
-   */
-  chartRef:
-    | MutableRefObject<ReactEchartsRef | null>
-    | ((e: ReactEchartsRef | null) => void);
-  /**
    * The ending Date object of the release group to render
    */
   end: Date;
+  /**
+   * This needs to be passed as a `ref` to the chart being rendered. The chart
+   * needs to forward the ref to ECharts component.
+   */
+  ref: React.Ref<ReactEchartsRef>;
   /**
    * The list of releases in the current release group to render
    */

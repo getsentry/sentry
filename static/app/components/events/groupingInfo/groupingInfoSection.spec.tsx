@@ -43,13 +43,11 @@ describe('EventGroupingInfo', function () {
 
   it('fetches and renders grouping info for errors', async function () {
     render(<EventGroupingInfoSection {...defaultProps} />);
-
+    await userEvent.click(
+      screen.getByRole('button', {name: 'View Event Grouping Information Section'})
+    );
     expect(await screen.findByText('variant description')).toBeInTheDocument();
-
-    // Hash should not be visible until toggling open
-    expect(screen.queryByText('123')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
-    expect(await screen.findByText('123')).toBeInTheDocument();
+    expect(screen.getByText('123')).toBeInTheDocument();
   });
 
   it('gets performance grouping info from group/event data', async function () {
@@ -63,13 +61,8 @@ describe('EventGroupingInfo', function () {
       <EventGroupingInfoSection {...defaultProps} event={perfEvent} group={perfGroup} />
     );
 
-    expect(screen.getByText('performance problem')).toBeInTheDocument();
-
-    // Hash should not be visible until toggling open
-    expect(screen.queryByText('123')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
+    expect(await screen.findByText('performance problem')).toBeInTheDocument();
     expect(screen.getByText('123')).toBeInTheDocument();
-
     // Should not make grouping-info request
     expect(groupingInfoRequest).not.toHaveBeenCalled();
   });
@@ -84,8 +77,6 @@ describe('EventGroupingInfo', function () {
     });
 
     render(<EventGroupingInfoSection {...defaultProps} showGroupingConfig />);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
 
     // Should show first hash
     await screen.findByText('123');

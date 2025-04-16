@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -65,6 +66,7 @@ const DEFAULT_SORT: Sort = {
 };
 
 export function PagePerformanceTable() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -94,7 +96,7 @@ export function PagePerformanceTable() {
     subregions,
   });
 
-  const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
+  const tableData = data.map(row => ({
     ...row,
     opportunity: (row.opportunity ?? 0) * 100,
   }));
@@ -281,6 +283,7 @@ export function PagePerformanceTable() {
       location,
       organization,
       unit: meta.units?.[col.key],
+      theme,
     });
   }
 

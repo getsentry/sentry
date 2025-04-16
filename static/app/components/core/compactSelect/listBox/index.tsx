@@ -5,11 +5,15 @@ import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
+import {
+  ListLabel,
+  ListSeparator,
+  ListWrap,
+  SizeLimitMessage,
+} from 'sentry/components/core/compactSelect/styles';
+import type {SelectKey, SelectSection} from 'sentry/components/core/compactSelect/types';
 import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';
-
-import {ListLabel, ListSeparator, ListWrap, SizeLimitMessage} from '../styles';
-import type {SelectKey, SelectSection} from '../types';
 
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';
@@ -68,6 +72,7 @@ interface ListBoxProps
    * Used to determine whether to render the list box items or not
    */
   overlayIsOpen?: boolean;
+  ref?: React.Ref<HTMLUListElement>;
   /**
    * When false, hides option details.
    */
@@ -99,7 +104,7 @@ const EMPTY_SET = new Set<never>();
  * the `grid` prop on CompactSelect to true).
  */
 export function ListBox({
-  ref: forwardedRef,
+  ref,
   listState,
   size = 'md',
   shouldFocusWrap = true,
@@ -114,10 +119,8 @@ export function ListBox({
   showSectionHeaders = true,
   showDetails = true,
   ...props
-}: ListBoxProps & {
-  ref?: React.Ref<HTMLUListElement>;
-}) {
-  const ref = useRef<HTMLUListElement>(null);
+}: ListBoxProps) {
+  const listElementRef = useRef<HTMLUListElement>(null);
   const {listBoxProps, labelProps} = useListBox(
     {
       ...props,
@@ -127,7 +130,7 @@ export function ListBox({
       shouldSelectOnPressUp: true,
     },
     listState,
-    ref
+    listElementRef
   );
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLUListElement>) => {
@@ -157,7 +160,7 @@ export function ListBox({
       <ListWrap
         {...mergeProps(listBoxProps, props)}
         onKeyDown={onKeyDown}
-        ref={mergeRefs(ref, forwardedRef)}
+        ref={mergeRefs(listElementRef, ref)}
       >
         {overlayIsOpen &&
           listItems.map(item => {

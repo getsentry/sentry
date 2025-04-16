@@ -12,7 +12,7 @@ import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import StructuredEventData from 'sentry/components/structuredEventData';
-import Timeline from 'sentry/components/timeline';
+import {Timeline} from 'sentry/components/timeline';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -194,7 +194,7 @@ function WebVitalData({
 }) {
   const webVitalData = {value: frame.data.value};
   if (isCLSFrame(frame) && frame.data.attributions && selectors) {
-    const layoutShifts: Array<{[x: string]: ReactNode[]}> = [];
+    const layoutShifts: Array<Record<string, ReactNode[]>> = [];
     for (const attr of frame.data.attributions) {
       const elements: ReactNode[] = [];
       if ('nodeIds' in attr && Array.isArray(attr.nodeIds)) {

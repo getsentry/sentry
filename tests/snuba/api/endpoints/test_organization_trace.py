@@ -21,6 +21,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert result["event_id"] == event_data.data["contexts"]["trace"]["span_id"], message
         assert result["start_timestamp"] == event_data.data["start_timestamp"], message
         assert result["project_slug"] == event_data.project.slug, message
+        assert result["sdk_name"] == event_data.data["sdk"]["name"], message
 
     def get_transaction_children(self, event):
         """Assumes that the test setup only gives each event 1 txn child"""
@@ -41,6 +42,14 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert len(root["children"]) == 5
         transaction_children = self.get_transaction_children(root)
         assert len(transaction_children) == 3
+        assert (
+            root["measurements"]["measurements.lcp"]
+            == self.root_event.data["measurements"]["lcp"]["value"]
+        )
+        assert (
+            root["measurements"]["measurements.fcp"]
+            == self.root_event.data["measurements"]["fcp"]["value"]
+        )
         self.assert_performance_issues(root)
 
         for i, gen1 in enumerate(transaction_children):
@@ -99,7 +108,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.load_trace(is_eap=True)
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={},
+                data={"timestamp": self.day_ago},
             )
         assert response.status_code == 200, response.content
         data = response.data
@@ -111,7 +120,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         with self.feature(self.FEATURES):
             # The trace endpoint should ignore the project param
             response = self.client_get(
-                data={"project": self.project.id},
+                data={"project": self.project.id, "timestamp": self.day_ago},
             )
         assert response.status_code == 200, response.content
         data = response.data
@@ -135,7 +144,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={},
+                data={"timestamp": self.day_ago},
             )
         assert response.status_code == 200, response.content
         data = response.data
@@ -153,7 +162,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.load_trace(is_eap=True)
         with self.feature(self.FEATURES):
             response = self.client_get(
-                data={},
+                data={"timestamp": self.day_ago},
             )
         assert response.status_code == 200, response.content
         data = response.data

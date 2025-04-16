@@ -8,19 +8,25 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {FieldValueType} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TableRow} from 'sentry/views/explore/components/table';
+import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
   useLogsAnalyticsPageSource,
   useLogsFields,
+  useLogsSearch,
+  useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {HiddenLogDetailFields} from 'sentry/views/explore/logs/constants';
 import {
   LogAttributesRendererMap,
   LogBodyRenderer,
   LogFieldRenderer,
+  SeverityCircleRenderer,
 } from 'sentry/views/explore/logs/fieldRenderers';
 import {LogFieldsTree} from 'sentry/views/explore/logs/logFieldsTree';
 import {
@@ -33,13 +39,14 @@ import {
 } from 'sentry/views/explore/logs/useLogsQuery';
 
 import {
-  DetailsFooter,
-  DetailsGrid,
+  DetailsBody,
+  DetailsContent,
   DetailsWrapper,
   getLogColors,
-  LogDetailsTitle,
+  LogDetailPanelItem,
   LogDetailTableBodyCell,
   LogFirstCellContent,
+  LogsTableBodyFirstCell,
   LogTableBodyCell,
   LogTableRow,
   StyledChevronButton,
@@ -53,6 +60,8 @@ type LogsRowProps = {
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
 };
 
+const ALLOWED_CELL_ACTIONS: Actions[] = [Actions.ADD, Actions.EXCLUDE];
+
 export function LogRowContent({
   dataRow,
   highlightTerms,
@@ -62,16 +71,38 @@ export function LogRowContent({
   const location = useLocation();
   const organization = useOrganization();
   const fields = useLogsFields();
+  const search = useLogsSearch();
+  const setLogsSearch = useSetLogsSearch();
+
+  function onPointerUp() {
+    if (window.getSelection()?.toString() === '') {
+      setExpanded(e => !e);
+      trackAnalytics('logs.table.row_expanded', {
+        log_id: String(dataRow[OurLogKnownFieldKey.ID]),
+        page_source: analyticsPageSource,
+        organization,
+      });
+    }
+  }
+
   const analyticsPageSource = useLogsAnalyticsPageSource();
   const [expanded, setExpanded] = useState<boolean>(false);
-  const onClickExpand = useCallback(() => {
-    setExpanded(e => !e);
-    trackAnalytics('logs.table.row_expanded', {
-      log_id: String(dataRow[OurLogKnownFieldKey.ID]),
-      page_source: analyticsPageSource,
-      organization,
-    });
-  }, [dataRow, organization, analyticsPageSource]);
+  const addSearchFilter = useCallback(
+    ({
+      key,
+      value,
+      negated,
+    }: {
+      key: string;
+      value: string | number | boolean;
+      negated?: boolean;
+    }) => {
+      const newSearch = search.copy();
+      newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(value));
+      setLogsSearch(newSearch);
+    },
+    [setLogsSearch, search]
+  );
   const theme = useTheme();
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -89,57 +120,87 @@ export function LogRowContent({
     sharedHoverTimeoutRef,
   });
 
+  const rendererExtra = {
+    highlightTerms,
+    logColors,
+    useFullSeverityText: false,
+    renderSeverityCircle: true,
+    location,
+    organization,
+  };
+
   return (
     <Fragment>
-      <LogTableRow onClick={onClickExpand} {...hoverProps}>
-        {fields.map((field, index) => {
+      <LogTableRow onPointerUp={onPointerUp} onTouchEnd={onPointerUp} {...hoverProps}>
+        <LogsTableBodyFirstCell key={'first'}>
+          <LogFirstCellContent>
+            <StyledChevronButton
+              icon={<IconChevron size="xs" direction={expanded ? 'down' : 'right'} />}
+              aria-label={t('Toggle trace details')}
+              aria-expanded={expanded}
+              size="zero"
+              borderless
+            />
+            <SeverityCircleRenderer
+              extra={rendererExtra}
+              meta={meta}
+              tableResultLogRow={dataRow}
+            />
+          </LogFirstCellContent>
+        </LogsTableBodyFirstCell>
+        {fields.map(field => {
           const value = dataRow[field];
-          const isFirstColumn = index === 0;
-          const rendererExtra = {
-            highlightTerms,
-            logColors,
-            useFullSeverityText: false,
-            renderSeverityCircle: true,
-            wrapBody: false,
-            location,
-            organization,
-          };
 
           if (!defined(value)) {
             return null;
           }
 
-          if (isFirstColumn) {
-            return (
-              <LogTableBodyCell key={field}>
-                <LogFirstCellContent>
-                  <StyledChevronButton
-                    icon={
-                      <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
-                    }
-                    aria-label={t('Toggle trace details')}
-                    aria-expanded={expanded}
-                    size="zero"
-                    borderless
-                  />
-
-                  <LogFieldRenderer
-                    item={getLogRowItem(field, dataRow, meta)}
-                    meta={meta}
-                    extra={rendererExtra}
-                  />
-                </LogFirstCellContent>
-              </LogTableBodyCell>
-            );
-          }
+          const discoverColumn: TableColumn<keyof TableDataRow> = {
+            column: {
+              field,
+              kind: 'field',
+            },
+            name: field,
+            key: field,
+            isSortable: true,
+            type: FieldValueType.STRING,
+          };
 
           return (
             <LogTableBodyCell key={field}>
-              <LogFieldRenderer
-                item={getLogRowItem(field, dataRow, meta)}
-                meta={meta}
-                extra={rendererExtra}
-              />
+              <CellAction
+                column={discoverColumn}
+                dataRow={dataRow as unknown as TableDataRow}
+                handleCellAction={(actions, cellValue) => {
+                  switch (actions) {
+                    case Actions.ADD:
+                      addSearchFilter({
+                        key: field,
+                        value: cellValue,
+                      });
+                      break;
+                    case Actions.EXCLUDE:
+                      addSearchFilter({
+                        key: field,
+                        value: cellValue,
+                        negated: true,
+                      });
+                      break;
+                    default:
+                      break;
+                  }
+                }}
+                allowActions={
+                  field === OurLogKnownFieldKey.MESSAGE ? ALLOWED_CELL_ACTIONS : []
+                }
+              >
+                <LogFieldRenderer
+                  item={getLogRowItem(field, dataRow, meta)}
+                  meta={meta}
+                  extra={rendererExtra}
+                  tableResultLogRow={dataRow}
+                />
+              </CellAction>
             </LogTableBodyCell>
           );
         })}
@@ -192,13 +253,24 @@ function LogRowDetails({
   }
   return (
     <DetailsWrapper>
-      <TableRow>
-        <LogDetailTableBodyCell colSpan={fields.length}>
-          {isPending && <LoadingIndicator />}
-          {!isPending && data && (
-            <Fragment>
-              <DetailsGrid>
-                <LogDetailsTitle>{t('Log')}</LogDetailsTitle>
+      <LogDetailTableBodyCell colSpan={fields.length}>
+        {isPending && <LoadingIndicator />}
+        {!isPending && data && (
+          <Fragment>
+            <DetailsContent>
+              <DetailsBody>
+                {LogBodyRenderer({
+                  item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
+                  extra: {
+                    highlightTerms,
+                    logColors,
+                    wrapBody: true,
+                    location,
+                    organization,
+                  },
+                })}
+              </DetailsBody>
+              <LogDetailPanelItem>
                 <LogFieldsTree
                   attributes={data.attributes}
                   hiddenAttributes={HiddenLogDetailFields}
@@ -209,24 +281,13 @@ function LogRowDetails({
                     location,
                     organization,
                   }}
+                  tableResultLogRow={dataRow}
                 />
-              </DetailsGrid>
-              <DetailsFooter logColors={logColors}>
-                {LogBodyRenderer({
-                  item: getLogRowItem(OurLogKnownFieldKey.BODY, dataRow, meta),
-                  extra: {
-                    highlightTerms,
-                    logColors,
-                    wrapBody: true,
-                    location,
-                    organization,
-                  },
-                })}
-              </DetailsFooter>
-            </Fragment>
-          )}
-        </LogDetailTableBodyCell>
-      </TableRow>
+              </LogDetailPanelItem>
+            </DetailsContent>
+          </Fragment>
+        )}
+      </LogDetailTableBodyCell>
     </DetailsWrapper>
   );
 }

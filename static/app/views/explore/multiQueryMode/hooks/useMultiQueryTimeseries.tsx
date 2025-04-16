@@ -8,8 +8,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
-  QUERY_MODE,
-  type SamplingMode,
+  type SpansRPCQueryExtras,
   useProgressiveQuery,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
@@ -21,9 +20,7 @@ import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSorte
 interface UseMultiQueryTimeseriesOptions {
   enabled: boolean;
   index: number;
-  queryExtras?: {
-    samplingMode?: SamplingMode;
-  };
+  queryExtras?: SpansRPCQueryExtras;
 }
 
 export interface UseMultiQueryTimeseriesResults {
@@ -40,7 +37,6 @@ export function useMultiQueryTimeseries({
   return useProgressiveQuery<typeof useMultiQueryTimeseriesImpl>({
     queryHookImplementation: useMultiQueryTimeseriesImpl,
     queryHookArgs: {enabled, index},
-    queryMode: QUERY_MODE.SERIAL,
   });
 }
 

@@ -78,6 +78,14 @@ eap trace root
 "
 `;
 
+exports[`TraceTree eap trace assembles tree from eap trace with only errors 1`] = `
+"
+eap trace root
+  eap-error-1
+  eap-error-2
+"
+`;
+
 exports[`TraceTree eap trace correctly renders eap-transactions toggle state 1`] = `
 "
 eap trace root
@@ -157,6 +165,25 @@ trace root
       db - redis
       db - redis
       db - redis
+    transaction - transaction.op
+"
+`;
+
+exports[`TraceTree printTraceTreeNode adds prefetch prefix to spans with http.request.prefetch attribute 1`] = `
+"
+trace root
+  transaction - transaction.op
+    http - (prefetch) GET /api/users
+    http - GET /api/users
+    transaction - transaction.op
+"
+`;
+
+exports[`TraceTree printTraceTreeNode handles falsy prefetch attribute 1`] = `
+"
+trace root
+  transaction - transaction.op
+    http - GET /api/users
     transaction - transaction.op
 "
 `;

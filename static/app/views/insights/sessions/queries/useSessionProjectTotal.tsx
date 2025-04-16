@@ -1,16 +1,22 @@
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {getSessionsInterval} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 export default function useSessionProjectTotal() {
   const location = useLocation();
   const organization = useOrganization();
+  const {
+    selection: {datetime},
+  } = usePageFilters();
 
   const locationQuery = {
     ...location,
     query: {
       ...location.query,
+      query: undefined,
       width: undefined,
       cursor: undefined,
     },
@@ -26,6 +32,7 @@ export default function useSessionProjectTotal() {
       {
         query: {
           ...locationQuery.query,
+          interval: getSessionsInterval(datetime),
           field: ['sum(session)'],
           groupBy: ['project'],
         },

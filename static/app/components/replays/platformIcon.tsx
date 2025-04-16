@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon as BasePlatformIcon} from 'platformicons';
 
@@ -6,7 +7,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
-import commonTheme from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 
 type Props = {
   name: string;
@@ -17,16 +18,19 @@ type Props = {
 };
 
 const iconSize = '16px';
-const iconStyle = {
-  border: '1px solid ' + commonTheme.translucentGray100,
-};
+const iconStyle = (theme: Theme) => ({
+  border: '1px solid ' + theme.translucentGray100,
+});
 
 const PlatformIcon = styled(
   ({className, name, version, showVersion, showTooltip}: Props) => {
+    const theme = useTheme();
     const icon = generatePlatformIconName(name, version);
 
     if (!showTooltip) {
-      return <BasePlatformIcon platform={icon} size={iconSize} style={iconStyle} />;
+      return (
+        <BasePlatformIcon platform={icon} size={iconSize} style={iconStyle(theme)} />
+      );
     }
 
     const title = (
@@ -39,7 +43,7 @@ const PlatformIcon = styled(
     );
     return (
       <Tooltip title={title} className={className}>
-        <BasePlatformIcon platform={icon} size={iconSize} style={iconStyle} />
+        <BasePlatformIcon platform={icon} size={iconSize} style={iconStyle(theme)} />
         {showVersion ? (version ? version : null) : undefined}
       </Tooltip>
     );

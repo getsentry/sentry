@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -36,9 +37,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import Teams from 'sentry/utils/teams';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withProjects from 'sentry/utils/withProjects';
-
-import Breadcrumb from '../breadcrumb';
-import {getTransactionSearchQuery} from '../utils';
+import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 import Table from './table';
 import {
@@ -71,8 +71,8 @@ function getSummaryConditions(query: string) {
 }
 
 function VitalDetailContent(props: Props) {
+  const theme = useTheme();
   const [error, setError] = useState<string | undefined>(undefined);
-
   function handleSearch(query: string) {
     const {location} = props;
 
@@ -241,6 +241,7 @@ function VitalDetailContent(props: Props) {
                 selectedProjects={project.map(String)}
               >
                 <Table
+                  theme={theme}
                   eventView={eventView}
                   projects={projects}
                   organization={organization}

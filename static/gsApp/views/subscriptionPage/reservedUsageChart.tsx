@@ -15,14 +15,13 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   type CategoryOption,
   CHART_OPTIONS_DATACATEGORY,
@@ -38,20 +37,22 @@ import {
 } from 'sentry/views/organizationStats/usageChart/utils';
 
 import {GIGABYTE} from 'getsentry/constants';
-import {
-  type BillingMetricHistory,
-  type BillingStat,
-  type BillingStats,
-  type CustomerUsage,
-  type Plan,
-  PlanTier,
-  type ReservedBudgetForCategory,
-  type Subscription,
+import type {
+  BillingMetricHistory,
+  BillingStat,
+  BillingStats,
+  CustomerUsage,
+  Plan,
+  ReservedBudgetForCategory,
+  Subscription,
 } from 'getsentry/types';
-import {formatReservedWithUnits, isUnlimitedReserved} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  formatReservedWithUnits,
+  isUnlimitedReserved,
+} from 'getsentry/utils/billing';
 import {getPlanCategoryName, hasCategoryFeature} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
-import titleCase from 'getsentry/utils/titleCase';
 import {
   calculateCategoryOnDemandUsage,
   calculateCategoryPrepaidUsage,
@@ -76,7 +77,8 @@ export function getCategoryOptions({
 }): CategoryOption[] {
   return USAGE_CHART_OPTIONS_DATACATEGORY.filter(
     opt =>
-      plan.checkoutCategories.includes(opt.value as DataCategory) &&
+      (plan.checkoutCategories.includes(opt.value as DataCategory) ||
+        plan.onDemandCategories.includes(opt.value as DataCategory)) &&
       (opt.value === DataCategory.SPANS_INDEXED ? hadCustomDynamicSampling : true)
   );
 }
@@ -154,7 +156,7 @@ function chartTooltip(category: DataCategory, displayMode: 'usage' | 'cost') {
             // @ts-expect-error TS(2339): Property 'dropped' does not exist on type 'OptionD... Remove this comment to see the full error message
             const dropped = s.data.dropped as DroppedBreakdown | undefined;
             if (typeof dropped === 'undefined' || value === '0') {
-              return `<div><span class="tooltip-label">${s.marker} <strong>${label}</strong></span> ${value}</div>`;
+              return `<div><span class="tooltip-label">${s.marker as string} <strong>${label}</strong></span> ${value}</div>`;
             }
             const other = tooltipValueFormatter(dropped.other);
             const overQuota = tooltipValueFormatter(dropped.overQuota);
@@ -162,7 +164,7 @@ function chartTooltip(category: DataCategory, displayMode: 'usage' | 'cost') {
             // Used to shift breakdown over the same amount as series markers.
             const indent = '<span style="display: inline-block; width: 15px"></span>';
             const labels = [
-              `<div><span class="tooltip-label">${s.marker} <strong>${t(
+              `<div><span class="tooltip-label">${s.marker as string} <strong>${t(
                 'Dropped'
               )}</strong></span> ${value}</div>`,
               `<div><span class="tooltip-label">${indent} <strong>${t(
@@ -317,8 +319,8 @@ export function mapCostStatsToChart({
     const {prepaidSpend, prepaidPrice} = calculateCategoryPrepaidUsage(
       category,
       subscription,
-      {accepted},
-      prepaid
+      prepaid,
+      accepted
     );
     sumReserved = isCumulative ? sumReserved + prepaidSpend : prepaidSpend;
     // Ensure that the reserved amount does not exceed the prepaid amount.
@@ -389,8 +391,8 @@ export function mapReservedBudgetStatsToChart({
         const {prepaidSpend, prepaidPrice} = calculateCategoryPrepaidUsage(
           category,
           subscription,
-          {accepted},
           prepaid,
+          accepted,
           reservedCpe
         );
         sumReserved = isCumulative ? sumReserved + prepaidSpend : prepaidSpend;
@@ -450,6 +452,7 @@ function ReservedUsageChart({
     plan: subscription.planDetails,
     hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
   });
+  const navigate = useNavigate();
   const category = selectedCategory(location, categoryOptions);
   const transform = selectedTransform(location);
 
@@ -558,8 +561,8 @@ function ReservedUsageChart({
         const {prepaidPrice} = calculateCategoryPrepaidUsage(
           category,
           subscription,
-          {accepted: 0},
-          reservedBudgetCategoryInfo[category]?.prepaidBudget ?? currentHistory.prepaid
+          reservedBudgetCategoryInfo[category]?.prepaidBudget ?? currentHistory.prepaid,
+          0
         );
         const {onDemandCategoryMax} = calculateCategoryOnDemandUsage(
           category,
@@ -576,14 +579,14 @@ function ReservedUsageChart({
   }
 
   function handleSelectDataCategory(value: ChartDataTransform) {
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {...location.query, transform: value},
     });
   }
 
   function handleSelectDataTransform(value: DataCategory) {
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {...location.query, category: value},
     });
@@ -687,16 +690,15 @@ function ReservedUsageChart({
                 barMinHeight: 1,
                 stack: 'usage',
                 legendHoverLink: false,
-                color: CHART_PALETTE[5][0],
+                color: theme.chart.colors[5][0],
               }),
               barSeries({
-                name:
-                  subscription.planTier === PlanTier.AM3 ? 'Pay-as-you-go' : 'On-Demand',
+                name: displayBudgetName(subscription.planDetails, {title: true}),
                 data: chartData.onDemand,
                 barMinHeight: 1,
                 stack: 'usage',
                 legendHoverLink: false,
-                color: CHART_PALETTE[5][1],
+                color: theme.chart.colors[5][1],
               }),
             ]
           : []),
@@ -733,13 +735,12 @@ function ReservedUsageChart({
             ? t('Current Usage Period')
             : t(
                 'Estimated %s Spend This Period',
-                titleCase(
-                  getPlanCategoryName({
-                    plan: subscription.planDetails,
-                    category,
-                    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-                  })
-                )
+                getPlanCategoryName({
+                  plan: subscription.planDetails,
+                  category,
+                  hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+                  title: true,
+                })
               )}
         </Title>
       }

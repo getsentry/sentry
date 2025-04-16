@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.celery import SentryTask
-from sentry.db.models import BoundedPositiveIntegerField, Model
+from sentry.db.models import Model, WrappingU32IntegerField
 from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 from sentry.models.files.utils import (
     get_and_optionally_update_blob,
@@ -20,6 +20,7 @@ from sentry.models.files.utils import (
     nooplogger,
 )
 from sentry.utils import metrics
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 
@@ -43,7 +44,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
     __relocation_scope__ = RelocationScope.Excluded
 
     path = models.TextField(null=True)
-    size = BoundedPositiveIntegerField(null=True)
+    size = WrappingU32IntegerField(null=True)
     checksum = models.CharField(max_length=40, unique=True)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
 
@@ -225,12 +226,9 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
     @sentry_sdk.tracing.trace
     def delete(self, *args, **kwargs):
         if self.path:
-            # Defer this by 1 minute just to make sure
-            # we avoid any transaction isolation where the
-            # FileBlob row might still be visible by the
-            # task before transaction is committed.
-            self._delete_file_task().apply_async(
-                kwargs={"path": self.path, "checksum": self.checksum}, countdown=60
+            transaction.on_commit(
+                lambda: self._delete_file_task().delay(path=self.path, checksum=self.checksum),
+                using=router.db_for_write(self.__class__),
             )
         return super().delete(*args, **kwargs)
 
@@ -258,4 +256,5 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
             with transaction.atomic(using=router.db_for_write(self.__class__)):
                 self._create_blob_owner(organization_id=organization.id)
         except IntegrityError:
+            incr_rollback_metrics(name="file_blob_ensure_blob_owned")
             pass

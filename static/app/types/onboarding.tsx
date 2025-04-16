@@ -6,7 +6,6 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 
 import type {Organization} from './organization';
 import type {PlatformIntegration, PlatformKey, Project} from './project';
-import type {AvatarUser} from './user';
 
 export enum OnboardingTaskGroup {
   GETTING_STARTED = 'getting_started',
@@ -64,7 +63,6 @@ interface OnboardingTaskDescriptorBase {
    * The group that this task belongs to, e.g. basic and level up
    */
   group?: OnboardingTaskGroup;
-  pendingTitle?: string;
   /**
    * Joins with this task id for server-side onboarding state.
    * This allows you to create alias for exising onboarding tasks or create multiple
@@ -94,12 +92,11 @@ export type OnboardingTaskDescriptor =
   | OnboardingTypeDescriptorWithAppLink;
 
 export interface OnboardingTaskStatus {
-  status: 'skipped' | 'pending' | 'complete';
   task: OnboardingTaskKey;
   completionSeen?: string | boolean;
-  data?: {[key: string]: string};
+  data?: Record<string, string>;
   dateCompleted?: string;
-  user?: AvatarUser | null;
+  status?: 'skipped' | 'complete';
 }
 
 interface OnboardingTaskWithAction

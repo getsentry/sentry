@@ -68,7 +68,7 @@ describe('HTTPSamplesPanel', () => {
           {
             'project.id': 1,
             'transaction.id': '',
-            'spm()': 22.18,
+            'epm()': 22.18,
             'http_response_rate(3)': 0.01,
             'http_response_rate(4)': 0.025,
             'http_response_rate(5)': 0.015,
@@ -78,7 +78,7 @@ describe('HTTPSamplesPanel', () => {
         ],
         meta: {
           fields: {
-            'spm()': 'rate',
+            'epm()': 'rate',
             'avg(span.self_time)': 'duration',
             'http_response_rate(3)': 'percentage',
             'http_response_rate(4)': 'percentage',
@@ -199,7 +199,7 @@ describe('HTTPSamplesPanel', () => {
             dataset: 'spansMetrics',
             environment: [],
             field: [
-              'spm()',
+              'epm()',
               'avg(span.self_time)',
               'sum(span.self_time)',
               'http_response_rate(3)',
@@ -416,12 +416,7 @@ describe('HTTPSamplesPanel', () => {
             query:
               'span.module:http span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
             project: [],
-            additionalFields: [
-              'trace',
-              'transaction.id',
-              'span.description',
-              'span.status_code',
-            ],
+            additionalFields: ['trace', 'span.description', 'span.status_code'],
             lowerBound: 0,
             firstBound: expect.closeTo(333.3333),
             secondBound: expect.closeTo(666.6666),

@@ -22,14 +22,13 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-
-import {generatePerformanceVitalDetailView} from '../data';
+import {generatePerformanceVitalDetailView} from 'sentry/views/performance/data';
 import {
   addRoutePerformanceContext,
   getPerformanceBaseUrl,
   getSelectedProjectPlatforms,
   getTransactionName,
-} from '../utils';
+} from 'sentry/views/performance/utils';
 
 import VitalDetailContent from './vitalDetailContent';
 

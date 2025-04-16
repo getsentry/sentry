@@ -1,9 +1,9 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {COUNTRY_CODE_TO_NAME_MAP} from 'sentry/data/countryCodesMap';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -18,7 +18,10 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
+import {
+  makePerformanceScoreColors,
+  type PerformanceScore,
+} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
   STATUS_TEXT,
@@ -134,7 +137,8 @@ type WebVitalDetailHeaderProps = {
 };
 
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
-  const colors = getChartColorPalette(3);
+  const theme = useTheme();
+  const colors = theme.chart.getColorPalette(3);
   const dotColor = colors[ORDER.indexOf(webVital)]!;
   const status = score === undefined ? undefined : scoreToStatus(score);
 
@@ -163,7 +167,8 @@ export function WebVitalTagsDetailHeader({
   tag,
   isProjectScoreCalculated,
 }: WebVitalDetailHeaderProps) {
-  const ringSegmentColors = getChartColorPalette(3);
+  const theme = useTheme();
+  const ringSegmentColors = theme.chart.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
   const title =
     tag.key === 'geo.country_code' ? COUNTRY_CODE_TO_NAME_MAP[tag.name] : tag.name;
@@ -289,14 +294,14 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 20px 65px;
 `;
 
-const ScoreBadge = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLORS}>`
+const ScoreBadge = styled('div')<{status: PerformanceScore}>`
   display: flex;
   justify-content: center;
   align-items: center;
   flex-direction: column;
-  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
-  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
+  color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
+  background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
+  border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].light};
   padding: ${space(0.5)};
   text-align: center;
   height: 60px;

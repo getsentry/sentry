@@ -52,6 +52,23 @@ trace root
 "
 `;
 
+exports[`IssuesTraceTree respects minShownNodes parameter: default minShownNodes (3) 1`] = `
+"
+collapsed
+  transaction 3 - transaction.op
+  transaction 4 - transaction.op
+  transaction 5 - transaction.op
+"
+`;
+
+exports[`IssuesTraceTree respects minShownNodes parameter: smaller minShownNodes (0) 1`] = `
+"
+collapsed
+  transaction 3 - transaction.op
+  collapsed
+"
+`;
+
 exports[`IssuesTraceTree respects numSurroundingNodes parameter: custom surrounding nodes (2) 1`] = `
 "
 collapsed

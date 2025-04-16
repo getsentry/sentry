@@ -9,6 +9,11 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
+import {
+  QUERY_MODE,
+  type SpansRPCQueryExtras,
+  useProgressiveQuery,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {getFieldsForConstructedQuery} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
@@ -18,6 +23,7 @@ type Props = {
   query: string;
   sortBys: Sort[];
   yAxes: string[];
+  queryExtras?: SpansRPCQueryExtras;
 };
 
 export function useMultiQueryTableAggregateMode({
@@ -26,6 +32,21 @@ export function useMultiQueryTableAggregateMode({
   yAxes,
   sortBys,
   enabled,
+  queryExtras,
+}: Props) {
+  return useProgressiveQuery({
+    queryHookImplementation: useMultiQueryTableAggregateModeImpl,
+    queryHookArgs: {groupBys, query, yAxes, sortBys, enabled, queryExtras},
+  });
+}
+
+function useMultiQueryTableAggregateModeImpl({
+  groupBys,
+  query,
+  yAxes,
+  sortBys,
+  enabled,
+  queryExtras,
 }: Props): AggregatesTableResult {
   const {selection} = usePageFilters();
 
@@ -70,16 +91,26 @@ export function useMultiQueryTableAggregateMode({
     limit: 10,
     referrer: 'api.explore.multi-query-spans-table',
     trackResponseAnalytics: false,
+    queryExtras,
   });
 
   return {eventView, fields, result};
 }
 
-export function useMultiQueryTableSampleMode({
+export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: Props) {
+  return useProgressiveQuery({
+    queryHookImplementation: useMultiQueryTableSampleModeImpl,
+    queryHookArgs: {query, yAxes, sortBys, enabled},
+    queryOptions: {queryMode: QUERY_MODE.SERIAL, withholdBestEffort: true},
+  });
+}
+
+function useMultiQueryTableSampleModeImpl({
   query,
   yAxes,
   sortBys,
   enabled,
+  queryExtras,
 }: Props): SpansTableResult {
   const {selection} = usePageFilters();
 
@@ -117,6 +148,7 @@ export function useMultiQueryTableSampleMode({
     limit: 10,
     referrer: 'api.explore.multi-query-spans-table',
     trackResponseAnalytics: false,
+    queryExtras,
   });
 
   return {eventView, result};

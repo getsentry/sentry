@@ -15,7 +15,7 @@ import type {Field, FieldObject, JsonFormObject} from './types';
 interface JsonFormProps
   extends WithRouterProps,
     Omit<FormPanelProps, 'highlighted' | 'fields' | 'additionalFieldProps'> {
-  additionalFieldProps?: {[key: string]: any};
+  additionalFieldProps?: Record<string, any>;
 
   /**
    * If `forms` is not defined, `title` + `fields` must be required.

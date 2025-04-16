@@ -1,13 +1,12 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -18,6 +17,11 @@ import {EventDetailsHeader} from './eventDetailsHeader';
 const mockUseNavigate = jest.fn();
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => mockUseNavigate,
+}));
+
+jest.mock('sentry/views/issueDetails/utils', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/utils'),
+  useHasStreamlinedUI: () => true,
 }));
 
 describe('EventDetailsHeader', () => {
@@ -31,9 +35,7 @@ describe('EventDetailsHeader', () => {
   });
   const event = EventFixture({id: 'event-id'});
   const defaultProps = {group, event, project};
-  const router = RouterFixture({
-    location: LocationFixture({query: {streamline: '1'}}),
-  });
+  const router = RouterFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -107,7 +109,7 @@ describe('EventDetailsHeader', () => {
   });
 
   it('updates the query params with search tokens', async function () {
-    const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
+    const [tagKey, tagValue] = ['user.email', 's@s.io'];
     const locationQuery = {
       query: {
         ...router.location.query,
@@ -129,13 +131,16 @@ describe('EventDetailsHeader', () => {
     render(<EventDetailsHeader {...defaultProps} />, {organization, router});
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
-    const search = screen.getByPlaceholderText('Filter events\u2026');
-    await userEvent.type(search, `${tagKey}:`);
-    await userEvent.keyboard(`${tagValue}{enter}{enter}`);
-    expect(mockUseNavigate).toHaveBeenCalledWith(expect.objectContaining(locationQuery), {
-      replace: true,
+    const search = await screen.findByPlaceholderText('Filter events\u2026');
+    await userEvent.type(search, `${tagKey}:`, {delay: null});
+    await userEvent.keyboard(`${tagValue}{enter}{enter}`, {delay: null});
+    await waitFor(() => {
+      expect(mockUseNavigate).toHaveBeenCalledWith(
+        expect.objectContaining(locationQuery),
+        {replace: true}
+      );
     });
-  });
+  }, 20_000);
 
   it('does not render timeline summary if disabled', async function () {
     render(<EventDetailsHeader {...defaultProps} />, {organization, router});

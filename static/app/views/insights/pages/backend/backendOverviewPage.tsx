@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -32,15 +32,9 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
-import {
-  hasLaravelInsightsFeature,
-  useIsLaravelInsightsEnabled,
-} from 'sentry/views/insights/pages/backend/laravel/features';
-import {NewLaravelExperienceButton} from 'sentry/views/insights/pages/backend/laravel/newLaravelExperienceButton';
 import {
   BACKEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
@@ -54,6 +48,10 @@ import {
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
+import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
+import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
   generateBackendPerformanceEventView,
@@ -97,11 +95,19 @@ export const BACKEND_COLUMN_TITLES = [
 
 function BackendOverviewPage() {
   useOverviewPageTrackPageload();
-  const [isLaravelPageEnabled] = useIsLaravelInsightsEnabled();
-  return isLaravelPageEnabled ? <LaravelOverviewPage /> : <GenericBackendOverviewPage />;
+  const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
+  const isNextJsPageAvailable = useIsNextJsInsightsAvailable();
+  return isLaravelPageAvailable ? (
+    <LaravelOverviewPage />
+  ) : isNextJsPageAvailable ? (
+    <NextJsOverviewPage headerTitle={BACKEND_LANDING_TITLE} />
+  ) : (
+    <GenericBackendOverviewPage />
+  );
 }
 
 function GenericBackendOverviewPage() {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -111,17 +117,24 @@ function GenericBackendOverviewPage() {
   const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
+  const useEap = useInsightsEap();
 
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
+  const eventView = generateBackendPerformanceEventView(
+    location,
+    withStaticFilters,
+    useEap
+  );
   const searchBarEventView = eventView.clone();
+
+  const segmentOp = useEap ? 'span.op' : 'transaction.op';
 
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
     {field: 'team_key_transaction'},
     {field: 'http.method'},
     {field: 'transaction'},
-    {field: 'transaction.op'},
+    {field: segmentOp},
     {field: 'project'},
     {field: 'tpm()'},
     {field: 'p50()'},
@@ -155,7 +168,7 @@ function GenericBackendOverviewPage() {
   const existingQuery = new MutableSearch(eventView.query);
   existingQuery.addOp('(');
   existingQuery.addOp('(');
-  existingQuery.addFilterValues('!transaction.op', disallowedOps);
+  existingQuery.addFilterValues(`!${segmentOp}`, disallowedOps);
 
   if (selectedFrontendProjects.length > 0 || selectedMobileProjects.length > 0) {
     existingQuery.addFilterValue(
@@ -168,7 +181,7 @@ function GenericBackendOverviewPage() {
   }
   existingQuery.addOp(')');
   existingQuery.addOp('OR');
-  existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addDisjunctionFilterValues(segmentOp, OVERVIEW_PAGE_ALLOWED_OPS);
   existingQuery.addOp(')');
 
   eventView.query = existingQuery.formatString();
@@ -241,15 +254,7 @@ function GenericBackendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader
-        headerTitle={BACKEND_LANDING_TITLE}
-        headerActions={
-          <Fragment>
-            <ViewTrendsButton />
-            <NewLaravelExperienceButton />
-          </Fragment>
-        }
-      />
+      <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -294,6 +299,7 @@ function GenericBackendOverviewPage() {
                       {...sharedProps}
                     />
                     <Table
+                      theme={theme}
                       projects={projects}
                       columnTitles={BACKEND_COLUMN_TITLES}
                       setError={setPageError}
@@ -319,15 +325,15 @@ function GenericBackendOverviewPage() {
 
 function BackendOverviewPageWithProviders() {
   const organization = useOrganization();
-  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
+  const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
+  const isNextJsPageAvailable = useIsNextJsInsightsAvailable();
+
   const {maxPickableDays} = limitMaxPickableDays(organization);
 
   return (
     <DomainOverviewPageProviders
       maxPickableDays={
-        isLaravelInsightsEnabled && hasLaravelInsightsFeature(organization)
-          ? maxPickableDays
-          : undefined
+        isLaravelPageAvailable || isNextJsPageAvailable ? maxPickableDays : undefined
       }
     >
       <BackendOverviewPage />

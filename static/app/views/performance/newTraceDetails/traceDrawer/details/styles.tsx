@@ -1,5 +1,5 @@
 import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -10,13 +10,14 @@ import {
   type DropdownMenuProps,
   type MenuItemProps,
 } from 'sentry/components/dropdownMenu';
-import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
+import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import KeyValueData, {
+import {
   CardPanel,
+  KeyValueData,
   type KeyValueDataContentProps,
   Subject,
   ValueSection,
@@ -58,14 +59,13 @@ import {
   SENTRY_SPAN_NUMBER_TAGS,
   SENTRY_SPAN_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-
-import {traceAnalytics} from '../../traceAnalytics';
-import {useTransaction} from '../../traceApi/useTransaction';
-import {useDrawerContainerRef} from '../../traceDrawer/details/drawerContainerRefContext';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
+import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
-} from '../../traceDrawer/traceProfilingLink';
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -73,14 +73,17 @@ import {
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
-} from '../../traceGuards';
-import type {MissingInstrumentationNode} from '../../traceModels/missingInstrumentationNode';
-import type {ParentAutogroupNode} from '../../traceModels/parentAutogroupNode';
-import type {SiblingAutogroupNode} from '../../traceModels/siblingAutogroupNode';
-import {TraceTree} from '../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
-import {useTraceState, useTraceStateDispatch} from '../../traceState/traceStateProvider';
-import {useHasTraceNewUi} from '../../useHasTraceNewUi';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
+import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
+import type {SiblingAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/siblingAutogroupNode';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {
+  useTraceState,
+  useTraceStateDispatch,
+} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 import {
   getSearchInExploreTarget,
@@ -103,7 +106,7 @@ const BodyContainer = styled('div')<{hasNewTraceUi?: boolean}>`
 const DetailContainer = styled('div')`
   height: 100%;
   overflow: hidden;
-  margin: ${space(1)} ${space(2)};
+  padding: ${space(1)} ${space(2)};
 `;
 
 const FlexBox = styled('div')`
@@ -489,6 +492,7 @@ const StyledPanel = styled(Panel)`
 `;
 
 function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
+  const theme = useTheme();
   const breakdown = generateStats(event, {type: 'no_filter'});
 
   return (
@@ -501,7 +505,7 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
           const {name, percentage} = currOp;
 
           const operationName = typeof name === 'string' ? name : t('Other');
-          const color = pickBarColor(operationName);
+          const color = pickBarColor(operationName, theme);
           const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
 
           return (
@@ -742,12 +746,12 @@ function KeyValueAction({
   const location = useLocation();
   const organization = useOrganization();
   const hasNewTraceUi = useHasTraceNewUi();
-  const hasTraceDrawerAction = organization.features.includes('trace-drawer-action');
+  const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const [isVisible, setIsVisible] = useState(false);
 
   if (
     !hasNewTraceUi ||
-    !hasTraceDrawerAction ||
+    !hasExploreEnabled ||
     !defined(rowValue) ||
     !defined(rowKey) ||
     !['string', 'number'].includes(typeof rowValue)
@@ -935,7 +939,7 @@ function PanelPositionDropDown({organization}: {organization: Organization}) {
         <Tooltip title={t('Panel Position')}>
           <ActionButton
             {...triggerProps}
-            size="xs"
+            size="zero"
             aria-label={t('Panel position')}
             icon={<IconPanel direction="right" />}
           />
@@ -1010,44 +1014,44 @@ function NodeActions(props: {
 
   return (
     <ActionWrapper>
-      <Tooltip title={t('Show in view')}>
+      <Tooltip title={t('Show in view')} skipWrapper>
         <ActionButton
           onClick={_e => {
             traceAnalytics.trackShowInView(props.organization);
             props.onTabScrollToNode(props.node);
           }}
-          size="xs"
+          size="zero"
           aria-label={t('Show in view')}
           icon={<IconFocus />}
         />
       </Tooltip>
       {isTransactionNode(props.node) ? (
-        <Tooltip title={t('JSON')}>
+        <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
             href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
-            size="xs"
+            size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
           />
         </Tooltip>
       ) : null}
       {continuousProfileTarget ? (
-        <Tooltip title={t('Profile')}>
+        <Tooltip title={t('Profile')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewContinuousProfile(props.organization)}
             to={continuousProfileTarget}
-            size="xs"
+            size="zero"
             aria-label={t('Profile')}
             icon={<IconProfiling />}
           />
         </Tooltip>
       ) : transactionProfileTarget ? (
-        <Tooltip title={t('Profile')}>
+        <Tooltip title={t('Profile')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewTransactionProfile(props.organization)}
             to={transactionProfileTarget}
-            size="xs"
+            size="zero"
             aria-label={t('Profile')}
             icon={<IconProfiling />}
           />
@@ -1065,6 +1069,7 @@ const actionButtonStyles = css`
   transition: none !important;
   opacity: 0.8;
   height: 24px;
+  width: 24px;
   max-height: 24px;
 
   &:hover {
@@ -1084,6 +1089,7 @@ const ActionLinkButton = styled(LinkButton)`
 `;
 
 const ActionWrapper = styled('div')`
+  overflow: visible;
   display: flex;
   align-items: center;
   gap: ${space(0.25)};

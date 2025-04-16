@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -8,7 +9,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -27,6 +27,7 @@ import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useSaveMultiQuery} from 'sentry/views/explore/hooks/useSaveMultiQuery';
+import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
   useAddQuery,
   useReadQueriesFromLocation,
@@ -47,6 +48,13 @@ function Content() {
   const totalQueryRows = queries.length;
   const id = getIdFromLocation(location);
 
+  const visitQuery = useVisitQuery();
+  useEffect(() => {
+    if (id) {
+      visitQuery(id);
+    }
+  }, [id, visitQuery]);
+
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
@@ -65,27 +73,11 @@ function Content() {
               items={[
                 {
                   key: 'save-query',
-                  label: (
-                    <span>
-                      {t('A New Query')}
-                      <FeatureBadge type="alpha" />
-                    </span>
-                  ),
+                  label: <span>{t('A New Query')}</span>,
                   onAction: () => {
                     openSaveQueryModal({
                       organization,
                       saveQuery,
-                      queries: queries.map((query, index) => ({
-                        query: query.query,
-                        groupBys: query.groupBys,
-                        visualizes: [
-                          {
-                            chartType: query.chartType,
-                            yAxes: query.yAxes,
-                            label: `visualization-${index}`,
-                          },
-                        ],
-                      })),
                     });
                   },
                 },
@@ -93,12 +85,7 @@ function Content() {
                   ? [
                       {
                         key: 'update-query',
-                        label: (
-                          <span>
-                            {t('Existing Query')}
-                            <FeatureBadge type="alpha" />
-                          </span>
-                        ),
+                        label: <span>{t('Existing Query')}</span>,
                         onAction: async () => {
                           try {
                             addLoadingMessage(t('Updating query...'));

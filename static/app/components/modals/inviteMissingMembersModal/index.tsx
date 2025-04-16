@@ -110,7 +110,7 @@ export function InviteMissingMembersModal({
     if (sendingInvites) {
       return (
         <StatusMessage>
-          <LoadingIndicator mini relative hideMessage size={16} />
+          <LoadingIndicator mini relative size={16} />
           {t('Sending organization invitations\u2026')}
         </StatusMessage>
       );
@@ -330,8 +330,6 @@ export function InviteMissingMembersModal({
     </InviteModalHook>
   );
 }
-
-export default InviteMissingMembersModal;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: max-content 1fr max-content 1fr 1fr;

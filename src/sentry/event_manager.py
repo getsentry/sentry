@@ -88,6 +88,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -134,6 +135,7 @@ from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_measurement
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
@@ -1472,6 +1474,7 @@ def _create_group(
 
     # Attempt to handle The Mysterious Case of the Stuck Project Counter
     except IntegrityError as err:
+        incr_rollback_metrics(Group)
         if not _is_stuck_counter_error(err, project, short_id):
             raise
 
@@ -1490,11 +1493,20 @@ def _create_group(
                     **group_creation_kwargs,
                 )
 
-        except Exception:
+        except Exception as e:
+            if isinstance(e, IntegrityError):
+                incr_rollback_metrics(Group)
             # Maybe the stuck counter was hiding some other error
             logger.exception("Error after unsticking project counter")
             raise
 
+    if features.has("organizations:issue-open-periods", project.organization):
+        GroupOpenPeriod.objects.create(
+            group=group,
+            project_id=project.id,
+            date_started=group.first_seen,
+            date_ended=None,
+        )
     return group
 
 
@@ -1703,6 +1715,13 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
+        if features.has("organizations:issue-open-periods", group.project.organization):
+            GroupOpenPeriod.objects.create(
+                group=group,
+                project_id=group.project_id,
+                date_started=event.datetime,
+                date_ended=None,
+            )
 
     return is_regression
 
@@ -2448,9 +2467,12 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
 @sentry_sdk.tracing.trace
 def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
-        job["performance_problems"] = detect_performance_problems(
-            job["data"], projects[job["project_id"]]
-        )
+        if job["data"].get("_performance_issues_spans"):
+            job["performance_problems"] = []
+        else:
+            job["performance_problems"] = detect_performance_problems(
+                job["data"], projects[job["project_id"]]
+            )
 
 
 @sentry_sdk.tracing.trace

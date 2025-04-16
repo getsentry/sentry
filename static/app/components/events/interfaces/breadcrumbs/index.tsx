@@ -9,6 +9,7 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import type {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
+import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,9 +22,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-import SearchBarAction from '../searchBarAction';
-
-import Level from './breadcrumb/level';
+import {Level} from './breadcrumb/level';
 import Type from './breadcrumb/type';
 import Breadcrumbs from './breadcrumbs';
 import {getVirtualCrumb, transformCrumbs} from './utils';

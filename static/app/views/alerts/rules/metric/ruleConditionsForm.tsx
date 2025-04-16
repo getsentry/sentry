@@ -61,6 +61,7 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import withTags from 'sentry/utils/withTags';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
+import {getProjectOptions} from 'sentry/views/alerts/rules/utils';
 import {
   convertDatasetEventTypesToSource,
   DATA_SOURCE_LABELS,
@@ -73,8 +74,6 @@ import {
   SpanTagsProvider,
 } from 'sentry/views/explore/contexts/spanTagsContext';
 import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-
-import {getProjectOptions} from '../utils';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
@@ -306,12 +305,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
   get selectControlStyles() {
     return {
-      control: (provided: {[x: string]: string | number | boolean}) => ({
+      control: (provided: Record<string, string | number | boolean>) => ({
         ...provided,
         minWidth: 200,
         maxWidth: 300,
       }),
-      container: (provided: {[x: string]: string | number | boolean}) => ({
+      container: (provided: Record<string, string | number | boolean>) => ({
         ...provided,
         margin: `${space(0.5)}`,
       }),
@@ -454,8 +453,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   ?.split(':')[1];
                 if (
                   ownerId &&
-                  nextSelectedProject.teams.find(({id}) => id === ownerId) ===
-                    undefined &&
+                  !nextSelectedProject.teams.some(({id}) => id === ownerId) &&
                   nextSelectedProject.teams.length
                 ) {
                   model.setValue('owner', `team:${nextSelectedProject.teams[0]!.id}`);

@@ -1,15 +1,23 @@
-import type {Series} from 'sentry/types/echarts';
+import type {MultiSeriesEventsStats} from 'sentry/types/organization';
+import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {
+  type DiscoverQueryProps,
+  useGenericDiscoverQuery,
+} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
-import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {
+  getRetryDelay,
+  shouldRetryHandler,
+} from 'sentry/views/insights/common/utils/retryHandlers';
 import type {SpanMetricsProperty} from 'sentry/views/insights/types';
 
-interface SpanMetricTimeseriesRow {
-  [key: string]: number;
-  interval: number;
-}
+import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
+import type {DiscoverSeries} from './useDiscoverSeries';
 
 interface UseSpanMetricsSeriesOptions<Fields> {
   topEvents: number;
@@ -27,6 +35,7 @@ export const useSpanMetricsTopNSeries = <Fields extends SpanMetricsProperty[]>(
   const {
     search = undefined,
     fields = [],
+    enabled,
     yAxis = [],
     topEvents,
     sorts = [],
@@ -39,6 +48,8 @@ export const useSpanMetricsTopNSeries = <Fields extends SpanMetricsProperty[]>(
     );
   }
 
+  const location = useLocation();
+  const organization = useOrganization();
   const pageFilters = usePageFilters();
 
   const eventView = getSeriesEventView(
@@ -53,37 +64,46 @@ export const useSpanMetricsTopNSeries = <Fields extends SpanMetricsProperty[]>(
     eventView.sorts = sorts;
   }
 
-  const result = useWrappedDiscoverTimeseriesQuery<SpanMetricTimeseriesRow[]>({
+  const result = useGenericDiscoverQuery<MultiSeriesEventsStats, DiscoverQueryProps>({
+    route: 'events-stats',
     eventView,
-    initialData: [],
+    location,
+    orgSlug: organization.slug,
+    getRequestPayload: () => ({
+      ...eventView.getEventsAPIPayload(location),
+      yAxis: eventView.yAxis,
+      topEvents: eventView.topEvents,
+      excludeOther: 0,
+      partial: 1,
+      orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
+      interval: eventView.interval,
+    }),
+    options: {
+      enabled: enabled && pageFilters.isReady,
+      refetchOnWindowFocus: false,
+      retry: shouldRetryHandler,
+      retryDelay: getRetryDelay,
+    },
     referrer,
-    enabled: options.enabled,
   });
 
-  const seriesByKey: {[key: string]: Series} = {};
+  const parsedData: Record<string, DiscoverSeries> = {};
 
-  (result?.data ?? []).forEach(datum => {
-    // `interval` is the timestamp of the data point. Every other key is the value of a requested or found timeseries. `groups` is used to disambiguate top-N multi-axis series, which aren't supported here so the value is useless
-    const {interval, group: _group, ...data} = datum;
+  const data = result.data ?? {};
 
-    Object.keys(data).forEach(key => {
-      const value = {
-        name: interval,
-        value: datum[key]!,
-      };
+  Object.keys(data).forEach(seriesName => {
+    const dataSeries = data[seriesName]!;
 
-      if (seriesByKey[key]) {
-        seriesByKey[key].data.push(value);
-      } else {
-        seriesByKey[key] = {
-          seriesName: key,
-          data: [value],
-        };
-      }
-    });
+    const convertedSeries: DiscoverSeries = {
+      seriesName,
+      data: convertDiscoverTimeseriesResponse(dataSeries.data),
+      meta: dataSeries?.meta as EventsMetaType,
+    };
+
+    parsedData[seriesName] = convertedSeries;
   });
 
-  return {...result, data: seriesByKey as {[key: string]: Series}};
+  return {...result, data: parsedData};
 };
 
 const DEFAULT_EVENT_COUNT = 5;

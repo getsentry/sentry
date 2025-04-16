@@ -8,7 +8,7 @@ import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Link from 'sentry/components/links/link';
-import Timeline from 'sentry/components/timeline';
+import {Timeline} from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat, IconEllipsis} from 'sentry/icons';

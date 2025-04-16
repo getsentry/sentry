@@ -1,5 +1,6 @@
 import {type ComponentProps, Fragment, PureComponent} from 'react';
 import React from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -51,6 +52,15 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleComparisonType,
+  Dataset,
+  SessionsAggregate,
+  TimePeriod,
+  TimeWindow,
+} from 'sentry/views/alerts/rules/metric/types';
+import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
@@ -58,16 +68,7 @@ import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMar
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
-
-import type {MetricRule, Trigger} from '../../types';
-import {
-  AlertRuleComparisonType,
-  Dataset,
-  SessionsAggregate,
-  TimePeriod,
-  TimeWindow,
-} from '../../types';
-import {getMetricDatasetQueryExtras} from '../../utils/getMetricDatasetQueryExtras';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import ThresholdsChart from './thresholdsChart';
 
@@ -84,6 +85,7 @@ type Props = {
   projects: Project[];
   query: MetricRule['query'];
   resolveThreshold: MetricRule['resolveThreshold'];
+  theme: Theme;
   thresholdType: MetricRule['thresholdType'];
   timeWindow: MetricRule['timeWindow'];
   triggers: Trigger[];
@@ -241,11 +243,10 @@ class TriggersChart extends PureComponent<Props, State> {
 
   componentDidMount() {
     const {aggregate, showTotalCount} = this.props;
-    if (showTotalCount && !isSessionAggregate(aggregate)) {
-      this.fetchTotalCount();
-    }
     if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
       this.fetchExtrapolationSampleCount();
+    } else if (showTotalCount && !isSessionAggregate(aggregate)) {
+      this.fetchTotalCount();
     }
   }
 
@@ -260,11 +261,10 @@ class TriggersChart extends PureComponent<Props, State> {
       !isEqual(prevProps.timeWindow, timeWindow) ||
       !isEqual(prevState.statsPeriod, statsPeriod)
     ) {
-      if (showTotalCount && !isSessionAggregate(aggregate)) {
-        this.fetchTotalCount();
-      }
       if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
         this.fetchExtrapolationSampleCount();
+      } else if (showTotalCount && !isSessionAggregate(aggregate)) {
+        this.fetchTotalCount();
       }
     }
   }
@@ -469,6 +469,7 @@ class TriggersChart extends PureComponent<Props, State> {
           />
         ) : (
           <ThresholdsChart
+            theme={this.props.theme}
             period={statsPeriod}
             minValue={minBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             maxValue={maxBy(timeseriesData[0]?.data, ({value}) => value)?.value}
@@ -536,6 +537,7 @@ class TriggersChart extends PureComponent<Props, State> {
       projects,
       timeWindow,
       query,
+      theme,
       location,
       aggregate,
       dataset,
@@ -620,7 +622,8 @@ class TriggersChart extends PureComponent<Props, State> {
                   comparisonTimeseriesData,
                   timeWindow,
                   triggers,
-                  thresholdType
+                  thresholdType,
+                  theme
                 );
               }
 
@@ -742,7 +745,20 @@ class TriggersChart extends PureComponent<Props, State> {
             {noop}
           </EventsRequest>
         ) : null}
-        <EventsRequest {...baseProps} period={period} dataLoadedCallback={onDataLoaded}>
+        <EventsRequest
+          {...baseProps}
+          period={period}
+          dataLoadedCallback={onDataLoaded}
+          // Span alerts only need to do a best effort request and do not need
+          // preflight requests. A user needs to see the highest fidelity data possible
+          // to set up the alert.
+          sampling={
+            organization.features.includes('visibility-explore-progressive-loading') &&
+            dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+              ? SAMPLING_MODE.BEST_EFFORT
+              : undefined
+          }
+        >
           {({
             loading,
             errored,
@@ -758,7 +774,8 @@ class TriggersChart extends PureComponent<Props, State> {
                 comparisonTimeseriesData,
                 timeWindow,
                 triggers,
-                thresholdType
+                thresholdType,
+                theme
               );
             }
 

@@ -424,6 +424,7 @@ function CreateProject() {
                     placeholder={t('Select a Team')}
                     onChange={(choice: any) => setTeam(choice.value)}
                     teamFilter={(tm: Team) => tm.access.includes('team:admin')}
+                    minMenuHeight={240}
                   />
                 </TeamSelectInput>
               </div>

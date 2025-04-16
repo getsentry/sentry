@@ -67,6 +67,7 @@ x-sentry-service-config:
     default: [snuba, postgres, relay, spotlight]
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
+    chartcuterie: [postgres, snuba, chartcuterie, spotlight]
     taskbroker: [snuba, postgres, relay, taskbroker, spotlight]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
     rabbitmq: [postgres, snuba, rabbitmq, spotlight]
@@ -164,6 +165,10 @@ services:
       - host.docker.internal:host-gateway
   spotlight:
     image: ghcr.io/getsentry/spotlight:latest
+    healthcheck:
+      interval: 1s
+      timeout: 1s
+      retries: 3
     restart: unless-stopped
     ports:
       - '127.0.0.1:8969:8969/tcp'

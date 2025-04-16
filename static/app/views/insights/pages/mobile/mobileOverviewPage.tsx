@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -27,8 +28,8 @@ import useProjects from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {
@@ -82,6 +83,7 @@ const REACT_NATIVE_COLUMN_TITLES = [
 function MobileOverviewPage() {
   useOverviewPageTrackPageload();
 
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -91,15 +93,19 @@ function MobileOverviewPage() {
   const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
+  const useEap = useInsightsEap();
 
   const withStaticFilters = canUseMetricsData(organization);
+
+  const segmentOp = useEap ? 'span.op' : 'transaction.op';
 
   const eventView = generateMobilePerformanceEventView(
     location,
     projects,
     generateGenericPerformanceEventView(location, withStaticFilters, organization),
     withStaticFilters,
-    organization
+    organization,
+    useEap
   );
   const searchBarEventView = eventView.clone();
 
@@ -117,7 +123,7 @@ function MobileOverviewPage() {
   );
 
   const existingQuery = new MutableSearch(eventView.query);
-  existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addDisjunctionFilterValues(segmentOp, OVERVIEW_PAGE_ALLOWED_OPS);
   if (selectedMobileProjects.length > 0) {
     existingQuery.addOp('OR');
     existingQuery.addFilterValue(
@@ -213,10 +219,7 @@ function MobileOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <MobileHeader
-        headerTitle={MOBILE_LANDING_TITLE}
-        headerActions={<ViewTrendsButton />}
-      />
+      <MobileHeader headerTitle={MOBILE_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -264,6 +267,7 @@ function MobileOverviewPage() {
                       projects={projects}
                       columnTitles={columnTitles}
                       setError={setPageError}
+                      theme={theme}
                       {...sharedProps}
                     />
                   </TeamKeyTransactionManager.Provider>

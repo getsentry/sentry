@@ -31,7 +31,7 @@ from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.commit import Commit
-from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
+from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus, update_group_open_period
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
@@ -56,6 +56,7 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
 from .validators import GroupValidator, ValidationError
@@ -101,6 +102,7 @@ def handle_discard(
                     **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
             except IntegrityError:
+                incr_rollback_metrics(GroupTombstone)
                 # in this case, a tombstone has already been created
                 # for a group, so no hash updates are necessary
                 pass
@@ -641,6 +643,13 @@ def process_group_resolution(
         if not len(group_list) > 1:
             transaction.on_commit(lambda: activity.send_notification(), router.db_for_write(Group))
 
+        update_group_open_period(
+            group=group,
+            new_status=GroupStatus.RESOLVED,
+            activity=activity,
+            should_reopen_open_period=False,
+        )
+
 
 def merge_groups(
     group_list: Sequence[Group],
@@ -797,6 +806,9 @@ def prepare_response(
             sender=update_groups,
         )
 
+    # TODO(issues): This type is very fragile since it's fields are updated in quite a few places.
+    # Since this is a public API, we are using assuming a shape of MutateIssueResponse, but this
+    # cannot be enforced currently. If changing fields, please update that type.
     return Response(result)
 
 

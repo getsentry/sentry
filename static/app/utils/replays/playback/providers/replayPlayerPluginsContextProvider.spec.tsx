@@ -13,11 +13,11 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 function makeWrapper(organization: Organization) {
   return function ({children}: {children?: ReactNode}) {
     return (
-      <OrganizationContext.Provider value={organization}>
+      <OrganizationContext value={organization}>
         <ReplayPlayerPluginsContextProvider>
           {children}
         </ReplayPlayerPluginsContextProvider>
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     );
   };
 }
@@ -43,9 +43,7 @@ describe('replayPlayerPluginsContext', () => {
 
     const {result} = renderHook(useReplayPlayerPlugins, {
       wrapper: ({children}: {children?: ReactNode}) => (
-        <OrganizationContext.Provider value={mockOrganization}>
-          {children}
-        </OrganizationContext.Provider>
+        <OrganizationContext value={mockOrganization}>{children}</OrganizationContext>
       ),
     });
 

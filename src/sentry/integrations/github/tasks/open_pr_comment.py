@@ -23,12 +23,7 @@ from snuba_sdk import Request as SnubaRequest
 
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.integrations.github.client import GitHubApiClient
-from sentry.integrations.github.constants import (
-    ISSUE_LOCKED_ERROR_MESSAGE,
-    RATE_LIMITED_MESSAGE,
-    STACKFRAME_COUNT,
-)
-from sentry.integrations.github.tasks.language_parsers import PATCH_PARSERS
+from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.pr_comment import format_comment_url
 from sentry.integrations.github.tasks.utils import (
     GithubAPIErrorType,
@@ -38,6 +33,8 @@ from sentry.integrations.github.tasks.utils import (
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.constants import STACKFRAME_COUNT
+from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -48,6 +45,8 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_tasks
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER
 from sentry.utils import metrics
@@ -407,7 +406,11 @@ def get_top_5_issues_by_count_for_file(
 
 
 @instrumented_task(
-    name="sentry.integrations.github.tasks.open_pr_comment_workflow", silo_mode=SiloMode.REGION
+    name="sentry.integrations.github.tasks.open_pr_comment_workflow",
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+    ),
 )
 def open_pr_comment_workflow(pr_id: int) -> None:
     logger.info("github.open_pr_comment.start_workflow")
@@ -613,7 +616,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         installation.create_or_update_comment(
             repo=repo,
             pr_key=pull_request.key,
-            comment_body=comment_body,
+            comment_data={"body": comment_body},
             pullrequest_id=pull_request.id,
             issue_list=issue_id_list,
             comment_type=CommentType.OPEN_PR,

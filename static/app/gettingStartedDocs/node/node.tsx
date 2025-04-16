@@ -19,6 +19,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
   getInstallConfig,
+  getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
 
@@ -242,19 +243,15 @@ Sentry.init({
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig = {
-  ...onboarding,
-  introduction: () => null,
-};
-
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-
   performanceOnboarding,
   crashReportOnboarding,
-  profilingOnboarding,
   feedbackOnboardingJsLoader,
+  profilingOnboarding: getNodeProfilingOnboarding({
+    profilingLifecycle: 'manual',
+  }),
 };
 
 export default docs;

@@ -6,6 +6,8 @@ from enum import StrEnum
 from types import TracebackType
 from typing import Any, Self
 
+import sentry_sdk
+
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.utils import metrics
@@ -113,7 +115,7 @@ class EventLifecycle:
         """
         self._extra[name] = value
 
-    def add_extras(self, extras: Mapping[str, int | str]) -> None:
+    def add_extras(self, extras: Mapping[str, Any]) -> None:
         """Add multiple values to logged "extra" data."""
         self._extra.update(extras)
 
@@ -131,6 +133,8 @@ class EventLifecycle:
 
         sample_rate = 1.0
         metrics.incr(key, tags=tags, sample_rate=sample_rate)
+
+        sentry_sdk.set_tags(tags)
 
         extra = dict(self._extra)
         extra.update(tags)

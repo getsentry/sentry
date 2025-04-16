@@ -26,7 +26,6 @@ interface BusinessIconProps extends SVGIconProps {
  * @deprecated Use IconLightning instead, this icon will be removed in new UI.
  */
 function IconBusiness({
-  ref,
   gradient = false,
   withShine = false,
   ...props
@@ -38,11 +37,11 @@ function IconBusiness({
   const shineId = `icon-business-shine-${uid}`;
 
   if (theme.isChonk) {
-    return <IconLightning {...props} ref={ref} />;
+    return <IconLightning {...props} />;
   }
 
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       <mask id={maskId}>
         <path
           fill="white"
