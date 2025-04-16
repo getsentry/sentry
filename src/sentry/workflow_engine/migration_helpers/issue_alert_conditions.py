@@ -67,9 +67,10 @@ def create_event_attribute_data_condition(
 ) -> DataConditionKwargs:
     comparison = {
         "match": data["match"],
-        "value": data["value"],
         "attribute": data["attribute"],
     }
+    if comparison["match"] not in {MatchType.IS_SET, MatchType.NOT_SET}:
+        comparison["value"] = data["value"]
 
     return DataConditionKwargs(
         type=Condition.EVENT_ATTRIBUTE,
