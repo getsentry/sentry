@@ -361,7 +361,9 @@ export function getMergedTasks({organization, projects}: Options) {
   const taskDescriptors = getOnboardingTasks({organization, projects});
   const serverTasks = isDemoModeActive()
     ? getDemoWalkthroughTasks()
-    : organization.onboardingTasks;
+    : // There is a bug where the server returns null values in the onboardingTasks array
+      // https://sentry.sentry.io/issues/6544852645/?project=11276&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&referrer=issue-stream&stream_index=0
+      organization.onboardingTasks.filter(task => !!task);
 
   // Map server task state (i.e. completed status) with tasks objects
   const allTasks = taskDescriptors.map(
