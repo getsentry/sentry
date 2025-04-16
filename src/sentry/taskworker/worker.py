@@ -594,7 +594,7 @@ class TaskWorker:
             return None
 
     def _spawn_children(self) -> None:
-        while True:
+        while not self._shutdown_event.is_set():
             self._children = [child for child in self._children if child.is_alive()]
             if len(self._children) >= self._concurrency:
                 continue
