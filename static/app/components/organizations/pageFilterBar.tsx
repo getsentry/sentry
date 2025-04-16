@@ -1,3 +1,4 @@
+import React, {Children, isValidElement} from 'react';
 import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -8,9 +9,25 @@ import {space} from 'sentry/styles/space';
 // static/app/views/explore/multiQueryMode/queryConstructors/sortBy.tsx
 // and static/app/views/explore/multiQueryMode/queryConstructors/visualize.tsx
 // and not just for PageFilters as the name indicates.
-const PageFilterBar = styled('div')<{condensed?: boolean}>`
+interface PageFilterBarProps extends React.HTMLAttributes<HTMLDivElement> {
+  condensed?: boolean;
+}
+
+const PageFilterBar = styled(({children, ...props}: PageFilterBarProps) => {
+  if (Children.count(children) <= 1) {
+    if (isValidElement(children)) {
+      return React.cloneElement(children, props);
+    }
+
+    return children;
+  }
+
+  return <div {...props} />;
+})<PageFilterBarProps>`
   ${p => (p.theme.isChonk ? chonkPageFilterBarStyles(p as any) : pageFilterBarStyles(p))}
 `;
+
+export default PageFilterBar;
 
 const pageFilterBarStyles = (p: {theme: Theme; condensed?: boolean}) => css`
   display: flex;
@@ -172,5 +189,3 @@ except in mobile */
     border-bottom-left-radius: 0;
   }
 `;
-
-export default PageFilterBar;
