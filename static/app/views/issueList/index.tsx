@@ -47,10 +47,10 @@ function useHydrateIssueViewQueryParams({view}: {view: GroupSearchView | undefin
 
     if (
       view &&
-      !previousViewData &&
       !query[URL_PARAM.PROJECT] &&
       !query[URL_PARAM.ENVIRONMENT] &&
-      !DATE_TIME_KEYS.some(key => query[key])
+      !DATE_TIME_KEYS.some(key => query[key]) &&
+      !query.sort
     ) {
       navigate(
         normalizeUrl({
