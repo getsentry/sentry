@@ -226,6 +226,74 @@ describe('ExploreToolbar', function () {
     ]);
   });
 
+  it('defaults count_unique argument to span.op', async function () {
+    let visualizes: any;
+    function Component() {
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {enableRouterMocks: false}
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+
+    // this is the default
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.BAR,
+        label: 'A',
+        yAxes: ['count(span.duration)'],
+      },
+    ]);
+
+    // try changing the aggregate
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
+
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.BAR,
+        label: 'A',
+        yAxes: ['count_unique(span.op)'],
+      },
+    ]);
+
+    // try changing the aggregate + field
+    await userEvent.click(within(section).getByRole('button', {name: 'count_unique'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+
+    // try changing the field
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.BAR,
+        label: 'A',
+        yAxes: ['avg(span.self_time)'],
+      },
+    ]);
+    //
+    // try changing the aggregate back to count_unique
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
+
+    expect(visualizes).toEqual([
+      {
+        chartType: ChartType.BAR,
+        label: 'A',
+        yAxes: ['count_unique(span.op)'],
+      },
+    ]);
+  });
+
   it('allows changing visualizes', async function () {
     let fields, visualizes: any;
     function Component() {
@@ -867,6 +935,87 @@ describe('ExploreToolbar', function () {
           }),
         })
       );
+    });
+  });
+
+  it('highlights save button when saved query is changed', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/123/`,
+      method: 'GET',
+      body: {
+        query: [
+          {
+            query: '',
+            fields: ['count(span.duration)'],
+            groupby: ['span.op'],
+            orderby: '-count(span.duration)',
+            visualize: [
+              {
+                chartType: 1,
+                yAxes: ['count(span.duration)'],
+              },
+            ],
+            mode: 'aggregate',
+          },
+        ],
+        range: '14d',
+        projects: [],
+        environment: [],
+      },
+    });
+
+    const router = RouterFixture({
+      location: {
+        pathname: '/traces/',
+        query: {
+          query: '',
+          visualize: '{"chartType":1,"yAxes":["count(span.duration)"]}',
+          groupBy: ['span.op'],
+          sort: ['-count(span.duration)'],
+          field: ['count(span.duration)'],
+          id: '123',
+          mode: 'aggregate',
+        },
+      },
+    });
+
+    function Component() {
+      return <ExploreToolbar />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {router, organization}
+    );
+    screen.getByText('Save as\u2026');
+    const section = screen.getByTestId('section-sort-by');
+    await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          sort: ['count(span.duration)'],
+        }),
+      })
+    );
+
+    // Simulate navigation from sort change
+    router.location.query.sort = ['count(span.duration)'];
+    router.push(router.location);
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {router, organization}
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Save')).toBeInTheDocument();
     });
   });
 });

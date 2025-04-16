@@ -64,7 +64,7 @@ describe('DemoTours', () => {
       [DemoTour.ISSUES]: {
         currentStepId: null,
         isCompleted: false,
-        orderedStepIds: [DemoTourStep.ISSUES_STREAM, DemoTourStep.ISSUES_TAGS],
+        orderedStepIds: [DemoTourStep.ISSUES_STREAM, DemoTourStep.ISSUES_AGGREGATES],
         isRegistered: true,
         tourKey: DemoTour.ISSUES,
       },

@@ -357,7 +357,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         try:
             discard = request.data.get("discard")
             project = group.project
-            search_fn = functools.partial(prep_search, self, request, project)
+            search_fn = functools.partial(prep_search, request, project)
             response = update_groups_with_search_fn(
                 request, [group.id], [project], project.organization_id, search_fn
             )
