@@ -179,7 +179,7 @@ export function getHighlightTagData({
 export function getRuntimeLabelAndTooltip(
   event: Event
 ): {label: string; tooltip: string} | null {
-  if (!event.sdk?.name.includes('javascript')) {
+  if (!event.sdk?.name?.includes('javascript')) {
     return null;
   }
 

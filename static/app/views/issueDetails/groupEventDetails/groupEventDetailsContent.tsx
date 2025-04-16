@@ -138,7 +138,11 @@ export function EventDetailsContent({
 
   return (
     <Fragment>
-      {hasStreamlinedUI && <HighlightsIconSummary event={event} group={group} />}
+      {hasStreamlinedUI && (
+        <ErrorBoundary mini>
+          <HighlightsIconSummary event={event} group={group} />
+        </ErrorBoundary>
+      )}
       {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} />
       )}
