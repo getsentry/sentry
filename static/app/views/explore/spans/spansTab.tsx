@@ -12,8 +12,9 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {
   EAPSpanSearchQueryBuilder,
-  SpanSearchQueryBuilder,
+  useEAPSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
+import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,7 +22,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -43,6 +43,7 @@ import {
   useExploreVisualizes,
   useSetExplorePageParams,
   useSetExploreQuery,
+  useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
@@ -84,9 +85,9 @@ export function SpansTabContentImpl({
 }: SpanTabProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const dataset = useExploreDataset();
   const mode = useExploreMode();
   const visualizes = useExploreVisualizes();
+  const setVisualizes = useSetExploreVisualizes();
   const [samplesTab, setSamplesTab] = useTab();
 
   const {tags: numberTags, isLoading: numberTagsLoading} = useSpanTags('number');
@@ -106,11 +107,11 @@ export function SpansTabContentImpl({
   }, [id, visitQuery]);
 
   const toolbarExtras = [
-    ...(organization?.features?.includes('visibility-explore-dataset')
-      ? ['dataset toggle' as const]
-      : []),
     ...(organization?.features?.includes('visibility-explore-equations')
       ? ['equations' as const]
+      : []),
+    ...(organization?.features?.includes('visibility-explore-tabs')
+      ? ['tabs' as const]
       : []),
   ];
 
@@ -196,117 +197,118 @@ export function SpansTabContentImpl({
   const tableIsProgressivelyLoading =
     organization.features.includes('visibility-explore-progressive-loading') &&
     (queryType === 'samples'
-      ? spansTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+      ? false // Samples mode won't show the progressive loading spinner
       : queryType === 'aggregate'
         ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
         : false);
 
+  const eapSpanSearchQueryBuilderProps = {
+    projects: selection.projects,
+    initialQuery: query,
+    onSearch: setQuery,
+    searchSource: 'explore',
+    getFilterTokenWarning:
+      mode === Mode.SAMPLES
+        ? (key: string) => {
+            if (ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(key as AggregationKey)) {
+              return t(
+                "This key won't affect the results because samples mode does not support aggregate functions"
+              );
+            }
+            return undefined;
+          }
+        : undefined,
+    supportedAggregates:
+      mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+    numberTags,
+    stringTags,
+  };
+
+  const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
+    eapSpanSearchQueryBuilderProps
+  );
+
+  // Progressive loading only shows when we have preflight data and
+  // we're fetching the best effort request
+  const timeseriesIsProgressivelyLoading =
+    organization.features.includes('visibility-explore-progressive-loading') &&
+    defined(timeseriesSamplingMode) &&
+    timeseriesSamplingMode === SAMPLING_MODE.PREFLIGHT &&
+    timeseriesResult.isFetched;
+
   return (
-    <Body
-      withToolbar={expanded}
-      withHints={organization.features.includes('traces-schema-hints')}
-    >
-      <TopSection>
-        <StyledPageFilterBar condensed>
-          <ProjectPageFilter />
-          <EnvironmentPageFilter />
-          <DatePageFilter
-            defaultPeriod={defaultPeriod}
-            maxPickableDays={maxPickableDays}
-            relativeOptions={({arbitraryOptions}) => ({
-              ...arbitraryOptions,
-              ...relativeOptions,
-            })}
-          />
-        </StyledPageFilterBar>
-        {dataset === DiscoverDatasets.SPANS_INDEXED ? (
-          <SpanSearchQueryBuilder
-            projects={selection.projects}
-            initialQuery={query}
-            onSearch={setQuery}
-            searchSource="explore"
-          />
-        ) : (
-          <EAPSpanSearchQueryBuilder
-            projects={selection.projects}
-            initialQuery={query}
-            onSearch={setQuery}
-            searchSource="explore"
-            getFilterTokenWarning={
-              mode === Mode.SAMPLES
-                ? key => {
-                    if (
-                      ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(key as AggregationKey)
-                    ) {
-                      return t(
-                        "This key won't affect the results because samples mode does not support aggregate functions"
-                      );
-                    }
-                    return undefined;
-                  }
-                : undefined
-            }
-            supportedAggregates={
-              mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
-            }
-            numberTags={numberTags}
-            stringTags={stringTags}
-          />
-        )}
-      </TopSection>
-      <Feature features="organizations:traces-schema-hints">
-        <SchemaHintsSection>
-          <SchemaHintsList
-            supportedAggregates={
-              mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
-            }
-            numberTags={numberTags}
-            stringTags={stringTags}
-            isLoading={numberTagsLoading || stringTagsLoading}
-            exploreQuery={query}
-            source={SchemaHintsSources.EXPLORE}
-            tableColumns={fields}
-            setPageParams={setExplorePageParams}
-          />
-        </SchemaHintsSection>
-      </Feature>
-      <SideSection withToolbar={expanded}>
-        <ExploreToolbar width={300} extras={toolbarExtras} />
-      </SideSection>
-      <section>
-        {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
+    <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
+      <Body withToolbar={expanded}>
+        <TopSection>
+          <FilterSection>
+            <StyledPageFilterBar condensed>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter />
+              <DatePageFilter
+                defaultPeriod={defaultPeriod}
+                maxPickableDays={maxPickableDays}
+                relativeOptions={({arbitraryOptions}) => ({
+                  ...arbitraryOptions,
+                  ...relativeOptions,
+                })}
+              />
+            </StyledPageFilterBar>
+            <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
+          </FilterSection>
+          <Feature features="organizations:traces-schema-hints">
+            <SchemaHintsSection>
+              <SchemaHintsList
+                supportedAggregates={
+                  mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
+                }
+                numberTags={numberTags}
+                stringTags={stringTags}
+                isLoading={numberTagsLoading || stringTagsLoading}
+                exploreQuery={query}
+                source={SchemaHintsSources.EXPLORE}
+                tableColumns={fields}
+                setPageParams={setExplorePageParams}
+              />
+            </SchemaHintsSection>
+          </Feature>
+        </TopSection>
+        <SideSection withToolbar={expanded}>
+          <ExploreToolbar width={300} extras={toolbarExtras} />
+        </SideSection>
         <MainContent>
-          <ExploreCharts
-            canUsePreviousResults={canUsePreviousResults}
-            confidences={confidences}
-            query={query}
-            timeseriesResult={timeseriesResult}
-            isProgressivelyLoading={
-              organization.features.includes('visibility-explore-progressive-loading') &&
-              defined(timeseriesSamplingMode) &&
-              timeseriesSamplingMode !== SAMPLING_MODE.BEST_EFFORT
-            }
-          />
-          <ExploreTables
-            aggregatesTableResult={aggregatesTableResult}
-            spansTableResult={spansTableResult}
-            tracesTableResult={tracesTableResult}
-            confidences={confidences}
-            samplesTab={samplesTab}
-            setSamplesTab={setSamplesTab}
-            isProgressivelyLoading={tableIsProgressivelyLoading}
-          />
-          <Toggle>
-            <StyledButton
-              aria-label={expanded ? t('Collapse sidebar') : t('Expande sidebar')}
-              size="xs"
-              icon={<IconDoubleChevron direction={expanded ? 'left' : 'right'} />}
-              onClick={() => setExpanded(!expanded)}
+          {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
+          <div>
+            <ExploreCharts
+              canUsePreviousResults={canUsePreviousResults}
+              confidences={confidences}
+              query={query}
+              timeseriesResult={timeseriesResult}
+              isProgressivelyLoading={timeseriesIsProgressivelyLoading}
+              visualizes={visualizes}
+              setVisualizes={setVisualizes}
             />
-          </Toggle>
+            <ExploreTables
+              aggregatesTableResult={aggregatesTableResult}
+              spansTableResult={spansTableResult}
+              tracesTableResult={tracesTableResult}
+              confidences={confidences}
+              samplesTab={samplesTab}
+              setSamplesTab={setSamplesTab}
+              isProgressivelyLoading={tableIsProgressivelyLoading}
+              useTabs={organization.features.includes('visibility-explore-tabs')}
+            />
+            <Toggle>
+              <StyledButton
+                aria-label={expanded ? t('Collapse sidebar') : t('Expande sidebar')}
+                size="xs"
+                icon={<IconDoubleChevron direction={expanded ? 'left' : 'right'} />}
+                onClick={() => setExpanded(!expanded)}
+              />
+            </Toggle>
+          </div>
         </MainContent>
-      </section>
-    </Body>
+      </Body>
+    </SearchQueryBuilderProvider>
   );
 }
 
@@ -337,18 +339,20 @@ function OnboardingContent(props: OnboardingContentProps) {
   return (
     <Layout.Body>
       <TopSection>
-        <StyledPageFilterBar condensed>
-          <ProjectPageFilter />
-          <EnvironmentPageFilter />
-          <DatePageFilter
-            defaultPeriod={props.defaultPeriod}
-            maxPickableDays={props.maxPickableDays}
-            relativeOptions={({arbitraryOptions}) => ({
-              ...arbitraryOptions,
-              ...props.relativeOptions,
-            })}
-          />
-        </StyledPageFilterBar>
+        <FilterSection>
+          <StyledPageFilterBar condensed>
+            <ProjectPageFilter />
+            <EnvironmentPageFilter />
+            <DatePageFilter
+              defaultPeriod={props.defaultPeriod}
+              maxPickableDays={props.maxPickableDays}
+              relativeOptions={({arbitraryOptions}) => ({
+                ...arbitraryOptions,
+                ...props.relativeOptions,
+              })}
+            />
+          </StyledPageFilterBar>
+        </FilterSection>
       </TopSection>
       <OnboardingContentSection>
         <Onboarding project={props.onboardingProject} organization={organization} />
@@ -384,45 +388,50 @@ function checkIsAllowedSelection(
   return selectedMinutes <= maxPickableMinutes;
 }
 
-const Body = styled(Layout.Body)<{
-  // thirdColumnWidth: string;
-  withHints: boolean;
-  withToolbar: boolean;
-}>`
+const Body = styled(Layout.Body)<{withToolbar: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: grid;
     ${p =>
       p.withToolbar
         ? `grid-template-columns: 300px minmax(100px, auto);`
         : `grid-template-columns: 0px minmax(100px, auto);`}
-    grid-template-rows: auto ${p => (p.withHints ? 'auto 1fr' : '1fr')};
+    grid-template-rows: auto 1fr;
     align-content: start;
     gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};
-    transition: 700ms;
+    will-change: grid-template;
+    transition: grid-template 200ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 `;
 
 const TopSection = styled('div')`
-  display: grid;
-  gap: ${space(2)};
   grid-column: 1/3;
-  margin-bottom: ${space(2)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const FilterSection = styled('div')`
+  display: grid;
+  gap: ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: minmax(300px, auto) 1fr;
-    margin-bottom: 0;
   }
 `;
 
 const SideSection = styled('aside')<{withToolbar: boolean}>`
+  position: relative;
+  z-index: 0;
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     ${p => !p.withToolbar && 'overflow: hidden;'}
   }
 `;
 
-const MainContent = styled('div')`
+const MainContent = styled('section')`
   position: relative;
+  z-index: 1;
   max-width: 100%;
+  background: ${p => p.theme.background};
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`

@@ -49,8 +49,10 @@ export function HTTPLandingPage() {
       [QueryParameterNames.DOMAINS_SORT]: decodeScalar,
     },
   });
+
   const sort =
-    decodeSorts(QueryParameterNames.DOMAINS_SORT).find(isAValidSort) ?? DEFAULT_SORT;
+    decodeSorts(query?.[QueryParameterNames.DOMAINS_SORT]).find(isAValidSort) ??
+    DEFAULT_SORT;
   const cursor = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_CURSOR]);
 
   const chartFilters = useHttpLandingChartFilter();

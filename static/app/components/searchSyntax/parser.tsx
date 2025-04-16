@@ -1420,6 +1420,7 @@ export const defaultConfig: SearchConfig = {
     'error.unhandled',
     'stack.in_app',
     'team_key_transaction',
+    'symbolicated_in_app',
   ]),
   sizeKeys: new Set([]),
   disallowedLogicalOperators: new Set(),

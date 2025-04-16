@@ -115,6 +115,7 @@ export default function SeerSection({
               'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
               {email: <a href="mailto:autofix@sentry.io" />}
             ),
+            isHoverable: true,
           }}
         />
       )}

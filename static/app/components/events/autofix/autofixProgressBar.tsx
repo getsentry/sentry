@@ -1,5 +1,4 @@
-import * as React from 'react';
-import {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {SeerLoadingIcon, SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
@@ -7,65 +6,51 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import type {AutofixData} from './types';
-import {AutofixStatus} from './types';
-import {getAutofixProgressPercentage} from './utils';
+import type {AutofixProgressDetails} from './utils';
+import {getAutofixProgressDetails} from './utils';
 
 interface AutofixProgressBarProps {
   autofixData?: AutofixData;
 }
 
 function AutofixProgressBar({autofixData}: AutofixProgressBarProps) {
-  const [progress, setProgress] = useState<number>(0);
+  const [progressDetails, setProgressDetails] = useState<AutofixProgressDetails>({
+    displayText: t('Initializing...'),
+    icon: null,
+    overallProgress: 0,
+  });
 
   useEffect(() => {
-    // Calculate progress percentage using the utility function
-    setProgress(getAutofixProgressPercentage(autofixData));
+    setProgressDetails(getAutofixProgressDetails(autofixData));
   }, [autofixData]);
+
+  const {displayText, icon, overallProgress} = progressDetails;
 
   return (
     <ProgressBarContainer hasData={!!autofixData}>
       <ProgressBarWrapper>
         <ProgressBarTrack>
-          <ProgressBarFill style={{width: `${progress}%`}} />
+          <ProgressBarFill style={{width: `${overallProgress}%`}} />
         </ProgressBarTrack>
       </ProgressBarWrapper>
       <ProgressBarHoverContent hasData={!!autofixData}>
         {autofixData && (
-          <React.Fragment>
+          <Fragment>
             <LeftContent>
-              <IconContainer>
-                {autofixData.status === AutofixStatus.PROCESSING ? (
-                  <SeerLoadingIcon size="md" />
-                ) : autofixData.status === AutofixStatus.NEED_MORE_INFORMATION ||
-                  autofixData.status === AutofixStatus.WAITING_FOR_USER_RESPONSE ? (
-                  <SeerWaitingIcon size="md" />
-                ) : null}
-              </IconContainer>
-              <ProgressText>
-                {autofixData.status === AutofixStatus.COMPLETED
-                  ? t('Complete.')
-                  : autofixData.status === AutofixStatus.ERROR
-                    ? t('Something broke.')
-                    : autofixData.status === AutofixStatus.PROCESSING
-                      ? progress <= 33
-                        ? t(
-                            "Autofix is hard at work on the root cause. Feel free to leave - it\'ll continue in the background."
-                          )
-                        : progress <= 67
-                          ? t(
-                              "Autofix is hard at work on the solution. Feel free to leave - it\'ll continue in the background."
-                            )
-                          : t(
-                              "Autofix is hard at work on the code changes. Feel free to leave - it\'ll continue in the background."
-                            )
-                      : autofixData.status === AutofixStatus.NEED_MORE_INFORMATION ||
-                          autofixData.status === AutofixStatus.WAITING_FOR_USER_RESPONSE
-                        ? t('Standing by. All work so far is saved.')
-                        : t('Initializing...')}
-              </ProgressText>
+              {icon && (
+                <IconContainer>
+                  {icon === 'loading' ? (
+                    <SeerLoadingIcon size="md" />
+                  ) : (
+                    <SeerWaitingIcon size="md" />
+                  )}
+                </IconContainer>
+              )}
+
+              <ProgressText>{displayText}</ProgressText>
             </LeftContent>
-            <ProgressPercentage>{`${progress}%`}</ProgressPercentage>
-          </React.Fragment>
+            <ProgressPercentage>{`${overallProgress}%`}</ProgressPercentage>
+          </Fragment>
         )}
       </ProgressBarHoverContent>
     </ProgressBarContainer>

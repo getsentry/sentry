@@ -2616,6 +2616,38 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert data[1]["cache.hit"] is True
         assert meta["dataset"] == self.dataset
 
+    def test_searchable_contexts(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"device.model": "Apple"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"request.url": "https://sentry/api/0/foo"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["device.model", "request.url"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "orderby": "device.model",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["device.model"] == "Apple"
+        assert data[1]["request.url"] == "https://sentry/api/0/foo"
+        assert meta["dataset"] == self.dataset
+
     def test_trace_status_rate(self):
         statuses = ["unknown", "internal_error", "unauthenticated", "ok", "ok"]
         self.store_spans(
@@ -3569,6 +3601,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         ]
         assert meta["dataset"] == self.dataset
 
+    @pytest.mark.xfail(reason="https://github.com/getsentry/snuba/pull/7067")
     def test_preflight_request(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
@@ -3601,6 +3634,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
         assert response.data["meta"]["dataScanned"] == "partial"
 
+    @pytest.mark.xfail(reason="https://github.com/getsentry/snuba/pull/7067")
     def test_best_effort_request(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},

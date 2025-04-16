@@ -11,6 +11,7 @@ type IssueViewsTableProps = {
   isPending: boolean;
   type: string;
   views: GroupSearchView[];
+  hideCreatedBy?: boolean;
 };
 
 export function IssueViewsTable({
@@ -19,6 +20,7 @@ export function IssueViewsTable({
   isError,
   handleStarView,
   type,
+  hideCreatedBy = false,
 }: IssueViewsTableProps) {
   const organization = useOrganization();
 
@@ -40,8 +42,16 @@ export function IssueViewsTable({
           <SavedEntityTable.HeaderCell key="query">
             {t('Query')}
           </SavedEntityTable.HeaderCell>
+          {!hideCreatedBy && (
+            <SavedEntityTable.HeaderCell key="creator">
+              {t('Creator')}
+            </SavedEntityTable.HeaderCell>
+          )}
           <SavedEntityTable.HeaderCell key="last-visited">
             {t('Last Viewed')}
+          </SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell key="stars">
+            {t('Stars')}
           </SavedEntityTable.HeaderCell>
         </SavedEntityTable.Header>
       }
@@ -80,8 +90,18 @@ export function IssueViewsTable({
           <SavedEntityTable.Cell>
             <SavedEntityTable.CellQuery query={view.query} />
           </SavedEntityTable.Cell>
+          {!hideCreatedBy && (
+            <SavedEntityTable.Cell>
+              <SavedEntityTable.CellUser user={view.createdBy} />
+            </SavedEntityTable.Cell>
+          )}
           <SavedEntityTable.Cell>
             <SavedEntityTable.CellTimeSince date={view.lastVisited} />
+          </SavedEntityTable.Cell>
+          <SavedEntityTable.Cell>
+            <SavedEntityTable.CellTextContent>
+              {view.stars.toLocaleString()}
+            </SavedEntityTable.CellTextContent>
           </SavedEntityTable.Cell>
         </SavedEntityTable.Row>
       ))}
@@ -91,6 +111,6 @@ export function IssueViewsTable({
 
 const SavedEntityTableWithColumns = styled(SavedEntityTable)`
   grid-template-columns:
-    40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
-    auto;
+    40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr) auto
+    auto auto;
 `;
