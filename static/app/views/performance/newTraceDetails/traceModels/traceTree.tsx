@@ -2184,6 +2184,7 @@ function printTraceTreeNode(
       padding +
       (t.value.op || 'unknown span') +
       ' - ' +
+      getNodeDescriptionPrefix(t) +
       (t.value.description || 'unknown description') +
       (isEAPTransactionNode(t) ? ` (eap-transaction)` : '')
     );
@@ -2328,4 +2329,13 @@ function getRelatedPerformanceIssuesFromTransaction(
   }
 
   return occurences;
+}
+
+export function getNodeDescriptionPrefix(
+  node: TraceTreeNode<TraceTree.EAPSpan> | TraceTreeNode<TraceTree.Span>
+) {
+  // Check if span has http.request.prefetch attribute and add prefix if it does
+  const isPrefetch =
+    isSpanNode(node) && node.value.data && !!node.value.data['http.request.prefetch'];
+  return isPrefetch ? '(prefetch) ' : '';
 }
