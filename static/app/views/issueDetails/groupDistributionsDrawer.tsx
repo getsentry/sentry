@@ -1,5 +1,4 @@
 import {useRef, useState} from 'react';
-import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -12,13 +11,14 @@ import {
   SearchInput,
 } from 'sentry/components/events/eventDrawer';
 import {IconSearch} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import GroupDistributionCrumbs from 'sentry/views/issueDetails/groupDistributions/groupDistributionCrumbs';
+import HeaderTitle from 'sentry/views/issueDetails/groupDistributions/headerTitle';
 import TagExportDropdown from 'sentry/views/issueDetails/groupDistributions/tagExportDropdown';
 import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
@@ -28,20 +28,6 @@ import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagD
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import TagDrawerContent from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
-
-function getHeaderTitle(
-  tagKey: string | undefined,
-  tab: DrawerTab,
-  includeFeatureFlagsTab: boolean
-) {
-  if (tagKey) {
-    return tab === DrawerTab.TAGS
-      ? tct('Tag Details - [tagKey]', {tagKey})
-      : tct('Feature Flag Details - [tagKey]', {tagKey});
-  }
-
-  return includeFeatureFlagsTab ? t('Tags & Feature Flags') : t('All Tags');
-}
 
 /**
  * Shared tags and feature flags distributions drawer, used by streamlined issue details UI.
@@ -123,7 +109,11 @@ function BaseGroupDistributionsDrawer({
         <GroupDistributionCrumbs group={group} project={project} tab={tab} />
       </EventDrawerHeader>
       <EventNavigator>
-        <Header>{getHeaderTitle(tagKey, tab, includeFeatureFlagsTab)}</Header>
+        <HeaderTitle
+          includeFeatureFlagsTab={includeFeatureFlagsTab}
+          tab={tab}
+          tagKey={tagKey}
+        />
         {headerActions}
       </EventNavigator>
       <EventDrawerBody>
@@ -154,10 +144,3 @@ function BaseGroupDistributionsDrawer({
     </EventDrawerContainer>
   );
 }
-
-const Header = styled('h3')`
-  ${p => p.theme.overflowEllipsis};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
-  margin: 0;
-`;
