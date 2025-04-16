@@ -1,5 +1,6 @@
 import {Button} from 'sentry/components/core/button';
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
+import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import {
   getDefaultOrderBy,
   getSelectionType,
