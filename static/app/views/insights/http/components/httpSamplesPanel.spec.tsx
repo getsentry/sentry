@@ -140,12 +140,28 @@ describe('HTTPSamplesPanel', () => {
               [1699907700, [{count: 7810.2}]],
               [1699908000, [{count: 1216.8}]],
             ],
+            meta: {
+              fields: {
+                count: 'integer',
+              },
+              units: {
+                count: null,
+              },
+            },
           },
           '304': {
             data: [
               [1699907700, [{count: 2701.5}]],
               [1699908000, [{count: 78.12}]],
             ],
+            meta: {
+              fields: {
+                count: 'integer',
+              },
+              units: {
+                count: null,
+              },
+            },
           },
         },
       });
@@ -368,6 +384,10 @@ describe('HTTPSamplesPanel', () => {
               'span.self_time': 320.300102,
             },
           ],
+          meta: {
+            fields: {},
+            units: {},
+          },
         },
       });
 
@@ -422,6 +442,7 @@ describe('HTTPSamplesPanel', () => {
               'span.module:http span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
             project: [],
             additionalFields: [
+              'id',
               'trace',
               'span.description',
               'span.status_code',
