@@ -21,8 +21,15 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
             "target_type": {"type": "string", "enum": [*AssigneeTargetType]},
             "target_identifier": {"type": ["integer", "string"]},
         },
-        "required": ["target_type", "target_identifier"],
+        "required": ["target_type"],
         "additionalProperties": False,
+        "allOf": [
+            {
+                "if": {"properties": {"target_type": {"const": AssigneeTargetType.UNASSIGNED}}},
+                "then": {"required": ["target_type"]},
+                "else": {"required": ["target_type", "target_identifier"]},
+            }
+        ],
     }
 
     @staticmethod
