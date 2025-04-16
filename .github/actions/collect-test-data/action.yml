@@ -25,7 +25,7 @@ runs:
   using: 'composite'
   steps:
     - name: Collect test data
-      uses: getsentry/action-collect-test-data@c0a2fd3f79d3867e2c8b486ccb1c4bf925477742 # v0.3.0
+      uses: getsentry/action-collect-test-data@ac0b9ecb5dc7437c113051e4e6a70012ff02c6dc # 0.4.1
       with:
         path: ${{ inputs.artifact_path }}
         gcs_path: ${{ inputs.gcs_bucket }}/pytest/${{ github.repository }}/${{ github.workflow }}/${{ github.job }}${{ inputs.matrix_instance_number != '' && '/instance' || '' }}${{ inputs.matrix_instance_number != '' && inputs.matrix_instance_number || '' }}/${{ github.repository_id }}/${{ github.run_id }}/${{ github.run_attempt }}
