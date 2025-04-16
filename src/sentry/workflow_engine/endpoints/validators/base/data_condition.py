@@ -104,4 +104,4 @@ class BaseDataConditionValidator(
         """
         Create a DataCondition object from the validated data.
         """
-        return DataCondition(**validated_data)
+        return DataCondition.objects.create(**validated_data)
