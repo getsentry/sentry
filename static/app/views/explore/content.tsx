@@ -2,7 +2,6 @@ import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
