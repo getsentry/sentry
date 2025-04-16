@@ -16,6 +16,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -34,14 +35,9 @@ type ReleaseHealthItem = {
   release: string;
 };
 
-interface Props {
-  end: string;
-  environments: readonly string[];
+interface Props extends PageFilters {
   onMouseOutRelease: (release: string) => void;
   onMouseOverRelease: (release: string) => void;
-  onSelectRelease: (release: string, projectId: string) => void;
-  projects: readonly number[];
-  start: string;
 }
 
 type ReleaseHealthGridItem = Pick<ReleaseHealthItem, 'date' | 'release' | 'error_count'>;
@@ -60,13 +56,11 @@ const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
  * especially with the in-drawer navigation.
  */
 export function ReleaseDrawerTable({
-  end,
+  datetime,
   environments,
   projects,
-  start,
   onMouseOverRelease,
   onMouseOutRelease,
-  onSelectRelease,
 }: Props) {
   const theme = useTheme();
   const location = useLocation();
@@ -79,16 +73,8 @@ export function ReleaseDrawerTable({
         query: {
           project: projects,
           environment: environments,
-          ...Object.fromEntries(
-            Object.entries(location.query).filter(([key]) =>
-              ['project', 'environment'].includes(key)
-            )
-          ),
-          cursor: location.query.releaseCursor,
-          ...normalizeDateTimeParams({
-            start,
-            end,
-          }),
+          cursor: location.query.rdListCursor,
+          ...normalizeDateTimeParams(datetime),
           per_page: 15,
         },
       },
@@ -138,16 +124,18 @@ export function ReleaseDrawerTable({
         // Custom release renderer -- we want to keep navigation within drawer
         return (
           <ReleaseLink
-            to="#"
             onMouseOver={() => {
               onMouseOverRelease(dataRow.release);
             }}
             onMouseOut={() => {
               onMouseOutRelease(dataRow.release);
             }}
-            onClick={e => {
-              e.preventDefault();
-              onSelectRelease(String(value), String(dataRow.project_id));
+            to={{
+              query: {
+                ...location.query,
+                rdRelease: value,
+                rdReleaseProjectId: dataRow.project_id,
+              },
             }}
           >
             <ProjectBadge project={dataRow.project} disableLink hideName />
@@ -191,14 +179,7 @@ export function ReleaseDrawerTable({
         </CellWrapper>
       );
     },
-    [
-      organization,
-      location,
-      onSelectRelease,
-      onMouseOutRelease,
-      onMouseOverRelease,
-      theme,
-    ]
+    [organization, location, onMouseOutRelease, onMouseOverRelease, theme]
   );
 
   const tableEmptyMessage = (
@@ -228,7 +209,7 @@ export function ReleaseDrawerTable({
         onCursor={(cursor, path, searchQuery) => {
           navigate({
             pathname: path,
-            query: {...searchQuery, releaseCursor: cursor},
+            query: {...searchQuery, rdListCursor: cursor},
           });
         }}
       />

@@ -44,7 +44,7 @@ export function CommitsList({release, releaseRepos, projectSlug}: CommitsProps) 
     release,
     projectSlug,
     activeRepository: activeReleaseRepo,
-    cursor: location.query.commitsCursor,
+    cursor: location.query.rdCiCursor,
   });
 
   const commitsByRepository = getCommitsByRepository(commitList);
@@ -81,7 +81,7 @@ export function CommitsList({release, releaseRepos, projectSlug}: CommitsProps) 
             onCursor={(cursor, path, searchQuery) => {
               navigate({
                 pathname: path,
-                query: {...searchQuery, commitsCursor: cursor},
+                query: {...searchQuery, rdCiCursor: cursor},
               });
             }}
           />
