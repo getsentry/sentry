@@ -13,7 +13,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     FEATURES = [
         "organizations:trace-spans-format",
         "organizations:performance-file-io-main-thread-detector",
-        "organizations:performance-slow-db-issue",
     ]
 
     def assert_event(self, result, event_data, message):
