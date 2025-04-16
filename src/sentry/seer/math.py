@@ -73,3 +73,37 @@ def relative_entropy(a: list[float], b: list[float]) -> list[float]:
 def kl_divergence(a: list[float], b: list[float]) -> float:
     assert len(a) == len(b), "Mismatched distribution lengths"
     return sum(relative_entropy(a, b))
+
+
+def rrf_score(
+    entropy_scores: list[float],
+    kl_scores: list[float],
+    entropy_alpha: float = 0.2,
+    kl_alpha: float = 0.8,
+    offset: int = 60,
+) -> list[float]:
+    """
+    Compute reciprocal rank fusion score.
+    """
+
+    def _rrf(kl_rank: int, entropy_rank: int) -> float:
+        a = kl_alpha * (1 / (offset + kl_rank))
+        b = entropy_alpha * (1 / (offset + entropy_rank))
+        return a + b
+
+    alphas = entropy_alpha + kl_alpha
+    if not math.isclose(alphas, 1.0, rel_tol=1e-9):
+        raise ValueError("Entropy alpha and KL alpha must sum to 0.")
+
+    return [
+        _rrf(kl_rank, e_rank)
+        for kl_rank, e_rank in zip(
+            _min_rank(kl_scores, ascending=False),
+            _min_rank(entropy_scores, ascending=True),
+        )
+    ]
+
+
+def _min_rank(xs: list[float], ascending: bool = False):
+    ranks = {x: rank for rank, x in enumerate(sorted(set(xs), reverse=not ascending), 1)}
+    return [ranks[x] for x in xs]

@@ -1,6 +1,6 @@
 import math
 
-from sentry.seer.math import entropy, kl_divergence, laplace_smooth, relative_entropy
+from sentry.seer.math import entropy, kl_divergence, laplace_smooth, relative_entropy, rrf_score
 
 
 def test_laplace_smooth():
@@ -57,3 +57,24 @@ def test_entropy():
     # Negative values in a positive distribution send entropy to negative infinity.
     assert entropy([-1, 2]) == -math.inf
     assert entropy([1, -2]) == -math.inf
+
+
+def test_rrf_score():
+    rrf_scores = rrf_score(
+        # Entropy of the selection set.
+        entropy_scores=[
+            entropy([0.8, 0.2]),
+            entropy([0.999, 0.001]),
+            entropy([0.5, 0.5]),
+        ],
+        # KL divergence of the baseline and selection set.
+        kl_scores=[
+            kl_divergence([0.5, 0.5], [0.8, 0.2]),
+            kl_divergence([0.01, 0.99], [0.999, 0.001]),
+            kl_divergence([0.5, 0.5], [0.5, 0.5]),
+        ],
+    )
+    assert len(rrf_scores) == 3
+    assert math.isclose(rrf_scores[0], 0.01612, rel_tol=1e-3)  # Rank 2.
+    assert math.isclose(rrf_scores[1], 0.01639, rel_tol=1e-3)  # Rank 1.
+    assert math.isclose(rrf_scores[2], 0.01587, rel_tol=1e-3)  # Rank 3.
