@@ -30,6 +30,7 @@ export function StarSavedQueryButton() {
         } catch (error) {
           Sentry.captureException(error);
           addErrorMessage(t('Failed to star query'));
+          setIsStarred(!starred);
         }
       },
       1000,
