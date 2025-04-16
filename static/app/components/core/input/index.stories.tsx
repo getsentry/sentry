@@ -100,9 +100,10 @@ export default storyBook('Input', (story, APIReference) => {
       <Fragment>
         <p>
           The <JSXNode name="Input" /> component can automatically resize its width to fit
-          its content when the <code>autosize</code> prop is enabled. This is useful for
-          inputs that need to grow as the user types. The input will expand horizontally
-          while maintaining its height.
+          its content when used with the <code>useAutosizeInput</code> hook. This hook
+          provides a ref that should be passed to the input component. The input will
+          expand horizontally while maintaining its height as the user types. See the
+          examples below for how to use the hook with controlled and uncontrolled inputs.
         </p>
 
         <p>
