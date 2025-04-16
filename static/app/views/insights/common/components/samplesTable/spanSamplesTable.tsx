@@ -154,7 +154,7 @@ export function SpanSamplesTable({
               })
             }
             to={generateLinkToEventInTraceView({
-              eventId: row['transaction.span_id'],
+              targetId: row['transaction.span_id'],
               timestamp: row.timestamp,
               traceSlug: row.trace,
               projectSlug: row.project,
