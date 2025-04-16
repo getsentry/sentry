@@ -6,7 +6,6 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
@@ -50,7 +49,6 @@ export interface InsightsTimeSeriesWidgetProps
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   showReleaseAs?: 'line' | 'bubble';
   stacked?: boolean;
-  subPageFilters?: PageFilters;
 }
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
