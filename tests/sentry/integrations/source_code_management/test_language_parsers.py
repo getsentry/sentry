@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from sentry.integrations.github.tasks.language_parsers import (
+from sentry.integrations.source_code_management.language_parsers import (
     JavascriptParser,
     PHPParser,
     PythonParser,

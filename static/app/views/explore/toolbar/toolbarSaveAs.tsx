@@ -13,6 +13,7 @@ import {Button, LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
@@ -93,39 +94,37 @@ export function ToolbarSaveAs() {
 
   const items: MenuItemProps[] = [];
 
-  if (organization.features.includes('performance-saved-queries')) {
-    if (defined(id)) {
-      items.push({
-        key: 'update-query',
-        label: <span>{t('Existing Query')}</span>,
-        onAction: async () => {
-          try {
-            addLoadingMessage(t('Updating query...'));
-            await updateQuery();
-            addSuccessMessage(t('Query updated successfully'));
-            trackAnalytics('trace_explorer.save_as', {
-              save_type: 'update_query',
-              ui_source: 'toolbar',
-              organization,
-            });
-          } catch (error) {
-            addErrorMessage(t('Failed to update query'));
-            Sentry.captureException(error);
-          }
-        },
-      });
-    }
+  if (defined(id)) {
     items.push({
-      key: 'save-query',
-      label: <span>{t('A New Query')}</span>,
-      onAction: () => {
-        openSaveQueryModal({
-          organization,
-          saveQuery,
-        });
+      key: 'update-query',
+      label: <span>{t('Existing Query')}</span>,
+      onAction: async () => {
+        try {
+          addLoadingMessage(t('Updating query...'));
+          await updateQuery();
+          addSuccessMessage(t('Query updated successfully'));
+          trackAnalytics('trace_explorer.save_as', {
+            save_type: 'update_query',
+            ui_source: 'toolbar',
+            organization,
+          });
+        } catch (error) {
+          addErrorMessage(t('Failed to update query'));
+          Sentry.captureException(error);
+        }
       },
     });
   }
+  items.push({
+    key: 'save-query',
+    label: <span>{t('A New Query')}</span>,
+    onAction: () => {
+      openSaveQueryModal({
+        organization,
+        saveQuery,
+      });
+    },
+  });
 
   if (organization.features.includes('alerts-eap')) {
     items.push({
@@ -248,7 +247,7 @@ export function ToolbarSaveAs() {
   }
 
   return (
-    <ToolbarSection data-test-id="section-save-as">
+    <StyledToolbarSection data-test-id="section-save-as">
       <ButtonBar gap={1}>
         <DropdownMenu
           items={items}
@@ -289,12 +288,17 @@ export function ToolbarSaveAs() {
           >{`${t('Compare Queries')}`}</LinkButton>
         )}
       </ButtonBar>
-    </ToolbarSection>
+    </StyledToolbarSection>
   );
 }
 
 const DisabledText = styled('span')`
   color: ${p => p.theme.disabled};
+`;
+
+const StyledToolbarSection = styled(ToolbarSection)`
+  border-top: 1px solid ${p => p.theme.border};
+  padding-top: ${space(2)};
 `;
 
 const SaveAsButton = styled(Button)`
