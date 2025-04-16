@@ -101,6 +101,7 @@ describe('IssueViewSaveButton', function () {
           projects: [1],
           environments: ['prod'],
           timeFilters: {period: '7d', utc: null, start: null, end: null},
+          starred: false,
         },
       })
     );
@@ -153,6 +154,7 @@ describe('IssueViewSaveButton', function () {
           projects: [1],
           environments: ['prod'],
           timeFilters: {period: '7d', utc: null, start: null, end: null},
+          starred: false,
         },
       })
     );
