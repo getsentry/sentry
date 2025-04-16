@@ -13,7 +13,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {IconPlay, IconProfiling} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -165,11 +165,7 @@ export function ServiceEntrySpansTable({
   const countQuery = new MutableSearch(eventViewQuery.formatString());
   countQuery.addFilterValue('is_transaction', '1');
 
-  const {
-    data: numEvents,
-    isLoading: isNumEventsLoading,
-    error: numEventsError,
-  } = useEAPSpans(
+  const {data: numEvents, error: numEventsError} = useEAPSpans(
     {
       search: countQuery,
       fields: ['count()'],
@@ -179,7 +175,12 @@ export function ServiceEntrySpansTable({
     'api.performance.service-entry-spans-table-count'
   );
 
-  console.dir(numEvents);
+  const paginationCaption = numEvents[0]?.['count()']
+    ? tct('Showing [pageEventsCount] of [totalEventsCount] events', {
+        pageEventsCount: FULL_PAGE_MODE_LIMIT,
+        totalEventsCount: numEvents[0]?.['count()'],
+      })
+    : '...';
 
   const consolidatedData = tableData?.map(row => {
     const user =
@@ -271,7 +272,12 @@ export function ServiceEntrySpansTable({
         }}
       />
       {fullPageMode && (
-        <Pagination pageLinks={pageLinks} onCursor={handleCursor} size="md" />
+        <Pagination
+          pageLinks={pageLinks}
+          onCursor={handleCursor}
+          size="md"
+          caption={numEventsError ? undefined : paginationCaption}
+        />
       )}
     </Fragment>
   );
