@@ -117,6 +117,8 @@ def update_group(
             },
         )
 
+    return resp
+
 
 def get_rule(slack_request: SlackActionRequest) -> Rule | None:
     """Get the rule that fired"""
