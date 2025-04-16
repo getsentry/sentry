@@ -34,7 +34,7 @@ type IssueViewSectionProps = {
 
 function useIssueViewSort(): GroupSearchViewSort {
   const location = useLocation();
-  const sort = location.query.sort ?? GroupSearchViewSort.VISITED_DESC;
+  const sort = location.query.sort ?? GroupSearchViewSort.POPULARITY_DESC;
 
   return sort as GroupSearchViewSort;
 }
@@ -44,6 +44,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
   const navigate = useNavigate();
   const location = useLocation();
   const sort = useIssueViewSort();
+  const query = typeof location.query.query === 'string' ? location.query.query : '';
   const cursor =
     typeof location.query[cursorQueryParam] === 'string'
       ? location.query[cursorQueryParam]
@@ -61,6 +62,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
     limit,
     sort,
     cursor,
+    query,
   });
 
   const tableQueryKey = makeFetchGroupSearchViewsKey({
@@ -69,6 +71,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
     limit,
     cursor,
     sort,
+    query,
   });
 
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
@@ -100,6 +103,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
         handleStarView={view => {
           mutateViewStarred({id: view.id, starred: !view.starred, view});
         }}
+        hideCreatedBy={createdBy === GroupSearchViewCreatedBy.ME}
       />
       <Pagination
         pageLinks={pageLinks}
@@ -184,7 +188,7 @@ export default function IssueViewsList() {
               onSearch={newQuery => {
                 navigate({
                   pathname: location.pathname,
-                  query: {query: newQuery},
+                  query: {...location.query, query: newQuery},
                 });
               }}
               placeholder=""

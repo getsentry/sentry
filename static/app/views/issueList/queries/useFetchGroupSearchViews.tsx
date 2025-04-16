@@ -11,6 +11,7 @@ type FetchGroupSearchViewsParameters = {
   createdBy?: GroupSearchViewCreatedBy;
   cursor?: string;
   limit?: number;
+  query?: string;
   sort?: GroupSearchViewSort;
 };
 
@@ -20,6 +21,7 @@ export const makeFetchGroupSearchViewsKey = ({
   limit,
   cursor,
   sort,
+  query,
 }: FetchGroupSearchViewsParameters): ApiQueryKey =>
   [
     `/organizations/${orgSlug}/group-search-views/`,
@@ -29,6 +31,7 @@ export const makeFetchGroupSearchViewsKey = ({
         createdBy,
         cursor,
         sort,
+        query,
       },
     },
   ] as const;

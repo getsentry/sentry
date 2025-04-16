@@ -1,3 +1,4 @@
+import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
@@ -24,7 +25,7 @@ describe('IssueViewsHeader', () => {
   });
 
   const getRequestViews: GroupSearchView[] = [
-    {
+    GroupSearchViewFixture({
       id: '1',
       name: 'High Priority',
       query: 'priority:high',
@@ -40,8 +41,8 @@ describe('IssueViewsHeader', () => {
       visibility: GroupSearchViewVisibility.OWNER,
       lastVisited: null,
       starred: false,
-    },
-    {
+    }),
+    GroupSearchViewFixture({
       id: '2',
       name: 'Medium Priority',
       query: 'priority:medium',
@@ -57,8 +58,8 @@ describe('IssueViewsHeader', () => {
       visibility: GroupSearchViewVisibility.ORGANIZATION,
       lastVisited: null,
       starred: false,
-    },
-    {
+    }),
+    GroupSearchViewFixture({
       id: '3',
       name: 'Low Priority',
       query: 'priority:low',
@@ -74,7 +75,7 @@ describe('IssueViewsHeader', () => {
       visibility: GroupSearchViewVisibility.ORGANIZATION,
       lastVisited: null,
       starred: false,
-    },
+    }),
   ];
 
   const defaultRouter = RouterFixture({

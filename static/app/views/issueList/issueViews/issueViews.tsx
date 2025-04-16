@@ -25,6 +25,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
 import type {
   GroupSearchView,
@@ -418,6 +419,7 @@ export function IssueViewsStateProvider({
   const {className: _className, ...restProps} = props;
 
   const allowMultipleProjects = organization.features.includes('global-views');
+  const user = useUser();
   const isSuperUser = isActiveSuperuser();
 
   const {projects: allProjects} = useProjects();
@@ -499,11 +501,13 @@ export function IssueViewsStateProvider({
                 environments: tab.environments,
                 timeFilters: tab.timeFilters,
                 starred: true,
+                createdBy: user,
+                stars: 0,
               })),
           });
         }
       }, 500),
-    [organization.slug, updateViews]
+    [organization.slug, updateViews, user]
   );
 
   const reducer: Reducer<IssueViewsState, IssueViewsActions> = useCallback(
