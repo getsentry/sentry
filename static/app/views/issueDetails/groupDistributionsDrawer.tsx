@@ -5,7 +5,6 @@ import AnalyticsArea from 'sentry/components/analyticsArea';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -16,10 +15,9 @@ import {
   EventDrawerHeader,
   EventNavigator,
   NavigationCrumbs,
-  SearchInput,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
-import {IconDownload, IconSearch} from 'sentry/icons';
+import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -28,6 +26,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useUrlParams from 'sentry/utils/useUrlParams';
+import ListSearchInput from 'sentry/views/issueDetails/groupDistributions/listSearchInput';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsDrawerContent';
 import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
@@ -152,27 +151,17 @@ function BaseGroupDistributionsDrawer({
       />
     ) : tagKey && tab === DrawerTab.FEATURE_FLAGS ? null : (
       <ButtonBar gap={1}>
-        <InputGroup>
-          <SearchInput
-            size="xs"
-            value={search}
-            onChange={e => {
-              setSearch(e.target.value);
-              trackAnalytics('tags.drawer.action', {
-                control: 'search',
-                organization,
-              });
-            }}
-            aria-label={
-              includeFeatureFlagsTab
-                ? t('Search All Tags & Feature Flags')
-                : t('Search All Tags')
-            }
-          />
-          <InputGroup.TrailingItems disablePointerEvents>
-            <IconSearch size="xs" />
-          </InputGroup.TrailingItems>
-        </InputGroup>
+        <ListSearchInput
+          includeFeatureFlagsTab={includeFeatureFlagsTab}
+          search={search}
+          onChange={value => {
+            setSearch(value);
+            trackAnalytics('tags.drawer.action', {
+              control: 'search',
+              organization,
+            });
+          }}
+        />
         {includeFeatureFlagsTab && (
           <SegmentedControl
             size="xs"
