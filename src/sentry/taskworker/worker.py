@@ -7,12 +7,12 @@ import logging
 import multiprocessing
 import queue
 import signal
-import sys
 import threading
 import time
 from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
-from multiprocessing.context import ForkProcess
+from multiprocessing.context import ForkContext, SpawnContext
+from multiprocessing.process import BaseProcess
 from multiprocessing.synchronize import Event
 from types import FrameType, TracebackType
 from typing import Any
@@ -41,7 +41,6 @@ from sentry.taskworker.task import Task
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
 
-mp_context = multiprocessing.get_context("fork")
 logger = logging.getLogger("sentry.taskworker.worker")
 
 AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
@@ -102,15 +101,27 @@ def _get_known_task(activation: TaskActivation) -> Task[Any, Any] | None:
     return namespace.get(activation.taskname)
 
 
+def child_worker_init(process_type: str) -> None:
+    from django.conf import settings
+
+    from sentry.runner import configure
+
+    if process_type == "spawn":
+        configure()
+
+    for module in settings.TASKWORKER_IMPORTS:
+        __import__(module)
+
+
 def child_worker(
     child_tasks: queue.Queue[TaskActivation],
     processed_tasks: queue.Queue[ProcessingResult],
     shutdown_event: Event,
     max_task_count: int | None,
     processing_pool_name: str,
+    process_type: str,
 ) -> None:
-    for module in settings.TASKWORKER_IMPORTS:
-        __import__(module)
+    child_worker_init(process_type)
 
     processed_task_count = 0
 
@@ -156,7 +167,7 @@ def child_worker(
                 },
             )
 
-        sys.exit(1)
+        raise SystemExit(1)
 
     while True:
         if max_task_count and processed_task_count >= max_task_count:
@@ -379,6 +390,8 @@ class TaskWorker:
     Taskworkers can be run with `sentry run taskworker`
     """
 
+    mp_context: ForkContext | SpawnContext
+
     def __init__(
         self,
         rpc_host: str,
@@ -390,21 +403,32 @@ class TaskWorker:
         result_queue_maxsize: int = DEFAULT_WORKER_QUEUE_SIZE,
         rebalance_after: int = DEFAULT_REBALANCE_AFTER,
         processing_pool_name: str | None = None,
+        process_type: str = "spawn",
         **options: dict[str, Any],
     ) -> None:
         self.options = options
         self._max_child_task_count = max_child_task_count
         self._namespace = namespace
         self._concurrency = concurrency
+
         self.client = TaskworkerClient(rpc_host, num_brokers, rebalance_after)
-        self._child_tasks: multiprocessing.Queue[TaskActivation] = mp_context.Queue(
+
+        if process_type == "fork":
+            self.mp_context = multiprocessing.get_context("fork")
+        elif process_type == "spawn":
+            self.mp_context = multiprocessing.get_context("spawn")
+        else:
+            raise ValueError(f"Invalid process type: {process_type}")
+        self._process_type = process_type
+
+        self._child_tasks: multiprocessing.Queue[TaskActivation] = self.mp_context.Queue(
             maxsize=child_tasks_queue_maxsize
         )
-        self._processed_tasks: multiprocessing.Queue[ProcessingResult] = mp_context.Queue(
+        self._processed_tasks: multiprocessing.Queue[ProcessingResult] = self.mp_context.Queue(
             maxsize=result_queue_maxsize
         )
-        self._children: list[ForkProcess] = []
-        self._shutdown_event = mp_context.Event()
+        self._children: list[BaseProcess] = []
+        self._shutdown_event = self.mp_context.Event()
         self._task_receive_timing: dict[str, float] = {}
         self._result_thread: threading.Thread | None = None
 
@@ -600,7 +624,7 @@ class TaskWorker:
         if len(active_children) >= self._concurrency:
             return
         for _ in range(self._concurrency - len(active_children)):
-            process = mp_context.Process(
+            process = self.mp_context.Process(
                 target=child_worker,
                 args=(
                     self._child_tasks,
@@ -608,6 +632,7 @@ class TaskWorker:
                     self._shutdown_event,
                     self._max_child_task_count,
                     self._processing_pool_name,
+                    self._process_type,
                 ),
             )
             process.start()
