@@ -16,6 +16,8 @@ import {
   topJavascriptFrameworks,
 } from './frameworkSuggestionModal';
 
+jest.unmock('lodash/debounce');
+
 describe('Framework suggestion modal', function () {
   const {organization} = initializeOrg();
   const selectedPlatform: OnboardingSelectedSDK = {
