@@ -37,12 +37,12 @@ import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnbo
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {
   FrontendOverviewTable,
   isAValidSort,
   type ValidSort,
-} from 'sentry/views/insights/pages/frontend/frontendTable';
+} from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {
   DEFAULT_SORT,
   FRONTEND_LANDING_TITLE,
