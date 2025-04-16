@@ -18,6 +18,8 @@ from sentry.feedback.usecases.create_feedback import (
     shim_to_feedback,
     validate_issue_platform_event_schema,
 )
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -716,6 +718,81 @@ def test_create_feedback_spam_detection_set_status_ignored(
         group = Group.objects.get()
         assert group.status == GroupStatus.IGNORED
         assert group.substatus == GroupSubStatus.FOREVER
+
+
+@django_db_all
+def test_create_feedback_spam_detection_with_attachments(
+    default_project,
+    mock_produce_occurrence_to_kafka,
+    monkeypatch,
+):
+    with Feature(
+        {
+            "organizations:user-feedback-spam-filter-actions": True,
+            "organizations:user-feedback-spam-filter-ingest": True,
+        }
+    ):
+        event = {
+            "project_id": default_project.id,
+            "request": {
+                "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+                "headers": {
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+                },
+            },
+            "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
+            "timestamp": 1698255009.574,
+            "received": "2021-10-24T22:23:29.574000+00:00",
+            "environment": "prod",
+            "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
+            "user": {
+                "ip_address": "72.164.175.154",
+                "email": "josh.ferge@sentry.io",
+                "id": 880461,
+                "isStaff": False,
+                "name": "Josh Ferge",
+            },
+            "contexts": {
+                "feedback": {
+                    "contact_email": "josh.ferge@sentry.io",
+                    "name": "Josh Ferge",
+                    "message": "This is definitely spam",
+                    "replay_id": "3d621c61593c4ff9b43f8490a78ae18e",
+                    "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
+                },
+            },
+            "breadcrumbs": [],
+            "platform": "javascript",
+        }
+
+        file_attachment = File.objects.create(name="hello.png", type="image/png")
+        EventAttachment.objects.create(
+            event_id=event["event_id"],
+            project_id=event["project_id"],
+            file_id=file_attachment.id,
+            type=file_attachment.type,
+            name="hello.png",
+        )
+
+        mock_openai = Mock()
+        mock_openai().chat.completions.create = create_dummy_response
+
+        monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
+
+        create_feedback_issue(
+            event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+        # Check if the 'is_spam' evidence in the Kafka message matches the expected result
+        is_spam_evidence = [
+            evidence.value
+            for evidence in mock_produce_occurrence_to_kafka.call_args.kwargs[
+                "occurrence"
+            ].evidence_display
+            if evidence.name == "is_spam"
+        ]
+        found_is_spam = is_spam_evidence[0] if is_spam_evidence else None
+        assert found_is_spam is None
 
 
 @django_db_all

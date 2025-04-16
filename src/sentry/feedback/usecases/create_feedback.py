@@ -18,6 +18,7 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
@@ -312,7 +313,11 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
 
     # Spam detection.
     is_message_spam = None
-    if spam_detection_enabled(project):
+
+    # Only run spam detection if there are no attachments.
+    num_attachments = EventAttachment.objects.filter(event_id=event["event_id"]).count()
+
+    if spam_detection_enabled(project) and num_attachments == 0:
         try:
             is_message_spam = is_spam(feedback_message)
         except Exception:
