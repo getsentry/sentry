@@ -3,11 +3,8 @@ import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -18,7 +15,7 @@ import {
   SearchInput,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
-import {IconDownload, IconSearch} from 'sentry/icons';
+import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -26,6 +23,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import TagExportDropdown from 'sentry/views/issueDetails/groupDistributions/tagExportDropdown';
 import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import useDrawerTab from 'sentry/views/issueDetails/groupDistributions/useDrawerTab';
@@ -80,56 +78,18 @@ function BaseGroupDistributionsDrawer({
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === group.project.slug)!;
 
-  const [isExportDisabled, setIsExportDisabled] = useState(false);
   const {baseUrl} = useGroupDetailsRoute();
-  const handleDataExport = useDataExport({
-    payload: {
-      queryType: ExportQueryType.ISSUES_BY_TAG,
-      queryInfo: {
-        project: project.id,
-        group: group.id,
-        key: tagKey,
-      },
-    },
-  });
+
   const [search, setSearch] = useState('');
   const {tab, setTab} = useDrawerTab({enabled: includeFeatureFlagsTab});
 
   const headerActions =
     tagKey && tab === DrawerTab.TAGS ? (
-      <DropdownMenu
-        size="xs"
-        trigger={triggerProps => (
-          <Button
-            {...triggerProps}
-            borderless
-            size="xs"
-            aria-label={t('Export options')}
-            icon={<IconDownload />}
-          />
-        )}
-        items={[
-          {
-            key: 'export-page',
-            label: t('Export Page to CSV'),
-            // TODO(issues): Dropdown menu doesn't support hrefs yet
-            onAction: () => {
-              window.open(
-                `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
-                '_blank'
-              );
-            },
-          },
-          {
-            key: 'export-all',
-            label: isExportDisabled ? t('Export in progress...') : t('Export All to CSV'),
-            onAction: () => {
-              handleDataExport();
-              setIsExportDisabled(true);
-            },
-            disabled: isExportDisabled,
-          },
-        ]}
+      <TagExportDropdown
+        tagKey={tagKey}
+        group={group}
+        organization={organization}
+        project={project}
       />
     ) : tagKey && tab === DrawerTab.FEATURE_FLAGS ? null : (
       <ButtonBar gap={1}>
