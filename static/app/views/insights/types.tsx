@@ -119,6 +119,7 @@ export type SpanStringFields =
   | 'transaction.id'
   | 'transaction.method'
   | 'release'
+  | 'request.method'
   | 'os.name'
   | 'span.status_code'
   | 'span.ai.pipeline.group'
