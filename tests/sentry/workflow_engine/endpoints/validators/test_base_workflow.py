@@ -35,12 +35,14 @@ class TestWorkflowValidator(TestCase):
         self.valid_data["actionFilters"] = [
             {
                 **self.valid_data["triggers"],
-                "action": {
-                    "type": Action.Type.SLACK,
-                    "config": {"foo": "bar"},
-                    "data": {"baz": "bar"},
-                    "integrationId": 1,
-                },
+                "actions": [
+                    {
+                        "type": Action.Type.SLACK,
+                        "config": {"foo": "bar"},
+                        "data": {"baz": "bar"},
+                        "integrationId": 1,
+                    }
+                ],
             }
         ]
 
@@ -55,11 +57,13 @@ class TestWorkflowValidator(TestCase):
         self.valid_data["actionFilters"] = [
             {
                 **self.valid_data["triggers"],
-                "action": {
-                    "type": Action.Type.SLACK,
-                    "config": {},
-                    "integrationId": 1,
-                },
+                "actions": [
+                    {
+                        "type": Action.Type.SLACK,
+                        "config": {},
+                        "integrationId": 1,
+                    }
+                ],
             }
         ]
 
@@ -148,12 +152,14 @@ class TestWorkflowValidatorCreate(TestCase):
     def test_create__with_actions__creates_workflow_group(self, mock_action_handler):
         self.valid_data["actionFilters"] = [
             {
-                "action": {
-                    "type": Action.Type.SLACK,
-                    "config": {"foo": "bar"},
-                    "data": {"baz": "bar"},
-                    "integrationId": 1,
-                },
+                "actions": [
+                    {
+                        "type": Action.Type.SLACK,
+                        "config": {"foo": "bar"},
+                        "data": {"baz": "bar"},
+                        "integrationId": 1,
+                    }
+                ],
                 "logicType": "any",
                 "conditions": [],
                 "organizationId": self.organization.id,
@@ -176,12 +182,14 @@ class TestWorkflowValidatorCreate(TestCase):
     def test_create__with_actions__creates_action_group(self, mock_action_handler):
         self.valid_data["actionFilters"] = [
             {
-                "action": {
-                    "type": Action.Type.SLACK,
-                    "config": {"foo": "bar"},
-                    "data": {"baz": "bar"},
-                    "integrationId": 1,
-                },
+                "actions": [
+                    {
+                        "type": Action.Type.SLACK,
+                        "config": {"foo": "bar"},
+                        "data": {"baz": "bar"},
+                        "integrationId": 1,
+                    }
+                ],
                 "logicType": "any",
                 "conditions": [],
                 "organizationId": self.organization.id,
