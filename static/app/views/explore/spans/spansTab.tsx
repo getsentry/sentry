@@ -448,7 +448,6 @@ const FilterSection = styled('div')`
 
 const SideSection = styled('aside')<{withToolbar: boolean}>`
   position: relative;
-  z-index: 0;
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     ${p =>
       p.withToolbar
@@ -472,7 +471,6 @@ const SideSection = styled('aside')<{withToolbar: boolean}>`
 
 const MainContent = styled('section')`
   position: relative;
-  z-index: 1;
   max-width: 100%;
   background: ${p => p.theme.background};
 `;
