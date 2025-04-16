@@ -368,6 +368,7 @@ function SchemaHintsList({
     >
       {visibleHints.map(hint => (
         <SchemaHintOption
+          size="xs"
           key={hint.key}
           data-type={hint.key}
           onClick={() => onHintClick(hint)}
@@ -386,7 +387,6 @@ const SchemaHintsContainer = styled('div')`
   flex-direction: row;
   gap: ${space(1)};
   flex-wrap: nowrap;
-  overflow: hidden;
 
   > * {
     flex-shrink: 0;
@@ -401,23 +401,8 @@ const SchemaHintsLoadingContainer = styled('div')`
 `;
 
 const SchemaHintOption = styled(Button)`
-  border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: 4px;
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  display: flex;
-  padding: ${space(0.5)} ${space(1)};
-  align-content: center;
-  min-height: 0;
-  height: 24px;
-  flex-wrap: wrap;
-
   /* Ensures that filters do not grow outside of the container */
   min-width: fit-content;
-
-  &[aria-selected='true'] {
-    background-color: ${p => p.theme.gray100};
-  }
 `;
 
 export const SchemaHintsSection = styled('div')`
