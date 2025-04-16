@@ -131,6 +131,7 @@ class TestTaskWorker(TestCase):
             mock_client.update_task.return_value = None
 
             taskworker.start_result_thread()
+            taskworker.start_spawn_children_thread()
             start = time.time()
             while True:
                 taskworker.run_once()
@@ -163,6 +164,7 @@ class TestTaskWorker(TestCase):
             mock_client.update_task.side_effect = update_task_response
             mock_client.get_task.return_value = SIMPLE_TASK
             taskworker.start_result_thread()
+            taskworker.start_spawn_children_thread()
 
             # Run until two tasks have been processed
             start = time.time()
@@ -208,6 +210,7 @@ class TestTaskWorker(TestCase):
             mock_client.update_task.side_effect = update_task_response
             mock_client.get_task.side_effect = get_task_response
             taskworker.start_result_thread()
+            taskworker.start_spawn_children_thread()
 
             # Run until the update has 'completed'
             start = time.time()
@@ -238,6 +241,7 @@ class TestTaskWorker(TestCase):
             mock_client.update_task.side_effect = update_task_response
             mock_client.get_task.return_value = RETRY_STATE_TASK
             taskworker.start_result_thread()
+            taskworker.start_spawn_children_thread()
 
             # Run until two tasks have been processed
             start = time.time()
@@ -363,7 +367,14 @@ def test_child_worker_unknown_task() -> None:
 
     todo.put(UNDEFINED_TASK)
     todo.put(SIMPLE_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=1, processing_pool_name="test")
+    child_worker(
+        todo,
+        processed,
+        shutdown,
+        max_task_count=1,
+        processing_pool_name="test",
+        process_type="fork",
+    )
 
     result = processed.get()
     assert result.task_id == UNDEFINED_TASK.id
@@ -449,14 +460,18 @@ def test_child_worker_terminate_task(mock_capture: mock.Mock) -> None:
     )
 
     todo.put(sleepy)
-    child_worker(
-        todo,
-        processed,
-        shutdown,
-        max_task_count=1,
-        processing_pool_name="test",
-        process_type="fork",
-    )
+    try:
+        child_worker(
+            todo,
+            processed,
+            shutdown,
+            max_task_count=1,
+            processing_pool_name="test",
+            process_type="fork",
+        )
+    except SystemExit:
+        # Ignore the exception, we expect it to be raised
+        pass
 
     assert todo.empty()
     result = processed.get(block=False)
