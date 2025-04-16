@@ -470,7 +470,12 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         **result,
                     },
                 )
+            # TODO(epurkhiser): Dual until we're only reading the uptime_status
+            # from the uptime_subscription.
             project_subscription.update(
+                uptime_status=UptimeStatus.FAILED, uptime_status_update_date=django_timezone.now()
+            )
+            project_subscription.uptime_subscription.update(
                 uptime_status=UptimeStatus.FAILED, uptime_status_update_date=django_timezone.now()
             )
         elif (
@@ -499,7 +504,12 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         **result,
                     },
                 )
+            # TODO(epurkhiser): Dual until we're only reading the uptime_status
+            # from the uptime_subscription.
             project_subscription.update(
+                uptime_status=UptimeStatus.OK, uptime_status_update_date=django_timezone.now()
+            )
+            project_subscription.uptime_subscription.update(
                 uptime_status=UptimeStatus.OK, uptime_status_update_date=django_timezone.now()
             )
 

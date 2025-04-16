@@ -155,6 +155,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert assignee and (assignee.id == self.user.id)
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
+        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_restricted_host_provider_id(self):
         """
@@ -200,6 +201,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # subscription status is still updated
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
+        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_reset_fail_count(self):
         with (
@@ -296,6 +298,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.OK
+        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.OK
 
     def test_no_create_issues_feature(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
@@ -328,6 +331,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
+        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_resolve(self):
         with (
@@ -388,6 +392,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group.status == GroupStatus.UNRESOLVED
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
+        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
         result = self.create_uptime_result(
             self.subscription.subscription_id,
@@ -418,6 +423,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group.status == GroupStatus.RESOLVED
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.OK
+        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.OK
 
     def test_no_subscription(self):
         subscription_id = uuid.uuid4().hex

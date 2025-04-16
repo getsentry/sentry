@@ -43,6 +43,11 @@ SupportedHTTPMethodsLiteral = Literal["GET", "POST", "HEAD", "PUT", "DELETE", "P
 IntervalSecondsLiteral = Literal[60, 300, 600, 1200, 1800, 3600]
 
 
+class UptimeStatus(enum.IntEnum):
+    OK = 1
+    FAILED = 2
+
+
 @region_silo_model
 class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # TODO: This should be included in export/import, but right now it has no relation to
@@ -96,6 +101,12 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False)
+    # Tracks the curernt status of this subscrioption. This is possibly going
+    # to be replaced in the future with open-periods as we replace
+    # ProjectUptimeSubscription with Detectors.
+    uptime_status = models.PositiveSmallIntegerField(db_default=UptimeStatus.OK.value)
+    # (Likely) temporary column to keep track of the current uptime status of this monitor
+    uptime_status_update_date = models.DateTimeField(db_default=Now())
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
@@ -146,11 +157,6 @@ class ProjectUptimeSubscriptionMode(enum.IntEnum):
     AUTO_DETECTED_ONBOARDING = 2
     # Auto-detected by our system and actively monitoring
     AUTO_DETECTED_ACTIVE = 3
-
-
-class UptimeStatus(enum.IntEnum):
-    OK = 1
-    FAILED = 2
 
 
 @region_silo_model
