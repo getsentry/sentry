@@ -5,6 +5,7 @@ import contextlib
 import dataclasses
 import logging
 import multiprocessing
+import os
 import queue
 import signal
 import threading
@@ -42,6 +43,7 @@ from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
 
 logger = logging.getLogger("sentry.taskworker.worker")
+os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
 
 AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
 
