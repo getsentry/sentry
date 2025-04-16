@@ -28,7 +28,6 @@ import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -36,9 +35,6 @@ import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
-import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 const defaultProps = {
@@ -58,34 +54,13 @@ export type GroupListColumn =
   | 'firstSeen'
   | 'lastSeen';
 
-type Props = WithRouterProps & {
+type Props = {
   api: Client;
   organization: Organization;
   queryParams: Record<string, number | string | string[] | undefined | null>;
-  customStatsPeriod?: TimePeriodType;
-  /**
-   * Defaults to `/organizations/${orgSlug}/issues/`
-   */
-  endpointPath?: string;
-  onFetchSuccess?: (
-    groupListState: State,
-    onCursor: (
-      cursor: string,
-      path: string,
-      query: Record<string, any>,
-      pageDiff: number
-    ) => void
-  ) => void;
-  /**
-   * Use `query` within `queryParams` for passing the parameter to the endpoint
-   */
-  query?: string;
-  queryFilterDescription?: string;
   renderEmptyMessage?: () => React.ReactNode;
-  renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
   // where the group list is rendered
   source?: string;
-  withColumns?: GroupListColumn[];
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -93,7 +68,6 @@ type State = {
   errorData: {detail: string} | null;
   groups: Group[];
   loading: boolean;
-  pageLinks: string | null;
   memberList?: ReturnType<typeof indexMembersByProject>;
 };
 
@@ -105,7 +79,6 @@ class IssuesGroupList extends Component<Props, State> {
     error: false,
     errorData: null,
     groups: [],
-    pageLinks: null,
   };
 
   componentDidMount() {
@@ -115,8 +88,6 @@ class IssuesGroupList extends Component<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {
     return (
       !isEqual(this.state, nextState) ||
-      nextProps.endpointPath !== this.props.endpointPath ||
-      nextProps.query !== this.props.query ||
       !isEqual(nextProps.queryParams, this.props.queryParams)
     );
   }
@@ -126,8 +97,6 @@ class IssuesGroupList extends Component<Props, State> {
 
     if (
       prevProps.organization.slug !== this.props.organization.slug ||
-      prevProps.endpointPath !== this.props.endpointPath ||
-      prevProps.query !== this.props.query ||
       !isEqual(
         omit(prevProps.queryParams, ignoredQueryParams),
         omit(this.props.queryParams, ignoredQueryParams)
@@ -157,9 +126,7 @@ class IssuesGroupList extends Component<Props, State> {
 
     const endpoint = this.getGroupListEndpoint();
 
-    const parsedQuery = parseSearch(
-      (queryParams ?? this.getQueryParams()).query as string
-    );
+    const parsedQuery = parseSearch(queryParams.query as string);
     const hasLogicBoolean = parsedQuery
       ? treeResultLocator<boolean>({
           tree: parsedQuery,
@@ -182,71 +149,28 @@ class IssuesGroupList extends Component<Props, State> {
     }
 
     try {
-      const [data, , jqXHR] = await api.requestPromise(endpoint, {
+      const [data] = await api.requestPromise(endpoint, {
         includeAllArgs: true,
       });
 
       GroupStore.add(data);
 
-      this.setState(
-        {
-          error: false,
-          errorData: null,
-          loading: false,
-          pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
-        },
-        () => {
-          this.props.onFetchSuccess?.(this.state, this.handleCursorChange);
-        }
-      );
+      this.setState({
+        error: false,
+        errorData: null,
+        loading: false,
+      });
     } catch (error) {
       this.setState({error: true, errorData: error.responseJSON, loading: false});
     }
   };
 
   getGroupListEndpoint() {
-    const {organization, endpointPath, queryParams} = this.props;
-    const path = endpointPath ?? `/organizations/${organization.slug}/issues/`;
-    const queryParameters = queryParams ?? this.getQueryParams();
+    const {organization, queryParams} = this.props;
+    const path = `/organizations/${organization.slug}/issues/`;
 
-    return `${path}?${qs.stringify(queryParameters)}`;
+    return `${path}?${qs.stringify(queryParams)}`;
   }
-
-  getQueryParams() {
-    const {location, query} = this.props;
-
-    const queryParams = location.query;
-    queryParams.limit = 50;
-    queryParams.sort = 'new';
-    queryParams.query = query;
-
-    return queryParams;
-  }
-
-  handleCursorChange = (
-    cursor: string | undefined,
-    path: string,
-    query: Record<string, any>,
-    pageDiff: number
-  ) => {
-    const queryPageInt = parseInt(query.page, 10);
-    let nextPage: number | undefined = isNaN(queryPageInt)
-      ? pageDiff
-      : queryPageInt + pageDiff;
-
-    // unset cursor and page when we navigate back to the first page
-    // also reset cursor if somehow the previous button is enabled on
-    // first page and user attempts to go backwards
-    if (nextPage <= 0) {
-      cursor = undefined;
-      nextPage = undefined;
-    }
-
-    this.props.router.push({
-      pathname: path,
-      query: {...query, cursor, page: nextPage},
-    });
-  };
 
   onGroupChange() {
     const groups = GroupStore.getAllItems() as Group[];
@@ -274,30 +198,24 @@ class IssuesGroupList extends Component<Props, State> {
     const {
       canSelectGroups,
       withChart,
-      withColumns = ['graph', 'event', 'users', 'assignee'],
       renderEmptyMessage,
-      renderErrorMessage,
       useFilteredStats,
       useTintRow,
-      customStatsPeriod,
       queryParams,
-      queryFilterDescription,
       source,
-      query,
     } = this.props;
-    const {loading, error, errorData, groups, memberList} = this.state;
+    const {loading, error, groups, memberList} = this.state;
 
     const columns: GroupListColumn[] = [
-      ...withColumns,
+      'graph',
+      'event',
+      'users',
+      'assignee',
       'firstSeen' as const,
       'lastSeen' as const,
     ];
 
     if (error) {
-      if (typeof renderErrorMessage === 'function' && errorData) {
-        return renderErrorMessage(errorData, this.fetchData);
-      }
-
       return <LoadingError onRetry={this.fetchData} />;
     }
 
@@ -357,11 +275,8 @@ class IssuesGroupList extends Component<Props, State> {
                       memberList={members}
                       useFilteredStats={useFilteredStats}
                       useTintRow={useTintRow}
-                      customStatsPeriod={customStatsPeriod}
                       statsPeriod={statsPeriod}
-                      queryFilterDescription={queryFilterDescription}
                       source={source}
-                      query={query}
                     />
                   );
                 })}
@@ -372,9 +287,7 @@ class IssuesGroupList extends Component<Props, State> {
   }
 }
 
-const IssuesGroupListWithOrganization = withOrganization(
-  withApi(withSentryRouter(IssuesGroupList))
-);
+const IssuesGroupListWithOrganization = withOrganization(withApi(IssuesGroupList));
 
 const GroupPlaceholder = styled('div')`
   padding: ${space(1)};
