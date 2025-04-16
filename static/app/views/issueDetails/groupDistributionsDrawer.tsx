@@ -2,27 +2,23 @@ import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {
-  CrumbContainer,
   EventDrawerBody,
   EventDrawerContainer,
   EventDrawerHeader,
   EventNavigator,
-  NavigationCrumbs,
   SearchInput,
-  ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import GroupDistributionCrumbs from 'sentry/views/issueDetails/groupDistributions/groupDistributionCrumbs';
 import TagExportDropdown from 'sentry/views/issueDetails/groupDistributions/tagExportDropdown';
 import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
@@ -31,8 +27,6 @@ import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFl
 import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import TagDrawerContent from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 function getHeaderTitle(
@@ -69,7 +63,6 @@ function BaseGroupDistributionsDrawer({
   group,
   includeFeatureFlagsTab,
 }: GroupDistributionsDrawerProps) {
-  const location = useLocation();
   const organization = useOrganization();
   const environments = useEnvironmentsFromUrl();
   // XXX: tagKey param is re-used for feature flag details drawer
@@ -77,8 +70,6 @@ function BaseGroupDistributionsDrawer({
   const drawerRef = useRef<HTMLDivElement>(null);
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === group.project.slug)!;
-
-  const {baseUrl} = useGroupDetailsRoute();
 
   const [search, setSearch] = useState('');
   const {tab, setTab} = useDrawerTab({enabled: includeFeatureFlagsTab});
@@ -129,38 +120,7 @@ function BaseGroupDistributionsDrawer({
   return (
     <EventDrawerContainer ref={drawerRef}>
       <EventDrawerHeader>
-        <NavigationCrumbs
-          crumbs={[
-            {
-              label: (
-                <CrumbContainer>
-                  <ProjectAvatar project={project} />
-                  <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
-              ),
-            },
-            tab === DrawerTab.TAGS
-              ? {
-                  label: t('All Tags'),
-                  to: tagKey
-                    ? {
-                        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
-                        query: {...location.query, tab: DrawerTab.TAGS},
-                      }
-                    : undefined,
-                }
-              : {
-                  label: t('All Feature Flags'),
-                  to: tagKey
-                    ? {
-                        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
-                        query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
-                      }
-                    : undefined,
-                },
-            ...(tagKey ? [{label: tagKey}] : []),
-          ]}
-        />
+        <GroupDistributionCrumbs group={group} project={project} tab={tab} />
       </EventDrawerHeader>
       <EventNavigator>
         <Header>{getHeaderTitle(tagKey, tab, includeFeatureFlagsTab)}</Header>
