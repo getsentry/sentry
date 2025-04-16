@@ -51,7 +51,10 @@ describe('OrganizationSettingsForm', function () {
 
     const input = screen.getByRole('textbox', {name: 'Display Name'});
 
-    const saveOnBlur = jest.spyOn(indicatorActions, 'saveOnBlurUndoMessage');
+    const undoableFormChangeMessage = jest.spyOn(
+      indicatorActions,
+      'addUndoableFormChangeMessage'
+    );
 
     await userEvent.clear(input);
     await userEvent.type(input, 'New Name');
@@ -67,7 +70,7 @@ describe('OrganizationSettingsForm', function () {
       })
     );
 
-    expect(saveOnBlur).toHaveBeenCalledWith(
+    expect(undoableFormChangeMessage).toHaveBeenCalledWith(
       {
         new: 'New Name',
         old: 'Organization Name',
@@ -76,7 +79,7 @@ describe('OrganizationSettingsForm', function () {
       'name'
     );
 
-    const model = saveOnBlur.mock.calls[0]![1];
+    const model = undoableFormChangeMessage.mock.calls[0]![1];
 
     // Test "undo" call undo directly
     expect(model.getValue('name')).toBe('New Name');
@@ -85,7 +88,7 @@ describe('OrganizationSettingsForm', function () {
     });
     expect(model.getValue('name')).toBe('Organization Name');
 
-    // `saveOnBlurUndoMessage` saves the new field, so reimplement this
+    // `addUndoableFormChangeMessage` saves the new field, so reimplement this
     act(() => {
       model.saveField('name', 'Organization Name');
     });
