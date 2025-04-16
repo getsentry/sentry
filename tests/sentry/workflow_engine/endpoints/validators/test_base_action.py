@@ -1,11 +1,8 @@
 from unittest import TestCase, mock
 
-from rest_framework import serializers
-
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionHandler
-from tests.sentry.workflow_engine.test_base import MockModel
 
 
 class MockActionHandler(ActionHandler):
@@ -36,14 +33,6 @@ class MockActionHandler(ActionHandler):
     }
 
 
-class MockActionValidator(BaseActionValidator[MockModel]):
-    field1 = serializers.CharField()
-
-    class Meta:
-        model = MockModel
-        fields = "__all__"
-
-
 @mock.patch(
     "sentry.workflow_engine.registry.action_handler_registry.get",
     return_value=MockActionHandler,
@@ -52,7 +41,6 @@ class TestBaseActionValidator(TestCase):
     def setUp(self):
         super().setUp()
         self.valid_data = {
-            "field1": "test",
             "type": Action.Type.SLACK,
             "config": {"foo": "bar"},
             "data": {"baz": "bar"},
@@ -60,7 +48,7 @@ class TestBaseActionValidator(TestCase):
         }
 
     def test_validate_type(self, mock_action_handler_get):
-        validator = MockActionValidator(
+        validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "type": Action.Type.SLACK,
@@ -71,7 +59,7 @@ class TestBaseActionValidator(TestCase):
         assert result is True
 
     def test_validate_type__invalid(self, mock_action_handler_get):
-        validator = MockActionValidator(
+        validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "type": "invalid_test",
@@ -82,7 +70,7 @@ class TestBaseActionValidator(TestCase):
         assert result is False
 
     def test_validate_config(self, mock_action_handler_get):
-        validator = MockActionValidator(
+        validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "config": {"foo": "bar"},
@@ -93,7 +81,7 @@ class TestBaseActionValidator(TestCase):
         assert result is True
 
     def test_validate_config__invalid(self, mock_action_handler_get):
-        validator = MockActionValidator(
+        validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "config": {"invalid": 1},
@@ -104,7 +92,7 @@ class TestBaseActionValidator(TestCase):
         assert result is False
 
     def test_validate_data(self, mock_action_handler_get):
-        validator = MockActionValidator(
+        validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "data": {"baz": "foo"},
@@ -115,7 +103,7 @@ class TestBaseActionValidator(TestCase):
         assert result is True
 
     def test_validate_data__invalid(self, mock_action_handler_get):
-        validator = MockActionValidator(
+        validator = BaseActionValidator(
             data={
                 **self.valid_data,
                 "data": {"invalid": 1},
