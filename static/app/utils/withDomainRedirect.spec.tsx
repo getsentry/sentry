@@ -55,7 +55,7 @@ describe('withDomainRedirect', function () {
 
   afterEach(function () {
     jest.resetAllMocks();
-    window.location = originalLocation;
+    window.location = originalLocation as typeof window.location & string;
     ConfigStore.loadInitialData(configState);
   });
 
