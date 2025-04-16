@@ -18,6 +18,7 @@ import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
+import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
@@ -90,6 +91,7 @@ export function ExploreContent() {
                     </LinkButton>
                   </Feature>
                 )}
+                <StarSavedQueryButton />
                 <FeedbackWidgetButton />
               </ButtonBar>
             </Layout.HeaderActions>
