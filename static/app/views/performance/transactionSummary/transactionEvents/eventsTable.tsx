@@ -505,29 +505,23 @@ function EventsTable({
         ...eventIds.map(eventId => `event_id=${eventId}`),
       ].join('&');
 
-      try {
-        const res: IssueAttachment[] = await api.requestPromise(
-          `/api/0/issues/${issueId}/attachments/?${queries}`
-        );
+      const res: IssueAttachment[] = await api.requestPromise(
+        `/api/0/issues/${issueId}/attachments/?${queries}`
+      );
 
-        let newHasMinidumps = false;
+      let newHasMinidumps = false;
 
-        res.forEach(attachment => {
-          if (attachment.type === 'event.minidump') {
-            newHasMinidumps = true;
-          }
-        });
-
-        setLastFetchedCursor(cursor);
-        setAttachments(res);
-        setHasMinidumps(newHasMinidumps);
-      } catch (error) {
-        if (setError) {
-          setError(t('Failed to load attachment data.'));
+      res.forEach(attachment => {
+        if (attachment.type === 'event.minidump') {
+          newHasMinidumps = true;
         }
-      }
+      });
+
+      setLastFetchedCursor(cursor);
+      setAttachments(res);
+      setHasMinidumps(newHasMinidumps);
     },
-    [api, customColumns, issueId, setError]
+    [api, customColumns, issueId]
   );
 
   const totalEventsView = eventView.clone();
