@@ -47,8 +47,7 @@ class TestHandler(BaseMetricAlertHandler):
 
 @apply_feature_flag_on_cls("organizations:issue-open-periods")
 class MetricAlertHandlerBase(BaseWorkflowTest):
-    def setUp(self):
-        super().setUp()
+    def create_models(self):
         self.project = self.create_project()
         self.detector = self.create_detector(project=self.project)
         self.workflow = self.create_workflow(environment=self.environment)
@@ -75,6 +74,9 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         self.event_data = WorkflowEventData(
             event=self.group_event, workflow_env=self.workflow.environment
         )
+
+    def setUp(self):
+        self.create_models()
 
     def create_issue_occurrence(
         self,

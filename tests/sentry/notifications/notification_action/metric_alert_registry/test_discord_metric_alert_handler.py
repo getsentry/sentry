@@ -23,7 +23,7 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
 
 class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self):
-        super().setUp()
+        self.create_models()
         self.action = self.create_action(
             type=Action.Type.DISCORD,
             integration_id=1234567890,
