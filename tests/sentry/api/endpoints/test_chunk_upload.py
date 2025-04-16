@@ -45,7 +45,7 @@ class ChunkUploadTest(APITestCase):
         assert response.data["chunkSize"] == settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE
         assert response.data["chunksPerRequest"] == MAX_CHUNKS_PER_REQUEST
         assert response.data["maxRequestSize"] == MAX_REQUEST_SIZE
-        assert response.data["maxFileSize"] == options.get("system.maximum-file-size")
+        assert response.data["maxFileSize"] == MAX_FILE_SIZE
         assert response.data["concurrency"] == MAX_CONCURRENCY
         assert response.data["hashAlgorithm"] == HASH_ALGORITHM
         assert response.data["url"] == generate_region_url() + self.url
@@ -163,14 +163,6 @@ class ChunkUploadTest(APITestCase):
                 format="json",
             )
             assert response.data["url"] == generate_region_url() + self.url
-
-    def test_large_uploads(self):
-        with self.feature("organizations:large-debug-files"):
-            response = self.client.get(
-                self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
-            )
-
-        assert response.data["maxFileSize"] == MAX_FILE_SIZE
 
     def test_wrong_api_token(self):
         with assume_test_silo_mode(SiloMode.CONTROL):

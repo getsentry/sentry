@@ -5,22 +5,21 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
-import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesWidget';
-import {DurationWidget} from 'sentry/views/insights/pages/platform/laravel/durationWidget';
-import {JobsWidget} from 'sentry/views/insights/pages/platform/laravel/jobsWidget';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {PathsTable} from 'sentry/views/insights/pages/platform/laravel/pathsTable';
-import {QueriesWidget} from 'sentry/views/insights/pages/platform/laravel/queriesWidget';
-import {RequestsWidget} from 'sentry/views/insights/pages/platform/laravel/requestsWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
-export function LaravelOverviewPage() {
+function PlaceholderWidget() {
+  return <Widget Title={<Widget.WidgetTitle title="Placeholder Widget" />} />;
+}
+
+export function NextJsOverviewPage({headerTitle}: {headerTitle: React.ReactNode}) {
   const organization = useOrganization();
 
   useEffect(() => {
-    trackAnalytics('laravel-insights.page-view', {
+    trackAnalytics('nextjs-insights.page-view', {
       organization,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -29,25 +28,25 @@ export function LaravelOverviewPage() {
   const {query, setTransactionFilter} = useTransactionNameQuery();
 
   return (
-    <PlatformLandingPageLayout headerTitle={BACKEND_LANDING_TITLE}>
+    <PlatformLandingPageLayout headerTitle={headerTitle}>
       <WidgetGrid>
         <RequestsContainer>
-          <RequestsWidget query={query} />
+          <PlaceholderWidget />
         </RequestsContainer>
         <IssuesContainer>
           <IssuesWidget query={query} />
         </IssuesContainer>
         <DurationContainer>
-          <DurationWidget query={query} />
+          <PlaceholderWidget />
         </DurationContainer>
         <JobsContainer>
-          <JobsWidget query={query} />
+          <PlaceholderWidget />
         </JobsContainer>
         <QueriesContainer>
-          <QueriesWidget query={query} />
+          <PlaceholderWidget />
         </QueriesContainer>
         <CachesContainer>
-          <CachesWidget query={query} />
+          <PlaceholderWidget />
         </CachesContainer>
       </WidgetGrid>
       <PathsTable handleAddTransactionFilter={setTransactionFilter} query={query} />
@@ -92,10 +91,6 @@ const WidgetGrid = styled('div')`
 
 const RequestsContainer = styled('div')`
   grid-area: requests;
-  min-width: 0;
-  & > * {
-    height: 100% !important;
-  }
 `;
 
 // TODO(aknaus): Remove css hacks and build custom IssuesWidget
@@ -119,18 +114,10 @@ const IssuesContainer = styled('div')`
 
 const DurationContainer = styled('div')`
   grid-area: duration;
-  min-width: 0;
-  & > * {
-    height: 100% !important;
-  }
 `;
 
 const JobsContainer = styled('div')`
   grid-area: jobs;
-  min-width: 0;
-  & > * {
-    height: 100% !important;
-  }
 `;
 
 const QueriesContainer = styled('div')`
