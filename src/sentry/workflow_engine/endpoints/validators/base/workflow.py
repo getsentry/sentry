@@ -82,7 +82,6 @@ class WorkflowValidator(CamelSnakeSerializer):
                 )
 
                 for action in actions:
-                    action_validator = BaseActionValidator(data=action, context=self.context)
                     new_action = action_validator.create(action)
                     DataConditionGroupAction.objects.create(
                         action=new_action,
