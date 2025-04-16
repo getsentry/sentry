@@ -33,7 +33,7 @@ export function Before({children, offset, startTimestampMs}: BeforeAfterProps) {
 
 export function After({children, offset, startTimestampMs}: BeforeAfterProps) {
   return (
-    <ContentSliderDiff.BeforeLabel
+    <ContentSliderDiff.AfterLabel
       help={
         <LeftAligned>
           {t('After React re-rendered the page, and reported a hydration error')}
@@ -47,7 +47,7 @@ export function After({children, offset, startTimestampMs}: BeforeAfterProps) {
       }
     >
       {children}
-    </ContentSliderDiff.BeforeLabel>
+    </ContentSliderDiff.AfterLabel>
   );
 }
 
