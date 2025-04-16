@@ -136,7 +136,7 @@ function EventsTable({
 }: Props) {
   const api = useApi({persistInFlight: true});
   const [widths, setWidths] = useState<number[]>([]);
-  const [lastFetchedCursor, setLastFetchedCursor] = useState<string>('');
+  const [lastFetchedCursor, setLastFetchedCursor] = useState('');
   const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
   const [hasMinidumps, setHasMinidumps] = useState<boolean>(false);
 
