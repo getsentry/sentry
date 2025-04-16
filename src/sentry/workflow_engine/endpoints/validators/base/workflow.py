@@ -3,7 +3,9 @@ from typing import Any
 from django.db import router, transaction
 from rest_framework import serializers
 
+from sentry import audit_log
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseActionValidator,
     BaseDataConditionGroupValidator,
@@ -87,6 +89,15 @@ class WorkflowValidator(CamelSnakeSerializer):
                 WorkflowDataConditionGroup.objects.create(
                     condition_group=new_condition_group,
                     workflow=workflow,
+                )
+
+                # TODO - Use Context for organization
+                create_audit_entry(
+                    request=self.context["request"],
+                    organization=validated_value["organization_id"],
+                    target_object=workflow.id,
+                    event=audit_log.get_event_id("WORKFLOW_ADD"),
+                    data=workflow.get_audit_log_data(),
                 )
 
             return workflow
