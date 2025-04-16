@@ -29,12 +29,12 @@ import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDr
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
+  useDiscoverOrEap,
   useMetrics,
   useSpanMetrics,
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
 import {findSampleFromDataPoint} from 'sentry/views/insights/common/utils/findDataPoint';
 import {
   DataTitles,
@@ -193,12 +193,18 @@ export function CacheSamplePanel() {
 
   const cacheSamples = [...(cacheHitSamples || []), ...(cacheMissSamples || [])];
 
+  const transactionIds = cacheSamples?.map(span => span['transaction.id']) || [];
+
   const {
     data: transactionData,
     error: transactionError,
     isFetching: isFetchingTransactions,
-  } = useTransactions(
-    cacheSamples?.map(span => span['transaction.id']) || [],
+  } = useDiscoverOrEap(
+    {
+      search: `id:[${transactionIds.join(',')}]`,
+      enabled: Boolean(transactionIds.length),
+      fields: ['id', 'timestamp', 'project', 'transaction.duration', 'trace'],
+    },
     Referrer.SAMPLES_CACHE_SPAN_SAMPLES
   );
 

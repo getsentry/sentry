@@ -22,7 +22,7 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 
 type DataRowKeys =
   | SpanIndexedField.PROJECT
-  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.TRANSACTION_SPAN_ID
   | SpanIndexedField.TRACE
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_ID

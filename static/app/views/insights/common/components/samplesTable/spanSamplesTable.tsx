@@ -61,11 +61,11 @@ type SpanTableRow = {
   op: string;
   trace: string;
   transaction: {
-    'project.name': string;
+    project: string;
+    'span.duration': number;
     timestamp: string;
-    'transaction.duration': number;
   };
-  'transaction.id': string;
+  'transaction.span_id': string;
 } & SpanSample;
 
 type Props = {

@@ -33,7 +33,7 @@ type Options<Fields extends NonDefaultSpanSampleFields[]> = {
 export type SpanSample = Pick<
   SpanIndexedFieldTypes,
   | SpanIndexedField.SPAN_SELF_TIME
-  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.TRANSACTION_SPAN_ID
   | SpanIndexedField.PROJECT
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_ID
@@ -44,7 +44,7 @@ export type SpanSample = Pick<
 
 export type DefaultSpanSampleFields =
   | SpanIndexedField.PROJECT
-  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.TRANSACTION_SPAN_ID
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_ID
   | SpanIndexedField.PROFILE_ID
@@ -70,6 +70,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     additionalFields = [],
   } = options;
   const location = useLocation();
+  const useEap = useInsightsEap();
 
   const query = spanSearch === undefined ? new MutableSearch([]) : spanSearch.copy();
   query.addFilterValue(SPAN_GROUP, groupId);
@@ -115,8 +116,15 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
   );
 
-  return useApiQuery<{
-    data: Array<Pick<SpanIndexedResponse, Fields[number] | DefaultSpanSampleFields>>;
+  type DataRow = Pick<
+    SpanIndexedResponse,
+    | Fields[number]
+    | DefaultSpanSampleFields // These fields are returned by default
+    | SpanIndexedField.TRANSACTION_ID // TODO: Remove `Transaction_id` with `useInsightsEap`
+  >;
+
+  const result = useApiQuery<{
+    data: DataRow[];
     meta: EventsMetaType;
   }>(
     [
@@ -145,4 +153,17 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
       retry: false,
     }
   );
+
+  // TODO: Remove this `Omit` and mapping once we remove `useInsightsEap`
+  const finalData: Array<Omit<DataRow, SpanIndexedField.TRANSACTION_ID>> | undefined =
+    result.data?.data.map(row => {
+      return {
+        ...row,
+        [SpanIndexedField.TRANSACTION_SPAN_ID]: useEap
+          ? row[SpanIndexedField.TRANSACTION_SPAN_ID]
+          : row[SpanIndexedField.TRANSACTION_ID],
+      };
+    });
+
+  return {...result, data: {...result.data, data: finalData}};
 };

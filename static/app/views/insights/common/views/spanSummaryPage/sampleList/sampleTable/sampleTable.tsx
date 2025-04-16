@@ -11,13 +11,15 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SamplesTableColumnHeader} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import {SpanSamplesTable} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {
+  useDiscoverOrEap,
+  useSpanMetrics,
+} from 'sentry/views/insights/common/queries/useDiscover';
 import type {
   NonDefaultSpanSampleFields,
   SpanSample,
 } from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
-import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
 import type {
   ModuleName,
   SpanMetricsQueryFilters,
@@ -115,14 +117,21 @@ function SampleTable({
 
   const spans = spanSamplesData?.data ?? [];
 
+  const transactionIds = spans.map(span => span['transaction.span_id']);
+
+  const isTransactionsEnabled = Boolean(transactionIds);
+
   const {
     data: transactions,
     isFetching: isFetchingTransactions,
-    isEnabled: isTransactionsEnabled,
     isPending: isLoadingTransactions,
     error: transactionError,
-  } = useTransactions(
-    spans.map(span => span['transaction.id']),
+  } = useDiscoverOrEap(
+    {
+      search: `id:[${transactionIds.join(',')}]`,
+      enabled: Boolean(transactionIds.length),
+      fields: ['id', 'timestamp', 'project', 'span.duration', 'trace'],
+    },
     'api.starfish.span-summary-panel-samples-table-transactions'
   );
 
@@ -181,7 +190,7 @@ function SampleTable({
               ...sample,
               // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               op: spanMetrics[SPAN_OP]!,
-              transaction: transactionsById[sample['transaction.id']]!,
+              transaction: transactionsById[sample['transaction.span_id']]!,
             };
           })}
           isLoading={isLoading}
