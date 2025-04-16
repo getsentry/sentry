@@ -68,7 +68,7 @@ class SentryAppActionHandlerTest(FireTest):
         assert (
             json.dumps(
                 build_incident_attachment(
-                    alert_context=AlertContext.from_alert_rule_incident(incident),
+                    alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
                     metric_issue_context=MetricIssueContext.from_legacy_models(
                         incident,
                         IncidentStatus(incident.status),
@@ -241,7 +241,7 @@ class SentryAppAlertRuleUIComponentActionHandlerTest(FireTest):
                 action=self.action,
                 incident=incident,
                 project=self.project,
-                new_status=IncidentStatus(incident.status).value,
+                new_status=IncidentStatus(incident.status),
                 metric_value=metric_value,
             )
         data = responses.calls[0].request.body

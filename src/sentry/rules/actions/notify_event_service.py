@@ -82,6 +82,9 @@ def send_incident_alert_notification(
         notification_uuid,
     )
 
+    if notification_context.sentry_app_id is None:
+        raise ValueError("Sentry app ID is required")
+
     success = integration_service.send_incident_alert_notification(
         sentry_app_id=notification_context.sentry_app_id,
         new_status=metric_issue_context.new_status.value,

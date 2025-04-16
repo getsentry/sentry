@@ -23,9 +23,7 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
 from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializer,
     DetailedIncidentSerializerResponse,
-)
-from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
-    WorkflowEngineIncidentSerializer,
+    IncidentSerializer,
 )
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
@@ -432,9 +430,7 @@ class SentryAppActionHandler(DefaultActionHandler):
             metric_value=metric_value,
         )
 
-        incident_serialized_response = serialize(
-            incident, serializer=WorkflowEngineIncidentSerializer()
-        )
+        incident_serialized_response = serialize(incident, serializer=IncidentSerializer())
 
         success = send_incident_alert_notification(
             notification_context=notification_context,
