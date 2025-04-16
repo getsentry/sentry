@@ -1,20 +1,33 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections import defaultdict
+from collections.abc import Mapping, Sequence
+from datetime import datetime
+from functools import reduce
 from typing import Any, TypedDict
 
-from django.db.models import Max, Q, prefetch_related_objects
+from django.db.models import Max, Prefetch, Q, prefetch_related_objects
 from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.users.services.user.service import user_service
+from sentry.workflow_engine.models import (
+    AlertRuleWorkflow,
+    DataCondition,
+    DataConditionGroup,
+    Workflow,
+    WorkflowDataConditionGroup,
+    WorkflowFireHistory,
+)
+from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 
 
 def generate_rule_label(project, rule, data):
@@ -70,7 +83,7 @@ class RuleSerializerResponse(RuleSerializerResponseOptional):
     filterMatch: str
     frequency: int
     name: str
-    dateCreated: str
+    dateCreated: datetime
     projects: list[str]
     status: str
     snooze: bool
@@ -287,5 +300,194 @@ class RuleSerializer(Serializer):
         if "disable_date" in attrs:
             d["disableReason"] = "noisy"
             d["disableDate"] = attrs["disable_date"]
+
+        return d
+
+
+class WorkflowEngineRuleSerializer(Serializer):
+    def __init__(
+        self,
+        expand: list[str] | None = None,
+        prepare_component_fields: bool = False,
+        project_slug: str | None = None,
+    ):
+        super().__init__()
+        self.expand = expand or []
+        self.prepare_component_fields = prepare_component_fields
+        self.project_slug = project_slug
+
+    def get_attrs(self, item_list: Sequence[Workflow], user, **kwargs):
+        from sentry.workflow_engine.migration_helpers.rule_conditions import (
+            translate_to_rule_condition_filters,
+        )
+
+        # Bulk fetch environments
+        environments = Environment.objects.in_bulk(
+            [_f for _f in [i.environment_id for i in item_list] if _f]
+        )
+
+        # Bulk fetch users that created workflows
+        users = {
+            u.id: u
+            for u in user_service.get_many_by_id(
+                ids=[item.created_by_id for item in item_list if item.created_by_id is not None]
+            )
+        }
+
+        # Bulk fetch projects for workflows (attached through detectors)
+        workflow_to_projects: dict[Workflow, set[Project]] = defaultdict(set)
+        detector_workflows = DetectorWorkflow.objects.filter(
+            workflow_id__in=[item.id for item in item_list]
+        ).prefetch_related("detector__project")
+        for detector_workflow in detector_workflows:
+            workflow_to_projects[detector_workflow.workflow].add(detector_workflow.detector.project)
+
+        # Bulk fetch trigger and filter conditions
+        # Get trigger condiions
+        workflows = (
+            Workflow.objects.filter(id__in=[wf.id for wf in item_list])
+            .select_related("when_condition_group")
+            .prefetch_related("when_condition_group__conditions")
+        )
+
+        # Get filter conditions
+        workflow_dcg_prefetch = Prefetch(
+            "workflowdataconditiongroup_set",
+            queryset=WorkflowDataConditionGroup.objects.prefetch_related(
+                "condition_group__conditions"
+            ),
+            to_attr="prefetched_wdcgs",
+        )
+        workflows_and_filters = Workflow.objects.filter(
+            id__in=[wf.id for wf in item_list]
+        ).prefetch_related(workflow_dcg_prefetch)
+
+        workflow_to_filters = {}
+        workflow_to_filter_match = {}
+        for wf in workflows_and_filters:
+            # pick first DCG (rules only have 1)
+            wdcg = wf.prefetched_wdcgs[0]  # type: ignore[attr-defined]
+            workflow_to_filter_match[wf] = wdcg.condition_group.logic_type
+            workflow_to_filters[wf] = wdcg.condition_group.conditions.all()
+
+        # Bulk fetch workflow -> rule ids
+        workflow_rule_ids = dict(
+            AlertRuleWorkflow.objects.filter(
+                workflow_id__in=[wf.id for wf in item_list], rule_id__isnull=False
+            ).values_list("workflow_id", "rule_id")
+        )
+
+        # TODO: SERIALIZE ACTIONS
+
+        result: dict[Workflow, dict[str, Any]] = defaultdict(dict)
+        for workflow in workflows:
+            # Attach details to each workflow
+            if workflow.created_by_id is None:
+                creator = None
+            else:
+                u = users.get(workflow.created_by_id)
+                if u:
+                    creator = {
+                        "id": u.id,
+                        "name": u.get_display_name(),
+                        "email": u.email,
+                    }
+                else:
+                    creator = None
+
+            actor = workflow.owner
+            if actor:
+                result[workflow]["owner"] = actor.identifier
+
+            result[workflow]["environment"] = environments.get(workflow.environment_id)
+            result[workflow]["created_by"] = creator
+            result[workflow]["projects"] = list(workflow_to_projects[workflow])
+            result[workflow]["action_match"] = (
+                workflow.when_condition_group.logic_type if workflow.when_condition_group else None
+            )
+            result[workflow]["filter_match"] = workflow_to_filter_match.get(workflow, "none")
+            result[workflow]["rule_id"] = workflow_rule_ids[workflow.id]
+
+            # Generate conditions and filters
+            all_conditions: list[dict[str, Any]] = []
+            all_filters: list[dict[str, Any]] = []
+
+            def update_condition_name(condition: dict[str, Any]) -> dict[str, Any]:
+                condition["name"] = generate_rule_label(
+                    project=result[workflow]["projects"][0], rule=None, data=condition
+                )
+                return condition
+
+            def generate_condition_filters(conditions: list[DataCondition], is_filter: bool):
+                for cond in conditions:
+                    condition, filters = translate_to_rule_condition_filters(
+                        cond, is_filter=is_filter
+                    )
+                    if condition:
+                        all_conditions.append(update_condition_name(condition))
+                    all_filters.extend([update_condition_name(f) for f in filters])
+
+            trigger_conditions = (
+                list(workflow.when_condition_group.conditions.all())
+                if workflow.when_condition_group
+                else []
+            )
+            generate_condition_filters(trigger_conditions, is_filter=False)
+            filter_conditions = workflow_to_filters[workflow]
+            generate_condition_filters(filter_conditions, is_filter=True)
+
+            result[workflow]["conditions"] = all_conditions
+            result[workflow]["filters"] = all_filters
+
+        if "lastTriggered" in self.expand:
+            result_qs = reduce(
+                lambda q1, q2: q1.union(q2),
+                [
+                    WorkflowFireHistory.objects.filter(workflow=item)
+                    .order_by("-date_added")
+                    .values("workflow_id", "date_added")[:1]
+                    for item in item_list
+                ],
+            )
+            last_triggered_lookup = {wfh["workflow_id"]: wfh["date_added"] for wfh in result_qs}
+
+            for item in item_list:
+                result[item]["last_triggered"] = last_triggered_lookup.get(item.id, None)
+
+        return result
+
+    def serialize(self, obj: Workflow, attrs, user, **kwargs) -> RuleSerializerResponse:
+        environment = attrs["environment"]
+
+        action_match = attrs["action_match"]
+        if action_match == DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
+            action_match = "any"
+
+        filter_match = attrs["filter_match"]
+        if filter_match == DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
+            filter_match = "any"
+
+        d: RuleSerializerResponse = {
+            "id": str(attrs["rule_id"]) if attrs.get("rule_id") else None,
+            "conditions": attrs["conditions"],
+            "filters": attrs["filters"],
+            "actions": [],  # TODO: reverse translate actions
+            "actionMatch": action_match,
+            "filterMatch": filter_match,
+            "frequency": obj.config.get("frequency") or 0,
+            "name": obj.name,
+            "dateCreated": obj.date_added,
+            "owner": attrs.get("owner", None),
+            "createdBy": attrs.get("created_by", None),
+            "environment": environment.name if environment is not None else None,
+            "projects": [p.slug for p in attrs["projects"]],
+            "status": "active" if obj.enabled else "disabled",
+            "snooze": "snooze" in attrs,
+        }
+        if "last_triggered" in attrs:
+            d["lastTriggered"] = attrs["last_triggered"]
+
+        if "errors" in attrs:
+            d["errors"] = attrs["errors"]
 
         return d
