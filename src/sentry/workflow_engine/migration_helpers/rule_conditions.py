@@ -107,7 +107,7 @@ def create_tagged_event_condition(
 
 def create_age_comparison_filter(
     data_condition: DataCondition, is_filter: bool = False
-) -> dict[str, Any]:
+) -> ConditionAndFilters:
     return {}, [
         {
             "id": "sentry.rules.filters.age_comparison.AgeComparisonFilter",
@@ -120,7 +120,7 @@ def create_age_comparison_filter(
 
 def create_assigned_to_filter(
     data_condition: DataCondition, is_filter: bool = False
-) -> dict[str, Any]:
+) -> ConditionAndFilters:
     payload = {
         "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
         "targetType": data_condition.comparison["target_type"],
@@ -133,7 +133,7 @@ def create_assigned_to_filter(
 
 def create_issue_category_filter(
     data_condition: DataCondition, is_filter: bool = False
-) -> dict[str, Any]:
+) -> ConditionAndFilters:
     return {}, [
         {
             "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
@@ -222,7 +222,7 @@ def create_percent_sessions_condition(
 def create_event_unique_user_frequency_condition(
     data_condition: DataCondition, is_filter: bool = False
 ) -> ConditionAndFilters:
-    filters = []
+    filters: list[dict[str, Any]] = []
     if data_condition.comparison.get("filters"):
         condition = {
             "id": "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions",
@@ -294,7 +294,7 @@ data_condition_to_rule_condition_mapping = {
 def translate_to_rule_condition_filters(
     data_condition: DataCondition, is_filter: bool
 ) -> ConditionAndFilters:
-    translator = data_condition_to_rule_condition_mapping.get(data_condition.type)
+    translator = data_condition_to_rule_condition_mapping.get(Condition(data_condition.type))
     if not translator:
         raise ValueError(f"Unsupported condition: {data_condition.type}")
 

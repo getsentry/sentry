@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     create_event_unique_user_frequency_condition_with_conditions,
 )
@@ -109,7 +111,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
         self.assert_basic_filter_translated(payload)
 
     def test_assigned_to_filter(self):
-        payload = {
+        payload: dict[str, Any] = {
             "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
             "targetType": "Unassigned",
         }
