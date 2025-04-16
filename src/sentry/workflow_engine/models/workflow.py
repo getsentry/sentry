@@ -43,21 +43,19 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     DEFAULT_FREQUENCY = 30
 
-    @property
-    def config_schema(self) -> dict[str, Any]:
-        return {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "title": "Workflow Schema",
-            "type": "object",
-            "properties": {
-                "frequency": {
-                    "description": "How often the workflow should fire for a Group (minutes)",
-                    "type": "integer",
-                    "minimum": 0,
-                },
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Workflow Schema",
+        "type": "object",
+        "properties": {
+            "frequency": {
+                "description": "How often the workflow should fire for a Group (minutes)",
+                "type": "integer",
+                "minimum": 0,
             },
-            "additionalProperties": False,
-        }
+        },
+        "additionalProperties": False,
+    }
 
     __repr__ = sane_repr("name", "organization_id")
 

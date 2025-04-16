@@ -18,6 +18,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
             condition_validator = BaseDataConditionValidator(data=condition)
             condition_validator.is_valid(raise_exception=True)
 
+            # TODO Use the validator.create() method when it exists
             condition = DataCondition(condition_validator.validated_data)
             conditions.append(condition)
 
