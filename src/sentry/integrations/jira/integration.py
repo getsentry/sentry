@@ -829,7 +829,7 @@ class JiraIntegration(IssueSyncIntegration):
             if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
-        projects_form_field = {}
+        projects_form_field: dict[str, Any] = {}
         if features.has("organizations:jira-paginated-projects", group.organization, actor=user):
             paginated_projects_url = reverse(
                 "sentry-extensions-jira-search", args=[self.organization.slug, self.model.id]
