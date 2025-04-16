@@ -94,7 +94,7 @@ def _score_each_key(
     Sample input:
         [("key", "true", 93), ("key", "false", 219), ("other", "true", 1)]
     """
-    for key, (baseline, outliers) in _gen_normalized_distributions(
+    for key, (a, b) in _gen_normalized_distributions(
         baseline,
         outliers,
         total_baseline,
@@ -103,8 +103,8 @@ def _score_each_key(
         yield (
             key,
             scoring_fn(
-                list(baseline.values()),
-                list(outliers.values()),
+                list(a.values()),
+                list(b.values()),
             ),
         )
 
