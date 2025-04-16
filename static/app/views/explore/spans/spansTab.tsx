@@ -37,6 +37,7 @@ import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUti
 import {
   PageParamsProvider,
   useExploreDataset,
+  useExploreFields,
   useExploreId,
   useExploreMode,
   useExploreQuery,
@@ -44,7 +45,6 @@ import {
   useSetExplorePageParams,
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import {defaultFields} from 'sentry/views/explore/contexts/pageParamsContext/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   SpanTagsProvider,
@@ -88,6 +88,7 @@ export function SpansTabContentImpl({
   const mode = useExploreMode();
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
+  const fields = useExploreFields();
   const [samplesTab, setSamplesTab] = useTab();
 
   const {tags: numberTags, isLoading: numberTagsLoading} = useSpanTags('number');
@@ -209,7 +210,7 @@ export function SpansTabContentImpl({
         .map(key => (key.startsWith('!') ? key.slice(1) : key));
       setExplorePageParams({
         query: newQuery,
-        fields: [...new Set([...defaultFields(), ...newFields])],
+        fields: [...new Set([...fields, ...newFields])],
       });
     },
     searchSource: 'explore',

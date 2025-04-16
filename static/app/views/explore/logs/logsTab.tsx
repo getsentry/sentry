@@ -102,7 +102,7 @@ export function LogsTabContent({
       const mutableQuery = new MutableSearch(newQuery);
       setLogsPageParams({
         search: mutableQuery,
-        fields: [...new Set([...defaultLogFields(), ...newFields])],
+        fields: [...new Set([...fields, ...newFields])],
       });
     },
     numberAttributes,
