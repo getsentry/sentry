@@ -257,7 +257,6 @@ function CreateProject() {
             configurePlatform(selectedFramework);
           }}
           onSkip={configurePlatform}
-          configuringSDK={createProject.isPending}
         />
       ),
       {
@@ -270,7 +269,7 @@ function CreateProject() {
         },
       }
     );
-  }, [platform, configurePlatform, organization, createProject.isPending]);
+  }, [platform, configurePlatform, organization]);
 
   function handlePlatformChange(selectedPlatform: Platform | null) {
     if (!selectedPlatform?.id) {

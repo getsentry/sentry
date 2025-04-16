@@ -112,7 +112,6 @@ export function useConfigureSdk({
               createPlatformProject(selectedFramework);
             }}
             onSkip={() => createPlatformProject(selectedPlatform)}
-            configuringSDK={createProject.isPending}
             newOrg
           />
         ),
@@ -128,7 +127,7 @@ export function useConfigureSdk({
         }
       );
     },
-    [createPlatformProject, onboardingContext, organization, createProject.isPending]
+    [createPlatformProject, onboardingContext, organization]
   );
 
   return {configureSdk, isLoadingData: isLoadingTeams};
