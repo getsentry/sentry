@@ -193,9 +193,6 @@ export function getOnboardingTasks({
       action: () => openInviteMembersModal({source: 'onboarding_widget'}),
       display: true,
       group: OnboardingTaskGroup.GETTING_STARTED,
-      pendingTitle: t(
-        'You’ve invited members, and their acceptance is pending. Keep an eye out for updates!'
-      ),
     },
     {
       task: OnboardingTaskKey.REAL_TIME_NOTIFICATIONS,
@@ -233,7 +230,6 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: makeProjectsPathname({path: '/new/', orgSlug: organization.slug}),
       display: true,
-      pendingTitle: t('Awaiting an error for this project.'),
     },
     {
       task: OnboardingTaskKey.FIRST_TRANSACTION,

@@ -14,7 +14,6 @@ describe('filterSupportedTasks', function () {
       actionType: 'app',
       location: '',
       display: true,
-      status: 'pending',
     },
     {
       task: OnboardingTaskKey.SESSION_REPLAY,
@@ -24,7 +23,6 @@ describe('filterSupportedTasks', function () {
       actionType: 'app',
       location: '',
       display: true,
-      status: 'pending',
     },
     {
       task: OnboardingTaskKey.FIRST_TRANSACTION,
@@ -34,7 +32,6 @@ describe('filterSupportedTasks', function () {
       actionType: 'app',
       location: '',
       display: true,
-      status: 'pending',
     },
   ];
 
