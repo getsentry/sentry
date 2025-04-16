@@ -17,8 +17,9 @@ interface Props {
   spanId: string;
   timestamp: string;
   traceId: string;
-  transactionId: string;
   source?: TraceViewSources;
+  transactionId?: string;
+  transactionSpanId?: string;
 }
 
 export function SpanIdCell({
@@ -26,6 +27,7 @@ export function SpanIdCell({
   projectSlug,
   traceId,
   transactionId,
+  transactionSpanId,
   spanId,
   timestamp,
   source,
@@ -36,6 +38,7 @@ export function SpanIdCell({
   const url = normalizeUrl(
     generateLinkToEventInTraceView({
       eventId: transactionId,
+      targetId: transactionSpanId,
       projectSlug,
       traceSlug: traceId,
       timestamp,

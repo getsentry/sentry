@@ -139,7 +139,7 @@ export function SpanSamplesContainer({
     (span: SpanSample) => {
       navigate(
         generateLinkToEventInTraceView({
-          eventId: span['transaction.id'],
+          targetId: span['transaction.span_id'],
           projectSlug: span.project,
           spanId: span.span_id,
           location,
