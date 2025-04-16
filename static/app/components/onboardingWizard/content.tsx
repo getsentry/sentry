@@ -14,14 +14,7 @@ import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardi
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
 import {Tooltip} from 'sentry/components/tooltip';
-import {
-  IconCheckmark,
-  IconChevron,
-  IconClose,
-  IconNot,
-  IconSupport,
-  IconSync,
-} from 'sentry/icons';
+import {IconCheckmark, IconChevron, IconClose, IconNot, IconSupport} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
@@ -103,8 +96,8 @@ function TaskCard({
 }
 
 interface TaskStatusIconProps {
-  status: 'complete' | 'inProgress' | 'skipped' | 'pending';
   progress?: number;
+  status?: 'complete' | 'inProgress' | 'skipped';
   tooltipText?: string;
 }
 
@@ -130,15 +123,6 @@ function TaskStatusIcon({status, tooltipText, progress}: TaskStatusIconProps) {
           data-test-id="task-status-icon-skipped"
           css={css`
             color: ${theme.disabled};
-            height: ${theme.fontSizeLarge};
-            width: ${theme.fontSizeLarge};
-          `}
-        />
-      ) : status === 'pending' ? (
-        <IconSync
-          data-test-id="task-status-icon-pending"
-          css={css`
-            color: ${theme.pink400};
             height: ${theme.fontSizeLarge};
             width: ${theme.fontSizeLarge};
           `}
@@ -335,14 +319,12 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
     switch (task.status) {
       case 'complete':
         return t('Task completed');
-      case 'pending':
-        return task.pendingTitle ?? t('Task in progress\u2026');
       case 'skipped':
         return t('Task skipped');
       default:
         return undefined;
     }
-  }, [task.status, task.pendingTitle]);
+  }, [task.status]);
 
   return (
     <TaskWrapper
@@ -371,7 +353,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
             ? undefined
             : handleClick
         }
-        icon={<TaskStatusIcon status={task.status} tooltipText={iconTooltipText} />}
+        icon={<TaskStatusIcon status={task?.status} tooltipText={iconTooltipText} />}
         description={task.description}
         title={<strong>{task.title}</strong>}
         actions={
