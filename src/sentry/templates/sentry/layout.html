@@ -4,6 +4,7 @@
 {% load sentry_features %}
 {% load sentry_helpers %}
 {% load sentry_status %}
+{% load sentry_demo_mode %}
 {% get_sentry_version %}
 <!DOCTYPE html>
 <html lang="en">
@@ -55,7 +56,6 @@
   {% endscript %}
 
   {% include "sentry/partial/preload-data.html" %}
-
   {% block scripts %}
   {% block scripts_main_entrypoint %}
     {% frontend_app_asset_url "sentry" "entrypoints/app.js" as asset_url %}
@@ -70,6 +70,9 @@
   {% asset_url 'sentry' 'js/ads.js' as asset_url %}
   {% script src=asset_url crossorigin="anonymous" %}{% endscript %}
   {% endblock %}
+
+  {% init_demo_analytics request.get_host %}
+
 </head>
 
 
