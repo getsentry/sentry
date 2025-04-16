@@ -10,7 +10,7 @@ from snuba_sdk import DeleteQuery, Request
 
 from sentry import eventstore, eventstream, features, models, nodestore
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import GroupCategory, InvalidGroupTypeError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
@@ -233,9 +233,16 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
 
         self.mark_deletion_in_progress(instance_list)
 
-        error_group_ids = [
-            group.id for group in instance_list if group.issue_category == GroupCategory.ERROR
-        ]
+        error_group_ids = []
+        # XXX: If a group type has been removed, we shouldn't error here.
+        # Ideally, we should refactor `issue_category` to return None if the type is
+        # unregistered.
+        for group in instance_list:
+            try:
+                if group.issue_category == GroupCategory.ERROR:
+                    error_group_ids.append(group.id)
+            except InvalidGroupTypeError:
+                pass
         # Tell seer to delete grouping records with these group hashes
         call_delete_seer_grouping_records_by_hash(error_group_ids)
 
@@ -300,9 +307,12 @@ def separate_by_group_category(instance_list: Sequence[Group]) -> tuple[list[Gro
     error_groups = []
     issue_platform_groups = []
     for group in instance_list:
-        (
-            error_groups.append(group)
-            if group.issue_category == GroupCategory.ERROR
-            else issue_platform_groups.append(group)
-        )
+        try:
+            if group.issue_category == GroupCategory.ERROR:
+                error_groups.append(group)
+                continue
+        except InvalidGroupTypeError:
+            pass
+        # Assume it was an issue platform group if the type is invalid
+        issue_platform_groups.append(group)
     return error_groups, issue_platform_groups
