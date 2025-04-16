@@ -269,6 +269,35 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
     def serialize_alert_rule(self, alert_rule) -> AlertRuleSerializerResponse:
         return serialize(alert_rule, None, AlertRuleSerializer())
 
+    def _generate_email_context(
+        self,
+        incident,
+        trigger_status,
+        trigger_threshold,
+        user=None,
+        notification_uuid=None,
+    ):
+        """
+        Helper method to generate email context from an incident and trigger status.
+        Encapsulates the common pattern of creating contexts and serializing models.
+        """
+        return generate_incident_trigger_email_context(
+            project=self.project,
+            organization=incident.organization,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident=incident,
+                new_status=IncidentStatus(incident.status),
+            ),
+            alert_rule_serialized_response=self.serialize_alert_rule(incident.alert_rule),
+            incident_serialized_response=self.serialize_incident(incident),
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            open_period_context=OpenPeriodContext.from_incident(incident),
+            trigger_status=trigger_status,
+            trigger_threshold=trigger_threshold,
+            user=user,
+            notification_uuid=notification_uuid,
+        )
+
     def test_simple(self):
         trigger_status = TriggerStatus.ACTIVE
         alert_rule = self.create_alert_rule()
@@ -307,17 +336,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "snooze_alert_url": alert_link + "&mute=1",
         }
 
-        assert expected == generate_incident_trigger_email_context(
-            self.project,
-            organization=incident.organization,
-            metric_issue_context=MetricIssueContext.from_legacy_models(
-                incident=incident,
-                new_status=IncidentStatus(incident.status),
-            ),
-            alert_rule_serialized_response=self.serialize_alert_rule(incident.alert_rule),
-            incident_serialized_response=self.serialize_incident(incident),
-            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_context=OpenPeriodContext.from_incident(incident),
+        assert expected == self._generate_email_context(
+            incident=incident,
             trigger_status=trigger_status,
             trigger_threshold=action.alert_rule_trigger.alert_threshold,
         )
@@ -377,17 +397,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "snooze_alert": True,
             "snooze_alert_url": alert_link + "&mute=1",
         }
-        assert expected == generate_incident_trigger_email_context(
-            self.project,
-            organization=incident.organization,
-            metric_issue_context=MetricIssueContext.from_legacy_models(
-                incident=incident,
-                new_status=IncidentStatus(incident.status),
-            ),
-            alert_rule_serialized_response=self.serialize_alert_rule(incident.alert_rule),
-            incident_serialized_response=self.serialize_incident(incident),
-            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_context=OpenPeriodContext.from_incident(incident),
+        assert expected == self._generate_email_context(
+            incident=incident,
             trigger_status=trigger_status,
             trigger_threshold=action.alert_rule_trigger.alert_threshold,
             user=self.user,
@@ -398,17 +409,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         trigger_status = TriggerStatus.ACTIVE
         incident = self.create_incident()
         action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
-        result = generate_incident_trigger_email_context(
-            self.project,
-            organization=incident.organization,
-            metric_issue_context=MetricIssueContext.from_legacy_models(
-                incident=incident,
-                new_status=IncidentStatus(incident.status),
-            ),
-            alert_rule_serialized_response=self.serialize_alert_rule(incident.alert_rule),
-            incident_serialized_response=self.serialize_incident(incident),
-            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_context=OpenPeriodContext.from_incident(incident),
+        result = self._generate_email_context(
+            incident=incident,
             trigger_status=trigger_status,
             trigger_threshold=action.alert_rule_trigger.alert_threshold,
             user=self.user,
@@ -430,17 +432,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
         )
-        generated_email_context = generate_incident_trigger_email_context(
-            self.project,
-            organization=incident.organization,
-            metric_issue_context=MetricIssueContext.from_legacy_models(
-                incident=incident,
-                new_status=IncidentStatus(incident.status),
-            ),
-            alert_rule_serialized_response=self.serialize_alert_rule(incident.alert_rule),
-            incident_serialized_response=self.serialize_incident(incident),
-            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_context=OpenPeriodContext.from_incident(incident),
+        generated_email_context = self._generate_email_context(
+            incident=incident,
             trigger_status=status,
             trigger_threshold=action.alert_rule_trigger.alert_threshold,
             user=self.user,
@@ -454,17 +447,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         crit_trigger = self.create_alert_rule_trigger(rule, CRITICAL_TRIGGER_LABEL, 100)
         self.create_alert_rule_trigger_action(crit_trigger, triggered_for_incident=incident)
         self.create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 50)
-        generated_email_context = generate_incident_trigger_email_context(
-            self.project,
-            organization=incident.organization,
-            metric_issue_context=MetricIssueContext.from_legacy_models(
-                incident=incident,
-                new_status=IncidentStatus(incident.status),
-            ),
-            alert_rule_serialized_response=self.serialize_alert_rule(incident.alert_rule),
-            incident_serialized_response=self.serialize_incident(incident),
-            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_context=OpenPeriodContext.from_incident(incident),
+        generated_email_context = self._generate_email_context(
+            incident=incident,
             trigger_status=status,
             trigger_threshold=crit_trigger.alert_threshold,
             user=self.user,
@@ -490,17 +474,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
         )
         assert (
-            generate_incident_trigger_email_context(
-                self.project,
-                organization=incident.organization,
-                metric_issue_context=MetricIssueContext.from_legacy_models(
-                    incident=incident,
-                    new_status=IncidentStatus(incident.status),
-                ),
-                alert_rule_serialized_response=self.serialize_alert_rule(incident.alert_rule),
-                incident_serialized_response=self.serialize_incident(incident),
-                alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-                open_period_context=OpenPeriodContext.from_incident(incident),
+            self._generate_email_context(
+                incident=incident,
                 trigger_status=status,
                 trigger_threshold=action.alert_rule_trigger.alert_threshold,
                 user=self.user,
@@ -523,17 +498,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
         )
-        generated_email_context = generate_incident_trigger_email_context(
-            self.project,
-            organization=incident.organization,
-            metric_issue_context=MetricIssueContext.from_legacy_models(
-                incident=incident,
-                new_status=IncidentStatus(incident.status),
-            ),
-            alert_rule_serialized_response=self.serialize_alert_rule(incident.alert_rule),
-            incident_serialized_response=self.serialize_incident(incident),
-            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_context=OpenPeriodContext.from_incident(incident),
+        generated_email_context = self._generate_email_context(
+            incident=incident,
             trigger_status=status,
             trigger_threshold=action.alert_rule_trigger.alert_threshold,
             user=self.user,
@@ -554,17 +520,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
         )
-        assert "prod" == generate_incident_trigger_email_context(
-            self.project,
-            organization=incident.organization,
-            metric_issue_context=MetricIssueContext.from_legacy_models(
-                incident=incident,
-                new_status=IncidentStatus(incident.status),
-            ),
-            alert_rule_serialized_response=self.serialize_alert_rule(incident.alert_rule),
-            incident_serialized_response=self.serialize_incident(incident),
-            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_context=OpenPeriodContext.from_incident(incident),
+        assert "prod" == self._generate_email_context(
+            incident=incident,
             trigger_status=status,
             trigger_threshold=action.alert_rule_trigger.alert_threshold,
             user=self.user,
@@ -592,17 +549,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            result = generate_incident_trigger_email_context(
-                self.project,
-                organization=incident.organization,
-                metric_issue_context=MetricIssueContext.from_legacy_models(
-                    incident=incident,
-                    new_status=IncidentStatus(incident.status),
-                ),
-                alert_rule_serialized_response=self.serialize_alert_rule(incident.alert_rule),
-                incident_serialized_response=self.serialize_incident(incident),
-                alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-                open_period_context=OpenPeriodContext.from_incident(incident),
+            result = self._generate_email_context(
+                incident=incident,
                 trigger_status=trigger_status,
                 trigger_threshold=action.alert_rule_trigger.alert_threshold,
                 user=self.user,
@@ -643,17 +591,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
-            result = generate_incident_trigger_email_context(
-                self.project,
-                organization=incident.organization,
-                metric_issue_context=MetricIssueContext.from_legacy_models(
-                    incident=incident,
-                    new_status=IncidentStatus(incident.status),
-                ),
-                alert_rule_serialized_response=self.serialize_alert_rule(incident.alert_rule),
-                incident_serialized_response=self.serialize_incident(incident),
-                alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-                open_period_context=OpenPeriodContext.from_incident(incident),
+            result = self._generate_email_context(
+                incident=incident,
                 trigger_status=trigger_status,
                 trigger_threshold=action.alert_rule_trigger.alert_threshold,
                 user=self.user,
@@ -682,17 +621,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         pst = "US/Pacific"
         with assume_test_silo_mode_of(UserOption):
             UserOption.objects.set_value(user=self.user, key="timezone", value=est)
-        result = generate_incident_trigger_email_context(
-            self.project,
-            organization=incident.organization,
-            metric_issue_context=MetricIssueContext.from_legacy_models(
-                incident=incident,
-                new_status=IncidentStatus(incident.status),
-            ),
-            alert_rule_serialized_response=self.serialize_alert_rule(incident.alert_rule),
-            incident_serialized_response=self.serialize_incident(incident),
-            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_context=OpenPeriodContext.from_incident(incident),
+        result = self._generate_email_context(
+            incident=incident,
             trigger_status=trigger_status,
             trigger_threshold=action.alert_rule_trigger.alert_threshold,
             user=self.user,
@@ -701,17 +631,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
 
         with assume_test_silo_mode_of(UserOption):
             UserOption.objects.set_value(user=self.user, key="timezone", value=pst)
-        result = generate_incident_trigger_email_context(
-            project=self.project,
-            organization=incident.organization,
-            metric_issue_context=MetricIssueContext.from_legacy_models(
-                incident=incident,
-                new_status=IncidentStatus(incident.status),
-            ),
-            alert_rule_serialized_response=self.serialize_alert_rule(incident.alert_rule),
-            incident_serialized_response=self.serialize_incident(incident),
-            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_context=OpenPeriodContext.from_incident(incident),
+        result = self._generate_email_context(
+            incident=incident,
             trigger_status=trigger_status,
             trigger_threshold=action.alert_rule_trigger.alert_threshold,
             user=self.user,
