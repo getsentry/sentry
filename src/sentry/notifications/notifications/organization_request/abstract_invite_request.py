@@ -63,7 +63,8 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
                 inviter = None
             if inviter:
                 context["inviter_name"] = inviter.get_salutation_name()
-            context["inviter_name"] = inviter_name
+            else:
+                context["inviter_name"] = inviter_name
         return context
 
     def get_message_actions(
