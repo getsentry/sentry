@@ -1,9 +1,8 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
-import throttle from 'lodash/throttle';
 import {PlatformIcon} from 'platformicons';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -134,9 +133,11 @@ export function FrameworkSuggestionModal({
   newOrg,
   configuringSDK,
 }: FrameworkSuggestionModalProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFramework, setSelectedFramework] = useState<
     OnboardingSelectedSDK | undefined
   >(selectedPlatform);
+  const isSubmittingRef = useRef(false);
 
   const frameworks = platforms.filter(
     platform =>
@@ -196,6 +197,13 @@ export function FrameworkSuggestionModal({
     );
   }, [selectedPlatform.key, organization, newOrg]);
 
+  useEffect(() => {
+    if (!configuringSDK) {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+    }
+  }, [configuringSDK]);
+
   const handleConfigure = useCallback(() => {
     if (!selectedFramework) {
       return;
@@ -228,19 +236,20 @@ export function FrameworkSuggestionModal({
     onSkip();
   }, [selectedPlatform, organization, onSkip, newOrg]);
 
-  const throttledHandleClick = useMemo(() => {
-    return throttle(
-      () => {
-        if (selectedFramework?.key === selectedPlatform.key) {
-          handleSkip();
-        } else {
-          handleConfigure();
-        }
-      },
-      2000,
-      {trailing: false}
-    );
-  }, [selectedFramework, selectedPlatform, handleSkip, handleConfigure]);
+  const handleClick = useCallback(() => {
+    if (isSubmittingRef.current) {
+      return;
+    }
+
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+
+    if (selectedFramework?.key === selectedPlatform.key) {
+      handleSkip();
+    } else {
+      handleConfigure();
+    }
+  }, [handleSkip, handleConfigure, selectedFramework, selectedPlatform]);
 
   const listEntries: PlatformIntegration[] = [
     ...topFrameworksOrdered,
@@ -307,7 +316,7 @@ export function FrameworkSuggestionModal({
         </StyledPanel>
       </Body>
       <Footer>
-        <Button priority="primary" onClick={throttledHandleClick} busy={configuringSDK}>
+        <Button priority="primary" onClick={handleClick} busy={isSubmitting}>
           {t('Configure SDK')}
         </Button>
       </Footer>
