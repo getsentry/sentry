@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import Count from 'sentry/components/count';
 import {SegmentedLoadingBar} from 'sentry/components/segmentedLoadingBar';
 import {IconArrow, IconCheckmark} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -44,6 +45,7 @@ export function WidgetExtrapolationFooter({
   let loader;
   // Show the loader if we haven't received best effort results yet
   if (samplingMode !== SAMPLING_MODE.BEST_EFFORT) {
+    const currentPhase = samplingMode === SAMPLING_MODE.PREFLIGHT ? 1 : 0;
     loader = (
       <div
         data-test-id="progressive-loading-indicator"
@@ -56,10 +58,15 @@ export function WidgetExtrapolationFooter({
       >
         <SegmentedLoadingBar
           segments={2}
-          phase={samplingMode === SAMPLING_MODE.PREFLIGHT ? 1 : 0}
-          activePhaseTooltip={
-            defined(samplingMode)
-              ? t('This widget is currently loading higher fidelity data.')
+          phase={currentPhase}
+          getTooltipText={phase =>
+            defined(samplingMode) && phase <= currentPhase
+              ? tct(
+                  'Based on [sampleCount] samples. This widget is currently loading higher fidelity data.',
+                  {
+                    sampleCount: <Count value={sampleCount} />,
+                  }
+                )
               : undefined
           }
         />
