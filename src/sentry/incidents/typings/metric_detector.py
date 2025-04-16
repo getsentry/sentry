@@ -76,7 +76,7 @@ class NotificationContext:
             target_identifier=action.target_identifier,
             target_display=action.target_display,
             sentry_app_config=action.sentry_app_config,
-            sentry_app_id=action.sentry_app_id,
+            sentry_app_id=str(action.sentry_app_id) if action.sentry_app_id else None,
         )
 
     @classmethod
