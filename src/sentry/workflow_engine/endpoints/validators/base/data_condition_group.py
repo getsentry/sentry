@@ -10,8 +10,6 @@ from sentry.workflow_engine.models import DataConditionGroup
 
 class BaseDataConditionGroupValidator(CamelSnakeSerializer):
     logic_type = serializers.ChoiceField([(t.value, t.value) for t in DataConditionGroup.Type])
-    # TODO - set via context or create a custom field serializer
-    organization_id = serializers.IntegerField(required=True)
     conditions = serializers.ListField(required=False)
 
     def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -27,7 +25,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
         with transaction.atomic(router.db_for_write(DataConditionGroup)):
             condition_group = DataConditionGroup.objects.create(
                 logic_type=validated_data["logic_type"],
-                organization_id=validated_data["organization_id"],
+                organization_id=self.context["organization"].id,
             )
 
             for condition in validated_data["conditions"]:
