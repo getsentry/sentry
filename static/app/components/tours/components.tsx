@@ -1,4 +1,5 @@
-import {Fragment, type HTMLAttributes, useContext, useEffect, useMemo} from 'react';
+import type {CSSProperties, HTMLAttributes} from 'react';
+import {Fragment, useContext, useEffect, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import {ClassNames, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -184,6 +185,10 @@ export interface TourElementProps<T extends TourEnumType>
    */
   actions?: React.ReactNode;
   /**
+   * A margin to create between the tour element and the border.
+   */
+  margin?: number;
+  /**
    * The position of the tour element.
    */
   position?: UseOverlayProps['position'];
@@ -219,6 +224,7 @@ export function TourElementContent<T extends TourEnumType>({
   position,
   className,
   actions,
+  margin,
 }: TourElementContentProps<T>) {
   const organization = useOrganization();
   const {
@@ -315,6 +321,7 @@ export function TourElementContent<T extends TourEnumType>({
       stepCount={stepCount}
       stepTotal={stepTotal}
       id={`${id}`}
+      margin={margin}
     >
       {children}
     </TourGuide>
@@ -333,6 +340,7 @@ interface TourGuideProps extends Omit<HTMLAttributes<HTMLElement>, 'title' | 'id
   actions?: React.ReactNode;
   handleDismiss?: (e: React.MouseEvent) => void;
   id?: string;
+  margin?: CSSProperties['margin'];
   offset?: UseOverlayProps['offset'];
   position?: UseOverlayProps['position'];
   stepCount?: number;
@@ -359,6 +367,7 @@ export function TourGuide({
   wrapperComponent,
   stepTotal,
   offset,
+  margin,
 }: TourGuideProps) {
   const config = useLegacyStore(ConfigStore);
   const prefersDarkMode = config.theme === 'dark';
@@ -390,7 +399,7 @@ export function TourGuide({
         className={className}
         ref={triggerProps.ref}
         aria-expanded={triggerProps['aria-expanded']}
-        prefersDarkMode={prefersDarkMode}
+        margin={`${margin}px`}
       >
         {children}
       </Wrapper>
@@ -546,7 +555,7 @@ const BlurWindow = styled('div')`
   backdrop-filter: blur(3px);
 `;
 
-const TourTriggerWrapper = styled('div')<{prefersDarkMode: boolean}>`
+const TourTriggerWrapper = styled('div')<{margin?: CSSProperties['margin']}>`
   &[aria-expanded='true'] {
     position: relative;
     z-index: ${p => p.theme.zIndex.tour.element};
@@ -560,6 +569,7 @@ const TourTriggerWrapper = styled('div')<{prefersDarkMode: boolean}>`
       inset: 0;
       border-radius: ${p => p.theme.borderRadius};
       box-shadow: inset 0 0 0 3px ${p => p.theme.tour.background};
+      ${p => defined(p.margin) && `margin: ${p.margin};`}
     }
   }
 `;
