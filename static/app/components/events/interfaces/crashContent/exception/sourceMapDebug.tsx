@@ -34,7 +34,7 @@ const sentryInit = <code>Sentry.init</code>;
 
 function getErrorMessage(
   error: SourceMapDebugError,
-  sdkName?: string
+  sdkName: string | null | undefined
 ): Array<{
   title: string;
   /**
@@ -214,7 +214,7 @@ function ExpandableErrorList({
 
 function combineErrors(
   response: Array<SourceMapDebugResponse | undefined | null>,
-  sdkName?: string
+  sdkName: string | null | undefined
 ) {
   const combinedErrors = uniqBy(
     response.flatMap(res => res?.errors).filter(defined),
