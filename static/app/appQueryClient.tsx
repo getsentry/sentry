@@ -29,7 +29,7 @@ const indexedDbPersister = createAsyncStoragePersister({
   key: cacheKey,
 });
 
-const isProjectsCacheEnabled =
+export const isProjectsCacheEnabled =
   window.indexedDB &&
   (window.__initialData?.features as unknown as string[])?.includes(
     'organizations:cache-projects-ui'
