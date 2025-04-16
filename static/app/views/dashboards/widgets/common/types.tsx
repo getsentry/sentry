@@ -37,6 +37,7 @@ export type TimeSeries = {
   field: string;
   meta: TimeSeriesMeta;
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
   sampleCount?: AccuracyStats<number>;
   samplingRate?: AccuracyStats<number | null>;
 };

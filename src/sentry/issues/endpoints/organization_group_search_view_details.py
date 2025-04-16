@@ -122,7 +122,9 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
                 view,
                 request.user,
                 serializer=GroupSearchViewSerializer(
-                    has_global_views=has_global_views, default_project=default_project
+                    has_global_views=has_global_views,
+                    default_project=default_project,
+                    organization=organization,
                 ),
             ),
             status=status.HTTP_200_OK,
