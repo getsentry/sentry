@@ -28,7 +28,7 @@ import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/tr
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
 type Keys =
-  | 'transaction_id'
+  | 'transaction.span_id'
   | 'span_id'
   | 'profile_id'
   | 'timestamp'
@@ -115,7 +115,7 @@ export function SpanSamplesTable({
   }
 
   function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
-    if (column.key === 'transaction.span_id') {
+    if (column.key === 'transaction_id') {
       return (
         <OverflowEllipsisTextContainer>
           <Link
