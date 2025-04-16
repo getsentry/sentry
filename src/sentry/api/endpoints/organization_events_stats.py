@@ -310,7 +310,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             auto_fields=False,
                             use_aggregate_conditions=True,
                         ),
-                        sampling_mode=sampling_mode,
+                        sampling_mode=snuba_params.sampling_mode,
                     )
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
@@ -347,7 +347,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         auto_fields=False,
                         use_aggregate_conditions=True,
                     ),
-                    sampling_mode=sampling_mode,
+                    sampling_mode=snuba_params.sampling_mode,
                     comparison_delta=comparison_delta,
                 )
 
