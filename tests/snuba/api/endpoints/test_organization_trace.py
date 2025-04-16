@@ -177,3 +177,26 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert error_event["description"] == "File IO on Main Thread"
         assert error_event["project_slug"] == self.project.slug
         assert error_event["level"] == "info"
+
+    def test_with_only_errors(self):
+        start, _ = self.get_start_end_from_day_ago(1000)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": "a" * 16,
+        }
+        error_data["tags"] = [["transaction", "/transaction/gen1-0"]]
+        error = self.store_event(error_data, project_id=self.project.id)
+
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        assert data[0]["event_id"] == error.event_id

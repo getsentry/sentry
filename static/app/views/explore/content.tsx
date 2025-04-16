@@ -35,6 +35,7 @@ import {
   useExploreSpansTourModal,
 } from 'sentry/views/explore/spans/tour';
 import {useExploreSpansTour} from 'sentry/views/explore/spans/tour';
+import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
@@ -102,6 +103,7 @@ function ExploreContentImpl() {
                     </LinkButton>
                   </Feature>
                 )}
+                <StarSavedQueryButton />
                 <ActionsButton organization={organization} />
               </ButtonBar>
             </Layout.HeaderActions>

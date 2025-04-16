@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -230,14 +231,6 @@ export function SpansTabContentImpl({
     eapSpanSearchQueryBuilderProps
   );
 
-  // Progressive loading only shows when we have preflight data and
-  // we're fetching the best effort request
-  const timeseriesIsProgressivelyLoading =
-    organization.features.includes('visibility-explore-progressive-loading') &&
-    defined(timeseriesSamplingMode) &&
-    timeseriesSamplingMode === SAMPLING_MODE.PREFLIGHT &&
-    timeseriesResult.isFetched;
-
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <Body withToolbar={expanded}>
@@ -299,7 +292,7 @@ export function SpansTabContentImpl({
             <ExploreToolbar width={300} extras={toolbarExtras} />
           </TourElement>
         </SideSection>
-        <section>
+        <MainContent>
           {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
           <TourElement<ExploreSpansTour>
             tourContext={ExploreSpansTourContext}
@@ -311,15 +304,15 @@ export function SpansTabContentImpl({
             position="top"
             margin={-8}
           >
-            <MainContent>
+            <div>
               <ExploreCharts
                 canUsePreviousResults={canUsePreviousResults}
                 confidences={confidences}
                 query={query}
                 timeseriesResult={timeseriesResult}
-                isProgressivelyLoading={timeseriesIsProgressivelyLoading}
                 visualizes={visualizes}
                 setVisualizes={setVisualizes}
+                samplingMode={timeseriesSamplingMode}
               />
               <ExploreTables
                 aggregatesTableResult={aggregatesTableResult}
@@ -339,9 +332,9 @@ export function SpansTabContentImpl({
                   onClick={() => setExpanded(!expanded)}
                 />
               </Toggle>
-            </MainContent>
+            </div>
           </TourElement>
-        </section>
+        </MainContent>
       </Body>
     </SearchQueryBuilderProvider>
   );
@@ -423,6 +416,8 @@ function checkIsAllowedSelection(
   return selectedMinutes <= maxPickableMinutes;
 }
 
+const transitionDuration = '200ms';
+
 const Body = styled(Layout.Body)<{withToolbar: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: grid;
@@ -433,7 +428,8 @@ const Body = styled(Layout.Body)<{withToolbar: boolean}>`
     grid-template-rows: auto 1fr;
     align-content: start;
     gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};
-    transition: 700ms;
+    will-change: grid-template;
+    transition: grid-template ${transitionDuration} cubic-bezier(0.22, 1, 0.36, 1);
   }
 `;
 
@@ -451,14 +447,34 @@ const FilterSection = styled('div')`
 `;
 
 const SideSection = styled('aside')<{withToolbar: boolean}>`
+  position: relative;
+  z-index: 0;
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    ${p => !p.withToolbar && 'overflow: hidden;'}
+    ${p =>
+      p.withToolbar
+        ? css`
+            animation: toolbar-slide-in 0s forwards ${transitionDuration};
+
+            @keyframes toolbar-slide-in {
+              from {
+                overflow: hidden;
+              }
+              to {
+                overflow: visible;
+              }
+            }
+          `
+        : css`
+            overflow: hidden;
+          `}
   }
 `;
 
-const MainContent = styled('div')`
+const MainContent = styled('section')`
   position: relative;
+  z-index: 1;
   max-width: 100%;
+  background: ${p => p.theme.background};
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`

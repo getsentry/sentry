@@ -114,7 +114,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: {
     resources: {
       description: t(
-        "N+1 queries are extraneous queries (N) caused by a single, initial query (+1). In the Span Evidence above, we've identified the parent span where the extraneous spans are located and the extraneous spans themselves. To learn more about how to fix N+1 problems, check out these resources:"
+        "N+1 queries are extraneous queries (N) caused by a single, initial query (+1). In the Span Evidence section, we've identified the parent span where the extraneous spans are located and the extraneous spans themselves. To learn more about how to fix N+1 problems, check out these resources:"
       ),
       links: [
         {
@@ -141,7 +141,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_HTTP_OVERHEAD]: {
     resources: {
       description: t(
-        "HTTP/1.1 can cause overhead, with long request queue times in the browser due to max connection limits. In the Span Evidence above, we've identified the extent of the wait time and spans affected by request queueing. To learn more about how to fix HTTP Overhead, check out these resources:"
+        "HTTP/1.1 can cause overhead, with long request queue times in the browser due to max connection limits. In the Span Evidence section, we've identified the extent of the wait time and spans affected by request queueing. To learn more about how to fix HTTP Overhead, check out these resources:"
       ),
       links: [
         {
