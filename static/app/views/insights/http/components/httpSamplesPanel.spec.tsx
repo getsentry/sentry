@@ -67,7 +67,7 @@ describe('HTTPSamplesPanel', () => {
         data: [
           {
             'project.id': 1,
-            'transaction.id': '',
+            'transaction.span_id': '',
             'epm()': 22.18,
             'http_response_rate(3)': 0.01,
             'http_response_rate(4)': 0.025,
@@ -163,7 +163,7 @@ describe('HTTPSamplesPanel', () => {
               project: 'javascript',
               timestamp: '2024-03-25T20:31:36+00:00',
               'span.status_code': '200',
-              'transaction.id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
+              'transaction.span_id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
               'span.self_time': 320.300102,
             },
           ],
@@ -257,7 +257,7 @@ describe('HTTPSamplesPanel', () => {
             field: [
               'project',
               'trace',
-              'transaction.id',
+              'transaction.span_id',
               'span_id',
               'timestamp',
               'span.description',
@@ -359,7 +359,7 @@ describe('HTTPSamplesPanel', () => {
               project: 'javascript',
               timestamp: '2024-03-25T20:31:36+00:00',
               'span.status_code': '200',
-              'transaction.id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
+              'transaction.span_id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
               'span.self_time': 320.300102,
             },
           ],
@@ -416,7 +416,12 @@ describe('HTTPSamplesPanel', () => {
             query:
               'span.module:http span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
             project: [],
-            additionalFields: ['trace', 'span.description', 'span.status_code'],
+            additionalFields: [
+              'trace',
+              'span.description',
+              'span.status_code',
+              'transaction.span_id',
+            ],
             lowerBound: 0,
             firstBound: expect.closeTo(333.3333),
             secondBound: expect.closeTo(666.6666),
