@@ -584,9 +584,11 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         integration = VstsIntegration(model, self.organization.id)
         integration.get_client()
 
-        domain_name = integration.model.metadata["domain_name"]
+        model.refresh_from_db()
+
+        domain_name = model.metadata["domain_name"]
         assert domain_name == account_uri
-        assert Integration.objects.get(provider="vsts").metadata["domain_name"] == account_uri
+        assert model.metadata["domain_name"] == account_uri
 
     def test_get_repositories(self):
         self.assert_installation()
