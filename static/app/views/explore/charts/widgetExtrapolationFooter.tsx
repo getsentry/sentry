@@ -46,6 +46,7 @@ export function WidgetExtrapolationFooter({
   if (samplingMode !== SAMPLING_MODE.BEST_EFFORT) {
     loader = (
       <div
+        data-test-id="progressive-loading-indicator"
         style={{
           width: '100px',
           display: 'flex',
