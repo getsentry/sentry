@@ -62,13 +62,13 @@ export function generateLinkToEventInTraceView({
   type = 'performance',
   view,
 }: {
-  eventId: string | undefined;
   location: Location;
   organization: Organization;
   projectSlug: string;
   timestamp: string | number;
   traceSlug: string;
   demo?: string;
+  eventId?: string;
   eventView?: EventView;
   isHomepage?: boolean;
   source?: TraceViewSources;
