@@ -2,12 +2,8 @@ import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   EventDrawerBody,
   EventDrawerContainer,
@@ -15,35 +11,23 @@ import {
   EventNavigator,
   SearchInput,
 } from 'sentry/components/events/eventDrawer';
-import {IconDownload, IconSearch} from 'sentry/icons';
+import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import useUrlParams from 'sentry/utils/useUrlParams';
 import GroupDistributionCrumbs from 'sentry/views/issueDetails/groupDistributions/groupDistributionCrumbs';
+import TagExportDropdown from 'sentry/views/issueDetails/groupDistributions/tagExportDropdown';
+import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
+import useDrawerTab from 'sentry/views/issueDetails/groupDistributions/useDrawerTab';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsDrawerContent';
 import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import TagDrawerContent from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
-
-function useDrawerTab({enabled}: {enabled: boolean}) {
-  const {getParamValue: getTabParam, setParamValue: setTabParam} = useUrlParams(
-    'tab',
-    DrawerTab.TAGS
-  );
-
-  return enabled
-    ? {
-        tab: getTabParam() as DrawerTab,
-        setTab: setTabParam,
-      }
-    : {tab: DrawerTab.TAGS, setTab: (_tab: string) => {}};
-}
 
 function getHeaderTitle(
   tagKey: string | undefined,
@@ -87,55 +71,16 @@ function BaseGroupDistributionsDrawer({
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === group.project.slug)!;
 
-  const [isExportDisabled, setIsExportDisabled] = useState(false);
-  const handleDataExport = useDataExport({
-    payload: {
-      queryType: ExportQueryType.ISSUES_BY_TAG,
-      queryInfo: {
-        project: project.id,
-        group: group.id,
-        key: tagKey,
-      },
-    },
-  });
   const [search, setSearch] = useState('');
   const {tab, setTab} = useDrawerTab({enabled: includeFeatureFlagsTab});
 
   const headerActions =
     tagKey && tab === DrawerTab.TAGS ? (
-      <DropdownMenu
-        size="xs"
-        trigger={triggerProps => (
-          <Button
-            {...triggerProps}
-            borderless
-            size="xs"
-            aria-label={t('Export options')}
-            icon={<IconDownload />}
-          />
-        )}
-        items={[
-          {
-            key: 'export-page',
-            label: t('Export Page to CSV'),
-            // TODO(issues): Dropdown menu doesn't support hrefs yet
-            onAction: () => {
-              window.open(
-                `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
-                '_blank'
-              );
-            },
-          },
-          {
-            key: 'export-all',
-            label: isExportDisabled ? t('Export in progress...') : t('Export All to CSV'),
-            onAction: () => {
-              handleDataExport();
-              setIsExportDisabled(true);
-            },
-            disabled: isExportDisabled,
-          },
-        ]}
+      <TagExportDropdown
+        tagKey={tagKey}
+        group={group}
+        organization={organization}
+        project={project}
       />
     ) : tagKey && tab === DrawerTab.FEATURE_FLAGS ? null : (
       <ButtonBar gap={1}>
@@ -161,21 +106,13 @@ function BaseGroupDistributionsDrawer({
           </InputGroup.TrailingItems>
         </InputGroup>
         {includeFeatureFlagsTab && (
-          <SegmentedControl
-            size="xs"
-            value={tab}
-            onChange={newTab => {
+          <TagFlagPicker
+            tab={tab}
+            setTab={newTab => {
               setTab(newTab);
               setSearch('');
             }}
-          >
-            <SegmentedControl.Item key={DrawerTab.TAGS}>
-              {t('All Tags')}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item key={DrawerTab.FEATURE_FLAGS}>
-              {t('All Feature Flags')}
-            </SegmentedControl.Item>
-          </SegmentedControl>
+          />
         )}
       </ButtonBar>
     );
