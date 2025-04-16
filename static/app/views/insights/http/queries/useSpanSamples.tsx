@@ -49,13 +49,8 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
 
   const dateConditions = getDateConditions(selection);
 
-  type DataRow = Pick<
-    SpanIndexedResponse,
-    Fields[number] | DefaultSpanSampleFields // These fields are returned by default
-  >;
-
   return useApiQuery<{
-    data: DataRow[];
+    data: Array<Pick<SpanIndexedResponse, Fields[number] | DefaultSpanSampleFields>>;
     meta: EventsMetaType;
   }>(
     [
@@ -71,6 +66,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
           firstBound: max && max * (1 / 3),
           secondBound: max && max * (2 / 3),
           upperBound: max,
+          // TODO: transaction.span_id should be a default from the backend
           additionalFields: [...fields, SpanIndexedField.TRANSACTION_SPAN_ID],
           sort: '-timestamp',
           referrer,
@@ -85,17 +81,4 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
       retry: false,
     }
   );
-
-  // // TODO: Remove this `Omit` and mapping once we remove `useInsightsEap`
-  // const finalData: Array<Omit<DataRow, SpanIndexedField.TRANSACTION_ID>> | undefined =
-  //   result.data?.data.map(row => {
-  //     return {
-  //       ...row,
-  //       [SpanIndexedField.TRANSACTION_SPAN_ID]: useEap
-  //         ? row[SpanIndexedField.TRANSACTION_SPAN_ID]
-  //         : row[SpanIndexedField.TRANSACTION_ID],
-  //     };
-  //   });
-
-  // return {...result, data: {...result.data, data: finalData}};
 };

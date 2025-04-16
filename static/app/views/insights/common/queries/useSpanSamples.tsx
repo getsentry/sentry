@@ -139,7 +139,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
           upperBound: max,
           additionalFields: [
             SpanIndexedField.ID,
-            SpanIndexedField.TRANSACTION_SPAN_ID,
+            SpanIndexedField.TRANSACTION_SPAN_ID, // TODO: transaction.span_id should be a default from the backend
             ...additionalFields,
           ],
           sort: `-${SPAN_SELF_TIME}`,
@@ -154,17 +154,4 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
       retry: false,
     }
   );
-
-  // // TODO: Remove this `Omit` and mapping once we remove `useInsightsEap`
-  // const finalData: Array<Omit<DataRow, SpanIndexedField.TRANSACTION_ID>> | undefined =
-  //   result.data?.data.map(row => {
-  //     return {
-  //       ...row,
-  //       [SpanIndexedField.TRANSACTION_SPAN_ID]: useEap
-  //         ? row[SpanIndexedField.TRANSACTION_SPAN_ID]
-  //         : row[SpanIndexedField.TRANSACTION_ID],
-  //     };
-  //   });
-
-  // return {...result, data: {...result.data, data: finalData}};
 };
