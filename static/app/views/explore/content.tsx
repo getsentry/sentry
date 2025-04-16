@@ -55,8 +55,6 @@ function ExploreContentImpl() {
 
   const location = useLocation();
 
-  const hasSavedQueries = organization.features.includes('performance-saved-queries');
-
   const title = getTitleFromLocation(location);
   const id = getIdFromLocation(location);
 
@@ -68,9 +66,9 @@ function ExploreContentImpl() {
         <Layout.Page>
           <Layout.Header unified={prefersStackedNav}>
             <Layout.HeaderContent unified={prefersStackedNav}>
-              {hasSavedQueries && title && defined(id) ? <ExploreBreadcrumb /> : null}
+              {title && defined(id) ? <ExploreBreadcrumb /> : null}
               <Layout.Title>
-                {hasSavedQueries && title ? title : t('Traces')}
+                {title ? title : t('Traces')}
                 <PageHeadingQuestionTooltip
                   docsUrl="https://github.com/getsentry/sentry/discussions/81239"
                   title={t(
@@ -91,17 +89,12 @@ function ExploreContentImpl() {
             <Layout.HeaderActions>
               <ButtonBar gap={1}>
                 {!prefersStackedNav && (
-                  <Feature
-                    organization={organization}
-                    features="performance-saved-queries"
+                  <LinkButton
+                    to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                    size="sm"
                   >
-                    <LinkButton
-                      to={`/organizations/${organization.slug}/explore/saved-queries/`}
-                      size="sm"
-                    >
-                      {t('Saved Queries')}
-                    </LinkButton>
-                  </Feature>
+                    {t('Saved Queries')}
+                  </LinkButton>
                 )}
                 <StarSavedQueryButton />
                 <ActionsButton organization={organization} />
