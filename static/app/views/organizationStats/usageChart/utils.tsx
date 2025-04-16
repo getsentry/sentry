@@ -4,8 +4,7 @@ import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/pars
 import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-
-import {formatUsageWithUnits} from '../utils';
+import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
 /**
  * Avoid changing "MMM D" format as X-axis labels on UsageChart are naively

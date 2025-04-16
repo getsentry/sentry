@@ -1,3 +1,5 @@
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -24,13 +26,12 @@ describe('IssueViewNavEllipsisMenu', () => {
     isCommitted: true,
     key: 'test-view',
     label: 'Test View',
+    lastVisited: null,
+    createdBy: UserFixture(),
+    stars: 1,
   };
 
   const defaultProps: IssueViewNavEllipsisMenuProps = {
-    baseUrl: '/organizations/sentry/issues',
-    onDeleteView: jest.fn(),
-    onDuplicateView: jest.fn(),
-    onUpdateView: jest.fn(),
     setIsEditing: jest.fn(),
     view: mockView,
     isLastView: false,
@@ -68,15 +69,23 @@ describe('IssueViewNavEllipsisMenu', () => {
   });
 
   it('shows save and discard options when there are unsaved changes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/group-search-views/${mockView.id}/`,
+      method: 'GET',
+      body: mockView,
+    });
     const user = userEvent.setup();
-    const viewWithChanges = {
-      ...mockView,
-      unsavedChanges: {
-        query: 'is:resolved',
-      },
-    };
 
-    render(<IssueViewNavEllipsisMenu {...defaultProps} view={viewWithChanges} />);
+    render(<IssueViewNavEllipsisMenu {...defaultProps} view={mockView} />, {
+      enableRouterMocks: false,
+      initialRouterConfig: {
+        route: '/organizations/:orgId/issues/views/:viewId/',
+        location: {
+          pathname: `/organizations/sentry/issues/views/${mockView.id}/`,
+          query: {query: 'is:resolved'},
+        },
+      },
+    });
 
     await user.click(screen.getByRole('button'));
 

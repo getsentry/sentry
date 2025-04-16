@@ -317,7 +317,7 @@ describe('GroupActions', function () {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Resolved'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Unresolve'}));
 
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,

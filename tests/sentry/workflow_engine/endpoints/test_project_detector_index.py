@@ -2,6 +2,7 @@ from unittest import mock
 
 from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
@@ -81,6 +82,10 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
                     }
                 ],
             },
+            "config": {
+                "threshold_period": 1,
+                "detection_type": AlertRuleDetectionType.STATIC.value,
+            },
         }
 
     def test_missing_group_type(self):
@@ -106,7 +111,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
 
     def test_incompatible_group_type(self):
         with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
-            mock_get.return_value = mock.Mock(detector_validator=None)
+            mock_get.return_value = mock.Mock(detector_settings=None)
             data = {**self.valid_data, "detectorType": "incompatible_type"}
             response = self.get_error_response(
                 self.organization.slug,

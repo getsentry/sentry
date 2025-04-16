@@ -4,8 +4,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-
-import type {Monitor} from '../types';
+import type {Monitor} from 'sentry/views/insights/crons/types';
 
 import MonitorHeaderActions from './monitorHeaderActions';
 

@@ -19,7 +19,13 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import decodeSubregions from 'sentry/views/insights/browser/resources/utils/queryParameterDecoders/subregions';
+import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
+import type {
+  NonDefaultSpanSampleFields,
+  SpanSample,
+} from 'sentry/views/insights/common/queries/useSpanSamples';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
@@ -30,9 +36,6 @@ import {
   SpanMetricsField,
 } from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
-
-import {SampleDrawerBody} from '../../../components/sampleDrawerBody';
-import {SampleDrawerHeaderTransaction} from '../../../components/sampleDrawerHeaderTransaction';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
@@ -108,10 +111,7 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
 
   let columnOrder = DEFAULT_COLUMN_ORDER;
 
-  const additionalFields: SpanIndexedField[] = [
-    SpanIndexedField.TRACE,
-    SpanIndexedField.TRANSACTION_ID,
-  ];
+  const additionalFields: NonDefaultSpanSampleFields[] = [SpanIndexedField.TRACE];
 
   if (moduleName === ModuleName.RESOURCE) {
     additionalFields?.push(SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH);
@@ -131,6 +131,33 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
       },
     ];
   }
+
+  const handleClickSample = useCallback(
+    (span: SpanSample) => {
+      router.push(
+        generateLinkToEventInTraceView({
+          targetId: span['transaction.span_id'],
+          projectSlug: span.project,
+          spanId: span.span_id,
+          location,
+          organization,
+          traceSlug: span.trace,
+          timestamp: span.timestamp,
+        })
+      );
+    },
+    [organization, location, router]
+  );
+
+  const handleMouseOverSample = useCallback(
+    (sample: SpanSample) => debounceSetHighlightedSpanId(sample.span_id),
+    [debounceSetHighlightedSpanId]
+  );
+
+  const handleMouseLeaveSample = useCallback(
+    () => debounceSetHighlightedSpanId(undefined),
+    [debounceSetHighlightedSpanId]
+  );
 
   return (
     <PageAlertProvider>
@@ -158,21 +185,9 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
           transactionMethod={transactionMethod}
           subregions={subregions}
           additionalFields={additionalFields}
-          onClickSample={span => {
-            router.push(
-              generateLinkToEventInTraceView({
-                eventId: span['transaction.id'],
-                projectSlug: span.project,
-                spanId: span.span_id,
-                location,
-                organization,
-                traceSlug: span.trace,
-                timestamp: span.timestamp,
-              })
-            );
-          }}
-          onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}
-          onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
+          onClickSample={handleClickSample}
+          onMouseOverSample={handleMouseOverSample}
+          onMouseLeaveSample={handleMouseLeaveSample}
           spanSearch={spanSearch}
           highlightedSpanId={highlightedSpanId}
         />

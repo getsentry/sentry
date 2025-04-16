@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.db import models
-from django.db.models import UniqueConstraint
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from jsonschema import ValidationError
@@ -61,12 +60,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
 
     class Meta(OwnerModel.Meta):
-        constraints = OwnerModel.Meta.constraints + [
-            UniqueConstraint(
-                fields=["project", "name"],
-                name="workflow_engine_detector_proj_name",
-            )
-        ]
+        constraints = OwnerModel.Meta.constraints
 
     error_detector_project_options = {
         "fingerprinting_rules": "sentry:fingerprinting_rules",
@@ -93,7 +87,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             )
             return None
 
-        if not group_type.detector_handler:
+        if not group_type.detector_settings or not group_type.detector_settings.handler:
             logger.error(
                 "Registered grouptype for detector has no detector_handler",
                 extra={
@@ -103,7 +97,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 },
             )
             return None
-        return group_type.detector_handler(self)
+        return group_type.detector_settings.handler(self)
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name}
@@ -127,9 +121,10 @@ def enforce_config_schema(sender, instance: Detector, **kwargs):
     if not group_type:
         raise ValueError(f"No group type found with type {instance.type}")
 
+    if not group_type.detector_settings:
+        return
+
     if not isinstance(instance.config, dict):
         raise ValidationError("Detector config must be a dictionary")
 
-    config_schema = group_type.detector_config_schema
-    if instance.config:
-        instance.validate_config(config_schema)
+    instance.validate_config(group_type.detector_settings.config_schema)

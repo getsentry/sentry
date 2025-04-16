@@ -86,12 +86,12 @@ export function SeerSectionCtaButton({
         step => step.type === AutofixStepType.DEFAULT
       );
       if (prevProcessingStep && prevProcessingStep.status !== AutofixStatus.COMPLETED) {
-        if (currentSteps.find(step => step.type === AutofixStepType.CHANGES)) {
+        if (currentSteps.some(step => step.type === AutofixStepType.CHANGES)) {
           addSuccessMessage(t('Autofix has finished coding.'));
-        } else if (currentSteps.find(step => step.type === AutofixStepType.SOLUTION)) {
+        } else if (currentSteps.some(step => step.type === AutofixStepType.SOLUTION)) {
           addSuccessMessage(t('Autofix has found a solution.'));
         } else if (
-          currentSteps.find(step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS)
+          currentSteps.some(step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS)
         ) {
           addSuccessMessage(t('Autofix has found the root cause.'));
         }
@@ -203,7 +203,7 @@ export function SeerSectionCtaButton({
       {getButtonText()}
       <ChevronContainer>
         {isAutofixInProgress ? (
-          <StyledLoadingIndicator mini size={14} />
+          <StyledLoadingIndicator size={14} />
         ) : (
           <IconChevron direction="right" size="xs" />
         )}
@@ -231,7 +231,7 @@ const ChevronContainer = styled('div')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: relative;
-  top: 5px;
+  margin-left: ${space(1)};
   color: ${p => p.theme.pink400};
 
   .loading-indicator {

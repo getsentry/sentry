@@ -1,11 +1,16 @@
 import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
+import {
+  DEFAULT_QUERY_CLIENT_CONFIG,
+  QueryClient,
+  QueryClientProvider,
+} from 'sentry/utils/queryClient';
 // eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
@@ -13,6 +18,11 @@ import {DO_NOT_USE_darkChonkTheme, DO_NOT_USE_lightChonkTheme} from './theme.cho
 import {useThemeSwitcher} from './useThemeSwitcher';
 
 jest.mock('sentry/utils/removeBodyTheme');
+
+const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
+const wrapper = ({children}: {children?: React.ReactNode}) => (
+  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+);
 
 describe('useChonkTheme', () => {
   beforeEach(() => {
@@ -25,100 +35,81 @@ describe('useChonkTheme', () => {
     );
   });
 
-  it('returns null if no organizationis loaded', () => {
-    const {result} = renderHook(() => useThemeSwitcher());
-    expect(result.current).toBe(lightTheme);
-  });
-
-  it('returns old theme if the organization does not have chonk-ui feature', () => {
-    OrganizationStore.onUpdate(
-      OrganizationFixture({
-        features: [],
-      })
-    );
-
-    const {result} = renderHook(() => useThemeSwitcher());
-    expect(result.current).toBe(lightTheme);
-  });
-
-  it('returns null if organization has chonk-ui feature and session storage is unset', () => {
-    localStorage.clear();
-    OrganizationStore.onUpdate(
-      OrganizationFixture({
-        features: ['chonk-ui'],
-      })
-    );
-
-    const {result} = renderHook(() => useThemeSwitcher());
-    expect(result.current).toBe(lightTheme);
-  });
-
-  it('returns light theme if organization has chonk-ui feature and session storage is set to light', () => {
-    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'light'}));
-    OrganizationStore.onUpdate(
-      OrganizationFixture({
-        features: ['chonk-ui'],
-      })
-    );
-
-    const {result} = renderHook(() => useThemeSwitcher());
-    expect(result.current).toBe(DO_NOT_USE_lightChonkTheme);
-  });
-
-  it('returns dark theme if organization has chonk-ui feature and dark theme is selected', () => {
-    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
-    OrganizationStore.onUpdate(
-      OrganizationFixture({
-        features: ['chonk-ui'],
-      })
-    );
-
-    const {result} = renderHook(() => useThemeSwitcher());
-    expect(result.current).toBe(DO_NOT_USE_darkChonkTheme);
-  });
-
-  it('unsets chonk theme on config store theme change', async () => {
-    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
-    OrganizationStore.onUpdate(
-      OrganizationFixture({
-        features: ['chonk-ui'],
-      })
-    );
-
-    const {result} = renderHook(() => useThemeSwitcher());
-
-    await waitFor(() => {
-      expect(result.current).toBe(DO_NOT_USE_darkChonkTheme);
+  describe('disabled states', () => {
+    it('returns null if no organization is loaded', () => {
+      const {result} = renderHook(() => useThemeSwitcher(), {wrapper});
+      expect(result.current).toBe(lightTheme);
     });
 
-    act(() => ConfigStore.set('theme', 'dark'));
-
-    expect(result.current).toBe(darkTheme);
-    expect(removeBodyTheme).toHaveBeenCalled();
-  });
-
-  it('unsets chonk theme if new organization does not have chonk-ui feature', async () => {
-    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
-    OrganizationStore.onUpdate(
-      OrganizationFixture({
-        features: ['chonk-ui'],
-      })
-    );
-
-    const {result} = renderHook(() => useThemeSwitcher());
-
-    await waitFor(() => {
-      expect(result.current).toBe(DO_NOT_USE_darkChonkTheme);
-    });
-
-    act(() => {
+    it('returns old theme if the organization does not have chonk-ui feature', () => {
       OrganizationStore.onUpdate(
         OrganizationFixture({
           features: [],
         })
       );
+
+      const {result} = renderHook(() => useThemeSwitcher(), {wrapper});
+      expect(result.current).toBe(lightTheme);
     });
 
-    await waitFor(() => expect(result.current).toBe(lightTheme));
+    it('returns old theme if the user prefers chonk theme, but the organization does not have chonk-ui feature', () => {
+      OrganizationStore.onUpdate(
+        OrganizationFixture({
+          features: ['chonk-ui'],
+        })
+      );
+
+      const {result} = renderHook(() => useThemeSwitcher(), {wrapper});
+      expect(result.current).toBe(lightTheme);
+    });
+
+    it('returns old dark theme if the user prefers chonk theme, but the organization does not have chonk-ui feature', () => {
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: UserFixture({
+            options: {...UserFixture().options, prefersChonkUI: true, theme: 'dark'},
+          }),
+        })
+      );
+
+      OrganizationStore.onUpdate(
+        OrganizationFixture({
+          features: [],
+        })
+      );
+
+      const {result} = renderHook(() => useThemeSwitcher(), {wrapper});
+      expect(result.current).toBe(darkTheme);
+    });
+  });
+
+  describe('enabled states', () => {
+    it('returns light chonk theme if the organization has chonk-ui feature and user prefers chonk theme', () => {
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: UserFixture({
+            options: {...UserFixture().options, prefersChonkUI: true, theme: 'system'},
+          }),
+        })
+      );
+      OrganizationStore.onUpdate(OrganizationFixture({features: ['chonk-ui']}));
+
+      const {result} = renderHook(() => useThemeSwitcher(), {wrapper});
+      expect(result.current).toBe(DO_NOT_USE_lightChonkTheme);
+    });
+
+    it('returns dark chonk theme if the organization has chonk-ui feature and user prefers chonk theme', () => {
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: UserFixture({
+            options: {...UserFixture().options, prefersChonkUI: true, theme: 'dark'},
+          }),
+        })
+      );
+      OrganizationStore.onUpdate(OrganizationFixture({features: ['chonk-ui']}));
+
+      const {result} = renderHook(() => useThemeSwitcher(), {wrapper});
+      expect(result.current).toBe(DO_NOT_USE_darkChonkTheme);
+    });
   });
 });

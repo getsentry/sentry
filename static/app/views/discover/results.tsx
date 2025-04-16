@@ -65,8 +65,7 @@ import {
   getSavedQueryDataset,
   getSavedQueryWithDataset,
 } from 'sentry/views/discover/savedQuery/utils';
-
-import {addRoutePerformanceContext} from '../performance/utils';
+import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 import {DEFAULT_EVENT_VIEW, DEFAULT_EVENT_VIEW_MAP} from './data';
 import ResultsChart from './resultsChart';
@@ -823,7 +822,6 @@ export class Results extends Component<Props, State> {
                 >
                   <ResultsChart
                     api={api}
-                    router={router}
                     organization={organization}
                     eventView={eventView}
                     location={location}

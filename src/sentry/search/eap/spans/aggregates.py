@@ -476,3 +476,160 @@ SPAN_AGGREGATE_DEFINITIONS = {
         attribute_resolver=transform_vital_score_to_ratio,
     ),
 }
+
+LOG_AGGREGATE_DEFINITIONS = {
+    "count": AggregateDefinition(
+        internal_function=Function.FUNCTION_COUNT,
+        infer_search_type_from_arguments=False,
+        processor=count_processor,
+        default_search_type="string",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "string",
+                    "number",
+                    "integer",
+                },
+                default_arg="log.body",
+            )
+        ],
+    ),
+    "sum": AggregateDefinition(
+        internal_function=Function.FUNCTION_SUM,
+        default_search_type="number",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "integer",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            )
+        ],
+    ),
+    "avg": AggregateDefinition(
+        internal_function=Function.FUNCTION_AVG,
+        default_search_type="number",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "integer",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            )
+        ],
+    ),
+    "p50": AggregateDefinition(
+        internal_function=Function.FUNCTION_P50,
+        default_search_type="number",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "integer",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            )
+        ],
+    ),
+    "p75": AggregateDefinition(
+        internal_function=Function.FUNCTION_P75,
+        default_search_type="number",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "integer",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            )
+        ],
+    ),
+    "p90": AggregateDefinition(
+        internal_function=Function.FUNCTION_P90,
+        default_search_type="number",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "integer",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            )
+        ],
+    ),
+    "p95": AggregateDefinition(
+        internal_function=Function.FUNCTION_P95,
+        default_search_type="number",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "integer",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            )
+        ],
+    ),
+    "p99": AggregateDefinition(
+        internal_function=Function.FUNCTION_P99,
+        default_search_type="number",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "integer",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            )
+        ],
+    ),
+    "max": AggregateDefinition(
+        internal_function=Function.FUNCTION_MAX,
+        default_search_type="number",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "integer",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            )
+        ],
+    ),
+    "min": AggregateDefinition(
+        internal_function=Function.FUNCTION_MIN,
+        default_search_type="number",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "integer",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            )
+        ],
+    ),
+}

@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/container/flex';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import Panel from 'sentry/components/panels/panel';
@@ -19,8 +20,8 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {WidgetTitleProps} from 'sentry/views/dashboards/widgets/widget/widgetTitle';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {ModalChartContainer} from 'sentry/views/insights/pages/backend/laravel/styles';
-import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
+import {ModalChartContainer} from 'sentry/views/insights/pages/platform/laravel/styles';
+import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import useRecentIssues from 'sentry/views/insights/sessions/queries/useRecentIssues';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
@@ -115,7 +116,16 @@ export default function ChartWithIssues({
             icon={<IconExpand />}
             onClick={() => {
               openInsightChartModal({
-                title,
+                title: (
+                  <Flex justify="space-between">
+                    {title}
+                    {hasData && recentIssues?.length ? (
+                      <LinkButton size="xs" to={{pathname: `/issues/`}}>
+                        {t('View All')}
+                      </LinkButton>
+                    ) : null}
+                  </Flex>
+                ),
                 children: (
                   <Fragment>
                     <ModalChartContainer>
@@ -131,6 +141,11 @@ export default function ChartWithIssues({
               });
             }}
           />
+          {hasData && recentIssues?.length ? (
+            <LinkButton size="xs" to={{pathname: `/issues/`}}>
+              {t('View All')}
+            </LinkButton>
+          ) : null}
         </Widget.WidgetToolbar>
       }
       noFooterPadding
@@ -147,6 +162,7 @@ const FooterIssues = styled('div')`
 const GroupWrapper = styled(GroupSummary)`
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(0.5)} ${space(1.5)} ${space(0.5)};
+  margin-inline: ${space(1)};
 
   &:first-child {
     border-top: none;

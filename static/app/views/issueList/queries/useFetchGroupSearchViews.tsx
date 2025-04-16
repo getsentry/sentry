@@ -3,6 +3,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {
   GroupSearchView,
   GroupSearchViewCreatedBy,
+  GroupSearchViewSort,
 } from 'sentry/views/issueList/types';
 
 type FetchGroupSearchViewsParameters = {
@@ -10,6 +11,8 @@ type FetchGroupSearchViewsParameters = {
   createdBy?: GroupSearchViewCreatedBy;
   cursor?: string;
   limit?: number;
+  query?: string;
+  sort?: GroupSearchViewSort;
 };
 
 export const makeFetchGroupSearchViewsKey = ({
@@ -17,6 +20,8 @@ export const makeFetchGroupSearchViewsKey = ({
   createdBy,
   limit,
   cursor,
+  sort,
+  query,
 }: FetchGroupSearchViewsParameters): ApiQueryKey =>
   [
     `/organizations/${orgSlug}/group-search-views/`,
@@ -25,6 +30,8 @@ export const makeFetchGroupSearchViewsKey = ({
         per_page: limit,
         createdBy,
         cursor,
+        sort,
+        query,
       },
     },
   ] as const;

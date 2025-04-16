@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 
 import {
   render,
@@ -18,40 +19,50 @@ const defaultProps = {
   sort: IssueSortOptions.DATE,
 };
 
+const mockGroupSearchView = GroupSearchViewFixture({id: '100'});
+const defaultPageFilters = {
+  projects: [1],
+  environments: ['prod'],
+  datetime: {
+    period: '7d',
+    utc: null,
+    start: null,
+    end: null,
+  },
+};
+
+const initialRouterConfigFeed = {
+  location: {
+    pathname: '/organizations/org-slug/issues/',
+  },
+  route: '/organizations/:orgId/issues/',
+};
+
+const initialRouterConfigView = {
+  location: {
+    pathname: '/organizations/org-slug/issues/views/100/',
+  },
+  route: '/organizations/:orgId/issues/views/:viewId/',
+};
+
 describe('IssueViewSaveButton', function () {
+  PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
+
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/100/',
+      body: mockGroupSearchView,
+    });
+  });
+
   it('can create a new view when no view is selected', async function () {
     const mockCreateIssueView = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/',
       method: 'POST',
-      body: {
-        id: 100,
-        name: 'My View',
-        projects: [1],
-        query: 'is:unresolved',
-        querySort: IssueSortOptions.DATE,
-        environments: ['prod'],
-        timeFilters: {
-          period: '1d',
-          utc: null,
-          start: null,
-          end: null,
-        },
-      },
+      body: mockGroupSearchView,
     });
 
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [1],
-        environments: ['prod'],
-        datetime: {
-          period: '1d',
-          utc: null,
-          start: null,
-          end: null,
-        },
-      },
-      new Set()
-    );
+    PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
 
     const {router} = render(
       <Fragment>
@@ -60,15 +71,11 @@ describe('IssueViewSaveButton', function () {
       </Fragment>,
       {
         enableRouterMocks: false,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/issues/',
-          },
-        },
+        initialRouterConfig: initialRouterConfigFeed,
       }
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save As'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Save As'}));
 
     const modal = screen.getByRole('dialog');
 
@@ -93,7 +100,8 @@ describe('IssueViewSaveButton', function () {
           querySort: IssueSortOptions.DATE,
           projects: [1],
           environments: ['prod'],
-          timeFilters: {period: '1d', utc: null, start: null, end: null},
+          timeFilters: {period: '7d', utc: null, start: null, end: null},
+          starred: false,
         },
       })
     );
@@ -103,35 +111,10 @@ describe('IssueViewSaveButton', function () {
     const mockCreateIssueView = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/',
       method: 'POST',
-      body: {
-        id: 100,
-        name: 'My View',
-        projects: [1],
-        query: 'is:unresolved',
-        querySort: IssueSortOptions.DATE,
-        environments: ['prod'],
-        timeFilters: {
-          period: '1d',
-          utc: null,
-          start: null,
-          end: null,
-        },
-      },
+      body: mockGroupSearchView,
     });
 
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [1],
-        environments: ['prod'],
-        datetime: {
-          period: '1d',
-          utc: null,
-          start: null,
-          end: null,
-        },
-      },
-      new Set()
-    );
+    PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
 
     const {router} = render(
       <Fragment>
@@ -140,12 +123,7 @@ describe('IssueViewSaveButton', function () {
       </Fragment>,
       {
         enableRouterMocks: false,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/issues/views/100/',
-          },
-          route: '/organizations/:orgId/issues/views/:viewId/',
-        },
+        initialRouterConfig: initialRouterConfigView,
       }
     );
 
@@ -175,9 +153,99 @@ describe('IssueViewSaveButton', function () {
           querySort: IssueSortOptions.DATE,
           projects: [1],
           environments: ['prod'],
-          timeFilters: {period: '1d', utc: null, start: null, end: null},
+          timeFilters: {period: '7d', utc: null, start: null, end: null},
+          starred: false,
         },
       })
     );
+  });
+
+  it('can save changes to a view', async function () {
+    const mockUpdateIssueView = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/100/',
+      method: 'PUT',
+      body: {...mockGroupSearchView, environments: ['dev']},
+    });
+
+    render(<IssueViewSaveButton {...defaultProps} />, {
+      enableRouterMocks: false,
+      initialRouterConfig: {
+        ...initialRouterConfigView,
+        location: {
+          pathname: '/organizations/org-slug/issues/views/100/',
+          query: {
+            project: '1',
+            environment: 'dev', // different from default of 'prod'
+            statsPeriod: '7d',
+            query: 'is:unresolved',
+            sort: IssueSortOptions.DATE,
+          },
+        },
+      },
+    });
+
+    // Should show unsaved changes
+    await screen.findByTestId('save-button-unsaved');
+
+    // Clicking save should update the view and clear unsaved changes
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+    await waitFor(() => {
+      // The save button should no longer show unsaved changes
+      expect(screen.queryByTestId('save-button-unsaved')).not.toBeInTheDocument();
+    });
+
+    expect(mockUpdateIssueView).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          environments: ['dev'],
+        }),
+      })
+    );
+  });
+
+  it('can discard unsaved changes', async function () {
+    PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
+
+    const {router} = render(<IssueViewSaveButton {...defaultProps} />, {
+      enableRouterMocks: false,
+      initialRouterConfig: {
+        ...initialRouterConfigView,
+        location: {
+          pathname: '/organizations/org-slug/issues/views/100/',
+          query: {
+            project: '1',
+            environment: 'dev', // different from default of 'prod'
+            statsPeriod: '7d',
+            query: 'is:unresolved',
+            sort: IssueSortOptions.DATE,
+          },
+        },
+      },
+    });
+
+    await screen.findByTestId('save-button-unsaved');
+
+    await userEvent.click(screen.getByRole('button', {name: 'More save options'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Discard unsaved changes'})
+    );
+
+    // Discarding unsaved changes should reset URL query params
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        project: '1',
+        environment: 'prod',
+        statsPeriod: '7d',
+        query: 'is:unresolved',
+        sort: IssueSortOptions.DATE,
+      });
+    });
+
+    expect(router.location.pathname).toBe('/organizations/org-slug/issues/views/100/');
+
+    // The save button should no longer show unsaved changes
+    expect(screen.getByTestId('save-button')).toBeInTheDocument();
   });
 });

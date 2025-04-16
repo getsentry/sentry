@@ -33,6 +33,20 @@ def test_timedeltaschedule_is_due() -> None:
     assert schedule.is_due(six_min_ago)
 
 
+def test_timedeltaschedule_monitor_interval() -> None:
+    schedule = TimedeltaSchedule(timedelta(seconds=10))
+    assert schedule.monitor_interval() == (10, "second")
+
+    schedule = TimedeltaSchedule(timedelta(minutes=5))
+    assert schedule.monitor_interval() == (5, "minute")
+
+    schedule = TimedeltaSchedule(timedelta(minutes=5, seconds=10))
+    assert schedule.monitor_interval() == (5, "minute")
+
+    schedule = TimedeltaSchedule(timedelta(hours=1))
+    assert schedule.monitor_interval() == (1, "hour")
+
+
 @freeze_time("2025-01-24 14:25:00")
 def test_timedeltaschedule_remaining_seconds() -> None:
     now = timezone.now()
@@ -160,3 +174,14 @@ def test_crontabschedule_runtime_after() -> None:
     schedule = CrontabSchedule("test", crontab(minute="*/1"))
     now = timezone.now()
     assert schedule.runtime_after(now) == datetime(2025, 1, 24, 14, 26, 0, tzinfo=UTC)
+
+
+def test_crontabschedule_monitor_value() -> None:
+    schedule = CrontabSchedule("test", crontab(minute="*/5"))
+    assert schedule.monitor_value() == "*/5 * * * *"
+
+    schedule = CrontabSchedule("test", crontab(minute="*/10", hour="*/2"))
+    assert schedule.monitor_value() == "*/10 */2 * * *"
+
+    schedule = CrontabSchedule("test", crontab(minute="*/10", day_of_week="1"))
+    assert schedule.monitor_value() == "*/10 * * * 1"

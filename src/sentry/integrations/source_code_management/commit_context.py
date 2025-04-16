@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -99,7 +99,7 @@ class CommitContextIntegration(ABC):
         raise NotImplementedError
 
     def get_blame_for_files(
-        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+        self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
     ) -> list[FileBlameInfo]:
         """
         Calls the client's `get_blame_for_files` method to fetch blame for a list of files.
@@ -150,7 +150,7 @@ class CommitContextIntegration(ABC):
             return response
 
     def get_commit_context_all_frames(
-        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+        self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
     ) -> list[FileBlameInfo]:
         """
         Given a list of source files and line numbers,returns the commit info for the most recent commit.
@@ -216,7 +216,7 @@ class CommitContextIntegration(ABC):
             try:
                 client = self.get_client()
                 merge_commit_sha = client.get_merge_commit_sha_from_commit(
-                    repo=repo.name, sha=commit.key
+                    repo=repo, sha=commit.key
                 )
             except Exception as e:
                 sentry_sdk.capture_exception(e)
@@ -300,20 +300,18 @@ class CommitContextIntegration(ABC):
         self,
         repo: Repository,
         pr_key: str,
-        comment_body: str,
+        comment_data: dict[str, Any],
         pullrequest_id: int,
         issue_list: list[int],
         metrics_base: str,
         comment_type: int = CommentType.MERGED_PR,
         language: str | None = None,
-        github_copilot_actions: list[dict[str, Any]] | None = None,
     ):
         client = self.get_client()
 
-        pr_comment_query = PullRequestComment.objects.filter(
+        pr_comment = PullRequestComment.objects.filter(
             pull_request__id=pullrequest_id, comment_type=comment_type
-        )
-        pr_comment = pr_comment_query[0] if pr_comment_query.exists() else None
+        ).first()
 
         interaction_type = (
             SCMIntegrationInteractionType.CREATE_COMMENT
@@ -331,14 +329,7 @@ class CommitContextIntegration(ABC):
                 resp = client.create_comment(
                     repo=repo.name,
                     issue_id=str(pr_key),
-                    data=(
-                        {
-                            "body": comment_body,
-                            "actions": github_copilot_actions,
-                        }
-                        if github_copilot_actions
-                        else {"body": comment_body}
-                    ),
+                    data=comment_data,
                 )
 
                 current_time = django_timezone.now()
@@ -367,14 +358,7 @@ class CommitContextIntegration(ABC):
                     repo=repo.name,
                     issue_id=str(pr_key),
                     comment_id=pr_comment.external_id,
-                    data=(
-                        {
-                            "body": comment_body,
-                            "actions": github_copilot_actions,
-                        }
-                        if github_copilot_actions
-                        else {"body": comment_body}
-                    ),
+                    data=comment_data,
                 )
                 metrics.incr(
                     metrics_base.format(integration=self.integration_name, key="comment_updated")
@@ -397,21 +381,21 @@ class CommitContextClient(ABC):
 
     @abstractmethod
     def get_blame_for_files(
-        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+        self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
     ) -> list[FileBlameInfo]:
         """Get the blame for a list of files. This method should include custom metrics for the specific integration implementation."""
         raise NotImplementedError
 
     @abstractmethod
-    def create_comment(self, repo: str, issue_id: str, data: Mapping[str, Any]) -> Any:
+    def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         raise NotImplementedError
 
     @abstractmethod
     def update_comment(
-        self, repo: str, issue_id: str, comment_id: str, data: Mapping[str, Any]
+        self, repo: str, issue_id: str, comment_id: str, data: dict[str, Any]
     ) -> Any:
         raise NotImplementedError
 
     @abstractmethod
-    def get_merge_commit_sha_from_commit(self, repo: str, sha: str) -> str | None:
+    def get_merge_commit_sha_from_commit(self, repo: Repository, sha: str) -> str | None:
         raise NotImplementedError

@@ -14,13 +14,13 @@ import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
+import type {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {
   TimeSeriesWidgetVisualization,
   type TimeSeriesWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {WidgetTitleProps} from 'sentry/views/dashboards/widgets/widget/widgetTitle';
-
 import {
   AVG_COLOR,
   COUNT_COLOR,
@@ -28,12 +28,15 @@ import {
   HTTP_RESPONSE_4XX_COLOR,
   HTTP_RESPONSE_5XX_COLOR,
   THROUGHPUT_COLOR,
-} from '../../colors';
-import {INGESTION_DELAY} from '../../settings';
-import type {DiscoverSeries} from '../queries/useDiscoverSeries';
-import {convertSeriesToTimeseries} from '../utils/convertSeriesToTimeseries';
+} from 'sentry/views/insights/colors';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
+import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
-export interface InsightsTimeSeriesWidgetProps extends WidgetTitleProps {
+export interface InsightsTimeSeriesWidgetProps
+  extends WidgetTitleProps,
+    LoadableChartWidgetProps {
   error: Error | null;
   isLoading: boolean;
   series: DiscoverSeries[];
@@ -44,6 +47,8 @@ export interface InsightsTimeSeriesWidgetProps extends WidgetTitleProps {
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
+  samples?: Samples;
+  showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   stacked?: boolean;
 }
 
@@ -51,7 +56,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
+  const pageFiltersSelection = props.pageFilters || pageFilters.selection;
+  const {releases: releasesWithDate} = useReleaseStats(pageFiltersSelection);
   const releases =
     releasesWithDate?.map(({date, version}) => ({
       timestamp: date,
@@ -59,6 +65,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     })) ?? [];
 
   const visualizationProps: TimeSeriesWidgetVisualizationProps = {
+    showLegend: props.showLegend,
     plottables: (props.series.filter(Boolean) ?? [])?.map(serie => {
       const timeSeries = convertSeriesToTimeseries(serie);
       const PlottableDataConstructor =
@@ -76,6 +83,10 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       });
     }),
   };
+
+  if (props.samples) {
+    visualizationProps.plottables.push(props.samples);
+  }
 
   const Title = props.interactiveTitle ? (
     props.interactiveTitle()
@@ -118,7 +129,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   }
 
   const enableReleaseBubblesProps = organization.features.includes('release-bubbles-ui')
-    ? ({releases, showReleaseAs: 'bubble'} as const)
+    ? ({releases, showReleaseAs: props.showReleaseAs || 'bubble'} as const)
     : {};
 
   return (
@@ -127,6 +138,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         Title={Title}
         Visualization={
           <TimeSeriesWidgetVisualization
+            id={props.id}
+            pageFilters={props.pageFilters}
             {...enableReleaseBubblesProps}
             legendSelection={props.legendSelection}
             onLegendSelectionChange={props.onLegendSelectionChange}
@@ -149,6 +162,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                   children: (
                     <ModalChartContainer>
                       <TimeSeriesWidgetVisualization
+                        id={props.id}
                         {...visualizationProps}
                         {...enableReleaseBubblesProps}
                         onZoom={() => {}}

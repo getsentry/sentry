@@ -52,7 +52,7 @@ from sentry.search.eap.utils import validate_sampling
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 
 
 @dataclass(frozen=True)
@@ -90,7 +90,9 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Unknown function {function_name}")
 
     @sentry_sdk.trace
-    def resolve_meta(self, referrer: str, sampling_mode: str | None = None) -> RequestMeta:
+    def resolve_meta(
+        self, referrer: str, sampling_mode: SAMPLING_MODES | None = None
+    ) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
         span = sentry_sdk.get_current_span()
@@ -718,7 +720,10 @@ class SearchResolver:
         if column in self.definitions.contexts:
             column_context = self.definitions.contexts[column]
             column_definition = ResolvedAttribute(
-                public_alias=column, internal_name=column, search_type="string"
+                public_alias=column,
+                internal_name=column,
+                search_type="string",
+                processor=column_context.processor,
             )
         elif column in self.definitions.columns:
             column_context = None

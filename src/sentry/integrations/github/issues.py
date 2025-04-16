@@ -12,11 +12,13 @@ from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import all_silo_function
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 
@@ -30,12 +32,12 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
-    def get_feedback_issue_body(self, event: GroupEvent) -> str:
+    def get_feedback_issue_body(self, occurrence: IssueOccurrence) -> str:
         messages = [
-            evidence for evidence in event.occurrence.evidence_display if evidence.name == "message"
+            evidence for evidence in occurrence.evidence_display if evidence.name == "message"
         ]
         others = [
-            evidence for evidence in event.occurrence.evidence_display if evidence.name != "message"
+            evidence for evidence in occurrence.evidence_display if evidence.name != "message"
         ]
 
         body = ""
@@ -50,11 +52,11 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         return body.rstrip("\n")  # remove the last new line
 
-    def get_generic_issue_body(self, event: GroupEvent) -> str:
+    def get_generic_issue_body(self, occurrence: IssueOccurrence) -> str:
         body = "|  |  |\n"
         body += "| ------------- | --------------- |\n"
         for evidence in sorted(
-            event.occurrence.evidence_display, key=attrgetter("important"), reverse=True
+            occurrence.evidence_display, key=attrgetter("important"), reverse=True
         ):
             body += f"| **{evidence.name}** | {truncatechars(evidence.value, MAX_CHAR)} |\n"
 
@@ -66,9 +68,9 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         if isinstance(event, GroupEvent) and event.occurrence is not None:
             body = ""
             if group.issue_category == GroupCategory.FEEDBACK:
-                body = self.get_feedback_issue_body(event)
+                body = self.get_feedback_issue_body(event.occurrence)
             else:
-                body = self.get_generic_issue_body(event)
+                body = self.get_generic_issue_body(event.occurrence)
             output.extend([body])
         else:
             body = self.get_group_body(group, event)
@@ -102,7 +104,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User, **kwargs: Any
+        self, group: Group | None, user: User | RpcUser, **kwargs: Any
     ) -> list[dict[str, Any]]:
         """
         We use the `group` to get three things: organization_slug, project
@@ -126,6 +128,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             org_context = organization_service.get_organization_by_id(
                 id=self.organization_id, include_projects=False, include_teams=False
             )
+            assert org_context is not None
             org = org_context.organization
 
         params = kwargs.pop("params", {})

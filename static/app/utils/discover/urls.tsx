@@ -2,13 +2,12 @@ import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-
-import {getTimeStampFromTableDateField} from '../dates';
-import {getTransactionDetailsUrl} from '../performance/urls';
 
 import type {EventData} from './eventView';
 import EventView from './eventView';
@@ -63,13 +62,13 @@ export function generateLinkToEventInTraceView({
   type = 'performance',
   view,
 }: {
-  eventId: string | undefined;
   location: Location;
   organization: Organization;
   projectSlug: string;
   timestamp: string | number;
   traceSlug: string;
   demo?: string;
+  eventId?: string;
   eventView?: EventView;
   isHomepage?: boolean;
   source?: TraceViewSources;

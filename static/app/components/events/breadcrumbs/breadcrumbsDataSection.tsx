@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -48,6 +49,7 @@ export default function BreadcrumbsDataSection({
   project,
   initialCollapse,
 }: BreadcrumbsDataSectionProps) {
+  const theme = useTheme();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -63,7 +65,10 @@ export default function BreadcrumbsDataSection({
     BreadcrumbSort.NEWEST
   );
 
-  const enhancedCrumbs = useMemo(() => getEnhancedBreadcrumbs(event), [event]);
+  const enhancedCrumbs = useMemo(
+    () => getEnhancedBreadcrumbs(event, theme),
+    [event, theme]
+  );
   const summaryCrumbs = useMemo(
     () => getSummaryBreadcrumbs(enhancedCrumbs, sort),
     [enhancedCrumbs, sort]

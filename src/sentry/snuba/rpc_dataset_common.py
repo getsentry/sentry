@@ -1,25 +1,70 @@
 import logging
+from dataclasses import dataclass, field
 
 import sentry_sdk
 from google.protobuf.json_format import MessageToJson
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
+    Expression,
+    TimeSeries,
+    TimeSeriesRequest,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, TraceItemFilter
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import (
     ResolvedAggregate,
     ResolvedAttribute,
     ResolvedConditionalAggregate,
     ResolvedFormula,
 )
+from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
+from sentry.search.eap.utils import handle_downsample_meta, transform_binary_formula_to_expression
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import EventsMeta, SnubaData
+from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.utils import json, snuba_rpc
 from sentry.utils.snuba import process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
+
+
+@dataclass
+class ProcessedTimeseries:
+    timeseries: SnubaData = field(default_factory=list)
+    confidence: SnubaData = field(default_factory=list)
+    sampling_rate: SnubaData = field(default_factory=list)
+    sample_count: SnubaData = field(default_factory=list)
+
+
+def process_timeseries_list(timeseries_list: list[TimeSeries]) -> ProcessedTimeseries:
+    result = ProcessedTimeseries()
+
+    for timeseries in timeseries_list:
+        label = timeseries.label
+        if result.timeseries:
+            for index, bucket in enumerate(timeseries.buckets):
+                assert result.timeseries[index]["time"] == bucket.seconds
+                assert result.confidence[index]["time"] == bucket.seconds
+                assert result.sampling_rate[index]["time"] == bucket.seconds
+                assert result.sample_count[index]["time"] == bucket.seconds
+        else:
+            for bucket in timeseries.buckets:
+                result.timeseries.append({"time": bucket.seconds})
+                result.confidence.append({"time": bucket.seconds})
+                result.sampling_rate.append({"time": bucket.seconds})
+                result.sample_count.append({"time": bucket.seconds})
+
+        for index, data_point in enumerate(timeseries.data_points):
+            result.timeseries[index][label] = process_value(data_point.data)
+            result.confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
+            result.sampling_rate[index][label] = data_point.avg_sampling_rate
+            result.sample_count[index][label] = data_point.sample_count
+
+    return result
 
 
 def categorize_column(
@@ -35,6 +80,79 @@ def categorize_column(
         return Column(key=column.proto_definition, label=column.public_alias)
 
 
+def categorize_aggregate(
+    column: ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
+) -> Expression:
+    if isinstance(column, ResolvedFormula):
+        # TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
+        return Expression(
+            formula=transform_binary_formula_to_expression(column.proto_definition),
+            label=column.public_alias,
+        )
+    if isinstance(column, ResolvedAggregate):
+        return Expression(aggregation=column.proto_definition, label=column.public_alias)
+    if isinstance(column, ResolvedConditionalAggregate):
+        return Expression(
+            conditional_aggregation=column.proto_definition, label=column.public_alias
+        )
+
+
+def get_timeseries_query(
+    search_resolver: SearchResolver,
+    params: SnubaParams,
+    query_string: str,
+    y_axes: list[str],
+    groupby: list[str],
+    referrer: str,
+    sampling_mode: SAMPLING_MODES | None,
+    extra_conditions: TraceItemFilter | None = None,
+) -> tuple[
+    TimeSeriesRequest,
+    list[ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate],
+    list[ResolvedAttribute],
+]:
+    meta = search_resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
+    query, _, query_contexts = search_resolver.resolve_query(query_string)
+    (functions, _) = search_resolver.resolve_functions(y_axes)
+    (groupbys, _) = search_resolver.resolve_attributes(groupby)
+    if extra_conditions is not None:
+        if query is not None:
+            query = TraceItemFilter(and_filter=AndFilter(filters=[query, extra_conditions]))
+        else:
+            query = extra_conditions
+
+    return (
+        TimeSeriesRequest(
+            meta=meta,
+            filter=query,
+            expressions=[categorize_aggregate(fn) for fn in functions if fn.is_aggregate],
+            group_by=[
+                groupby.proto_definition
+                for groupby in groupbys
+                if isinstance(groupby.proto_definition, AttributeKey)
+            ],
+            granularity_secs=params.timeseries_granularity_secs,
+        ),
+        functions,
+        groupbys,
+    )
+
+
+def validate_granularity(
+    params: SnubaParams,
+) -> None:
+    """The granularity has already been somewhat validated by src/sentry/utils/dates.py:validate_granularity
+    but the RPC adds additional rules on validation so those are checked here"""
+    if params.date_range.total_seconds() / params.timeseries_granularity_secs > MAX_ROLLUP_POINTS:
+        raise InvalidSearchQuery(
+            "Selected interval would create too many buckets for the timeseries"
+        )
+    if params.timeseries_granularity_secs not in VALID_GRANULARITIES:
+        raise InvalidSearchQuery(
+            f"Selected interval is not allowed, allowed intervals are: {sorted(VALID_GRANULARITIES)}"
+        )
+
+
 @sentry_sdk.trace
 def run_table_query(
     query_string: str,
@@ -43,7 +161,7 @@ def run_table_query(
     offset: int,
     limit: int,
     referrer: str,
-    sampling_mode: str | None,
+    sampling_mode: SAMPLING_MODES | None,
     resolver: SearchResolver,
     debug: bool = False,
 ) -> EAPResponse:
@@ -105,7 +223,9 @@ def run_table_query(
     """Process the results"""
     final_data: SnubaData = []
     final_confidence: ConfidenceData = []
-    final_meta: EventsMeta = EventsMeta(fields={})
+    final_meta: EventsMeta = EventsMeta(
+        fields={}, full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta)
+    )
     # Mapping from public alias to resolved column so we know type etc.
     columns_by_name = {col.public_alias: col for col in columns}
 

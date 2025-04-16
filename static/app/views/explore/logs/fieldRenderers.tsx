@@ -7,6 +7,7 @@ import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {stripLogParamsFromLocation} from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -51,7 +52,6 @@ export interface RendererExtra {
   logColors: ReturnType<typeof getLogColors>;
   organization: Organization;
   align?: 'left' | 'center' | 'right';
-  renderSeverityCircle?: boolean;
   useFullSeverityText?: boolean;
   wrapBody?: true;
 }
@@ -82,17 +82,8 @@ export function SeverityTextRenderer(props: LogFieldRendererProps) {
   const useFullSeverityText = props.extra.useFullSeverityText ?? false;
   const level = getLogSeverityLevel(severityNumber, attribute_value);
   const levelLabel = useFullSeverityText ? attribute_value : severityLevelToText(level);
-  const renderSeverityCircle = props.extra.renderSeverityCircle ?? false;
   return (
     <AlignedCellContent align={props.align}>
-      {renderSeverityCircle && (
-        <SeverityCircle
-          level={level}
-          levelLabel={levelLabel}
-          severityText={attribute_value}
-          logColors={props.extra.logColors}
-        />
-      )}
       <ColoredLogText logColors={props.extra.logColors}>{levelLabel}</ColoredLogText>
     </AlignedCellContent>
   );
@@ -139,7 +130,7 @@ export function TraceIDRenderer(props: LogFieldRendererProps) {
     organization: props.extra.organization,
     dateSelection: props.extra.location,
     location,
-    source: TraceViewSources.TRACES,
+    source: TraceViewSources.LOGS,
   });
   return <Link to={target}>{props.basicRendered}</Link>;
 }
@@ -150,7 +141,7 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
   // TODO: Allow more than one highlight term to be highlighted at once.
   return (
     <WrappingText wrap={props.extra.wrapBody}>
-      <LogsHighlight text={highlightTerm}>{attribute_value}</LogsHighlight>
+      <LogsHighlight text={highlightTerm}>{stripAnsi(attribute_value)}</LogsHighlight>
     </WrappingText>
   );
 }
@@ -203,7 +194,7 @@ export const LogAttributesRendererMap: Record<
     return TimestampRenderer(props);
   },
   [OurLogKnownFieldKey.SEVERITY_TEXT]: SeverityTextRenderer,
-  [OurLogKnownFieldKey.BODY]: LogBodyRenderer,
+  [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
   [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
 };
 

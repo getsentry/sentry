@@ -15,11 +15,10 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
 
+import triggerChangePlanAction from 'admin/components/changePlanAction';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier, type Subscription} from 'getsentry/types';
-
-import triggerChangePlanAction from '../components/changePlanAction';
 
 describe('ChangePlanAction', () => {
   const mockOrg = OrganizationFixture({slug: 'org-slug'});

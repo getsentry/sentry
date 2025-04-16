@@ -53,21 +53,21 @@ import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
+import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
-
-import {decodeScalar} from '../queryString';
 
 import ArrayValue from './arrayValue';
 import {
@@ -376,6 +376,7 @@ type SpecialFields = {
   device: SpecialField;
   'error.handled': SpecialField;
   id: SpecialField;
+  [SpanFields.IS_STARRED_TRANSACTION]: SpecialField;
   issue: SpecialField;
   'issue.id': SpecialField;
   minidump: SpecialField;
@@ -762,6 +763,16 @@ const SPECIAL_FIELDS: SpecialFields = {
         </Container>
       );
     },
+  },
+  [SpanFields.IS_STARRED_TRANSACTION]: {
+    sortField: null,
+    renderFunc: data => (
+      <StarredSegmentCell
+        projectSlug={data.project}
+        segmentName={data.transaction}
+        initialIsStarred={data.is_starred_transaction}
+      />
+    ),
   },
   team_key_transaction: {
     sortField: null,
