@@ -49,15 +49,7 @@ export function Toast({indicator, onDismiss, ...props}: ToastProps) {
       {indicator.options.undo && typeof indicator.options.undo === 'function' ? (
         <ToastUndoButtonContainer type={indicator.type}>
           <ToastUndoButton
-            priority={
-              theme.isChonk
-                ? indicator.type === 'success'
-                  ? 'default'
-                  : indicator.type === 'error'
-                    ? 'danger'
-                    : 'primary'
-                : 'link'
-            }
+            priority={theme.isChonk ? 'default' : 'link'}
             size={theme.isChonk ? 'xs' : undefined}
             onClick={indicator.options.undo}
             icon={<IconRefresh size="xs" />}
