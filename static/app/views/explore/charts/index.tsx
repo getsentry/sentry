@@ -136,10 +136,8 @@ export function ExploreCharts({
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 
-      const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(
-        data,
-        isTopN
-      );
+      const {sampleCount, isSampled, dataScanned} =
+        determineSeriesSampleCountAndIsSampled(data, isTopN);
 
       return {
         chartIcon: <IconGraph type={chartIcon} />,
@@ -153,6 +151,7 @@ export function ExploreCharts({
         confidence: confidences[index],
         sampleCount,
         isSampled,
+        dataScanned,
       };
     });
   }, [confidences, getSeries, visualizes, isTopN]);
@@ -307,6 +306,7 @@ export function ExploreCharts({
                   topEvents={
                     topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
                   }
+                  dataScanned={chartInfo.dataScanned}
                 />
               }
             />
