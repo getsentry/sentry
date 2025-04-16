@@ -6,7 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import IntEnum, StrEnum
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.apps import apps
@@ -18,12 +18,11 @@ from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
+from sentry.workflow_engine.types import DetectorSettings
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
-    from sentry.workflow_engine.handlers.detector import DetectorHandler
 
 logger = logging.getLogger(__name__)
 
@@ -176,12 +175,10 @@ class GroupType:
     # Quota around many of these issue types can be created per project in a given time window
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
     notification_config: NotificationConfig = NotificationConfig()
-    detector_handler: type[DetectorHandler] | None = None
-    detector_validator: type[BaseDetectorTypeValidator] | None = None
+    detector_settings: DetectorSettings | None = None
     # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
     # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
     enable_status_change_workflow_notifications: bool = True
-    detector_config_schema: ClassVar[dict[str, Any]] = {}
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
