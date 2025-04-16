@@ -8,7 +8,7 @@ import Indicators from 'sentry/components/indicators';
 import * as RegionUtils from 'sentry/utils/regions';
 import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
-jest.mock('static/app/components/forms/formIndicator');
+jest.mock('sentry/components/forms/formIndicators');
 jest.mock('sentry/utils/regions');
 
 describe('OrganizationSettingsForm', function () {
