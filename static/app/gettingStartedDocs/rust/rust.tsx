@@ -21,7 +21,7 @@ sentry = "${getPackageVersion(params, 'sentry.rust', '0.32.1')}"`;
 const getConfigureSnippet = (params: Params) => `
 let _guard = sentry::init(("${params.dsn.public}", sentry::ClientOptions {
   release: sentry::release_name!(),
-  // Capture request headers and user IPs when using HTTP server integrations
+  // Capture user IPs and potentially sensitive headers when using HTTP server integrations
   // see https://docs.sentry.io/platforms/rust/data-management/data-collected for more info
   send_default_pii: true,
   ..Default::default()
@@ -31,7 +31,7 @@ const getVerifySnippet = (params: Params) => `
 fn main() {
   let _guard = sentry::init(("${params.dsn.public}", sentry::ClientOptions {
     release: sentry::release_name!(),
-    // Capture request headers and user IPs when using HTTP server integrations
+    // Capture user IPs and potentially sensitive headers when using HTTP server integrations
     // see https://docs.sentry.io/platforms/rust/data-management/data-collected for more info
     send_default_pii: true,
     ..Default::default()
