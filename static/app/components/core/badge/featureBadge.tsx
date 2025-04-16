@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {Badge} from 'sentry/components/core/badge';
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';

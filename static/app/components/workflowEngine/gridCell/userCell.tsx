@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import UserBadge from 'sentry/components/idBadge/userBadge';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import type {Location} from 'history';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {
   FREQUENCY_BOX_WIDTH,
@@ -42,7 +43,6 @@ import {
   getHumanDuration,
   lightenBarColor,
 } from 'sentry/components/performance/waterfall/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

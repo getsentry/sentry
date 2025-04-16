@@ -5,6 +5,7 @@ import type {LocationDescriptor} from 'history';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   DropdownMenu,
   type DropdownMenuProps,
@@ -29,7 +30,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
   IconCircleFill,

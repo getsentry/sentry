@@ -7,10 +7,10 @@ import moment from 'moment-timezone';
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button, LinkButton} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
   IconCopy,
