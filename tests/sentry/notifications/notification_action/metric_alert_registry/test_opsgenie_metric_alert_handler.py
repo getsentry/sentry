@@ -106,6 +106,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
             group=self.group_event.group,
+            title=self.group_event.group.title,
         )
 
         self.assert_open_period_context(
