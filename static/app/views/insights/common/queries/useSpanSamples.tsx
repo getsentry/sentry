@@ -132,7 +132,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
           firstBound: max * (1 / 3),
           secondBound: max * (2 / 3),
           upperBound: max,
-          additionalFields,
+          additionalFields: [SpanIndexedField.ID, ...additionalFields],
           sort: `-${SPAN_SELF_TIME}`,
           useRpc: useInsightsEap() ? '1' : undefined,
         },
