@@ -93,7 +93,7 @@ def rrf_score(
 
     alphas = entropy_alpha + kl_alpha
     if not math.isclose(alphas, 1.0, rel_tol=1e-9):
-        raise ValueError("Entropy alpha and KL alpha must sum to 0.")
+        raise ValueError("Entropy alpha and KL alpha must sum to 1.")
 
     return [
         _rrf(kl_rank, e_rank)
