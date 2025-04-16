@@ -1,9 +1,11 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import {motion} from 'framer-motion';
 
 import {Input} from 'sentry/components/core/input';
+import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Tooltip} from 'sentry/components/tooltip';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -97,6 +99,10 @@ function IssueViewNavEditableTitle({
     setInputValue(e.target.value);
   };
 
+  const autosizeRef = useAutosizeInput({
+    value: inputValue,
+  });
+
   return (
     <Tooltip
       title={inputValue}
@@ -107,12 +113,11 @@ function IssueViewNavEditableTitle({
       <motion.div layout="position" transition={{duration: 0.2}}>
         {isEditing ? (
           <StyledInput
-            autosize
+            ref={mergeRefs(inputRef, autosizeRef)}
             value={inputValue}
             onChange={handleOnChange}
             onKeyDown={handleOnKeyDown}
             onBlur={handleOnBlur}
-            ref={inputRef}
             style={memoizedStyles}
             isEditing={isEditing}
             maxLength={128}
