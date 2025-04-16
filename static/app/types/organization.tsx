@@ -328,6 +328,7 @@ export type EventsStats = {
       // 0 sample count can result in null sampling rate
       samplingRate?: AccuracyStats<number | null>;
     };
+    dataScanned?: 'full' | 'partial';
     dataset?: string;
     datasetReason?: string;
     discoverSplitDecision?: WidgetType;
