@@ -449,58 +449,45 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
         if value == "" and context_definition is None:
+            exists_filter = TraceItemFilter(
+                exists_filter=ExistsFilter(
+                    key=resolved_column.proto_definition,
+                )
+            )
             if term.operator == "!=":
-                return (
-                    TraceItemFilter(
-                        and_filter=AndFilter(
-                            filters=[
-                                TraceItemFilter(
-                                    exists_filter=ExistsFilter(
-                                        key=resolved_column.proto_definition,
-                                    )
+                filters = [exists_filter]
+                if resolved_column.proto_definition.type == constants.STRING:
+                    filters.append(
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=resolved_column.proto_definition,
+                                op=operator,
+                                value=self._resolve_search_value(
+                                    resolved_column, term.operator, value
                                 ),
-                                TraceItemFilter(
-                                    comparison_filter=ComparisonFilter(
-                                        key=resolved_column.proto_definition,
-                                        op=operator,
-                                        value=self._resolve_search_value(
-                                            resolved_column, term.operator, value
-                                        ),
-                                    )
-                                ),
-                            ]
+                            )
                         )
-                    ),
+                    )
+                return (
+                    TraceItemFilter(and_filter=AndFilter(filters=filters)),
                     context_definition,
                 )
             elif term.operator == "=":
-                return (
-                    TraceItemFilter(
-                        or_filter=OrFilter(
-                            filters=[
-                                TraceItemFilter(
-                                    not_filter=NotFilter(
-                                        filters=[
-                                            TraceItemFilter(
-                                                exists_filter=ExistsFilter(
-                                                    key=resolved_column.proto_definition,
-                                                )
-                                            ),
-                                        ]
-                                    )
+                filters = [TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))]
+                if resolved_column.proto_definition.type == constants.STRING:
+                    filters.append(
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=resolved_column.proto_definition,
+                                op=operator,
+                                value=self._resolve_search_value(
+                                    resolved_column, term.operator, value
                                 ),
-                                TraceItemFilter(
-                                    comparison_filter=ComparisonFilter(
-                                        key=resolved_column.proto_definition,
-                                        op=operator,
-                                        value=self._resolve_search_value(
-                                            resolved_column, term.operator, value
-                                        ),
-                                    )
-                                ),
-                            ]
+                            )
                         )
-                    ),
+                    )
+                return (
+                    TraceItemFilter(or_filter=OrFilter(filters=filters)),
                     context_definition,
                 )
             else:
