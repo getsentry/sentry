@@ -25,8 +25,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import useUrlParams from 'sentry/utils/useUrlParams';
 import ListSearchInput from 'sentry/views/issueDetails/groupDistributions/listSearchInput';
+import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
+import useDrawerTab from 'sentry/views/issueDetails/groupDistributions/useDrawerTab';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsDrawerContent';
 import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
@@ -34,26 +35,6 @@ import TagDrawerContent from 'sentry/views/issueDetails/groupTags/tagDrawerConte
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
-
-// Used for `tab` state and URL param.
-export enum DrawerTab {
-  TAGS = 'tags',
-  FEATURE_FLAGS = 'featureFlags',
-}
-
-function useDrawerTab({enabled}: {enabled: boolean}) {
-  const {getParamValue: getTabParam, setParamValue: setTabParam} = useUrlParams(
-    'tab',
-    DrawerTab.TAGS
-  );
-
-  return enabled
-    ? {
-        tab: getTabParam() as DrawerTab,
-        setTab: setTabParam,
-      }
-    : {tab: DrawerTab.TAGS, setTab: (_tab: string) => {}};
-}
 
 function getHeaderTitle(
   tagKey: string | undefined,
