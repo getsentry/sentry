@@ -20,7 +20,7 @@ describe('AutofixDiff', function () {
     groupId: '1',
     runId: '1',
     editable: true,
-  };
+  } satisfies React.ComponentProps<typeof AutofixDiff>;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
