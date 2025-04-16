@@ -795,8 +795,8 @@ interface EventBase {
   release?: EventRelease | null;
   resolvedWith?: string[];
   sdk?: {
-    name: string;
-    version: string;
+    name: string | null;
+    version: string | null;
   } | null;
   sdkUpdates?: SDKUpdatesSuggestion[];
   userReport?: any;
