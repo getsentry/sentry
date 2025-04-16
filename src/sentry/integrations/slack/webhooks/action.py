@@ -107,7 +107,7 @@ def update_group(
 
     resp = update_groups(request=request, groups=[group], user=user, data=data)
     if resp.status_code != 200:
-        _logger.info(
+        _logger.error(
             "slack.action.update-group-error",
             extra={
                 "group_id": group.id,
