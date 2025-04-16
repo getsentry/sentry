@@ -147,34 +147,47 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
       switch (stepId) {
         case StackedNavigationTour.ISSUES:
           if (activeGroup !== PrimaryNavGroup.ISSUES) {
-            navigate(normalizeUrl(`/${prefix}/issues/`), {replace: true});
+            const target = normalizeUrl({
+              pathname: `/${prefix}/issues/`,
+              query: {referrer: NAV_REFERRER},
+            });
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.EXPLORE:
           if (activeGroup !== PrimaryNavGroup.EXPLORE) {
-            navigate(
-              normalizeUrl(`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`),
-              {
-                replace: true,
-              }
-            );
+            const target = normalizeUrl({
+              pathname: `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
+              query: {referrer: NAV_REFERRER},
+            });
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.DASHBOARDS:
           if (activeGroup !== PrimaryNavGroup.DASHBOARDS) {
-            navigate(normalizeUrl(`/${prefix}/dashboards/`), {replace: true});
+            const target = normalizeUrl({
+              pathname: `/${prefix}/dashboards/`,
+              query: {referrer: NAV_REFERRER},
+            });
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.INSIGHTS:
           if (activeGroup !== PrimaryNavGroup.INSIGHTS) {
-            navigate(normalizeUrl(`/${prefix}/insights/frontend/`), {replace: true});
+            const target = normalizeUrl({
+              pathname: `/${prefix}/insights/frontend/`,
+              query: {referrer: NAV_REFERRER},
+            });
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.SETTINGS:
           if (activeGroup !== PrimaryNavGroup.SETTINGS) {
-            navigate(normalizeUrl(`/settings/${organization.slug}/`), {
-              replace: true,
+            const target = normalizeUrl({
+              pathname: `/settings/${organization.slug}/`,
+              query: {referrer: NAV_REFERRER},
             });
+            navigate(target, {replace: true});
           }
           break;
         default:
@@ -276,4 +289,11 @@ export function useTourModal() {
       );
     }
   }, [shouldShowTourModal, startTour, mutateAssistant, endTour]);
+}
+
+export const NAV_REFERRER = 'nav-tour';
+
+export function useIsNavTourActive() {
+  const location = useLocation();
+  return location.query.referrer === NAV_REFERRER;
 }
