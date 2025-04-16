@@ -14,7 +14,7 @@ from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import ForkProcess
 from multiprocessing.synchronize import Event
-from types import FrameType, TracebackType
+from types import FrameType
 from typing import Any
 
 import grpc
@@ -103,8 +103,8 @@ def _get_known_task(activation: TaskActivation) -> Task[Any, Any] | None:
 
 
 def child_worker(
-    child_tasks: queue.Queue[TaskActivation],
-    processed_tasks: queue.Queue[ProcessingResult],
+    child_tasks: queue.SimpleQueue[TaskActivation],
+    processed_tasks: queue.SimpleQueue[ProcessingResult],
     shutdown_event: Event,
     max_task_count: int | None,
     processing_pool_name: str,
@@ -126,26 +126,27 @@ def child_worker(
             processed_tasks.put(
                 ProcessingResult(task_id=current.id, status=TASK_ACTIVATION_STATUS_FAILURE)
             )
-            with sentry_sdk.isolation_scope() as scope:
-                scope.fingerprint = [
-                    "taskworker.processing_deadline_exceeded",
-                    current.namespace,
-                    current.taskname,
-                ]
-                err = ProcessingDeadlineExceeded(
-                    f"execution deadline of {current.processing_deadline_duration} seconds exceeded"
-                )
-                if frame:
-                    trace = TracebackType(None, frame, frame.f_lasti, frame.f_lineno)
-                    while frame.f_back:
-                        trace = TracebackType(
-                            trace, frame.f_back, frame.f_back.f_lasti, frame.f_back.f_lineno
-                        )
-                        frame = frame.f_back
-                    err.with_traceback(trace)
+            # TODO - Uncomment this once the sentry_sdk issue is resolved
+            # with sentry_sdk.isolation_scope() as scope:
+            #     scope.fingerprint = [
+            #         "taskworker.processing_deadline_exceeded",
+            #         current.namespace,
+            #         current.taskname,
+            #     ]
+            #     err = ProcessingDeadlineExceeded(
+            #         f"execution deadline of {current.processing_deadline_duration} seconds exceeded"
+            #     )
+            #     if frame:
+            #         trace = TracebackType(None, frame, frame.f_lasti, frame.f_lineno)
+            #         while frame.f_back:
+            #             trace = TracebackType(
+            #                 trace, frame.f_back, frame.f_back.f_lasti, frame.f_back.f_lineno
+            #             )
+            #             frame = frame.f_back
+            #         err.with_traceback(trace)
 
-                sentry_sdk.capture_exception(err)
-                sentry_sdk.flush()
+            #     sentry_sdk.capture_exception(err)
+            #     sentry_sdk.flush()
 
             metrics.incr(
                 "taskworker.worker.processing_deadline_exceeded",
@@ -397,10 +398,10 @@ class TaskWorker:
         self._namespace = namespace
         self._concurrency = concurrency
         self.client = TaskworkerClient(rpc_host, num_brokers, rebalance_after)
-        self._child_tasks: multiprocessing.Queue[TaskActivation] = mp_context.Queue(
+        self._child_tasks: multiprocessing.SimpleQueue[TaskActivation] = mp_context.Queue(
             maxsize=child_tasks_queue_maxsize
         )
-        self._processed_tasks: multiprocessing.Queue[ProcessingResult] = mp_context.Queue(
+        self._processed_tasks: multiprocessing.SimpleQueue[ProcessingResult] = mp_context.Queue(
             maxsize=result_queue_maxsize
         )
         self._children: list[ForkProcess] = []
@@ -429,7 +430,7 @@ class TaskWorker:
         """
         self.do_imports()
         self.start_result_thread()
-        self._spawn_children()
+        threading.Thread(target=self._spawn_children).start()
 
         atexit.register(self.shutdown)
 
@@ -439,7 +440,6 @@ class TaskWorker:
     def run_once(self) -> None:
         """Access point for tests to run a single worker loop"""
         self._add_task()
-        self._spawn_children()
 
     def shutdown(self) -> None:
         """
@@ -596,28 +596,27 @@ class TaskWorker:
             return None
 
     def _spawn_children(self) -> None:
-        active_children = [child for child in self._children if child.is_alive()]
-        if len(active_children) >= self._concurrency:
-            return
-        for _ in range(self._concurrency - len(active_children)):
-            process = mp_context.Process(
-                target=child_worker,
-                args=(
-                    self._child_tasks,
-                    self._processed_tasks,
-                    self._shutdown_event,
-                    self._max_child_task_count,
-                    self._processing_pool_name,
-                ),
-            )
-            process.start()
-            active_children.append(process)
-            logger.info(
-                "taskworker.spawn_child",
-                extra={"pid": process.pid, "processing_pool": self._processing_pool_name},
-            )
-
-        self._children = active_children
+        while not self._shutdown_event.is_set():
+            self._children = [child for child in self._children if child.is_alive()]
+            if len(self._children) >= self._concurrency:
+                continue
+            for i in range(self._concurrency - len(self._children)):
+                process = mp_context.Process(
+                    target=child_worker,
+                    args=(
+                        self._child_tasks,
+                        self._processed_tasks,
+                        self._shutdown_event,
+                        self._max_child_task_count,
+                        self._processing_pool_name,
+                    ),
+                )
+                process.start()
+                self._children.append(process)
+                logger.info(
+                    "taskworker.spawn_child",
+                    extra={"pid": process.pid, "processing_pool": self._processing_pool_name},
+                )
 
     def fetch_task(self) -> TaskActivation | None:
         # Use the shutdown_event as a sleep mechanism
