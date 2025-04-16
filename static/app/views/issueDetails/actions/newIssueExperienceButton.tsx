@@ -89,7 +89,11 @@ export function useIssueDetailsPromoModal() {
         ),
         {
           modalCss: IssueDetailsTourModalCss,
-          onClose: handleEndTour,
+          onClose: reason => {
+            if (reason) {
+              handleEndTour();
+            }
+          },
         }
       );
     }
