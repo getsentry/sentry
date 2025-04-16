@@ -163,7 +163,7 @@ def get_count_of_vital(vital: str, settings: ResolverSettings) -> float:
         orderby=None,
         offset=0,
         limit=1,
-        sampling_mode=None,
+        sampling_mode=snuba_params.sampling_mode,
         config=SearchResolverConfig(
             auto_fields=True,
         ),
@@ -433,7 +433,7 @@ def time_spent_percentage(
         orderby=None,
         offset=0,
         limit=1,
-        sampling_mode=None,
+        sampling_mode=snuba_params.sampling_mode,
         config=SearchResolverConfig(),
     )
 

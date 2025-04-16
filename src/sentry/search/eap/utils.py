@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import (
@@ -12,7 +12,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.constants import SAMPLING_MODES
+from sentry.search.eap.constants import SAMPLING_MODE_MAP
 from sentry.search.eap.ourlogs.attributes import (
     LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     LOGS_PRIVATE_ATTRIBUTES,
@@ -22,6 +22,7 @@ from sentry.search.eap.spans.attributes import (
     SPANS_PRIVATE_ATTRIBUTES,
 )
 from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.events.types import SAMPLING_MODES
 
 # TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
 BINARY_FORMULA_OPERATOR_MAP = {
@@ -98,14 +99,14 @@ def transform_column_to_expression(column: Column) -> Expression:
     )
 
 
-def validate_sampling(sampling_mode: str | None) -> DownsampledStorageConfig:
+def validate_sampling(sampling_mode: SAMPLING_MODES | None) -> DownsampledStorageConfig:
     if sampling_mode is None:
         return DownsampledStorageConfig(mode=DownsampledStorageConfig.MODE_UNSPECIFIED)
-    sampling_mode = sampling_mode.upper()
-    if sampling_mode not in SAMPLING_MODES:
+    if sampling_mode not in SAMPLING_MODE_MAP:
         raise InvalidSearchQuery(f"sampling mode: {sampling_mode} is not supported")
     else:
-        return DownsampledStorageConfig(mode=SAMPLING_MODES[sampling_mode])
+        sampling_mode = cast(SAMPLING_MODES, sampling_mode)
+        return DownsampledStorageConfig(mode=SAMPLING_MODE_MAP[sampling_mode])
 
 
 INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[

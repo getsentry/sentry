@@ -25,7 +25,7 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
 from sentry.search.eap.utils import handle_downsample_meta, transform_binary_formula_to_expression
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.utils import json, snuba_rpc
 from sentry.utils.snuba import process_value
 
@@ -104,7 +104,7 @@ def get_timeseries_query(
     y_axes: list[str],
     groupby: list[str],
     referrer: str,
-    sampling_mode: str | None,
+    sampling_mode: SAMPLING_MODES | None,
     extra_conditions: TraceItemFilter | None = None,
 ) -> tuple[
     TimeSeriesRequest,
@@ -161,7 +161,7 @@ def run_table_query(
     offset: int,
     limit: int,
     referrer: str,
-    sampling_mode: str | None,
+    sampling_mode: SAMPLING_MODES | None,
     resolver: SearchResolver,
     debug: bool = False,
 ) -> EAPResponse:
