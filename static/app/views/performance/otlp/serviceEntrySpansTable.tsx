@@ -177,8 +177,8 @@ export function ServiceEntrySpansTable({
 
   const paginationCaption = numEvents[0]?.['count()']
     ? tct('Showing [pageEventsCount] of [totalEventsCount] events', {
-        pageEventsCount: FULL_PAGE_MODE_LIMIT,
-        totalEventsCount: numEvents[0]?.['count()'],
+        pageEventsCount: FULL_PAGE_MODE_LIMIT.toLocaleString(),
+        totalEventsCount: numEvents[0]?.['count()'].toLocaleString(),
       })
     : '...';
 
