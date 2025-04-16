@@ -18,6 +18,7 @@ import {
   getItemsWithKeys,
 } from 'sentry/components/core/compactSelect/utils';
 import {Input} from 'sentry/components/core/input';
+import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -165,12 +166,16 @@ function ComboBox<Value extends string>({
     [inputProps.onFocus, menuTrigger, state]
   );
 
+  const autosizeRef = useAutosizeInput({
+    value: inputProps.value,
+    enabled: autosize,
+  });
+
   return (
     <ControlWrapper className={className}>
       {!state.isFocused && <InteractionStateLayer />}
       <StyledInput
         {...inputProps}
-        autosize={autosize}
         // @TODO(jonasbadalic): this used to use a component that was providing a default onChange handler
         // that was just calling the inputProps.onChange.
         onChange={inputProps.onChange ?? (() => {})}
@@ -178,7 +183,7 @@ function ComboBox<Value extends string>({
         placeholder={placeholder}
         onMouseUp={handleInputMouseUp}
         onFocus={handleInputFocus}
-        ref={mergeRefs(inputRef, triggerProps.ref)}
+        ref={mergeRefs(inputRef, triggerProps.ref, autosizeRef)}
         size={size}
       />
       <StyledPositionWrapper

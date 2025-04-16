@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
+import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
@@ -80,6 +81,21 @@ export default storyBook('Input', (story, APIReference) => {
   story('Autosize', () => {
     const [value, setValue] = useState('this is autosized');
     const [proxyValue, setProxyValue] = useState('this is autosized');
+
+    const controlledAutosizeRef = useAutosizeInput({
+      value,
+    });
+
+    const uncontrolledAutosizeRef = useAutosizeInput({
+      value: proxyValue,
+    });
+
+    const externalControlledAutosizeRef = useAutosizeInput({
+      value: proxyValue,
+    });
+
+    const placeholderAutosizeRef = useAutosizeInput();
+
     return (
       <Fragment>
         <p>
@@ -96,21 +112,30 @@ export default storyBook('Input', (story, APIReference) => {
         <Grid>
           <Label>
             <code>controlled input autosize:</code>{' '}
-            <Input autosize value={value} onChange={e => setValue(e.target.value)} />
+            <Input
+              ref={controlledAutosizeRef}
+              value={value}
+              onChange={e => setValue(e.target.value)}
+            />
           </Label>
           <Label>
-            <code>uncontrolled input autosize:</code> <Input autosize defaultValue="" />
+            <code>uncontrolled input autosize:</code>{' '}
+            <Input ref={uncontrolledAutosizeRef} defaultValue="" />
           </Label>
 
           <Label>
             <code>controlled via different input:</code>{' '}
             <Input value={proxyValue} onChange={e => setProxyValue(e.target.value)} />
-            <Input autosize readOnly value={proxyValue} />
+            <Input ref={externalControlledAutosizeRef} readOnly value={proxyValue} />
           </Label>
 
           <Label>
             <code>autosize according to placeholder:</code>{' '}
-            <Input autosize defaultValue="" placeholder="placeholder" />
+            <Input
+              ref={placeholderAutosizeRef}
+              defaultValue=""
+              placeholder="placeholder"
+            />
           </Label>
         </Grid>
       </Fragment>

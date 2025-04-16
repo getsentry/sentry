@@ -12,26 +12,27 @@ import {useCallback, useLayoutEffect, useRef} from 'react';
  */
 
 export interface UseAutosizeInputOptions {
-  disabled?: boolean;
+  enabled?: boolean;
   value?: React.InputHTMLAttributes<HTMLInputElement>['value'] | undefined;
 }
 
 export function useAutosizeInput(
-  options: UseAutosizeInputOptions = {}
+  options?: UseAutosizeInputOptions
 ): React.RefCallback<HTMLInputElement> {
+  const enabled = options?.enabled ?? true;
   const sourceRef = useRef<HTMLInputElement | null>(null);
 
   // A controlled input value change does not trigger a change event,
   // so we need to manually observe the value...
   useLayoutEffect(() => {
-    if (options.disabled) {
+    if (!enabled) {
       return;
     }
 
     if (sourceRef.current) {
       resize(sourceRef.current);
     }
-  }, [options.value, options.disabled]);
+  }, [options?.value, enabled]);
 
   const onInputChange = useCallback((_event: any) => {
     if (sourceRef.current) {
@@ -41,7 +42,7 @@ export function useAutosizeInput(
 
   const autosizingCallbackRef: React.RefCallback<HTMLInputElement> = useCallback(
     (element: HTMLInputElement | null) => {
-      if (options.disabled || !element) {
+      if (!enabled || !element) {
         sourceRef.current?.removeEventListener('input', onInputChange);
       } else {
         resize(element);
@@ -50,7 +51,7 @@ export function useAutosizeInput(
 
       sourceRef.current = element;
     },
-    [onInputChange, options.disabled]
+    [onInputChange, enabled]
   );
 
   return autosizingCallbackRef;

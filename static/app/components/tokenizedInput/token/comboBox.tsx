@@ -15,7 +15,6 @@ import type {
 } from 'sentry/components/core/compactSelect/types';
 import {itemIsSectionWithKey} from 'sentry/components/core/compactSelect/utils';
 import {Input} from 'sentry/components/core/input';
-import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Overlay} from 'sentry/components/overlay';
 import {defined} from 'sentry/utils';
 import useOverlay from 'sentry/utils/useOverlay';
@@ -258,17 +257,12 @@ export function ComboBox({
     return () => {};
   }, [isOpen]);
 
-  const autosizeRef = useAutosizeInput({
-    value: inputValue,
-    disabled: false,
-  });
-
   return (
     <Wrapper>
       <UnstyledInput
         {...inputProps}
         size="md"
-        ref={mergeRefs(ref, inputRef, triggerProps.ref, autosizeRef)}
+        ref={mergeRefs(ref, inputRef, triggerProps.ref)}
         type="text"
         placeholder={placeholder}
         onClick={handleInputClick}

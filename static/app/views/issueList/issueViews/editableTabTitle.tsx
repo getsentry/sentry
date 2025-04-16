@@ -1,9 +1,11 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import {motion} from 'framer-motion';
 
 import {Input} from 'sentry/components/core/input';
+import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Tooltip} from 'sentry/components/tooltip';
 
 interface EditableTabTitleProps {
@@ -85,13 +87,16 @@ function EditableTabTitle({
     setInputValue(e.target.value);
   };
 
+  const autosizeRef = useAutosizeInput({
+    value: inputValue,
+  });
+
   return (
     <Tooltip title={label} disabled={isEditing} showOnlyOnOverflow skipWrapper>
       <motion.div layout="position" transition={{duration: 0.2}}>
         {isSelected && isEditing && !disableEditing ? (
           <StyledInput
-            ref={inputRef}
-            autosize
+            ref={mergeRefs(inputRef, autosizeRef)}
             value={inputValue}
             onChange={handleOnChange}
             onKeyDown={handleOnKeyDown}
