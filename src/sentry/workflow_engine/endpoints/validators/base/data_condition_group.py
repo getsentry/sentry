@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.workflow_engine.endpoints.validators.base import BaseDataConditionValidator
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup
+from sentry.workflow_engine.models import DataConditionGroup
 
 
 class BaseDataConditionGroupValidator(CamelSnakeSerializer):
@@ -14,9 +14,8 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
     organization_id = serializers.IntegerField(required=True)
     conditions = serializers.ListField(required=False)
 
-    def validate_conditions(self, value) -> list[DataCondition]:
-        conditions: list[DataCondition] = []
-
+    def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        conditions = []
         for condition in value:
             condition_validator = BaseDataConditionValidator(data=condition)
             condition_validator.is_valid(raise_exception=True)
@@ -35,11 +34,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
                 if not condition.get("condition_group_id"):
                     condition["condition_group_id"] = condition_group.id
 
-                DataCondition(
-                    condition_group_id=condition["condition_group_id"],
-                    type=condition["type"],
-                    comparison=condition["comparison"],
-                    condition_result=condition["condition_result"],
-                ).save()
+                condition_validator = BaseDataConditionValidator()
+                condition_validator.create(condition)
 
             return condition_group
