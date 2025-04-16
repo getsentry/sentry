@@ -36,7 +36,7 @@ export default function AutomationBuilder() {
                   isClearable={false}
                   name="triggers.logicType"
                   value={state.triggers.logicType}
-                  onChange={value => actions.updateWhenLogicType({logicType: value})}
+                  onChange={logicType => actions.updateWhenLogicType(logicType)}
                   required
                   flexibleControlStateSize
                   options={TRIGGER_MATCH_OPTIONS}
@@ -51,15 +51,15 @@ export default function AutomationBuilder() {
         placeholder={t('Select a trigger...')}
         conditions={state.triggers.conditions}
         group="triggers"
-        onAddRow={type => actions.addWhenCondition({conditionType: type})}
-        onDeleteRow={index => actions.removeWhenCondition({index})}
+        onAddRow={type => actions.addWhenCondition(type)}
+        onDeleteRow={index => actions.removeWhenCondition(index)}
         updateCondition={(index, comparison) =>
-          actions.updateWhenCondition({index, comparison})
+          actions.updateWhenCondition(index, comparison)
         }
       />
 
       {state.actionFilters.map((_, index) => (
-        <ActionFilterBlock key={index} id={index} />
+        <ActionFilterBlock key={index} groupIndex={index} />
       ))}
       <span>
         <PurpleTextButton
@@ -79,15 +79,15 @@ export default function AutomationBuilder() {
 }
 
 interface ActionFilterBlockProps {
-  id: number;
+  groupIndex: number;
 }
 
-function ActionFilterBlock({id}: ActionFilterBlockProps) {
+function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
   const {state, actions} = useAutomationBuilderContext();
-  const actionFilterBlock = state.actionFilters[id];
+  const actionFilterBlock = state.actionFilters[groupIndex];
 
   return (
-    <IfThenWrapper key={id}>
+    <IfThenWrapper key={`actionFilter.${groupIndex}`}>
       <Step>
         <Flex column gap={space(0.75)}>
           <Flex justify="space-between">
@@ -107,18 +107,13 @@ function ActionFilterBlock({id}: ActionFilterBlockProps) {
                       inline={false}
                       isSearchable={false}
                       isClearable={false}
-                      name={`actionFilters.${id}.logicType`}
+                      name={`actionFilters.${groupIndex}.logicType`}
                       required
                       flexibleControlStateSize
                       options={FILTER_MATCH_OPTIONS}
                       size="xs"
                       value={actionFilterBlock?.logicType}
-                      onChange={value =>
-                        actions.updateIfLogicType({
-                          groupIndex: id,
-                          logicType: value,
-                        })
-                      }
+                      onChange={value => actions.updateIfLogicType(groupIndex, value)}
                     />
                   </EmbeddedWrapper>
                 ),
@@ -129,32 +124,17 @@ function ActionFilterBlock({id}: ActionFilterBlockProps) {
               size="sm"
               icon={<IconDelete />}
               borderless
-              onClick={() =>
-                actions.removeIf({
-                  groupIndex: id,
-                })
-              }
+              onClick={() => actions.removeIf(groupIndex)}
             />
           </Flex>
           <RuleNodeList
             placeholder={t('Filter by...')}
-            group={`actionFilters.${id}`}
+            group={`actionFilters.${groupIndex}`}
             conditions={actionFilterBlock?.conditions || []}
-            onAddRow={type =>
-              actions.addIfCondition({groupIndex: id, conditionType: type})
-            }
-            onDeleteRow={index =>
-              actions.removeIfCondition({
-                groupIndex: id,
-                conditionIndex: index,
-              })
-            }
+            onAddRow={type => actions.addIfCondition(groupIndex, type)}
+            onDeleteRow={index => actions.removeIfCondition(groupIndex, index)}
             updateCondition={(index, comparison) =>
-              actions.updateIfCondition({
-                groupIndex: id,
-                conditionIndex: index,
-                comparison,
-              })
+              actions.updateIfCondition(groupIndex, index, comparison)
             }
           />
         </Flex>

@@ -14,15 +14,19 @@ export interface AutomationBuilderState {
 
 export interface AutomationActions {
   addIf: () => void;
-  addIfCondition: (params: Omit<AddIfConditionAction, 'type'>) => void;
-  addWhenCondition: (params: Omit<AddWhenConditionAction, 'type'>) => void;
-  removeIf: (params: Omit<RemoveIfAction, 'type'>) => void;
-  removeIfCondition: (params: Omit<RemoveIfConditionAction, 'type'>) => void;
-  removeWhenCondition: (params: Omit<RemoveWhenConditionAction, 'type'>) => void;
-  updateIfCondition: (params: Omit<UpdateIfConditionAction, 'type'>) => void;
-  updateIfLogicType: (params: Omit<UpdateIfLogicTypeAction, 'type'>) => void;
-  updateWhenCondition: (params: Omit<UpdateWhenConditionAction, 'type'>) => void;
-  updateWhenLogicType: (params: Omit<UpdateWhenLogicTypeAction, 'type'>) => void;
+  addIfCondition: (groupIndex: number, conditionType: DataConditionType) => void;
+  addWhenCondition: (conditionType: DataConditionType) => void;
+  removeIf: (groupIndex: number) => void;
+  removeIfCondition: (groupIndex: number, conditionIndex: number) => void;
+  removeWhenCondition: (index: number) => void;
+  updateIfCondition: (
+    groupIndex: number,
+    conditionIndex: number,
+    comparison: Record<string, any>
+  ) => void;
+  updateIfLogicType: (groupIndex: number, logicType: DataConditionGroupLogicType) => void;
+  updateWhenCondition: (index: number, comparison: Record<string, any>) => void;
+  updateWhenLogicType: (logicType: DataConditionGroupLogicType) => void;
 }
 
 export const AutomationBuilderContext = createContext<{
@@ -56,7 +60,7 @@ export const initialState: AutomationBuilderState = {
 };
 
 type AddWhenConditionAction = {
-  conditionType: string;
+  conditionType: DataConditionType;
   type: 'ADD_WHEN_CONDITION';
 };
 
@@ -86,7 +90,7 @@ type RemoveIfAction = {
 };
 
 type AddIfConditionAction = {
-  conditionType: string;
+  conditionType: DataConditionType;
   groupIndex: number;
   type: 'ADD_IF_CONDITION';
 };
@@ -133,9 +137,8 @@ function addWhenCondition(
       conditions: [
         ...state.triggers.conditions,
         {
-          comparison_type: action.conditionType as DataConditionType,
+          comparison_type: action.conditionType,
           comparison: {},
-          condition_result: undefined,
         },
       ],
     },
@@ -248,9 +251,8 @@ function addIfCondition(
         conditions: [
           ...group.conditions,
           {
-            comparison_type: conditionType as DataConditionType,
+            comparison_type: conditionType,
             comparison: {},
-            condition_result: undefined,
           },
         ],
       };
@@ -354,48 +356,46 @@ export function useAutomationBuilderReducer() {
 
   const actions: AutomationActions = {
     addWhenCondition: useCallback(
-      ({conditionType}: Omit<AddWhenConditionAction, 'type'>) =>
+      (conditionType: DataConditionType) =>
         dispatch({type: 'ADD_WHEN_CONDITION', conditionType}),
       [dispatch]
     ),
     removeWhenCondition: useCallback(
-      ({index}: Omit<RemoveWhenConditionAction, 'type'>) =>
-        dispatch({type: 'REMOVE_WHEN_CONDITION', index}),
+      (index: number) => dispatch({type: 'REMOVE_WHEN_CONDITION', index}),
       [dispatch]
     ),
     updateWhenCondition: useCallback(
-      ({index, comparison}: Omit<UpdateWhenConditionAction, 'type'>) =>
+      (index: number, comparison: Record<string, any>) =>
         dispatch({type: 'UPDATE_WHEN_CONDITION', index, comparison}),
       [dispatch]
     ),
     updateWhenLogicType: useCallback(
-      ({logicType}: Omit<UpdateWhenLogicTypeAction, 'type'>) =>
+      (logicType: DataConditionGroupLogicType) =>
         dispatch({type: 'UPDATE_WHEN_LOGIC_TYPE', logicType}),
       [dispatch]
     ),
     addIf: useCallback(() => dispatch({type: 'ADD_IF'}), [dispatch]),
     removeIf: useCallback(
-      ({groupIndex}: Omit<RemoveIfAction, 'type'>) =>
-        dispatch({type: 'REMOVE_IF', groupIndex}),
+      (groupIndex: number) => dispatch({type: 'REMOVE_IF', groupIndex}),
       [dispatch]
     ),
     addIfCondition: useCallback(
-      ({groupIndex, conditionType}: Omit<AddIfConditionAction, 'type'>) =>
+      (groupIndex: number, conditionType: DataConditionType) =>
         dispatch({type: 'ADD_IF_CONDITION', groupIndex, conditionType}),
       [dispatch]
     ),
     removeIfCondition: useCallback(
-      ({groupIndex, conditionIndex}: Omit<RemoveIfConditionAction, 'type'>) =>
+      (groupIndex: number, conditionIndex: number) =>
         dispatch({type: 'REMOVE_IF_CONDITION', groupIndex, conditionIndex}),
       [dispatch]
     ),
     updateIfCondition: useCallback(
-      ({groupIndex, conditionIndex, comparison}: Omit<UpdateIfConditionAction, 'type'>) =>
+      (groupIndex: number, conditionIndex: number, comparison: Record<string, any>) =>
         dispatch({type: 'UPDATE_IF_CONDITION', groupIndex, conditionIndex, comparison}),
       [dispatch]
     ),
     updateIfLogicType: useCallback(
-      ({groupIndex, logicType}: Omit<UpdateIfLogicTypeAction, 'type'>) =>
+      (groupIndex: number, logicType: DataConditionGroupLogicType) =>
         dispatch({type: 'UPDATE_IF_LOGIC_TYPE', groupIndex, logicType}),
       [dispatch]
     ),

@@ -2,14 +2,17 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Select} from 'sentry/components/core/select';
-import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
+import type {
+  DataConditionType,
+  NewDataCondition,
+} from 'sentry/types/workflowEngine/dataConditions';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 import RuleNode from 'sentry/views/automations/components/ruleNode';
 
 interface RuleNodeListProps {
-  conditions: Array<Omit<DataCondition, 'condition_group' | 'type' | 'id'>>;
+  conditions: NewDataCondition[];
   group: string;
-  onAddRow: (type: string) => void;
+  onAddRow: (type: DataConditionType) => void;
   onDeleteRow: (id: number) => void;
   placeholder: string;
   updateCondition: (index: number, condition: Record<string, any>) => void;

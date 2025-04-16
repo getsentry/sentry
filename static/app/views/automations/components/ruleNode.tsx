@@ -4,7 +4,7 @@ import {Button} from 'sentry/components/core/button';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
+import type {NewDataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionNodeContext,
   dataConditionNodesMap,
@@ -12,7 +12,7 @@ import {
 } from 'sentry/views/automations/components/dataConditionNodes';
 
 interface RuleNodeProps {
-  condition: Omit<DataCondition, 'condition_group' | 'type' | 'id'>;
+  condition: NewDataCondition;
   condition_id: string;
   onDelete: () => void;
   onUpdate: (comparison: Record<string, any>) => void;

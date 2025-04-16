@@ -5,14 +5,14 @@ import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
 import {
-  type DataCondition,
   DataConditionType,
+  type NewDataCondition,
 } from 'sentry/types/workflowEngine/dataConditions';
 import AgeComparisonNode from 'sentry/views/automations/components/actionFilters/ageComparison';
 import IssueOccurrencesNode from 'sentry/views/automations/components/actionFilters/issueOccurrences';
 
 interface DataConditionNodeProps {
-  condition: Omit<DataCondition, 'condition_group' | 'type' | 'id'>;
+  condition: NewDataCondition;
   condition_id: string;
   onUpdate: (condition: Record<string, any>) => void;
 }

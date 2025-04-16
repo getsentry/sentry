@@ -67,17 +67,19 @@ export enum DataConditionGroupLogicType {
   NONE = 'none',
 }
 
-export interface DataCondition {
+export interface NewDataCondition {
   comparison: any;
   comparison_type: DataConditionType;
-  condition_group: DataConditionGroup;
+  condition_group?: DataConditionGroup;
+}
+export interface DataCondition extends Readonly<NewDataCondition> {
   condition_result: any;
   id: string;
   type: DataConditionGroupLogicType;
 }
 
 export interface DataConditionGroup {
-  conditions: Array<Omit<DataCondition, 'condition_group' | 'type' | 'id'>>;
+  conditions: NewDataCondition[];
   id: string;
   logicType: DataConditionGroupLogicType;
   actions?: Action[];
