@@ -29,10 +29,7 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
     limit: 10,
     sort: IssueSortOptions.FREQ,
     groupStatsPeriod: 'auto',
-    query: new MutableSearch([
-      `first-release:${release}`,
-      'is:unresolved',
-    ]).formatString(),
+    query: new MutableSearch([`first-release:${release}`]).formatString(),
   };
 
   const renderEmptyMessage = () => {
@@ -49,7 +46,6 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
       withChart={withChart}
       renderEmptyMessage={renderEmptyMessage}
       withPagination={false}
-      // onFetchSuccess={}
       source="release-drawer"
     />
   );
