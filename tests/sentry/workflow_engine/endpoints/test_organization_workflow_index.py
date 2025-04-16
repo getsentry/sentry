@@ -29,12 +29,10 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         assert response.data == []
 
 
-class OrganizationWorkflowCreateAPITestCase(OrganizationWorkflowAPITestCase):
+@region_silo_test
+class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
     method = "POST"
 
-
-@region_silo_test
-class OrganizationWorkflowCreateTest(OrganizationWorkflowCreateAPITestCase):
     def setUp(self):
         super().setUp()
         self.valid_workflow = {
@@ -128,3 +126,57 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowCreateAPITestCase):
         assert str(new_action_filters[0].condition_group.id) == response.data.get(
             "actionFilters", []
         )[0].get("id")
+
+    def test_create_invalid_workflow(self):
+        self.valid_workflow["name"] = ""
+        response = self.get_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 400
+
+    def test_create_workflow__invalid_triggers(self):
+        self.valid_workflow["triggers"] = {
+            "logicType": "some",
+            "conditions": [
+                {
+                    "comparison": 1,
+                    "condition_result": True,
+                }
+            ],
+        }
+
+        response = self.get_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 400
+
+    def test_create_workflow__invalid_actions(self):
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "some",
+                "conditions": [
+                    {
+                        "comparison": 1,
+                        "condition_result": True,
+                    }
+                ],
+                "actions": [
+                    {
+                        "type": Action.Type.SLACK,
+                        "config": {},
+                        "data": {},
+                    },
+                ],
+            }
+        ]
+
+        response = self.get_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 400
