@@ -75,7 +75,6 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
           additionalFields: fields,
           sort: '-timestamp',
           referrer,
-          transformAliasToInputFormat: '1',
           useRpc: useInsightsEap() ? '1' : undefined,
         },
       },
