@@ -54,3 +54,5 @@ export default function EventGraphWidget({pageFilters}: LoadableChartWidgetProps
 const Container = styled('div')`
   height: 100%;
 `;
+
+export const EVENT_GRAPH_WIDGET_ID = 'event-graph-widget';
