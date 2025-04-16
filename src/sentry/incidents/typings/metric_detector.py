@@ -76,6 +76,7 @@ class NotificationContext:
             target_identifier=action.target_identifier,
             target_display=action.target_display,
             sentry_app_config=action.sentry_app_config,
+            sentry_app_id=str(action.sentry_app_id) if action.sentry_app_id else None,
         )
 
     @classmethod
@@ -83,10 +84,11 @@ class NotificationContext:
         if action.type == Action.Type.SENTRY_APP:
             return cls(
                 id=action.id,
-                integration_id=action.integration_id,
-                target_display=action.config.get("target_display"),
+                integration_id=None,
+                target_display=None,
+                target_identifier=None,
                 sentry_app_config=action.data.get("settings"),
-                sentry_app_id=action.data.get("target_identifier"),
+                sentry_app_id=action.config.get("target_identifier"),
                 # For Sentry Apps, we use `sentry_app_config` and don't pass `data`
             )
         elif action.type == Action.Type.OPSGENIE or action.type == Action.Type.PAGERDUTY:

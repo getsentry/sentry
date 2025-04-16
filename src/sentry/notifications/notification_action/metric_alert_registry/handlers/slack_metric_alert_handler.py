@@ -9,7 +9,7 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
     get_alert_rule_serializer,
-    get_incident_serializer,
+    get_detailed_incident_serializer,
 )
 from sentry.notifications.notification_action.registry import metric_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
@@ -38,7 +38,7 @@ class SlackMetricAlertHandler(BaseMetricAlertHandler):
             raise ValueError("Open period not found")
 
         alert_rule_serialized_response = get_alert_rule_serializer(detector)
-        incident_serialized_response = get_incident_serializer(open_period)
+        incident_serialized_response = get_detailed_incident_serializer(open_period)
 
         send_incident_alert_notification(
             notification_context=notification_context,

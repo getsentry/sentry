@@ -23,6 +23,7 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
 from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializer,
     DetailedIncidentSerializerResponse,
+    IncidentSerializer,
 )
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
@@ -418,11 +419,25 @@ class SentryAppActionHandler(DefaultActionHandler):
     ):
         from sentry.rules.actions.notify_event_service import send_incident_alert_notification
 
-        success = send_incident_alert_notification(
-            action=action,
+        if metric_value is None:
+            metric_value = get_metric_count_from_incident(incident)
+
+        notification_context = NotificationContext.from_alert_rule_trigger_action(action)
+        alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
+        metric_issue_context = MetricIssueContext.from_legacy_models(
             incident=incident,
             new_status=new_status,
             metric_value=metric_value,
+        )
+
+        incident_serialized_response = serialize(incident, serializer=IncidentSerializer())
+
+        success = send_incident_alert_notification(
+            notification_context=notification_context,
+            alert_context=alert_context,
+            metric_issue_context=metric_issue_context,
+            incident_serialized_response=incident_serialized_response,
+            organization=incident.organization,
             notification_uuid=notification_uuid,
         )
         if success:
