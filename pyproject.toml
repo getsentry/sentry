@@ -191,6 +191,7 @@ module = [
     "sentry.auth.manager",
     "sentry.auth.services.*",
     "sentry.auth.view",
+    "sentry.bgtasks.*",
     "sentry.buffer.*",
     "sentry.build.*",
     "sentry.data_export.processors.issues_by_tag",
