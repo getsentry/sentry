@@ -72,13 +72,13 @@ class OrganizationMemberReinviteEndpoint(OrganizationEndpoint):
 
         if not invited_member.invite_approved:
             return Response({"detail": ERR_INVITE_UNAPPROVED}, status=400)
-        
+
         if invited_member.is_scim_provisioned:
             auth_provider = auth_service.get_auth_provider(organization_id=organization.id)
-            
+
             if auth_provider and not (invited_member.sso_linked):
                 invited_member.send_sso_linked_email(request.user.email, auth_provider)
-        
+
         else:
             if ratelimits.for_organization_member_invite(
                 organization=organization,
@@ -93,7 +93,7 @@ class OrganizationMemberReinviteEndpoint(OrganizationEndpoint):
                     sample_rate=1.0,
                 )
                 return Response({"detail": ERR_RATE_LIMITED}, status=429)
-            
+
             if regenerate:
                 if request.access.has_scope("member:admin"):
                     with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
@@ -101,10 +101,10 @@ class OrganizationMemberReinviteEndpoint(OrganizationEndpoint):
                         invited_member.save()
                 else:
                     return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
-            
+
             if invited_member.token_expired:
                 return Response({"detail": ERR_EXPIRED}, status=400)
-            
+
             invited_member.send_invite_email()
 
         self.create_audit_entry(
@@ -143,7 +143,7 @@ class OrganizationMemberReinviteEndpoint(OrganizationEndpoint):
         )
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+
         result = validator.validated_data
 
         is_member = not request.access.has_scope("member:admin") and (
@@ -152,7 +152,7 @@ class OrganizationMemberReinviteEndpoint(OrganizationEndpoint):
         # Members can only resend invites that they sent
         is_invite_from_user = invited_member.inviter_id == request.user.id
         members_can_invite = not organization.flags.disable_member_invite
-        
+
         if is_member:
             if not members_can_invite:
                 raise PermissionDenied
