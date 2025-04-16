@@ -388,7 +388,7 @@ function AutofixHighlightPopup(props: Props) {
       if (!referenceElement || !popupRef.current) {
         return;
       }
-      
+
       const referenceRect = referenceElement.getBoundingClientRect();
       const popupRect = popupRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
