@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -18,6 +19,7 @@ import {IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
+import type {AvatarUser} from 'sentry/types/user';
 import useProjects from 'sentry/utils/useProjects';
 
 type SavedEntityTableProps = {
@@ -291,6 +293,10 @@ SavedEntityTable.CellTimeSince = function CellTimeSince({date}: {date: string | 
     return '-';
   }
   return <TimeSince date={date} unitStyle="short" />;
+};
+
+SavedEntityTable.CellUser = function CellUser({user}: {user: AvatarUser}) {
+  return <UserAvatar user={user} size={20} hasTooltip />;
 };
 
 SavedEntityTable.CellTextContent = function CellTextContent({
