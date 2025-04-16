@@ -20,6 +20,7 @@ import type {
   SpanSample,
 } from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   ModuleName,
   SpanMetricsQueryFilters,
@@ -64,6 +65,8 @@ function SampleTable({
   additionalFilters,
   subregions,
 }: Props) {
+  const useEap = useInsightsEap();
+
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
     transaction: transactionName,
@@ -117,9 +120,10 @@ function SampleTable({
 
   const spans = spanSamplesData?.data ?? [];
 
-  const transactionIds = spans.map(span => span['transaction.span_id']);
+  const transactionIdField = useEap ? 'transaction.span_id' : 'transaction.id';
+  const transactionIds = spans.map(span => span[transactionIdField]);
 
-  const isTransactionsEnabled = Boolean(transactionIds);
+  const isTransactionsEnabled = Boolean(transactionIds.length);
 
   const {
     data: transactions,
@@ -128,8 +132,8 @@ function SampleTable({
     error: transactionError,
   } = useDiscoverOrEap(
     {
-      search: `id:[${transactionIds.join(',')}]`,
-      enabled: Boolean(transactionIds.length),
+      search: `${transactionIdField}:[${transactionIds.join(',')}]`,
+      enabled: isTransactionsEnabled,
       fields: ['id', 'timestamp', 'project', 'span.duration', 'trace'],
     },
     'api.starfish.span-summary-panel-samples-table-transactions'

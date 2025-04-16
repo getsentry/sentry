@@ -36,6 +36,7 @@ import {
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {findSampleFromDataPoint} from 'sentry/views/insights/common/utils/findDataPoint';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {
   DataTitles,
   getThroughputTitle,
@@ -59,6 +60,7 @@ export function CacheSamplePanel() {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const useEap = useInsightsEap();
 
   const query = useLocationQuery({
     fields: {
@@ -139,6 +141,10 @@ export function CacheSamplePanel() {
     project_id: query.project,
   };
 
+  const transactionIdField = useEap
+    ? SpanIndexedField.TRANSACTION_SPAN_ID
+    : SpanIndexedField.TRANSACTION_ID;
+
   const useIndexedCacheSpans = (
     isCacheHit: SpanIndexedResponse['cache.hit'],
     limit: number
@@ -153,13 +159,14 @@ export function CacheSamplePanel() {
         fields: [
           SpanIndexedField.PROJECT,
           SpanIndexedField.TRACE,
-          SpanIndexedField.TRANSACTION_ID,
+          SpanIndexedField.TRANSACTION_SPAN_ID,
           SpanIndexedField.SPAN_ID,
           SpanIndexedField.TIMESTAMP,
           SpanIndexedField.SPAN_DESCRIPTION,
           SpanIndexedField.CACHE_HIT,
           SpanIndexedField.SPAN_OP,
           SpanIndexedField.CACHE_ITEM_SIZE,
+          ...(useEap ? [] : ([SpanIndexedField.TRANSACTION_ID] as const)),
         ],
         sorts: [SPAN_SAMPLES_SORT],
         limit,
@@ -193,7 +200,10 @@ export function CacheSamplePanel() {
 
   const cacheSamples = [...(cacheHitSamples || []), ...(cacheMissSamples || [])];
 
-  const transactionIds = cacheSamples?.map(span => span['transaction.id']) || [];
+  const transactionIds = cacheSamples?.map(span => span[transactionIdField]) || [];
+  const search = useEap
+    ? `${SpanIndexedField.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] is_transaction:true`
+    : `id:[${transactionIds.join(',')}]`;
 
   const {
     data: transactionData,
@@ -201,9 +211,9 @@ export function CacheSamplePanel() {
     isFetching: isFetchingTransactions,
   } = useDiscoverOrEap(
     {
-      search: `id:[${transactionIds.join(',')}]`,
+      search,
       enabled: Boolean(transactionIds.length),
-      fields: ['id', 'timestamp', 'project', 'transaction.duration', 'trace'],
+      fields: ['id', 'timestamp', 'project', 'span.duration', 'trace'],
     },
     Referrer.SAMPLES_CACHE_SPAN_SAMPLES
   );
@@ -214,7 +224,7 @@ export function CacheSamplePanel() {
     cacheSamples?.map(span => ({
       ...span,
       'transaction.duration':
-        transactionDurationsMap[span['transaction.id']]?.['transaction.duration']!,
+        transactionDurationsMap[span[transactionIdField]]?.['span.duration']!,
     })) || [];
 
   const {projects} = useProjects();
@@ -354,6 +364,7 @@ export function CacheSamplePanel() {
               <SpanSamplesTable
                 data={spansWithDuration ?? []}
                 meta={{
+                  // TODO: combine meta between samples and transactions response instead
                   fields: {
                     'transaction.duration': 'duration',
                     [SpanIndexedField.CACHE_ITEM_SIZE]: 'size',

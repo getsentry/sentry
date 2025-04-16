@@ -75,10 +75,12 @@ export enum SpanMetricsField {
 // TODO: This will be the final field type for eap spans
 export enum SpanFields {
   IS_TRANSACTION = 'is_transaction',
+  CACHE_HIT = 'cache.hit',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
 }
 
 export type SpanBooleanFields =
+  | SpanFields.CACHE_HIT
   | SpanFields.IS_TRANSACTION
   | SpanFields.IS_STARRED_TRANSACTION;
 

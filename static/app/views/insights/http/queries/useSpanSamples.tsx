@@ -51,12 +51,10 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
 
   type DataRow = Pick<
     SpanIndexedResponse,
-    | Fields[number]
-    | DefaultSpanSampleFields // These fields are returned by default
-    | SpanIndexedField.TRANSACTION_ID // TODO: Remove `Transaction_id` with `useInsightsEap`
+    Fields[number] | DefaultSpanSampleFields // These fields are returned by default
   >;
 
-  const result = useApiQuery<{
+  return useApiQuery<{
     data: DataRow[];
     meta: EventsMetaType;
   }>(
@@ -73,10 +71,10 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
           firstBound: max && max * (1 / 3),
           secondBound: max && max * (2 / 3),
           upperBound: max,
-          additionalFields: fields,
+          additionalFields: [...fields, SpanIndexedField.TRANSACTION_SPAN_ID],
           sort: '-timestamp',
           referrer,
-          useRpc: useInsightsEap() ? '1' : undefined,
+          useRpc: useEap ? '1' : undefined,
         },
       },
     ],
@@ -88,16 +86,16 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     }
   );
 
-  // TODO: Remove this `Omit` and mapping once we remove `useInsightsEap`
-  const finalData: Array<Omit<DataRow, SpanIndexedField.TRANSACTION_ID>> | undefined =
-    result.data?.data.map(row => {
-      return {
-        ...row,
-        [SpanIndexedField.TRANSACTION_SPAN_ID]: useEap
-          ? row[SpanIndexedField.TRANSACTION_SPAN_ID]
-          : row[SpanIndexedField.TRANSACTION_ID],
-      };
-    });
+  // // TODO: Remove this `Omit` and mapping once we remove `useInsightsEap`
+  // const finalData: Array<Omit<DataRow, SpanIndexedField.TRANSACTION_ID>> | undefined =
+  //   result.data?.data.map(row => {
+  //     return {
+  //       ...row,
+  //       [SpanIndexedField.TRANSACTION_SPAN_ID]: useEap
+  //         ? row[SpanIndexedField.TRANSACTION_SPAN_ID]
+  //         : row[SpanIndexedField.TRANSACTION_ID],
+  //     };
+  //   });
 
-  return {...result, data: {...result.data, data: finalData}};
+  // return {...result, data: {...result.data, data: finalData}};
 };

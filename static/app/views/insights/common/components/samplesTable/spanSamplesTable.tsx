@@ -115,12 +115,12 @@ export function SpanSamplesTable({
   }
 
   function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
-    if (column.key === 'transaction_id') {
+    if (column.key === 'transaction.span_id') {
       return (
         <OverflowEllipsisTextContainer>
           <Link
             to={generateLinkToEventInTraceView({
-              eventId: row['transaction.id'],
+              targetId: row['transaction.span_id'],
               timestamp: row.timestamp,
               traceSlug: row.trace,
               projectSlug: row.project,
@@ -137,7 +137,7 @@ export function SpanSamplesTable({
               view,
             })}
           >
-            {row['transaction.id'].slice(0, 8)}
+            {row['transaction.span_id'].slice(0, 8)}
           </Link>
         </OverflowEllipsisTextContainer>
       );
@@ -154,7 +154,7 @@ export function SpanSamplesTable({
               })
             }
             to={generateLinkToEventInTraceView({
-              eventId: row['transaction.id'],
+              eventId: row['transaction.span_id'],
               timestamp: row.timestamp,
               traceSlug: row.trace,
               projectSlug: row.project,
