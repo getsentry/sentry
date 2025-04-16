@@ -1,4 +1,11 @@
-import {createContext, type Dispatch, type Reducer, useCallback, useReducer} from 'react';
+import {
+  createContext,
+  type Dispatch,
+  type Reducer,
+  useCallback,
+  useContext,
+  useReducer,
+} from 'react';
 
 import type FormModel from 'sentry/components/forms/model';
 import {
@@ -16,6 +23,16 @@ export const AutomationBuilderContext = createContext<{
   dispatch: Dispatch<AutomationBuilderAction>;
   state: AutomationBuilderState;
 } | null>(null);
+
+export const useAutomationBuilderContext = () => {
+  const context = useContext(AutomationBuilderContext);
+  if (!context) {
+    throw new Error(
+      'useAutomationBuilderContext was called outside of AutomationBuilder'
+    );
+  }
+  return context;
+};
 
 export type AutomationBuilderAction =
   | {conditionType: string; type: 'ADD_WHEN_CONDITION'}

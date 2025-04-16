@@ -1,26 +1,19 @@
-import {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import FormContext from 'sentry/components/forms/formContext';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
 import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
-import {AutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
+import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import RuleNodeList from 'sentry/views/automations/components/ruleNodeList';
 import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 
 export default function AutomationBuilder() {
-  const context = useContext(AutomationBuilderContext);
-  const formContext = useContext(FormContext);
-  if (!context || !formContext) {
-    throw new Error('No AutomationBuilderContext found');
-  }
-  const {state, dispatch} = context;
+  const {state, dispatch} = useAutomationBuilderContext();
 
   return (
     <Flex column gap={space(1)}>
@@ -130,11 +123,7 @@ function ActionFilterBlock({
   updateIfCondition,
   updateIfLogicType,
 }: ActionFilterBlockProps) {
-  const context = useContext(AutomationBuilderContext);
-  if (!context) {
-    throw new Error('No AutomationBuilderContext found');
-  }
-  const {state} = context;
+  const {state} = useAutomationBuilderContext();
   const actionFilterBlock = state.actionFilters[id];
 
   return (

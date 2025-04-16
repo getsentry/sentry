@@ -22,7 +22,9 @@ export const DataConditionNodeContext = createContext<DataConditionNodeProps | n
 export function useDataConditionNodeContext(): DataConditionNodeProps {
   const context = useContext(DataConditionNodeContext);
   if (!context) {
-    throw new Error('No DataConditionNodeContext found');
+    throw new Error(
+      'useDataConditionNodeContext was called outside of DataConditionNode'
+    );
   }
   return context;
 }
