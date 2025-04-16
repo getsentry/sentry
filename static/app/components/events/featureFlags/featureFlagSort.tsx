@@ -1,6 +1,5 @@
 import {Button} from 'sentry/components/core/button';
 import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
-import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import {
   getDefaultOrderBy,
   getSelectionType,
@@ -23,11 +22,9 @@ interface Props {
     label: string;
     value: SortBy;
   }>;
-  onChange?: (selection: SelectOption<SortBy | OrderBy>) => void;
 }
 
 export default function FeatureFlagSort({
-  onChange,
   sortBy,
   orderBy,
   setOrderBy,
@@ -55,7 +52,6 @@ export default function FeatureFlagSort({
             setOrderBy(getDefaultOrderBy(selection.value));
           }
           setSortBy(selection.value);
-          onChange?.(selection);
         }}
         options={sortByOptions}
       />
@@ -64,7 +60,6 @@ export default function FeatureFlagSort({
         value={orderBy}
         onChange={selection => {
           setOrderBy(selection.value);
-          onChange?.(selection);
         }}
         options={orderByOptions.map(o => {
           const selectionType = getSelectionType(o.value);
