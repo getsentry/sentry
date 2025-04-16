@@ -8,6 +8,11 @@ from tests.sentry.workflow_engine.test_base import MockActionHandler
 
 class TestWorkflowValidator(TestCase):
     def setUp(self):
+        self.context = {
+            "organization": self.organization,
+            "request": self.make_request(),
+        }
+
         self.valid_data = {
             "name": "test",
             "enabled": True,
@@ -15,16 +20,14 @@ class TestWorkflowValidator(TestCase):
             "config": {
                 "frequency": 30,
             },
-            "organizationId": self.organization.id,
             "triggers": {
                 "logicType": "any",
                 "conditions": [],
-                "organizationId": self.organization.id,
             },
         }
 
     def test_valid_data(self):
-        validator = WorkflowValidator(data=self.valid_data)
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
 
     @mock.patch(
@@ -34,7 +37,8 @@ class TestWorkflowValidator(TestCase):
     def test_valid_data__with_action_filters(self, mock_action_handler):
         self.valid_data["actionFilters"] = [
             {
-                **self.valid_data["triggers"],
+                "logicType": "any",
+                "conditions": [],
                 "actions": [
                     {
                         "type": Action.Type.SLACK,
@@ -46,7 +50,7 @@ class TestWorkflowValidator(TestCase):
             }
         ]
 
-        validator = WorkflowValidator(data=self.valid_data)
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
 
     @mock.patch(
@@ -56,7 +60,8 @@ class TestWorkflowValidator(TestCase):
     def test_valid_data__with_invalid_action_filters(self, mock_action_handler):
         self.valid_data["actionFilters"] = [
             {
-                **self.valid_data["triggers"],
+                "logicType": "any",
+                "conditions": [],
                 "actions": [
                     {
                         "type": Action.Type.SLACK,
@@ -67,27 +72,32 @@ class TestWorkflowValidator(TestCase):
             }
         ]
 
-        validator = WorkflowValidator(data=self.valid_data)
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
 
     def test_invalid_data__no_name(self):
         self.valid_data["name"] = ""
-        validator = WorkflowValidator(data=self.valid_data)
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
 
     def test_invalid_data__incorrect_config(self):
         self.valid_data["config"] = {"foo": "bar"}
-        validator = WorkflowValidator(data=self.valid_data)
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
 
     def test_invalid_data__invalid_trigger(self):
         self.valid_data["triggers"] = {"foo": "bar"}
-        validator = WorkflowValidator(data=self.valid_data)
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
 
 
 class TestWorkflowValidatorCreate(TestCase):
     def setUp(self):
+        self.context = {
+            "organization": self.organization,
+            "request": self.make_request(),
+        }
+
         self.valid_data = {
             "name": "test",
             "enabled": True,
@@ -95,16 +105,14 @@ class TestWorkflowValidatorCreate(TestCase):
             "config": {
                 "frequency": 30,
             },
-            "organizationId": self.organization.id,
             "triggers": {
                 "logicType": "any",
                 "conditions": [],
-                "organizationId": self.organization.id,
             },
         }
 
     def test_create__simple(self):
-        validator = WorkflowValidator(data=self.valid_data)
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
         workflow = validator.create(validator.validated_data)
 
@@ -116,7 +124,7 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.organization_id == self.organization.id
 
     def test_create__validate_triggers_empty(self):
-        validator = WorkflowValidator(data=self.valid_data)
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
 
         workflow = validator.create(validator.validated_data)
@@ -125,15 +133,18 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.when_condition_group.conditions.count() == 0
 
     def test_create__validate_triggers_with_conditions(self):
-        self.valid_data["triggers"]["conditions"] = [
-            {
-                "type": Condition.EQUAL,
-                "comparison": 1,
-                "conditionResult": True,
-            }
-        ]
+        self.valid_data["triggers"] = {
+            "logicType": "any",
+            "conditions": [
+                {
+                    "type": Condition.EQUAL,
+                    "comparison": 1,
+                    "conditionResult": True,
+                }
+            ],
+        }
 
-        validator = WorkflowValidator(data=self.valid_data)
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
         workflow = validator.create(validator.validated_data)
 
@@ -166,7 +177,7 @@ class TestWorkflowValidatorCreate(TestCase):
             }
         ]
 
-        validator = WorkflowValidator(data=self.valid_data)
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
         workflow = validator.create(validator.validated_data)
 
@@ -196,7 +207,7 @@ class TestWorkflowValidatorCreate(TestCase):
             }
         ]
 
-        validator = WorkflowValidator(data=self.valid_data)
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
         workflow = validator.create(validator.validated_data)
 

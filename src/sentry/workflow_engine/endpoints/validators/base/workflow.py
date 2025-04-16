@@ -3,10 +3,9 @@ from typing import Any
 from django.db import router, transaction
 from rest_framework import serializers
 
-# from sentry import audit_log
+from sentry import audit_log
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
-
-# from sentry.utils.audit import create_audit_entry
+from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseActionValidator,
     BaseDataConditionGroupValidator,
@@ -28,9 +27,6 @@ class WorkflowValidator(CamelSnakeSerializer):
     config = serializers.JSONField(required=False)
     triggers = BaseDataConditionGroupValidator(required=False)
     action_filters = serializers.ListField(required=False)
-
-    # TODO - Need to improve the following fields (validate them in db)
-    organization_id = serializers.IntegerField(required=True)
     environment_id = serializers.IntegerField(required=False)
 
     def _split_action_and_condition_group(
@@ -58,8 +54,8 @@ class WorkflowValidator(CamelSnakeSerializer):
         return value
 
     def create(self, validated_value: dict[str, Any]) -> Workflow:
-        condition_group_validator = BaseDataConditionGroupValidator()
-        action_validator = BaseActionValidator()
+        condition_group_validator = BaseDataConditionGroupValidator(context=self.context)
+        action_validator = BaseActionValidator(context=self.context)
 
         with transaction.atomic(router.db_for_write(Workflow)):
             when_condition_group = condition_group_validator.create(validated_value["triggers"])
@@ -68,7 +64,7 @@ class WorkflowValidator(CamelSnakeSerializer):
                 name=validated_value["name"],
                 enabled=validated_value["enabled"],
                 config=validated_value["config"],
-                organization_id=validated_value["organization_id"],
+                organization_id=self.context["organization"].id,
                 environment_id=validated_value.get("environment_id"),
                 when_condition_group=when_condition_group,
             )
@@ -92,13 +88,12 @@ class WorkflowValidator(CamelSnakeSerializer):
                         condition_group=new_condition_group,
                     )
 
-            # TODO - Fix after adding contexts
-            # create_audit_entry(
-            #     request=self.context["request"],
-            #     organization=self.context["organization_id"],
-            #     target_object=workflow.id,
-            #     event=audit_log.get_event_id("WORKFLOW_ADD"),
-            #     data=workflow.get_audit_log_data(),
-            # )
+            create_audit_entry(
+                request=self.context["request"],
+                organization=self.context["organization"],
+                target_object=workflow.id,
+                event=audit_log.get_event_id("WORKFLOW_ADD"),
+                data=workflow.get_audit_log_data(),
+            )
 
             return workflow
