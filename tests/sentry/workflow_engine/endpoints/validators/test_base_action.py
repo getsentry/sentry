@@ -2,35 +2,7 @@ from unittest import TestCase, mock
 
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import ActionHandler
-
-
-class MockActionHandler(ActionHandler):
-    config_schema = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "The configuration schema for a Action Configuration",
-        "type": "object",
-        "properties": {
-            "foo": {
-                "type": ["string"],
-            },
-        },
-        "required": ["foo"],
-        "additionalProperties": False,
-    }
-
-    data_schema = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "The configuration schema for a Action Data",
-        "type": "object",
-        "properties": {
-            "baz": {
-                "type": ["string"],
-            },
-        },
-        "required": ["baz"],
-        "additionalProperties": False,
-    }
+from tests.sentry.workflow_engine.test_base import MockActionHandler
 
 
 @mock.patch(
