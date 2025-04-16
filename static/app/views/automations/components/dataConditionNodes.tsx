@@ -3,11 +3,13 @@ import styled from '@emotion/styled';
 
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {
   type DataCondition,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
+import AgeComparisonNode from 'sentry/views/automations/components/actionFilters/ageComparison';
+import IssueOccurrencesNode from 'sentry/views/automations/components/actionFilters/issueOccurrences';
 
 interface DataConditionNodeProps {
   condition: Omit<DataCondition, 'condition_group' | 'type' | 'id'>;
@@ -29,13 +31,14 @@ export function useDataConditionNodeContext(): DataConditionNodeProps {
   return context;
 }
 
-type Node = {
+type DataConditionNode = {
   label: string;
-  configNode?: () => React.ReactNode;
+  dataCondition?: React.ReactNode;
 };
 
-// TODO: split nodes into separate files
-export const dataConditionNodesMap: Partial<Record<DataConditionType, Node>> = {
+export const dataConditionNodesMap: Partial<
+  Record<DataConditionType, DataConditionNode>
+> = {
   [DataConditionType.FIRST_SEEN_EVENT]: {
     label: t('A new issue is created'),
   },
@@ -47,81 +50,15 @@ export const dataConditionNodesMap: Partial<Record<DataConditionType, Node>> = {
   },
   [DataConditionType.AGE_COMPARISON]: {
     label: t('Compare the age of an issue'),
-    configNode: function ConfigNode() {
-      const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
-      return tct('The issue is [comparison_type] [value] [time]', {
-        comparison_type: (
-          <InlineSelectControl
-            styles={selectControlStyles}
-            name={`${condition_id}.comparison.type`}
-            value={condition.comparison.type}
-            options={[
-              {value: 'older', label: 'older than'},
-              {value: 'newer', label: 'newer than'},
-            ]}
-            onChange={(value: DataConditionType) => {
-              onUpdate({
-                type: value,
-              });
-            }}
-          />
-        ),
-        value: (
-          <InlineNumberInput
-            name={`${condition_id}.comparison.value`}
-            min={0}
-            step={1}
-            onChange={(value: string) => {
-              onUpdate({
-                value: parseInt(value, 10),
-              });
-            }}
-          />
-        ),
-        time: (
-          <InlineSelectControl
-            styles={selectControlStyles}
-            name={`${condition_id}.comparison.time`}
-            value={condition.comparison.time}
-            options={[
-              {value: 'minutes', label: 'minute(s)'},
-              {value: 'hours', label: 'hour(s)'},
-              {value: 'days', label: 'day(s)'},
-            ]}
-            onChange={(value: string) => {
-              onUpdate({
-                time: value,
-              });
-            }}
-          />
-        ),
-      });
-    },
+    dataCondition: <AgeComparisonNode />,
   },
   [DataConditionType.ISSUE_OCCURRENCES]: {
-    label: t('Check how many times an issue has occurred'),
-    configNode: function ConfigNode() {
-      const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
-      return tct('The issue has happened at least [value] times', {
-        value: (
-          <InlineNumberInput
-            name={`${condition_id}.comparison.value`}
-            value={condition.comparison.value}
-            min={1}
-            step={1}
-            onChange={(value: string) => {
-              onUpdate({
-                value,
-              });
-            }}
-          />
-        ),
-      });
-    },
+    label: t('Issue frequency'),
+    dataCondition: <IssueOccurrencesNode />,
   },
 };
 
-const InlineNumberInput = styled(NumberField)`
+export const InlineNumberInput = styled(NumberField)`
   padding: 0;
   width: 90px;
   height: 28px;
@@ -131,7 +68,7 @@ const InlineNumberInput = styled(NumberField)`
   }
 `;
 
-const selectControlStyles = {
+export const selectControlStyles = {
   control: (provided: any) => ({
     ...provided,
     minHeight: '28px',
@@ -140,7 +77,7 @@ const selectControlStyles = {
   }),
 };
 
-const InlineSelectControl = styled(SelectField)`
+export const InlineSelectControl = styled(SelectField)`
   width: 180px;
   padding: 0;
   > div {

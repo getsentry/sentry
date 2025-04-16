@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -23,11 +22,8 @@ function Node() {
   const {condition} = useDataConditionNodeContext();
   const node = dataConditionNodesMap[condition.comparison_type];
 
-  if (node?.configNode) {
-    return node.configNode();
-  }
-
-  return <Fragment>{node?.label}</Fragment>;
+  const Component = node?.dataCondition;
+  return Component ? Component : node?.label;
 }
 
 export default function RuleNode({
@@ -67,7 +63,7 @@ const RuleRow = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(1.5)};
 `;
 
 const Rule = styled('div')`

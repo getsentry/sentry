@@ -55,6 +55,11 @@ export enum DataConditionType {
   EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT = 'event_unique_user_frequency_with_conditions_percent',
 }
 
+export enum AgeComparison {
+  OLDER = 'older',
+  NEWER = 'newer',
+}
+
 export enum DataConditionGroupLogicType {
   ANY = 'any',
   ANY_SHORT_CIRCUIT = 'any-short',
