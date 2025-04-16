@@ -31,12 +31,13 @@ import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDr
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
+  useDiscoverOrEap,
   useMetrics,
   useSpanMetrics,
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {
   DataTitles,
   getThroughputTitle,
@@ -60,6 +61,7 @@ export function CacheSamplePanel() {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const useEap = useInsightsEap();
 
   const query = useLocationQuery({
     fields: {
@@ -140,6 +142,10 @@ export function CacheSamplePanel() {
     project_id: query.project,
   };
 
+  const transactionIdField = useEap
+    ? SpanIndexedField.TRANSACTION_SPAN_ID
+    : SpanIndexedField.TRANSACTION_ID;
+
   const useIndexedCacheSpans = (
     isCacheHit: SpanIndexedResponse['cache.hit'],
     limit: number
@@ -154,13 +160,14 @@ export function CacheSamplePanel() {
         fields: [
           SpanIndexedField.PROJECT,
           SpanIndexedField.TRACE,
-          SpanIndexedField.TRANSACTION_ID,
+          SpanIndexedField.TRANSACTION_SPAN_ID,
           SpanIndexedField.SPAN_ID,
           SpanIndexedField.TIMESTAMP,
           SpanIndexedField.SPAN_DESCRIPTION,
           SpanIndexedField.CACHE_HIT,
           SpanIndexedField.SPAN_OP,
           SpanIndexedField.CACHE_ITEM_SIZE,
+          ...(useEap ? [] : ([SpanIndexedField.TRANSACTION_ID] as const)),
         ],
         sorts: [SPAN_SAMPLES_SORT],
         limit,
@@ -196,12 +203,21 @@ export function CacheSamplePanel() {
     return [...(cacheHitSamples || []), ...(cacheMissSamples || [])];
   }, [cacheHitSamples, cacheMissSamples]);
 
+  const transactionIds = cacheSamples?.map(span => span[transactionIdField]) || [];
+  const search = useEap
+    ? `${SpanIndexedField.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] is_transaction:true`
+    : `id:[${transactionIds.join(',')}]`;
+
   const {
     data: transactionData,
     error: transactionError,
     isFetching: isFetchingTransactions,
-  } = useTransactions(
-    cacheSamples?.map(span => span['transaction.id']) || [],
+  } = useDiscoverOrEap(
+    {
+      search,
+      enabled: Boolean(transactionIds.length),
+      fields: ['id', 'timestamp', 'project', 'span.duration', 'trace'],
+    },
     Referrer.SAMPLES_CACHE_SPAN_SAMPLES
   );
 
@@ -210,9 +226,9 @@ export function CacheSamplePanel() {
     return cacheSamples.map(span => ({
       ...span,
       'transaction.duration':
-        transactionDurationsMap[span['transaction.id']]?.['transaction.duration']!,
+        transactionDurationsMap[span[transactionIdField]]?.['span.duration']!,
     }));
-  }, [cacheSamples, transactionData]);
+  }, [cacheSamples, transactionData, transactionIdField]);
 
   const spanSamplesById = useMemo(() => {
     return keyBy(spansWithDuration, 'id');
@@ -375,6 +391,7 @@ export function CacheSamplePanel() {
               <SpanSamplesTable
                 data={spansWithDuration ?? []}
                 meta={{
+                  // TODO: combine meta between samples and transactions response instead
                   fields: {
                     'transaction.duration': 'duration',
                     [SpanIndexedField.CACHE_ITEM_SIZE]: 'size',

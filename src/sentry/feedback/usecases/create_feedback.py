@@ -366,6 +366,14 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     if user_email and "user.email" not in event_fixed["tags"]:
         event_fixed["tags"]["user.email"] = user_email
 
+    # add the associated_event_id and has_linked_error to tags
+    associated_event_id = get_path(event_data, "contexts", "feedback", "associated_event_id")
+    if associated_event_id:
+        event_fixed["tags"]["associated_event_id"] = associated_event_id
+        event_fixed["tags"]["has_linked_error"] = "true"
+    else:
+        event_fixed["tags"]["has_linked_error"] = "false"
+
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)
 

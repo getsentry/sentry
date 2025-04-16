@@ -20,6 +20,7 @@ import sentry.utils.types as env_types
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
+from sentry.conf.types.bgtask import BgTaskConfig
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
@@ -1373,7 +1374,7 @@ TIMEDELTA_ALLOW_LIST = {
     "schedule-digests",
 }
 
-BGTASKS = {
+BGTASKS: dict[str, BgTaskConfig] = {
     "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
     "sentry.bgtasks.clean_releasefilecache:clean_releasefilecache": {
         "interval": 5 * 60,
