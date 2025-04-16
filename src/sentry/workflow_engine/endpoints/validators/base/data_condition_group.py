@@ -1,8 +1,11 @@
+from typing import Any
+
+from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.workflow_engine.endpoints.validators.base import BaseDataConditionValidator
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup
+from sentry.workflow_engine.models import DataConditionGroup
 
 
 class BaseDataConditionGroupValidator(CamelSnakeSerializer):
@@ -11,15 +14,27 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
     organization_id = serializers.IntegerField(required=True)
     conditions = serializers.ListField(required=False)
 
-    def validate_conditions(self, value) -> list[DataCondition]:
-        conditions: list[DataCondition] = []
-
+    def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        conditions = []
         for condition in value:
             condition_validator = BaseDataConditionValidator(data=condition)
             condition_validator.is_valid(raise_exception=True)
-
-            # TODO Use the validator.create() method when it exists
-            condition = DataCondition(condition_validator.validated_data)
-            conditions.append(condition)
+            conditions.append(condition_validator.validated_data)
 
         return conditions
+
+    def create(self, validated_data: dict[str, Any]) -> DataConditionGroup:
+        with transaction.atomic(router.db_for_write(DataConditionGroup)):
+            condition_group = DataConditionGroup.objects.create(
+                logic_type=validated_data["logic_type"],
+                organization_id=validated_data["organization_id"],
+            )
+
+            for condition in validated_data["conditions"]:
+                if not condition.get("condition_group_id"):
+                    condition["condition_group_id"] = condition_group.id
+
+                condition_validator = BaseDataConditionValidator()
+                condition_validator.create(condition)
+
+            return condition_group
