@@ -1,16 +1,81 @@
+import logging
 from typing import Any
 
+from django.conf import settings
+
+from sentry.net.http import connection_from_url
+from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
+from sentry.seer.anomaly_detection.types import (
+    AnomalyDetectionSeasonality,
+    AnomalyDetectionSensitivity,
+    AnomalyDetectionThresholdType,
+    AnomalyType,
+)
+from sentry.snuba.models import QuerySubscription
+from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.types import DataConditionHandler, DetectorPriorityLevel
+
+logger = logging.getLogger(__name__)
+
+SEER_ANOMALY_DETECTION_CONNECTION_POOL = connection_from_url(
+    settings.SEER_ANOMALY_DETECTION_URL,
+    timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
+)
+
+SEER_EVALUATION_TO_DETECTOR_PRIORITY = {
+    AnomalyType.HIGH_CONFIDENCE: DetectorPriorityLevel.HIGH,
+    AnomalyType.LOW_CONFIDENCE: DetectorPriorityLevel.MEDIUM,
+    AnomalyType.NONE: DetectorPriorityLevel.OK,
+}
+
+
+# placeholder until we create this in the workflow engine model
+class DetectorError(Exception):
+    pass
 
 
 @condition_handler_registry.register(Condition.ANOMALY_DETECTION)
-class AnomalyDetectionHandler(DataConditionHandler[WorkflowEventData]):
-    group = DataConditionHandler.Group.DETECTOR_TRIGGER
-    comparison_json_schema = {"type": "boolean"}
+class AnomalyDetectionHandler(DataConditionHandler[DataPacket]):
+    type = [DataConditionHandler.Type.DETECTOR_TRIGGER]
+    comparison_json_schema = {
+        "type": "object",
+        "properties": {
+            "sensitivity": {
+                "type": "string",
+                "enum": [sensitivity.value for sensitivity in AnomalyDetectionSensitivity],
+            },
+            "seasonality": {
+                "type": "string",
+                "enum": [seasonality.value for seasonality in AnomalyDetectionSeasonality],
+            },
+            "threshold_type": {
+                "type": "integer",
+                "enum": [threshold_type.value for threshold_type in AnomalyDetectionThresholdType],
+            },
+        },
+        "required": ["sensitivity", "seasonality", "threshold_type"],
+        "additionalProperties": False,
+    }
 
     @staticmethod
-    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
-        # this is a placeholder
-        return False
+    def evaluate_value(update: DataPacket, comparison: Any) -> DetectorPriorityLevel:
+        sensitivity = comparison["sensitivity"]
+        seasonality = comparison["seasonality"]
+        threshold_type = comparison["threshold_type"]
+
+        subscription: QuerySubscription = QuerySubscription.objects.get(id=update.source_id)
+        subscription_update = update.packet
+
+        anomaly_data = get_anomaly_data_from_seer(
+            sensitivity, seasonality, threshold_type, subscription, subscription_update
+        )
+        if anomaly_data is None:
+            # something went wrong during evaluation
+            raise DetectorError("Error during Seer data evaluation process.")
+
+        anomaly_type = anomaly_data.get("anomaly", {}).get("anomaly_type")
+        if anomaly_type == AnomalyType.NO_DATA:
+            raise DetectorError("Project doesn't have enough data for detector to evaluate")
+        return SEER_EVALUATION_TO_DETECTOR_PRIORITY[anomaly_type]
