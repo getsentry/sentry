@@ -38,6 +38,7 @@ export default function ReplayClipPreview({
     orgSlug,
     replaySlug,
     clipWindow,
+    eventTimestampMs,
   });
 
   const {fetching, replay} = readerResult;
