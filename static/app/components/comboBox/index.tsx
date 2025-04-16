@@ -18,7 +18,7 @@ import {
   getItemsWithKeys,
 } from 'sentry/components/core/compactSelect/utils';
 import {Input} from 'sentry/components/core/input';
-import {GrowingInput} from 'sentry/components/growingInput';
+import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -39,9 +39,9 @@ interface ComboBoxProps<Value extends string>
     'allowsCustomValue'
   > {
   'aria-label': string;
+  autosize?: boolean;
   className?: string;
   disabled?: boolean;
-  growingInput?: boolean;
   hasSearch?: boolean;
   hiddenOptions?: Set<SelectKey>;
   isLoading?: boolean;
@@ -70,7 +70,7 @@ function ComboBox<Value extends string>({
   loadingMessage,
   sizeLimitMessage,
   menuTrigger = 'focus',
-  growingInput = false,
+  autosize = false,
   onOpenChange,
   menuWidth,
   hiddenOptions,
@@ -166,18 +166,24 @@ function ComboBox<Value extends string>({
     [inputProps.onFocus, menuTrigger, state]
   );
 
-  const InputComponent = growingInput ? StyledGrowingInput : StyledInput;
+  const autosizeRef = useAutosizeInput({
+    value: inputProps.value,
+    enabled: autosize,
+  });
 
   return (
     <ControlWrapper className={className}>
       {!state.isFocused && <InteractionStateLayer />}
-      <InputComponent
+      <StyledInput
         {...inputProps}
+        // @TODO(jonasbadalic): this used to use a component that was providing a default onChange handler
+        // that was just calling the inputProps.onChange.
+        onChange={inputProps.onChange ?? (() => {})}
         onClick={handleInputClick}
         placeholder={placeholder}
         onMouseUp={handleInputMouseUp}
         onFocus={handleInputFocus}
-        ref={mergeRefs(inputRef, triggerProps.ref)}
+        ref={mergeRefs(inputRef, triggerProps.ref, autosizeRef)}
         size={size}
       />
       <StyledPositionWrapper
@@ -402,13 +408,6 @@ const ControlWrapper = styled('div')`
 `;
 
 const StyledInput = styled(Input)`
-  max-width: inherit;
-  min-width: inherit;
-  &:not(:focus) {
-    cursor: pointer;
-  }
-`;
-const StyledGrowingInput = styled(GrowingInput)`
   max-width: inherit;
   min-width: inherit;
   &:not(:focus) {

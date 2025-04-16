@@ -1,9 +1,11 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import {motion} from 'framer-motion';
 
-import {GrowingInput} from 'sentry/components/growingInput';
+import {Input} from 'sentry/components/core/input';
+import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Tooltip} from 'sentry/components/tooltip';
 
 interface EditableTabTitleProps {
@@ -85,16 +87,20 @@ function EditableTabTitle({
     setInputValue(e.target.value);
   };
 
+  const autosizeRef = useAutosizeInput({
+    value: inputValue,
+  });
+
   return (
     <Tooltip title={label} disabled={isEditing} showOnlyOnOverflow skipWrapper>
       <motion.div layout="position" transition={{duration: 0.2}}>
         {isSelected && isEditing && !disableEditing ? (
-          <StyledGrowingInput
+          <StyledInput
+            ref={mergeRefs(inputRef, autosizeRef)}
             value={inputValue}
             onChange={handleOnChange}
             onKeyDown={handleOnKeyDown}
             onBlur={handleOnBlur}
-            ref={inputRef}
             style={memoizedStyles}
             isEditing={isEditing}
             maxLength={128}
@@ -149,7 +155,7 @@ const UnselectedTabTitle = styled('div')<{isSelected: boolean}>`
   line-height: 1.45;
 `;
 
-const StyledGrowingInput = styled(GrowingInput)<{
+const StyledInput = styled(Input)<{
   isEditing: boolean;
 }>`
   position: relative;

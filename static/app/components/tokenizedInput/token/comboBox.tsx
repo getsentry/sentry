@@ -14,7 +14,7 @@ import type {
   SelectOptionWithKey,
 } from 'sentry/components/core/compactSelect/types';
 import {itemIsSectionWithKey} from 'sentry/components/core/compactSelect/utils';
-import {GrowingInput} from 'sentry/components/growingInput';
+import {Input} from 'sentry/components/core/input';
 import {Overlay} from 'sentry/components/overlay';
 import {defined} from 'sentry/utils';
 import useOverlay from 'sentry/utils/useOverlay';
@@ -267,7 +267,7 @@ export function ComboBox({
         placeholder={placeholder}
         onClick={handleInputClick}
         value={inputValue}
-        onChange={onInputChange}
+        onChange={onInputChange ?? (() => {})}
         tabIndex={tabIndex}
         onPaste={onPaste}
         disabled={false}
@@ -348,7 +348,7 @@ const Wrapper = styled('div')`
   width: 100%;
 `;
 
-const UnstyledInput = styled(GrowingInput)`
+const UnstyledInput = styled(Input)`
   background: transparent;
   border: none;
   box-shadow: none;

@@ -89,14 +89,17 @@ export default storyBook('ComboBox', story => {
   });
 
   story('With growing input', () => {
+    const [value, setValue] = useState('opt_one');
     return (
       <SizingWindow display="block" style={{overflow: 'visible'}}>
         <ComboBox
+          autosize
           aria-label="ComboBox"
           menuTrigger="focus"
           placeholder="Select an Option"
-          growingInput
           options={options}
+          value={value}
+          onChange={({value: newValue}) => setValue(newValue)}
         />
       </SizingWindow>
     );
