@@ -25,6 +25,7 @@ from sentry.integrations.jira.models.create_issue_metadata import JiraIssueTypeM
 from sentry.integrations.jira.tasks import migrate_issues
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import GroupCategory
@@ -42,6 +43,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import all_silo_function
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.strings import truncatechars
@@ -162,6 +164,7 @@ class JiraIntegration(IssueSyncIntegration):
         context = organization_service.get_organization_by_id(
             id=self.organization_id, include_projects=False, include_teams=False
         )
+        assert context, "organizationcontext must exist to get org"
         organization = context.organization
 
         has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
@@ -379,7 +382,7 @@ class JiraIntegration(IssueSyncIntegration):
         sync_status_forward = {}
 
         if features.has("organizations:jira-per-project-statuses", self.organization):
-            project_mappings = self._filter_active_projects(project_mappings)
+            project_mappings = self._filter_active_projects(list(project_mappings))
 
         for pm in project_mappings:
             sync_status_forward[pm.external_id] = {
@@ -412,6 +415,9 @@ class JiraIntegration(IssueSyncIntegration):
             avatar = projects[0]["avatarUrls"]["48x48"]
             self.model.metadata.update({"icon": avatar})
 
+        assert isinstance(
+            self.model, Integration
+        ), "must be in control silo to save Integration metadata"
         self.model.save()
 
     def get_link_issue_config(self, group, **kwargs):
@@ -528,6 +534,8 @@ class JiraIntegration(IssueSyncIntegration):
 
     def create_comment_attribution(self, user_id, comment_text):
         user = user_service.get_user(user_id=user_id)
+        assert user is not None, "user must exist to get username for comment attribution"
+
         attribution = f"{user.name} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
@@ -639,13 +647,22 @@ class JiraIntegration(IssueSyncIntegration):
             or schema["type"] == "issuelink"
         ):
             fieldtype = "select"
-            organization = (
-                group.organization
-                if group
-                else organization_service.get_organization_by_id(
-                    id=self.organization_id, include_projects=False, include_teams=False
-                ).organization
+
+            organization_context = organization_service.get_organization_by_id(
+                id=self.organization_id, include_projects=False, include_teams=False
             )
+
+            if group is not None:
+                organization = group.organization
+            else:
+                organization_context = organization_service.get_organization_by_id(
+                    id=self.organization_id, include_projects=False, include_teams=False
+                )
+                assert (
+                    organization_context is not None
+                ), "cannot get organization from a null organization context"
+                organization = organization_context.organization
+
             fkwargs["url"] = self.search_url(organization.slug)
             fkwargs["choices"] = []
         elif schema["type"] in ["timetracking"]:
@@ -761,7 +778,7 @@ class JiraIntegration(IssueSyncIntegration):
         return meta
 
     @all_silo_function
-    def get_create_issue_config(self, group: Group | None, user: RpcUser, **kwargs):
+    def get_create_issue_config(self, group: Group | None, user: RpcUser | User, **kwargs):
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
