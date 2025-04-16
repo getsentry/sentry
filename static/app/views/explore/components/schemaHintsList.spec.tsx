@@ -6,9 +6,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHintsList';
 import {
   PageParamsProvider,
-  useExploreFields,
   useExploreQuery,
-  useSetExplorePageParams,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 
 const mockStringTags: TagCollection = {
@@ -21,12 +19,7 @@ const mockNumberTags: TagCollection = {
   numberTag2: {key: 'numberTag2', kind: FieldKind.MEASUREMENT, name: 'numberTag2'},
 };
 
-const mockNavigate = jest.fn();
 const mockDispatch = jest.fn();
-
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: () => mockNavigate,
-}));
 
 // Add mock for useSearchQueryBuilder
 jest.mock('sentry/components/searchQueryBuilder/context', () => ({
@@ -46,16 +39,7 @@ function Subject(
 ) {
   function Content() {
     const query = useExploreQuery();
-    const fields = useExploreFields();
-    const setPageParams = useSetExplorePageParams();
-    return (
-      <SchemaHintsList
-        {...props}
-        exploreQuery={query}
-        tableColumns={fields}
-        setPageParams={setPageParams}
-      />
-    );
+    return <SchemaHintsList {...props} exploreQuery={query} />;
   }
   return (
     <PageParamsProvider>
@@ -154,27 +138,6 @@ describe('SchemaHintsList', () => {
     });
   });
 
-  it('should add hint to field columns when clicked', async () => {
-    render(
-      <Subject
-        stringTags={mockStringTags}
-        numberTags={mockNumberTags}
-        supportedAggregates={[]}
-      />
-    );
-
-    const stringTag1Hint = screen.getByText('stringTag1');
-    await userEvent.click(stringTag1Hint);
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
-          field: expect.arrayContaining(['stringTag1']),
-        },
-      })
-    );
-  });
-
   it('should render loading indicator when isLoading is true', () => {
     render(
       <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />
@@ -226,37 +189,11 @@ describe('SchemaHintsList', () => {
     const stringTag1Checkbox = withinDrawer.getByText('stringTag1');
     await userEvent.click(stringTag1Checkbox);
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({field: expect.arrayContaining(['stringTag1'])}),
-      })
-    );
-
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'UPDATE_QUERY',
       query: 'stringTag1:""',
       focusOverride: {
         itemKey: 'filter:0',
-        part: 'value',
-      },
-    });
-
-    const numberTag1Checkbox = withinDrawer.getByText('numberTag1');
-    await userEvent.click(numberTag1Checkbox);
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          field: expect.arrayContaining(['stringTag1', 'numberTag1']),
-        }),
-      })
-    );
-
-    expect(mockDispatch).toHaveBeenCalledWith({
-      type: 'UPDATE_QUERY',
-      query: 'stringTag1:"" numberTag1:>0',
-      focusOverride: {
-        itemKey: 'filter:1',
         part: 'value',
       },
     });
