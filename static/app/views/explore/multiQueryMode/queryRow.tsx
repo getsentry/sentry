@@ -6,7 +6,6 @@ import {LazyRender} from 'sentry/components/lazyRender';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -114,11 +113,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             query={queryParts}
             timeseriesResult={timeseriesResult}
             canUsePreviousResults={canUsePreviousResults}
-            isProgressivelyLoading={
-              organization.features.includes('visibility-explore-progressive-loading') &&
-              defined(timeseriesSamplingMode) &&
-              timeseriesSamplingMode !== SAMPLING_MODE.BEST_EFFORT
-            }
+            samplingMode={timeseriesSamplingMode}
           />
           <MultiQueryTable
             confidences={[]}
