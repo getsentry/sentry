@@ -87,6 +87,7 @@ export function FeatureFlagDrawer({
       <FeatureFlagSort
         sortByOptions={SORT_BY_OPTIONS}
         orderByOptions={ORDER_BY_OPTIONS}
+        orderBy={orderBy}
         setOrderBy={value => {
           setOrderBy(value);
           trackAnalytics('flags.sort_flags', {
@@ -101,7 +102,6 @@ export function FeatureFlagDrawer({
             sortMethod: value as string,
           });
         }}
-        orderBy={orderBy}
         sortBy={sortBy}
       />
     </ButtonBar>

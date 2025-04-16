@@ -255,15 +255,21 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagListP
           <FeatureFlagSort
             sortByOptions={SORT_BY_OPTIONS}
             orderByOptions={ORDER_BY_OPTIONS}
-            onChange={selection => {
+            orderBy={orderBy}
+            setOrderBy={value => {
+              setOrderBy(value);
               trackAnalytics('flags.sort_flags', {
                 organization,
-                sortMethod: selection.value,
+                sortMethod: value as string,
               });
             }}
-            orderBy={orderBy}
-            setOrderBy={setOrderBy}
-            setSortBy={setSortBy}
+            setSortBy={value => {
+              setSortBy(value);
+              trackAnalytics('flags.sort_flags', {
+                organization,
+                sortMethod: value as string,
+              });
+            }}
             sortBy={sortBy}
           />
         </Fragment>
