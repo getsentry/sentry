@@ -1,4 +1,4 @@
-import {Children, cloneElement, isValidElement} from 'react';
+import {Children, cloneElement, Fragment, isValidElement} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -17,7 +17,10 @@ export function ButtonBar({children, merged = false, gap = 0, ...props}: ButtonB
   if (Children.count(children) <= 1) {
     // There is no need to render a button bar if there is only one button.
     if (isValidElement(children)) {
-      return cloneElement(children, props);
+      if (children.type !== Fragment) {
+        return cloneElement(children, props);
+      }
+      return children;
     }
 
     return children;

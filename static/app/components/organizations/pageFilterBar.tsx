@@ -1,4 +1,4 @@
-import {Children, cloneElement, isValidElement} from 'react';
+import {Children, cloneElement, Fragment, isValidElement} from 'react';
 import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -16,7 +16,10 @@ interface PageFilterBarProps extends React.HTMLAttributes<HTMLDivElement> {
 const PageFilterBar = styled(({children, condensed, ...props}: PageFilterBarProps) => {
   if (Children.count(children) <= 1) {
     if (isValidElement(children)) {
-      return cloneElement(children, props);
+      if (children.type !== Fragment) {
+        return cloneElement(children, props);
+      }
+      return children;
     }
 
     return children;
