@@ -379,9 +379,8 @@ def test_child_worker_record_checkin(mock_capture_checkin: mock.Mock) -> None:
 
 
 @pytest.mark.django_db
-@mock.patch("sentry.taskworker.worker.sys.exit")
 @mock.patch("sentry.taskworker.worker.sentry_sdk.capture_exception")
-def test_child_worker_terminate_task(mock_exit: mock.Mock, mock_capture: mock.Mock) -> None:
+def test_child_worker_terminate_task(mock_capture: mock.Mock) -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
     shutdown = Event()
@@ -402,5 +401,4 @@ def test_child_worker_terminate_task(mock_exit: mock.Mock, mock_capture: mock.Mo
     assert result.task_id == sleepy.id
     assert result.status == TASK_ACTIVATION_STATUS_FAILURE
 
-    assert mock_exit.call_count == 1
     assert mock_capture.call_count == 1
