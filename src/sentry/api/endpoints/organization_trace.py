@@ -148,7 +148,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 event_type="span",
             )
         else:
-            raise Exception(f"Unknown event encountered in trace: {event.get('event_type')}")
+            return self.serialize_rpc_issue(event)
 
     @sentry_sdk.tracing.trace
     def run_errors_query(self, snuba_params: SnubaParams, trace_id: str):

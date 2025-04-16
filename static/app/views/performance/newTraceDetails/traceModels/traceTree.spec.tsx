@@ -1848,4 +1848,51 @@ describe('TraceTree', () => {
       expect(tree.build().serialize()).toMatchSnapshot();
     });
   });
+
+  describe('printTraceTreeNode', () => {
+    it('adds prefetch prefix to spans with http.request.prefetch attribute', () => {
+      const tree = TraceTree.FromTrace(trace, traceMetadata);
+
+      const prefetchSpan = makeSpan({
+        op: 'http',
+        description: 'GET /api/users',
+        data: {
+          'http.request.prefetch': true,
+        },
+      });
+
+      const regularSpan = makeSpan({
+        op: 'http',
+        description: 'GET /api/users',
+      });
+
+      TraceTree.FromSpans(
+        tree.root.children[0]!.children[0]!,
+        [prefetchSpan, regularSpan],
+        makeEventTransaction()
+      );
+
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
+    it('handles falsy prefetch attribute', () => {
+      const tree = TraceTree.FromTrace(trace, traceMetadata);
+
+      const falsePrefetchSpan = makeSpan({
+        op: 'http',
+        description: 'GET /api/users',
+        data: {
+          'http.request.prefetch': false,
+        },
+      });
+
+      TraceTree.FromSpans(
+        tree.root.children[0]!.children[0]!,
+        [falsePrefetchSpan],
+        makeEventTransaction()
+      );
+
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+  });
 });
