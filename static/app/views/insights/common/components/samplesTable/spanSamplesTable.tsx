@@ -28,7 +28,7 @@ import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/tr
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
 type Keys =
-  | 'transaction.span_id'
+  | 'transaction_id'
   | 'span_id'
   | 'profile_id'
   | 'timestamp'
@@ -97,7 +97,7 @@ export function SpanSamplesTable({
   const organization = useOrganization();
   const {view} = useDomainViewFilters();
 
-  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+  function renderHeadCell(column: SamplesTableColumnHeader): React.ReactNode {
     if (
       column.key === 'p95_comparison' ||
       column.key === 'avg_comparison' ||
@@ -114,7 +114,10 @@ export function SpanSamplesTable({
     return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
   }
 
-  function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
+  function renderBodyCell(
+    column: SamplesTableColumnHeader,
+    row: SpanTableRow
+  ): React.ReactNode {
     if (column.key === 'transaction_id') {
       return (
         <OverflowEllipsisTextContainer>
