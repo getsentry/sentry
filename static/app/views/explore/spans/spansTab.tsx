@@ -333,7 +333,7 @@ export function SpansTabContentImpl({
               />
               <Toggle>
                 <StyledButton
-                  aria-label={expanded ? t('Collapse sidebar') : t('Expande sidebar')}
+                  aria-label={expanded ? t('Collapse sidebar') : t('Expand sidebar')}
                   size="xs"
                   icon={<IconDoubleChevron direction={expanded ? 'left' : 'right'} />}
                   onClick={() => setExpanded(!expanded)}
