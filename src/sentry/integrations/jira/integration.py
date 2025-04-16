@@ -25,7 +25,6 @@ from sentry.integrations.jira.models.create_issue_metadata import JiraIssueTypeM
 from sentry.integrations.jira.tasks import migrate_issues
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import GroupCategory
@@ -406,19 +405,19 @@ class JiraIntegration(IssueSyncIntegration):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-        self.model.name = server_info["serverTitle"]
+        metadata = self.model.metadata.copy()
+        name = server_info["serverTitle"]
 
         # There is no Jira instance icon (there is a favicon, but it doesn't seem
         # possible to query that with the API). So instead we just use the first
         # project Icon.
         if len(projects) > 0:
             avatar = projects[0]["avatarUrls"]["48x48"]
-            self.model.metadata.update({"icon": avatar})
+            metadata.update({"icon": avatar})
 
-        assert isinstance(
-            self.model, Integration
-        ), "must be in control silo to save Integration metadata"
-        self.model.save()
+        integration_service.update_integration(
+            integration_id=self.model.id, name=name, metadata=metadata
+        )
 
     def get_link_issue_config(self, group, **kwargs):
         fields = super().get_link_issue_config(group, **kwargs)
