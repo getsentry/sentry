@@ -22,8 +22,6 @@ export default function MultiQueryMode() {
 
   const prefersStackedNav = usePrefersStackedNav();
 
-  const hasSavedQueries = organization.features.includes('performance-saved-queries');
-
   return (
     <Feature
       features="explore-multi-query"
@@ -50,21 +48,17 @@ export default function MultiQueryMode() {
                 },
               ]}
             />
-            <Layout.Title>
-              {hasSavedQueries && title ? title : t('Compare Queries')}
-            </Layout.Title>
+            <Layout.Title>{title ? title : t('Compare Queries')}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
               {!prefersStackedNav && (
-                <Feature organization={organization} features="performance-saved-queries">
-                  <LinkButton
-                    to={`/organizations/${organization.slug}/explore/saved-queries/`}
-                    size="sm"
-                  >
-                    {t('Saved Queries')}
-                  </LinkButton>
-                </Feature>
+                <LinkButton
+                  to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                  size="sm"
+                >
+                  {t('Saved Queries')}
+                </LinkButton>
               )}
               <FeedbackWidgetButton />
             </ButtonBar>
