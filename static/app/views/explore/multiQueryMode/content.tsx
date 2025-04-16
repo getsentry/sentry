@@ -8,7 +8,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -120,60 +119,58 @@ function Content() {
               relativeOptions={relativeOptions}
             />
           </StyledPageFilterBar>
-          <Feature features={['performance-saved-queries']}>
-            <DropdownMenu
-              items={[
-                ...(id
-                  ? [
-                      {
-                        key: 'update-query',
-                        label: <span>{t('Existing Query')}</span>,
-                        onAction: async () => {
-                          try {
-                            addLoadingMessage(t('Updating query...'));
-                            await updateQuery();
-                            addSuccessMessage(t('Query updated successfully'));
-                            trackAnalytics('trace_explorer.save_as', {
-                              save_type: 'update_query',
-                              ui_source: 'toolbar',
-                              organization,
-                            });
-                          } catch (error) {
-                            addErrorMessage(t('Failed to update query'));
-                            Sentry.captureException(error);
-                          }
-                        },
+          <DropdownMenu
+            items={[
+              ...(id
+                ? [
+                    {
+                      key: 'update-query',
+                      label: <span>{t('Existing Query')}</span>,
+                      onAction: async () => {
+                        try {
+                          addLoadingMessage(t('Updating query...'));
+                          await updateQuery();
+                          addSuccessMessage(t('Query updated successfully'));
+                          trackAnalytics('trace_explorer.save_as', {
+                            save_type: 'update_query',
+                            ui_source: 'toolbar',
+                            organization,
+                          });
+                        } catch (error) {
+                          addErrorMessage(t('Failed to update query'));
+                          Sentry.captureException(error);
+                        }
                       },
-                    ]
-                  : []),
-                {
-                  key: 'save-query',
-                  label: <span>{t('A New Query')}</span>,
-                  onAction: () => {
-                    openSaveQueryModal({
-                      organization,
-                      saveQuery,
-                    });
-                  },
+                    },
+                  ]
+                : []),
+              {
+                key: 'save-query',
+                label: <span>{t('A New Query')}</span>,
+                onAction: () => {
+                  openSaveQueryModal({
+                    organization,
+                    saveQuery,
+                  });
                 },
-              ]}
-              trigger={triggerProps => (
-                <Button
-                  {...triggerProps}
-                  priority={shouldHighlightSaveButton ? 'primary' : 'default'}
-                  aria-label={t('Save')}
-                  onClick={e => {
-                    e.stopPropagation();
-                    e.preventDefault();
+              },
+            ]}
+            trigger={triggerProps => (
+              <Button
+                {...triggerProps}
+                priority={shouldHighlightSaveButton ? 'primary' : 'default'}
+                aria-label={t('Save')}
+                onClick={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
 
-                    triggerProps.onClick?.(e);
-                  }}
-                >
-                  {shouldHighlightSaveButton ? `${t('Save')}` : `${t('Save as')}\u2026`}
-                </Button>
-              )}
-            />
-          </Feature>
+                  triggerProps.onClick?.(e);
+                }}
+              >
+                {shouldHighlightSaveButton ? `${t('Save')}` : `${t('Save as')}\u2026`}
+              </Button>
+            )}
+          />
         </Flex>
         <WidgetSyncContextProvider>
           {queries.map((query, index) => (
