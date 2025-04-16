@@ -112,6 +112,7 @@ describe('PageFiltersContainer', function () {
         },
         environments: [],
         projects: [],
+        repository: null,
       })
     );
   });
@@ -140,6 +141,7 @@ describe('PageFiltersContainer', function () {
           },
           environments: ['prod'],
           projects: [],
+          repository: null,
         },
       })
     );
@@ -172,6 +174,7 @@ describe('PageFiltersContainer', function () {
           },
           environments: [],
           projects: [],
+          repository: null,
         },
       })
     );
@@ -202,6 +205,7 @@ describe('PageFiltersContainer', function () {
           },
           environments: [],
           projects: [],
+          repository: null,
         },
       })
     );
@@ -243,6 +247,7 @@ describe('PageFiltersContainer', function () {
         },
         environments: [],
         projects: [],
+        repository: null,
       },
     });
   });
@@ -287,11 +292,13 @@ describe('PageFiltersContainer', function () {
   });
 
   it('does not load from local storage when there are URL params', function () {
-    jest
-      .spyOn(localStorage, 'getItem')
-      .mockImplementation(() =>
-        JSON.stringify({projects: [3], environments: ['staging']})
-      );
+    jest.spyOn(localStorage, 'getItem').mockImplementation(() =>
+      JSON.stringify({
+        projects: [3],
+        environments: ['staging'],
+        repository: 'repo-from-store',
+      })
+    );
 
     const initializationObj = initializeOrg({
       organization: {
@@ -301,7 +308,10 @@ describe('PageFiltersContainer', function () {
         // we need this to be set to make sure org in context is same as
         // current org in URL
         params: {orgId: 'org-slug'},
-        location: {pathname: '/test', query: {project: ['1', '2']}},
+        location: {
+          pathname: '/test',
+          query: {project: ['1', '2'], repository: 'repo-from-url'},
+        },
       },
     });
 
@@ -312,6 +322,7 @@ describe('PageFiltersContainer', function () {
     );
 
     expect(PageFiltersStore.getState().selection.projects).toEqual([1, 2]);
+    expect(PageFiltersStore.getState().selection.repository).toBe('repo-from-url');
 
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
@@ -327,7 +338,10 @@ describe('PageFiltersContainer', function () {
         // we need this to be set to make sure org in context is same as
         // current org in URL
         params: {orgId: 'org-slug'},
-        location: {pathname: '/test', query: {project: ['1', '2']}},
+        location: {
+          pathname: '/test',
+          query: {project: ['1', '2'], repository: 'repo-from-store'},
+        },
       },
     });
 
@@ -338,6 +352,7 @@ describe('PageFiltersContainer', function () {
     );
 
     expect(PageFiltersStore.getState().selection.projects).toEqual([1, 2]);
+    expect(PageFiltersStore.getState().selection.repository).toBe('repo-from-store');
 
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
@@ -672,6 +687,7 @@ describe('PageFiltersContainer', function () {
           },
           environments: [],
           projects: [],
+          repository: null,
         })
       );
 
@@ -697,6 +713,7 @@ describe('PageFiltersContainer', function () {
           },
           environments: [],
           projects: [],
+          repository: null,
         })
       );
 

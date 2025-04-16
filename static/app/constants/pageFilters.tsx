@@ -5,6 +5,7 @@ export const URL_PARAM = {
   PERIOD: 'statsPeriod',
   PROJECT: 'project',
   ENVIRONMENT: 'environment',
+  REPOSITORY: 'repository',
 };
 
 export const PAGE_URL_PARAM = {

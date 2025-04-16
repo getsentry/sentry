@@ -23,6 +23,7 @@ export function getDefaultSelection(): PageFilters {
     projects: [],
     environments: [],
     datetime,
+    repository: null,
   };
 }
 
