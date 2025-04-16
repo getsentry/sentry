@@ -36,7 +36,7 @@ const model = new FormModel({initialData: {...flattie(initialState), frequency: 
 
 export default function AutomationForm() {
   const title = useDocumentTitle();
-  const {state, dispatch} = useAutomationBuilderReducer();
+  const {state, actions} = useAutomationBuilderReducer();
 
   useEffect(() => {
     model.setValue('name', title);
@@ -44,7 +44,7 @@ export default function AutomationForm() {
 
   return (
     <Form hideFooter model={model}>
-      <AutomationBuilderContext.Provider value={{state, dispatch}}>
+      <AutomationBuilderContext.Provider value={{state, actions}}>
         <Flex column gap={space(1.5)} style={{padding: space(2)}}>
           <SectionBody>
             <Heading>{t('Connect Monitors')}</Heading>

@@ -12,7 +12,7 @@ import RuleNodeList from 'sentry/views/automations/components/ruleNodeList';
 import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 
 export default function AutomationBuilder() {
-  const {state, dispatch} = useAutomationBuilderContext();
+  const {state, actions} = useAutomationBuilderContext();
 
   return (
     <Flex column gap={space(1)}>
@@ -36,9 +36,7 @@ export default function AutomationBuilder() {
                   isClearable={false}
                   name="triggers.logicType"
                   value={state.triggers.logicType}
-                  onChange={value =>
-                    dispatch({type: 'UPDATE_WHEN_LOGIC_TYPE', logicType: value})
-                  }
+                  onChange={value => actions.updateWhenLogicType({logicType: value})}
                   required
                   flexibleControlStateSize
                   options={TRIGGER_MATCH_OPTIONS}
@@ -53,10 +51,10 @@ export default function AutomationBuilder() {
         placeholder={t('Select a trigger...')}
         conditions={state.triggers.conditions}
         group="triggers"
-        onAddRow={type => dispatch({type: 'ADD_WHEN_CONDITION', conditionType: type})}
-        onDeleteRow={index => dispatch({type: 'REMOVE_WHEN_CONDITION', index})}
+        onAddRow={type => actions.addWhenCondition({conditionType: type})}
+        onDeleteRow={index => actions.removeWhenCondition({index})}
         updateCondition={(index, comparison) =>
-          dispatch({type: 'UPDATE_CONDITION', index, comparison})
+          actions.updateWhenCondition({index, comparison})
         }
       />
 
@@ -68,7 +66,7 @@ export default function AutomationBuilder() {
           borderless
           icon={<IconAdd />}
           size="xs"
-          onClick={() => dispatch({type: 'ADD_IF'})}
+          onClick={() => actions.addIf()}
         >
           {t('If/Then Block')}
         </PurpleTextButton>
@@ -85,7 +83,7 @@ interface ActionFilterBlockProps {
 }
 
 function ActionFilterBlock({id}: ActionFilterBlockProps) {
-  const {state, dispatch} = useAutomationBuilderContext();
+  const {state, actions} = useAutomationBuilderContext();
   const actionFilterBlock = state.actionFilters[id];
 
   return (
@@ -116,8 +114,7 @@ function ActionFilterBlock({id}: ActionFilterBlockProps) {
                       size="xs"
                       value={actionFilterBlock?.logicType}
                       onChange={value =>
-                        dispatch({
-                          type: 'UPDATE_IF_LOGIC_TYPE',
+                        actions.updateIfLogicType({
                           groupIndex: id,
                           logicType: value,
                         })
@@ -133,8 +130,7 @@ function ActionFilterBlock({id}: ActionFilterBlockProps) {
               icon={<IconDelete />}
               borderless
               onClick={() =>
-                dispatch({
-                  type: 'REMOVE_IF',
+                actions.removeIf({
                   groupIndex: id,
                 })
               }
@@ -145,18 +141,16 @@ function ActionFilterBlock({id}: ActionFilterBlockProps) {
             group={`actionFilters.${id}`}
             conditions={actionFilterBlock?.conditions || []}
             onAddRow={type =>
-              dispatch({type: 'ADD_IF_CONDITION', groupIndex: id, conditionType: type})
+              actions.addIfCondition({groupIndex: id, conditionType: type})
             }
             onDeleteRow={index =>
-              dispatch({
-                type: 'REMOVE_IF_CONDITION',
+              actions.removeIfCondition({
                 groupIndex: id,
                 conditionIndex: index,
               })
             }
             updateCondition={(index, comparison) =>
-              dispatch({
-                type: 'UPDATE_IF_CONDITION',
+              actions.updateIfCondition({
                 groupIndex: id,
                 conditionIndex: index,
                 comparison,
