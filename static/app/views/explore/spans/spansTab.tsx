@@ -228,14 +228,6 @@ export function SpansTabContentImpl({
     eapSpanSearchQueryBuilderProps
   );
 
-  // Progressive loading only shows when we have preflight data and
-  // we're fetching the best effort request
-  const timeseriesIsProgressivelyLoading =
-    organization.features.includes('visibility-explore-progressive-loading') &&
-    defined(timeseriesSamplingMode) &&
-    timeseriesSamplingMode === SAMPLING_MODE.PREFLIGHT &&
-    timeseriesResult.isFetched;
-
   return (
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <Body withToolbar={expanded}>
@@ -283,9 +275,9 @@ export function SpansTabContentImpl({
               confidences={confidences}
               query={query}
               timeseriesResult={timeseriesResult}
-              isProgressivelyLoading={timeseriesIsProgressivelyLoading}
               visualizes={visualizes}
               setVisualizes={setVisualizes}
+              samplingMode={timeseriesSamplingMode}
             />
             <ExploreTables
               aggregatesTableResult={aggregatesTableResult}
