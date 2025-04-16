@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -79,7 +79,7 @@ export function Alert({
     >
       <PanelProvider>
         {showIcon && (
-          <IconWrapper onClick={handleClick}>
+          <IconWrapper type={type} onClick={handleClick}>
             {icon ?? <AlertIcon type={type} />}
           </IconWrapper>
         )}
@@ -101,14 +101,17 @@ export function Alert({
           </ExpandIconWrap>
         )}
         {isExpanded && (
-          <ExpandContainer
-            ref={expandRef}
-            showIcon={!!showIcon}
-            showTrailingItems={!!trailingItems}
-            {...expandHoverProps}
-          >
-            {Array.isArray(expand) ? expand.map(item => item) : expand}
-          </ExpandContainer>
+          <Fragment>
+            {showIcon && <IconWrapper type={type} style={{zIndex: 0}} />}
+            <ExpandContainer
+              ref={expandRef}
+              showIcon={!!showIcon}
+              showTrailingItems={!!trailingItems}
+              {...expandHoverProps}
+            >
+              {Array.isArray(expand) ? expand.map(item => item) : expand}
+            </ExpandContainer>
+          </Fragment>
         )}
       </PanelProvider>
     </AlertContainer>
@@ -232,16 +235,22 @@ const AlertContainer = withChonk(
   ChonkAlert.chonkAlertPropMapping
 );
 
-const IconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
-`;
+const IconWrapper = withChonk(
+  styled('div')<{type: AlertProps['type']}>`
+    display: flex;
+    align-items: center;
+    height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
+  `,
+  ChonkAlert.IconWrapper
+);
 
-const Message = styled('span')`
-  position: relative;
-  line-height: ${p => p.theme.text.lineHeightBody};
-`;
+const Message = withChonk(
+  styled('span')`
+    position: relative;
+    line-height: ${p => p.theme.text.lineHeightBody};
+  `,
+  ChonkAlert.Message
+);
 
 const TrailingItems = withChonk(
   styled('div')<{showIcon: boolean}>`
@@ -265,21 +274,26 @@ const TrailingItems = withChonk(
   ChonkAlert.TrailingItems
 );
 
-const ExpandIconWrap = styled(IconWrapper)`
+const ExpandIconWrap = styled('div')`
+  display: flex;
+  align-items: center;
   margin-left: ${space(0.5)};
 `;
 
-const ExpandContainer = styled('div')<{showIcon: boolean; showTrailingItems: boolean}>`
-  grid-row: 2;
-  /* ExpandContainer should be vertically aligned with Message. When there is a leading icon,
+const ExpandContainer = withChonk(
+  styled('div')<{showIcon: boolean; showTrailingItems: boolean}>`
+    grid-row: 2;
+    /* ExpandContainer should be vertically aligned with Message. When there is a leading icon,
   Message is in the second grid column. Otherwise it's in the first column. */
-  grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
-  cursor: auto;
+    grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
+    cursor: auto;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-row: ${p => (p.showTrailingItems ? 3 : 2)};
-  }
-`;
+    @media (max-width: ${p => p.theme.breakpoints.small}) {
+      grid-row: ${p => (p.showTrailingItems ? 3 : 2)};
+    }
+  `,
+  ChonkAlert.ExpandContainer
+);
 
 function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
   switch (type) {
