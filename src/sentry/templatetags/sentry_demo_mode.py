@@ -1,16 +1,13 @@
 from django import template
 from django.utils.safestring import mark_safe
 
-from sentry.demo_mode.utils import get_demo_org, is_demo_mode_enabled
+from sentry.demo_mode.utils import get_demo_org
 
 register = template.Library()
 
 
 @register.simple_tag
 def init_demo_analytics():
-    if not is_demo_mode_enabled():
-        return ""
-
     org = get_demo_org()
 
     if not org:
