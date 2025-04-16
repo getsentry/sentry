@@ -16,15 +16,17 @@ interface ReplayClipPreviewProps
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
+  overlayContent?: React.ReactNode;
 }
 
 export default function ReplayClipPreview({
   analyticsContext,
   clipOffsets,
   eventTimestampMs,
+  fullReplayButtonProps,
   orgSlug,
   replaySlug,
-  fullReplayButtonProps,
+  overlayContent,
 }: ReplayClipPreviewProps) {
   const clipWindow = useMemo(
     () => ({
@@ -52,6 +54,7 @@ export default function ReplayClipPreview({
       <ReplayClipPreviewPlayer
         replayReaderResult={readerResult}
         analyticsContext={analyticsContext}
+        overlayContent={overlayContent}
         fullReplayButtonProps={fullReplayButtonProps}
       />
     </ReplayContextProvider>

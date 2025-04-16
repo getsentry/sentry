@@ -18,12 +18,14 @@ interface Props {
   analyticsContext: string;
   fullReplayButtonProps: Partial<Omit<LinkButtonProps, 'external'>>;
   replayReaderResult: ReturnType<typeof useLoadReplayReader>;
+  overlayContent?: React.ReactNode;
 }
 
 export default function ReplayClipPreviewPlayer({
   analyticsContext,
   fullReplayButtonProps,
   replayReaderResult,
+  overlayContent,
 }: Props) {
   useLogEventReplayStatus({
     readerResult: replayReaderResult,
@@ -62,8 +64,9 @@ export default function ReplayClipPreviewPlayer({
             ) : (
               <ReplayPreviewPlayer
                 errorBeforeReplayStart={replay.getErrorBeforeReplayStart()}
-                replayId={replayReaderResult.replayId}
                 fullReplayButtonProps={fullReplayButtonProps}
+                overlayContent={overlayContent}
+                replayId={replayReaderResult.replayId}
                 replayRecord={replayReaderResult.replayRecord!}
               />
             )}
