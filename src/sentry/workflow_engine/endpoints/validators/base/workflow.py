@@ -53,6 +53,14 @@ class WorkflowValidator(CamelSnakeSerializer):
 
         return value
 
+    def update(self, instance: Workflow, validated_data: dict[str, Any]) -> Workflow:
+        with transaction.atomic(router.db_for_write(Workflow)):
+            # Update the workflow
+            # update the triggers
+            # update the actions & dcg
+            pass
+        pass
+
     def create(self, validated_value: dict[str, Any]) -> Workflow:
         condition_group_validator = BaseDataConditionGroupValidator(context=self.context)
         action_validator = BaseActionValidator(context=self.context)

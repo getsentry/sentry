@@ -20,6 +20,7 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
+from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import Workflow
 
 
@@ -68,10 +69,32 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationEndpoint):
         )
         return Response(serialized_workflow)
 
+    @extend_schema(
+        operation_id="Update a Workflow",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            WorkflowParams.WORKFLOW_ID,
+        ],
+        responses={
+            201: WorkflowSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def put(self, request: Request, organization: Organization, workflow: Workflow):
         """
         Updates a workflow
         """
+        validator = WorkflowValidator(
+            data=request.data,
+            context={"organization": organization, "request": request},
+        )
+
+        validator.is_valid(raise_exception=True)
+        workflow.update(**validator.validated_data)
+
         create_audit_entry(
             request=request,
             organization=organization,
@@ -80,7 +103,10 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationEndpoint):
             data=workflow.get_audit_log_data(),
         )
 
-        pass
+        return Response(
+            serialize(workflow, request.user, WorkflowSerializer()),
+            status=200,
+        )
 
     def delete(self, request: Request, organization: Organization, workflow: Workflow):
         """
