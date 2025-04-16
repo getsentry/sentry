@@ -62,7 +62,7 @@ function InnerFeatureBadge({
 
   return (
     <div {...props}>
-      <Tooltip title={title ?? defaultTitles[type]} position="right" {...tooltipProps}>
+      <Tooltip title={title} position="right" {...tooltipProps}>
         {variant === 'badge' || variant === 'short' ? (
           <StyledBadge type={type}>
             {variant === 'short' ? shortLabels[type] : labels[type]}
