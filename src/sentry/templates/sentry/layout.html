@@ -4,6 +4,7 @@
 {% load sentry_features %}
 {% load sentry_helpers %}
 {% load sentry_status %}
+{% load sentry_demo_mode %}
 {% get_sentry_version %}
 <!DOCTYPE html>
 <html lang="en">
@@ -70,6 +71,9 @@
   {% asset_url 'sentry' 'js/ads.js' as asset_url %}
   {% script src=asset_url crossorigin="anonymous" %}{% endscript %}
   {% endblock %}
+
+  {% init_demo_analytics %}
+
 </head>
 
 

@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-
 import {setForceHide} from 'sentry/actionCreators/guides';
 import {demoSignupModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
@@ -25,7 +23,6 @@ export function initDemoMode(api: Client) {
   if (!isDemoModeActive()) {
     return;
   }
-  initDemoAnalytics();
   captureEmail(api);
 }
 
@@ -55,33 +52,5 @@ async function captureEmail(api: Client) {
     // do nothing
   } finally {
     setForceHide(false);
-  }
-}
-
-function initDemoAnalytics() {
-  if (!isDemoModeActive()) {
-    return;
-  }
-
-  if (document.getElementById('plausible-script')) {
-    return;
-  }
-
-  try {
-    const mainScript = document.createElement('script');
-    mainScript.id = 'plausible-script';
-    mainScript.defer = true;
-    mainScript.setAttribute('data-domain', window.location.hostname);
-    mainScript.src = 'https://plausible.io/js/script.pageview-props.tagged-events.js';
-
-    const queueScript = document.createElement('script');
-    queueScript.id = 'plausible-queue-script';
-    queueScript.textContent =
-      'window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }';
-
-    document.head.appendChild(mainScript);
-    document.head.appendChild(queueScript);
-  } catch (error) {
-    Sentry.captureException(error);
   }
 }
