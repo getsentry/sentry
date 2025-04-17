@@ -206,7 +206,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   const showResetButton = useMemo(() => {
     const {user} = member;
 
-    if (!user || !user.authenticators || organization.require2FA) {
+    if (!user?.authenticators || organization.require2FA) {
       return false;
     }
     const hasAuth = user.authenticators.length >= 1;

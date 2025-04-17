@@ -46,7 +46,7 @@ type Options = {
 };
 
 function getIssueAlertUrl({projects, organization}: Options) {
-  if (!projects || !projects.length) {
+  if (!projects?.length) {
     return makeAlertsPathname({
       path: '/rules/',
       organization,
@@ -65,7 +65,7 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   // This shall never be the case, since this is step is locked until a project is created,
   // but if the user falls into this case for some reason,
   // he needs to select the platform again since it is not available as a parameter here
-  if (!projects || !projects.length) {
+  if (!projects?.length) {
     return `/${organization.slug}/:projectId/getting-started/`;
   }
 
