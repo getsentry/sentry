@@ -2,12 +2,12 @@ import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {GridResizer} from 'sentry/components/gridEditable/styles';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -91,7 +91,9 @@ export function AggregatesTable({
           <TableRow>
             <TableHeadCell isFirst={false}>
               <TableHeadCellContent>
-                {getProgressiveLoadingIndicator(isProgressivelyLoading)}
+                <LoadingIndicatorWrapper>
+                  {getProgressiveLoadingIndicator(isProgressivelyLoading, 'table')}
+                </LoadingIndicatorWrapper>
               </TableHeadCellContent>
             </TableHeadCell>
             {fields.map((field, i) => {
@@ -222,4 +224,14 @@ const TopResultsIndicator = styled('div')<{color: string}>`
 
 const StyledLink = styled(Link)`
   display: flex;
+`;
+
+// Positions the loading indicator in the center of the cell that
+// corresponds to the stack column. Prevents layout shift when the
+// loading indicator is removed.
+const LoadingIndicatorWrapper = styled('div')`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 `;

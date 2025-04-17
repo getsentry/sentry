@@ -712,3 +712,32 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 400, response.content
+
+    def test_save_without_chart_type(self):
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Query",
+                    "projects": [-1],
+                    "range": "24h",
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                            "query": "spaceAfterColon:1",
+                            "visualize": [
+                                {
+                                    "yAxes": ["count(span.duration)"],
+                                },
+                            ],
+                        }
+                    ],
+                    "interval": "1m",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert len(response.data["query"]) == 1
+        assert response.data["query"][0]["visualize"] == [
+            {"yAxes": ["count(span.duration)"]},
+        ]

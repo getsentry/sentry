@@ -11,9 +11,9 @@ import type {Node} from '@react-types/shared';
 import type {CollectionChildren} from '@react-types/shared/src/collections';
 import {LayoutGroup, motion} from 'framer-motion';
 
+import type {TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {FormSize} from 'sentry/utils/theme';
@@ -154,6 +154,7 @@ function Segment<Value extends string>({
 
   const label = theme.isChonk ? (
     <VisibleLabel
+      size={size}
       isSelected={isSelected}
       isDisabled={isDisabled}
       priority={priority}
@@ -169,6 +170,7 @@ function Segment<Value extends string>({
     <InnerLabelWrap role="presentation">
       <HiddenLabel aria-hidden>{props.children}</HiddenLabel>
       <VisibleLabel
+        size={size}
         isSelected={isSelected}
         isDisabled={isDisabled}
         priority={priority}
@@ -415,6 +417,7 @@ const VisibleLabel = withChonk(
   styled('span')<{
     isSelected: boolean;
     priority: Priority;
+    size: FormSize;
     isDisabled?: boolean;
   }>`
     ${p => p.theme.overflowEllipsis}

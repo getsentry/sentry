@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
@@ -8,21 +7,32 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useMedia from 'sentry/utils/useMedia';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {
-  IssueDetailsContext,
-  useIssueDetailsReducer,
+  IssueDetailsContextProvider,
+  useIssueDetails,
 } from 'sentry/views/issueDetails/streamline/context';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
-import {getGroupReprocessingStatus} from 'sentry/views/issueDetails/utils';
+import {
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+} from 'sentry/views/issueDetails/utils';
+
+function GroupLayoutBody({children}: {children: React.ReactNode}) {
+  const {isSidebarOpen} = useIssueDetails();
+  return (
+    <StyledLayoutBody data-test-id="group-event-details" sidebarOpen={isSidebarOpen}>
+      {children}
+    </StyledLayoutBody>
+  );
+}
 
 interface GroupDetailsLayoutProps {
   children: React.ReactNode;
@@ -37,26 +47,14 @@ export function GroupDetailsLayout({
   project,
   children,
 }: GroupDetailsLayoutProps) {
-  const theme = useTheme();
-  const {issueDetails, dispatch} = useIssueDetailsReducer();
-  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.large})`);
-  const shouldDisplaySidebar = issueDetails.isSidebarOpen || isScreenSmall;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-  const groupReprocessingStatus = getGroupReprocessingStatus(group);
   const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
+  const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   return (
-    <IssueDetailsContext value={{...issueDetails, dispatch}}>
-      <StreamlinedGroupHeader
-        group={group}
-        event={event ?? null}
-        project={project}
-        groupReprocessingStatus={groupReprocessingStatus}
-      />
-      <StyledLayoutBody
-        data-test-id="group-event-details"
-        sidebarOpen={issueDetails.isSidebarOpen}
-      >
+    <IssueDetailsContextProvider>
+      <StreamlinedGroupHeader group={group} event={event ?? null} project={project} />
+      <GroupLayoutBody>
         <div>
           <SharedTourElement<IssueDetailsTour>
             id={IssueDetailsTour.AGGREGATES}
@@ -81,20 +79,20 @@ export function GroupDetailsLayout({
             position="top"
           >
             <GroupContent>
-              <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
-                <IssueEventNavigation event={event} group={group} />
-                {/* Since the event details header is disabled, display the sidebar toggle here */}
-                {!hasFilterBar && <ToggleSidebar size="sm" />}
-              </NavigationSidebarWrapper>
+              {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING && (
+                <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
+                  <IssueEventNavigation event={event} group={group} />
+                  {/* Since the event details header is disabled, display the sidebar toggle here */}
+                  {!hasFilterBar && <ToggleSidebar size="sm" />}
+                </NavigationSidebarWrapper>
+              )}
               <ContentPadding>{children}</ContentPadding>
             </GroupContent>
           </SharedTourElement>
         </div>
-        {shouldDisplaySidebar ? (
-          <StreamlinedSidebar group={group} event={event} project={project} />
-        ) : null}
-      </StyledLayoutBody>
-    </IssueDetailsContext>
+        <StreamlinedSidebar group={group} event={event} project={project} />
+      </GroupLayoutBody>
+    </IssueDetailsContextProvider>
   );
 }
 

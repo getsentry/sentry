@@ -15,10 +15,10 @@ import {
   ChonkLeadingItems,
   type Priority,
 } from 'sentry/components/core/menuListItem/index.chonk';
+import type {TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
@@ -242,11 +242,9 @@ const StyledPositionWrapper = styled(PositionWrapper)`
   }
 `;
 
-const StyledOverlay = styled(Overlay)<
-  {
-    size: Props['size'];
-  } & React.HTMLAttributes<HTMLDivElement>
->`
+const StyledOverlay = styled(Overlay)<{
+  size: Props['size'];
+}>`
   padding: 4px;
   font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
   cursor: auto;

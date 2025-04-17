@@ -86,17 +86,17 @@ describe('useSpanSamples', () => {
       body: {
         data: [
           {
-            'transaction.id': '7663aab8a',
+            'transaction.span_id': '7663aab8a',
             'span.id': '3aab8a77fe231',
           },
         ],
         meta: {
           fields: {
-            'transaction.id': 'string',
+            'transaction.span_id': 'string',
             'span.id': 'string',
           },
           units: {
-            'transaction.id': null,
+            'transaction.span_id': null,
             'span.id': null,
           },
         },
@@ -132,7 +132,7 @@ describe('useSpanSamples', () => {
       expect.objectContaining({
         method: 'GET',
         query: {
-          additionalFields: [],
+          additionalFields: ['transaction.span_id'],
           project: [],
           query: `span.group:221aa7ebd216 release:0.0.1`,
           referrer: 'api-spec',
@@ -152,17 +152,17 @@ describe('useSpanSamples', () => {
     expect(result.current.data).toEqual({
       data: [
         {
-          'transaction.id': '7663aab8a',
+          'transaction.span_id': '7663aab8a',
           'span.id': '3aab8a77fe231',
         },
       ],
       meta: {
         fields: {
-          'transaction.id': 'string',
+          'transaction.span_id': 'string',
           'span.id': 'string',
         },
         units: {
-          'transaction.id': null,
+          'transaction.span_id': null,
           'span.id': null,
         },
       },

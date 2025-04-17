@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {PlatformIcon, platforms} from 'platformicons';
 
 import {Input} from 'sentry/components/core/input';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {Sticky} from 'sentry/components/sticky';
 import JSXNode from 'sentry/components/stories/jsxNode';
-import {Tooltip} from 'sentry/components/tooltip';
 import * as Icons from 'sentry/icons';
 import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';

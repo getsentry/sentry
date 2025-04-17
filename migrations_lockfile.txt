@@ -21,12 +21,12 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0865_file_offsets
+sentry: 0866_grouptype_index
 
 social_auth: 0002_default_auto_field
 
 tempest: 0002_make_message_type_nullable
 
-uptime: 0031_translate_uptime_object_headers_to_lists_take_three
+uptime: 0032_stats_on_subscription
 
 workflow_engine: 0045_add_unique_constraint_alert_rule_detector

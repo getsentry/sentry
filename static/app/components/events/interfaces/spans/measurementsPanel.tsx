@@ -1,7 +1,7 @@
 import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';

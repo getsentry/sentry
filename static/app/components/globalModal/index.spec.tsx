@@ -7,7 +7,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ModalStore from 'sentry/stores/modalStore';
 
 describe('GlobalModal', function () {

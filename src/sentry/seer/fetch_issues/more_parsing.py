@@ -1,6 +1,6 @@
 import re
 
-from sentry.integrations.github.tasks.language_parsers import (
+from sentry.integrations.source_code_management.language_parsers import (
     PATCH_PARSERS,
     LanguageParser,
     PythonParser,

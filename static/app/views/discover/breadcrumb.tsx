@@ -45,7 +45,7 @@ function DiscoverBreadcrumb({
     label: t('Discover'),
   });
 
-  if (!isHomepage && eventView && eventView.isValid()) {
+  if (!isHomepage && eventView?.isValid()) {
     crumbs.push({
       to: makeDiscoverPathname({
         path: `/queries/`,
