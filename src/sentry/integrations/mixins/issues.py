@@ -431,11 +431,13 @@ class IssueSyncIntegration(IssueBasicIntegration, ABC):
         if not where_should_sync(self.model, "inbound_status", self.organization_id):
             return None
 
-        sync_status_inbound_task(
-            integration_id=self.model.id,
-            organization_id=self.organization_id,
-            issue_key=issue_key,
-            data=data,
+        sync_status_inbound_task.apply_async(
+            kwargs={
+                "integration_id": self.model.id,
+                "organization_id": self.organization_id,
+                "issue_key": issue_key,
+                "data": data,
+            }
         )
 
     def migrate_issues(self):
