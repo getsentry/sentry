@@ -257,6 +257,11 @@ def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
             )
         )
 
+    if len(vital_score_columns) == 0:
+        # A bit of a hack, but the rcp expects an aggregate column to be returned.
+        vital_score_key = AttributeKey(name="score.lcp", type=AttributeKey.TYPE_DOUBLE)
+        return opportunity_score([vital_score_key], settings)
+
     return operate_multiple_columns(vital_score_columns, Column.BinaryFormula.OP_ADD)
 
 

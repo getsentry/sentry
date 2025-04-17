@@ -19,6 +19,12 @@ def transform_vital_score_to_ratio(args: ResolvedArguments) -> AttributeKey:
 def operate_multiple_columns(
     columns: list[Column], op: Column.BinaryFormula.Op.ValueType, default_value: float = 0.0
 ) -> Column.BinaryFormula:
+    if len(columns) == 0:
+        raise ValueError("No columns to operate")
+
+    if len(columns) == 1:
+        return columns[0]
+
     def _operate_multiple_columns(idx: int):
         two_columns_left = idx == len(columns) - 2
         if two_columns_left:
