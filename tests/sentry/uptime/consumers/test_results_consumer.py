@@ -642,7 +642,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             scheduled_check_time=datetime.now() - timedelta(minutes=4),
         )
         with (
-            mock.patch("sentry.quotas.backend.disable_seat") as mock_disable_seat,
+            mock.patch("sentry.quotas.backend.remove_seat") as mock_remove_seat,
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             mock.patch(
                 "sentry.uptime.consumers.results_consumer.ONBOARDING_FAILURE_THRESHOLD", new=2
@@ -650,12 +650,12 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             self.tasks(),
             self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
-            disable_call_vals = []
+            remove_call_vals = []
 
-            def capture_disable_seat(data_category, seat_object):
-                disable_call_vals.append((data_category, seat_object.id))
+            def capture_remove_seat(data_category, seat_object):
+                remove_call_vals.append((data_category, seat_object.id))
 
-            mock_disable_seat.side_effect = capture_disable_seat
+            mock_remove_seat.side_effect = capture_remove_seat
 
             self.send_result(result)
             metrics.incr.assert_has_calls(
@@ -688,7 +688,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # XXX: Since project_subscription is mutable, the delete sets the id to null. So we're unable
         # to compare the calls directly. Instead, we add a side effect to the mock so that it keeps track of
         # the values we want to check.
-        assert disable_call_vals == [(DataCategory.UPTIME, self.project_subscription.id)]
+        assert remove_call_vals == [(DataCategory.UPTIME, self.project_subscription.id)]
 
         hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
         with pytest.raises(Group.DoesNotExist):
