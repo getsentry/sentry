@@ -7,15 +7,13 @@ import {t} from 'sentry/locale';
 
 interface Props {
   includeFeatureFlagsTab: boolean;
+  onChange: Dispatch<SetStateAction<string>>;
   search: string;
-  setSearch: Dispatch<SetStateAction<string>>;
-  onChange?: () => void;
 }
 
 export default function DistributionSearchInput({
   includeFeatureFlagsTab,
   search,
-  setSearch,
   onChange,
 }: Props) {
   return (
@@ -24,8 +22,7 @@ export default function DistributionSearchInput({
         size="xs"
         value={search}
         onChange={e => {
-          setSearch(e.target.value);
-          onChange?.();
+          onChange?.(e.target.value);
         }}
         aria-label={
           includeFeatureFlagsTab

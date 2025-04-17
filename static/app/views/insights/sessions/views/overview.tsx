@@ -11,6 +11,7 @@ import type {Project} from 'sentry/types/project';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
@@ -41,11 +42,13 @@ export function SessionsOverview() {
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
-              <PageFilterBar>
-                <ProjectPageFilter resetParamsOnChange={['cursor']} />
-                <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-                <DatePageFilter />
-              </PageFilterBar>
+              <ToolRibbon>
+                <PageFilterBar>
+                  <ProjectPageFilter resetParamsOnChange={['cursor']} />
+                  <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
+                  <DatePageFilter />
+                </PageFilterBar>
+              </ToolRibbon>
             </ModuleLayout.Full>
             {showOnboarding ? (
               <ModuleLayout.Full>

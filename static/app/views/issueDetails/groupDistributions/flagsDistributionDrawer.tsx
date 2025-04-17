@@ -50,49 +50,33 @@ export default function Flags({group, organization, setTab}: Props) {
   const [sortBy, setSortBy] = useState<SortBy>(SortBy.ALPHABETICAL);
   const [orderBy, setOrderBy] = useState<OrderBy>(OrderBy.A_TO_Z);
 
-  const orderByOptions = enableSuspectFlags
-    ? [
-        {
-          label: t('High to Low'),
-          value: OrderBy.HIGH_TO_LOW,
-        },
+  const orderByOptions = [
+    {
+      label: t('High to Low'),
+      value: OrderBy.HIGH_TO_LOW,
+      hidden: !enableSuspectFlags,
+    },
+    {
+      label: t('A-Z'),
+      value: OrderBy.A_TO_Z,
+    },
+    {
+      label: t('Z-A'),
+      value: OrderBy.Z_TO_A,
+    },
+  ];
+  const sortByOptions = [
+    {
+      label: t('Suspiciousness'),
+      value: SortBy.SUSPICION,
+      hidden: !enableSuspectFlags,
+    },
+    {
+      label: t('Alphabetical'),
+      value: SortBy.ALPHABETICAL,
+    },
+  ];
 
-        {
-          label: t('A-Z'),
-          value: OrderBy.A_TO_Z,
-        },
-        {
-          label: t('Z-A'),
-          value: OrderBy.Z_TO_A,
-        },
-      ]
-    : [
-        {
-          label: t('A-Z'),
-          value: OrderBy.A_TO_Z,
-        },
-        {
-          label: t('Z-A'),
-          value: OrderBy.Z_TO_A,
-        },
-      ];
-  const sortByOptions = enableSuspectFlags
-    ? [
-        {
-          label: t('Suspiciousness'),
-          value: SortBy.SUSPICION,
-        },
-        {
-          label: t('Alphabetical'),
-          value: SortBy.ALPHABETICAL,
-        },
-      ]
-    : [
-        {
-          label: t('Alphabetical'),
-          value: SortBy.ALPHABETICAL,
-        },
-      ];
   return (
     <Fragment>
       <EventNavigator>
@@ -107,8 +91,8 @@ export default function Flags({group, organization, setTab}: Props) {
             <DistributionSearchInput
               includeFeatureFlagsTab
               search={search}
-              setSearch={setSearch}
-              onChange={() => {
+              onChange={value => {
+                setSearch(value);
                 trackAnalytics('tags.drawer.action', {
                   control: 'search',
                   organization,

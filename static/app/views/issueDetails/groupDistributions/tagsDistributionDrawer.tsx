@@ -60,8 +60,8 @@ export default function TagsDistributionDrawer({
             <DistributionSearchInput
               includeFeatureFlagsTab={includeFeatureFlagsTab}
               search={search}
-              setSearch={setSearch}
-              onChange={() => {
+              onChange={value => {
+                setSearch(value);
                 trackAnalytics('tags.drawer.action', {
                   control: 'search',
                   organization,

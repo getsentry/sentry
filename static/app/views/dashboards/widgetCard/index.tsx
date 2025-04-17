@@ -41,6 +41,7 @@ import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
@@ -266,10 +267,11 @@ function WidgetCard(props: Props) {
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           noVisualizationPadding
-          isProgressivelyLoading={
+          titleBadges={getProgressiveLoadingIndicator(
             organization.features.includes('visibility-explore-progressive-loading') &&
-            isProgressivelyLoading
-          }
+              isProgressivelyLoading,
+            widget.displayType === DisplayType.TABLE ? 'table' : 'chart'
+          )}
         >
           <WidgetCardChartContainer
             location={location}

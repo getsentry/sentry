@@ -321,18 +321,20 @@ def _get_projects_and_filenames_from_source_file(
     return projects_set, sentry_filenames
 
 
-def get_issues_related_to_file_patches(
+def get_issues_related_to_function_names(
     *,
     organization_id: int,
     provider: str,
     external_id: str,
-    pr_files: list[PrFile],
+    filename_to_function_names: dict[str, list[str]],
     max_num_issues_per_file: int = MAX_NUM_ISSUES_PER_FILE_DEFAULT,
     run_id: int | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """
-    Get the top issues related to each file by looking at matches between functions in the patch
-    and functions in the issue's event's stacktrace.
+    Get issues related to each file by matching inputted filename-functions with
+    filename-functions in the issue's event's stacktrace.
+
+    Assumes `filename_to_function_names` are from one repository.
 
     Each issue includes its latest serialized event.
     """
@@ -355,36 +357,23 @@ def get_issues_related_to_file_patches(
 
     repo_id = repo.id
 
-    pr_files = safe_for_fetching_issues(pr_files)
-    pullrequest_files = [
-        PullRequestFile(filename=file["filename"], patch=file["patch"]) for file in pr_files
-    ]
-
     filename_to_issues = {}
-
-    for file in pullrequest_files:
-        logger_extra = {"file": file.filename, "run_id": run_id}
+    for filename, function_names in filename_to_function_names.items():
+        logger_extra = {"file": filename, "run_id": run_id}
         logger.info("Processing file", extra=logger_extra)
 
+        # Only add the file to filename_to_issues if it makes it to the querying step.
+        if not function_names:
+            logger.warning("No function names", extra=logger_extra)
+            continue
+        logger.info("Function names", extra=logger_extra | {"function_names": function_names})
+
         projects, sentry_filenames = _get_projects_and_filenames_from_source_file(
-            organization_id, repo_id, file.filename
+            organization_id, repo_id, filename
         )
         if not projects:
             logger.error("No projects", extra=logger_extra)
             continue
-
-        file_extension = file.filename.split(".")[-1]
-        if file_extension not in patch_parsers_more:
-            logger.warning("No language parser", extra=logger_extra)
-            continue
-
-        language_parser = patch_parsers_more[file_extension]
-        function_names = language_parser.extract_functions_from_patch(file.patch)
-        if not function_names:
-            logger.warning("No function names", extra=logger_extra)
-            continue
-
-        logger.info("Function names", extra=logger_extra | {"function_names": function_names})
 
         issues = get_issues_with_event_details_for_file(
             list(projects),
@@ -397,6 +386,49 @@ def get_issues_related_to_file_patches(
             logger.info("Found issues", extra=logger_extra | {"num_issues": len(issues)})
         else:
             logger.warning("No issues found", extra=logger_extra)
-        filename_to_issues[file.filename] = issues
+        filename_to_issues[filename] = issues
 
     return filename_to_issues
+
+
+def get_issues_related_to_file_patches(
+    *,
+    organization_id: int,
+    provider: str,
+    external_id: str,
+    pr_files: list[PrFile],
+    max_num_issues_per_file: int = MAX_NUM_ISSUES_PER_FILE_DEFAULT,
+    run_id: int | None = None,
+) -> dict[str, list[dict[str, Any]]]:
+    """
+    Get issues related to each file by matching filename-functions parsed from file patches with
+    filename-functions in the issue's event's stacktrace.
+
+    Assumes `pr_files` are from one repository.
+
+    Each issue includes its latest serialized event.
+    """
+
+    pr_files = safe_for_fetching_issues(pr_files)
+    pullrequest_files = [
+        PullRequestFile(filename=file["filename"], patch=file["patch"]) for file in pr_files
+    ]
+
+    filename_to_function_names = {}
+    for file in pullrequest_files:
+        file_extension = file.filename.split(".")[-1]
+        if file_extension not in patch_parsers_more:
+            logger.warning("No language parser", extra={"file": file.filename, "run_id": run_id})
+            continue
+        language_parser = patch_parsers_more[file_extension]
+        function_names = language_parser.extract_functions_from_patch(file.patch)
+        filename_to_function_names[file.filename] = list(function_names)
+
+    return get_issues_related_to_function_names(
+        organization_id=organization_id,
+        provider=provider,
+        external_id=external_id,
+        filename_to_function_names=filename_to_function_names,
+        max_num_issues_per_file=max_num_issues_per_file,
+        run_id=run_id,
+    )
