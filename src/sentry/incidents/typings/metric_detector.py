@@ -29,9 +29,12 @@ class AlertContext:
     comparison_delta: int | None
     sensitivity: str | None
     resolve_threshold: float | None
+    alert_threshold: float | None
 
     @classmethod
-    def from_alert_rule_incident(cls, alert_rule: AlertRule) -> AlertContext:
+    def from_alert_rule_incident(
+        cls, alert_rule: AlertRule, alert_rule_threshold: float | None = None
+    ) -> AlertContext:
         return cls(
             name=alert_rule.name,
             action_identifier_id=alert_rule.id,
@@ -39,6 +42,7 @@ class AlertContext:
             detection_type=AlertRuleDetectionType(alert_rule.detection_type),
             comparison_delta=alert_rule.comparison_delta,
             sensitivity=alert_rule.sensitivity,
+            alert_threshold=alert_rule_threshold,
             resolve_threshold=alert_rule.resolve_threshold,
         )
 
@@ -56,9 +60,10 @@ class AlertContext:
             threshold_type=threshold_type,
             detection_type=detector.config.get("detection_type"),
             comparison_delta=detector.config.get("comparison_delta"),
-            # TODO(iamrajjoshi): Add sensitivity, resolve_threshold
+            # TODO(iamrajjoshi): Add sensitivity, alert_threshold, resolve_threshold
             sensitivity=None,
             resolve_threshold=None,
+            alert_threshold=None,
         )
 
 
