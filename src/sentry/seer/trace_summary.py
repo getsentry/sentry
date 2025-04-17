@@ -24,6 +24,7 @@ def get_trace_summary(
     traceTree: list[dict],
     organization: Organization,
     user: User | RpcUser | AnonymousUser | None = None,
+    onlyTransaction: bool = False,
 ) -> tuple[dict[str, Any], int]:
     """
     Generate an AI summary for a single trace. Trace must be in the EAP format.
@@ -47,10 +48,10 @@ def get_trace_summary(
     if cached_summary := cache.get(cache_key):
         return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
 
-    trace_summary = None
     trace_summary = _call_seer(
         traceSlug,
         traceTree,
+        onlyTransaction,
     )
 
     trace_summary_dict = trace_summary.dict()

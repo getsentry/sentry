@@ -45,6 +45,7 @@ class OrganizationTraceSummaryEndpoint(OrganizationEndpoint):
 
         data: dict = orjson.loads(request.body) if request.body else {}
         trace_id = data.get("traceSlug", None)
+        only_transaction = data.get("onlyTransaction", False)
         if not trace_id:
             return Response({"detail": "Missing traceSlug parameter"}, status=400)
 
@@ -66,5 +67,6 @@ class OrganizationTraceSummaryEndpoint(OrganizationEndpoint):
             traceTree=trace_tree,
             organization=organization,
             user=request.user,
+            onlyTransaction=only_transaction,
         )
         return Response(summary_data, status=status_code)

@@ -62,6 +62,7 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
             traceTree=self.mock_trace_tree,
             organization=self.org,
             user=ANY,
+            onlyTransaction=False,
         )
 
     def test_endpoint_without_trace_slug(self):
