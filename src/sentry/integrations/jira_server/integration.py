@@ -334,18 +334,11 @@ class JiraServerIntegration(IssueSyncIntegration):
     issues_ignored_fields_key = "issues_ignored_fields"
     resolution_strategy_key = "resolution_strategy"
 
-    default_identity = None
-
     def get_client(self):
         try:
-            self.default_identity = self.get_default_identity()
+            return JiraServerClient(integration=self.model, identity=self.default_identity)
         except Identity.DoesNotExist:
             raise IntegrationError("Identity not found.")
-
-        return JiraServerClient(
-            integration=self.model,
-            identity=self.default_identity,
-        )
 
     def get_organization_config(self):
         configuration: list[_Config] = [

@@ -244,23 +244,18 @@ class BitbucketServerIntegration(RepositoryIntegration):
     IntegrationInstallation implementation for Bitbucket Server
     """
 
-    default_identity = None
-
     @property
     def integration_name(self) -> str:
         return "bitbucket_server"
 
-    def get_client(self):
-        if self.default_identity is None:
-            try:
-                self.default_identity = self.get_default_identity()
-            except Identity.DoesNotExist:
-                raise IntegrationError("Identity not found.")
-
-        return BitbucketServerClient(
-            integration=self.model,
-            identity=self.default_identity,
-        )
+    def get_client(self) -> BitbucketServerClient:
+        try:
+            return BitbucketServerClient(
+                integration=self.model,
+                identity=self.default_identity,
+            )
+        except Identity.DoesNotExist:
+            raise IntegrationError("Identity not found.")
 
     # IntegrationInstallation methods
 
