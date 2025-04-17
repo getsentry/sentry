@@ -1,7 +1,6 @@
 import {createContext, useCallback, useContext} from 'react';
 
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -28,16 +27,12 @@ const Context = createContext<{
   onChange: () => {},
 });
 
-// TODO: this could be based on the values in CHART_MAP somehow... idk how to express that.
-type ChartProps = {project: Project};
-
 interface Props {
-  chartProps: ChartProps;
   index: number;
   view: DomainView;
 }
 
-export function ChartPlacementSlot({view, index, chartProps}: Props) {
+export function ChartPlacementSlot({view, index}: Props) {
   const organization = useOrganization();
 
   const [chartsByIndex, setChartsByIndex] = useSyncedLocalStorageState<
@@ -63,7 +58,7 @@ export function ChartPlacementSlot({view, index, chartProps}: Props) {
   if (Chart) {
     return (
       <Context value={{chartName, chartOptions, onChange}}>
-        <Chart {...chartProps} />
+        <Chart />
       </Context>
     );
   }

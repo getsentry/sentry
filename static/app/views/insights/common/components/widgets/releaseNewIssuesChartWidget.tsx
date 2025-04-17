@@ -1,16 +1,18 @@
 import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import ChartWithIssues from 'sentry/views/insights/sessions/charts/chartWithIssues';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import useReleaseNewIssues from 'sentry/views/insights/sessions/queries/useReleaseNewIssues';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 
-export default function ReleaseNewIssuesChart({project}: {project: Project}) {
-  const {series, isPending, error} = useReleaseNewIssues();
+export default function ReleaseNewIssuesChartWidget(props: LoadableChartWidgetProps) {
+  const {series, isPending, error} = useReleaseNewIssues({
+    pageFilters: props.pageFilters,
+  });
   const theme = useTheme();
 
   const colorPalette = theme.chart.getColorPalette(series.length - 2);
@@ -25,11 +27,12 @@ export default function ReleaseNewIssuesChart({project}: {project: Project}) {
 
   return (
     <ChartWithIssues
-      title={CHART_TITLES.ReleaseNewIssuesChart}
+      {...props}
+      id="releaseNewIssuesChartWidget"
+      title={CHART_TITLES.ReleaseNewIssuesChartWidget}
       interactiveTitle={() => (
-        <ChartSelectionTitle title={CHART_TITLES.ReleaseNewIssuesChart} />
+        <ChartSelectionTitle title={CHART_TITLES.ReleaseNewIssuesChartWidget} />
       )}
-      project={project}
       series={series}
       description={t(
         `New issue counts over time, grouped by release. The 5 most recent releases are shown, and the rest are grouped into 'other'.`
