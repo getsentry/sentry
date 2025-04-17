@@ -51,7 +51,6 @@ function SubscriptionBox({
   }
 
   const DESCRIPTIONS: Record<(typeof EVENT_CHOICES)[number], string> = {
-    // Swap ignored for archived if the feature is enabled
     issue: `created, resolved, assigned, archived, unresolved`,
     error: 'created',
     comment: 'created, edited, deleted',
