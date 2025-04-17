@@ -113,7 +113,7 @@ function getProgress(n: number, min: number | string, max: number | string) {
 }
 function resolveMinMaxValue(props: SliderProps) {
   const min = toNumber(props.min ?? 0);
-  const max = toNumber(props.min ?? 100);
+  const max = toNumber(props.max ?? 100);
   const _value = props.value ?? props.defaultValue;
   const value = _value === '' ? 50 : toNumber(_value ?? (max - min) / 2);
   return {value, min, max};
