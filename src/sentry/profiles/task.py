@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import io
+from concurrent import futures
 from copy import deepcopy
 from datetime import datetime, timezone
 from operator import itemgetter
@@ -9,7 +11,9 @@ from uuid import UUID
 
 import msgpack
 import sentry_sdk
-from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
+import vroomrs
+from arroyo import Topic as ArroyoTopic
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
 
 from sentry import features, options, quotas
@@ -20,6 +24,7 @@ from sentry.lang.native.processing import _merge_image
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, SymbolicatorTaskKind
 from sentry.lang.native.utils import native_images_from_data
 from sentry.models.eventerror import EventError
+from sentry.models.files.utils import get_profiles_storage
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectsdk import EventType, ProjectSDK
@@ -196,8 +201,12 @@ def process_profile_task(
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
-    if not _push_profile_to_vroom(profile, project):
-        return
+    if features.has("organizations:continuous-profiling-vroomrs-processing", project):
+        if not _process_vroomrs_profile(profile, project):
+            return
+    else:
+        if not _push_profile_to_vroom(profile, project):
+            return
 
     if sampled:
         with metrics.timer("process_profile.track_outcome.accepted"):
@@ -1181,3 +1190,100 @@ def track_latest_sdk(project: Project, profile: Profile) -> None:
         # unable to acquire the lock means another event is trying to update the version
         # so we can skip the update from this event
         pass
+
+
+@metrics.wraps("process_profile.process_vroomrs_profile")
+def _process_vroomrs_profile(profile: Profile, project: Project) -> bool:
+    if "profiler_id" in profile and _process_vroomrs_chunk_profile(profile=profile):
+        return True
+    _track_failed_outcome(profile, project, "profiling_failed_vroomrs_processing")
+    return False
+
+
+def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
+    with sentry_sdk.start_span(op="task.profiling.process_vroomrs_chunk_profile"):
+        try:
+            # todo (improvement): check the feasibility of passing the profile
+            # dict directly to the PyO3 module to avoid json serialization/deserialization
+            with sentry_sdk.start_span(op="json.dumps"):
+                json_profile = json.dumps(profile).encode("utf-8")
+            with sentry_sdk.start_span(op="json.unmarshal"):
+                chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
+            chunk.normalize()
+            with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
+                storage = get_profiles_storage()
+                compressed_chunk = chunk.compress()
+                storage.save(chunk.storage_path(), io.BytesIO(compressed_chunk))
+            with sentry_sdk.start_span(op="processing", name="send chunk to kafka"):
+                payload = build_chunk_kafka_message(chunk)
+                topic = ArroyoTopic(get_topic_definition(Topic.PROFILE_CHUNKS)["real_topic_name"])
+                f = profile_chunks_producer.produce(topic, payload)
+                futures.wait(f)
+            with sentry_sdk.start_span(op="processing", name="extract functions metrics"):
+                functions = chunk.extract_functions_metrics(
+                    min_depth=1, filter_system_frames=True, max_unique_functions=100
+                )
+                payload = build_chunk_functions_kafka_message(chunk, functions)
+                topic = ArroyoTopic(
+                    get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
+                )
+                f = profile_functions_producer.produce(topic, payload)
+                futures.wait(f)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            metrics.incr(
+                "process_profile.process_vroomrs_profile.error",
+                tags={"platform": profile["platform"], "reason": "encountered error"},
+                sample_rate=1.0,
+            )
+            return False
+
+
+def build_chunk_kafka_message(chunk: vroomrs.ProfileChunk) -> KafkaPayload:
+    data = {
+        "chunk_id": chunk.get_chunk_id(),
+        "duration_ms": chunk.duration_ms(),
+        "end_timestamp": chunk.end_timestamp(),
+        "environment": chunk.get_environment(),
+        "platform": chunk.get_platform(),
+        "profiler_id": chunk.get_profiler_id(),
+        "project_id": chunk.get_project_id(),
+        "received": chunk.get_received(),
+        "release": chunk.get_release(),
+        "retention_days": chunk.get_retention_days(),
+        "sdk_name": chunk.sdk_name(),
+        "sdk_version": chunk.sdk_version(),
+        "start_timestamp": chunk.start_timestamp(),
+    }
+    return KafkaPayload(None, json.dumps(data).encode("utf-8"), [])
+
+
+def build_chunk_functions_kafka_message(
+    chunk: vroomrs.ProfileChunk, functions: list[vroomrs.CallTreeFunction]
+) -> KafkaPayload:
+    data = {
+        "environment": chunk.get_environment(),
+        "functions": [
+            {
+                "fingerprint": f.get_fingerprint(),
+                "functions": f.get_function(),
+                "package": f.get_package(),
+                "in_app": f.get_in_app(),
+                "self_times_ns": f.get_self_times_ns(),
+                "thread_id": f.get_thread_id(),
+            }
+            for f in functions
+        ],
+        "profile_id": chunk.get_profiler_id(),
+        "platform": chunk.et_platform(),
+        "project_id": chunk.get_project_id(),
+        "received": chunk.get_received(),
+        "release": chunk.get_release(),
+        "retention_days": chunk.get_retention_days(),
+        "timestamp": int(chunk.start_timestamp()),
+        "start_timestamp": chunk.start_timestamp(),
+        "end_timestamp": chunk.end_timestamp(),
+        "profiling_type": "continuous",
+        "materialization_version": 1,
+    }
+    return KafkaPayload(None, json.dumps(data).encode("utf-8"), [])
