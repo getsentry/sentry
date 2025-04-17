@@ -43,7 +43,7 @@ export function useUpdateAutofixFeedback({
     },
     onMutate: params => {
       queryClient.setQueryData(makeAutofixQueryKey(groupId), (data: AutofixResponse) => {
-        if (!data || !data.autofix) {
+        if (!data?.autofix) {
           return data;
         }
 

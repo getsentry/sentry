@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
@@ -15,8 +15,14 @@ export function StarSavedQueryButton() {
   const location = useLocation();
   const locationId = getIdFromLocation(location);
   const {starQuery} = useStarQuery();
-  const {data, isLoading} = useGetSavedQuery(locationId);
+  const {data, isLoading, isFetched} = useGetSavedQuery(locationId);
   const [isStarred, setIsStarred] = useState(data?.starred);
+
+  useEffect(() => {
+    if (isFetched) {
+      setIsStarred(data?.starred);
+    }
+  }, [data, isFetched]);
 
   const debouncedOnClick = useMemo(() => {
     return debounce(

@@ -10,9 +10,12 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import MSTeamsMetricAlertHandler
-from sentry.types.group import PriorityLevel
+from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
+    get_alert_rule_serializer,
+    get_detailed_incident_serializer,
+)
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
@@ -20,10 +23,7 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
 
 class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self):
-        super().setUp()
-        self.project = self.create_project()
-        self.detector = self.create_detector(project=self.project)
-        self.workflow = self.create_workflow(environment=self.environment)
+        self.create_models()
         self.action = self.create_action(
             type=Action.Type.MSTEAMS,
             integration_id=1234567890,
@@ -33,24 +33,11 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
                 "target_type": ActionTarget.SPECIFIC,
             },
         )
-        self.snuba_query = self.create_snuba_query()
 
-        self.group, self.event, self.group_event = self.create_group_event(
-            occurrence=self.create_issue_occurrence(
-                initial_issue_priority=PriorityLevel.HIGH.value,
-                level="error",
-                evidence_data={
-                    "snuba_query_id": self.snuba_query.id,
-                    "metric_value": 123.45,
-                },
-            ),
-        )
-        self.event_data = WorkflowEventData(
-            event=self.group_event, workflow_env=self.workflow.environment
-        )
         self.handler = MSTeamsMetricAlertHandler()
 
     @mock.patch("sentry.integrations.msteams.utils.send_incident_alert_notification")
+    @freeze_time("2021-01-01 00:00:00")
     def test_send_alert(self, mock_send_incident_alert_notification):
         notification_context = NotificationContext.from_action_model(self.action)
         assert self.group_event.occurrence is not None
@@ -77,13 +64,14 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
             open_period_context=open_period_context,
             organization=self.detector.project.organization,
             notification_uuid=notification_uuid,
-            alert_rule_serialized_response=None,
-            incident_serialized_response=None,
+            alert_rule_serialized_response=get_alert_rule_serializer(self.detector),
+            incident_serialized_response=get_detailed_incident_serializer(self.open_period),
         )
 
     @mock.patch(
         "sentry.notifications.notification_action.metric_alert_registry.MSTeamsMetricAlertHandler.send_alert"
     )
+    @freeze_time("2021-01-01 00:00:00")
     def test_invoke_legacy_registry(self, mock_send_alert):
         self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
 
@@ -126,6 +114,7 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
 
         self.assert_open_period_context(
             open_period_context,
+            id=self.open_period.id,
             date_started=self.group_event.group.first_seen,
             date_closed=None,
         )

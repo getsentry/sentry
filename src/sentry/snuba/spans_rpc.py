@@ -16,7 +16,7 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.eap.utils import handle_downsample_meta
 from sentry.search.events.fields import is_function
-from sentry.search.events.types import EventsMeta, SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
 from sentry.utils import snuba_rpc
@@ -46,7 +46,7 @@ def run_table_query(
     limit: int,
     referrer: str,
     config: SearchResolverConfig,
-    sampling_mode: str | None,
+    sampling_mode: SAMPLING_MODES | None,
     search_resolver: SearchResolver | None = None,
     debug: bool = False,
 ) -> EAPResponse:
@@ -70,7 +70,7 @@ def run_timeseries_query(
     y_axes: list[str],
     referrer: str,
     config: SearchResolverConfig,
-    sampling_mode: str | None,
+    sampling_mode: SAMPLING_MODES | None,
     comparison_delta: timedelta | None = None,
 ) -> SnubaTSResult:
     """Make the query"""
@@ -199,7 +199,7 @@ def run_top_events_timeseries_query(
     limit: int,
     referrer: str,
     config: SearchResolverConfig,
-    sampling_mode: str | None,
+    sampling_mode: SAMPLING_MODES | None,
 ) -> Any:
     """We intentionally duplicate run_timeseries_query code here to reduce the complexity of needing multiple helper
     functions that both would call

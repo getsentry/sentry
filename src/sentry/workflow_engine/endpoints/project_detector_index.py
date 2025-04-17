@@ -29,10 +29,10 @@ def get_detector_validator(
     if detector_type is None:
         raise ValidationError({"detectorType": ["Unknown detector type"]})
 
-    if detector_type.detector_validator is None:
+    if detector_type.detector_settings is None or detector_type.detector_settings.validator is None:
         raise ValidationError({"detectorType": ["Detector type not compatible with detectors"]})
 
-    return detector_type.detector_validator(
+    return detector_type.detector_settings.validator(
         instance=instance,
         context={
             "project": project,
@@ -97,7 +97,9 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
         request=PolymorphicProxySerializer(
             "GenericDetectorSerializer",
             serializers=[
-                gt.detector_validator for gt in grouptype.registry.all() if gt.detector_validator
+                gt.detector_settings.validator
+                for gt in grouptype.registry.all()
+                if gt.detector_settings and gt.detector_settings.validator
             ],
             resource_type_field_name=None,
         ),
