@@ -1,3 +1,4 @@
+import {Children, cloneElement, Fragment, isValidElement} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -13,6 +14,18 @@ export interface ButtonBarProps
 }
 
 export function ButtonBar({children, merged = false, gap = 0, ...props}: ButtonBarProps) {
+  if (Children.count(children) <= 1) {
+    // There is no need to render a button bar if there is only one button.
+    if (isValidElement(children)) {
+      if (children.type !== Fragment) {
+        return cloneElement(children, props);
+      }
+      return children;
+    }
+
+    return children;
+  }
+
   return (
     <StyledButtonBar merged={merged} gap={gap} {...props}>
       {children}
