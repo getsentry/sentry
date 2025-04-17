@@ -2,7 +2,13 @@ import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
@@ -96,9 +102,11 @@ describe('HighlightsDataSection', function () {
         const highlightTagDropdown = within(row).getByLabelText('Tag Actions Menu');
         expect(highlightTagDropdown).toBeInTheDocument();
         await userEvent.click(highlightTagDropdown);
-        expect(
-          await screen.findByLabelText('Search issues with this tag value')
-        ).toBeInTheDocument();
+        await waitFor(() => {
+          expect(
+            screen.getByLabelText('Search issues with this tag value')
+          ).toBeInTheDocument();
+        });
         expect(
           screen.queryByLabelText('Add to event highlights')
         ).not.toBeInTheDocument();
