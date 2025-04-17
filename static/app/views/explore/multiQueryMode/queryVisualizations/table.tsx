@@ -118,7 +118,9 @@ function AggregatesTable({
           <TableRow>
             <TableHeadCell isFirst={false}>
               <TableHeadCellContent>
-                {getProgressiveLoadingIndicator(isProgressivelyLoading)}
+                <LoadingIndicatorWrapper>
+                  {getProgressiveLoadingIndicator(isProgressivelyLoading, 'table')}
+                </LoadingIndicatorWrapper>
               </TableHeadCellContent>
             </TableHeadCell>
             {fields.map((field, i) => {
@@ -355,4 +357,11 @@ const TableHeadCellContent = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+`;
+
+const LoadingIndicatorWrapper = styled('div')`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 `;

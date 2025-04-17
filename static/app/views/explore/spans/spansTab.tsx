@@ -201,7 +201,9 @@ export function SpansTabContentImpl({
     (queryType === 'samples'
       ? false // Samples mode won't show the progressive loading spinner
       : queryType === 'aggregate'
-        ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+        ? // Only show the progressive spinner after the preflight query has been run
+          aggregatesTableResult.samplingMode === SAMPLING_MODE.PREFLIGHT &&
+          aggregatesTableResult.result.isFetched
         : false);
 
   const eapSpanSearchQueryBuilderProps = {

@@ -10,7 +10,6 @@ import {t} from 'sentry/locale';
 import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {WidgetDescriptionProps} from 'sentry/views/dashboards/widgets/widget/widgetDescription';
-import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import {WarningsList} from './warningsList';
@@ -22,12 +21,12 @@ export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   badgeProps?: string | string[];
   borderless?: boolean;
   children?: React.ReactNode;
-  isProgressivelyLoading?: boolean;
   noVisualizationPadding?: boolean;
   onFullScreenViewClick?: () => void | Promise<void>;
   revealActions?: 'always' | 'hover';
   revealTooltip?: 'always' | 'hover';
   title?: string;
+  titleBadges?: React.ReactNode;
   warnings?: string[];
 }
 
@@ -82,7 +81,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
       revealActions={
         props.revealTooltip === 'always' ? 'always' : (props.revealActions ?? 'hover')
       }
-      TitleBadges={getProgressiveLoadingIndicator(props.isProgressivelyLoading)}
+      TitleBadges={props.titleBadges}
       Actions={
         <Fragment>
           {props.description && (

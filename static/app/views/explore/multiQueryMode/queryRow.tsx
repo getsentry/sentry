@@ -82,9 +82,11 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
   const tableIsProgressivelyLoading =
     organization.features.includes('visibility-explore-progressive-loading') &&
     (mode === Mode.SAMPLES
-      ? spansTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+      ? false // The loading indicator is not displayed because we do not change to best effort for samples
       : mode === Mode.AGGREGATE
-        ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+        ? // The loading indicator is displayed when the aggregate table has preflight data and the query is pending
+          aggregatesTableResult.samplingMode === SAMPLING_MODE.PREFLIGHT &&
+          aggregatesTableResult.result.isFetched
         : false);
 
   return (

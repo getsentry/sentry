@@ -91,7 +91,9 @@ export function AggregatesTable({
           <TableRow>
             <TableHeadCell isFirst={false}>
               <TableHeadCellContent>
-                {getProgressiveLoadingIndicator(isProgressivelyLoading)}
+                <LoadingIndicatorWrapper>
+                  {getProgressiveLoadingIndicator(isProgressivelyLoading, 'table')}
+                </LoadingIndicatorWrapper>
               </TableHeadCellContent>
             </TableHeadCell>
             {fields.map((field, i) => {
@@ -222,4 +224,14 @@ const TopResultsIndicator = styled('div')<{color: string}>`
 
 const StyledLink = styled(Link)`
   display: flex;
+`;
+
+// Positions the loading indicator in the center of the cell that
+// corresponds to the stack column. Prevents layout shift when the
+// loading indicator is removed.
+const LoadingIndicatorWrapper = styled('div')`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 `;
