@@ -1,68 +1,24 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
-import * as Layout from 'sentry/components/layouts/thirds';
-import {NoAccess} from 'sentry/components/noAccess';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
-import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
 import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesWidget';
-import {DurationWidget} from 'sentry/views/insights/pages/platform/laravel/durationWidget';
-import {IssuesWidget} from 'sentry/views/insights/pages/platform/laravel/issuesWidget';
 import {JobsWidget} from 'sentry/views/insights/pages/platform/laravel/jobsWidget';
 import {PathsTable} from 'sentry/views/insights/pages/platform/laravel/pathsTable';
 import {QueriesWidget} from 'sentry/views/insights/pages/platform/laravel/queriesWidget';
-import {RequestsWidget} from 'sentry/views/insights/pages/platform/laravel/requestsWidget';
-import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
-import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
-import {
-  getTransactionSearchQuery,
-  ProjectPerformanceType,
-} from 'sentry/views/performance/utils';
-
-function getFreeTextFromQuery(query: string) {
-  const conditions = new MutableSearch(query);
-  const transactionValues = conditions.getFilterValues('transaction');
-  if (transactionValues.length) {
-    return transactionValues[0];
-  }
-  if (conditions.freeText.length > 0) {
-    // raw text query will be wrapped in wildcards in generatePerformanceEventView
-    // so no need to wrap it here
-    return conditions.freeText.join(' ');
-  }
-  return '';
-}
+import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
+import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
+import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
+import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
+import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 export function LaravelOverviewPage() {
   const organization = useOrganization();
-  const location = useLocation();
-  const onboardingProject = useOnboardingProject();
-  const navigate = useNavigate();
-  const {defaultPeriod, maxPickableDays, relativeOptions} =
-    limitMaxPickableDays(organization);
-
-  const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
 
   useEffect(() => {
     trackAnalytics('laravel-insights.page-view', {
@@ -71,112 +27,37 @@ export function LaravelOverviewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const showOnboarding = onboardingProject !== undefined;
-
-  function handleSearch(searchQuery: string) {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        query: String(searchQuery).trim() || undefined,
-      },
-    });
-  }
-
-  const derivedQuery = getTransactionSearchQuery(location, eventView.query);
-
-  function handleAddTransactionFilter(value: string) {
-    handleSearch(`transaction:"${value}"`);
-  }
+  const {query, setTransactionFilter} = useTransactionNameQuery();
 
   return (
-    <Feature
-      features="performance-view"
-      organization={organization}
-      renderDisabled={NoAccess}
-    >
-      <BackendHeader
-        headerTitle={BACKEND_LANDING_TITLE}
-        headerActions={
-          <Fragment>
-            <ViewTrendsButton />
-          </Fragment>
-        }
-      />
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <ToolRibbon>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter resetParamsOnChange={['starred']} />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter
-                    maxPickableDays={maxPickableDays}
-                    defaultPeriod={defaultPeriod}
-                    relativeOptions={({arbitraryOptions}) => ({
-                      ...arbitraryOptions,
-                      ...relativeOptions,
-                    })}
-                  />
-                </PageFilterBar>
-                {!showOnboarding && (
-                  <StyledTransactionNameSearchBar
-                    // Force the search bar to re-render when the derivedQuery changes
-                    // The seach bar component holds internal state that is not updated when the query prop changes
-                    key={derivedQuery}
-                    organization={organization}
-                    eventView={eventView}
-                    onSearch={(query: string) => {
-                      handleSearch(query);
-                    }}
-                    query={getFreeTextFromQuery(derivedQuery)!}
-                  />
-                )}
-              </ToolRibbon>
-            </ModuleLayout.Full>
-            <ModuleLayout.Full>
-              {!showOnboarding && (
-                <PerformanceDisplayProvider
-                  value={{performanceType: ProjectPerformanceType.BACKEND}}
-                >
-                  <WidgetGrid>
-                    <RequestsContainer>
-                      <RequestsWidget query={derivedQuery} />
-                    </RequestsContainer>
-                    <IssuesContainer>
-                      <IssuesWidget query={derivedQuery} />
-                    </IssuesContainer>
-                    <DurationContainer>
-                      <DurationWidget query={derivedQuery} />
-                    </DurationContainer>
-                    <JobsContainer>
-                      <JobsWidget query={derivedQuery} />
-                    </JobsContainer>
-                    <QueriesContainer>
-                      <QueriesWidget query={derivedQuery} />
-                    </QueriesContainer>
-                    <CachesContainer>
-                      <CachesWidget query={derivedQuery} />
-                    </CachesContainer>
-                  </WidgetGrid>
-                  <PathsTable
-                    handleAddTransactionFilter={handleAddTransactionFilter}
-                    query={derivedQuery}
-                  />
-                </PerformanceDisplayProvider>
-              )}
-              {showOnboarding && (
-                <LegacyOnboarding
-                  project={onboardingProject}
-                  organization={organization}
-                />
-              )}
-            </ModuleLayout.Full>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
-    </Feature>
+    <PlatformLandingPageLayout headerTitle={BACKEND_LANDING_TITLE}>
+      <WidgetGrid>
+        <RequestsContainer>
+          <TrafficWidget
+            title={t('Requests')}
+            trafficSeriesName={t('Requests')}
+            baseQuery={'span.op:http.server'}
+            query={query}
+          />
+        </RequestsContainer>
+        <IssuesContainer>
+          <IssuesWidget query={query} />
+        </IssuesContainer>
+        <DurationContainer>
+          <DurationWidget query={query} />
+        </DurationContainer>
+        <JobsContainer>
+          <JobsWidget query={query} />
+        </JobsContainer>
+        <QueriesContainer>
+          <QueriesWidget query={query} />
+        </QueriesContainer>
+        <CachesContainer>
+          <CachesWidget query={query} />
+        </CachesContainer>
+      </WidgetGrid>
+      <PathsTable handleAddTransactionFilter={setTransactionFilter} query={query} />
+    </PlatformLandingPageLayout>
   );
 }
 
@@ -264,8 +145,4 @@ const QueriesContainer = styled('div')`
 
 const CachesContainer = styled('div')`
   grid-area: caches;
-`;
-
-const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
-  flex: 2;
 `;

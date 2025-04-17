@@ -436,7 +436,8 @@ class IntegrationInstallation(abc.ABC):
         """
         raise NotImplementedError
 
-    def get_default_identity(self) -> RpcIdentity:
+    @cached_property
+    def default_identity(self) -> RpcIdentity:
         """For Integrations that rely solely on user auth for authentication."""
         try:
             org_integration = self.org_integration

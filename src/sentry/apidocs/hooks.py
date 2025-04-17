@@ -80,9 +80,7 @@ def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
             ApiPublishStatus.EXPERIMENTAL.value: sorted(
                 ownership_data[team][ApiPublishStatus.EXPERIMENTAL]
             ),
-            ApiPublishStatus.UNKNOWN.value: sorted(
-                ownership_data[team][ApiPublishStatus.EXPERIMENTAL.UNKNOWN]
-            ),
+            ApiPublishStatus.UNKNOWN.value: sorted(ownership_data[team][ApiPublishStatus.UNKNOWN]),
         }
         index += __get_line_count_for_team_stats(ownership_data[team])
     dir = os.path.dirname(os.path.realpath(__file__))
