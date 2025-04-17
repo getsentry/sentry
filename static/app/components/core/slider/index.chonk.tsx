@@ -1,5 +1,4 @@
-import {type CSSProperties, useCallback, useState} from 'react';
-import {mergeRefs} from '@react-aria/utils';
+import {type CSSProperties, useState} from 'react';
 
 import {space} from 'sentry/styles/space';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
@@ -15,35 +14,16 @@ export function Slider({
 }: SliderProps & {ref?: React.Ref<HTMLInputElement>}) {
   const step = toNumber(props.step ?? -1);
   const {value, min, max} = resolveMinMaxValue(props);
-  const [label, setLabel] = useState(value);
-  const initialProgress = getProgress(value, min, max);
-  const filledSteps = step === -1 ? -1 : label / step;
+  const [valueAsNumber, setValueAsNumber] = useState(value);
 
-  const inputRef = useCallback((input: HTMLInputElement | null) => {
-    if (!input) {
-      return undefined;
-    }
-
-    const handleChange = () => {
-      const nativeMin = input.min || 0;
-      const nativeMax = input.max || 100;
-      const {valueAsNumber} = input;
-      setLabel(valueAsNumber);
-      const progress = getProgress(valueAsNumber, nativeMin, nativeMax);
-      input.parentElement?.style.setProperty('--p', `${progress.toFixed(0)}%`);
-    };
-
-    input.addEventListener('input', handleChange);
-
-    return () => input.removeEventListener('input', handleChange);
-  }, []);
-  const refs = mergeRefs(ref, inputRef);
+  const filledSteps = step === -1 ? -1 : valueAsNumber / step;
+  const progress = getProgress(valueAsNumber, min, max);
 
   return (
     <SliderContainer
       aria-disabled={props.disabled}
       style={
-        {'--p': `${initialProgress.toFixed(0)}%`, '--steps': `${label}`} as CSSProperties
+        {'--p': `${progress.toFixed(0)}%`, '--steps': `${valueAsNumber}`} as CSSProperties
       }
     >
       {props.step ? (
@@ -54,10 +34,15 @@ export function Slider({
           }
         />
       ) : null}
-      <StyledSlider ref={refs} type="range" {...props} />
+      <StyledSlider
+        ref={ref}
+        type="range"
+        {...props}
+        onChange={e => setValueAsNumber(e.currentTarget.valueAsNumber)}
+      />
       {props.disabled ? null : (
         <SliderOutput htmlFor={props.id}>
-          <SliderLabel>{formatLabel(label)}</SliderLabel>
+          <SliderLabel>{formatLabel(valueAsNumber)}</SliderLabel>
         </SliderOutput>
       )}
     </SliderContainer>
