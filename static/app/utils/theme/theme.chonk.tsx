@@ -169,6 +169,20 @@ function makeChartColorPalette<T extends ChartColorPalette>(
   return function getChartColorPalette<Length extends ValidLengthArgument>(
     length: Length | number
   ): Exclude<ChartColorPalette[Next<Length>], undefined> {
+    // The new palette has less elements than the old one, so we will loop colors to fill the palette space.
+    if (length > palette.length) {
+      const perpetualPalette: string[] = [];
+      const allColors = palette[palette.length - 1]!;
+
+      for (let i = 0; i < length; i++) {
+        perpetualPalette.push(allColors[i % allColors.length]!);
+      }
+      return perpetualPalette as unknown as Exclude<
+        ChartColorPalette[Next<Length>],
+        undefined
+      >;
+    }
+
     // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
     // the palette is not sparse, but we should probably add a runtime check here as well.
     const index = Math.max(0, Math.min(palette.length - 1, length + 1));
