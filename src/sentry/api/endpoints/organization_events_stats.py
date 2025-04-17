@@ -280,7 +280,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
         use_rpc = dataset in {spans_rpc, ourlogs}
-        sampling_mode = request.GET.get("sampling")
         transform_alias_to_input_format = (
             request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
         )
