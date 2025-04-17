@@ -15,10 +15,10 @@ export enum AgeComparison {
 export const AGE_COMPARISON_CHOICES = [
   {
     value: AgeComparison.OLDER,
-    label: 'older than',
+    label: t('older than'),
   },
   {
     value: AgeComparison.NEWER,
-    label: 'newer than',
+    label: t('newer than'),
   },
 ];
