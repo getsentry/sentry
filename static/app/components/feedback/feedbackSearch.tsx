@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
+import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
@@ -14,6 +15,7 @@ import {
   FieldKey,
   FieldKind,
   getFieldDefinition,
+  IsFieldValues,
 } from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -22,19 +24,15 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import useAssignedValues from 'sentry/views/issueList/utils/useAssignedValues';
 
 const EXCLUDED_TAGS: string[] = [
-  FeedbackFieldKey.BROWSER_VERSION,
-  FeedbackFieldKey.LOCALE_LANG,
-  FeedbackFieldKey.LOCALE_TIMEZONE,
-  FieldKey.MESSAGE,
-  FieldKey.PLATFORM,
-  FeedbackFieldKey.OS_VERSION,
   // These are found in issue platform and redundant (= __.name, ex os.name)
   'browser',
   'device',
   'os',
   'user',
+  FieldKey.PLATFORM,
 ];
 
 const EXCLUDED_SUGGESTIONS: string[] = [
@@ -43,25 +41,13 @@ const EXCLUDED_SUGGESTIONS: string[] = [
 
 const getFeedbackFieldDefinition = (key: string) => getFieldDefinition(key, 'feedback');
 
-function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
-  return Object.fromEntries(
-    fieldKeys.map(key => [
-      key,
-      {
-        key,
-        name: key,
-        ...getFeedbackFieldDefinition(key),
-      },
-    ])
-  );
-}
-
-const FEEDBACK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(FEEDBACK_FIELDS);
-
 /**
- * Merges a list of supported tags and feedback search properties into one collection.
+ * Get the full collection of feedback search properties and custom tags.
  */
-function getFeedbackFilterKeys(supportedTags: TagCollection) {
+function getFeedbackFilterKeys(
+  supportedTags: TagCollection,
+  assignedValues: SearchGroup[] | string[]
+) {
   const allTags = {
     ...Object.fromEntries(
       Object.keys(supportedTags)
@@ -70,15 +56,67 @@ function getFeedbackFilterKeys(supportedTags: TagCollection) {
           key,
           {
             ...supportedTags[key]!,
-            kind: getFeedbackFieldDefinition(key)?.kind ?? FieldKind.TAG,
+            kind: FieldKind.TAG,
           },
         ])
     ),
-    ...FEEDBACK_FIELDS_AS_TAGS,
+    ...Object.fromEntries(
+      FEEDBACK_FIELDS.map(key => {
+        const fieldDefinition = getFeedbackFieldDefinition(key);
+
+        if (key === FieldKey.ASSIGNED) {
+          return [
+            key,
+            {
+              key,
+              name: key,
+              ...fieldDefinition,
+              predefined: true,
+              values: assignedValues,
+            },
+          ];
+        }
+
+        if (key === FieldKey.IS) {
+          return [
+            key,
+            {
+              key,
+              name: key,
+              ...fieldDefinition,
+              predefined: true,
+              values: Object.values(IsFieldValues),
+            },
+          ];
+        }
+
+        if (key === FieldKey.HAS) {
+          return [
+            key,
+            {
+              key,
+              name: key,
+              ...fieldDefinition,
+              predefined: true,
+              values: Object.values(supportedTags).map(tag => tag.key),
+            },
+          ];
+        }
+
+        return [
+          key,
+          {
+            key,
+            name: key,
+            ...fieldDefinition,
+          },
+        ];
+      })
+    ),
   };
 
   // A hack used to "sort" the dictionary for SearchQueryBuilder.
-  // Technically dicts are unordered but this works in dev.
+  // Technically dicts are unordered but this seems to work.
   // To guarantee ordering, we need to implement filterKeySections.
   const keys = Object.keys(allTags);
   keys.sort();
@@ -103,7 +141,7 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
     {
       value: 'feedback_field',
       label: t('Suggested'),
-      children: Object.keys(FEEDBACK_FIELDS_AS_TAGS),
+      children: FEEDBACK_FIELDS,
     },
     {
       value: FieldKind.TAG,
@@ -149,9 +187,11 @@ export default function FeedbackSearch() {
   }, [tagQuery]);
   // tagQuery.isLoading and tagQuery.isError are not used
 
+  const assignedValues = useAssignedValues();
+
   const filterKeys = useMemo(
-    () => getFeedbackFilterKeys(issuePlatformTags),
-    [issuePlatformTags]
+    () => getFeedbackFilterKeys(issuePlatformTags, assignedValues),
+    [issuePlatformTags, assignedValues]
   );
 
   const filterKeySections = useMemo(() => {

@@ -2411,6 +2411,7 @@ export const FEEDBACK_FIELDS = [
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
   FieldKey.ENVIRONMENT,
+  FieldKey.HAS,
   FieldKey.ID,
   FieldKey.IS,
   FieldKey.LEVEL,
