@@ -1,5 +1,7 @@
+import datetime
 from unittest.mock import patch
 
+from sentry.api.endpoints.organization_trace import SerializedSpan
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.seer.models import SummarizeTraceResponse
 from sentry.seer.trace_summary import get_trace_summary
@@ -20,8 +22,48 @@ class TraceSummaryTest(TestCase, SnubaTestCase):
 
         self.trace_id = "trace123"
         self.trace_tree = [
-            {"span_id": "span1", "operation_name": "http.request", "duration_ms": 100},
-            {"span_id": "span2", "operation_name": "db.query", "duration_ms": 50},
+            SerializedSpan(
+                description="http.request",
+                event_id="span1",
+                event_type="span",
+                project_id=1,
+                project_slug="test-project",
+                start_timestamp=datetime.datetime(2023, 1, 1, 0, 0, 0),
+                transaction="test_transaction",
+                children=[],
+                errors=[],
+                occurrences=[],
+                duration=100.0,
+                end_timestamp=datetime.datetime(2023, 1, 1, 0, 0, 1),
+                measurements={},
+                op="http.request",
+                parent_span_id=None,
+                profile_id="",
+                profiler_id="",
+                sdk_name="test_sdk",
+                is_transaction=True,
+            ),
+            SerializedSpan(
+                description="db.query",
+                event_id="span2",
+                event_type="span",
+                project_id=1,
+                project_slug="test-project",
+                start_timestamp=datetime.datetime(2023, 1, 1, 0, 0, 0),
+                transaction="test_transaction",
+                children=[],
+                errors=[],
+                occurrences=[],
+                duration=50.0,
+                end_timestamp=datetime.datetime(2023, 1, 1, 0, 0, 1),
+                measurements={},
+                op="db.query",
+                parent_span_id=None,
+                profile_id="",
+                profiler_id="",
+                sdk_name="test_sdk",
+                is_transaction=False,
+            ),
         ]
 
         self.mock_summary_response = SummarizeTraceResponse(
@@ -79,7 +121,7 @@ class TraceSummaryTest(TestCase, SnubaTestCase):
         )
         mock_has_feature.assert_called_once()
         mock_cache_get.assert_called_once()
-        mock_call_seer.assert_called_once_with(self.trace_id, self.trace_tree)
+        mock_call_seer.assert_called_once_with(self.trace_id, self.trace_tree, False)
         mock_cache_set.assert_called_once()
 
     @patch("sentry.seer.trace_summary._call_seer")

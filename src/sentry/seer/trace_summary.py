@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def get_trace_summary(
     traceSlug: str,
-    traceTree: list[dict],
+    traceTree: list[Any],
     organization: Organization,
     user: User | RpcUser | AnonymousUser | None = None,
     onlyTransaction: bool = False,
@@ -31,10 +31,10 @@ def get_trace_summary(
 
     Args:
         traceSlug: The slug of the trace to summarize. Equivalent to the trace ID.
-        timestamp: The timestamp of the root event of the trace.
         traceTree: The trace tree for the trace to summarize. List of spans in the EAP format.
         organization: The organization the trace belongs to.
         user: The user requesting the summary
+        onlyTransaction: Whether to only summarize the entire trace or just the transaction spans.
 
     Returns:
         A tuple containing (summary_data, status_code)
@@ -63,7 +63,7 @@ def get_trace_summary(
 
 def _call_seer(
     trace_id: str,
-    trace_content: list[dict],
+    trace_content: list[Any],
     only_transaction: bool = False,
 ) -> SummarizeTraceResponse:
 

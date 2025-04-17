@@ -50,12 +50,10 @@ class OrganizationTraceSummaryEndpoint(OrganizationEndpoint):
             return Response({"detail": "Missing traceSlug parameter"}, status=400)
 
         # Get the trace tree
-        trace_tree = []
         try:
             trace_endpoint = OrganizationTraceEndpoint()
-            trace_response = trace_endpoint.get(request, organization, trace_id)
-            if hasattr(trace_response, "data"):
-                trace_tree = trace_response.data
+            snuba_params = trace_endpoint.get_snuba_params(request, organization)
+            trace_tree = trace_endpoint.query_trace_data(snuba_params, trace_id)
         except Exception:
             return Response({"detail": "Error fetching trace"}, status=400)
 

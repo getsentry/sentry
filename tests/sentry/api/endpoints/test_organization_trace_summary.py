@@ -1,7 +1,7 @@
+import datetime
 from unittest.mock import ANY, patch
 
-from rest_framework.response import Response
-
+from sentry.api.endpoints.organization_trace import SerializedSpan
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
@@ -19,8 +19,48 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
 
         self.trace_id = "trace123"
         self.mock_trace_tree = [
-            {"span_id": "span1", "operation_name": "http.request", "duration_ms": 100},
-            {"span_id": "span2", "operation_name": "db.query", "duration_ms": 50},
+            SerializedSpan(
+                description="http.request",
+                event_id="span1",
+                event_type="span",
+                project_id=1,
+                project_slug="test-project",
+                start_timestamp=datetime.datetime(2023, 1, 1, 0, 0, 0),
+                transaction="test_transaction",
+                children=[],
+                errors=[],
+                occurrences=[],
+                duration=100.0,
+                end_timestamp=datetime.datetime(2023, 1, 1, 0, 0, 1),
+                measurements={},
+                op="http.request",
+                parent_span_id=None,
+                profile_id="",
+                profiler_id="",
+                sdk_name="test_sdk",
+                is_transaction=True,
+            ),
+            SerializedSpan(
+                description="db.query",
+                event_id="span2",
+                event_type="span",
+                project_id=1,
+                project_slug="test-project",
+                start_timestamp=datetime.datetime(2023, 1, 1, 0, 0, 0),
+                transaction="test_transaction",
+                children=[],
+                errors=[],
+                occurrences=[],
+                duration=50.0,
+                end_timestamp=datetime.datetime(2023, 1, 1, 0, 0, 1),
+                measurements={},
+                op="db.query",
+                parent_span_id=None,
+                profile_id="",
+                profiler_id="",
+                sdk_name="test_sdk",
+                is_transaction=False,
+            ),
         ]
 
         self.mock_summary_response = {
@@ -41,9 +81,7 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
     def test_endpoint_calls_get_trace_summary(
         self, mock_trace_endpoint_class, mock_get_trace_summary
     ):
-        mock_trace_endpoint_class.return_value.get.return_value = Response(
-            data=self.mock_trace_tree
-        )
+        mock_trace_endpoint_class.return_value.query_trace_data.return_value = self.mock_trace_tree
 
         mock_get_trace_summary.return_value = (self.mock_summary_response, 200)
 
@@ -72,14 +110,17 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.api.endpoints.organization_trace_summary.OrganizationTraceEndpoint")
     def test_endpoint_with_error_response(self, mock_trace_endpoint_class):
-        mock_trace_endpoint_class.return_value.get.side_effect = Exception("Test exception")
+        mock_trace_endpoint_class.return_value.query_trace_data.side_effect = Exception(
+            "Test exception"
+        )
         response = self.client.post(self.url, data={"traceSlug": self.trace_id}, format="json")
         assert response.status_code == 400
         assert response.data == {"detail": "Error fetching trace"}
 
-    @patch("sentry.api.endpoints.organization_trace_summary.get_trace_summary")
+    @patch("sentry.api.endpoints.organization_trace_summary.OrganizationTraceEndpoint")
     def test_endpoint_with_missing_trace_tree(self, mock_organization_trace_endpoint):
-        mock_organization_trace_endpoint.return_value.get.return_value = Response([], status=200)
+        mock_organization_trace_endpoint.return_value.get_snuba_params.return_value = {}
+        mock_organization_trace_endpoint.return_value.query_trace_data.return_value = []
         response = self.client.post(self.url, data={"traceSlug": self.trace_id}, format="json")
         assert response.status_code == 400
         assert response.data == {"detail": "Missing trace_tree data"}
