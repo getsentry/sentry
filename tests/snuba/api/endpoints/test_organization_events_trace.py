@@ -17,7 +17,6 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
         "organizations:performance-view",
         "organizations:performance-file-io-main-thread-detector",
         "organizations:trace-view-load-more",
-        "organizations:performance-slow-db-issue",
     ]
 
     def setUp(self):
