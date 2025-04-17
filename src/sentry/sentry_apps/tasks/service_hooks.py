@@ -61,4 +61,4 @@ def process_service_hook(servicehook_id, event, **kwargs):
     safe_urlopen(
         url=servicehook.url, data=json.dumps(payload), headers=headers, timeout=5, verify_ssl=False
     )
-    logger.info("service_hook.success", extra={"project_id": event.project.id})
+    logger.info("service_hook.success", extra={"project_id": event.project_id})
