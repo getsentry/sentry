@@ -6,13 +6,13 @@ import {SpanMetricsField} from 'sentry/views/insights/types';
 
 export function useDatabaseLandingChartFilter() {
   const {
-    ['span.action']: spanAction,
-    ['span.domain']: spanDomain,
+    [SpanMetricsField.SPAN_ACTION]: spanAction,
+    [SpanMetricsField.SPAN_DOMAIN]: spanDomain,
     [SpanMetricsField.SPAN_SYSTEM]: systemQueryParam,
   } = useLocationQuery({
     fields: {
-      ['span.action']: decodeScalar,
-      ['span.domain']: decodeScalar,
+      [SpanMetricsField.SPAN_ACTION]: decodeScalar,
+      [SpanMetricsField.SPAN_DOMAIN]: decodeScalar,
       [SpanMetricsField.SPAN_SYSTEM]: decodeScalar,
     },
   });
@@ -22,8 +22,8 @@ export function useDatabaseLandingChartFilter() {
 
   return {
     ...BASE_FILTERS,
-    'span.action': spanAction,
-    'span.domain': spanDomain,
-    'span.system': system,
+    [SpanMetricsField.SPAN_ACTION]: spanAction,
+    [SpanMetricsField.SPAN_DOMAIN]: spanDomain,
+    [SpanMetricsField.SPAN_SYSTEM]: system,
   };
 }
