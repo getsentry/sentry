@@ -218,7 +218,7 @@ function LogFieldsTreeColumns({
     const visibleAttributes = attributes
       .map(key => getAttribute(key, hiddenAttributes))
       .filter(defined)
-      .sort((a, b) => ((a.attribute_key ?? "") < (b.attribute_key ?? "") ? -1 : 1));
+      .sort((a, b) => ((a.attribute_key ?? '') < (b.attribute_key ?? '') ? -1 : 1));
 
     // Create the AttributeTree data structure using all the given attributes
     const attributeTree = visibleAttributes.reduce<AttributeTree>(
@@ -566,6 +566,8 @@ const TreeContainer = styled('div')<{columnCount: number}>`
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
   white-space: normal;
+  width: 100%;
+  flex: 1 1 100%;
 `;
 
 const TreeColumn = styled('div')`
