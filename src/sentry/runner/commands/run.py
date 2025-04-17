@@ -319,6 +319,7 @@ def taskworker(**options: Any) -> None:
     """
     Run a taskworker worker
     """
+    os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
     if options["autoreload"]:
         autoreload.run_with_reloader(run_taskworker, **options)
     else:

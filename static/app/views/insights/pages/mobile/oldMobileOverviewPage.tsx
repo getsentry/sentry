@@ -1,58 +1,47 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
-import {tct} from 'sentry/locale';
+import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
-import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {
-  FrontendOverviewTable,
-  isAValidSort,
-  type ValidSort,
-} from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {OldFrontendOverviewPage} from 'sentry/views/insights/pages/frontend/oldFrontendOverviewPage';
-import {
-  DEFAULT_SORT,
-  FRONTEND_LANDING_TITLE,
-  FRONTEND_PLATFORMS,
+  MOBILE_LANDING_TITLE,
+  MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
-} from 'sentry/views/insights/pages/frontend/settings';
+} from 'sentry/views/insights/pages/mobile/settings';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {
-  generateFrontendOtherPerformanceEventView,
+  generateGenericPerformanceEventView,
+  generateMobilePerformanceEventView,
   USER_MISERY_TOOLTIP,
 } from 'sentry/views/performance/data';
+import {checkIsReactNative} from 'sentry/views/performance/landing/utils';
 import {
   DoubleChartRow,
   TripleChartRow,
@@ -60,97 +49,90 @@ import {
 import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
+import Table from 'sentry/views/performance/table';
 import {
   getTransactionSearchQuery,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-const DURATION_TOOLTIP = tct(
-  'A heuristic measuring when a pageload or navigation completes. Based on whether the initial load of the webpage has become idle. [link:Learn more.]',
-  {
-    link: (
-      <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/#idletimeout" />
-    ),
-  }
-);
-
-export const FRONTEND_COLUMN_TITLES = [
+const MOBILE_COLUMN_TITLES = [
   {title: 'transaction'},
   {title: 'operation'},
   {title: 'project'},
   {title: 'tpm'},
-  {title: 'p50()', tooltip: DURATION_TOOLTIP},
-  {title: 'p75()', tooltip: DURATION_TOOLTIP},
-  {title: 'p95()', tooltip: DURATION_TOOLTIP},
+  {title: 'slow frame %'},
+  {title: 'frozen frame %'},
   {title: 'users'},
   {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
-function EAPOverviewPage() {
+const REACT_NATIVE_COLUMN_TITLES = [
+  {title: 'transaction'},
+  {title: 'operation'},
+  {title: 'project'},
+  {title: 'tpm'},
+  {title: 'slow frame %'},
+  {title: 'frozen frame %'},
+  {title: 'stall %'},
+  {title: 'users'},
+  {title: 'user misery'},
+];
+
+export function OldMobileOverviewPage() {
   useOverviewPageTrackPageload();
+
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
+  const {setPageError} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
+  const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateFrontendOtherPerformanceEventView(
+
+  const eventView = generateMobilePerformanceEventView(
     location,
+    projects,
+    generateGenericPerformanceEventView(location, withStaticFilters, organization),
     withStaticFilters,
-    true
+    organization
   );
   const searchBarEventView = eventView.clone();
 
-  const sharedProps = {eventView, location, organization, withStaticFilters};
-
-  // TODO - this should come from MetricsField / EAP fields
-  eventView.fields = [
-    {field: 'team_key_transaction'},
-    {field: 'transaction'},
-    {field: 'span.op'},
-    {field: 'project'},
-    {field: 'tpm()'},
-    {field: 'p50(transaction.duration)'},
-    {field: 'p75(transaction.duration)'},
-    {field: 'p95(transaction.duration)'},
-    {field: 'count_unique(user)'},
-    {field: 'count_miserable(user)'},
-    {field: 'user_misery()'},
-  ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
+  let columnTitles = checkIsReactNative(eventView)
+    ? REACT_NATIVE_COLUMN_TITLES
+    : MOBILE_COLUMN_TITLES;
 
   const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
 
-  const selectedFrontendProjects: Project[] = getSelectedProjectList(
+  const selectedMobileProjects: Project[] = getSelectedProjectList(
     selection.projects,
     projects
   ).filter((project): project is Project =>
-    Boolean(project?.platform && FRONTEND_PLATFORMS.includes(project.platform))
+    Boolean(project?.platform && MOBILE_PLATFORMS.includes(project.platform))
   );
 
   const existingQuery = new MutableSearch(eventView.query);
-  // TODO - this query is getting complicated, once were on EAP, we should consider moving this to the backend
-  existingQuery.addOp('(');
-  existingQuery.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
-  // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
-  if (selectedFrontendProjects.length > 0) {
+  existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  if (selectedMobileProjects.length > 0) {
     existingQuery.addOp('OR');
     existingQuery.addFilterValue(
       'project.id',
-      `[${selectedFrontendProjects.map(({id}) => id).join(',')}]`
+      `[${selectedMobileProjects.map(({id}) => id).join(',')}]`
     );
   }
-  existingQuery.addOp(')');
-  existingQuery.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
+
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
 
   const doubleChartRowCharts = [
-    PerformanceWidgetSetting.SLOW_HTTP_OPS,
-    PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
+    PerformanceWidgetSetting.MOST_SLOW_FRAMES,
+    PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
   ];
   const tripleChartRowCharts = filterAllowedChartsMetrics(
     organization,
@@ -166,11 +148,34 @@ function EAPOverviewPage() {
     mepSetting
   );
 
-  if (organization.features.includes('insights-initial-modules')) {
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES);
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES);
+  if (organization.features.includes('mobile-vitals')) {
+    columnTitles = [
+      ...columnTitles.slice(0, 5),
+      {title: 'ttid'},
+      ...columnTitles.slice(5, 0),
+    ];
+    tripleChartRowCharts.push(
+      ...[
+        PerformanceWidgetSetting.TIME_TO_INITIAL_DISPLAY,
+        PerformanceWidgetSetting.TIME_TO_FULL_DISPLAY,
+      ]
+    );
   }
+  if (organization.features.includes('insights-initial-modules')) {
+    doubleChartRowCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
+  }
+  if (organization.features.includes('starfish-mobile-appstart')) {
+    doubleChartRowCharts.push(
+      PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
+      PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START
+    );
+  }
+
+  if (organization.features.includes('insights-initial-modules')) {
+    doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
+  }
+
+  const sharedProps = {eventView, location, organization, withStaticFilters};
 
   const getFreeTextFromQuery = (query: string) => {
     const conditions = new MutableSearch(query);
@@ -187,7 +192,7 @@ function EAPOverviewPage() {
   };
 
   function handleSearch(searchQuery: string) {
-    trackAnalytics('performance.domains.frontend.search', {organization});
+    trackAnalytics('performance.domains.mobile.search', {organization});
 
     navigate({
       pathname: location.pathname,
@@ -202,43 +207,13 @@ function EAPOverviewPage() {
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
-  const sorts: [ValidSort, ValidSort] = [
-    {
-      field: 'is_starred_transaction' satisfies EAPSpanProperty,
-      kind: 'desc',
-    },
-    decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
-  ];
-
-  existingQuery.addFilterValue('is_transaction', 'true');
-
-  const response = useEAPSpans(
-    {
-      search: existingQuery,
-      sorts,
-      fields: [
-        'is_starred_transaction',
-        'transaction',
-        'span.op',
-        'project',
-        'epm()',
-        'p50(span.duration)',
-        'p95(span.duration)',
-        'failure_rate()',
-        'time_spent_percentage(span.duration)',
-        'sum(span.duration)',
-      ],
-    },
-    'api.performance.landing-table'
-  );
-
   return (
     <Feature
       features="performance-view"
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
+      <MobileHeader headerTitle={MOBILE_LANDING_TITLE} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -265,15 +240,31 @@ function EAPOverviewPage() {
             <ModuleLayout.Full>
               {!showOnboarding && (
                 <PerformanceDisplayProvider
-                  value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
+                  value={{performanceType: ProjectPerformanceType.MOBILE}}
                 >
-                  <DoubleChartRow
-                    allowedCharts={doubleChartRowCharts}
-                    {...sharedProps}
-                    eventView={doubleChartRowEventView}
-                  />
-                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-                  <FrontendOverviewTable response={response} sort={sorts[1]} />
+                  <TeamKeyTransactionManager.Provider
+                    organization={organization}
+                    teams={teams}
+                    selectedTeams={['myteams']}
+                    selectedProjects={eventView.project.map(String)}
+                  >
+                    <DoubleChartRow
+                      allowedCharts={doubleChartRowCharts}
+                      {...sharedProps}
+                      eventView={doubleChartRowEventView}
+                    />
+                    <TripleChartRow
+                      allowedCharts={tripleChartRowCharts}
+                      {...sharedProps}
+                    />
+                    <Table
+                      projects={projects}
+                      columnTitles={columnTitles}
+                      setError={setPageError}
+                      theme={theme}
+                      {...sharedProps}
+                    />
+                  </TeamKeyTransactionManager.Provider>
                 </PerformanceDisplayProvider>
               )}
 
@@ -291,18 +282,6 @@ function EAPOverviewPage() {
   );
 }
 
-function FrontendOverviewPageWithProviders() {
-  const useEap = useInsightsEap();
-
-  return (
-    <DomainOverviewPageProviders>
-      {useEap ? <EAPOverviewPage /> : <OldFrontendOverviewPage />}
-    </DomainOverviewPageProviders>
-  );
-}
-
 const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
   flex: 2;
 `;
-
-export default FrontendOverviewPageWithProviders;

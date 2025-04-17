@@ -62,7 +62,7 @@ export function WidgetExtrapolationFooter({
           getTooltipText={phase =>
             defined(samplingMode) && phase <= currentPhase
               ? tct(
-                  'Based on [sampleCount] samples. This widget is currently loading higher fidelity data.',
+                  'Chart is based on [sampleCount] samples and is currently loading more data',
                   {
                     sampleCount: <Count value={sampleCount} />,
                   }

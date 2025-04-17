@@ -30,7 +30,7 @@ class UptimeDomainCheckFailure(GroupType):
                     # TODO: Enable this when we can move this grouptype out of this file
                     # "enum": [mode.value for mode in ProjectUptimeSubscriptionMode],
                 },
-                "environment": {"type": ["string"]},
+                "environment": {"type": ["string", "null"]},
             },
             "additionalProperties": False,
         },
