@@ -33,6 +33,7 @@ export type SaveQueryModalProps = {
   organization: Organization;
   saveQuery: (name: string, starred?: boolean) => Promise<SavedQuery>;
   name?: string;
+  source?: 'toolbar' | 'table';
 };
 
 type Props = ModalRenderProps & SaveQueryModalProps;
@@ -44,6 +45,7 @@ function SaveQueryModal({
   closeModal,
   saveQuery,
   name: initialName,
+  source,
 }: Props) {
   const organization = useOrganization();
 
@@ -69,11 +71,14 @@ function SaveQueryModal({
         updatePageIdAndTitle(id, name);
       }
       addSuccessMessage(t('Query saved successfully'));
-      trackAnalytics('trace_explorer.save_as', {
-        save_type: 'saved_query',
-        ui_source: 'toolbar',
-        organization,
-      });
+      if (defined(source)) {
+        trackAnalytics('trace_explorer.save_query_modal', {
+          action: 'submit',
+          save_type: initialName === undefined ? 'save_new_query' : 'rename_query',
+          ui_source: source,
+          organization,
+        });
+      }
       closeModal();
     } catch (error) {
       addErrorMessage(t('Failed to save query'));
@@ -89,6 +94,7 @@ function SaveQueryModal({
     closeModal,
     organization,
     initialName,
+    source,
   ]);
 
   return (

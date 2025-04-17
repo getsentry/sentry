@@ -14,6 +14,7 @@ import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -75,6 +76,11 @@ export function SavedQueriesTable({
       } else {
         setStarredIds(prev => prev.filter(starredId => starredId !== id));
       }
+      trackAnalytics('trace_explorer.star_query', {
+        save_type: starred ? 'star_query' : 'unstar_query',
+        ui_source: 'table',
+        organization,
+      });
       starQuery(id, starred).catch(() => {
         // If the starQuery call fails, we need to revert the starredIds state
         addErrorMessage(t('Unable to star query'));
@@ -85,7 +91,7 @@ export function SavedQueriesTable({
         }
       });
     },
-    [starQuery]
+    [starQuery, organization]
   );
 
   const getHandleUpdateFromSavedQuery = useCallback(
@@ -209,10 +215,17 @@ export function SavedQueriesTable({
                     key: 'rename',
                     label: t('Rename'),
                     onAction: () => {
+                      trackAnalytics('trace_explorer.save_query_modal', {
+                        action: 'open',
+                        save_type: 'rename_query',
+                        ui_source: 'table',
+                        organization,
+                      });
                       openSaveQueryModal({
                         organization,
                         saveQuery: getHandleUpdateFromSavedQuery(query),
                         name: query.name,
+                        source: 'table',
                       });
                     },
                   },
