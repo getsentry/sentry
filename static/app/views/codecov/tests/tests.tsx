@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import CodecovQueryParamsProvider from 'sentry/components/codecov/container/codecovParamsProvider';
 import {DatePicker} from 'sentry/components/codecov/datePicker/datePicker';
+import {IntegratedOrgPicker} from 'sentry/components/codecov/integratedOrgPicker/integratedOrgPicker';
 import {RepoPicker} from 'sentry/components/codecov/repoPicker/repoPicker';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {space} from 'sentry/styles/space';
