@@ -1331,7 +1331,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if status is not None:
             payload["sentry_tags"]["status"] = status
         if environment is not None:
-            payload["sentry_tags"]["environment"] = environment
+            payload["sentry_tags"]["environment"] = environment  # type: ignore[typeddict-unknown-key]  # needs extra_items support
 
         self.store_span(payload, is_eap=is_eap)
 
