@@ -3,7 +3,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import SchemaHintsList from 'sentry/views/explore/components/schemaHintsList';
+import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {
   PageParamsProvider,
   useExploreQuery,
