@@ -13,9 +13,8 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
-from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.base import organization_service
 from sentry.signals import issue_resolved, issue_unresolved
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
@@ -208,18 +207,16 @@ def sync_status_inbound(
 ) -> None:
     from sentry.integrations.mixins import ResolveSyncAction
 
-    integration = integration_service.get_integration(
-        integration_id=integration_id, status=ObjectStatus.ACTIVE
-    )
+    integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
         raise Integration.DoesNotExist
+    elif integration.status != ObjectStatus.ACTIVE:
+        return
 
-    organization_context = organization_service.get_organization_by_id(id=organization_id)
-    assert organization_context is not None, "failed to get organization context"
-    organization = organization_context.organization
+    organization = Organization.objects.get(id=organization_id)
 
     affected_groups = list(
-        Group.objects.get_groups_by_external_issue(integration, organization, issue_key)
+        Group.objects.get_groups_by_external_issue(integration, [organization], issue_key)
     )
     if not affected_groups:
         return
@@ -291,7 +288,7 @@ def sync_status_inbound(
             analytics.record(
                 "issue.resolved",
                 project_id=group.project.id,
-                default_user_id=default_user_id,
+                default_user_id=str(default_user_id),
                 organization_id=organization_id,
                 group_id=group.id,
                 resolution_type="with_third_party_app",
@@ -311,22 +308,24 @@ def sync_status_inbound(
 
         default_user_id, default_user = _get_default_user_info(organization=organization)
 
-        issue_unresolved.send_robust(
-            project=group.project,
-            user=default_user,
-            group=group,
-            transition_type=provider.key,
-            sender=f"unresolved_with_{provider.key}",
-        )
+        for group in affected_groups:
+            issue_unresolved.send_robust(
+                project=group.project,
+                user=default_user,
+                group=group,
+                transition_type=provider.key,
+                sender=f"unresolved_with_{provider.key}",
+            )
 
 
-def _get_default_user_info(organization: RpcOrganization) -> tuple[str, RpcUser]:
+def _get_default_user_info(organization: Organization) -> tuple[int, RpcUser]:
     try:
-        default_user_id = str(organization.default_owner_id)
-        default_user = user_service.get_user(default_user_id)
-        assert default_user is not None, "unable to fetch user"
-    except (IndexError, AssertionError):
+        default_user_id = organization.default_owner_id
+    except IndexError:
         logger.exception("Error getting default user")
         default_user_id = "<unknown>"
+
+    default_user = user_service.get_user(default_user_id)
+    assert default_user is not None, "unable to fetch user"
 
     return (default_user_id, default_user)
