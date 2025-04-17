@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
+import union from 'lodash/union';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
@@ -40,6 +41,19 @@ const EXCLUDED_SUGGESTIONS: string[] = [
 ];
 
 const getFeedbackFieldDefinition = (key: string) => getFieldDefinition(key, 'feedback');
+
+function getHasFieldValues(supportedTags: TagCollection): string[] {
+  const customTagKeys = Object.values(supportedTags)
+    .map(tag => tag.key)
+    .filter(key => !EXCLUDED_TAGS.includes(key));
+
+  // Ensure suggested fields are included.
+  const feedbackFieldKeys = FEEDBACK_FIELDS.map(String).filter(
+    key => key !== FieldKey.ASSIGNED && key !== FieldKey.HAS && key !== FieldKey.IS
+  );
+
+  return union(customTagKeys, feedbackFieldKeys).sort();
+}
 
 /**
  * Get the full collection of feedback search properties and custom tags.
@@ -98,7 +112,7 @@ function getFeedbackFilterKeys(
               name: key,
               ...fieldDefinition,
               predefined: true,
-              values: Object.values(supportedTags).map(tag => tag.key),
+              values: getHasFieldValues(supportedTags),
             },
           ];
         }
@@ -118,8 +132,7 @@ function getFeedbackFilterKeys(
   // A hack used to "sort" the dictionary for SearchQueryBuilder.
   // Technically dicts are unordered but this seems to work.
   // To guarantee ordering, we need to implement filterKeySections.
-  const keys = Object.keys(allTags);
-  keys.sort();
+  const keys = Object.keys(allTags).sort();
   return Object.fromEntries(keys.map(key => [key, allTags[key]!]));
 }
 
