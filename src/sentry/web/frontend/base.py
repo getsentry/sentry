@@ -22,6 +22,7 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
+from rest_framework.request import Request
 
 from sentry import options
 from sentry.api.exceptions import DataSecrecyError
@@ -79,7 +80,7 @@ class ViewSiloLimit(SiloLimit):
         current_mode: SiloMode,
         available_modes: Iterable[SiloMode],
     ) -> Callable[..., Any]:
-        def handle(obj: Any, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        def handle(obj: Any, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
             mode_str = ", ".join(str(m) for m in available_modes)
             message = (
                 f"Received {request.method} request at {request.path!r} to server in "
