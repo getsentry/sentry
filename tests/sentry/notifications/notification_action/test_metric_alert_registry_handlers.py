@@ -8,7 +8,11 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
-from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
+from sentry.incidents.models.alert_rule import (
+    AlertRuleDetectionType,
+    AlertRuleSensitivity,
+    AlertRuleThresholdType,
+)
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -131,6 +135,8 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         threshold_type: AlertRuleThresholdType | None = None,
         detection_type: AlertRuleDetectionType | None = None,
         comparison_delta: int | None = None,
+        sensitivity: AlertRuleSensitivity | None = None,
+        resolve_threshold: float | None = None,
     ):
         assert asdict(alert_context) == {
             "name": name,
@@ -138,6 +144,8 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "threshold_type": threshold_type,
             "detection_type": detection_type,
             "comparison_delta": comparison_delta,
+            "sensitivity": sensitivity,
+            "resolve_threshold": resolve_threshold,
         }
 
     def assert_metric_issue_context(
@@ -146,6 +154,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         open_period_identifier: int,
         snuba_query: SnubaQuery,
         new_status: IncidentStatus,
+        title: str,
         metric_value: float | None = None,
         subscription: QuerySubscription | None = None,
         group: Group | None = None,
@@ -157,6 +166,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "subscription": subscription,
             "new_status": new_status,
             "metric_value": metric_value,
+            "title": title,
             "group": group,
         }
 
@@ -357,6 +367,8 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             threshold_type=None,
             detection_type=None,
             comparison_delta=None,
+            sensitivity=None,
+            resolve_threshold=None,
         )
         self.assert_metric_issue_context(
             metric_issue_context,
@@ -364,6 +376,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
+            title=self.group_event.group.title,
             group=self.group_event.group,
         )
         assert organization == self.detector.project.organization

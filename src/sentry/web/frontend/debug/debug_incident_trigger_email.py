@@ -3,9 +3,17 @@ from uuid import uuid4
 
 from django.utils import timezone
 
+from sentry.api.serializers import serialize
 from sentry.incidents.action_handlers import generate_incident_trigger_email_context
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
+from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger
 from sentry.incidents.models.incident import Incident, IncidentStatus, TriggerStatus
+from sentry.incidents.typings.metric_detector import (
+    AlertContext,
+    MetricIssueContext,
+    OpenPeriodContext,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.snuba.models import SnubaQuery
@@ -45,13 +53,23 @@ class DebugIncidentTriggerEmailView(MailPreviewView):
         )
         trigger = AlertRuleTrigger(alert_rule=alert_rule)
 
+        alert_rule_serialized_response = serialize(alert_rule, None, AlertRuleSerializer())
+        incident_serialized_response = serialize(incident, None, DetailedIncidentSerializer())
+
         return generate_incident_trigger_email_context(
-            project,
-            incident,
-            trigger,
-            TriggerStatus.ACTIVE,
-            IncidentStatus(incident.status),
-            user,
+            project=project,
+            organization=organization,
+            alert_rule_serialized_response=alert_rule_serialized_response,
+            incident_serialized_response=incident_serialized_response,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident=incident,
+                new_status=IncidentStatus(incident.status),
+            ),
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            open_period_context=OpenPeriodContext.from_incident(incident),
+            trigger_status=TriggerStatus.ACTIVE,
+            trigger_threshold=trigger.alert_threshold,
+            user=user,
             notification_uuid=str(uuid4()),
         )
 
