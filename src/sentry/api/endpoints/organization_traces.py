@@ -1923,7 +1923,7 @@ def process_rpc_user_queries(
     resolver = spans_rpc.get_resolver(snuba_params, config)
 
     # Filter out empty queries as they do not do anything to change the results.
-    user_queries = [user_query for user_query in user_queries if user_query]
+    user_queries = [user_query for user_query in user_queries if len(user_query) > 0]
 
     # ensure at least 1 user query exists as the environment filter is AND'ed to it
     if not user_queries:
