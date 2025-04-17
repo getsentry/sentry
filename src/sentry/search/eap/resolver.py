@@ -456,12 +456,44 @@ class SearchResolver:
                     key=resolved_column.proto_definition,
                 )
             )
-            if term.operator == "=":
+            if term.operator == "!=":
+                filters = [exists_filter]
+                if resolved_column.proto_definition.type == constants.STRING:
+                    filters.append(
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=resolved_column.proto_definition,
+                                op=operator,
+                                value=self._resolve_search_value(
+                                    resolved_column, term.operator, value
+                                ),
+                            )
+                        )
+                    )
                 return (
-                    TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))
-                ), context_definition
+                    TraceItemFilter(and_filter=AndFilter(filters=filters)),
+                    context_definition,
+                )
+            elif term.operator == "=":
+                filters = [TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))]
+                if resolved_column.proto_definition.type == constants.STRING:
+                    filters.append(
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=resolved_column.proto_definition,
+                                op=operator,
+                                value=self._resolve_search_value(
+                                    resolved_column, term.operator, value
+                                ),
+                            )
+                        )
+                    )
+                return (
+                    TraceItemFilter(or_filter=OrFilter(filters=filters)),
+                    context_definition,
+                )
             else:
-                return exists_filter, context_definition
+                raise InvalidSearchQuery(f"Unsupported operator for empty strings {term.operator}")
 
         return (
             TraceItemFilter(
