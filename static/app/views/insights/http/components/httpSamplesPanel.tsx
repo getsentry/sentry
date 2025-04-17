@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
@@ -53,7 +53,6 @@ import {Referrer} from 'sentry/views/insights/http/referrers';
 import {BASE_FILTERS} from 'sentry/views/insights/http/settings';
 import decodePanel from 'sentry/views/insights/http/utils/queryParameterDecoders/panel';
 import decodeResponseCodeClass from 'sentry/views/insights/http/utils/queryParameterDecoders/responseCodeClass';
-import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
 import {
   ModuleName,
   SpanFunction,
@@ -87,11 +86,8 @@ export function HTTPSamplesPanel() {
 
   const project = projects.find(p => query.project === p.id);
 
-  const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
-    undefined,
-    [],
-
-    SAMPLE_HOVER_DEBOUNCE
+  const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
+    undefined
   );
 
   // `detailKey` controls whether the panel is open. If all required properties are available, concat them to make a key, otherwise set to `undefined` and hide the panel
@@ -528,8 +524,6 @@ export function HTTPSamplesPanel() {
     </PageAlertProvider>
   );
 }
-
-const SAMPLE_HOVER_DEBOUNCE = 10;
 
 const SPAN_SAMPLE_LIMIT = 10;
 

@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/core/button';
@@ -42,7 +42,6 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
 import {
   MetricsFields,
   type MetricsQueryFilters,
@@ -72,10 +71,8 @@ export function CacheSamplePanel() {
     },
   });
 
-  const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
-    undefined,
-    [],
-    10
+  const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
+    undefined
   );
 
   // @ts-expect-error TS(7006): Parameter 'newStatusClass' implicitly has an 'any'... Remove this comment to see the full error message
