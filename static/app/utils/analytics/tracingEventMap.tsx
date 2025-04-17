@@ -235,4 +235,6 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
     'Changed Missing Instrumentation Preference',
   'trace_explorer.save_as': 'Trace Explorer: Save As',
   'trace_explorer.compare_queries': 'Trace Explorer: Compare',
+  'trace_explorer.save_query_modal': 'Trace Explorer: Save Query Modal',
+  'trace_explorer.star_query': 'Trace Explorer: Star Query',
 };
