@@ -9,6 +9,7 @@ import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Flex} from 'sentry/components/container/flex';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Alert} from 'sentry/components/core/alert';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
@@ -522,8 +523,8 @@ export function SourceMapsDebuggerModal({
           </p>
           <Fragment>
             <ContentSliderDiff.Header>
-              <ContentSliderDiff.BeforeLabel />
-              <ContentSliderDiff.AfterLabel />
+              <Flex align="center">{t('Before')}</Flex>
+              <Flex align="center">{t('After')}</Flex>
             </ContentSliderDiff.Header>
             <ContentSliderDiff.Body
               before={
