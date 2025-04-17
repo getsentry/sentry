@@ -22,7 +22,7 @@ import {
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
-import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {

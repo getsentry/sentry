@@ -9,7 +9,7 @@ interface Props {
 
 export default function useTouchEventsCheck({replay}: Props) {
   useEffect(() => {
-    if (!replay || !replay.getVideoEvents()) {
+    if (!replay?.getVideoEvents()) {
       return;
     }
     const touchEvents = replay.getRRwebTouchEvents() ?? [];

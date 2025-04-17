@@ -85,7 +85,7 @@ class PieChart extends Component<Props> {
 
   render() {
     const {series, theme, ...props} = this.props;
-    if (!series || !series.length) {
+    if (!series?.length) {
       return null;
     }
     if (series.length > 1) {

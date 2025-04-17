@@ -145,8 +145,7 @@ function AllocationForm({
     if (
       targetId &&
       !initializedData &&
-      allocatedTargetIds[AllocationTargetTypes.PROJECT] &&
-      allocatedTargetIds[AllocationTargetTypes.PROJECT].includes(targetId)
+      allocatedTargetIds[AllocationTargetTypes.PROJECT]?.includes(targetId)
     ) {
       setTargetId(undefined);
       setAllocationVolume(0);

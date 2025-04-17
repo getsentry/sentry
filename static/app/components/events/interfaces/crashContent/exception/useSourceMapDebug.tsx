@@ -153,7 +153,7 @@ export function debugFramesEnabled({
   projectSlug?: string;
   sdkName?: string;
 }) {
-  if (!organization || !organization.features || !projectSlug || !eventId || !sdkName) {
+  if (!organization?.features || !projectSlug || !eventId || !sdkName) {
     return false;
   }
 

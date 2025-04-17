@@ -5,7 +5,7 @@ export default function hydrateFeedbackTags(
   eventData: Event | undefined,
   issueData: FeedbackIssue | undefined
 ): Record<string, string> {
-  if (!eventData || !eventData.contexts) {
+  if (!eventData?.contexts) {
     return {};
   }
   const context = eventData.contexts;

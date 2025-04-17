@@ -295,9 +295,7 @@ export function AutofixChanges({
                 </ButtonBar>
               )}
               {prsMade &&
-                (step.changes.length === 1 &&
-                step.changes[0] &&
-                step.changes[0].pull_request?.pr_url ? (
+                (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (
                   <LinkButton
                     size="xs"
                     priority="primary"

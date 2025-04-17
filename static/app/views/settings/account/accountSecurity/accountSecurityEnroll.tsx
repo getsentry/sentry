@@ -373,7 +373,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncComponent<Props, State> {
   handleRemove = async () => {
     const {authenticator} = this.state;
 
-    if (!authenticator || !authenticator.authId) {
+    if (!authenticator?.authId) {
       return;
     }
 

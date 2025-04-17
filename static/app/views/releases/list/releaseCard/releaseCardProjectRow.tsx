@@ -101,9 +101,7 @@ function ReleaseCardProjectRow({
   const adoption = getHealthData.getAdoption(releaseVersion, id, activeDisplay);
 
   const adoptionStage =
-    showReleaseAdoptionStages &&
-    adoptionStages?.[project.slug] &&
-    adoptionStages?.[project.slug]!.stage;
+    showReleaseAdoptionStages && adoptionStages?.[project.slug]?.stage;
 
   const adoptionStageLabel =
     get24hCountByProject && adoptionStage && isMobileRelease(project.platform)

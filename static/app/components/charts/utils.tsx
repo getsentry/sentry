@@ -354,7 +354,7 @@ const DEFAULT_GEO_DATA = {
   data: [],
 };
 export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
-  if (!tableResults || !tableResults.length) {
+  if (!tableResults?.length) {
     return DEFAULT_GEO_DATA;
   }
 
@@ -362,7 +362,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
 
   const {data} = tableResult;
 
-  if (!data || !data.length) {
+  if (!data?.length) {
     return DEFAULT_GEO_DATA;
   }
 

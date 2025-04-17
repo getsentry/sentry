@@ -39,7 +39,7 @@ function GroupChart({
     emphasisColors: [string] | undefined;
     series: Series[];
   }>(() => {
-    if (!stats || !stats.length) {
+    if (!stats?.length) {
       return {colors: undefined, emphasisColors: undefined, series: []};
     }
 
@@ -47,7 +47,7 @@ function GroupChart({
 
     const formattedMarkLine = formatAbbreviatedNumber(max);
 
-    if (showSecondaryPoints && secondaryStats && secondaryStats.length) {
+    if (showSecondaryPoints && secondaryStats?.length) {
       const series: Series[] = [
         {
           seriesName: t('Total Events'),

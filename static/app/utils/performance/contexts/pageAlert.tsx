@@ -88,7 +88,7 @@ export function PageAlert() {
     []
   );
 
-  if (!pageAlert || !pageAlert.message) {
+  if (!pageAlert?.message) {
     return null;
   }
 
