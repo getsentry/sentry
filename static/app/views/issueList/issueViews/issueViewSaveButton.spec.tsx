@@ -228,9 +228,7 @@ describe('IssueViewSaveButton', function () {
     await screen.findByTestId('save-button-unsaved');
 
     await userEvent.click(screen.getByRole('button', {name: 'More save options'}));
-    await userEvent.click(
-      screen.getByRole('menuitemradio', {name: 'Discard unsaved changes'})
-    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Reset'}));
 
     // Discarding unsaved changes should reset URL query params
     await waitFor(() => {
