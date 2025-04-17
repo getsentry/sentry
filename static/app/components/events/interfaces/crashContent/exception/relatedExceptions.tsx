@@ -150,7 +150,7 @@ export function RelatedExceptions({
   newestFirst,
   onExceptionClick,
 }: ExceptionGroupContextProps) {
-  if (!mechanism || !mechanism.is_exception_group) {
+  if (!mechanism?.is_exception_group) {
     return null;
   }
 

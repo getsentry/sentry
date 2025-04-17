@@ -8,6 +8,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {PathsTable} from 'sentry/views/insights/pages/platform/laravel/pathsTable';
+import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
 import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
@@ -44,7 +45,7 @@ export function NextJsOverviewPage({headerTitle}: {headerTitle: React.ReactNode}
           <IssuesWidget query={query} />
         </IssuesContainer>
         <DurationContainer>
-          <PlaceholderWidget />
+          <DurationWidget query={query} />
         </DurationContainer>
         <JobsContainer>
           <PlaceholderWidget />

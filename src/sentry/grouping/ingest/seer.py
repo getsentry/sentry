@@ -280,9 +280,12 @@ def get_seer_similar_issues(
     }
     event.data.pop("stacktrace_string", None)
 
-    seer_request_metric_tags = {"hybrid_fingerprint": event_has_hybrid_fingerprint}
+    seer_request_metric_tags = {"platform": event.platform or "unknown"}
 
-    seer_results = get_similarity_data_from_seer(request_data, seer_request_metric_tags)
+    seer_results = get_similarity_data_from_seer(
+        request_data,
+        {**seer_request_metric_tags, "hybrid_fingerprint": event_has_hybrid_fingerprint},
+    )
 
     # All of these will get overridden if we find a usable match
     matching_seer_result = None  # JSON of result data
@@ -347,7 +350,7 @@ def get_seer_similar_issues(
 
         # We only want this for the side effect, and we know it'll return no matches, so we don't
         # bother to capture the return value.
-        get_similarity_data_from_seer(request_data)
+        get_similarity_data_from_seer(request_data, seer_request_metric_tags)
 
     is_hybrid_fingerprint_case = (
         event_has_hybrid_fingerprint

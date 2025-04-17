@@ -40,6 +40,19 @@ class TestAssignedToCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
+        payload = {
+            "id": AssignedToFilter.id,
+            "targetType": "Unassigned",
+        }
+        dc = self.translate_to_data_condition(payload, dcg)
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "target_type": "Unassigned",
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
     def test_json_schema(self):
         self.dc.comparison.update({"target_type": "Team"})
         self.dc.save()
@@ -53,6 +66,10 @@ class TestAssignedToCondition(ConditionTestCase):
             self.dc.save()
 
         self.dc.comparison.update({"hello": "there"})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update({"target_type": "Unassigned", "target_identifier": 0})
         with pytest.raises(ValidationError):
             self.dc.save()
 
