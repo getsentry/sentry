@@ -12,6 +12,7 @@ import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -20,11 +21,11 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
+import {WidgetExtrapolationFooter} from 'sentry/views/explore/charts/widgetExtrapolationFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
-import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {
@@ -41,7 +42,7 @@ interface ExploreChartsProps {
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: Visualize[];
   hideContextMenu?: boolean;
-  isProgressivelyLoading?: boolean;
+  samplingMode?: SamplingMode;
 }
 
 export const EXPLORE_CHART_TYPE_OPTIONS = [
@@ -66,12 +67,13 @@ export function ExploreCharts({
   confidences,
   query,
   timeseriesResult,
-  isProgressivelyLoading,
   visualizes,
   setVisualizes,
   hideContextMenu,
+  samplingMode,
 }: ExploreChartsProps) {
   const theme = useTheme();
+  const organization = useOrganization();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const isTopN = defined(topEvents) && topEvents > 0;
@@ -137,10 +139,8 @@ export function ExploreCharts({
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 
-      const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(
-        data,
-        isTopN
-      );
+      const {sampleCount, isSampled, dataScanned} =
+        determineSeriesSampleCountAndIsSampled(data, isTopN);
 
       return {
         chartIcon: <IconGraph type={chartIcon} />,
@@ -154,6 +154,7 @@ export function ExploreCharts({
         confidence: confidences[index],
         sampleCount,
         isSampled,
+        dataScanned,
       };
     });
   }, [confidences, getSeries, visualizes, isTopN]);
@@ -196,7 +197,20 @@ export function ExploreCharts({
                 Title={Title}
                 Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
                 revealActions="always"
-                TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
+                Footer={
+                  organization.features.includes(
+                    'visibility-explore-progressive-loading'
+                  ) && (
+                    <WidgetExtrapolationFooter
+                      samplingMode={undefined}
+                      sampleCount={0}
+                      isSampled={null}
+                      confidence={undefined}
+                      topEvents={undefined}
+                      dataScanned={undefined}
+                    />
+                  )
+                }
               />
             );
           }
@@ -240,7 +254,6 @@ export function ExploreCharts({
               key={index}
               height={CHART_HEIGHT}
               Title={Title}
-              TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
               Actions={[
                 <Tooltip
                   key="visualization"
@@ -307,13 +320,15 @@ export function ExploreCharts({
                 />
               }
               Footer={
-                <ConfidenceFooter
+                <WidgetExtrapolationFooter
                   sampleCount={chartInfo.sampleCount}
                   isSampled={chartInfo.isSampled}
                   confidence={chartInfo.confidence}
                   topEvents={
                     topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
                   }
+                  dataScanned={chartInfo.dataScanned}
+                  samplingMode={samplingMode}
                 />
               }
             />

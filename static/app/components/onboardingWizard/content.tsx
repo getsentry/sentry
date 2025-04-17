@@ -96,11 +96,13 @@ function TaskCard({
 }
 
 interface TaskStatusIconProps {
-  status: 'complete' | 'skipped';
+  progress?: number;
+  status?: 'complete' | 'inProgress' | 'skipped';
   tooltipText?: string;
 }
 
 function TaskStatusIcon({status, tooltipText}: TaskStatusIconProps) {
+  const theme = useTheme();
   return (
     <Tooltip title={tooltipText} disabled={!tooltipText} containerDisplayMode="flex">
       {status === 'complete' ? (
@@ -108,8 +110,8 @@ function TaskStatusIcon({status, tooltipText}: TaskStatusIconProps) {
           data-test-id="task-status-icon-complete"
           css={css`
             opacity: 50%;
+            color: ${theme.tokens.content.accent};
           `}
-          color="purple400"
           size="sm"
         />
       ) : (
@@ -117,8 +119,8 @@ function TaskStatusIcon({status, tooltipText}: TaskStatusIconProps) {
           data-test-id="task-status-icon-skipped"
           css={css`
             opacity: 50%;
+            color: ${theme.tokens.content.accent};
           `}
-          color="purple400"
           size="sm"
         />
       )}
@@ -147,7 +149,6 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
               height: ${theme.fontSizeLarge};
               width: ${theme.fontSizeLarge};
             `}
-            isCircled
           />
         }
         actions={
@@ -523,7 +524,7 @@ function TaskGroup({
               value={(doneTasks.length / tasks.length) * 100}
               backgroundColor={theme.gray200}
               progressEndcaps="round"
-              progressColor={theme.purple400}
+              progressColor={theme.tokens.content.accent}
               size={22}
               barWidth={4}
             />
@@ -635,7 +636,7 @@ const TaskGroupWrapper = styled('div')`
 
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
   p {
-    color: ${p => (p.hasProgress ? p.theme.purple400 : p.theme.subText)};
+    color: ${p => (p.hasProgress ? p.theme.tokens.content.accent : p.theme.subText)};
   }
 `;
 

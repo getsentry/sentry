@@ -599,7 +599,8 @@ class ClientConfigViewTest(TestCase):
         assert "activeorg" not in self.client.session
 
         # Load client config
-        response = self.client.get(self.path, HTTP_AUTHORIZATION=HTTP_AUTHORIZATION)
+        self.login_as(self.user)
+        response = self.client.get(self.path)
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
 

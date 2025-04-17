@@ -385,8 +385,12 @@ function AutofixHighlightPopup(props: Props) {
     }
 
     const updatePosition = () => {
+      if (!referenceElement || !popupRef.current) {
+        return;
+      }
+
       const referenceRect = referenceElement.getBoundingClientRect();
-      const popupRect = popupRef.current!.getBoundingClientRect();
+      const popupRect = popupRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
 
       const drawerElement = document.querySelector('.drawer-panel');
