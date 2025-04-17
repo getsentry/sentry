@@ -23,16 +23,17 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {HiddenLogDetailFields} from 'sentry/views/explore/logs/constants';
 import {
-  LogAttributesRendererMap,
+  getLogAttributesRendererMap,
   LogBodyRenderer,
   LogFieldRenderer,
   SeverityCircleRenderer,
 } from 'sentry/views/explore/logs/fieldRenderers';
-import {LogFieldsTree} from 'sentry/views/explore/logs/logFieldsTree';
+import {AttributesTree} from 'sentry/views/explore/logs/logFieldsTree';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import {useLogAttributesTreeActions} from 'sentry/views/explore/logs/useLogAttributesTreeActions';
 import {
   useExploreLogsTableRow,
   usePrefetchLogTableRowOnHover,
@@ -127,6 +128,7 @@ export function LogRowContent({
     renderSeverityCircle: true,
     location,
     organization,
+    tableResultLogRow: dataRow,
   };
 
   return (
@@ -224,6 +226,7 @@ function LogRowDetails({
   const location = useLocation();
   const organization = useOrganization();
   const fields = useLogsFields();
+  const customActionsGetter = useLogAttributesTreeActions();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY_TEXT];
 
@@ -241,6 +244,14 @@ function LogRowDetails({
 
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
+
+  const renderers = getLogAttributesRendererMap({
+    highlightTerms,
+    logColors,
+    location,
+    organization,
+    tableResultLogRow: dataRow,
+  });
 
   if (missingLogId) {
     return (
@@ -267,21 +278,23 @@ function LogRowDetails({
                     wrapBody: true,
                     location,
                     organization,
+                    tableResultLogRow: dataRow,
                   },
                 })}
               </DetailsBody>
               <LogDetailPanelItem>
-                <LogFieldsTree
+                <AttributesTree
                   attributes={data.attributes}
                   hiddenAttributes={HiddenLogDetailFields}
-                  renderers={LogAttributesRendererMap}
+                  renderers={renderers}
                   renderExtra={{
-                    highlightTerms,
-                    logColors,
                     location,
                     organization,
+                    theme,
                   }}
-                  tableResultLogRow={dataRow}
+                  config={{
+                    customActionsGetter,
+                  }}
                 />
               </LogDetailPanelItem>
             </DetailsContent>

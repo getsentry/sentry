@@ -51,6 +51,7 @@ export interface RendererExtra {
   location: Location;
   logColors: ReturnType<typeof getLogColors>;
   organization: Organization;
+  tableResultLogRow: OurLogsResponseItem;
   align?: 'left' | 'center' | 'right';
   useFullSeverityText?: boolean;
   wrapBody?: true;
@@ -122,11 +123,11 @@ export function TimestampRenderer(props: LogFieldRendererProps) {
 }
 
 export function TraceIDRenderer(props: LogFieldRendererProps) {
-  const traceId = props.item.value as string;
+  const traceId = adjustLogTraceID(props.item.value as string);
   const location = stripLogParamsFromLocation(props.extra.location);
   const target = getTraceDetailsUrl({
     traceSlug: traceId,
-    timestamp: props.tableResultLogRow?.[OurLogKnownFieldKey.TIMESTAMP],
+    timestamp: props.extra.tableResultLogRow?.[OurLogKnownFieldKey.TIMESTAMP],
     organization: props.extra.organization,
     dateSelection: props.extra.location,
     location,
@@ -171,7 +172,8 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
     {...props.extra, theme}
   );
 
-  const customRenderer = getLogFieldRenderer(props.item.fieldKey);
+  const renderers = getLogAttributesRendererMap(props.extra);
+  const customRenderer = renderers[props.item.fieldKey];
 
   const align = logsFieldAlignment(adjustedFieldKey, type);
 
@@ -186,20 +188,23 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
   );
 }
 
-export const LogAttributesRendererMap: Record<
-  OurLogFieldKey,
-  (props: LogFieldRendererProps) => React.ReactNode
-> = {
-  [OurLogKnownFieldKey.TIMESTAMP]: props => {
-    return TimestampRenderer(props);
-  },
-  [OurLogKnownFieldKey.SEVERITY_TEXT]: SeverityTextRenderer,
-  [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
-  [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
-};
-
-export function getLogFieldRenderer(field: OurLogFieldKey) {
-  return LogAttributesRendererMap[field];
+export function getLogAttributesRendererMap(
+  extra: RendererExtra
+): Record<OurLogFieldKey, (props: LogFieldRendererProps) => React.ReactNode> {
+  return {
+    [OurLogKnownFieldKey.TIMESTAMP]: props => {
+      return TimestampRenderer({...props, extra});
+    },
+    [OurLogKnownFieldKey.SEVERITY_TEXT]: props => {
+      return SeverityTextRenderer({...props, extra});
+    },
+    [OurLogKnownFieldKey.MESSAGE]: props => {
+      return LogBodyRenderer({...props, extra});
+    },
+    [OurLogKnownFieldKey.TRACE_ID]: props => {
+      return TraceIDRenderer({...props, extra});
+    },
+  };
 }
 
 const fullFieldToExistingField: Record<OurLogFieldKey, string> = {
