@@ -107,6 +107,8 @@ export function TraceLinkNavigationButton({
     return (
       <StyledTooltip
         position="right"
+        delay={400}
+        isHoverable
         title={tct(`[link:Read the docs] to learn more about previous trace links.`, {
           link: (
             <ExternalLink
@@ -116,7 +118,6 @@ export function TraceLinkNavigationButton({
             />
           ),
         })}
-        isHoverable
       >
         <TraceLink
           color="gray500"
@@ -140,6 +141,8 @@ export function TraceLinkNavigationButton({
     return (
       <StyledTooltip
         position="left"
+        delay={400}
+        isHoverable
         title={tct(`[link:Read the docs] to learn more about next trace links.`, {
           link: (
             <ExternalLink
@@ -149,7 +152,6 @@ export function TraceLinkNavigationButton({
             />
           ),
         })}
-        isHoverable
       >
         <TraceLink
           color="gray500"
