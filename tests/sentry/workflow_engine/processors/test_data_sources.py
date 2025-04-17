@@ -26,7 +26,7 @@ class TestProcessDataSources(BaseWorkflowTest):
         self.query_two = self.create_snuba_query()
 
         self.detector_one = self.create_detector(name="test_detector1")
-        self.detector_two = self.create_detector(name="test_detector2", type="metric_alert_fire")
+        self.detector_two = self.create_detector(name="test_detector2", type="metric_issue")
 
         self.ds1 = self.create_data_source(source_id=self.query.id, type="test")
         self.ds1.detectors.set([self.detector_one])

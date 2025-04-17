@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 from django.forms import ValidationError
 
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import update_alert_rule_trigger_action
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -82,7 +82,7 @@ def assert_alert_rule_migrated(alert_rule, project_id):
     assert detector.description == alert_rule.description
     assert detector.owner_user_id == alert_rule.user_id
     assert detector.owner_team == alert_rule.team
-    assert detector.type == MetricAlertFire.slug
+    assert detector.type == MetricIssue.slug
     assert detector.config == {
         "threshold_period": alert_rule.threshold_period,
         "sensitivity": None,

@@ -38,7 +38,7 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
             resource_id=None,
             evidence_data={"detector_id": self.detector.id, "value": value},
             evidence_display=[],
-            type=MetricAlertFire,
+            type=MetricIssue,
             detection_time=datetime.now(UTC),
             level="error",
             culprit="Some culprit",
@@ -71,10 +71,10 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
 # Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something
 # like these when we're sending issues as alerts
 @dataclass(frozen=True)
-class MetricAlertFire(GroupType):
+class MetricIssue(GroupType):
     type_id = 8001
-    slug = "metric_alert_fire"
-    description = "Metric alert fired"
+    slug = "metric_issue"
+    description = "Metric issue triggered"
     category = GroupCategory.METRIC_ALERT.value
     creation_quota = Quota(3600, 60, 100)
     default_priority = PriorityLevel.HIGH

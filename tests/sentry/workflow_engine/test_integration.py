@@ -3,7 +3,7 @@ from unittest import mock
 
 from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
@@ -24,7 +24,7 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
             self.workflow_triggers,
         ) = self.create_detector_and_workflow(
             name_prefix="e2e-test",
-            detector_type="metric_alert_fire",
+            detector_type="metric_issue",
         )
 
         detector_conditions = self.create_data_condition_group()
@@ -45,14 +45,14 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
             project_id=self.project.id,
             fingerprint=[f"detector-{self.detector.id}"],
             evidence_data={"detector_id": self.detector.id},
-            type=MetricAlertFire.type_id,
+            type=MetricIssue.type_id,
         )
 
         self.occurrence, group_info = save_issue_occurrence(occurrence_data, self.event)
         assert group_info is not None
 
         self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
-        assert self.group.type == MetricAlertFire.type_id
+        assert self.group.type == MetricIssue.type_id
 
     def call_post_process_group(
         self,
@@ -144,7 +144,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_workflow_engine__workflows__other_events(self):
         """
-        Ensure that the workflow engine only supports MetricAlertFire events for now.
+        Ensure that the workflow engine only supports MetricIssue events for now.
         """
         error_event = self.store_event(data={}, project_id=self.project.id)
 
