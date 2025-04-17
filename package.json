@@ -113,6 +113,7 @@
     "echarts": "5.4.0",
     "echarts-for-react": "3.0.2",
     "esbuild": "^0.25.0",
+    "flattie": "^1.1.1",
     "focus-trap": "^7.3.1",
     "fork-ts-checker-webpack-plugin": "^9.0.2",
     "framer-motion": "12.7.3",
