@@ -7,6 +7,7 @@ from django.db import router, transaction
 from rest_framework.request import Request
 
 from sentry import features
+from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.types.actor import Actor
@@ -34,7 +35,12 @@ class ProjectRuleCreator:
 
     def run(self) -> Rule:
         try:
-            with transaction.atomic(router.db_for_write(Rule)):
+            lock = locks.get(
+                f"workflow-engine-project-error-detector:{self.project.id}",
+                duration=10,
+                name="workflow_engine_issue_alert",
+            )
+            with lock.acquire(), transaction.atomic(router.db_for_write(Rule)):
                 self.rule = self._create_rule()
 
                 if features.has(
