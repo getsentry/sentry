@@ -8,6 +8,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {PathsTable} from 'sentry/views/insights/pages/platform/laravel/pathsTable';
+import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
 import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
@@ -47,9 +48,9 @@ export function NextJsOverviewPage({headerTitle}: {headerTitle: React.ReactNode}
         <DurationContainer>
           <DurationWidget query={query} />
         </DurationContainer>
-        <JobsContainer>
-          <PlaceholderWidget />
-        </JobsContainer>
+        <WebVitalsContainer>
+          <WebVitalsWidget query={query} />
+        </WebVitalsContainer>
         <QueriesContainer>
           <PlaceholderWidget />
         </QueriesContainer>
@@ -73,7 +74,7 @@ const WidgetGrid = styled('div')`
     'requests'
     'duration'
     'issues'
-    'jobs'
+    'web-vitals'
     'queries'
     'caches';
 
@@ -83,7 +84,7 @@ const WidgetGrid = styled('div')`
     grid-template-areas:
       'requests duration'
       'issues issues'
-      'jobs jobs'
+      'web-vitals web-vitals'
       'queries caches';
   }
 
@@ -93,7 +94,7 @@ const WidgetGrid = styled('div')`
     grid-template-areas:
       'requests issues issues'
       'duration issues issues'
-      'jobs queries caches';
+      'web-vitals queries caches';
   }
 `;
 
@@ -124,8 +125,8 @@ const DurationContainer = styled('div')`
   grid-area: duration;
 `;
 
-const JobsContainer = styled('div')`
-  grid-area: jobs;
+const WebVitalsContainer = styled('div')`
+  grid-area: web-vitals;
 `;
 
 const QueriesContainer = styled('div')`
