@@ -8,8 +8,8 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {NonDefaultSpanSampleFields} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
-import {SpanIndexedField, type SpanIndexedProperty} from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/usePageFilters');
@@ -69,10 +69,7 @@ describe('useSpanSamples', () => {
       {
         wrapper: Wrapper,
         initialProps: {
-          fields: [
-            SpanIndexedField.TRANSACTION_ID,
-            SpanIndexedField.SPAN_ID,
-          ] as SpanIndexedProperty[],
+          fields: [] satisfies NonDefaultSpanSampleFields[],
           enabled: false,
         },
       }
@@ -89,17 +86,17 @@ describe('useSpanSamples', () => {
       body: {
         data: [
           {
-            'transaction.id': '7663aab8a',
+            'transaction.span_id': '7663aab8a',
             'span.id': '3aab8a77fe231',
           },
         ],
         meta: {
           fields: {
-            'transaction.id': 'string',
+            'transaction.span_id': 'string',
             'span.id': 'string',
           },
           units: {
-            'transaction.id': null,
+            'transaction.span_id': null,
             'span.id': null,
           },
         },
@@ -122,10 +119,7 @@ describe('useSpanSamples', () => {
             'span.group': '221aa7ebd216',
             release: '0.0.1',
           },
-          fields: [
-            SpanIndexedField.TRANSACTION_ID,
-            SpanIndexedField.SPAN_ID,
-          ] as SpanIndexedProperty[],
+          fields: [] satisfies NonDefaultSpanSampleFields[],
           referrer: 'api-spec',
         },
       }
@@ -138,7 +132,7 @@ describe('useSpanSamples', () => {
       expect.objectContaining({
         method: 'GET',
         query: {
-          additionalFields: ['transaction.id', 'span_id'],
+          additionalFields: ['transaction.span_id'],
           project: [],
           query: `span.group:221aa7ebd216 release:0.0.1`,
           referrer: 'api-spec',
@@ -158,17 +152,17 @@ describe('useSpanSamples', () => {
     expect(result.current.data).toEqual({
       data: [
         {
-          'transaction.id': '7663aab8a',
+          'transaction.span_id': '7663aab8a',
           'span.id': '3aab8a77fe231',
         },
       ],
       meta: {
         fields: {
-          'transaction.id': 'string',
+          'transaction.span_id': 'string',
           'span.id': 'string',
         },
         units: {
-          'transaction.id': null,
+          'transaction.span_id': null,
           'span.id': null,
         },
       },

@@ -106,6 +106,7 @@ export enum FieldKey {
   STACK_PACKAGE = 'stack.package',
   STACK_RESOURCE = 'stack.resource',
   STACK_STACK_LEVEL = 'stack.stack_level',
+  STATUS = 'status',
   TIMESTAMP = 'timestamp',
   TIMESTAMP_TO_DAY = 'timestamp.to_day',
   TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
@@ -828,6 +829,7 @@ export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
 
 export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.COUNT, // DO NOT RE-ORDER: the first element is used as the default
+  AggregationKey.COUNT_UNIQUE,
   AggregationKey.AVG,
   AggregationKey.P50,
   AggregationKey.P75,
@@ -1703,6 +1705,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NUMBER,
   },
+  [FieldKey.STATUS]: {
+    desc: t('Status of the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.TIMES_SEEN]: {
     desc: t('Total number of events'),
     kind: FieldKind.FIELD,
@@ -1993,6 +2000,7 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new
   FieldKey.STACK_MODULE,
   FieldKey.STACK_PACKAGE,
   FieldKey.STACK_STACK_LEVEL,
+  FieldKey.STATUS,
   FieldKey.TIMESTAMP,
   FieldKey.TITLE,
   FieldKey.TRACE,
@@ -2123,6 +2131,7 @@ export enum ReplayFieldKey {
   COUNT_RAGE_CLICKS = 'count_rage_clicks',
   COUNT_ERRORS = 'count_errors',
   COUNT_SEGMENTS = 'count_segments',
+  COUNT_TRACES = 'count_traces',
   COUNT_URLS = 'count_urls',
   DURATION = 'duration',
   ERROR_IDS = 'error_ids',
@@ -2168,6 +2177,7 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.COUNT_ERRORS,
   ReplayFieldKey.COUNT_SEGMENTS,
   ReplayFieldKey.COUNT_URLS,
+  ReplayFieldKey.COUNT_TRACES,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_FAMILY,
   FieldKey.DEVICE_MODEL_ID,
@@ -2227,6 +2237,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   },
   [ReplayFieldKey.COUNT_SEGMENTS]: {
     desc: t('Number of segments in the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  [ReplayFieldKey.COUNT_TRACES]: {
+    desc: t('Number of traces in the replay'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },

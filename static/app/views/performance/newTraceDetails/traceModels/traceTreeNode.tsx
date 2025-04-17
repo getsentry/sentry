@@ -69,7 +69,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
 
   // Events associated with the node, these are inferred from the node value.
   errors = new Set<TraceTree.TraceErrorIssue>();
-  occurences = new Set<TraceTree.TraceOccurence>();
+  occurrences = new Set<TraceTree.TraceOccurrence>();
   profiles: TraceTree.Profile[] = [];
 
   space: [number, number] = [0, 0];
@@ -114,14 +114,31 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       }
 
       if ('performance_issues' in value && Array.isArray(value.performance_issues)) {
-        value.performance_issues.forEach(issue => this.occurences.add(issue));
+        value.performance_issues.forEach(issue => this.occurrences.add(issue));
       }
 
-      if ('profile_id' in value && typeof value.profile_id === 'string') {
-        this.profiles.push({profile_id: value.profile_id});
+      // EAP spans can have occurences
+      if ('occurrences' in value && Array.isArray(value.occurrences)) {
+        value.occurrences.forEach(occurence => this.occurrences.add(occurence));
       }
-      if ('profiler_id' in value && typeof value.profiler_id === 'string') {
-        this.profiles.push({profiler_id: value.profiler_id});
+
+      const isNonTransactionEAPSpan = isEAPSpan(value) && !value.is_transaction;
+
+      if (!isNonTransactionEAPSpan) {
+        if (
+          'profile_id' in value &&
+          typeof value.profile_id === 'string' &&
+          value.profile_id.trim() !== ''
+        ) {
+          this.profiles.push({profile_id: value.profile_id});
+        }
+        if (
+          'profiler_id' in value &&
+          typeof value.profiler_id === 'string' &&
+          value.profiler_id.trim() !== ''
+        ) {
+          this.profiles.push({profiler_id: value.profiler_id});
+        }
       }
     }
 
@@ -138,7 +155,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   }
 
   get hasErrors(): boolean {
-    return this.errors.size > 0 || this.occurences.size > 0;
+    return this.errors.size > 0 || this.occurrences.size > 0;
   }
 
   private _max_severity: keyof Theme['level'] | undefined;

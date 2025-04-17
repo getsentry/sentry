@@ -79,12 +79,12 @@ export function OrgDropdown({className}: {className?: string}) {
       trigger={props => (
         <OrgDropdownTrigger
           borderless={!theme.isChonk}
-          width={isMobile ? 32 : 44}
+          width={isMobile ? 32 : 48}
           aria-label={t('Toggle organization menu')}
           {...props}
         >
           <StyledOrganizationAvatar
-            size={isMobile ? 24 : 32}
+            size={isMobile ? 24 : 36}
             round={false}
             organization={organization}
           />
@@ -132,19 +132,24 @@ export function OrgDropdown({className}: {className?: string}) {
               key: 'switch-organization',
               label: t('Switch Organization'),
               isSubmenu: true,
-              disabled: !organizations?.length,
               hidden: config.singleOrganization || isDemoModeActive(),
               children: [
-                ...orderBy(organizations, ['status.id', 'name']).map(switchOrg => ({
-                  key: switchOrg.id,
-                  label: <OrganizationBadge organization={switchOrg} />,
-                  textValue: switchOrg.name,
-                  to: resolveRoute(
-                    `/organizations/${switchOrg.slug}/issues/`,
-                    organization,
-                    switchOrg
-                  ),
-                })),
+                ...orderBy(organizations, ['status.id', 'name']).map(switchOrg => {
+                  const pendingDeletion = switchOrg.status.id === 'pending_deletion';
+
+                  return {
+                    key: switchOrg.id,
+                    label: <OrganizationBadge organization={switchOrg} />,
+                    textValue: switchOrg.name,
+                    to: resolveRoute(
+                      `/organizations/${switchOrg.slug}/issues/`,
+                      organization,
+                      switchOrg
+                    ),
+                    priority: pendingDeletion ? ('danger' as const) : undefined,
+                    tooltip: pendingDeletion ? t('Pending deletion') : undefined,
+                  };
+                }),
                 createOrganizationMenuItem(),
               ],
             },

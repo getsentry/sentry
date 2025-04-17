@@ -109,7 +109,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
         queryClient,
         makeAutofixQueryKey(groupId),
         data => {
-          if (!data || !data.autofix) {
+          if (!data?.autofix) {
             return data;
           }
 
@@ -387,6 +387,7 @@ function AutofixRootCauseDisplay({
                   : null
               }
               isAgentComment
+              blockName={t('Autofix is uncertain of the root cause...')}
             />
           )}
         </AnimatePresence>
@@ -477,6 +478,7 @@ const HeaderWrapper = styled('div')`
   padding-bottom: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
   gap: ${space(1)};
+  flex-wrap: wrap;
 `;
 
 const IconWrapper = styled('div')`

@@ -94,9 +94,9 @@ export function getExploreUrlFromSavedQueryUrl({
       title: savedQuery.name,
       selection: {
         datetime: {
-          end: savedQuery.end,
-          period: savedQuery.range,
-          start: savedQuery.start,
+          end: savedQuery.end ?? null,
+          period: savedQuery.range ?? null,
+          start: savedQuery.start ?? null,
           utc: null,
         },
         environments: savedQuery.environment,
@@ -115,9 +115,9 @@ export function getExploreUrlFromSavedQueryUrl({
     mode: savedQuery.query[0].mode as Mode,
     selection: {
       datetime: {
-        end: savedQuery.end,
-        period: savedQuery.range,
-        start: savedQuery.start,
+        end: savedQuery.end ?? null,
+        period: savedQuery.range ?? null,
+        start: savedQuery.start ?? null,
         utc: null,
       },
       environments: savedQuery.environment,
@@ -279,4 +279,28 @@ export function showConfidence(isSampled: boolean | null | undefined) {
     return false;
   }
   return true;
+}
+
+export function getDefaultExploreRoute(organization: Organization) {
+  if (organization.features.includes('performance-trace-explorer')) {
+    return 'traces';
+  }
+
+  if (organization.features.includes('ourlogs-enabled')) {
+    return 'logs';
+  }
+
+  if (organization.features.includes('discover-basic')) {
+    return 'discover';
+  }
+
+  if (organization.features.includes('performance-profiling')) {
+    return 'profiling';
+  }
+
+  if (organization.features.includes('session-replay-ui')) {
+    return 'replays';
+  }
+
+  return 'releases';
 }

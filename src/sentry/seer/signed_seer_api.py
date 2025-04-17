@@ -19,6 +19,7 @@ def make_signed_seer_api_request(
     path: str,
     body: bytes,
     timeout: int | None = None,
+    metric_tags: dict[str, Any] | None = None,
 ) -> BaseHTTPResponse:
     host = connection_pool.host
     if connection_pool.port:
@@ -36,7 +37,7 @@ def make_signed_seer_api_request(
     with metrics.timer(
         "seer.request_to_seer",
         sample_rate=1.0,
-        tags={"endpoint": parsed.path},
+        tags={"endpoint": parsed.path, **(metric_tags or {})},
     ):
         return connection_pool.urlopen(
             "POST",

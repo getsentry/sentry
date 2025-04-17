@@ -143,7 +143,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User, **kwargs
+        self, group: Group | None, user: User | RpcUser, **kwargs
     ) -> list[dict[str, Any]]:
         """
         These fields are used to render a form for the user,
@@ -243,7 +243,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                     user_id=user.id, value=new_user_defaults, **user_option_key
                 )
 
-    def get_defaults(self, project: Project, user: User):
+    def get_defaults(self, project: Project, user: User | RpcUser):
         project_defaults = (
             {}
             if not self.org_integration

@@ -4,7 +4,7 @@ import sentry_sdk
 
 from sentry.eventstore.models import GroupEvent
 from sentry.rules import MatchType, match_values
-from sentry.rules.conditions.event_attribute import attribute_registry
+from sentry.rules.conditions.event_attribute import ATTR_CHOICES, attribute_registry
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -19,11 +19,36 @@ class EventAttributeConditionHandler(DataConditionHandler[WorkflowEventData]):
     comparison_json_schema = {
         "type": "object",
         "properties": {
-            "attribute": {"type": "string"},
-            "match": {"type": "string", "enum": [*MatchType]},
-            "value": {"type": "string"},
+            "attribute": {"type": "string", "enum": list(ATTR_CHOICES.keys())},
+            "match": {
+                "type": "string",
+                "enum": [*MatchType],
+            },
+            "value": {
+                "type": "string",
+                "optional": True,
+            },
         },
-        "required": ["attribute", "match", "value"],
+        "oneOf": [
+            {
+                "properties": {
+                    "attribute": {"type": "string", "enum": list(ATTR_CHOICES.keys())},
+                    "match": {"enum": [MatchType.IS_SET, MatchType.NOT_SET]},
+                },
+                "required": ["attribute", "match"],
+                "not": {"required": ["value"]},
+            },
+            {
+                "properties": {
+                    "attribute": {"type": "string", "enum": list(ATTR_CHOICES.keys())},
+                    "match": {
+                        "not": {"enum": [MatchType.IS_SET, MatchType.NOT_SET]},
+                    },
+                    "value": {"type": "string"},
+                },
+                "required": ["attribute", "match", "value"],
+            },
+        ],
         "additionalProperties": False,
     }
 

@@ -11,13 +11,13 @@ crons_tasks = taskregistry.create_namespace("crons")
 
 deletion_tasks = taskregistry.create_namespace(
     "deletions",
-    processing_deadline_duration=60 * 3,
+    processing_deadline_duration=60 * 4,
 )
 
 deletion_control_tasks = taskregistry.create_namespace(
     "deletions.control",
     # Deletions can take several minutes, so we have a long processing deadline.
-    processing_deadline_duration=60 * 3,
+    processing_deadline_duration=60 * 4,
 )
 
 demomode_tasks = taskregistry.create_namespace("demomode")
@@ -52,6 +52,8 @@ tempest_tasks = taskregistry.create_namespace("tempest")
 
 uptime_tasks = taskregistry.create_namespace("uptime")
 
+relocation_tasks = taskregistry.create_namespace("relocation")
+relocation_control_tasks = taskregistry.create_namespace("relocation.control")
 
 # Namespaces for testing taskworker tasks
 exampletasks = taskregistry.create_namespace(name="examples")

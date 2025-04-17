@@ -126,7 +126,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
   get giftCategories() {
     const {data} = this.state;
 
-    if (data === null || !data.planDetails) {
+    if (!data?.planDetails) {
       return {};
     }
     // Can only gift for checkout categories
@@ -527,7 +527,6 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                   <TrialSubscriptionAction
                     subscription={data}
                     startEnterpriseTrial
-                    canUseTrialOverride={hasAdminTestFeatures}
                     {...deps}
                   />
                 ),
@@ -578,9 +577,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
               disabled:
                 // Enabling admin to modify NT for partnership support
                 data.partner?.partnership.id !== 'NT' &&
-                (data.partner?.isActive ||
-                  !data.paymentSource ||
-                  !data.paymentSource.last4),
+                (data.partner?.isActive || !data.paymentSource?.last4),
               disabledReason: data.partner?.isActive
                 ? 'This account is managed by a third-party.'
                 : 'No payment method on file.',
@@ -651,7 +648,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                   orgId,
                   subscription: data,
                   billingConfig,
-                  canProvisionDsPlan: hasAdminTestFeatures,
+                  canProvisionDsPlan: true,
                   onSuccess: () => this.reloadData(),
                 }),
             },

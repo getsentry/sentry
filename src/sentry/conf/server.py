@@ -20,6 +20,7 @@ import sentry.utils.types as env_types
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
+from sentry.conf.types.bgtask import BgTaskConfig
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
@@ -1373,7 +1374,7 @@ TIMEDELTA_ALLOW_LIST = {
     "schedule-digests",
 }
 
-BGTASKS = {
+BGTASKS: dict[str, BgTaskConfig] = {
     "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
     "sentry.bgtasks.clean_releasefilecache:clean_releasefilecache": {
         "interval": 5 * 60,
@@ -1401,6 +1402,7 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.scheduled",
+    "sentry.demo_mode.tasks",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
@@ -1427,6 +1429,8 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
     "sentry.notifications.utils.tasks",
+    "sentry.relocation.tasks.process",
+    "sentry.relocation.tasks.transfer",
     "sentry.replays.tasks",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.snuba.tasks",
@@ -1449,7 +1453,12 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
 )
 
 # Schedules for taskworker tasks to be spawned on.
-TASKWORKER_SCHEDULES: ScheduleConfigMap = {}
+TASKWORKER_SCHEDULES: ScheduleConfigMap = {
+    "sync_options_trial": {
+        "schedule": timedelta(minutes=5),
+        "task": "options:sentry.tasks.options.sync_options",
+    },
+}
 
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
@@ -2630,7 +2639,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.3.0"
+SELF_HOSTED_STABLE_VERSION = "25.4.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
