@@ -262,6 +262,9 @@ def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
         vital_score_key = AttributeKey(name="score.lcp", type=AttributeKey.TYPE_DOUBLE)
         return opportunity_score([vital_score_key], settings)
 
+    if len(vital_score_columns) == 1:
+        return vital_score_columns[0].formula
+
     return operate_multiple_columns(vital_score_columns, Column.BinaryFormula.OP_ADD)
 
 
