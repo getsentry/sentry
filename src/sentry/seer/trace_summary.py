@@ -48,20 +48,16 @@ def get_trace_summary(
         return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
 
     trace_summary = None
-    try:
-        trace_summary = _call_seer(
-            traceSlug,
-            traceTree,
-        )
-    except Exception as e:
-        logger.exception("Error calling Seer: %s", e)
-        return {"detail": "Error calling Seer"}, 500
+    trace_summary = _call_seer(
+        traceSlug,
+        traceTree,
+    )
 
     trace_summary_dict = trace_summary.dict()
 
     cache.set(cache_key, trace_summary_dict, timeout=int(timedelta(days=7).total_seconds()))
 
-    return trace_summary_dict, 200
+    return convert_dict_key_case(trace_summary_dict, snake_to_camel_case), 200
 
 
 def _call_seer(
