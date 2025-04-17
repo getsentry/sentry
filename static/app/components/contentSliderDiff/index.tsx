@@ -1,16 +1,14 @@
-import {Fragment, useRef} from 'react';
+import {type CSSProperties, Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconGrabbable} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import toPixels from 'sentry/utils/number/toPixels';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
-export interface ContentSliderDiffBodyProps {
+interface Props {
   /**
    * The content to display after the divider. Usually an image or replay.
    */
@@ -19,7 +17,7 @@ export interface ContentSliderDiffBodyProps {
    * The content to display before the divider. Usually an image or replay.
    */
   before: React.ReactNode;
-  minHeight?: `${number}px` | `${number}%`;
+  minHeight?: CSSProperties['minHeight'];
   /**
    * A callback function triggered when the divider is clicked (mouse down event).
    * Useful when we want to track analytics.
@@ -33,12 +31,7 @@ export interface ContentSliderDiffBodyProps {
  * The before and after contents are not directly defined here and have to be provided, so it can be very flexible
  * (e.g. images, replays, etc).
  */
-function Body({
-  onDragHandleMouseDown,
-  after,
-  before,
-  minHeight = '0px',
-}: ContentSliderDiffBodyProps) {
+function Body({onDragHandleMouseDown, after, before, minHeight = '0px'}: Props) {
   const positionedRef = useRef<HTMLDivElement>(null);
   const viewDimensions = useDimensions({elementRef: positionedRef});
 
@@ -60,48 +53,13 @@ function Body({
   );
 }
 
-export interface ContentSliderDiffBeforeOrAfterLabelProps {
-  children?: React.ReactNode;
-  help?: React.ReactNode;
-}
-
-function BeforeLabel({help, children}: ContentSliderDiffBeforeOrAfterLabelProps) {
-  return (
-    <div>
-      <Label>
-        {t('Before')}
-        {help && <QuestionTooltip title={help} size="xs" />}
-      </Label>
-      {children}
-    </div>
-  );
-}
-
-function AfterLabel({help, children}: ContentSliderDiffBeforeOrAfterLabelProps) {
-  return (
-    <div>
-      <Label>
-        {t('After')}
-        {help && <QuestionTooltip title={help} size="xs" />}
-      </Label>
-      {children}
-    </div>
-  );
-}
-
 const BORDER_WIDTH = 3;
 
-interface ContentSliderDiffSidesProps
-  extends Pick<ContentSliderDiffBodyProps, 'onDragHandleMouseDown' | 'before' | 'after'> {
-  viewDimensions: {height: number; width: number};
+interface SideProps extends Pick<Props, 'onDragHandleMouseDown' | 'before' | 'after'> {
+  viewDimensions: ReturnType<typeof useDimensions>;
 }
 
-function Sides({
-  onDragHandleMouseDown,
-  viewDimensions,
-  before,
-  after,
-}: ContentSliderDiffSidesProps) {
+function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps) {
   const beforeElemRef = useRef<HTMLDivElement>(null);
   const dividerElem = useRef<HTMLDivElement>(null);
   const width = toPixels(viewDimensions.width);
@@ -172,6 +130,7 @@ const Header = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.2;
   justify-content: space-between;
+  margin-bottom: ${space(0.5)};
 
   & > *:first-child {
     color: ${p => p.theme.error};
@@ -180,14 +139,6 @@ const Header = styled('div')`
   & > *:last-child {
     color: ${p => p.theme.success};
   }
-  margin-bottom: ${space(0.5)};
-`;
-
-const Label = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-  font-weight: bold;
 `;
 
 const FullHeightContainer = styled(NegativeSpaceContainer)`
@@ -303,6 +254,4 @@ const Placement = styled('div')`
 export const ContentSliderDiff = {
   Body,
   Header,
-  BeforeLabel,
-  AfterLabel,
 };
