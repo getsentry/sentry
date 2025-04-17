@@ -1,12 +1,17 @@
 from unittest import mock
 
 from sentry.testutils.cases import UptimeTestCase
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import (
+    ProjectUptimeSubscriptionMode,
     UptimeSubscriptionDataSourceHandler,
+    create_detector_from_project_subscription,
     get_active_auto_monitor_count_for_org,
+    get_detector,
     get_top_hosting_provider_names,
 )
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
+from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 
 
 class GetActiveMonitorCountForOrgTest(UptimeTestCase):
@@ -78,3 +83,48 @@ class UptimeSubscriptionDataSourceHandlerTest(UptimeTestCase):
                     "source_id": self.ds_with_invalid_subscription_id.source_id,
                 },
             )
+
+
+class GetDetectorTest(UptimeTestCase):
+    def test_simple(self):
+        uptime_subscription = self.create_uptime_subscription(
+            url="https://santry.io",
+        )
+        data_source = self.create_data_source(
+            type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+            source_id=str(uptime_subscription.id),
+        )
+
+        detector = self.create_detector(
+            project=self.project,
+            type=UptimeDomainCheckFailure.slug,
+            name="My Uptime Monitor",
+            config={
+                "environment": "production",
+                "mode": ProjectUptimeSubscriptionMode.MANUAL.value,
+            },
+        )
+        DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+
+        assert get_detector(uptime_subscription) == detector
+
+    def test_no_detector(self):
+        uptime_subscription = self.create_uptime_subscription(
+            url="https://santry.io",
+        )
+        assert get_detector(uptime_subscription) is None
+
+
+class CreateDetectorTest(UptimeTestCase):
+    def test_simple(self):
+        monitor = self.create_project_uptime_subscription()
+        detector = create_detector_from_project_subscription(monitor)
+
+        assert get_detector(monitor.uptime_subscription) == detector
+        assert detector.name == monitor.name
+        assert detector.owner_user_id == monitor.owner_user_id
+        assert detector.owner_team == monitor.owner_team
+        assert detector.project == monitor.project
+        assert monitor.environment
+        assert detector.config["environment"] == monitor.environment.name
+        assert detector.config["mode"] == monitor.mode
