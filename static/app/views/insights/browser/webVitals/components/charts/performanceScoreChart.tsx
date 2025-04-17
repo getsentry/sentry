@@ -9,13 +9,13 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {PerformanceScoreBreakdownChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import {PerformanceScoreBreakdownChartWidget} from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
 
 type Props = {
   isProjectScoreLoading?: boolean;
@@ -93,10 +93,16 @@ export function PerformanceScoreChart({
           </EmptyStateWarning>
         )}
       </PerformanceScoreLabelContainer>
-      <PerformanceScoreBreakdownChart />
+      <ChartContainer>
+        <PerformanceScoreBreakdownChartWidget />
+      </ChartContainer>
     </Flex>
   );
 }
+
+const ChartContainer = styled('div')`
+  flex: 1 1 0%;
+`;
 
 const Flex = styled('div')`
   display: flex;
