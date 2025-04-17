@@ -202,6 +202,27 @@ class OrganizationMemberInvite(DefaultFieldsModel):
             event=(audit_log.get_event_id("MEMBER_INVITE")),
         )
 
+    def reject_invite_request(self, approving_user, api_key=None, ip_address=None):
+        """
+        Reject a member invite/join request and send an audit log entry
+        """
+        from sentry import audit_log
+        from sentry.utils.audit import create_audit_entry_from_user
+
+        with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
+            # also deletes the invite object via cascades
+            self.organization_member.delete()
+
+        create_audit_entry_from_user(
+            approving_user,
+            api_key,
+            ip_address,
+            organization_id=self.organization_id,
+            target_object=self.id,
+            data=self.get_audit_log_data(),
+            event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
+        )
+
     @property
     def invite_approved(self):
         return self.invite_status == InviteStatus.APPROVED.value
