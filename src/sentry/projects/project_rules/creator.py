@@ -7,6 +7,7 @@ from django.db import router, transaction
 from rest_framework.request import Request
 
 from sentry import features
+from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.types.actor import Actor
@@ -34,21 +35,27 @@ class ProjectRuleCreator:
 
     def run(self) -> Rule:
         try:
-            with transaction.atomic(router.db_for_write(Rule)):
-                self.rule = self._create_rule()
+            lock = locks.get(
+                f"workflow-engine-project-error-detector:{self.project.id}",
+                duration=10,
+                name="workflow_engine_issue_alert",
+            )
+            with lock.acquire():
+                with transaction.atomic(router.db_for_write(Rule)):
+                    self.rule = self._create_rule()
 
-                if features.has(
-                    "organizations:workflow-engine-issue-alert-dual-write",
-                    self.project.organization,
-                ):
-                    # uncaught errors will rollback the transaction
-                    workflow = IssueAlertMigrator(
-                        self.rule, self.request.user.id if self.request else None
-                    ).run()
-                    logger.info(
-                        "workflow_engine.issue_alert.migrated",
-                        extra={"rule_id": self.rule.id, "workflow_id": workflow.id},
-                    )
+                    if features.has(
+                        "organizations:workflow-engine-issue-alert-dual-write",
+                        self.project.organization,
+                    ):
+                        # uncaught errors will rollback the transaction
+                        workflow = IssueAlertMigrator(
+                            self.rule, self.request.user.id if self.request else None
+                        ).run()
+                        logger.info(
+                            "workflow_engine.issue_alert.migrated",
+                            extra={"rule_id": self.rule.id, "workflow_id": workflow.id},
+                        )
         except UnableToAcquireLock:
             raise UnableToAcquireLockApiError
 
