@@ -351,6 +351,7 @@ replay_url_parser_config = SearchConfig(
         "count_warnings",
         "count_infos",
         "count_traces",
+        "count_screens",
     },
     duration_keys={"duration"},
 )
