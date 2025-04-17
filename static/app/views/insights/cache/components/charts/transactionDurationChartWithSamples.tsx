@@ -28,6 +28,7 @@ export function TransactionDurationChartWithSamples({samples}: Props) {
     {
       yAxis: ['avg(transaction.duration)'],
       search: MutableSearch.fromQueryObject(search),
+      transformAliasToInputFormat: true,
     },
     Referrer.SAMPLES_CACHE_TRANSACTION_DURATION_CHART
   );
