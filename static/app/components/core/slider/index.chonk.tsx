@@ -14,22 +14,15 @@ export function Slider({formatLabel = passthrough, ref, ...props}: SliderProps) 
 
   const value = props.onChange ? resolvedValue : valueAsNumber;
 
-  const filledSteps = step === -1 ? -1 : value / step;
   const progress = getProgress(value, min, max);
+  const numSteps = Math.abs(max - min) / step;
 
   return (
     <SliderContainer
       aria-disabled={props.disabled}
       style={{'--p': `${progress.toFixed(0)}%`, '--steps': `${value}`} as CSSProperties}
     >
-      {props.step ? (
-        <SliderTicks
-          filledSteps={filledSteps}
-          n={
-            typeof props.step === 'string' ? Number.parseInt(props.step, 10) : props.step
-          }
-        />
-      ) : null}
+      {props.step ? <SliderTicks progress={progress} numSteps={numSteps} /> : null}
       <StyledSlider
         ref={ref}
         type="range"
@@ -49,10 +42,11 @@ export function Slider({formatLabel = passthrough, ref, ...props}: SliderProps) 
   );
 }
 
-function SliderTicks({n, filledSteps}: {filledSteps: number; n: number}) {
+function SliderTicks({progress, numSteps}: {numSteps: number; progress: number}) {
+  const filledSteps = Math.floor((numSteps * progress) / 100);
   return (
     <StepsContainer role="presentation">
-      {Array.from({length: n}, (_, i) => {
+      {Array.from({length: numSteps}, (_, i) => {
         return <StepMark key={i} filled={i <= filledSteps} />;
       })}
     </StepsContainer>
@@ -109,7 +103,7 @@ function toNumber(value: number | string) {
   return Number.parseInt(value, 10);
 }
 function getProgress(n: number, min: number | string, max: number | string) {
-  return ((n - toNumber(min)) / toNumber(max)) * 100;
+  return (Math.abs(n - toNumber(min)) / Math.abs(toNumber(max) - toNumber(min))) * 100;
 }
 function resolveMinMaxValue(props: SliderProps) {
   const min = toNumber(props.min ?? 0);

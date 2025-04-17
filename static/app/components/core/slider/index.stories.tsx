@@ -68,6 +68,10 @@ export default storyBook('Slider', (story, APIReference) => {
           <Slider defaultValue={0} step={10} />
         </Label>
         <Label>
+          With min, max, and step
+          <Slider min={100} max={200} step={25} />
+        </Label>
+        <Label>
           Disabled with step
           <Slider disabled step={10} />
         </Label>
