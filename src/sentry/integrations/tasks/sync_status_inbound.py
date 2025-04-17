@@ -238,6 +238,8 @@ def sync_status_inbound(
         "provider_key": provider.key,
         "integration_id": integration_id,
     }
+    default_user_id, default_user = _get_default_user_info(organization=organization)
+
     if action == ResolveSyncAction.RESOLVE:
         # Check if the group was recently resolved and we should skip the request
         # Avoid resolving the group in-app and then re-resolving via the integration webhook
@@ -274,8 +276,6 @@ def sync_status_inbound(
                 if not created:
                     resolution.update(datetime=django_timezone.now(), **resolution_params)
 
-            default_user_id, default_user = _get_default_user_info(organization=organization)
-
             issue_resolved.send_robust(
                 organization_id=organization_id,
                 user=default_user,
@@ -305,8 +305,6 @@ def sync_status_inbound(
             activity_type=ActivityType.SET_UNRESOLVED,
             activity_data=activity_data,
         )
-
-        default_user_id, default_user = _get_default_user_info(organization=organization)
 
         for group in affected_groups:
             issue_unresolved.send_robust(
