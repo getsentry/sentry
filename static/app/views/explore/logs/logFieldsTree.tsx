@@ -565,6 +565,8 @@ const TreeContainer = styled('div')<{columnCount: number}>`
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
   white-space: normal;
+  width: 100%;
+  flex: 1 1 100%;
 `;
 
 const TreeColumn = styled('div')`
