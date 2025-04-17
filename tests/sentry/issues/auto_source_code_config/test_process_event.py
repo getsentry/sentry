@@ -924,11 +924,9 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         )
 
     def test_manual_bad_code_mapping_is_not_updated(self) -> None:
-        # The developer may have manually created the code mapping
-        # and we should not override it
+        # The developer creates a bad code mapping
         self.create_repo_and_code_mapping(REPO1, "foo/bar/", "bad/source/path")
-        # We do not expect code mappings since
-        # the developer already created the code mapping and in-app rule
+        # We do not expect code mappings sincee it matches the existing code mapping
         self._process_and_assert_configuration_changes(
             repo_trees={REPO1: ["src/foo/bar/Baz.java"]},
             frames=[self.frame_from_module("foo.bar.Baz", "Baz.java")],
