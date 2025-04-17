@@ -10,12 +10,12 @@ from django.utils import timezone
 from sentry import eventstore, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.feedback.usecases.create_feedback import (
+from sentry.feedback.lib.utils import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
     FeedbackCreationSource,
     is_in_feedback_denylist,
-    shim_to_feedback,
 )
+from sentry.feedback.usecases.shim_to_feedback import shim_to_feedback
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
