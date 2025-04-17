@@ -19,6 +19,7 @@ export default function CacheMissRateChartWidget(props: LoadableChartWidgetProps
     Referrer.LANDING_CACHE_HIT_MISS_CHART,
     props.pageFilters
   );
+
   return (
     <InsightsLineChartWidget
       {...props}

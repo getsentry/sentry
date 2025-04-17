@@ -10,6 +10,7 @@ export default function QueuesSummaryLatencyChartWidget(props: LoadableChartWidg
       destination: decodeScalar,
     },
   });
+
   return (
     <LatencyChart
       {...props}

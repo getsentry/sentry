@@ -12,6 +12,7 @@ export default function QueuesSummaryThroughputChartWidget(
       destination: decodeScalar,
     },
   });
+
   return (
     <ThroughputChart
       {...props}
