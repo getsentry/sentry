@@ -460,7 +460,7 @@ def test_child_worker_terminate_task(mock_capture: mock.Mock) -> None:
     )
 
     todo.put(sleepy)
-    try:
+    with pytest.raises(SystemExit):
         child_worker(
             todo,
             processed,
@@ -469,9 +469,6 @@ def test_child_worker_terminate_task(mock_capture: mock.Mock) -> None:
             processing_pool_name="test",
             process_type="fork",
         )
-    except SystemExit:
-        # Ignore the exception, we expect it to be raised
-        pass
 
     assert todo.empty()
     result = processed.get(block=False)
