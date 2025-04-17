@@ -1,3 +1,4 @@
+import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getSessionsInterval} from 'sentry/utils/sessions';
@@ -5,7 +6,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export default function useReleaseSessionCounts() {
+export default function useReleaseSessionCounts({
+  pageFilters,
+}: {
+  pageFilters?: PageFilters;
+}) {
   const location = useLocation();
   const organization = useOrganization();
   const {
@@ -32,7 +37,7 @@ export default function useReleaseSessionCounts() {
       {
         query: {
           ...locationQuery.query,
-          interval: getSessionsInterval(datetime),
+          interval: getSessionsInterval(pageFilters ? pageFilters.datetime : datetime),
           field: ['sum(session)'],
           groupBy: ['release'],
           per_page: 5,

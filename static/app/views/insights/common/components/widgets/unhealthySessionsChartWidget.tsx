@@ -1,13 +1,16 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import useErroredSessions from 'sentry/views/insights/sessions/queries/useErroredSessions';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function UnhealthySessionsChart() {
-  const {series, isPending, error} = useErroredSessions();
+export default function UnhealthySessionsChartWidget(props: LoadableChartWidgetProps) {
+  const {series, isPending, error} = useErroredSessions({
+    pageFilters: props.pageFilters,
+  });
 
   const aliases = {
     successful_session_rate: t('error_rate(sessions)'),
@@ -15,9 +18,11 @@ export default function UnhealthySessionsChart() {
 
   return (
     <InsightsLineChartWidget
-      title={CHART_TITLES.UnhealthySessionsChart}
+      {...props}
+      id="unhealthySessionsChartWidget"
+      title={CHART_TITLES.UnhealthySessionsChartWidget}
       interactiveTitle={() => (
-        <ChartSelectionTitle title={CHART_TITLES.UnhealthySessionsChart} />
+        <ChartSelectionTitle title={CHART_TITLES.UnhealthySessionsChartWidget} />
       )}
       height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(

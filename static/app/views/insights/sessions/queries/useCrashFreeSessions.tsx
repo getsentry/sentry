@@ -1,3 +1,4 @@
+import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {percent} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -8,7 +9,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useSessionProjectTotal from 'sentry/views/insights/sessions/queries/useSessionProjectTotal';
 import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function useCrashFreeSessions() {
+export default function useCrashFreeSessions({pageFilters}: {pageFilters?: PageFilters}) {
   const location = useLocation();
   const organization = useOrganization();
   const {
@@ -35,7 +36,7 @@ export default function useCrashFreeSessions() {
       {
         query: {
           ...locationQuery.query,
-          interval: getSessionsInterval(datetime),
+          interval: getSessionsInterval(pageFilters ? pageFilters.datetime : datetime),
           field: ['sum(session)'],
           groupBy: ['session.status', 'release'],
         },
@@ -44,7 +45,7 @@ export default function useCrashFreeSessions() {
     {staleTime: 0}
   );
 
-  const projectTotal = useSessionProjectTotal();
+  const projectTotal = useSessionProjectTotal({pageFilters});
 
   if (isPending || !sessionData) {
     return {

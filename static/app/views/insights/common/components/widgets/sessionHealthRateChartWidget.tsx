@@ -1,13 +1,17 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
 import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import useSessionHealthBreakdown from 'sentry/views/insights/sessions/queries/useSessionHealthBreakdown';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function SessionHealthRateChart() {
-  const {series, isPending, error} = useSessionHealthBreakdown({type: 'rate'});
+export default function SessionHealthRateChartWidget(props: LoadableChartWidgetProps) {
+  const {series, isPending, error} = useSessionHealthBreakdown({
+    type: 'rate',
+    pageFilters: props.pageFilters,
+  });
 
   const aliases = {
     healthy_session_rate: 'rate_healthy(session)',
@@ -18,9 +22,11 @@ export default function SessionHealthRateChart() {
 
   return (
     <InsightsAreaChartWidget
-      title={CHART_TITLES.SessionHealthRateChart}
+      {...props}
+      id="sessionHealthRateChartWidget"
+      title={CHART_TITLES.SessionHealthRateChartWidget}
       interactiveTitle={() => (
-        <ChartSelectionTitle title={CHART_TITLES.SessionHealthRateChart} />
+        <ChartSelectionTitle title={CHART_TITLES.SessionHealthRateChartWidget} />
       )}
       height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(

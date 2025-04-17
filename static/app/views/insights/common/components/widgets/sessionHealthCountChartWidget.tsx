@@ -1,13 +1,17 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import useSessionHealthBreakdown from 'sentry/views/insights/sessions/queries/useSessionHealthBreakdown';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function SessionHealthCountChart() {
-  const {series, isPending, error} = useSessionHealthBreakdown({type: 'count'});
+export default function SessionHealthCountChartWidget(props: LoadableChartWidgetProps) {
+  const {series, isPending, error} = useSessionHealthBreakdown({
+    type: 'count',
+    pageFilters: props.pageFilters,
+  });
 
   const aliases = {
     healthy_session_count: 'count_healthy(session)',
@@ -18,9 +22,11 @@ export default function SessionHealthCountChart() {
 
   return (
     <InsightsLineChartWidget
-      title={CHART_TITLES.SessionHealthCountChart}
+      {...props}
+      id="sessionHealthCountChartWidget"
+      title={CHART_TITLES.SessionHealthCountChartWidget}
       interactiveTitle={() => (
-        <ChartSelectionTitle title={CHART_TITLES.SessionHealthCountChart} />
+        <ChartSelectionTitle title={CHART_TITLES.SessionHealthCountChartWidget} />
       )}
       height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
