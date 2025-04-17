@@ -4,9 +4,9 @@ import {cancelDeleteRepository, hideRepository} from 'sentry/actionCreators/inte
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

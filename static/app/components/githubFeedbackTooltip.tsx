@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconGithub} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
@@ -50,7 +51,6 @@ import {
   getHumanDuration,
 } from 'sentry/components/performance/waterfall/utils';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';

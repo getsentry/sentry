@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 import type {Location, LocationDescriptor} from 'history';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownLink from 'sentry/components/dropdownLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {
@@ -12,7 +13,6 @@ import {
   generateTraceTarget,
   isQuickTraceEvent,
 } from 'sentry/components/quickTrace/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategories';
 import {IconFire} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';

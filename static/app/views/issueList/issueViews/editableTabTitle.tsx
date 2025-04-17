@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {GrowingInput} from 'sentry/components/growingInput';
-import {Tooltip} from 'sentry/components/tooltip';
 
 interface EditableTabTitleProps {
   isEditing: boolean;

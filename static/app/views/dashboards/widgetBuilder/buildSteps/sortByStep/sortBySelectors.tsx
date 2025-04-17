@@ -4,7 +4,7 @@ import trimStart from 'lodash/trimStart';
 import uniqBy from 'lodash/uniqBy';
 
 import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';

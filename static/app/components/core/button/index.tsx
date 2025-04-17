@@ -6,9 +6,9 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import type {LocationDescriptor} from 'history';
 
+import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
-import {Tooltip, type TooltipProps} from 'sentry/components/tooltip';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import HookStore from 'sentry/stores/hookStore';

@@ -7,8 +7,8 @@ import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvat
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconSync} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {DocIntegration} from 'sentry/types/integrations';

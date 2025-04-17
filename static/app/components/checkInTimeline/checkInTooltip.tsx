@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Text from 'sentry/components/text';
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
