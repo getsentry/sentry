@@ -293,7 +293,7 @@ function FrontendOverviewPage() {
                     selectedProjects={eventView.project.map(String)}
                   >
                     {useEap ? (
-                      <FrontendOverviewTable response={response} sort={sorts[0]} />
+                      <FrontendOverviewTable response={response} sort={sorts[1]} />
                     ) : (
                       <Table
                         theme={theme}
