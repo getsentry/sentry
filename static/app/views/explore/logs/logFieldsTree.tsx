@@ -217,7 +217,8 @@ function LogFieldsTreeColumns({
     // Convert attributes record to the format expected by addToAttributeTree
     const visibleAttributes = attributes
       .map(key => getAttribute(key, hiddenAttributes))
-      .filter(defined);
+      .filter(defined)
+      .sort((a, b) => ((a.attribute_key ?? '') < (b.attribute_key ?? '') ? -1 : 1));
 
     // Create the AttributeTree data structure using all the given attributes
     const attributeTree = visibleAttributes.reduce<AttributeTree>(
