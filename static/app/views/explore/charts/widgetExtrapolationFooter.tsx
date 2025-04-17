@@ -7,6 +7,7 @@ import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import {
@@ -21,16 +22,21 @@ export function WidgetExtrapolationFooter({
   topEvents,
   dataScanned,
   samplingMode,
+  dataset,
 }: {
   confidence: Confidence | undefined;
   dataScanned: 'full' | 'partial' | undefined;
+  dataset: DiscoverDatasets;
   isSampled: boolean | null;
   sampleCount: number;
   topEvents: number | undefined;
   samplingMode?: SamplingMode;
 }) {
   const organization = useOrganization();
-  if (!organization.features.includes('visibility-explore-progressive-loading')) {
+  if (
+    !organization.features.includes('visibility-explore-progressive-loading') ||
+    ![DiscoverDatasets.SPANS_EAP, DiscoverDatasets.SPANS_EAP_RPC].includes(dataset)
+  ) {
     return (
       <ConfidenceFooter
         sampleCount={sampleCount}
