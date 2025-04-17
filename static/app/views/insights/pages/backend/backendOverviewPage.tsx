@@ -111,12 +111,12 @@ function BackendOverviewPage() {
     <NextJsOverviewPage headerTitle={BACKEND_LANDING_TITLE} />;
   }
   if (useEap) {
-    return <GenericBackendOverviewPage />;
+    return <EAPBackendOverviewPage />;
   }
   return <OldBackendOverviewPage />;
 }
 
-function GenericBackendOverviewPage() {
+function EAPBackendOverviewPage() {
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
