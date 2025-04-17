@@ -1,7 +1,8 @@
 import {frontend} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
-import {ModuleName} from 'sentry/views/insights/types';
+import type {ValidSort} from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
+import {type EAPSpanProperty, ModuleName} from 'sentry/views/insights/types';
 
 export const FRONTEND_LANDING_SUB_PATH = 'frontend';
 export const FRONTEND_LANDING_TITLE = t('Frontend');
@@ -30,3 +31,8 @@ export const FRONTEND_PLATFORMS: PlatformKey[] = frontend.filter(
     // Next, Remix and Sveltekit have both, frontend and backend transactions.
     !['javascript-nextjs', 'javascript-remix', 'javascript-sveltekit'].includes(platform)
 );
+
+export const DEFAULT_SORT: ValidSort = {
+  field: 'time_spent_percentage(span.duration)' satisfies EAPSpanProperty,
+  kind: 'desc',
+};
