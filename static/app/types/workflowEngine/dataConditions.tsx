@@ -55,11 +55,6 @@ export enum DataConditionType {
   EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS_PERCENT = 'event_unique_user_frequency_with_conditions_percent',
 }
 
-export enum AgeComparison {
-  OLDER = 'older',
-  NEWER = 'newer',
-}
-
 export enum DataConditionGroupLogicType {
   ANY = 'any',
   ANY_SHORT_CIRCUIT = 'any-short',
@@ -71,10 +66,10 @@ export interface NewDataCondition {
   comparison: any;
   comparison_type: DataConditionType;
   condition_group?: DataConditionGroup;
+  condition_result?: any;
 }
 
 export interface DataCondition extends Readonly<NewDataCondition> {
-  readonly condition_result: any;
   readonly id: string;
   type: DataConditionGroupLogicType;
 }

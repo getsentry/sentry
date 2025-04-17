@@ -15,7 +15,7 @@ import {space} from 'sentry/styles/space';
 import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
 import {
   AutomationBuilderContext,
-  initialState,
+  initialAutomationBuilderState,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
@@ -45,7 +45,7 @@ export default function AutomationForm() {
     <Form
       hideFooter
       model={model}
-      initialData={{...flattie(initialState), frequency: '1440'}}
+      initialData={{...flattie(initialAutomationBuilderState), frequency: '1440'}}
     >
       <AutomationBuilderContext.Provider value={{state, actions}}>
         <Flex column gap={space(1.5)} style={{padding: space(2)}}>

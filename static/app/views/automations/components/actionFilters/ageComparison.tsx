@@ -1,5 +1,8 @@
 import {tct} from 'sentry/locale';
-import {AgeComparison} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  AGE_COMPARISON_CHOICES,
+  type AgeComparison,
+} from 'sentry/views/automations/components/actionFilters/constants';
 import {
   InlineNumberInput,
   InlineSelectControl,
@@ -15,17 +18,6 @@ export default function AgeComparisonNode() {
   });
 }
 
-const ageComparisonOptions = [
-  {
-    value: AgeComparison.OLDER,
-    label: 'older than',
-  },
-  {
-    value: AgeComparison.NEWER,
-    label: 'newer than',
-  },
-];
-
 function ComparisonField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
@@ -33,7 +25,7 @@ function ComparisonField() {
       styles={selectControlStyles}
       name={`${condition_id}.comparison.type`}
       value={condition.comparison.type}
-      options={ageComparisonOptions}
+      options={AGE_COMPARISON_CHOICES}
       onChange={(value: AgeComparison) => {
         onUpdate({
           type: value,

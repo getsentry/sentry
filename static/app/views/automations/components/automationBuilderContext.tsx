@@ -38,7 +38,7 @@ export function useAutomationBuilderReducer() {
     []
   );
 
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(reducer, initialAutomationBuilderState);
 
   const actions: AutomationActions = {
     addWhenCondition: useCallback(
@@ -131,7 +131,7 @@ export const useAutomationBuilderContext = () => {
   return context;
 };
 
-export const initialState: AutomationBuilderState = {
+export const initialAutomationBuilderState: AutomationBuilderState = {
   triggers: {
     id: 'when',
     logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
