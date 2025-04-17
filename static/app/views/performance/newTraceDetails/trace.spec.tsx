@@ -878,7 +878,7 @@ describe('trace view', () => {
     mockEventsResponse();
 
     render(<TraceView />, {router});
-    expect(await screen.findByText(/Waterfalling/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Imagine waterfalling/i)).toBeInTheDocument();
   });
 
   it('renders error state if trace fails to load', async () => {

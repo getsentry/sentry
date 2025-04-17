@@ -13,7 +13,7 @@ function TraceLoading() {
     // Dont flash the animation on load because it's annoying
     <LoadingContainer animate={false}>
       <NoMarginIndicator size={24}>
-        <div>{t('Waterfalling')}</div>
+        <div>{t('Imagine waterfalling')}</div>
       </NoMarginIndicator>
     </LoadingContainer>
   );
