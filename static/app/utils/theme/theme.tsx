@@ -233,7 +233,7 @@ const generateTokens = (colors: Colors) => ({
   content: {
     primary: colors.gray400, // theme.textColor
     muted: colors.gray300, // theme.subText
-    accent: colors.purple400, // new
+    accent: colors.blue400, // new
     promotion: colors.pink400, // new
     danger: colors.red400, // theme.errorText
     warning: colors.yellow400, // theme.warningText
