@@ -878,7 +878,7 @@ describe('trace view', () => {
     mockEventsResponse();
 
     render(<TraceView />, {router});
-    expect(await screen.findByText(/assembling the trace/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Waterfalling/i)).toBeInTheDocument();
   });
 
   it('renders error state if trace fails to load', async () => {
@@ -890,7 +890,7 @@ describe('trace view', () => {
 
     render(<TraceView />, {router});
     expect(
-      await screen.findByText(/Woof. We failed to load your trace./i)
+      await screen.findByText(/Oof. We failed to load your trace./i)
     ).toBeInTheDocument();
   });
 
@@ -909,7 +909,7 @@ describe('trace view', () => {
 
     render(<TraceView />, {router});
     expect(
-      await screen.findByText(/Woof. We failed to load your trace./i)
+      await screen.findByText(/Oof. We failed to load your trace./i)
     ).toBeInTheDocument();
   });
 
@@ -962,7 +962,7 @@ describe('trace view', () => {
     });
     expect(
       await screen.findByText(
-        /We're still processing this trace. Please try refreshing after a minute/i
+        /Still processing. Grab a drink, come back and refresh yourself and the page/i
       )
     ).toBeInTheDocument();
   });
