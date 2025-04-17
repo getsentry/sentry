@@ -737,6 +737,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 201, response.content
-        assert response.data["query"]["visualize"] == [
+        assert len(response.data["query"]) == 1
+        assert response.data["query"][0]["visualize"] == [
             {"yAxes": ["count(span.duration)"]},
         ]
