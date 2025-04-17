@@ -3,7 +3,7 @@ from jsonschema import ValidationError
 
 from sentry.testutils.cases import TestCase
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.models import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 
 
 class TestUptimeDomainCheckFailureDetectorConfig(TestCase):

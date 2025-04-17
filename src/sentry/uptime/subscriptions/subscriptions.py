@@ -14,7 +14,6 @@ from sentry.uptime.detectors.url_extraction import extract_domain_parts
 from sentry.uptime.issue_platform import resolve_uptime_issue
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
@@ -31,6 +30,7 @@ from sentry.uptime.subscriptions.tasks import (
     update_remote_uptime_subscription,
 )
 from sentry.utils.db import atomic_transaction
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.outcomes import Outcome
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector

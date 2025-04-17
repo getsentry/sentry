@@ -25,7 +25,7 @@ from sentry.models.organization import Organization
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.types.actor import Actor
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
+from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, ProjectUptimeSubscriptionMode
 from sentry.utils.function_cache import cache_func, cache_func_for_models
 from sentry.utils.json import JSONEncoder
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
@@ -149,15 +149,6 @@ class UptimeSubscriptionRegion(DefaultFieldsModel):
                 name="uptime_uptimesubscription_region_slug_unique",
             ),
         ]
-
-
-class ProjectUptimeSubscriptionMode(enum.IntEnum):
-    # Manually created by a user
-    MANUAL = 1
-    # Auto-detected by our system and in the onboarding stage
-    AUTO_DETECTED_ONBOARDING = 2
-    # Auto-detected by our system and actively monitoring
-    AUTO_DETECTED_ACTIVE = 3
 
 
 @region_silo_model
