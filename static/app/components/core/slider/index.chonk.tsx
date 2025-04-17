@@ -25,7 +25,9 @@ export function Slider({
     }
 
     const handleChange = () => {
-      const {valueAsNumber, min: nativeMin = 0, max: nativeMax = 100} = input;
+      const nativeMin = input.min || 0;
+      const nativeMax = input.max || 100;
+      const {valueAsNumber} = input;
       setLabel(valueAsNumber);
       const progress = getProgress(valueAsNumber, nativeMin, nativeMax);
       input.parentElement?.style.setProperty('--p', `${progress.toFixed(0)}%`);
@@ -115,6 +117,9 @@ const StepMark = chonkStyled('span')<{filled?: boolean}>`
 function toNumber(value: number | string) {
   if (typeof value === 'number') {
     return value;
+  }
+  if (value === '') {
+    return 0;
   }
   return Number.parseInt(value, 10);
 }
