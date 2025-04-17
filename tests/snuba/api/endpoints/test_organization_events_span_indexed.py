@@ -3625,44 +3625,32 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             [
                 self.create_span(
                     {
-                        "measurements": {"score.ratio.inp": {"value": 0.5}},
-                        "sentry_tags": {"transaction": "foo_transaction"},
+                        "measurements": {
+                            "score.ratio.fcp": {"value": 0.0},
+                            "score.ratio.cls": {"value": 0.0},
+                            "score.ratio.ttfb": {"value": 0.0},
+                            "score.ratio.lcp": {"value": 1.0},
+                        },
                     }
                 ),
                 self.create_span(
                     {
-                        "measurements": {"score.ratio.inp": {"value": 0.2}},
-                        "sentry_tags": {"transaction": "foo_transaction"},
+                        "measurements": {
+                            "score.ratio.fcp": {"value": 0.0},
+                            "score.ratio.cls": {"value": 0.0},
+                            "score.ratio.ttfb": {"value": 0.0},
+                            "score.ratio.lcp": {"value": 0.0},
+                        },
                     }
                 ),
                 self.create_span(
                     {
-                        "measurements": {"score.ratio.inp": {"value": 0.4}},
-                        "sentry_tags": {"transaction": "foo_transaction"},
-                    }
-                ),
-                self.create_span(
-                    {
-                        "measurements": {"score.ratio.lcp": {"value": 0.1 / 0.3}},
-                        "sentry_tags": {"transaction": "foo_transaction"},
-                    }
-                ),
-                self.create_span(
-                    {
-                        "measurements": {"score.ratio.inp": {"value": 0.4}},
-                        "sentry_tags": {"transaction": "bar_transaction"},
-                    }
-                ),
-                self.create_span(
-                    {
-                        "measurements": {"score.total": {"value": 0.5}},
-                        "sentry_tags": {"transaction": "foo_transaction"},
-                    }
-                ),
-                self.create_span(
-                    {
-                        "measurements": {"score.total": {"value": 0.5}},
-                        "sentry_tags": {"transaction": "bar_transaction"},
+                        "measurements": {
+                            "score.ratio.fcp": {"value": 0.0},
+                            "score.ratio.cls": {"value": 0.0},
+                            "score.ratio.ttfb": {"value": 0.0},
+                            "score.ratio.lcp": {"value": 0.0},
+                        },
                     }
                 ),
             ],
@@ -3672,10 +3660,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         response = self.do_request(
             {
                 "field": [
-                    "transaction",
                     "opportunity_score(measurements.score.total)",
                 ],
-                "orderby": "transaction",
                 "dataset": self.dataset,
                 "project": self.project.id,
             }
@@ -3683,9 +3669,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert len(data) == 2
-        assert data[0]["opportunity_score(measurements.score.total)"] == 0.09999999999999999
-        assert data[1]["opportunity_score(measurements.score.total)"] == 0.6
+        assert len(data) == 1
+        assert data[0]["opportunity_score(measurements.score.total)"] == 0.9
 
     def test_count_starts(self):
         self.store_spans(

@@ -70,6 +70,7 @@ def transform_binary_formula_to_expression(
         left=transform_column_to_expression(column.left),
         right=transform_column_to_expression(column.right),
         op=BINARY_FORMULA_OPERATOR_MAP[column.op],
+        default_value_double=column.default_value_double,
     )
 
 
