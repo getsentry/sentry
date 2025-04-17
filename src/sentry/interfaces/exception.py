@@ -238,12 +238,12 @@ class SingleException(Interface):
     @classmethod
     def to_python(cls, data, **kwargs):
         if get_path(data, "stacktrace", "frames", filter=True):
-            stacktrace = Stacktrace.to_python_subpath(data, ["stacktrace"], **kwargs)
+            stacktrace = Stacktrace.to_python(data["stacktrace"], **kwargs)
         else:
             stacktrace = None
 
         if get_path(data, "raw_stacktrace", "frames", filter=True):
-            raw_stacktrace = Stacktrace.to_python_subpath(data, ["raw_stacktrace"], **kwargs)
+            raw_stacktrace = Stacktrace.to_python(data["raw_stacktrace"], **kwargs)
         else:
             raw_stacktrace = None
 
@@ -251,7 +251,7 @@ class SingleException(Interface):
         value = data.get("value")
 
         if data.get("mechanism"):
-            mechanism = Mechanism.to_python_subpath(data, ["mechanism"], **kwargs)
+            mechanism = Mechanism.to_python(data["mechanism"], **kwargs)
         else:
             mechanism = None
 
@@ -413,7 +413,7 @@ class Exception(Interface):
                 # Cannot skip over None-values, need to preserve offsets
                 values.append(v)
             else:
-                values.append(SingleException.to_python_subpath(data, ["values", i], **kwargs))
+                values.append(SingleException.to_python(v, **kwargs))
 
         return super().to_python(
             {"values": values, "exc_omitted": data.get("exc_omitted")}, **kwargs

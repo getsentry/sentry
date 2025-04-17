@@ -73,7 +73,7 @@ export function useSelectSolution({groupId, runId}: {groupId: string; runId: str
         queryClient,
         makeAutofixQueryKey(groupId),
         data => {
-          if (!data || !data.autofix) {
+          if (!data?.autofix) {
             return data;
           }
 
@@ -634,7 +634,7 @@ function AutofixSolutionDisplay({
                   : null
               }
               isAgentComment
-              blockName={t('Solution')}
+              blockName={t('Autofix is uncertain of the solution...')}
             />
           )}
         </AnimatePresence>

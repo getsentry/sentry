@@ -777,6 +777,8 @@ def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka)
     event["user"]["email"] = "josh.ferge@sentry.io"
     event["contexts"]["feedback"]["contact_email"] = "andrew@sentry.io"
     event["contexts"]["trace"] = {"trace_id": "abc123"}
+    event_id = "a" * 32
+    event["contexts"]["feedback"]["associated_event_id"] = event_id
     create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
@@ -792,6 +794,26 @@ def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka)
     produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
     tags = produced_event["tags"]
     assert tags["user.email"] == "andrew@sentry.io"
+
+    # Adds associated_event_id and has_linked_error to tags
+    assert tags["associated_event_id"] == event_id
+    assert tags["has_linked_error"] == "true"
+
+
+@django_db_all
+def test_create_feedback_tags_no_associated_event_id(
+    default_project, mock_produce_occurrence_to_kafka
+):
+    event = mock_feedback_event(default_project.id, datetime.now(UTC))
+    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    tags = produced_event["tags"]
+
+    # No associated_event_id in tags and has_linked_error is false
+    assert tags.get("associated_event_id") is None
+    assert tags["has_linked_error"] == "false"
 
 
 @django_db_all

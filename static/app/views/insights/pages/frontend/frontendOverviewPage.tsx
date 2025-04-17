@@ -22,6 +22,7 @@ import {
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -31,17 +32,25 @@ import useProjects from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
+import {
+  FrontendOverviewTable,
+  isAValidSort,
+  type ValidSort,
+} from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {
+  DEFAULT_SORT,
   FRONTEND_LANDING_TITLE,
   FRONTEND_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
+import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {
   generateFrontendOtherPerformanceEventView,
   USER_MISERY_TOOLTIP,
@@ -203,6 +212,39 @@ function FrontendOverviewPage() {
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
+  const sorts: [ValidSort, ValidSort] = [
+    {
+      field: 'is_starred_transaction' satisfies EAPSpanProperty,
+      kind: 'desc',
+    },
+    decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
+  ];
+
+  if (useEap) {
+    existingQuery.addFilterValue('is_transaction', 'true');
+  }
+
+  const response = useEAPSpans(
+    {
+      search: existingQuery,
+      sorts,
+      enabled: useEap,
+      fields: [
+        'is_starred_transaction',
+        'transaction',
+        'span.op',
+        'project',
+        'epm()',
+        'p50(span.duration)',
+        'p95(span.duration)',
+        'failure_rate()',
+        'time_spent_percentage(span.duration)',
+        'sum(span.duration)',
+      ],
+    },
+    'api.performance.landing-table'
+  );
+
   return (
     <Feature
       features="performance-view"
@@ -250,13 +292,17 @@ function FrontendOverviewPage() {
                     selectedTeams={['myteams']}
                     selectedProjects={eventView.project.map(String)}
                   >
-                    <Table
-                      theme={theme}
-                      projects={projects}
-                      columnTitles={FRONTEND_COLUMN_TITLES}
-                      setError={setPageError}
-                      {...sharedProps}
-                    />
+                    {useEap ? (
+                      <FrontendOverviewTable response={response} sort={sorts[1]} />
+                    ) : (
+                      <Table
+                        theme={theme}
+                        projects={projects}
+                        columnTitles={FRONTEND_COLUMN_TITLES}
+                        setError={setPageError}
+                        {...sharedProps}
+                      />
+                    )}
                   </TeamKeyTransactionManager.Provider>
                 </PerformanceDisplayProvider>
               )}
