@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
@@ -36,6 +36,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, Visibility
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
+from sentry.replays.date import round_date_to_minute_interval
 from sentry.replays.lib.new_query.conditions import IntegerScalar
 from sentry.replays.lib.new_query.fields import FieldProtocol, IntegerColumnField
 from sentry.replays.lib.new_query.parsers import parse_int
@@ -133,10 +134,16 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
             except InvalidSearchQuery as e:
                 raise ParseError(str(e))
 
+            start = filter_params["start"]
+            end = filter_params["end"]
+            if end - start > timedelta(minutes=15):
+                start = round_date_to_minute_interval(start, interval=15)
+                end = round_date_to_minute_interval(end, interval=15)
+
             return query_selector_collection(
                 project_ids=filter_params["project_id"],
-                start=filter_params["start"],
-                end=filter_params["end"],
+                start=start,
+                end=end,
                 sort=filter_params.get("sort"),
                 environment=filter_params.get("environment"),
                 limit=limit,
@@ -203,14 +210,6 @@ def query_selector_dataset(
     conditions = handle_search_filters(query_config, search_filters)
     sorting = handle_ordering(sort_config, sort or "-count_dead_clicks")
 
-    # Pre-fetch the number of replays in the set.
-    #
-    # NOTE: The date values have their seconds precision stripped. This is done so our queries
-    # will be cached. The number of rows in the set won't materially change on a minute by minute
-    # basis. We could extend this to use hourly or daily precision.
-    count_start = start.replace(second=0)
-    count_end = end.replace(second=0)
-
     count_query = SnubaRequest(
         dataset="replays",
         app_id="replay-backend-web",
@@ -221,14 +220,14 @@ def query_selector_dataset(
             ],
             where=[
                 Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("timestamp"), Op.GTE, count_start),
-                Condition(Column("timestamp"), Op.LT, count_end),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("timestamp"), Op.LT, end),
             ],
             granularity=Granularity(3600),
         ),
         tenant_ids=tenant_ids,
     )
-    result = raw_snql_query(count_query, "replays.query.query_selector_index_count")
+    result = raw_snql_query(count_query, "replays.query.query_selector_index_count", use_cache=True)
 
     # The sample rate is computed such that we will only ever aggregate a maximum of 1M rows.
     num_rows = result["data"][0]["count(replay_id)"]
@@ -304,7 +303,7 @@ def query_selector_dataset(
         ),
         tenant_ids=tenant_ids,
     )
-    return raw_snql_query(snuba_request, "replays.query.query_selector_index")
+    return raw_snql_query(snuba_request, "replays.query.query_selector_index", use_cache=True)
 
 
 def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]:
