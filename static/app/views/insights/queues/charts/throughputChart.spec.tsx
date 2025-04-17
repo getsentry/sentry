@@ -31,7 +31,13 @@ describe('throughputChart', () => {
     });
   });
   it('renders', async () => {
-    render(<ThroughputChart referrer={Referrer.QUEUES_SUMMARY_CHARTS} />, {organization});
+    render(
+      <ThroughputChart
+        id="throughput-chart-test"
+        referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+      />,
+      {organization}
+    );
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
