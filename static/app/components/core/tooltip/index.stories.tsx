@@ -22,7 +22,7 @@ export default storyBook('Tooltip', (story, APIReference) => {
         <p>
           By default, a tooltip renders a wrapper around the children element and renders
           the tooltip content in a portal. The wrapper can be skipped by passing the{' '}
-          <JSXProperty name="skipTriggerWrapper" value="true" /> prop.
+          <JSXProperty name="skipWrapper" value="true" /> prop.
         </p>
         <SideBySide>
           <Tooltip title="Tooltip">
@@ -38,7 +38,7 @@ export default storyBook('Tooltip', (story, APIReference) => {
       <Fragment>
         <p>
           A tooltip is not hoverable by default and will hide before the pointer enters
-          it's container. To make a tooltip hoverable, pass the{' '}
+          it's container - to make it hoverable, pass the{' '}
           <JSXProperty name="isHoverable" value="true" /> prop.
         </p>
         <SideBySide>
