@@ -309,7 +309,7 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
     content: {
       primary: colorScheme.gray800,
       muted: colorScheme.gray500,
-      accent: colorScheme.blue300,
+      accent: colorScheme.blue500,
       promotion: colorScheme.pink500,
       danger: colorScheme.red400,
       warning: colorScheme.yellow500,
@@ -765,7 +765,7 @@ const generateAliases = (
    */
   active: colors.chonk.blue200,
   activeHover: colors.chonk.blue300,
-  activeText: colors.chonk.blue400,
+  activeText: tokens.content.accent,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
