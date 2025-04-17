@@ -104,7 +104,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 )
 
         createdBy = serializer.validated_data.get("createdBy", "me")
-        sorts = [SORT_MAP[sort] for sort in serializer.validated_data.get("sort", ["-visited"])]
+        sorts = [SORT_MAP[sort] for sort in serializer.validated_data["sort"]]
         query = serializer.validated_data.get("query")
         base_queryset = (
             GroupSearchView.objects.filter(organization=organization)
