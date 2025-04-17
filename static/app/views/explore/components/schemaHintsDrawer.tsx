@@ -22,33 +22,20 @@ import {addFilterToQuery} from 'sentry/views/explore/components/schemaHintsList'
 
 type SchemaHintsDrawerProps = SchemaHintsPageParams & {
   hints: Tag[];
+  queryRef: React.RefObject<string>;
   searchBarDispatch: React.Dispatch<QueryBuilderActions>;
 };
 
-function SchemaHintsDrawer({
-  hints,
-  exploreQuery,
-  tableColumns,
-  setPageParams,
-  searchBarDispatch,
-}: SchemaHintsDrawerProps) {
+function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDrawerProps) {
   const organization = useOrganization();
   const [searchQuery, setSearchQuery] = useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const [currentQuery, setCurrentQuery] = useState(exploreQuery);
-  const [currentTableColumns, setCurrentTableColumns] = useState(tableColumns);
+  const [currentQuery, setCurrentQuery] = useState(queryRef.current);
 
-  const handleQueryAndTableColumnsChange = useCallback(
-    (newQuery: MutableSearch, newTableColumns: string[]) => {
-      setCurrentQuery(newQuery.formatString());
-      setCurrentTableColumns(newTableColumns);
-      setPageParams({
-        fields: newTableColumns,
-      });
-    },
-    [setPageParams]
-  );
+  const handleQueryChange = useCallback((newQuery: MutableSearch) => {
+    setCurrentQuery(newQuery.formatString());
+  }, []);
 
   const selectedFilterKeys = useMemo(() => {
     const filterQuery = new MutableSearch(currentQuery);
@@ -101,7 +88,7 @@ function SchemaHintsDrawer({
 
   const handleCheckboxChange = useCallback(
     (hint: Tag) => {
-      const filterQuery = new MutableSearch(currentQuery);
+      const filterQuery = new MutableSearch(queryRef.current);
       if (
         filterQuery
           .getFilterKeys()
@@ -119,11 +106,7 @@ function SchemaHintsDrawer({
         );
       }
 
-      const newTableColumns = currentTableColumns.includes(hint.key)
-        ? currentTableColumns
-        : [...currentTableColumns, hint.key];
-
-      handleQueryAndTableColumnsChange(filterQuery, newTableColumns);
+      handleQueryChange(filterQuery);
       searchBarDispatch({
         type: 'UPDATE_QUERY',
         query: filterQuery.formatString(),
@@ -138,13 +121,7 @@ function SchemaHintsDrawer({
         organization,
       });
     },
-    [
-      currentQuery,
-      currentTableColumns,
-      handleQueryAndTableColumnsChange,
-      organization,
-      searchBarDispatch,
-    ]
+    [handleQueryChange, organization, queryRef, searchBarDispatch]
   );
 
   const noAttributesMessage = (
