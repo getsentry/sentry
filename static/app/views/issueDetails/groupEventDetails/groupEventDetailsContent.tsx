@@ -138,7 +138,11 @@ export function EventDetailsContent({
 
   return (
     <Fragment>
-      {hasStreamlinedUI && <HighlightsIconSummary event={event} group={group} />}
+      {hasStreamlinedUI && (
+        <ErrorBoundary mini>
+          <HighlightsIconSummary event={event} group={group} />
+        </ErrorBoundary>
+      )}
       {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} />
       )}
@@ -209,11 +213,7 @@ export function EventDetailsContent({
               lowerText.includes('langchain'))
           );
         }) ? (
-        <LazyLoad
-          LazyComponent={LLMMonitoringSection}
-          event={event}
-          organization={organization}
-        />
+        <LazyLoad LazyComponent={LLMMonitoringSection} event={event} />
       ) : null}
       {!hasStreamlinedUI && group.issueCategory === IssueCategory.UPTIME && (
         <UptimeDataSection event={event} project={project} group={group} />

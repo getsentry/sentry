@@ -87,7 +87,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
     def identity(self) -> RpcIdentity:
         if self.refreshed_identity:
             return self.refreshed_identity
-        return self.installation.get_default_identity()
+        return self.installation.default_identity
 
     @property
     def metadata(self):
