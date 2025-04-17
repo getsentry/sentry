@@ -1428,20 +1428,16 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         response = self.client.get(self.url, {"createdBy": "me", "sort": "created"})
         assert response.status_code == 200
         assert len(response.data) == 3
-        # =============   Starred views   =============
-        # ============= Non-starred views =============
-        assert response.data[0]["id"] == str(view_1.id), not response.data[0]["starred"]
-        assert response.data[1]["id"] == str(view_2.id), not response.data[1]["starred"]
-        assert response.data[2]["id"] == str(view_3.id), not response.data[2]["starred"]
+        assert response.data[0]["id"] == str(view_1.id)
+        assert response.data[1]["id"] == str(view_2.id)
+        assert response.data[2]["id"] == str(view_3.id)
 
         response = self.client.get(self.url, {"createdBy": "me", "sort": "-created"})
         assert response.status_code == 200
         assert len(response.data) == 3
-        # =============   Starred views   =============
-        # ============= Non-starred views =============
-        assert response.data[0]["id"] == str(view_3.id), not response.data[0]["starred"]
-        assert response.data[1]["id"] == str(view_2.id), not response.data[1]["starred"]
-        assert response.data[2]["id"] == str(view_1.id), not response.data[2]["starred"]
+        assert response.data[0]["id"] == str(view_3.id)
+        assert response.data[1]["id"] == str(view_2.id)
+        assert response.data[2]["id"] == str(view_1.id)
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
