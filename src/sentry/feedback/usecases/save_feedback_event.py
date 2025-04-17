@@ -41,7 +41,7 @@ def save_feedback_event(event_data: Mapping[str, Any], project_id: int):
                     "project_id": project_id,
                     # XXX(aliu): including environment ensures the update_user_reports task
                     # will not shim the report back to feedback.
-                    "environment_id": fixed_event_data["environment"],
+                    "environment_id": fixed_event_data.get("environment", "production"),
                     "name": feedback_context["name"],
                     "email": feedback_context["contact_email"],
                     "comments": feedback_context["message"],
