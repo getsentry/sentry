@@ -1,12 +1,14 @@
 import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {EventDrawerBody, EventNavigator} from 'sentry/components/events/eventDrawer';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -29,9 +31,11 @@ interface Props {
 const SHOW_SCORES_LOCAL_STORAGE_KEY = 'flag-drawer-show-suspicion-scores';
 
 export default function Flags({group, organization, setTab}: Props) {
-  const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
   const environments = useEnvironmentsFromUrl();
   const {tagKey} = useParams<{tagKey: string}>();
+
+  // If we're showing the suspect section at all
+  const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
 
   // If the user is allowed to toggle debugging on/off
   // This is internal only
@@ -136,18 +140,24 @@ export default function Flags({group, organization, setTab}: Props) {
               orderByOptions={orderByOptions}
               sortByOptions={sortByOptions}
             />
-            {showSuspectSandboxUI && (
-              <Button
-                size="xs"
-                onClick={() => setDebugSuspectScores(debugSuspectScores ? '0' : '1')}
-              >
-                {debugSuspectScores ? t('Hide Scores') : t('Debug Scores')}
-              </Button>
-            )}
+
             <TagFlagPicker setTab={setTab} tab={DrawerTab.FEATURE_FLAGS} />
           </ButtonBar>
         )}
       </EventNavigator>
+      {!tagKey && showSuspectSandboxUI && (
+        <EventDrawerBody>
+          <Label>
+            {t('Debug')}{' '}
+            <Checkbox
+              checked={debugSuspectScores}
+              onChange={() => {
+                setDebugSuspectScores(debugSuspectScores ? '0' : '1');
+              }}
+            />
+          </Label>
+        </EventDrawerBody>
+      )}
       <EventDrawerBody>
         {tagKey ? (
           <AnalyticsArea name="feature_flag_details">
@@ -169,3 +179,10 @@ export default function Flags({group, organization, setTab}: Props) {
     </Fragment>
   );
 }
+
+const Label = styled('label')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  margin-bottom: 0;
+`;
