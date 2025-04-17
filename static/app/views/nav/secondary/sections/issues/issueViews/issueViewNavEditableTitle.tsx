@@ -3,39 +3,51 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {GrowingInput} from 'sentry/components/growingInput';
-import {Tooltip} from 'sentry/components/tooltip';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
+import type {NavIssueView} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
 
 interface IssueViewNavEditableTitleProps {
+  isActive: boolean;
   isDragging: boolean;
   isEditing: boolean;
-  isSelected: boolean;
-  label: string;
-  onChange: (newLabel: string) => void;
   setIsEditing: (isEditing: boolean) => void;
+  view: NavIssueView;
 }
 
 function IssueViewNavEditableTitle({
-  label,
-  onChange,
+  view,
+  isActive,
   isEditing,
-  isSelected,
   setIsEditing,
   isDragging,
 }: IssueViewNavEditableTitleProps) {
-  const [inputValue, setInputValue] = useState(label);
+  const organization = useOrganization();
+  const [inputValue, setInputValue] = useState(view.label);
+
+  const {mutate: updateIssueView} = useUpdateGroupSearchView({
+    onSuccess: () => {
+      trackAnalytics('issue_views.renamed_view', {
+        leftNav: true,
+        organization: organization.slug,
+      });
+    },
+  });
 
   useEffect(() => {
-    setInputValue(label);
-  }, [label]);
+    setInputValue(view.label);
+  }, [view.label]);
 
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const isEmpty = !inputValue.trim();
 
   const memoizedStyles = useMemo(() => {
-    return {fontWeight: isSelected ? theme.fontWeightBold : theme.fontWeightNormal};
-  }, [isSelected, theme.fontWeightBold, theme.fontWeightNormal]);
+    return {fontWeight: isActive ? theme.fontWeightBold : theme.fontWeightNormal};
+  }, [isActive, theme.fontWeightBold, theme.fontWeightNormal]);
 
   const handleOnBlur = (e: React.FocusEvent<HTMLInputElement, Element>) => {
     e.stopPropagation();
@@ -46,13 +58,13 @@ function IssueViewNavEditableTitle({
     }
 
     if (isEmpty) {
-      setInputValue(label);
+      setInputValue(view.label);
       setIsEditing(false);
       return;
     }
-    if (trimmedInputValue !== label) {
-      onChange(trimmedInputValue);
+    if (trimmedInputValue !== view.label) {
       setInputValue(trimmedInputValue);
+      updateIssueView({...view, name: trimmedInputValue});
     }
     setIsEditing(false);
   };
@@ -62,7 +74,7 @@ function IssueViewNavEditableTitle({
       inputRef.current?.blur();
     }
     if (e.key === 'Escape') {
-      setInputValue(label.trim());
+      setInputValue(view.label.trim());
       setIsEditing(false);
     }
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === ' ') {
@@ -87,7 +99,7 @@ function IssueViewNavEditableTitle({
 
   return (
     <Tooltip
-      title={label}
+      title={inputValue}
       disabled={isEditing || isDragging}
       showOnlyOnOverflow
       skipWrapper
@@ -120,20 +132,20 @@ function IssueViewNavEditableTitle({
           <UnselectedTabTitle
             onDoubleClick={() => setIsEditing(true)}
             onPointerDown={e => {
-              if (isSelected) {
+              if (isActive) {
                 e.stopPropagation();
                 e.preventDefault();
               }
             }}
             onMouseDown={e => {
-              if (isSelected) {
+              if (isActive) {
                 e.stopPropagation();
                 e.preventDefault();
               }
             }}
-            isSelected={isSelected}
+            isActive={isActive}
           >
-            {label}
+            {inputValue}
           </UnselectedTabTitle>
         )}
       </motion.div>
@@ -143,9 +155,9 @@ function IssueViewNavEditableTitle({
 
 export default IssueViewNavEditableTitle;
 
-const UnselectedTabTitle = styled('div')<{isSelected: boolean}>`
+const UnselectedTabTitle = styled('div')<{isActive: boolean}>`
   height: 20px;
-  max-width: ${p => (p.isSelected ? '325px' : '310px')};
+  max-width: ${p => (p.isActive ? '325px' : '310px')};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

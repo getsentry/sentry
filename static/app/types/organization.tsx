@@ -268,6 +268,7 @@ export interface NewQuery {
   expired?: boolean;
   id?: string;
   interval?: string;
+  multiSort?: boolean;
   orderby?: string | string[];
   projects?: readonly number[];
   query?: string;
@@ -327,6 +328,7 @@ export type EventsStats = {
       // 0 sample count can result in null sampling rate
       samplingRate?: AccuracyStats<number | null>;
     };
+    dataScanned?: 'full' | 'partial';
     dataset?: string;
     datasetReason?: string;
     discoverSplitDecision?: WidgetType;

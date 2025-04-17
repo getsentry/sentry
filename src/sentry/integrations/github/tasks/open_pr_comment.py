@@ -23,12 +23,7 @@ from snuba_sdk import Request as SnubaRequest
 
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.integrations.github.client import GitHubApiClient
-from sentry.integrations.github.constants import (
-    ISSUE_LOCKED_ERROR_MESSAGE,
-    RATE_LIMITED_MESSAGE,
-    STACKFRAME_COUNT,
-)
-from sentry.integrations.github.tasks.language_parsers import PATCH_PARSERS
+from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.pr_comment import format_comment_url
 from sentry.integrations.github.tasks.utils import (
     GithubAPIErrorType,
@@ -38,6 +33,8 @@ from sentry.integrations.github.tasks.utils import (
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.constants import STACKFRAME_COUNT
+from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project

@@ -2,8 +2,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
+from sentry.api.helpers.environments import get_environment
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.models.environment import Environment
@@ -11,7 +12,7 @@ from sentry.models.userreport import UserReport
 
 
 @region_silo_endpoint
-class GroupUserReportsEndpoint(GroupEndpoint, EnvironmentMixin):
+class GroupUserReportsEndpoint(GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -29,7 +30,7 @@ class GroupUserReportsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
 
         try:
-            environment = self._get_environment_from_request(request, group.organization.id)
+            environment = get_environment(request, group.organization.id)
         except Environment.DoesNotExist:
             report_list = UserReport.objects.none()
         else:

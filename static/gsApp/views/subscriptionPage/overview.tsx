@@ -10,6 +10,7 @@ import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {openCodecovModal} from 'getsentry/actionCreators/modal';
@@ -55,6 +56,7 @@ type Props = {
 function Overview({location, subscription, promotionData}: Props) {
   const api = useApi();
   const organization = useOrganization();
+  const navigate = useNavigate();
 
   const displayMode = ['cost', 'usage'].includes(location.query.displayMode as string)
     ? (location.query.displayMode as 'cost' | 'usage')
@@ -96,6 +98,7 @@ function Overview({location, subscription, promotionData}: Props) {
           promotionData,
           organization,
           promptFeature: 'performance_reserved_txns_discount_v1',
+          navigate,
         });
         return;
       }
@@ -119,6 +122,7 @@ function Overview({location, subscription, promotionData}: Props) {
           promotionData,
           organization,
           promptFeature: 'performance_reserved_txns_discount',
+          navigate,
         });
         return;
       }
@@ -148,7 +152,7 @@ function Overview({location, subscription, promotionData}: Props) {
         window.location.pathname + window.location.search
       );
     }
-  }, [organization, location.query, subscription, promotionData, api]);
+  }, [organization, location.query, subscription, promotionData, api, navigate]);
 
   useEffect(
     () => void trackSubscriptionView(organization, subscription, 'overview'),

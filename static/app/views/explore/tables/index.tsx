@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
@@ -98,13 +99,23 @@ function ExploreTablesTabbed(props: ExploreTablesProps) {
             <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
           </TabList>
         </Tabs>
-        <Button
-          disabled={tab !== Tab.SPAN}
-          onClick={openColumnEditor}
-          icon={<IconTable />}
-        >
-          {t('Edit Table')}
-        </Button>
+        {tab === Tab.SPAN ? (
+          <Button onClick={openColumnEditor} icon={<IconTable />}>
+            {t('Edit Table')}
+          </Button>
+        ) : (
+          <Tooltip
+            title={
+              tab === Tab.TRACE
+                ? t('Editing columns is available for span samples only')
+                : t('Use the Group By and Visualize controls to change table columns')
+            }
+          >
+            <Button disabled onClick={openColumnEditor} icon={<IconTable />}>
+              {t('Edit Table')}
+            </Button>
+          </Tooltip>
+        )}
       </SamplesTableHeader>
       {tab === Tab.SPAN && <SpansTable {...props} />}
       {tab === Tab.TRACE && <TracesTable {...props} />}

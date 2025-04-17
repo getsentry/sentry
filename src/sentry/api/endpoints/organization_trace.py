@@ -52,6 +52,7 @@ class SerializedSpan(SerializedEvent):
     occurrences: list["SerializedIssue"]
     duration: float
     end_timestamp: datetime
+    measurements: dict[str, Any]
     op: str
     parent_span_id: str | None
     profile_id: str
@@ -135,6 +136,9 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 parent_span_id=None if event["parent_span"] == "0" * 16 else event["parent_span"],
                 start_timestamp=event["precise.start_ts"],
                 end_timestamp=event["precise.finish_ts"],
+                measurements={
+                    key: value for key, value in event.items() if key.startswith("measurements.")
+                },
                 duration=event["span.duration"],
                 transaction=event["transaction"],
                 is_transaction=event["is_transaction"],
@@ -144,7 +148,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 event_type="span",
             )
         else:
-            raise Exception(f"Unknown event encountered in trace: {event.get('event_type')}")
+            return self.serialize_rpc_issue(event)
 
     @sentry_sdk.tracing.trace
     def run_errors_query(self, snuba_params: SnubaParams, trace_id: str):

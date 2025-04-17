@@ -30,6 +30,7 @@ import {
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
+import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
@@ -76,39 +77,31 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   const shouldLoadTraceRoot = !trace.isPending && trace.data;
 
   const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data : null);
-  const preferences = useMemo(
-    () =>
-      loadTraceViewPreferences('issue-details-trace-view-preferences') ||
-      DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
-    []
-  );
 
   const traceEventView = useTraceEventView(traceId, params);
+
+  const traceWaterfallModels = useTraceWaterfallModels();
 
   if (!traceId) {
     return null;
   }
 
   return (
-    <TraceStateProvider
-      initialPreferences={preferences}
-      preferencesStorageKey="issue-details-view-preferences"
-    >
-      <IssuesTraceContainer>
-        <IssuesTraceWaterfall
-          tree={tree}
-          trace={trace}
-          traceSlug={traceId}
-          rootEvent={rootEvent}
-          organization={organization}
-          traceEventView={traceEventView}
-          meta={meta}
-          source="issues"
-          replay={null}
-          event={event}
-        />
-      </IssuesTraceContainer>
-    </TraceStateProvider>
+    <IssuesTraceContainer>
+      <IssuesTraceWaterfall
+        tree={tree}
+        trace={trace}
+        traceSlug={traceId}
+        rootEvent={rootEvent}
+        organization={organization}
+        traceEventView={traceEventView}
+        meta={meta}
+        source="issues"
+        replay={null}
+        event={event}
+        traceWaterfallModels={traceWaterfallModels}
+      />
+    </IssuesTraceContainer>
   );
 }
 
@@ -144,6 +137,14 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   // Span Evidence section contains the trace view already
+  const preferences = useMemo(
+    () =>
+      loadTraceViewPreferences('issue-details-trace-view-preferences') ||
+      DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
+    []
+  );
+
+  // Performance issues have a Span Evidence section that contains the trace view
   if (!traceId || issueTypeConfig.spanEvidence.enabled) {
     return null;
   }
@@ -186,11 +187,16 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     >
       <OneOtherIssueEvent event={event} />
       {hasTracePreviewFeature && (
-        <EventTraceViewInner
-          event={event}
-          organization={organization}
-          traceId={traceId}
-        />
+        <TraceStateProvider
+          initialPreferences={preferences}
+          preferencesStorageKey="issue-details-view-preferences"
+        >
+          <EventTraceViewInner
+            event={event}
+            organization={organization}
+            traceId={traceId}
+          />
+        </TraceStateProvider>
       )}
     </InterimSection>
   );

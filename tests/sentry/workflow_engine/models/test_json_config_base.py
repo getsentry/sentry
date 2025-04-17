@@ -6,6 +6,7 @@ from jsonschema import ValidationError
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.testutils.cases import APITestCase
+from sentry.workflow_engine.types import DetectorSettings
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
@@ -43,7 +44,7 @@ class JSONConfigBaseTest(BaseGroupTypeTest):
             slug = "test"
             description = "Test"
             category = GroupCategory.ERROR.value
-            detector_config_schema = self.example_schema
+            detector_settings = DetectorSettings(config_schema=self.example_schema)
 
         @dataclass(frozen=True)
         class ExampleGroupType(GroupType):
@@ -51,7 +52,9 @@ class JSONConfigBaseTest(BaseGroupTypeTest):
             slug = "example"
             description = "Example"
             category = GroupCategory.PERFORMANCE.value
-            detector_config_schema = {"type": "object", "additionalProperties": False}
+            detector_settings = DetectorSettings(
+                config_schema={"type": "object", "additionalProperties": False},
+            )
 
 
 # TODO - Move this to the detector model test
@@ -100,7 +103,9 @@ class TestMetricAlertFireDetectorConfig(JSONConfigBaseTest, APITestCase):
             slug = "test_metric_alert_fire"
             description = "Metric alert fired"
             category = GroupCategory.METRIC_ALERT.value
-            detector_config_schema = MetricAlertFire.detector_config_schema
+            detector_settings = DetectorSettings(
+                config_schema=MetricAlertFire.detector_settings.config_schema,
+            )
 
     def test_detector_correct_schema(self):
         self.create_detector(

@@ -26,6 +26,7 @@ from sentry.integrations.repository.notification_action import (
     NotificationActionNotificationMessage,
     NotificationActionNotificationMessageRepository,
 )
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
 from sentry.integrations.slack.message_builder.types import SlackBlock
@@ -451,7 +452,7 @@ class SlackService:
         recipient: Actor,
         attachments: SlackBlock,
         channel: str,
-        integration: Integration,
+        integration: Integration | RpcIntegration,
         shared_context: Mapping[str, Any],
     ) -> None:
         from sentry.integrations.slack.tasks.post_message import post_message, post_message_control

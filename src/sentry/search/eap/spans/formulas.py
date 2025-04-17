@@ -59,6 +59,7 @@ def division(args: ResolvedArguments, _: ResolverSettings) -> Column.BinaryFormu
     divisor = cast(AttributeKey, args[1])
 
     return Column.BinaryFormula(
+        default_value_double=0.0,
         left=Column(key=dividend),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(key=divisor),
@@ -103,12 +104,14 @@ def avg_compare(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
     )
 
     percentage_change = Column.BinaryFormula(
+        default_value_double=0.0,
         left=Column(
             formula=Column.BinaryFormula(
+                default_value_double=0.0,
                 left=avg_second,
                 op=Column.BinaryFormula.OP_SUBTRACT,
                 right=avg_first,
-            )
+            ),
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=avg_first,
@@ -121,6 +124,7 @@ def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bin
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
+        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -158,12 +162,12 @@ def get_count_of_vital(vital: str, settings: ResolverSettings) -> float:
     rpc_res = spans_rpc.run_table_query(
         snuba_params,
         query_string=query_string if query_string is not None else "",
-        referrer="totalvitalcount",
+        referrer=f"totalvitalcount_{vital}",
         selected_columns=[f"count_scores(measurements.score.{vital}) as count"],
         orderby=None,
         offset=0,
         limit=1,
-        sampling_mode=None,
+        sampling_mode=snuba_params.sampling_mode,
         config=SearchResolverConfig(
             auto_fields=True,
         ),
@@ -185,6 +189,7 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
         return total_opportunity_score(args, settings)
 
     score_ratio = Column.BinaryFormula(
+        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -215,6 +220,7 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
     vital_count = get_count_of_vital(web_vital, settings)
 
     return Column.BinaryFormula(
+        default_value_double=0.0,
         left=Column(formula=score_ratio),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(
@@ -227,19 +233,37 @@ def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
     vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
     vital_score_columns: list[Column] = []
 
+    opportunity_score_formulas: list[tuple[Column.BinaryFormula, str]] = []
+    total_weight = 0.0
     for vital in vitals:
         vital_score = f"score.{vital}"
         vital_score_key = AttributeKey(name=vital_score, type=AttributeKey.TYPE_DOUBLE)
-        weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital]
+        formula = opportunity_score([vital_score_key], settings)
+        hasVitalCount = formula.right.literal.val_double > 0
+        if hasVitalCount:
+            opportunity_score_formulas.append((formula, vital))
+            total_weight += WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital]
+
+    for formula, vital in opportunity_score_formulas:
+        weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital] / total_weight
         vital_score_columns.append(
             Column(
                 formula=Column.BinaryFormula(
-                    left=Column(formula=opportunity_score([vital_score_key], settings)),
+                    default_value_double=0.0,
+                    left=Column(formula=formula),
                     op=Column.BinaryFormula.OP_MULTIPLY,
                     right=Column(literal=LiteralValue(val_double=weight)),
                 )
             )
         )
+
+    if len(vital_score_columns) == 0:
+        # A bit of a hack, but the rcp expects an aggregate formula to be returned so that `group_by` can be applied. otherwise it will break on the frontend
+        vital_score_key = AttributeKey(name="score.lcp", type=AttributeKey.TYPE_DOUBLE)
+        return opportunity_score([vital_score_key], settings)
+
+    if len(vital_score_columns) == 1:
+        return vital_score_columns[0].formula
 
     return operate_multiple_columns(vital_score_columns, Column.BinaryFormula.OP_ADD)
 
@@ -251,6 +275,7 @@ def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> C
 
     response_codes = RESPONSE_CODE_MAP[code]
     return Column.BinaryFormula(
+        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -295,6 +320,7 @@ def trace_status_rate(args: ResolvedArguments, settings: ResolverSettings) -> Co
     status = cast(str, args[0])
 
     return Column.BinaryFormula(
+        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -326,6 +352,7 @@ def cache_miss_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
+        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -368,6 +395,7 @@ def ttfd_contribution_rate(
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
+        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -393,6 +421,7 @@ def ttid_contribution_rate(
     extrapolation_mode = settings["extrapolation_mode"]
 
     return Column.BinaryFormula(
+        default_value_double=0.0,
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -433,13 +462,14 @@ def time_spent_percentage(
         orderby=None,
         offset=0,
         limit=1,
-        sampling_mode=None,
+        sampling_mode=snuba_params.sampling_mode,
         config=SearchResolverConfig(),
     )
 
     total_time = rpc_res["data"][0][f"sum({column})"]
 
     return Column.BinaryFormula(
+        default_value_double=0.0,
         left=Column(
             aggregation=AttributeAggregation(
                 aggregate=Function.FUNCTION_SUM,
@@ -465,6 +495,7 @@ def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     )
 
     return Column.BinaryFormula(
+        default_value_double=0.0,
         left=Column(
             aggregation=AttributeAggregation(
                 aggregate=Function.FUNCTION_COUNT,

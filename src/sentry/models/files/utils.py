@@ -112,7 +112,7 @@ def get_profiles_storage(config=None) -> Storage:
     from sentry import options as options_store
 
     backend = options_store.get("filestore.profiles-backend")
-    relocation = options_store.get("filestore.profiles-options")
+    profiles = options_store.get("filestore.profiles-options")
 
     try:
         backend = settings.SENTRY_FILESTORE_ALIASES[backend]
@@ -120,7 +120,7 @@ def get_profiles_storage(config=None) -> Storage:
         pass
 
     storage = import_string(backend)
-    return storage(**relocation)
+    return storage(**profiles)
 
 
 def clear_cached_files(cache_path):
