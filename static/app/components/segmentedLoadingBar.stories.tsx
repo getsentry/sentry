@@ -39,6 +39,38 @@ export default storyBook('SegmentedLoadingBar', story => {
         transitioning between phases.
       </p>
       <LoadingBarWithNextPhaseControl />
+
+      <p>
+        A callback for tooltips can be provided to display a tooltip for each segment.
+      </p>
+      <Column>
+        <SegmentedLoadingBar
+          segments={3}
+          phase={0}
+          getTooltipText={phase => {
+            const nextPhase = phase + 1;
+            if (nextPhase >= 3) {
+              return 'This is the last phase.';
+            }
+            return `The current phase is ${phase}. The next phase is ${nextPhase}.`;
+          }}
+        />
+        <SegmentedLoadingBar
+          segments={3}
+          phase={1}
+          getTooltipText={phase => {
+            if (phase > 1) {
+              return undefined;
+            }
+
+            const nextPhase = phase + 1;
+            if (nextPhase === 2) {
+              return `The current phase is ${phase}. The next phase is ${nextPhase}. This is the last tooltip`;
+            }
+            return `The current phase is ${phase}. The next phase is ${nextPhase}.`;
+          }}
+        />
+      </Column>
     </div>
   ));
 

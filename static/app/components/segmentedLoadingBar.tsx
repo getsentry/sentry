@@ -16,25 +16,23 @@ interface SegmentedLoadingBarProps {
   segments: number;
 
   /**
-   * A tooltip to display more information about the active phase.
+   * A callback to get a tooltip text for a given phase.
+   *
+   * The callback takes a phase index that corresponds to the index of the
+   * segment being rendered.
    */
-  activePhaseTooltip?: string;
+  getTooltipText?: (phase: number) => React.ReactNode | undefined;
 }
 
 export function SegmentedLoadingBar({
   segments = 3,
   phase = 0,
-  activePhaseTooltip,
+  getTooltipText,
 }: SegmentedLoadingBarProps) {
   return (
     <LoadingBarContainer>
       {Array.from({length: segments}).map((_, index) => (
-        <Tooltip
-          key={index}
-          title={activePhaseTooltip}
-          disabled={index !== phase}
-          skipWrapper
-        >
+        <Tooltip key={index} title={getTooltipText?.(index)} skipWrapper>
           <LoadingBarSegment
             key={index}
             isActive={index === phase}

@@ -9,32 +9,45 @@ from sentry.incidents.typings.metric_detector import (
     OpenPeriodContext,
 )
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.notifications.notification_action.metric_alert_registry import (
-    OpsgenieMetricAlertHandler,
+from sentry.notifications.notification_action.metric_alert_registry.handlers.sentry_app_metric_alert_handler import (
+    SentryAppMetricAlertHandler,
 )
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
+    get_incident_serializer,
+)
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
 
 
-@apply_feature_flag_on_cls("organizations:issue-open-periods")
-class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
+class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self):
-        self.create_models()
+        super().setUp()
+        self.sentry_app = self.create_sentry_app(
+            name="foo",
+            organization=self.organization,
+            is_alertable=True,
+            verify_install=False,
+        )
         self.action = self.create_action(
-            type=Action.Type.OPSGENIE,
-            integration_id=1234567890,
-            config={"target_identifier": "team123", "target_type": ActionTarget.SPECIFIC},
-            data={"priority": "P1"},
+            type=Action.Type.SENTRY_APP,
+            integration_id=None,
+            config={
+                "target_identifier": str(self.sentry_app.id),
+                "target_type": ActionTarget.SENTRY_APP.value,
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+            },
         )
 
-        self.handler = OpsgenieMetricAlertHandler()
+        self.handler = SentryAppMetricAlertHandler()
 
     @mock.patch(
-        "sentry.notifications.notification_action.metric_alert_registry.handlers.opsgenie_metric_alert_handler.send_incident_alert_notification"
+        "sentry.notifications.notification_action.metric_alert_registry.handlers.sentry_app_metric_alert_handler.send_incident_alert_notification"
     )
+    @freeze_time("2021-01-01 00:00:00")
     def test_send_alert(self, mock_send_incident_alert_notification):
         notification_context = NotificationContext.from_action_model(self.action)
         assert self.group_event.occurrence is not None
@@ -60,14 +73,15 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             metric_issue_context=metric_issue_context,
             organization=self.detector.project.organization,
             notification_uuid=notification_uuid,
+            incident_serialized_response=get_incident_serializer(self.open_period),
         )
 
     @mock.patch(
-        "sentry.notifications.notification_action.metric_alert_registry.OpsgenieMetricAlertHandler.send_alert"
+        "sentry.notifications.notification_action.metric_alert_registry.SentryAppMetricAlertHandler.send_alert"
     )
+    @freeze_time("2021-01-01 00:00:00")
     def test_invoke_legacy_registry(self, mock_send_alert):
         self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
-
         assert mock_send_alert.call_count == 1
         (
             notification_context,
@@ -78,16 +92,13 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             notification_uuid,
         ) = self.unpack_kwargs(mock_send_alert)
 
-        assert isinstance(notification_context, NotificationContext)
-        assert isinstance(alert_context, AlertContext)
-        assert isinstance(metric_issue_context, MetricIssueContext)
         self.assert_notification_context(
             notification_context,
-            integration_id=1234567890,
-            target_identifier="team123",
+            integration_id=None,
+            target_identifier=None,
             target_display=None,
-            sentry_app_config={"priority": "P1"},
-            sentry_app_id=None,
+            sentry_app_config=None,
+            sentry_app_id=str(self.sentry_app.id),
         )
 
         self.assert_alert_context(
