@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
 
-import {Tooltip} from 'sentry/components/core/tooltipip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ScoreBar from 'sentry/components/scoreBar';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
