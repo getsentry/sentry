@@ -4234,7 +4234,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 self.create_span(
                     {
                         "measurements": {
-                            "score.ratio.lcp": {"value": 1},
+                            "score.ratio.lcp": {"value": 12},
                         }
                     },
                     start_ts=self.ten_mins_ago,
