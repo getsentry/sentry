@@ -4,7 +4,7 @@ import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -253,7 +253,7 @@ export function MessageSpanSamplesPanel() {
 
   return (
     <PageAlertProvider>
-      <DrawerHeader>
+      <EventDrawerHeader>
         <SampleDrawerHeaderTransaction
           project={project}
           transaction={query.transaction}
@@ -261,7 +261,7 @@ export function MessageSpanSamplesPanel() {
             messageActorType === MessageActorType.PRODUCER ? t('Producer') : t('Consumer')
           }
         />
-      </DrawerHeader>
+      </EventDrawerHeader>
 
       <SampleDrawerBody>
         <ModuleLayout.Layout>
