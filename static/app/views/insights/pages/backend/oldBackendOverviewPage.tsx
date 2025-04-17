@@ -85,8 +85,8 @@ export const BACKEND_COLUMN_TITLES = [
   {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
-// TODO: remove Am2/am3 stuff when we remove `useInsightsEap`
-export function Am1BackendOverviewPage() {
+// TODO: remove Am2/am3 stuff and rename to `AM1BackendOverviewPage` when we remove `useInsightsEap`
+export function OldBackendOverviewPage() {
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
