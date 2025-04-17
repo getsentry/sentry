@@ -19,7 +19,17 @@ import localStorage from 'sentry/utils/localStorage';
 const LOCAL_STORAGE_KEY = 'issues-sourcemap-wizard-hide-until';
 const DISMISS_TIME = 1000 * 60 * 60 * 24 * 7; // 1 week
 
-const wizardCommand = 'npx @sentry/wizard@latest -i sourcemaps';
+// Use a complete command with org and project slugs
+function getWizardCommand(organization: Organization, projectId: string) {
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const orgSlug = organization.slug;
+  // Extract project slug from projectId if possible
+  // In some scenarios, we might not have the actual project slug,
+  // so we'll use a sensible default in those cases
+  const projectSlug = projectId || 'your-project';
+
+  return `npx @sentry/wizard@latest -i sourcemaps${isSelfHosted ? '' : ' --saas'} --org ${orgSlug} --project ${projectSlug}`;
+}
 
 function getHideUntilTime() {
   return Number(localStorage.getItem(LOCAL_STORAGE_KEY)) || 0;
@@ -43,6 +53,7 @@ interface Props {
 
 export default function SourceMapsWizard({analyticsParams}: Props) {
   const isDarkmode = useLegacyStore(ConfigStore).theme === 'dark';
+  const {organization, project_id} = analyticsParams;
 
   const [isHidden, setIsHidden] = useState(() => {
     const hideUntilTime = getHideUntilTime();
@@ -56,6 +67,8 @@ export default function SourceMapsWizard({analyticsParams}: Props) {
   if (isHidden) {
     return null;
   }
+
+  const wizardCommand = getWizardCommand(organization, project_id);
 
   return (
     <StyledPanel dashedBorder data-test-id="sourcemaps-wizard">

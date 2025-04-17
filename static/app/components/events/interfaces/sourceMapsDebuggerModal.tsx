@@ -255,6 +255,10 @@ function SentryWizardCallout({
   projectSlug?: string;
 }) {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const wizardCommand = `npx @sentry/wizard@latest -i sourcemaps${
+    isSelfHosted ? '' : ' --saas'
+  } --org ${orgSlug} --project ${projectSlug}`;
+
   return (
     <Fragment>
       <WizardInstructionParagraph>
@@ -278,7 +282,7 @@ function SentryWizardCallout({
           );
         }}
       >
-        {`npx @sentry/wizard@latest -i sourcemaps${isSelfHosted ? '' : ' --saas'} --org ${orgSlug} --project ${projectSlug}`}
+        {wizardCommand}
       </InstructionCodeSnippet>
     </Fragment>
   );
