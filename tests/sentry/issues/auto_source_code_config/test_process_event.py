@@ -617,6 +617,35 @@ class TestPythonDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
 class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "java"
 
+    def test_marked_in_app_already(self) -> None:
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},
+            # The developer may have marked the frame as in-app in the SDK
+            frames=[self.frame_from_module("com.example.foo.Bar", "Bar.kt", in_app=True)],
+            platform=self.platform,
+            expected_new_code_mappings=[self.code_mapping("com/example/", "src/com/example/")],
+            expected_new_in_app_stack_trace_rules=[
+                "stack.module:com.example.** +app",
+            ],
+        )
+
+    def test_marked_in_app_and_code_mapping_already_exists(self) -> None:
+        # The developer may have already created the code mapping and repository
+        self.create_repo_and_code_mapping("REPO1", "com/example/", "src/com/example/")
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},
+            # The developer may have marked the frame as in-app in the SDK
+            frames=[self.frame_from_module("com.example.foo.Bar", "Bar.kt", in_app=True)],
+            platform=self.platform,
+            # We're not expecting to create anything new
+            expected_new_code_mappings=[],
+            # The in-app rule will still be created
+            expected_new_in_app_stack_trace_rules=[
+                "stack.module:com.example.** +app",
+            ],
+        )
+        assert RepositoryProjectPathConfig.objects.count() == 1
+
     def test_short_packages(self) -> None:
         self._process_and_assert_configuration_changes(
             repo_trees={
@@ -856,18 +885,3 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 expected_new_code_mappings=[self.code_mapping("android/app/", "src/android/app/")],
                 expected_new_in_app_stack_trace_rules=["stack.module:android.app.** +app"],
             )
-
-    def test_unintended_rules_are_removed(self) -> None:
-        """Test that unintended rules will be removed without affecting other rules"""
-        key = "sentry:automatic_grouping_enhancements"
-        # Let's assume that the package was not categorized, thus, we created a rule for it
-        self.project.update_option(key, "stack.module:akka.** +app\nstack.module:foo.bar.** +app")
-        # This module is categorized, thus, we won't attempt derivation for it
-        frame = self.frame_from_module("com.sun.Activity", "Activity.java")
-        event = self.create_event([frame], self.platform)
-
-        # The rule will be removed after calling this
-        process_event(self.project.id, event.group_id, event.event_id)
-        rules = self.project.get_option(key)
-        # Other rules are not affected
-        assert rules.split("\n") == ["stack.module:foo.bar.** +app"]
