@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';

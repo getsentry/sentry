@@ -5,6 +5,7 @@ import type {Location} from 'history';
 import {PlatformIcon} from 'platformicons';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
 import useQueryBasedColumnResize from 'sentry/components/gridEditable/useQueryBasedColumnResize';
@@ -12,7 +13,6 @@ import useQueryBasedSorting from 'sentry/components/gridEditable/useQueryBasedSo
 import Link from 'sentry/components/links/link';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {
   getContextIcon,
@@ -18,7 +19,6 @@ import {SCREENSHOT_NAMES} from 'sentry/components/events/eventTagsAndScreenshot/
 import {getRuntimeLabelAndTooltip} from 'sentry/components/events/highlights/util';
 import {Text} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconAttachment, IconReleases, IconWindow} from 'sentry/icons';

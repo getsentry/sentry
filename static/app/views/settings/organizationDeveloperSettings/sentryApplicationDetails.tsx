@@ -16,6 +16,7 @@ import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -29,7 +30,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {Tooltip} from 'sentry/components/tooltip';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {
   internalIntegrationForms,

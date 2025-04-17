@@ -1,4 +1,4 @@
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DatasetSource} from 'sentry/utils/discover/types';

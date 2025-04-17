@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
@@ -11,7 +12,6 @@ import useQueryBasedColumnResize from 'sentry/components/gridEditable/useQueryBa
 import useQueryBasedSorting from 'sentry/components/gridEditable/useQueryBasedSorting';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarProject} from 'sentry/types/project';

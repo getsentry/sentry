@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {ContextIcon} from 'sentry/components/events/contexts/contextIcon';
 import {generateIconName} from 'sentry/components/events/contexts/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {backend} from 'sentry/data/platformCategories';
 import {IconCopy, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';

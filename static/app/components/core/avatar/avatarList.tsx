@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {UserAvatar, type UserAvatarProps} from 'sentry/components/core/avatar/userAvatar';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';

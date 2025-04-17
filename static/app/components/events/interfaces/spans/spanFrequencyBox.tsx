@@ -1,11 +1,11 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {
   AggregateSpanType,
   GapSpanType,
 } from 'sentry/components/events/interfaces/spans/types';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';

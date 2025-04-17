@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {TooltipContext} from 'sentry/components/tooltip';
+import {TooltipContext} from 'sentry/components/core/tooltip';
 
 import {ActionCell} from './actionCell';
 import {ConnectionCell} from './connectionCell';

@@ -3,11 +3,11 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Link from 'sentry/components/links/link';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {space} from 'sentry/styles/space';
 

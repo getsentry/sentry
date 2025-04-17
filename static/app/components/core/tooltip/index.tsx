@@ -1,4 +1,4 @@
-import {createContext, Fragment, useContext, useEffect} from 'react';
+import {createContext, Fragment, useContext, useLayoutEffect} from 'react';
 import {createPortal} from 'react-dom';
 import type {SerializedStyles} from '@emotion/react';
 import {useTheme} from '@emotion/react';
@@ -21,7 +21,7 @@ interface TooltipContextProps {
 
 export const TooltipContext = createContext<TooltipContextProps>({container: null});
 
-interface TooltipProps extends UseHoverOverlayProps {
+export interface TooltipProps extends UseHoverOverlayProps {
   /**
    * The content to show in the tooltip popover.
    */
@@ -41,7 +41,7 @@ interface TooltipProps extends UseHoverOverlayProps {
   overlayStyle?: React.CSSProperties | SerializedStyles;
 }
 
-function Tooltip({
+export function Tooltip({
   children,
   overlayStyle,
   title,
@@ -49,8 +49,8 @@ function Tooltip({
   maxWidth,
   ...hoverOverlayProps
 }: TooltipProps) {
-  const {container} = useContext(TooltipContext);
   const theme = useTheme();
+  const {container} = useContext(TooltipContext);
   const {
     wrapTrigger,
     isOpen,
@@ -65,44 +65,44 @@ function Tooltip({
   const {forceVisible} = hoverOverlayProps;
 
   // Reset the visibility when the tooltip becomes disabled
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (disabled && isOpen) {
       reset();
     }
   }, [reset, disabled, isOpen]);
 
   // Update the tooltip when the tooltip is forced to be visible and the children change
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (update && forceVisible) {
       update();
     }
   }, [update, children, forceVisible]);
 
   if (disabled || !title) {
-    return <Fragment>{children}</Fragment>;
+    return children;
   }
-
-  const tooltipContent = isOpen && (
-    <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
-      <TooltipContent
-        maxWidth={maxWidth}
-        animated
-        arrowProps={arrowProps}
-        originPoint={arrowData}
-        placement={placement}
-        overlayStyle={overlayStyle}
-        data-tooltip
-      >
-        {title}
-      </TooltipContent>
-    </PositionWrapper>
-  );
 
   return (
     <Fragment>
       {wrapTrigger(children)}
       {createPortal(
-        <AnimatePresence>{tooltipContent}</AnimatePresence>,
+        <AnimatePresence>
+          {isOpen ? (
+            <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
+              <TooltipContent
+                animated
+                maxWidth={maxWidth}
+                arrowProps={arrowProps}
+                originPoint={arrowData}
+                placement={placement}
+                overlayStyle={overlayStyle}
+                data-tooltip
+              >
+                {title}
+              </TooltipContent>
+            </PositionWrapper>
+          ) : null}
+        </AnimatePresence>,
         container ?? document.body
       )}
     </Fragment>
@@ -120,6 +120,3 @@ const TooltipContent = styled(Overlay, {
   line-height: 1.2;
   text-align: center;
 `;
-
-export type {TooltipProps};
-export {Tooltip};

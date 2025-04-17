@@ -2,7 +2,7 @@ import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 

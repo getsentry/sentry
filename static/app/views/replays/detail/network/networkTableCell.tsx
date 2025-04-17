@@ -1,13 +1,13 @@
 import type {ComponentProps, CSSProperties} from 'react';
 import classNames from 'classnames';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
 import {
   ButtonWrapper,
   Cell,
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
-import {Tooltip} from 'sentry/components/tooltip';
 import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {
   getFrameMethod,

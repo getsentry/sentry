@@ -3,7 +3,7 @@ import {Fragment, useEffect} from 'react';
 import type {Client} from 'sentry/api';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import AlertStore from 'sentry/stores/alertStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
