@@ -1,3 +1,4 @@
+import type {Dispatch, SetStateAction} from 'react';
 import {useRef, useState} from 'react';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
@@ -10,7 +11,7 @@ import {
   EventNavigator,
   SearchInput,
 } from 'sentry/components/events/eventDrawer';
-import {IconSearch} from 'sentry/icons';
+import {IconSearch} from 'sentry/icons/iconSearch';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -28,6 +29,36 @@ import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagD
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import TagDrawerContent from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
+
+function DistributionSearchInput({
+  includeFeatureFlagsTab,
+  search,
+  onChange,
+}: {
+  includeFeatureFlagsTab: boolean;
+  onChange: Dispatch<SetStateAction<string>>;
+  search: string;
+}) {
+  return (
+    <InputGroup>
+      <SearchInput
+        size="xs"
+        value={search}
+        onChange={e => {
+          onChange(e.target.value);
+        }}
+        aria-label={
+          includeFeatureFlagsTab
+            ? t('Search All Tags & Feature Flags')
+            : t('Search All Tags')
+        }
+      />
+      <InputGroup.TrailingItems disablePointerEvents>
+        <IconSearch size="xs" />
+      </InputGroup.TrailingItems>
+    </InputGroup>
+  );
+}
 
 /**
  * Shared tags and feature flags distributions drawer, used by streamlined issue details UI.
@@ -70,27 +101,17 @@ function BaseGroupDistributionsDrawer({
       />
     ) : tagKey && tab === DrawerTab.FEATURE_FLAGS ? null : (
       <ButtonBar gap={1}>
-        <InputGroup>
-          <SearchInput
-            size="xs"
-            value={search}
-            onChange={e => {
-              setSearch(e.target.value);
-              trackAnalytics('tags.drawer.action', {
-                control: 'search',
-                organization,
-              });
-            }}
-            aria-label={
-              includeFeatureFlagsTab
-                ? t('Search All Tags & Feature Flags')
-                : t('Search All Tags')
-            }
-          />
-          <InputGroup.TrailingItems disablePointerEvents>
-            <IconSearch size="xs" />
-          </InputGroup.TrailingItems>
-        </InputGroup>
+        <DistributionSearchInput
+          includeFeatureFlagsTab={includeFeatureFlagsTab}
+          search={search}
+          onChange={value => {
+            setSearch(value);
+            trackAnalytics('tags.drawer.action', {
+              control: 'search',
+              organization,
+            });
+          }}
+        />
         {includeFeatureFlagsTab && (
           <TagFlagPicker
             tab={tab}
