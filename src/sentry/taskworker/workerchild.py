@@ -14,7 +14,6 @@ from typing import Any
 # XXX: Don't import any modules that will import django here, do those within child_process
 import orjson
 import sentry_sdk
-from django.core.cache import cache
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
@@ -100,6 +99,8 @@ def child_process(
     the module level the wrong django settings will be used.
     """
     child_worker_init(process_type)
+
+    from django.core.cache import cache
 
     from sentry.taskworker.registry import taskregistry
     from sentry.taskworker.state import clear_current_task, current_task, set_current_task
