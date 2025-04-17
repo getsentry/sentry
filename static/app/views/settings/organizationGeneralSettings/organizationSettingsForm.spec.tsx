@@ -175,37 +175,50 @@ describe('OrganizationSettingsForm', function () {
     );
   });
 
-  it('can toggle hideAiFeatures setting', async function () {
-    putMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/`,
-      method: 'PUT',
-      body: {...organization, hideAiFeatures: true},
-    });
-
+  it('can toggle "Enable Seer Features"', async function () {
+    // Default org fixture has hideAiFeatures: false, so Seer is enabled by default
+    const hiddenAiOrg = OrganizationFixture({hideAiFeatures: true});
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        initialData={OrganizationFixture({hideAiFeatures: false})}
+        initialData={OrganizationFixture()}
         onSave={onSave}
       />,
-      {
-        organization: {
-          ...organization,
-          features: ['autofix'],
-        },
-      }
+      {organization: hiddenAiOrg}
     );
+    const mock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      method: 'PUT',
+    });
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Hide AI Features'}));
+    const checkbox = screen.getByRole('checkbox', {name: 'Enable Seer Features'});
 
-    expect(putMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/',
-      expect.objectContaining({
-        data: {
-          hideAiFeatures: true,
-        },
-      })
-    );
+    // Inverted from hideAiFeatures
+    expect(checkbox).not.toBeChecked();
+
+    // Click to uncheck (disable Seer -> hideAiFeatures = true)
+    await userEvent.click(checkbox);
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          data: {hideAiFeatures: false},
+        })
+      );
+    });
+
+    // Inverted from hideAiFeatures
+    expect(checkbox).toBeChecked();
+
+    await userEvent.click(checkbox);
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({data: {hideAiFeatures: true}})
+      );
+    });
   });
 
   it('disables hideAiFeatures toggle and shows tooltip for DE region', function () {
@@ -230,7 +243,7 @@ describe('OrganizationSettingsForm', function () {
       }
     );
 
-    const toggle = screen.getByRole('checkbox', {name: 'Hide AI Features'});
+    const toggle = screen.getByRole('checkbox', {name: 'Enable Seer Features'});
     expect(toggle).toBeDisabled();
   });
 });
