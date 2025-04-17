@@ -10,7 +10,7 @@ from uuid import UUID
 
 import msgpack
 import sentry_sdk
-import vroomrs
+import vroomrs  # type: ignore[import-untyped]
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
