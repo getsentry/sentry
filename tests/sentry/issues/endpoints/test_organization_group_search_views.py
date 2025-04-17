@@ -1433,7 +1433,6 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         assert response.data[0]["id"] == str(view_1.id), not response.data[0]["starred"]
         assert response.data[1]["id"] == str(view_2.id), not response.data[1]["starred"]
         assert response.data[2]["id"] == str(view_3.id), not response.data[2]["starred"]
-        # None
 
         response = self.client.get(self.url, {"createdBy": "me", "sort": "-created"})
         assert response.status_code == 200
@@ -1443,7 +1442,6 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         assert response.data[0]["id"] == str(view_3.id), not response.data[0]["starred"]
         assert response.data[1]["id"] == str(view_2.id), not response.data[1]["starred"]
         assert response.data[2]["id"] == str(view_1.id), not response.data[2]["starred"]
-        # None
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -1468,23 +1466,17 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         response = self.client.get(self.url, {"createdBy": "me", "sort": ["name", "-visited"]})
         assert response.status_code == 200
         assert len(response.data) == 4
-        # =============   Starred views   =============
-        # ============= Non-starred views =============
-        assert response.data[0]["id"] == str(view_2.id), not response.data[0]["starred"]
-        assert response.data[1]["id"] == str(view_1.id), not response.data[1]["starred"]
-        assert response.data[2]["id"] == str(view_3.id), not response.data[2]["starred"]
-        assert response.data[3]["id"] == str(view_4.id), not response.data[3]["starred"]
-        # None
+        assert response.data[0]["id"] == str(view_2.id)
+        assert response.data[1]["id"] == str(view_1.id)
+        assert response.data[2]["id"] == str(view_3.id)
+        assert response.data[3]["id"] == str(view_4.id)
 
         # Can sort by first name asc, then last_visited asc
 
         response = self.client.get(self.url, {"createdBy": "me", "sort": ["name", "visited"]})
         assert response.status_code == 200
         assert len(response.data) == 4
-        # =============   Starred views   =============
-        # ============= Non-starred views =============
-        assert response.data[0]["id"] == str(view_1.id), not response.data[0]["starred"]
-        assert response.data[1]["id"] == str(view_2.id), not response.data[1]["starred"]
-        assert response.data[2]["id"] == str(view_4.id), not response.data[2]["starred"]
-        assert response.data[3]["id"] == str(view_3.id), not response.data[3]["starred"]
-        # None
+        assert response.data[0]["id"] == str(view_1.id)
+        assert response.data[1]["id"] == str(view_2.id)
+        assert response.data[2]["id"] == str(view_4.id)
+        assert response.data[3]["id"] == str(view_3.id)
