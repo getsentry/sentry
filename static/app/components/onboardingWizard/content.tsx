@@ -158,7 +158,7 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
               size="zero"
               aria-label={t('Just Skip')}
               title={t('Just Skip')}
-              icon={<IconClose color="subText" isCircled />}
+              icon={<IconClose color="subText" />}
               onClick={event => {
                 event.stopPropagation();
                 onConfirm();
