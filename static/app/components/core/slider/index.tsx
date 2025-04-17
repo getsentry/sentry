@@ -11,7 +11,7 @@ interface BaseProps
   > {
   defaultValue?: number;
   /** Optional callback to format the label */
-  formatLabel?: (value: number | '') => number | string;
+  formatLabel?: (value: number | '') => React.ReactNode;
   ref?: React.Ref<HTMLInputElement>;
 }
 
