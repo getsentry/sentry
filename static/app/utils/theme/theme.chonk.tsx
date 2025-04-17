@@ -309,7 +309,7 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
     content: {
       primary: colorScheme.gray800,
       muted: colorScheme.gray500,
-      accent: colorScheme.blue300,
+      accent: colorScheme.blue500,
       promotion: colorScheme.pink500,
       danger: colorScheme.red400,
       warning: colorScheme.yellow500,
