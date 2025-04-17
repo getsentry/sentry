@@ -106,6 +106,7 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
                 },
                 status=403,
             )
+
         allowed_roles = get_allowed_org_roles(request, organization)
         validator = OrganizationMemberInviteRequestValidator(
             data=request.data,
