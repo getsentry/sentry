@@ -19,204 +19,130 @@ import commonTheme, {
   lightTheme,
 } from './theme';
 
-// palette generated via: https://gka.github.io/palettes/#colors=444674,69519A,E1567C,FB7D46,F2B712|steps=20|bez=1|coL=1
-const CHART_PALETTE = [
-  ['#444674'],
-  ['#444674', '#f2b712'],
-  ['#444674', '#d6567f', '#f2b712'],
-  ['#444674', '#a35488', '#ef7061', '#f2b712'],
-  ['#444674', '#895289', '#d6567f', '#f38150', '#f2b712'],
-  ['#444674', '#7a5088', '#b85586', '#e9626e', '#f58c46', '#f2b712'],
-  ['#444674', '#704f87', '#a35488', '#d6567f', '#ef7061', '#f59340', '#f2b712'],
+const CHART_PALETTE_LIGHT = [
+  ['#7553FF'],
+  ['#7553FF', '#FFD00E'],
+  ['#7553FF', '#F53A9F', '#FFD00E'],
+  ['#7553FF', '#F53A9F', '#FFD00E', '#67C800'],
+  ['#7553FF', '#F53A9F', '#FFD00E', '#67C800', '#00A9D2'],
+  ['#7553FF', '#F53A9F', '#FF9838', '#FFD00E', '#67C800', '#00A9D2'],
+  ['#7553FF', '#5533B2', '#F53A9F', '#FF9838', '#FFD00E', '#67C800', '#00A9D2'],
   [
-    '#444674',
-    '#694e86',
-    '#955389',
-    '#c15584',
-    '#e65d73',
-    '#f27a58',
-    '#f6983b',
-    '#f2b712',
+    '#7553FF',
+    '#5533B2',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+    '#00A9D2',
   ],
   [
-    '#444674',
-    '#644d85',
-    '#895289',
-    '#b05587',
-    '#d6567f',
-    '#ec6868',
-    '#f38150',
-    '#f69b38',
-    '#f2b712',
+    '#7553FF',
+    '#5533B2',
+    '#9E2C8D',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+    '#00A9D2',
   ],
   [
-    '#444674',
-    '#614c84',
-    '#815189',
-    '#a35488',
-    '#c65683',
-    '#e35a78',
-    '#ef7061',
-    '#f4884b',
-    '#f59f34',
-    '#f2b712',
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#9E2C8D',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+    '#00A9D2',
   ],
   [
-    '#444674',
-    '#5c4c82',
-    '#7a5088',
-    '#9a5389',
-    '#b85586',
-    '#d7567f',
-    '#e9626e',
-    '#f1785a',
-    '#f58c46',
-    '#f5a132',
-    '#f2b712',
+    '#7553FF',
+    '#5533B2',
+    '#3A1873',
+    '#9E2C8D',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#00A9D2',
   ],
-  [
-    '#444674',
-    '#5b4b82',
-    '#764f88',
-    '#925289',
-    '#ae5487',
-    '#c85682',
-    '#e2587a',
-    '#ec6b66',
-    '#f37d54',
-    '#f59143',
-    '#f5a42f',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#584b80',
-    '#704f87',
-    '#895289',
-    '#a35488',
-    '#bd5585',
-    '#d6567f',
-    '#e75f71',
-    '#ef7061',
-    '#f38150',
-    '#f59340',
-    '#f5a52d',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#574b80',
-    '#6d4e87',
-    '#855189',
-    '#9d5389',
-    '#b35586',
-    '#ca5682',
-    '#e2577b',
-    '#eb666a',
-    '#f0765b',
-    '#f4854d',
-    '#f6953e',
-    '#f5a62c',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#564a7f',
-    '#694e86',
-    '#805089',
-    '#955389',
-    '#ab5487',
-    '#c15584',
-    '#d6567f',
-    '#e65d73',
-    '#ed6c65',
-    '#f27a58',
-    '#f5894a',
-    '#f6983b',
-    '#f5a72b',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#544a7f',
-    '#674d85',
-    '#7a5088',
-    '#8f5289',
-    '#a35488',
-    '#b85586',
-    '#cd5681',
-    '#e1567c',
-    '#e9626e',
-    '#ef7061',
-    '#f37d54',
-    '#f58c46',
-    '#f69a39',
-    '#f5a829',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#524a7e',
-    '#644d85',
-    '#784f88',
-    '#895289',
-    '#9e5389',
-    '#b05587',
-    '#c45683',
-    '#d6567f',
-    '#e55b76',
-    '#ec6868',
-    '#f0745c',
-    '#f38150',
-    '#f58e44',
-    '#f69b38',
-    '#f4a928',
-    '#f2b712',
-  ],
-  [
-    '#444674',
-    '#524a7e',
-    '#624d84',
-    '#744f88',
-    '#865189',
-    '#985389',
-    '#aa5488',
-    '#bc5585',
-    '#cd5681',
-    '#df567c',
-    '#e86070',
-    '#ed6c64',
-    '#f17959',
-    '#f4854e',
-    '#f59242',
-    '#f59e35',
-    '#f4aa27',
-    '#f2b712',
-  ],
-] as const;
+];
 
-type ChartColorPalette = typeof CHART_PALETTE;
-type ColorLength = (typeof CHART_PALETTE)['length'];
+const CHART_PALETTE_DARK = [
+  ['#7A60FB'],
+  ['#7A60FB', '#FFD00E'],
+  ['#7A60FB', '#F53A9F', '#FFD00E'],
+  ['#7A60FB', '#F53A9F', '#FFD00E', '#67C800'],
+  ['#7A60FB', '#F53A9F', '#FFD00E', '#67C800', '#0CACD4'],
+  ['#7A60FB', '#F53A9F', '#FF9838', '#FFD00E', '#67C800', '#0CACD4'],
+  ['#7A60FB', '#5C3CBB', '#F53A9F', '#FF9838', '#FFD00E', '#67C800', '#0CACD4'],
+  [
+    '#7A60FB',
+    '#5C3CBB',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+    '#0CACD4',
+  ],
+  [
+    '#7A60FB',
+    '#5C3CBB',
+    '#B0009C',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+    '#0CACD4',
+  ],
+  [
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+    '#B0009C',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#67C800',
+    '#0CACD4',
+  ],
+  [
+    '#7A60FB',
+    '#5C3CBB',
+    '#50219C',
+    '#B0009C',
+    '#F53A9F',
+    '#FC746F',
+    '#FF9838',
+    '#FFD00E',
+    '#BACE05',
+    '#67C800',
+    '#0CACD4',
+  ],
+];
+
+type ChartColorPalette = typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
 
 // eslint-disable-next-line @typescript-eslint/no-restricted-types
-type TupleOf<N extends number, A extends unknown[] = []> = A['length'] extends N
+type Tuple<N extends number, A extends unknown[] = []> = A['length'] extends N
   ? A
-  : TupleOf<N, [...A, A['length']]>;
+  : Tuple<N, [...A, string]>;
 
-type ValidLengthArgument = TupleOf<ColorLength>[number];
-
-// eslint-disable-next-line @typescript-eslint/no-restricted-types
-type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
-  infer _First,
-  ...infer Rest,
-]
-  ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
-    Record<A['length'], Rest extends [] ? never : Rest[0]> &
-      NextTuple<Rest, [...A, unknown]>
-  : Record<number, unknown>;
-
-type NextMap = NextTuple<TupleOf<ColorLength>>;
-type Next<R extends ValidLengthArgument> = NextMap[R];
+/**
+ * Type for the chart color palette getter function that returns a tuple of colors
+ * with the specified length.
+ */
+type GetChartColorPalette = <Length extends number>(length: Length) => Tuple<Length>;
 
 /**
  * Returns the color palette for a given number of series.
@@ -226,13 +152,17 @@ type Next<R extends ValidLengthArgument> = NextMap[R];
  * return a single color, not two colors. It smells like either a bug or off by one error.
  * @param length - The number of series to return a color palette for?
  */
-function getChartColorPalette<Length extends ValidLengthArgument>(
-  length: Length | number
-): Exclude<ChartColorPalette[Next<Length>], undefined> {
-  // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
-  // the palette is not sparse, but we should probably add a runtime check here as well.
-  const index = Math.max(0, Math.min(CHART_PALETTE.length - 1, length + 1));
-  return CHART_PALETTE[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
+function makeChartColorPalette<T extends ChartColorPalette>(
+  palette: T
+): GetChartColorPalette {
+  return function makeGetChartColorPalette<Length extends number>(
+    length: Length
+  ): Tuple<Length> {
+    // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
+    // the palette is not sparse, but we should probably add a runtime check here as well.
+    const index = Math.max(0, Math.min(palette.length - 1, length + 1));
+    return palette[index] as Tuple<Length>;
+  };
 }
 
 const formTheme: FormTheme = {
@@ -996,9 +926,6 @@ interface ChonkTheme extends Omit<SentryTheme, 'isChonk'> {
   tokens: typeof lightTokens;
 }
 
-// Redeclare as we dont want to use the deprecation
-const getColorPalette = getChartColorPalette;
-
 /**
  * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
@@ -1044,8 +971,8 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   },
 
   chart: {
-    colors: CHART_PALETTE,
-    getColorPalette,
+    colors: CHART_PALETTE_LIGHT,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
 
   prismVariables: generateThemePrismVariables(
@@ -1121,8 +1048,8 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   },
 
   chart: {
-    colors: CHART_PALETTE,
-    getColorPalette: getChartColorPalette,
+    colors: CHART_PALETTE_DARK,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
 
   prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundTertiary),

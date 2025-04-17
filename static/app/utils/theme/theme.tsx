@@ -187,30 +187,20 @@ const CHART_PALETTE = [
     '#f4aa27',
     '#f2b712',
   ],
-] as const;
+];
 
 type ChartColorPalette = typeof CHART_PALETTE;
-type ColorLength = (typeof CHART_PALETTE)['length'];
 
 // eslint-disable-next-line @typescript-eslint/no-restricted-types
-type TupleOf<N extends number, A extends unknown[] = []> = A['length'] extends N
+type Tuple<N extends number, A extends string[] = []> = A['length'] extends N
   ? A
-  : TupleOf<N, [...A, A['length']]>;
+  : Tuple<N, [...A, string]>;
 
-type ValidLengthArgument = TupleOf<ColorLength>[number];
-
-// eslint-disable-next-line @typescript-eslint/no-restricted-types
-type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
-  infer _First,
-  ...infer Rest,
-]
-  ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
-    Record<A['length'], Rest extends [] ? never : Rest[0]> &
-      NextTuple<Rest, [...A, unknown]>
-  : Record<number, unknown>;
-
-type NextMap = NextTuple<TupleOf<ColorLength>>;
-type Next<R extends ValidLengthArgument> = NextMap[R];
+/**
+ * Type for the chart color palette getter function that returns a tuple of color strings
+ * with the specified length.
+ */
+type GetChartColorPalette = <Length extends number>(length: Length) => Tuple<Length>;
 
 /**
  * Returns the color palette for a given number of series.
@@ -220,13 +210,17 @@ type Next<R extends ValidLengthArgument> = NextMap[R];
  * return a single color, not two colors. It smells like either a bug or off by one error.
  * @param length - The number of series to return a color palette for?
  */
-function getChartColorPalette<Length extends ValidLengthArgument>(
-  length: Length | number
-): Exclude<ChartColorPalette[Next<Length>], undefined> {
-  // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
-  // the palette is not sparse, but we should probably add a runtime check here as well.
-  const index = Math.max(0, Math.min(CHART_PALETTE.length - 1, length + 1));
-  return CHART_PALETTE[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
+function makeChartColorPalette<T extends ChartColorPalette>(
+  palette: T
+): GetChartColorPalette {
+  return function makeGetChartColorPalette<Length extends number>(
+    length: Length
+  ): Tuple<Length> {
+    // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
+    // the palette is not sparse, but we should probably add a runtime check here as well.
+    const index = Math.max(0, Math.min(palette.length - 1, length + 1));
+    return palette[index] as Tuple<Length>;
+  };
 }
 
 const generateTokens = (colors: Colors) => ({
@@ -1143,10 +1137,10 @@ const dataCategory: Record<
   >,
   string
 > = {
-  [DataCategory.ERRORS]: CHART_PALETTE[4][3],
-  [DataCategory.TRANSACTIONS]: CHART_PALETTE[4][2],
-  [DataCategory.ATTACHMENTS]: CHART_PALETTE[4][1],
-  [DataCategory.REPLAYS]: CHART_PALETTE[4][4],
+  [DataCategory.ERRORS]: CHART_PALETTE[4]![3]!,
+  [DataCategory.TRANSACTIONS]: CHART_PALETTE[4]![2]!,
+  [DataCategory.ATTACHMENTS]: CHART_PALETTE[4]![1]!,
+  [DataCategory.REPLAYS]: CHART_PALETTE[4]![4]!,
   [DataCategory.MONITOR_SEATS]: '#a397f7',
 };
 
@@ -1161,12 +1155,12 @@ type OutcomeColors = Record<
 >;
 
 const outcome: OutcomeColors = {
-  [Outcome.ACCEPTED]: CHART_PALETTE[5][0], // #444674 - chart 100
-  [Outcome.FILTERED]: CHART_PALETTE[5][2], // #B85586 - chart 300
-  [Outcome.RATE_LIMITED]: CHART_PALETTE[5][3], // #E9626E - chart 400
-  [Outcome.INVALID]: CHART_PALETTE[5][4], // #F58C46 - chart 500
-  [Outcome.CLIENT_DISCARD]: CHART_PALETTE[5][5], // #F2B712 - chart 600
-  [Outcome.DROPPED]: CHART_PALETTE[5][3], // #F58C46 - chart 500
+  [Outcome.ACCEPTED]: CHART_PALETTE[5]![0]!, // #444674 - chart 100
+  [Outcome.FILTERED]: CHART_PALETTE[5]![2]!, // #B85586 - chart 300
+  [Outcome.RATE_LIMITED]: CHART_PALETTE[5]![3]!, // #E9626E - chart 400
+  [Outcome.INVALID]: CHART_PALETTE[5]![4]!, // #F58C46 - chart 500
+  [Outcome.CLIENT_DISCARD]: CHART_PALETTE[5]![5]!, // #F2B712 - chart 600
+  [Outcome.DROPPED]: CHART_PALETTE[5]![3]!, // #F58C46 - chart 500
 };
 
 /**
@@ -1289,9 +1283,6 @@ const commonTheme = {
   dataCategory,
 };
 
-// Redeclare as we dont want to use the deprecation
-const getColorPalette = getChartColorPalette;
-
 const lightTokens = generateTokens(lightColors);
 const darkTokens = generateTokens(darkColors);
 
@@ -1332,7 +1323,7 @@ export const lightTheme = {
   },
   chart: {
     colors: CHART_PALETTE,
-    getColorPalette,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
   prismVariables: generateThemePrismVariables(
     prismLight,
@@ -1391,7 +1382,7 @@ export const darkTheme: typeof lightTheme = {
   },
   chart: {
     colors: CHART_PALETTE,
-    getColorPalette: getChartColorPalette,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
   sidebar: {
     // @TODO(jonasbadalic) What are these colors and where do they come from?
