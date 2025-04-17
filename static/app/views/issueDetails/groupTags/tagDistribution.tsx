@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import Color from 'color';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DeviceName} from 'sentry/components/deviceName';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

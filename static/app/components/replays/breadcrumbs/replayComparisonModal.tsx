@@ -5,6 +5,7 @@ import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -13,7 +14,6 @@ import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCom
 import LearnMoreButton from 'sentry/components/replays/diff/learnMoreButton';
 import DiffTimestampPicker from 'sentry/components/replays/diff/picker/diffTimestampPicker';
 import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconSliders} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';

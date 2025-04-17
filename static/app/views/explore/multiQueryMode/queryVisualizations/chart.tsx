@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconGraph} from 'sentry/icons/iconGraph';
