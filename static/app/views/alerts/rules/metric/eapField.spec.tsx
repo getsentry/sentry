@@ -82,18 +82,6 @@ describe('EAPField', () => {
     }
 
     render(<Component />);
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
-      expect.objectContaining({
-        query: expect.objectContaining({type: 'number'}),
-      })
-    );
-    expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
-      expect.objectContaining({
-        query: expect.objectContaining({type: 'string'}),
-      })
-    );
 
     // switch from count(spans) -> max(span.duration)
     await userEvent.click(screen.getByText('count'));
@@ -110,5 +98,38 @@ describe('EAPField', () => {
     await userEvent.click(await screen.findByText('count'));
     expect(screen.getByText('count')).toBeInTheDocument();
     expect(screen.getByText('spans')).toBeInTheDocument();
+  });
+
+  it('defaults count_unique argument to span.op', async function () {
+    function Component() {
+      const [aggregate, setAggregate] = useState('count(span.duration)');
+      return (
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <EAPField aggregate={aggregate} onChange={setAggregate} />
+        </SpanTagsProvider>
+      );
+    }
+
+    render(<Component />);
+
+    // switch from count(spans) -> count_unique(span.op)
+    await userEvent.click(screen.getByText('count'));
+    await userEvent.click(await screen.findByText('count_unique'));
+    expect(screen.getByText('count_unique')).toBeInTheDocument();
+    expect(screen.getByText('span.op')).toBeInTheDocument();
+
+    // switch from count_unique(span.op) -> avg(span.self_time)
+    await userEvent.click(screen.getByText('count_unique'));
+    await userEvent.click(await screen.findByText('avg'));
+    await userEvent.click(screen.getByText('span.duration'));
+    await userEvent.click(await screen.findByText('span.self_time'));
+    expect(screen.getByText('avg')).toBeInTheDocument();
+    expect(screen.getByText('span.self_time')).toBeInTheDocument();
+
+    // switch from avg(span.self_time) -> count_unique(span.op)
+    await userEvent.click(screen.getByText('avg'));
+    await userEvent.click(await screen.findByText('count_unique'));
+    expect(screen.getByText('count_unique')).toBeInTheDocument();
+    expect(screen.getByText('span.op')).toBeInTheDocument();
   });
 });

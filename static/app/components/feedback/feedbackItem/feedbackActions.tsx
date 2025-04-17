@@ -7,12 +7,12 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import useFeedbackActions from 'sentry/components/feedback/feedbackItem/useFeedbackActions';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 
 interface Props {
@@ -53,7 +53,6 @@ export default function FeedbackActions({
 function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   const {
     disableDelete,
-    hasDelete,
     onDelete,
     isResolved,
     onResolveClick,
@@ -78,11 +77,14 @@ function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
       <Button size="xs" onClick={onMarkAsReadClick}>
         {hasSeen ? t('Mark Unread') : t('Mark Read')}
       </Button>
-      {hasDelete && (
+      <Tooltip
+        disabled={!disableDelete}
+        title={t('You must be an admin to delete feedback.')}
+      >
         <Button size="xs" onClick={onDelete} disabled={disableDelete}>
           {t('Delete')}
         </Button>
-      )}
+      </Tooltip>
     </Fragment>
   );
 }
@@ -90,7 +92,6 @@ function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   const {
     disableDelete,
-    hasDelete,
     onDelete,
     isResolved,
     onResolveClick,
@@ -133,11 +134,13 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
             key: 'delete',
             priority: 'danger' as const,
             label: t('Delete'),
-            hidden: !hasDelete,
             disabled: disableDelete,
             onAction: onDelete,
+            tooltip: disableDelete
+              ? t('You must be an admin to delete feedback.')
+              : undefined,
           },
-        ].filter(defined)}
+        ]}
       />
     </Fragment>
   );
@@ -146,7 +149,6 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
 function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   const {
     disableDelete,
-    hasDelete,
     onDelete,
     isResolved,
     onResolveClick,
@@ -185,11 +187,13 @@ function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
           key: 'delete',
           priority: 'danger' as const,
           label: t('Delete'),
-          hidden: !hasDelete,
           disabled: disableDelete,
           onAction: onDelete,
+          tooltip: disableDelete
+            ? t('You must be an admin to delete feedback.')
+            : undefined,
         },
-      ].filter(defined)}
+      ]}
     />
   );
 }

@@ -36,6 +36,7 @@ import type {
   EChartChartReadyHandler,
   EChartClickHandler,
   EChartDataZoomHandler,
+  EChartDownplayHandler,
   EChartEventHandler,
   EChartFinishedHandler,
   EChartHighlightHandler,
@@ -46,6 +47,7 @@ import type {
   Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
@@ -209,6 +211,7 @@ export interface BaseChartProps {
   onChartReady?: EChartChartReadyHandler;
   onClick?: EChartClickHandler;
   onDataZoom?: EChartDataZoomHandler;
+  onDownplay?: EChartDownplayHandler;
   onFinished?: EChartFinishedHandler;
   onHighlight?: EChartHighlightHandler;
   onLegendSelectChanged?: EChartEventHandler<{
@@ -358,6 +361,7 @@ function BaseChart({
   onClick,
   onLegendSelectChanged,
   onHighlight,
+  onDownplay,
   onMouseOut,
   onMouseOver,
   onDataZoom,
@@ -399,7 +403,7 @@ function BaseChart({
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
-      (previousPeriod?.length ?? 0) > 1 ? lightenHexToRgb(color as string[]) : undefined;
+      (previousPeriod?.length ?? 0) > 1 ? lightenHexToRgb(color) : undefined;
 
     const hasSinglePoints = (series as LineSeriesOption[] | undefined)?.every(
       s => Array.isArray(s.data) && s.data.length <= 1
@@ -444,13 +448,17 @@ function BaseChart({
           lineStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : theme.gray200,
+              : isChonkTheme(theme)
+                ? theme.colors.gray400
+                : theme.gray200,
             type: 'dotted',
           },
           itemStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : theme.gray200,
+              : isChonkTheme(theme)
+                ? theme.colors.gray400
+                : theme.gray200,
           },
           stack: 'previous',
           animation: false,
@@ -467,7 +475,7 @@ function BaseChart({
     transformSinglePointToLine,
     previousPeriod,
     additionalSeries,
-    theme.gray200,
+    theme,
   ]);
 
   /**
@@ -616,6 +624,7 @@ function BaseChart({
         },
 
         highlight: (props: any, instance: ECharts) => onHighlight?.(props, instance),
+        downplay: (props: any, instance: ECharts) => onDownplay?.(props, instance),
         mouseout: (props: any, instance: ECharts) => onMouseOut?.(props, instance),
         mouseover: (props: any, instance: ECharts) => onMouseOver?.(props, instance),
         datazoom: (props: any, instance: ECharts) => onDataZoom?.(props, instance),
@@ -635,6 +644,7 @@ function BaseChart({
     [
       onClick,
       onHighlight,
+      onDownplay,
       onLegendSelectChanged,
       onMouseOut,
       onMouseOver,

@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -14,32 +14,37 @@ import {IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {ExploreCharts} from 'sentry/views/explore/charts';
 import SchemaHintsList, {
   SchemaHintsSection,
-} from 'sentry/views/explore/components/schemaHintsList';
-import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
+} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
-  type LogPageParamsUpdate,
   useLogsFields,
   useLogsSearch,
   useSetLogsFields,
   useSetLogsPageParams,
-  useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {HiddenColumnEditorLogFields} from 'sentry/views/explore/logs/constants';
-import {LogsChart} from 'sentry/views/explore/logs/logsChart';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {DefaultPeriod, MaxPickableDays} from 'sentry/views/explore/utils';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 export type LogsTabProps = {
   defaultPeriod: DefaultPeriod;
@@ -52,12 +57,30 @@ export function LogsTabContent({
   maxPickableDays,
   relativeOptions,
 }: LogsTabProps) {
-  const setLogsQuery = useSetLogsQuery();
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const setFields = useSetLogsFields();
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useExploreLogsTable({});
+
+  const [interval] = useChartInterval();
+
+  const timeseriesResult = useSortedTimeSeries(
+    {
+      search: logsSearch,
+      yAxis: [`count(${OurLogKnownFieldKey.MESSAGE})`],
+      interval,
+    },
+    'explore.ourlogs.main-chart',
+    DiscoverDatasets.OURLOGS
+  );
+  const [visualizes, setVisualizes] = useState<Visualize[]>([
+    {
+      chartType: ChartType.BAR,
+      yAxes: [`count(${OurLogKnownFieldKey.MESSAGE})`],
+      label: 'A',
+    },
+  ]);
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');
@@ -72,7 +95,16 @@ export function LogsTabContent({
   const tracesItemSearchQueryBuilderProps = {
     initialQuery: logsSearch.formatString(),
     searchSource: 'ourlogs',
-    onSearch: setLogsQuery,
+    onSearch: (newQuery: string) => {
+      const newFields = new MutableSearch(newQuery)
+        .getFilterKeys()
+        .map(key => (key.startsWith('!') ? key.slice(1) : key));
+      const mutableQuery = new MutableSearch(newQuery);
+      setLogsPageParams({
+        search: mutableQuery,
+        fields: [...new Set([...fields, ...newFields])],
+      });
+    },
     numberAttributes,
     stringAttributes,
     itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,
@@ -133,16 +165,21 @@ export function LogsTabContent({
                 isLoading={numberAttributesLoading || stringAttributesLoading}
                 exploreQuery={logsSearch.formatString()}
                 source={SchemaHintsSources.LOGS}
-                setPageParams={pageParams =>
-                  setLogsPageParams(pageParams as LogPageParamsUpdate)
-                }
-                tableColumns={fields}
               />
             </SchemaHintsSection>
           </Feature>
           <Feature features="organizations:ourlogs-graph">
             <LogsItemContainer>
-              <LogsChart />
+              <ExploreCharts
+                canUsePreviousResults
+                confidences={['high']}
+                query={logsSearch.formatString()}
+                timeseriesResult={timeseriesResult}
+                visualizes={visualizes}
+                setVisualizes={setVisualizes}
+                // TODO: we do not support log alerts nor adding to dashboards yet
+                hideContextMenu
+              />
             </LogsItemContainer>
           </Feature>
           <LogsItemContainer>

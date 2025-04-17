@@ -14,14 +14,15 @@ import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
+import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useUrlParams from 'sentry/utils/useUrlParams';
+import {useParams} from 'sentry/utils/useParams';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -193,7 +194,8 @@ function GroupReplaysTable({
   organization: Organization;
 }) {
   const location = useLocation();
-  const urlParams = useUrlParams();
+  const navigate = useNavigate();
+  const params = useParams<{groupId: string}>();
   const {getReplayCountForIssue} = useReplayCountForIssues({
     statsPeriod: '90d',
   });
@@ -208,20 +210,29 @@ function GroupReplaysTable({
   const {replays} = replayListData;
   const {allMobileProj} = useAllMobileProj({});
 
-  const rawReplayIndex = urlParams.getParamValue('selected_replay_index');
+  const rawReplayIndex = location.query.selected_replay_index;
   const selectedReplayIndex = parseInt(
     typeof rawReplayIndex === 'string' ? rawReplayIndex : '0',
     10
   );
 
+  useCleanQueryParamsOnRouteLeave({
+    fieldsToClean: ['selected_replay_index'],
+    shouldClean: newLocation =>
+      newLocation.pathname.includes(`/issues/${params.groupId}/`),
+  });
+
   const setSelectedReplayIndex = useCallback(
     (index: number) => {
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: {...location.query, selected_replay_index: index},
-      });
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {...location.query, selected_replay_index: index},
+        },
+        {replace: true, preventScrollReset: true}
+      );
     },
-    [location]
+    [location, navigate]
   );
 
   const selectedReplay = replays?.[selectedReplayIndex];

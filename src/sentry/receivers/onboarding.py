@@ -366,6 +366,7 @@ def record_first_insight_span(project, module, **kwargs):
 first_insight_span_received.connect(record_first_insight_span, weak=False)
 
 
+# TODO (mifu67): update this to use the new org member invite model
 @member_invited.connect(weak=False, dispatch_uid="onboarding.record_member_invited")
 def record_member_invited(member, user, **kwargs):
     OrganizationOnboardingTask.objects.get_or_create(

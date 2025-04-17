@@ -242,11 +242,9 @@ const StyledPositionWrapper = styled(PositionWrapper)`
   }
 `;
 
-const StyledOverlay = styled(Overlay)<
-  {
-    size: Props['size'];
-  } & React.HTMLAttributes<HTMLDivElement>
->`
+const StyledOverlay = styled(Overlay)<{
+  size: Props['size'];
+}>`
   padding: 4px;
   font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
   cursor: auto;

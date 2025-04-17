@@ -36,7 +36,7 @@ describe('AutofixChanges', () => {
       status: AutofixStatus.COMPLETED,
       changes: [AutofixCodebaseChangeData({pull_request: undefined})],
     },
-  };
+  } satisfies React.ComponentProps<typeof AutofixChanges>;
 
   beforeEach(() => {
     mockUseAutofix.mockReturnValue({
