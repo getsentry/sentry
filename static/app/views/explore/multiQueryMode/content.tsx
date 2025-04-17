@@ -116,7 +116,10 @@ function Content() {
             <DatePageFilter
               defaultPeriod={defaultPeriod}
               maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
+              relativeOptions={({arbitraryOptions}) => ({
+                ...arbitraryOptions,
+                ...relativeOptions,
+              })}
             />
           </StyledPageFilterBar>
           <DropdownMenu
