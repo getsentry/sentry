@@ -1,3 +1,4 @@
+import logging
 from time import time
 
 from sentry.api.serializers import serialize
@@ -7,6 +8,8 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
+
+logger = logging.getLogger(__name__)
 
 
 def get_payload_v0(event):
@@ -58,3 +61,4 @@ def process_service_hook(servicehook_id, event, **kwargs):
     safe_urlopen(
         url=servicehook.url, data=json.dumps(payload), headers=headers, timeout=5, verify_ssl=False
     )
+    logger.info("service_hook.success", extra={"project_id": event.project_id})
