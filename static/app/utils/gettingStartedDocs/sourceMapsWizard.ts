@@ -1,5 +1,4 @@
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 /**
  * Generate a standardized sourcemaps wizard command with organization and project slugs
@@ -10,9 +9,6 @@ export function getSourceMapsWizardSnippet(params: DocsParams) {
 
   // Include org and project slugs in the command
   const commandWithFlags = `sourcemaps ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
-
-  // Get version from registry if available, or use fallback
-  const version = getPackageVersion(params, 'sentry.wizard', '4.0.1');
 
   return {
     language: 'bash',
