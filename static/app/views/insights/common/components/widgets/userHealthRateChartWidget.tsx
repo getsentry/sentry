@@ -1,30 +1,36 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
-import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import useUserHealthBreakdown from 'sentry/views/insights/sessions/queries/useUserHealthBreakdown';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function UserHealthCountChart() {
-  const {series, isPending, error} = useUserHealthBreakdown({type: 'count'});
+export default function UserHealthRateChartWidget(props: LoadableChartWidgetProps) {
+  const {series, isPending, error} = useUserHealthBreakdown({
+    type: 'rate',
+    pageFilters: props.pageFilters,
+  });
 
   const aliases = {
-    healthy_user_count: 'count_healthy(user)',
-    crashed_user_count: 'count_crashed(user)',
-    errored_user_count: 'count_errored(user)',
-    abnormal_user_count: 'count_abnormal(user)',
+    healthy_user_rate: 'rate_healthy(user)',
+    crashed_user_rate: 'rate_crashed(user)',
+    errored_user_rate: 'rate_errored(user)',
+    abnormal_user_rate: 'rate_abnormal(user)',
   };
 
   return (
-    <InsightsLineChartWidget
-      title={CHART_TITLES.UserHealthCountChart}
+    <InsightsAreaChartWidget
+      {...props}
+      id="userHealthRateChartWidget"
+      title={CHART_TITLES.UserHealthRateChartWidget}
       interactiveTitle={() => (
-        <ChartSelectionTitle title={CHART_TITLES.UserHealthCountChart} />
+        <ChartSelectionTitle title={CHART_TITLES.UserHealthRateChartWidget} />
       )}
       height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
-        'Breakdown of total [linkUsers:users], grouped by [linkStatus:health status].',
+        'The percent of [linkUsers:users] with each [linkStatus:health status].',
         {
           linkUsers: (
             <ExternalLink href="https://docs.sentry.io/product/releases/health/#user-modeapplication-mode-sessions" />
@@ -39,7 +45,7 @@ export default function UserHealthCountChart() {
       isLoading={isPending}
       error={error}
       legendSelection={{
-        healthy_user_count: false,
+        healthy_user_rate: false,
       }}
     />
   );

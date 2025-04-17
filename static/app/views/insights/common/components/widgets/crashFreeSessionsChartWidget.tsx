@@ -2,13 +2,16 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
 import {formatSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatSeriesName';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import useCrashFreeSessions from 'sentry/views/insights/sessions/queries/useCrashFreeSessions';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function CrashFreeSessionsChart() {
-  const {series, releases, isPending, error} = useCrashFreeSessions();
+export default function CrashFreeSessionsChartWidget(props: LoadableChartWidgetProps) {
+  const {series, releases, isPending, error} = useCrashFreeSessions({
+    pageFilters: props.pageFilters,
+  });
 
   const aliases = Object.fromEntries(
     releases?.map(release => [
@@ -19,9 +22,11 @@ export default function CrashFreeSessionsChart() {
 
   return (
     <InsightsLineChartWidget
-      title={CHART_TITLES.CrashFreeSessionsChart}
+      {...props}
+      id="crashFreeSessionsChartWidget"
+      title={CHART_TITLES.CrashFreeSessionsChartWidget}
       interactiveTitle={() => (
-        <ChartSelectionTitle title={CHART_TITLES.CrashFreeSessionsChart} />
+        <ChartSelectionTitle title={CHART_TITLES.CrashFreeSessionsChartWidget} />
       )}
       height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
