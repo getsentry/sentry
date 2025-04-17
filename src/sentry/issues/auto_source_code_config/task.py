@@ -249,7 +249,6 @@ def update_code_mapping_if_needed(
     # The code has been moved to a new location or the automation
     # may have created the code mapping with the wrong source path
     if code_mapping_config.source_root != code_mapping.source_path:
-        code_mapping_config.source_root = code_mapping.source_path
         logger.info(
             "Updating code mapping.",
             extra={
@@ -257,11 +256,12 @@ def update_code_mapping_if_needed(
                 "new_source_root": code_mapping.source_path,
             },
         )
+        code_mapping_config.source_root = code_mapping.source_path
+
         update_reasons.append("source_root_changed")
         updated = True
 
     if code_mapping_config.default_branch != code_mapping.repo.branch:
-        code_mapping_config.default_branch = code_mapping.repo.branch
         logger.info(
             "Updating code mapping.",
             extra={
@@ -269,10 +269,11 @@ def update_code_mapping_if_needed(
                 "new_default_branch": code_mapping.repo.branch,
             },
         )
+        code_mapping_config.default_branch = code_mapping.repo.branch
         update_reasons.append("default_branch_changed")
         updated = True
 
-    if updated or tags["dry_run"]:
+    if updated:
         if options.get("issues.auto_source_code_config.update_code_mapping_if_needed"):
             code_mapping_config.save()
         for reason in update_reasons:
