@@ -40,22 +40,21 @@ class ProjectRuleCreator:
                 duration=10,
                 name="workflow_engine_issue_alert",
             )
-            with lock.acquire():
-                with transaction.atomic(router.db_for_write(Rule)):
-                    self.rule = self._create_rule()
+            with lock.acquire(), transaction.atomic(router.db_for_write(Rule)):
+                self.rule = self._create_rule()
 
-                    if features.has(
-                        "organizations:workflow-engine-issue-alert-dual-write",
-                        self.project.organization,
-                    ):
-                        # uncaught errors will rollback the transaction
-                        workflow = IssueAlertMigrator(
-                            self.rule, self.request.user.id if self.request else None
-                        ).run()
-                        logger.info(
-                            "workflow_engine.issue_alert.migrated",
-                            extra={"rule_id": self.rule.id, "workflow_id": workflow.id},
-                        )
+                if features.has(
+                    "organizations:workflow-engine-issue-alert-dual-write",
+                    self.project.organization,
+                ):
+                    # uncaught errors will rollback the transaction
+                    workflow = IssueAlertMigrator(
+                        self.rule, self.request.user.id if self.request else None
+                    ).run()
+                    logger.info(
+                        "workflow_engine.issue_alert.migrated",
+                        extra={"rule_id": self.rule.id, "workflow_id": workflow.id},
+                    )
         except UnableToAcquireLock:
             raise UnableToAcquireLockApiError
 
