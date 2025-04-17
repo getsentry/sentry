@@ -140,6 +140,7 @@ export function CacheLandingPage() {
   const hasData = useHasFirstSpan(ModuleName.CACHE);
 
   useEffect(() => {
+    // TODO: EAP does not use an indexer, so these metrics indexer errors are not possible. When EAP is fully rolled out, remove this check.
     const hasMissingDataError =
       cacheMissRateError?.message === CACHE_ERROR_MESSAGE ||
       transactionsListError?.message === CACHE_ERROR_MESSAGE;
