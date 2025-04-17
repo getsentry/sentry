@@ -67,7 +67,7 @@ export function SampleDrawerHeaderTransaction(props: SampleDrawerHeaderProps) {
 
 const DELIMITER = ':';
 
-const Bar = styled('div')`
+const Bar = styled('h4')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
