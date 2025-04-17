@@ -51,7 +51,7 @@ function makeStatOPColors(fallbackColor: string, theme: Theme): Record<string, s
 }
 
 function formatData(rawData: UsageSeries | undefined, theme: Theme) {
-  if (!rawData || !rawData.groups?.length) {
+  if (!rawData?.groups?.length) {
     return [];
   }
 

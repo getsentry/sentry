@@ -118,6 +118,7 @@ export const ChonkLeadingItems = chonkStyled('div')<{
   gap: ${space(1)};
   margin-right: ${space(1)};
   flex-shrink: 0;
+  align-items: center;
 
   ${p => p.disabled && `opacity: 0.5;`}
 `;

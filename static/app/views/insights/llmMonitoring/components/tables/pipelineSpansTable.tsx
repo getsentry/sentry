@@ -18,10 +18,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
-import {
-  useEAPSpans,
-  useSpansIndexed,
-} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   type DomainView,
@@ -79,10 +76,9 @@ export function isAValidSort(sort: Sort): sort is ValidSort {
 
 interface Props {
   groupId: string;
-  useEAP: boolean;
   referrer?: string;
 }
-export function PipelineSpansTable({groupId, useEAP}: Props) {
+export function PipelineSpansTable({groupId}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const theme = useTheme();
@@ -108,52 +104,28 @@ export function PipelineSpansTable({groupId, useEAP}: Props) {
         SpanIndexedField.SPAN_ID,
         SpanIndexedField.TRACE,
         SpanIndexedField.SPAN_DURATION,
-        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.TRANSACTION_SPAN_ID,
         SpanIndexedField.USER,
         SpanIndexedField.TIMESTAMP,
         SpanIndexedField.PROJECT,
       ],
       search: new MutableSearch(`span.category:ai.pipeline span.group:"${groupId}"`),
-      enabled: !useEAP,
     },
     'api.ai-pipelines.view'
   );
 
-  const {
-    data: eapData,
-    meta: eapMeta,
-    error: eapError,
-    isPending: eapPending,
-  } = useEAPSpans(
-    {
-      limit: 30,
-      sorts: [sort],
-      fields: [
-        SpanIndexedField.SPAN_ID,
-        SpanIndexedField.TRACE,
-        SpanIndexedField.SPAN_DURATION,
-        SpanIndexedField.TRANSACTION_ID,
-        SpanIndexedField.USER,
-        SpanIndexedField.TIMESTAMP,
-        SpanIndexedField.PROJECT,
-      ],
-      search: new MutableSearch(`span.category:ai.pipeline span.group:"${groupId}"`),
-      enabled: useEAP,
-    },
-    'api.ai-pipelines.view'
-  );
-  const data = (useEAP ? eapData : rawData) ?? [];
-  const meta = (useEAP ? eapMeta : rawMeta) as EventsMetaType;
+  const data = rawData ?? [];
+  const meta = rawMeta;
 
   return (
     <VisuallyCompleteWithData
       id="PipelineSpansTable"
       hasData={data.length > 0}
-      isLoading={useEAP ? eapPending : isPending}
+      isLoading={isPending}
     >
       <GridEditable
-        isLoading={useEAP ? eapPending : isPending}
-        error={useEAP ? eapError : error}
+        isLoading={isPending}
+        error={error}
         data={data}
         columnOrder={COLUMN_ORDER}
         columnSortBy={[
@@ -208,7 +180,7 @@ function renderBodyCell(
       <Link
         to={generateLinkToEventInTraceView({
           organization,
-          eventId: row[SpanIndexedField.TRANSACTION_ID],
+          targetId: row[SpanIndexedField.TRANSACTION_SPAN_ID],
           projectSlug: row[SpanIndexedField.PROJECT],
           traceSlug: row[SpanIndexedField.TRACE],
           timestamp: row[SpanIndexedField.TIMESTAMP],

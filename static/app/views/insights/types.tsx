@@ -75,10 +75,12 @@ export enum SpanMetricsField {
 // TODO: This will be the final field type for eap spans
 export enum SpanFields {
   IS_TRANSACTION = 'is_transaction',
+  CACHE_HIT = 'cache.hit',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
 }
 
 export type SpanBooleanFields =
+  | SpanFields.CACHE_HIT
   | SpanFields.IS_TRANSACTION
   | SpanFields.IS_STARRED_TRANSACTION;
 
@@ -246,7 +248,6 @@ export type EAPSpanResponse = {
       | `${Property}(${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
-    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG]: string;
   };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;
@@ -267,11 +268,11 @@ export enum SpanIndexedField {
   SPAN_ID = 'span_id',
   SPAN_ACTION = 'span.action',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
-  SPAN_AI_PIPELINE_GROUP_TAG = 'ai_pipeline_group',
   SDK_NAME = 'sdk.name',
   SDK_VERSION = 'sdk.version',
   TRACE = 'trace',
-  TRANSACTION_ID = 'transaction.id',
+  TRANSACTION_ID = 'transaction.id', // TODO - remove this with `useInsightsEap`
+  TRANSACTION_SPAN_ID = 'transaction.span_id',
   TRANSACTION_METHOD = 'transaction.method',
   TRANSACTION_OP = 'transaction.op',
   SPAN_DOMAIN = 'span.domain',
@@ -364,6 +365,7 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.TRACE]: string;
   [SpanIndexedField.TRANSACTION]: string;
   [SpanIndexedField.TRANSACTION_ID]: string;
+  [SpanIndexedField.TRANSACTION_SPAN_ID]: string;
   [SpanIndexedField.TRANSACTION_METHOD]: string;
   [SpanIndexedField.TRANSACTION_OP]: string;
   [SpanIndexedField.SPAN_DOMAIN]: string[];

@@ -5,7 +5,7 @@ from sentry import eventstore
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.models.group import Group
 from sentry.models.repository import Repository
-from sentry.seer.fetch_issues.fetch_issues_given_patches import (
+from sentry.seer.fetch_issues.fetch_issues import (
     NUM_DAYS_AGO,
     STACKFRAME_COUNT,
     PrFile,
@@ -13,6 +13,7 @@ from sentry.seer.fetch_issues.fetch_issues_given_patches import (
     _get_projects_and_filenames_from_source_file,
     _left_truncated_paths,
     get_issues_related_to_file_patches,
+    get_issues_related_to_function_names,
     get_issues_with_event_details_for_file,
     safe_for_fetching_issues,
 )
@@ -179,7 +180,7 @@ def test__left_truncated_paths():
     ]
 
 
-class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase):
+class TestGetIssues(IntegrationTestCase, CreateEventTestCase):
     # Mostly copied from tests/sentry/integrations/github/tasks/test_open_pr_comment.py
     base_url = "https://api.github.com"
 
@@ -247,14 +248,41 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         assert projects == {self.project}
         assert filenames == {"some/path/foo.py", "path/foo.py", "foo.py"}
 
-    @patch("sentry.seer.fetch_issues.fetch_issues_given_patches.safe_for_fetching_issues")
-    @patch(
-        "sentry.seer.fetch_issues.fetch_issues_given_patches._get_projects_and_filenames_from_source_file"
-    )
+    @patch("sentry.seer.fetch_issues.fetch_issues._get_projects_and_filenames_from_source_file")
+    @patch("sentry.seer.fetch_issues.fetch_issues.get_issues_with_event_details_for_file")
+    def test_get_issues_related_to_function_names(
+        self,
+        mock_get_issues_with_event_details_for_file: Mock,
+        mock_get_projects_and_filenames_from_source_file: Mock,
+    ):
+        mock_get_issues_with_event_details_for_file.side_effect = (
+            lambda *args, **kwargs: self.issues_with_event_details
+        )
+        mock_get_projects_and_filenames_from_source_file.return_value = ({self.project}, {"foo.py"})
+
+        filename_to_function_names_related = {"foo.py": ["world", "planet"]}
+        filename_to_function_names_unrelated: dict[str, list[str]] = {"no_function_names.py": []}
+        filename_to_issues_expected = {
+            filename: self.issues_with_event_details
+            for filename in filename_to_function_names_related
+        }
+
+        assert self.gh_repo.provider is not None
+
+        filename_to_issues = get_issues_related_to_function_names(
+            organization_id=self.organization.id,
+            provider=self.gh_repo.provider,
+            external_id=self.gh_repo.external_id,  # type: ignore[arg-type]
+            filename_to_function_names=(
+                filename_to_function_names_related | filename_to_function_names_unrelated
+            ),
+        )
+        assert filename_to_issues == filename_to_issues_expected
+
+    @patch("sentry.seer.fetch_issues.fetch_issues.safe_for_fetching_issues")
+    @patch("sentry.seer.fetch_issues.fetch_issues._get_projects_and_filenames_from_source_file")
     @patch("sentry.seer.fetch_issues.more_parsing.PythonParserMore.extract_functions_from_patch")
-    @patch(
-        "sentry.seer.fetch_issues.fetch_issues_given_patches.get_issues_with_event_details_for_file"
-    )
+    @patch("sentry.seer.fetch_issues.fetch_issues.get_issues_with_event_details_for_file")
     def test_get_issues_related_to_file_patches(
         self,
         mock_get_issues_with_event_details_for_file: Mock,
@@ -266,7 +294,7 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
             lambda *args, **kwargs: self.issues_with_event_details
         )
         mock_extract_functions_from_patch.return_value = {"world", "planet"}
-        mock_get_projects_and_filenames_from_source_file.return_value = ({self.project}, {"foo.py"})
+        mock_get_projects_and_filenames_from_source_file.return_value = ({self.project}, {"bar.py"})
         mock_safe_for_fetching_issues.side_effect = lambda x: x
 
         pr_files_related: list[PrFile] = [
@@ -291,14 +319,10 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         )
         assert filename_to_issues == filename_to_issues_expected
 
-    @patch("sentry.seer.fetch_issues.fetch_issues_given_patches.safe_for_fetching_issues")
-    @patch(
-        "sentry.seer.fetch_issues.fetch_issues_given_patches._get_projects_and_filenames_from_source_file"
-    )
+    @patch("sentry.seer.fetch_issues.fetch_issues.safe_for_fetching_issues")
+    @patch("sentry.seer.fetch_issues.fetch_issues._get_projects_and_filenames_from_source_file")
     @patch("sentry.seer.fetch_issues.more_parsing.PythonParserMore.extract_functions_from_patch")
-    @patch(
-        "sentry.seer.fetch_issues.fetch_issues_given_patches.get_issues_with_event_details_for_file"
-    )
+    @patch("sentry.seer.fetch_issues.fetch_issues.get_issues_with_event_details_for_file")
     def test_get_issues_related_to_file_patches_no_function_names(
         self,
         mock_get_issues_with_event_details_for_file: Mock,
@@ -329,14 +353,10 @@ class TestGetIssuesRelatedToFilePatches(IntegrationTestCase, CreateEventTestCase
         )
         assert filename_to_issues == filename_to_issues_expected
 
-    @patch("sentry.seer.fetch_issues.fetch_issues_given_patches.safe_for_fetching_issues")
-    @patch(
-        "sentry.seer.fetch_issues.fetch_issues_given_patches._get_projects_and_filenames_from_source_file"
-    )
+    @patch("sentry.seer.fetch_issues.fetch_issues.safe_for_fetching_issues")
+    @patch("sentry.seer.fetch_issues.fetch_issues._get_projects_and_filenames_from_source_file")
     @patch("sentry.seer.fetch_issues.more_parsing.PythonParserMore.extract_functions_from_patch")
-    @patch(
-        "sentry.seer.fetch_issues.fetch_issues_given_patches.get_issues_with_event_details_for_file"
-    )
+    @patch("sentry.seer.fetch_issues.fetch_issues.get_issues_with_event_details_for_file")
     def test_get_issues_related_to_file_patches_no_issues_found(
         self,
         mock_get_issues_with_event_details_for_file: Mock,

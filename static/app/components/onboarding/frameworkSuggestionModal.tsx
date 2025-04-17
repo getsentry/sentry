@@ -1,6 +1,7 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
@@ -11,6 +12,7 @@ import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import {useIsCreatingProject} from 'sentry/components/onboarding/useCreateProject';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCategories';
@@ -112,13 +114,13 @@ export const languageDescriptions: Partial<Record<PlatformKey, string>> = {
   ),
 };
 
-type Props = ModalRenderProps & {
+interface FrameworkSuggestionModalProps extends ModalRenderProps {
   onConfigure: (selectedFramework: OnboardingSelectedSDK) => void;
   onSkip: () => void;
   organization: Organization;
   selectedPlatform: OnboardingSelectedSDK;
   newOrg?: boolean;
-};
+}
 
 export function FrameworkSuggestionModal({
   Body,
@@ -130,7 +132,8 @@ export function FrameworkSuggestionModal({
   CloseButton,
   organization,
   newOrg,
-}: Props) {
+}: FrameworkSuggestionModalProps) {
+  const isCreatingProject = useIsCreatingProject();
   const [selectedFramework, setSelectedFramework] = useState<
     OnboardingSelectedSDK | undefined
   >(selectedPlatform);
@@ -225,6 +228,19 @@ export function FrameworkSuggestionModal({
     onSkip();
   }, [selectedPlatform, organization, onSkip, newOrg]);
 
+  const handleClick = useCallback(() => {
+    if (selectedFramework?.key === selectedPlatform.key) {
+      handleSkip();
+    } else {
+      handleConfigure();
+    }
+  }, [handleSkip, handleConfigure, selectedFramework, selectedPlatform]);
+
+  const debounceHandleClick = useMemo(
+    () => debounce(handleClick, 2000, {leading: true, trailing: false}),
+    [handleClick]
+  );
+
   const listEntries: PlatformIntegration[] = [
     ...topFrameworksOrdered,
     ...otherFrameworksSortedAlphabetically,
@@ -290,12 +306,7 @@ export function FrameworkSuggestionModal({
         </StyledPanel>
       </Body>
       <Footer>
-        <Button
-          priority="primary"
-          onClick={
-            selectedFramework?.key === selectedPlatform.key ? handleSkip : handleConfigure
-          }
-        >
+        <Button priority="primary" onClick={debounceHandleClick} busy={isCreatingProject}>
           {t('Configure SDK')}
         </Button>
       </Footer>

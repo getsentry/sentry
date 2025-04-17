@@ -84,7 +84,7 @@ function getChonkToastIconContainerTheme(
     case 'error':
       return {
         background: theme.colors.chonk.red400,
-        borderRight: `1px solid ${theme.colors.chonk.blue100}`,
+        borderRight: `1px solid ${theme.colors.chonk.red100}`,
       };
     default:
       return {
