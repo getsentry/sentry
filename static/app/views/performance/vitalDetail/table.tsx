@@ -116,7 +116,7 @@ class Table extends Component<Props, State> {
     const {eventView, organization, projects, location, summaryConditions, theme} =
       this.props;
 
-    if (!tableData || !tableData.meta?.fields) {
+    if (!tableData?.meta?.fields) {
       return dataRow[column.key];
     }
     const tableMeta = tableData.meta?.fields;
