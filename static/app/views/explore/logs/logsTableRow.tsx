@@ -15,6 +15,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   useLogsAnalyticsPageSource,
   useLogsFields,
@@ -28,7 +29,6 @@ import {
   LogFieldRenderer,
   SeverityCircleRenderer,
 } from 'sentry/views/explore/logs/fieldRenderers';
-import {AttributesTree} from 'sentry/views/explore/logs/logFieldsTree';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -52,7 +52,7 @@ import {
   LogTableRow,
   StyledChevronButton,
 } from './styles';
-import {getLogRowItem, getLogSeverityLevel} from './utils';
+import {adjustAliases, getLogRowItem, getLogSeverityLevel} from './utils';
 
 type LogsRowProps = {
   dataRow: OurLogsResponseItem;
@@ -143,11 +143,7 @@ export function LogRowContent({
               size="zero"
               borderless
             />
-            <SeverityCircleRenderer
-              extra={rendererExtra}
-              meta={meta}
-              tableResultLogRow={dataRow}
-            />
+            <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
         {fields.map(field => {
@@ -200,7 +196,6 @@ export function LogRowContent({
                   item={getLogRowItem(field, dataRow, meta)}
                   meta={meta}
                   extra={rendererExtra}
-                  tableResultLogRow={dataRow}
                 />
               </CellAction>
             </LogTableBodyCell>
@@ -226,7 +221,7 @@ function LogRowDetails({
   const location = useLocation();
   const organization = useOrganization();
   const fields = useLogsFields();
-  const customActionsGetter = useLogAttributesTreeActions();
+  const getActions = useLogAttributesTreeActions();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY_TEXT];
 
@@ -286,14 +281,13 @@ function LogRowDetails({
                 <AttributesTree
                   attributes={data.attributes}
                   hiddenAttributes={HiddenLogDetailFields}
+                  getCustomActions={getActions}
+                  getAdjustedAttributeKey={adjustAliases}
                   renderers={renderers}
                   renderExtra={{
                     location,
                     organization,
                     theme,
-                  }}
-                  config={{
-                    customActionsGetter,
                   }}
                 />
               </LogDetailPanelItem>

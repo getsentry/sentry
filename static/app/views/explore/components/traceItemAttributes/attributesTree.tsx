@@ -10,6 +10,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   getFieldRenderer,
   type RenderFunctionBaggage,
@@ -17,12 +18,11 @@ import {
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
-  adjustAliases,
-  getLogAttributeItem,
+  getAttributeItem,
   prettifyAttributeName,
-} from 'sentry/views/explore/logs/utils';
+} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
@@ -50,14 +50,27 @@ interface AttributesTreeColumnData {
   startIndex: number;
 }
 
+type AttributeItem = {
+  fieldKey: string;
+  value: string | number | null;
+};
+
+export type AttributesFieldRenderProps = {
+  item: AttributeItem;
+  basicRendered?: React.ReactNode;
+  meta?: EventsMetaType;
+};
+
 interface AttributesFieldRender {
   renderExtra: RenderFunctionBaggage;
-  renderers?: Record<string, (props: any) => React.ReactNode>;
+  renderers?: Record<string, (props: AttributesFieldRenderProps) => React.ReactNode>;
 }
 
 interface AttributesTreeProps extends AttributesFieldRender {
   attributes: TraceItemResponseAttribute[];
   config?: AttributesTreeRowConfig;
+  getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string;
+  getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
   hiddenAttributes?: string[];
 }
 
@@ -66,8 +79,6 @@ interface AttributesTreeColumnsProps extends AttributesTreeProps {
 }
 
 interface AttributesTreeRowConfig {
-  // Additional actions to be displayed in the dropdown
-  customActionsGetter?: (content: AttributesTreeContent) => MenuItemProps[];
   // Omits the dropdown of actions applicable to this attribute
   disableActions?: boolean;
   // Omit error styling from being displayed, even if context is invalid
@@ -80,6 +91,7 @@ interface AttributesTreeRowProps extends AttributesFieldRender {
   attributeKey: string;
   content: AttributesTreeContent;
   config?: AttributesTreeRowConfig;
+  getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
   isLast?: boolean;
   spacerCount?: number;
 }
@@ -148,6 +160,7 @@ function getAttributesTreeRows({
   renderExtra,
   isLast = false,
   config = {},
+  getCustomActions,
 }: AttributesTreeRowProps &
   AttributesFieldRender & {
     uniqueKey: string;
@@ -179,6 +192,7 @@ function getAttributesTreeRows({
       renderExtra={renderExtra}
       isLast={isLast}
       config={config}
+      getCustomActions={getCustomActions}
     />,
     ...subtreeRows,
   ];
@@ -195,6 +209,8 @@ function AttributesTreeColumns({
   renderers = {},
   renderExtra,
   config = {},
+  getCustomActions,
+  getAdjustedAttributeKey,
 }: AttributesTreeColumnsProps) {
   const assembledColumns = useMemo(() => {
     if (!attributes) {
@@ -203,7 +219,7 @@ function AttributesTreeColumns({
 
     // Convert attributes record to the format expected by addToAttributeTree
     const visibleAttributes = attributes
-      .map(key => getAttribute(key, hiddenAttributes))
+      .map(key => getAttribute(key, hiddenAttributes, getAdjustedAttributeKey))
       .filter(defined);
 
     // Create the AttributeTree data structure using all the given attributes
@@ -224,6 +240,7 @@ function AttributesTreeColumns({
         renderers,
         renderExtra,
         config,
+        getCustomActions,
       })
     );
 
@@ -262,7 +279,16 @@ function AttributesTreeColumns({
       {startIndex: 0, runningTotal: 0, columns: []}
     );
     return data.columns;
-  }, [attributes, columnCount, hiddenAttributes, renderers, renderExtra, config]);
+  }, [
+    attributes,
+    columnCount,
+    hiddenAttributes,
+    renderers,
+    renderExtra,
+    config,
+    getCustomActions,
+    getAdjustedAttributeKey,
+  ]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }
@@ -287,6 +313,7 @@ function AttributesTreeRow({
   spacerCount = 0,
   isLast = false,
   config = {},
+  getCustomActions,
   ...props
 }: AttributesTreeRowProps) {
   const theme = useTheme();
@@ -312,7 +339,7 @@ function AttributesTreeRow({
   }
 
   const attributeActions = config?.disableActions ? null : (
-    <AttributesTreeRowDropdown content={content} config={config} />
+    <AttributesTreeRowDropdown content={content} getCustomActions={getCustomActions} />
   );
 
   return (
@@ -351,10 +378,10 @@ function AttributesTreeRow({
 
 function AttributesTreeRowDropdown({
   content,
-  config,
+  getCustomActions,
 }: {
   content: AttributesTreeContent;
-  config?: AttributesTreeRowConfig;
+  getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
 }) {
   const {onClick: handleCopy} = useCopyToClipboard({
     text: String(content.value),
@@ -362,8 +389,8 @@ function AttributesTreeRowDropdown({
   const [isVisible, setIsVisible] = useState(false);
 
   let customActions: MenuItemProps[] = [];
-  if (config?.customActionsGetter) {
-    customActions = config.customActionsGetter(content);
+  if (getCustomActions) {
+    customActions = getCustomActions(content);
   }
 
   const items: MenuItemProps[] = [
@@ -436,8 +463,7 @@ function LogFieldsTreeValue({
 
   if (renderer) {
     return renderer({
-      item: getLogAttributeItem(attributeKey, content.value),
-      extra: renderExtra,
+      item: getAttributeItem(attributeKey, content.value),
       basicRendered,
     });
   }
@@ -463,7 +489,8 @@ function LogFieldsTreeValue({
  */
 function getAttribute(
   attribute: TraceItemResponseAttribute,
-  hiddenAttributes: string[]
+  hiddenAttributes: string[],
+  getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string
 ): Attribute | undefined {
   // Filter out hidden attributes
   if (hiddenAttributes.includes(attribute.name)) {
@@ -480,7 +507,9 @@ function getAttribute(
   return {
     attribute_key: prettifyAttributeName(attribute.name),
     attribute_value: attributeValue,
-    original_attribute_key: adjustAliases(attribute.name),
+    original_attribute_key: getAdjustedAttributeKey
+      ? getAdjustedAttributeKey(attribute)
+      : attribute.name,
   };
 }
 

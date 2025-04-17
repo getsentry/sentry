@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
+import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   useLogsFields,
   useLogsIsTableEditingFrozen,
@@ -9,7 +10,6 @@ import {
   useSetLogsFields,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import type {AttributesTreeContent} from 'sentry/views/explore/logs/logFieldsTree';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 export function useLogAttributesTreeActions() {

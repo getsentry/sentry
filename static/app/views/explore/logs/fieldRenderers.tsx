@@ -8,8 +8,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {AttributesFieldRenderProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {stripLogParamsFromLocation} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   AlignedCellContent,
@@ -37,16 +37,11 @@ import {
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-interface LogFieldRendererProps {
+interface LogFieldRendererProps extends AttributesFieldRenderProps {
   extra: RendererExtra;
-  item: LogRowItem | LogAttributeItem;
-  align?: 'left' | 'center' | 'right';
-  basicRendered?: React.ReactNode;
-  meta?: EventsMetaType;
-  tableResultLogRow?: OurLogsResponseItem;
 }
 
-export interface RendererExtra {
+interface RendererExtra {
   highlightTerms: string[];
   location: Location;
   logColors: ReturnType<typeof getLogColors>;
@@ -78,13 +73,14 @@ function SeverityCircle(props: {
 
 export function SeverityTextRenderer(props: LogFieldRendererProps) {
   const attribute_value = props.item.value as string;
-  const _severityNumber = props.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_NUMBER];
+  const _severityNumber =
+    props.extra.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityNumber = _severityNumber ? Number(_severityNumber) : null;
   const useFullSeverityText = props.extra.useFullSeverityText ?? false;
   const level = getLogSeverityLevel(severityNumber, attribute_value);
   const levelLabel = useFullSeverityText ? attribute_value : severityLevelToText(level);
   return (
-    <AlignedCellContent align={props.align}>
+    <AlignedCellContent align={props.extra.align}>
       <ColoredLogText logColors={props.extra.logColors}>{levelLabel}</ColoredLogText>
     </AlignedCellContent>
   );
@@ -92,18 +88,20 @@ export function SeverityTextRenderer(props: LogFieldRendererProps) {
 
 // This is not in the field lookup and only exists for the prefix column in the logs table.
 export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'>) {
-  if (!props.tableResultLogRow) {
+  if (!props.extra.tableResultLogRow) {
     return null;
   }
-  const attribute_value = props.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_TEXT];
-  const _severityNumber = props.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_NUMBER];
+  const attribute_value =
+    props.extra.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_TEXT];
+  const _severityNumber =
+    props.extra.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_NUMBER];
 
   const severityNumber = _severityNumber ? Number(_severityNumber) : null;
   const useFullSeverityText = props.extra.useFullSeverityText ?? false;
   const level = getLogSeverityLevel(severityNumber, attribute_value);
   const levelLabel = useFullSeverityText ? attribute_value : severityLevelToText(level);
   return (
-    <AlignedCellContent align={props.align}>
+    <AlignedCellContent align={props.extra.align}>
       <SeverityCircle
         level={level}
         levelLabel={levelLabel}
@@ -183,14 +181,14 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
 
   return (
     <AlignedCellContent align={align}>
-      {customRenderer({...props, align, basicRendered})}
+      {customRenderer({...props, basicRendered})}
     </AlignedCellContent>
   );
 }
 
 export function getLogAttributesRendererMap(
   extra: RendererExtra
-): Record<OurLogFieldKey, (props: LogFieldRendererProps) => React.ReactNode> {
+): Record<OurLogFieldKey, (props: AttributesFieldRenderProps) => React.ReactNode> {
   return {
     [OurLogKnownFieldKey.TIMESTAMP]: props => {
       return TimestampRenderer({...props, extra});
