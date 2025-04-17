@@ -6,18 +6,16 @@ from typing import Any
 
 from django import forms
 
-from sentry.api.serializers import serialize
 from sentry.eventstore.models import GroupEvent
-from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
-from sentry.integrations.metric_alerts import (
-    get_metric_count_from_incident,
-    incident_attachment_info,
+from sentry.incidents.endpoints.serializers.incident import IncidentSerializerResponse
+from sentry.incidents.typings.metric_detector import (
+    AlertContext,
+    MetricIssueContext,
+    NotificationContext,
 )
+from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.services.integration import integration_service
-from sentry.organizations.services.organization.serial import serialize_rpc_organization
+from sentry.models.organization import Organization
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import PluginService
@@ -33,9 +31,10 @@ PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack", "Opsgenie"]
 
 
 def build_incident_attachment(
-    incident: Incident,
-    new_status: IncidentStatus,
-    metric_value: float | None = None,
+    alert_context: AlertContext,
+    metric_issue_context: MetricIssueContext,
+    incident_serialized_response: IncidentSerializerResponse,
+    organization: Organization,
     notification_uuid: str | None = None,
 ) -> dict[str, str]:
     from sentry.api.serializers.rest_framework.base import (
@@ -43,23 +42,16 @@ def build_incident_attachment(
         convert_dict_key_case,
     )
 
-    if metric_value is None:
-        metric_value = get_metric_count_from_incident(incident)
-
     data = incident_attachment_info(
-        organization=incident.organization,
-        alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-        metric_issue_context=MetricIssueContext.from_legacy_models(
-            incident, new_status, metric_value
-        ),
+        organization=organization,
+        alert_context=alert_context,
+        metric_issue_context=metric_issue_context,
         notification_uuid=notification_uuid,
         referrer="metric_alert_sentry_app",
     )
 
     return {
-        "metric_alert": convert_dict_key_case(
-            serialize(incident, serializer=IncidentSerializer()), camel_to_snake_case
-        ),
+        "metric_alert": convert_dict_key_case(incident_serialized_response, camel_to_snake_case),
         "description_text": data["text"],
         "description_title": data["title"],
         "web_url": data["title_link"],
@@ -67,10 +59,11 @@ def build_incident_attachment(
 
 
 def send_incident_alert_notification(
-    action: AlertRuleTriggerAction,
-    incident: Incident,
-    metric_value: float | int | None,
-    new_status: IncidentStatus,
+    notification_context: NotificationContext,
+    alert_context: AlertContext,
+    metric_issue_context: MetricIssueContext,
+    incident_serialized_response: IncidentSerializerResponse,
+    organization: Organization,
     notification_uuid: str | None = None,
 ) -> bool:
     """
@@ -81,19 +74,26 @@ def send_incident_alert_notification(
     fire.
     :return:
     """
-    organization = serialize_rpc_organization(incident.organization)
     incident_attachment = build_incident_attachment(
-        incident, new_status, metric_value, notification_uuid
+        alert_context,
+        metric_issue_context,
+        incident_serialized_response,
+        organization,
+        notification_uuid,
     )
 
+    if notification_context.sentry_app_id is None:
+        raise ValueError("Sentry app ID is required")
+
     success = integration_service.send_incident_alert_notification(
-        sentry_app_id=action.sentry_app_id,
-        action_id=action.id,
-        incident_id=incident.id,
-        organization_id=organization.id,
-        new_status=new_status.value,
+        sentry_app_id=notification_context.sentry_app_id,
+        new_status=metric_issue_context.new_status.value,
         incident_attachment_json=json.dumps(incident_attachment),
-        metric_value=metric_value,
+        organization_id=organization.id,
+        # TODO(iamrajjoshi): The rest of the params are unused
+        action_id=-1,
+        incident_id=-1,
+        metric_value=-1,
     )
     return success
 

@@ -11,7 +11,6 @@ import {GroupSummary} from 'sentry/components/stream/group';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
@@ -19,36 +18,39 @@ import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/p
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {WidgetTitleProps} from 'sentry/views/dashboards/widgets/widget/widgetTitle';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/laravel/styles';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import useRecentIssues from 'sentry/views/insights/sessions/queries/useRecentIssues';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-interface Props extends WidgetTitleProps {
+interface Props extends WidgetTitleProps, Partial<LoadableChartWidgetProps> {
   description: string;
   error: Error | null;
   isPending: boolean;
   plottables: Plottable[];
-  project: Project;
   series: DiscoverSeries[];
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
 }
 
-export default function ChartWithIssues({
-  description,
-  error,
-  interactiveTitle,
-  isPending,
-  legendSelection,
-  plottables,
-  project,
-  series,
-  title,
-}: Props) {
+export default function ChartWithIssues(props: Props) {
+  const {
+    description,
+    error,
+    interactiveTitle,
+    isPending,
+    legendSelection,
+    plottables,
+    series,
+    title,
+    id,
+  } = props;
+  const {projects} = useProjectHasSessions();
   const {recentIssues, isPending: isPendingRecentIssues} = useRecentIssues({
-    projectId: project.id,
+    projectId: projects[0]?.id,
   });
   const pageFilters = usePageFilters();
 
@@ -84,6 +86,8 @@ export default function ChartWithIssues({
       error={error}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
+        ...props,
+        id,
         legendSelection,
         plottables,
       }}
@@ -103,6 +107,7 @@ export default function ChartWithIssues({
 
   return (
     <Widget
+      {...props}
       Title={Title}
       height={SESSION_HEALTH_CHART_HEIGHT}
       Visualization={visualization}
@@ -130,6 +135,8 @@ export default function ChartWithIssues({
                   <Fragment>
                     <ModalChartContainer>
                       <TimeSeriesWidgetVisualization
+                        {...props}
+                        id={id}
                         releases={releases ?? []}
                         plottables={plottables}
                         legendSelection={legendSelection}

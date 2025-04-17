@@ -5,6 +5,8 @@ from sentry.workflow_engine.models import Condition, DataConditionGroup
 
 class TestBaseDataConditionGroupValidator(TestCase):
     def setUp(self):
+        self.context = {"organization": self.organization, "request": self.make_request()}
+
         self.valid_data = {
             "logicType": DataConditionGroup.Type.ANY,
             "organizationId": self.organization.id,
@@ -12,7 +14,7 @@ class TestBaseDataConditionGroupValidator(TestCase):
         }
 
     def test_conditions__empty(self):
-        validator = BaseDataConditionGroupValidator(data=self.valid_data)
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
 
     def test_conditions__valid_conditions(self):
@@ -31,13 +33,13 @@ class TestBaseDataConditionGroupValidator(TestCase):
                 "conditionGroupId": condition_group.id,
             },
         ]
-        validator = BaseDataConditionGroupValidator(data=self.valid_data)
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
 
         assert validator.is_valid() is True
 
     def test_conditions__invalid_condition(self):
         self.valid_data["conditions"] = [{"comparison": 0}]
-        validator = BaseDataConditionGroupValidator(data=self.valid_data)
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
 
     def test_conditions__custom_handler__invalid_to_schema(self):
@@ -54,7 +56,7 @@ class TestBaseDataConditionGroupValidator(TestCase):
             }
         ]
 
-        validator = BaseDataConditionGroupValidator(data=self.valid_data)
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
 
     def test_conditions__custom_handler__valid__missing_group_id(self):
@@ -71,7 +73,7 @@ class TestBaseDataConditionGroupValidator(TestCase):
             }
         ]
 
-        validator = BaseDataConditionGroupValidator(data=self.valid_data)
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
 
     def test_conditions__custom_handler(self):
@@ -88,7 +90,7 @@ class TestBaseDataConditionGroupValidator(TestCase):
             }
         ]
 
-        validator = BaseDataConditionGroupValidator(data=self.valid_data)
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
 
 
@@ -100,8 +102,13 @@ class TestBaseDataConditionGroupValidatorCreate(TestCase):
             "conditions": [],
         }
 
+        self.context = {
+            "organization": self.organization,
+            "request": self.make_request(),
+        }
+
     def test_create(self):
-        validator = BaseDataConditionGroupValidator(data=self.valid_data)
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
 
         # Validate the data and raise any exceptions if invalid to halt test
         validator.is_valid(raise_exception=True)
@@ -121,7 +128,7 @@ class TestBaseDataConditionGroupValidatorCreate(TestCase):
             }
         ]
 
-        validator = BaseDataConditionGroupValidator(data=self.valid_data)
+        validator = BaseDataConditionGroupValidator(data=self.valid_data, context=self.context)
         validator.is_valid(raise_exception=True)
         result = validator.create(validator.validated_data)
 

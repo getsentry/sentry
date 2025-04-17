@@ -2454,6 +2454,12 @@ register(
 # END: SDK Crash Detection
 
 register(
+    "issues.auto_source_code_config.update_code_mapping_if_needed",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     # Lists the shared resource ids we want to account usage for.
     "shared_resources_accounting_enabled",
     default=[],
@@ -2821,14 +2827,6 @@ register(
     default=0.0,
     type=Float,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Killswitch for Postgres query timeout error handling
-register(
-    "api.postgres-query-timeout-error-handling.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # TODO: remove once removed from options

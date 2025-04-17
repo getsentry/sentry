@@ -98,22 +98,18 @@ metadata = IntegrationMetadata(
 class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIntegration):
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.default_identity = None
-
     @property
     def integration_name(self) -> str:
         return "gitlab"
 
-    def get_client(self):
-        if self.default_identity is None:
-            try:
-                self.default_identity = self.get_default_identity()
-            except Identity.DoesNotExist:
-                raise IntegrationError("Identity not found.")
-
-        return GitLabApiClient(self)
+    def get_client(self) -> GitLabApiClient:
+        try:
+            # eagerly populate this just for the error message
+            self.default_identity
+        except Identity.DoesNotExist:
+            raise IntegrationError("Identity not found.")
+        else:
+            return GitLabApiClient(self)
 
     # IntegrationInstallation methods
     def error_message_from_json(self, data):

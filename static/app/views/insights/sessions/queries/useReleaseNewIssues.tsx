@@ -1,14 +1,17 @@
 import {getInterval} from 'sentry/components/charts/utils';
+import type {PageFilters} from 'sentry/types/core';
 import type {IssuesMetricsApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export default function useReleaseNewIssues() {
+export default function useReleaseNewIssues({pageFilters}: {pageFilters?: PageFilters}) {
   const location = useLocation();
   const organization = useOrganization();
-  const {selection} = usePageFilters();
+  const {
+    selection: {datetime},
+  } = usePageFilters();
 
   const locationQuery = {
     ...location,
@@ -31,7 +34,10 @@ export default function useReleaseNewIssues() {
         query: {
           ...locationQuery.query,
           category: 'issue',
-          interval: getInterval(selection.datetime, 'issues-metrics'),
+          interval: getInterval(
+            pageFilters ? pageFilters.datetime : datetime,
+            'issues-metrics'
+          ),
         },
       },
     ],
