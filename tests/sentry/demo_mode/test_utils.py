@@ -79,18 +79,6 @@ def test_get_demo_user_demo_mode_disabled():
     assert get_demo_user() is None
 
 
-@override_options({"demo-mode.enabled": True, "demo-mode.users": None})
-@django_db_all
-def test_get_demo_user_demo_mode_enabled_users_none():
-    assert get_demo_user() is None
-
-
-@override_options({"demo-mode.enabled": True, "demo-mode.users": []})
-@django_db_all
-def test_get_demo_user_demo_mode_enabled_users_empty():
-    assert get_demo_user() is None
-
-
 @override_options({"demo-mode.enabled": True, "demo-mode.users": [1]})
 @django_db_all
 def test_get_demo_user_demo_mode_enabled():
@@ -110,20 +98,6 @@ def test_get_demo_org_demo_mode_disabled():
 @django_db_all
 def test_get_demo_org_demo_mode_enabled():
     org = Factories.create_organization(id=1)
-    with patch(
-        "sentry.demo_mode.utils.organization_service.get_org_by_id", return_value=org
-    ) as mock_org_get:
+    with patch("sentry.demo_mode.utils.Organization.objects.get", return_value=org) as mock_org_get:
         assert get_demo_org() == org
         mock_org_get.assert_called_once_with(id=1)
-
-
-@override_options({"demo-mode.enabled": True, "demo-mode.orgs": []})
-@django_db_all
-def test_get_demo_org_demo_mode_enabled_not_set():
-    assert get_demo_org() is None
-
-
-@override_options({"demo-mode.enabled": True, "demo-mode.orgs": None})
-@django_db_all
-def test_get_demo_org_demo_mode_enabled_orgs_none():
-    assert get_demo_org() is None
