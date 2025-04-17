@@ -52,9 +52,7 @@ function SubscriptionBox({
 
   const DESCRIPTIONS: Record<(typeof EVENT_CHOICES)[number], string> = {
     // Swap ignored for archived if the feature is enabled
-    issue: organization.features.includes('webhooks-unresolved')
-      ? `created, resolved, assigned, archived, unresolved`
-      : `created, resolved, assigned, archived`,
+    issue: `created, resolved, assigned, archived, unresolved`,
     error: 'created',
     comment: 'created, edited, deleted',
   };
