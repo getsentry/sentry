@@ -146,11 +146,13 @@ function getFeedbackFilterKeys(
 }
 
 const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
+  const strFeedbackFields = FEEDBACK_FIELDS.map(String);
+
   const customTags: Tag[] = Object.values(tags).filter(
     tag =>
       tag.kind === FieldKind.TAG &&
       !EXCLUDED_TAGS.includes(tag.key) &&
-      !FEEDBACK_FIELDS.map(String).includes(tag.key)
+      !strFeedbackFields.includes(tag.key) // Sections can't overlap.
   );
 
   const orderedTagKeys: string[] = orderBy(
@@ -163,7 +165,7 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
     {
       value: 'feedback_field',
       label: t('Suggested'),
-      children: FEEDBACK_FIELDS,
+      children: strFeedbackFields,
     },
     {
       value: FieldKind.TAG,
