@@ -5,16 +5,27 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import {Slider as ChonkSlider} from './index.chonk';
 
 export interface SliderProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'value'> {
+  extends Omit<
+    React.InputHTMLAttributes<HTMLInputElement>,
+    'type' | 'value' | 'onChange'
+  > {
   defaultValue?: number;
   /** Optional callback to format the label */
   formatLabel?: (value: number | '') => number | string;
+  onChange?: (value: number, event: React.ChangeEvent<HTMLInputElement>) => void;
   ref?: React.Ref<HTMLInputElement>;
   value?: number | '';
 }
 
 export function LegacySlider({ref, ...props}: SliderProps) {
-  return <StyledSlider ref={ref} type="range" {...props} />;
+  return (
+    <StyledSlider
+      ref={ref}
+      type="range"
+      {...props}
+      onChange={e => props.onChange?.(e.currentTarget.valueAsNumber, e)}
+    />
+  );
 }
 
 export const Slider = withChonk(LegacySlider, ChonkSlider);

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Slider} from 'sentry/components/core/slider';
@@ -70,6 +70,22 @@ export default storyBook('Slider', (story, APIReference) => {
         <Label>
           Disabled with step
           <Slider disabled step={10} />
+        </Label>
+      </Fragment>
+    );
+  });
+
+  story('Controlled', () => {
+    const [value, setValue] = useState(25);
+    return (
+      <Fragment>
+        <p>
+          Pass `value` and `onChange` to fully control the <JSXNode name="Slider" />{' '}
+          component.
+        </p>
+        <Label>
+          Controlled slider
+          <Slider value={value} onChange={setValue} />
         </Label>
       </Fragment>
     );

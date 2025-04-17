@@ -35,8 +35,9 @@ export function Slider({formatLabel = passthrough, ref, ...props}: SliderProps) 
         type="range"
         {...props}
         onChange={e => {
-          setValueAsNumber(e.currentTarget.valueAsNumber);
-          props.onChange?.(e);
+          const newValue = e.currentTarget.valueAsNumber;
+          setValueAsNumber(newValue);
+          props.onChange?.(newValue, e);
         }}
       />
       {props.disabled ? null : (
