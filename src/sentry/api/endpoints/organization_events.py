@@ -469,23 +469,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             limit: int,
             query: str | None,
         ):
-            if dataset == spans_eap:
-                return spans_rpc.run_table_query(
-                    params=snuba_params,
-                    query_string=query or "",
-                    selected_columns=self.get_field_list(organization, request),
-                    orderby=self.get_orderby(request),
-                    offset=offset,
-                    limit=limit,
-                    referrer=referrer,
-                    debug=debug,
-                    config=SearchResolverConfig(
-                        auto_fields=True,
-                        use_aggregate_conditions=use_aggregate_conditions,
-                        fields_acl=FieldsACL(functions={"time_spent_percentage"}),
-                    ),
-                    sampling_mode=snuba_params.sampling_mode,
-                )
             query_source = self.get_request_source(request)
             return dataset_query(
                 selected_columns=self.get_field_list(organization, request),
@@ -752,7 +735,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                             use_aggregate_conditions=use_aggregate_conditions,
                             fields_acl=FieldsACL(functions={"time_spent_percentage"}),
                         ),
-                        sampling_mode=sampling_mode,
+                        sampling_mode=snuba_params.sampling_mode,
                     )
 
                 if save_discover_dataset_decision and discover_saved_query_id:
