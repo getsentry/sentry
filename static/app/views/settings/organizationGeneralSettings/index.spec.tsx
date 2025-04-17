@@ -228,4 +228,43 @@ describe('OrganizationGeneralSettings', function () {
       );
     });
   });
+
+  it('can toggle "Enable Seer Features"', async function () {
+    // Default org fixture has hideAiFeatures: false, so Seer is enabled by default
+    const hiddenAiOrg = OrganizationFixture({hideAiFeatures: true});
+    render(<OrganizationGeneralSettings />, {organization: hiddenAiOrg});
+    const mock = MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'PUT',
+    });
+
+    const checkbox = screen.getByRole('checkbox', {name: 'Enable Seer Features'});
+
+    // Inverted from hideAiFeatures
+    expect(checkbox).not.toBeChecked();
+
+    // Click to uncheck (disable Seer -> hideAiFeatures = true)
+    await userEvent.click(checkbox);
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          data: {hideAiFeatures: false},
+        })
+      );
+    });
+
+    // Inverted from hideAiFeatures
+    expect(checkbox).toBeChecked();
+
+    await userEvent.click(checkbox);
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({data: {hideAiFeatures: true}})
+      );
+    });
+  });
 });
