@@ -22,6 +22,7 @@ import {
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -32,11 +33,18 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {
+  BackendOverviewTable,
+  isAValidSort,
+  type ValidSort,
+} from 'sentry/views/insights/pages/backend/backendTable';
+import {
   BACKEND_LANDING_TITLE,
+  DEFAULT_SORT,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
@@ -50,7 +58,10 @@ import {
 } from 'sentry/views/insights/pages/mobile/settings';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
+import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
+import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {
   generateBackendPerformanceEventView,
   USER_MISERY_TOOLTIP,
@@ -94,8 +105,11 @@ export const BACKEND_COLUMN_TITLES = [
 function BackendOverviewPage() {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
+  const isNextJsPageAvailable = useIsNextJsInsightsAvailable();
   return isLaravelPageAvailable ? (
     <LaravelOverviewPage />
+  ) : isNextJsPageAvailable ? (
+    <NextJsOverviewPage headerTitle={BACKEND_LANDING_TITLE} />
   ) : (
     <GenericBackendOverviewPage />
   );
@@ -243,6 +257,40 @@ function GenericBackendOverviewPage() {
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
+  const sorts: [ValidSort, ValidSort] = [
+    {
+      field: 'is_starred_transaction' satisfies EAPSpanProperty,
+      kind: 'desc',
+    },
+    decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
+  ];
+
+  if (useEap) {
+    existingQuery.addFilterValue('is_transaction', 'true');
+  }
+
+  const response = useEAPSpans(
+    {
+      search: existingQuery,
+      sorts,
+      enabled: useEap,
+      fields: [
+        'is_starred_transaction',
+        'request.method',
+        'transaction',
+        'span.op',
+        'project',
+        'epm()',
+        'p50(span.duration)',
+        'p95(span.duration)',
+        'failure_rate()',
+        'time_spent_percentage(span.duration)',
+        'sum(span.duration)',
+      ],
+    },
+    'api.performance.landing-table'
+  );
+
   return (
     <Feature
       features="performance-view"
@@ -293,13 +341,17 @@ function GenericBackendOverviewPage() {
                       allowedCharts={tripleChartRowCharts}
                       {...sharedProps}
                     />
-                    <Table
-                      theme={theme}
-                      projects={projects}
-                      columnTitles={BACKEND_COLUMN_TITLES}
-                      setError={setPageError}
-                      {...sharedProps}
-                    />
+                    {useEap ? (
+                      <BackendOverviewTable response={response} sort={sorts[1]} />
+                    ) : (
+                      <Table
+                        theme={theme}
+                        projects={projects}
+                        columnTitles={BACKEND_COLUMN_TITLES}
+                        setError={setPageError}
+                        {...sharedProps}
+                      />
+                    )}
                   </TeamKeyTransactionManager.Provider>
                 </PerformanceDisplayProvider>
               )}
@@ -321,11 +373,15 @@ function GenericBackendOverviewPage() {
 function BackendOverviewPageWithProviders() {
   const organization = useOrganization();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
+  const isNextJsPageAvailable = useIsNextJsInsightsAvailable();
+
   const {maxPickableDays} = limitMaxPickableDays(organization);
 
   return (
     <DomainOverviewPageProviders
-      maxPickableDays={isLaravelPageAvailable ? maxPickableDays : undefined}
+      maxPickableDays={
+        isLaravelPageAvailable || isNextJsPageAvailable ? maxPickableDays : undefined
+      }
     >
       <BackendOverviewPage />
     </DomainOverviewPageProviders>

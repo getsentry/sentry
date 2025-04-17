@@ -25,8 +25,7 @@ describe('AutofixRootCause', function () {
     groupId: '1',
     rootCauseSelection: null,
     runId: '101',
-    repos: [],
-  };
+  } satisfies React.ComponentProps<typeof AutofixRootCause>;
 
   it('can view a relevant code snippet', async function () {
     render(<AutofixRootCause {...defaultProps} />);

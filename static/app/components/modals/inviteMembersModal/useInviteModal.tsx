@@ -135,14 +135,11 @@ export default function useInviteModal({organization, initialData, source}: Prop
 
         // Use the email error message if available. This inconsistently is
         // returned as either a list of errors for the field, or a single error.
-        const emailError =
-          !errorResponse ||
-          (errorResponse.email
-            ? Array.isArray(errorResponse.email)
-              ? errorResponse.email[0]
-              : errorResponse.email
-            : false) ||
-          (errorResponse.role ? errorResponse.role : false);
+        const emailError = errorResponse?.email
+          ? Array.isArray(errorResponse.email)
+            ? errorResponse.email[0]
+            : errorResponse.email
+          : false;
 
         const orgLevelError = errorResponse?.organization;
         const error = orgLevelError || emailError || t('Could not invite user');

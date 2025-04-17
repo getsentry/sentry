@@ -4,6 +4,7 @@ import debounce from 'lodash/debounce';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
+import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,9 +22,11 @@ interface IssueViewNavItemsProps {
 }
 
 export interface NavIssueView extends IssueViewParams {
+  createdBy: AvatarUser;
   id: string;
   label: string;
   lastVisited: string | null;
+  stars: number;
 }
 
 export function IssueViewNavItems({sectionRef, baseUrl}: IssueViewNavItemsProps) {

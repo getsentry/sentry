@@ -375,8 +375,12 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
         base_url = VstsIntegrationProvider.get_base_url(
             default_identity.data["access_token"], self.model.external_id
         )
-        self.model.metadata["domain_name"] = base_url
-        self.model.save()
+        metadata = self.model.metadata.copy()
+        metadata["domain_name"] = base_url
+        integration_service.update_integration(
+            integration_id=self.model.id,
+            metadata=metadata,
+        )
 
     @property
     def instance(self) -> str:

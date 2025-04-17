@@ -160,8 +160,6 @@ class FlagAction(EnhancementAction):
 
 
 class VarAction(EnhancementAction):
-    range = None
-
     _VALUE_PARSERS: dict[str, Callable[[Any], Any]] = {
         "max-frames": int,
         "min-frames": int,

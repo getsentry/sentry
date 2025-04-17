@@ -28,10 +28,10 @@ function DisabledSelectorItems({
 }: Props) {
   let hasFeature: boolean;
 
-  if (!subscription || !subscription.planDetails) {
-    hasFeature = true;
-  } else {
+  if (subscription?.planDetails) {
     hasFeature = subscription.planDetails.retentionDays === MAX_PICKABLE_DAYS;
+  } else {
+    hasFeature = true;
   }
 
   const relativePeriods = relativePeriodsProp ?? DEFAULT_RELATIVE_PERIODS;
