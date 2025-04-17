@@ -30,6 +30,25 @@ void Verify()
     SentrySubsystem->CaptureMessage(TEXT("Capture message"));
 }`;
 
+const getSettingsConfigureSnippet = () => `
+#include "SentrySubsystem.h"
+
+FConfigureSettingsDelegate OnConfigureSettings;
+OnConfigureSettings.BindDynamic(this, &UMyGameInstance::ConfigureSentrySettings);
+
+void UMyGameInstance::ConfigureSentrySettings(USentrySettings* Settings)
+{
+    Settings->Dsn = TEXT("DSN");
+
+    // Add data like request headers, user ip address, device name, etc.
+    Settings->SendDefaultPii = true;
+}
+
+...
+
+USentrySubsystem* SentrySubsystem = GEngine->GetEngineSubsystem<USentrySubsystem>();
+SentrySubsystem->InitializeWithSettings(OnConfigureSettings);`;
+
 const getCrashReporterConfigSnippet = (params: Params) => `
 [CrashReportClient]
 CrashReportClientVersion=1.0
@@ -86,6 +105,20 @@ const onboarding: OnboardingConfig = {
         {
           language: 'url',
           code: params.dsn.public,
+        },
+        {
+          description: (
+            <p>
+              {tct(
+                "By default, the SDK is automatically initialized on application startup. Alternatively, the [strong:Initialize SDK automatically] option can be disabled and in this case, explicit SDK initialization is required:",
+                {
+                  strong: <strong />
+                }
+              )}
+            </p>
+          ),
+          language: 'cpp',
+          code: getSettingsConfigureSnippet(),
         },
       ],
     },
