@@ -109,7 +109,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
         queryClient,
         makeAutofixQueryKey(groupId),
         data => {
-          if (!data || !data.autofix) {
+          if (!data?.autofix) {
             return data;
           }
 
@@ -387,7 +387,7 @@ function AutofixRootCauseDisplay({
                   : null
               }
               isAgentComment
-              blockName={t('Root Cause')}
+              blockName={t('Autofix is uncertain of the root cause...')}
             />
           )}
         </AnimatePresence>

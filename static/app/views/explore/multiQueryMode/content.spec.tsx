@@ -21,11 +21,7 @@ jest.mock('sentry/components/lazyRender', () => ({
 }));
 
 describe('MultiQueryModeContent', function () {
-  const {organization, project} = initializeOrg({
-    organization: {
-      features: ['performance-saved-queries'],
-    },
-  });
+  const {organization, project} = initializeOrg();
   let eventsRequest: any;
   let eventsStatsRequest: any;
 
@@ -183,6 +179,100 @@ describe('MultiQueryModeContent', function () {
           },
         ],
         fields: ['id', 'span.duration'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+  });
+
+  it('defaults count_unique argument to span.op', async function () {
+    let queries: any;
+    function Component() {
+      queries = useReadQueriesFromLocation();
+      return <MultiQueryModeContent />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {enableRouterMocks: false}
+    );
+
+    const section = await screen.findByTestId('section-visualize-0');
+
+    expect(queries).toEqual([
+      {
+        chartType: 1,
+        yAxes: ['count(span.duration)'],
+        sortBys: [
+          {
+            field: 'span.duration',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.duration'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
+
+    expect(queries).toEqual([
+      {
+        chartType: 1,
+        yAxes: ['count_unique(span.op)'],
+        sortBys: [
+          {
+            field: 'id',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.op'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count_unique'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(queries).toEqual([
+      {
+        chartType: 1,
+        yAxes: ['avg(span.self_time)'],
+        sortBys: [
+          {
+            field: 'id',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.self_time'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
+
+    expect(queries).toEqual([
+      {
+        chartType: 1,
+        yAxes: ['count_unique(span.op)'],
+        sortBys: [
+          {
+            field: 'id',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.op'],
         groupBys: [],
         query: '',
       },
@@ -712,5 +802,63 @@ describe('MultiQueryModeContent', function () {
     expect(await screen.findByLabelText('Save')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Save'));
     expect(await screen.findByText('A New Query')).toBeInTheDocument();
+  });
+
+  it('highlights save button when query has changes', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/123/`,
+      method: 'GET',
+      body: {
+        query: [
+          {
+            query: '',
+            fields: ['count(span.duration)'],
+            groupby: ['span.op'],
+            orderby: '-count(span.duration)',
+            visualize: [
+              {
+                chartType: 1,
+                yAxes: ['count(span.duration)'],
+              },
+            ],
+            mode: 'aggregate',
+          },
+        ],
+        range: '14d',
+        projects: [],
+        environment: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/123/visit/`,
+      method: 'POST',
+    });
+    const router = RouterFixture({
+      location: {
+        pathname: '/traces/compare',
+        query: {
+          queries: [
+            '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
+          ],
+          id: '123',
+        },
+      },
+    });
+
+    function Component() {
+      return <MultiQueryModeContent />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {router, organization}
+    );
+    // No good way to check for highlighted css, so we just check for the text
+    expect(await screen.findByText('Save')).toBeInTheDocument();
   });
 });

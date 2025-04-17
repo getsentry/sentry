@@ -309,7 +309,9 @@ function AutofixHighlightPopupContent({
       {commentThread?.is_completed !== true && (
         <InputWrapper onSubmit={handleSubmit}>
           <StyledInput
-            placeholder={t('Questions? Instructions?')}
+            placeholder={
+              isAgentComment ? t('Share your context...') : t('Questions? Instructions?')
+            }
             value={comment}
             onChange={e => setComment(e.target.value)}
             maxLength={4096}
@@ -383,8 +385,12 @@ function AutofixHighlightPopup(props: Props) {
     }
 
     const updatePosition = () => {
+      if (!referenceElement || !popupRef.current) {
+        return;
+      }
+
       const referenceRect = referenceElement.getBoundingClientRect();
-      const popupRect = popupRef.current!.getBoundingClientRect();
+      const popupRect = popupRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
 
       const drawerElement = document.querySelector('.drawer-panel');
@@ -474,9 +480,7 @@ function AutofixHighlightPopup(props: Props) {
   );
 }
 
-const Wrapper = styled(motion.div)<
-  {isFocused?: boolean} & React.HTMLAttributes<HTMLDivElement>
->`
+const Wrapper = styled(motion.div)<{isFocused?: boolean}>`
   z-index: ${p => (p.isFocused ? p.theme.zIndex.tooltip + 1 : p.theme.zIndex.tooltip)};
   display: flex;
   flex-direction: column;
@@ -500,9 +504,7 @@ const ScaleContainer = styled(motion.div)<{isFocused?: boolean}>`
   transition: transform 200ms ease;
 `;
 
-const Container = styled(motion.div)<
-  React.HTMLAttributes<HTMLDivElement> & {isFocused?: boolean}
->`
+const Container = styled(motion.div)<{isFocused?: boolean}>`
   position: relative;
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};

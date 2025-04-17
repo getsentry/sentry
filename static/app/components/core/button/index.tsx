@@ -354,6 +354,7 @@ export const StyledButton = styled(
     external,
     to,
     replace,
+    preventScrollReset,
     href,
     disabled,
     ref: forwardRefAlt,
@@ -372,6 +373,7 @@ export const StyledButton = styled(
           ref={ref as React.Ref<HTMLAnchorElement>}
           to={to}
           replace={replace}
+          preventScrollReset={preventScrollReset}
           disabled={disabled}
         />
       );
@@ -403,6 +405,7 @@ export const StyledButton = styled(
       prop === 'forwardRef' ||
       prop === 'external' ||
       prop === 'replace' ||
+      prop === 'preventScrollReset' ||
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<ButtonProps>`
