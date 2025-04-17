@@ -76,7 +76,7 @@ export function TraceContextPanel({tree, rootEvent, onScrollToNode}: Props) {
       <ContextRow>
         <FoldSection
           sectionKey={TraceContextSectionKeys.TAGS as string as SectionKey}
-          title={t('Trace Tags')}
+          title={t('Tags')}
         >
           {renderTags()}
         </FoldSection>
