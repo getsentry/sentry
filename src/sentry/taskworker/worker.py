@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import ForkContext, SpawnContext
 from multiprocessing.process import BaseProcess
 from multiprocessing.synchronize import Event
-from types import FrameType, TracebackType
+from types import FrameType
 from typing import Any
 
 import grpc
@@ -46,7 +46,7 @@ logger = logging.getLogger("sentry.taskworker.worker")
 AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
 
 
-class ProcessingDeadlineExceeded(Exception):
+class ProcessingDeadlineExceeded(BaseException):
     pass
 
 
@@ -132,42 +132,11 @@ def child_worker(
         If we hit an alarm in a child, we need to push a result
         and terminate the child.
         """
+        deadline = -1
         current = current_task()
         if current:
-            processed_tasks.put(
-                ProcessingResult(task_id=current.id, status=TASK_ACTIVATION_STATUS_FAILURE)
-            )
-            with sentry_sdk.isolation_scope() as scope:
-                scope.fingerprint = [
-                    "taskworker.processing_deadline_exceeded",
-                    current.namespace,
-                    current.taskname,
-                ]
-                err = ProcessingDeadlineExceeded(
-                    f"execution deadline of {current.processing_deadline_duration} seconds exceeded"
-                )
-                if frame:
-                    trace = TracebackType(None, frame, frame.f_lasti, frame.f_lineno)
-                    while frame.f_back:
-                        trace = TracebackType(
-                            trace, frame.f_back, frame.f_back.f_lasti, frame.f_back.f_lineno
-                        )
-                        frame = frame.f_back
-                    err.with_traceback(trace)
-
-                sentry_sdk.capture_exception(err)
-                sentry_sdk.flush()
-
-            metrics.incr(
-                "taskworker.worker.processing_deadline_exceeded",
-                tags={
-                    "processing_pool": processing_pool_name,
-                    "namespace": current.namespace,
-                    "taskname": current.taskname,
-                },
-            )
-
-        raise SystemExit(1)
+            deadline = current.processing_deadline_duration
+        raise ProcessingDeadlineExceeded(f"execution deadline of {deadline} seconds exceeded")
 
     while True:
         if max_task_count and processed_task_count >= max_task_count:
@@ -237,6 +206,23 @@ def child_worker(
             with timeout_alarm(activation.processing_deadline_duration, handle_alarm):
                 _execute_activation(task_func, activation)
             next_state = TASK_ACTIVATION_STATUS_COMPLETE
+        except ProcessingDeadlineExceeded as err:
+            with sentry_sdk.isolation_scope() as scope:
+                scope.fingerprint = [
+                    "taskworker.processing_deadline_exceeded",
+                    activation.namespace,
+                    activation.taskname,
+                ]
+                sentry_sdk.capture_exception(err)
+            metrics.incr(
+                "taskworker.worker.processing_deadline_exceeded",
+                tags={
+                    "processing_pool": processing_pool_name,
+                    "namespace": activation.namespace,
+                    "taskname": activation.taskname,
+                },
+            )
+            next_state = TASK_ACTIVATION_STATUS_FAILURE
         except Exception as err:
             if task_func.should_retry(activation.retry_state, err):
                 logger.info(
