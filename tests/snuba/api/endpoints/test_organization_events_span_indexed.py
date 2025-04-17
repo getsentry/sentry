@@ -3670,7 +3670,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert data[0]["opportunity_score(measurements.score.total)"] == 0.9
+        assert data[0]["opportunity_score(measurements.score.total)"] == 0.8571428571428572
 
     def test_count_starts(self):
         self.store_spans(

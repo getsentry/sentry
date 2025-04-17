@@ -162,7 +162,7 @@ def get_count_of_vital(vital: str, settings: ResolverSettings) -> float:
     rpc_res = spans_rpc.run_table_query(
         snuba_params,
         query_string=query_string if query_string is not None else "",
-        referrer="totalvitalcount",
+        referrer=f"totalvitalcount_{vital}",
         selected_columns=[f"count_scores(measurements.score.{vital}) as count"],
         orderby=None,
         offset=0,
@@ -233,15 +233,24 @@ def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
     vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
     vital_score_columns: list[Column] = []
 
+    opportunity_score_formulas: list[(Column.BinaryFormula, str)] = []
+    total_weight = 0
     for vital in vitals:
         vital_score = f"score.{vital}"
         vital_score_key = AttributeKey(name=vital_score, type=AttributeKey.TYPE_DOUBLE)
-        weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital]
+        formula = opportunity_score([vital_score_key], settings)
+        hasVitalCount = formula.right.literal.val_double > 0
+        if hasVitalCount:
+            opportunity_score_formulas.append((formula, vital))
+            total_weight += WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital]
+
+    for formula, vital in opportunity_score_formulas:
+        weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital] / total_weight
         vital_score_columns.append(
             Column(
                 formula=Column.BinaryFormula(
                     default_value_double=0.0,
-                    left=Column(formula=opportunity_score([vital_score_key], settings)),
+                    left=Column(formula=formula),
                     op=Column.BinaryFormula.OP_MULTIPLY,
                     right=Column(literal=LiteralValue(val_double=weight)),
                 )

@@ -29,6 +29,7 @@ ResolvedArguments: TypeAlias = list[ResolvedArgument]
 class ResolverSettings(TypedDict):
     extrapolation_mode: ExtrapolationMode.ValueType
     snuba_params: SnubaParams
+    resolver_cache: dict[str, Any]
 
 
 @dataclass(frozen=True, kw_only=True)
