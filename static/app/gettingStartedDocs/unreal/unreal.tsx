@@ -38,11 +38,10 @@ OnConfigureSettings.BindDynamic(this, &UMyGameInstance::ConfigureSentrySettings)
 
 void UMyGameInstance::ConfigureSentrySettings(USentrySettings* Settings)
 {
-	Settings->Dsn = TEXT("DSN");
+    Settings->Dsn = TEXT("DSN");
 
-  // Add data like request headers, user ip address and device name,
-  // see https://docs.sentry.io/platforms/android/data-management/data-collected/ for more info
-  Settings->SendDefaultPii = true;
+    // Add data like request headers, user ip address, device name, etc.
+    Settings->SendDefaultPii = true;
 }
 
 ...
