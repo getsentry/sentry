@@ -4228,6 +4228,76 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         ]
         assert meta["dataset"] == self.dataset
 
+    def test_simple_division(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 1},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "simple_division(measurements.score.ratio.lcp, measurements.score.ratio.ttfb)"
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert (
+            data[0]["simple_division(measurements.score.ratio.lcp, measurements.score.ratio.ttfb)"]
+            == 1.0
+        )
+
+    def test_complex_function(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 5.0},
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "complex_function(measurements.score.ratio.lcp, measurements.score.ratio.ttfb, measurements.score.ratio.fcp, measurements.score.ratio.inp)"
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert (
+            data[0][
+                "complex_function(measurements.score.ratio.lcp, measurements.score.ratio.ttfb, measurements.score.ratio.fcp, measurements.score.ratio.inp)"
+            ]
+            == 5.0
+        )
+
     def test_empty_string_negation(self):
         self.store_spans(
             [

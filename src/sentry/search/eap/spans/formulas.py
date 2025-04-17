@@ -223,6 +223,32 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
     )
 
 
+def simple_division(args: ResolvedArguments, _: ResolverSettings) -> Column.BinaryFormula:
+    a = cast(AttributeKey, args[0])
+    b = cast(AttributeKey, args[1])
+
+    return Column.BinaryFormula(
+        left=Column(key=a),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(key=b),
+        default_value_double=1.0,
+    )
+
+
+def complex_function(args: ResolvedArguments, settings: ResolverSettings):
+    a = cast(AttributeKey, args[0])
+    b = cast(AttributeKey, args[1])
+    c = cast(AttributeKey, args[2])
+    d = cast(AttributeKey, args[3])
+
+    return Column.BinaryFormula(
+        default_value_double=1.0,
+        left=Column(formula=simple_division([a, b], settings)),
+        op=Column.BinaryFormula.OP_MULTIPLY,
+        right=Column(formula=simple_division([c, d], settings)),
+    )
+
+
 def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
     vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
     vital_score_columns: list[Column] = []
@@ -556,6 +582,74 @@ SPAN_FORMULA_DEFINITIONS = {
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         formula_resolver=avg_compare,
+        is_aggregate=True,
+    ),
+    "simple_division": FormulaDefinition(
+        default_search_type="number",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+        ],
+        formula_resolver=simple_division,
+        is_aggregate=True,
+    ),
+    "complex_function": FormulaDefinition(
+        default_search_type="number",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+        ],
+        formula_resolver=complex_function,
         is_aggregate=True,
     ),
     "division": FormulaDefinition(
