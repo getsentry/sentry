@@ -212,7 +212,6 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           />
           <QuestionTooltip
             isHoverable
-            containerDisplayMode="block"
             title={
               <Flex column gap={space(1)}>
                 <div>
