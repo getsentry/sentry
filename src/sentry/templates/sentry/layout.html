@@ -72,7 +72,7 @@
   {% script src=asset_url crossorigin="anonymous" %}{% endscript %}
   {% endblock %}
 
-  {% init_demo_analytics %}
+  {% init_demo_analytics request.get_host %}
 
 </head>
 
