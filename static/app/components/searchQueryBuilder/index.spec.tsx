@@ -399,8 +399,7 @@ describe('SearchQueryBuilder', function () {
         });
       });
 
-      // eslint-disable-next-line jest/no-disabled-tests
-      it.skip('can select from recently-used filter keys', async function () {
+      it('can select from recently-used filter keys', async function () {
         render(
           <SearchQueryBuilder {...defaultProps} recentSearches={SavedSearchType.ISSUE} />
         );

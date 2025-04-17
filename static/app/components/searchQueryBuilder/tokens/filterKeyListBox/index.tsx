@@ -122,12 +122,7 @@ function RecentSearchFilterOption<T>({
   );
 
   return (
-    <RecentFilterPill
-      ref={ref}
-      key={filter}
-      data-test-id="recent-filter-key"
-      {...optionProps}
-    >
+    <RecentFilterPill key={filter} data-test-id="recent-filter-key" {...optionProps}>
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <RecentFilterPillLabel {...labelProps}>{filter}</RecentFilterPillLabel>
     </RecentFilterPill>
@@ -212,7 +207,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   sections,
 }: FilterKeyMenuContentProps<T>) {
   const {filterKeys} = useSearchQueryBuilder();
-  const focusedItem = state.collection.getItem(state.selectionManager.focusedKey!)?.props
+  const focusedItem = state.collection.getItem(state.selectionManager.focusedKey)?.props
     ?.value as string | undefined;
   const focusedKey = focusedItem ? filterKeys[focusedItem] : null;
   const showRecentFilters = recentFilters.length > 0;
