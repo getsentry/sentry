@@ -207,7 +207,6 @@ export default function FeedbackSearch() {
       return acc;
     }, {});
   }, [tagQuery]);
-  // tagQuery.isLoading and tagQuery.isError are not used
 
   const assignedValues = useAssignedValues();
 
