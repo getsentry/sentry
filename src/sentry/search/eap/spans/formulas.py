@@ -233,8 +233,8 @@ def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
     vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
     vital_score_columns: list[Column] = []
 
-    opportunity_score_formulas: list[(Column.BinaryFormula, str)] = []
-    total_weight = 0
+    opportunity_score_formulas: list[tuple[Column.BinaryFormula, str]] = []
+    total_weight = 0.0
     for vital in vitals:
         vital_score = f"score.{vital}"
         vital_score_key = AttributeKey(name=vital_score, type=AttributeKey.TYPE_DOUBLE)
