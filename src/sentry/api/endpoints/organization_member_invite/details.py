@@ -145,6 +145,24 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serialize(invited_member, request.user), status=200)
 
+    def _remove_invite_from_db(
+        self, request: Request, organization: Organization, invited_member: OrganizationMemberInvite
+    ) -> None:
+        audit_data = invited_member.get_audit_log_data()
+        event_name = "INVITE_REMOVE" if invited_member.invite_approved else "INVITE_REQUEST_REMOVE"
+
+        with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
+            # also deletes the invite object via cascades
+            invited_member.organization_member.delete()
+
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=invited_member.id,
+                event=audit_log.get_event_id(event_name),
+                data=audit_data,
+            )
+
     def _handle_deletion_by_member(
         self,
         request: Request,
@@ -156,18 +174,8 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
         if invited_member.inviter_id != acting_member.user_id:
             return Response({"detail": ERR_MEMBER_INVITE}, status=400)
 
-        audit_data = invited_member.get_audit_log_data()
-        event_name = "INVITE_REMOVE" if invited_member.invite_approved else "INVITE_REQUEST_REMOVE"
-        with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
-            # also deletes the invite object via cascades
-            invited_member.organization_member.delete()
-
-        self.create_audit_entry(
-            request=request,
-            organization=organization,
-            target_object=invited_member.id,
-            event=audit_log.get_event_id(event_name),
-            data=audit_data,
+        self._remove_invite_from_db(
+            request=request, organization=organization, invited_member=invited_member
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -183,20 +191,20 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
                 )
             except OrganizationMember.DoesNotExist:
                 return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
-            else:
-                if not request.access.has_scope("member:admin"):
-                    if not organization.flags.disable_member_invite and request.access.has_scope(
-                        "member:invite"
-                    ):
-                        return self._handle_deletion_by_member(
-                            request, organization, invited_member, acting_member
-                        )
-                    return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
-                else:
-                    can_manage = roles.can_manage(acting_member.role, invited_member.role)
 
-                    if not can_manage:
-                        return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
+            has_member_admin_scope = request.access.has_scope("member:admin")
+            if not has_member_admin_scope:
+                can_invite_members = request.access.has_scope("member:invite")
+                if can_invite_members:
+                    return self._handle_deletion_by_member(
+                        request, organization, invited_member, acting_member
+                    )
+                return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
+            else:
+                can_manage = roles.can_manage(acting_member.role, invited_member.role)
+
+                if not can_manage:
+                    return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
         # prevents superuser read from deleting an invite or invite request
         elif not request.access.has_scope("member:admin"):
@@ -214,18 +222,10 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
                 },
                 status=400,
             )
-        audit_data = invited_member.get_audit_log_data()
-        if invited_member.invite_approved:
-            with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
-                # also deletes the invite object via cascades
-                invited_member.organization_member.delete()
 
-            self.create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=invited_member.id,
-                event=audit_log.get_event_id("INVITE_REMOVE"),
-                data=audit_data,
+        if invited_member.invite_approved:
+            self._remove_invite_from_db(
+                request=request, organization=organization, invited_member=invited_member
             )
         else:
             api_key = get_api_key_for_audit_log(request)
