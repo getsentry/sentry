@@ -61,7 +61,6 @@ def generate_rule_for_code_mapping(code_mapping: CodeMapping) -> str:
 
     # a/ -> a.**
     # x/y/ -> x.y.**
-    # com/example/foo/bar/ -> com.example.**
-    # We add an extra level of granularity
-    # uk/co/example/foo/bar/ -> uk.co.example.**
+    # com/example/foo/bar/ -> com.example.foo.**
+    # uk/co/example/foo/bar/ -> uk.co.example.foo.**
     return f"stack.module:{module}.** +app"

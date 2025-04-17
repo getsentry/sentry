@@ -610,7 +610,7 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
 
     if len(parts) > 1:
         # com.example.foo.bar.Baz$InnerClass, Baz.kt ->
-        #    stack_root: com/example/
+        #    stack_root: com/example/foo/
         #    file_path:  com/example/foo/bar/Baz.kt
         granularity = STACK_ROOT_MAX_LEVEL - 1
 
