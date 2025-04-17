@@ -7,10 +7,12 @@ from sentry import audit_log
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberinvite import InviteStatus, OrganizationMemberInvite
 from sentry.roles import organization_roles
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.outbox import outbox_runner
 
 
 def mock_organization_roles_get_factory(original_organization_roles_get):
