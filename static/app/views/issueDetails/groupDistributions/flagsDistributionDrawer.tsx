@@ -185,4 +185,5 @@ const Label = styled('label')`
   align-items: center;
   gap: ${space(0.5)};
   margin-bottom: 0;
+  cursor: pointer;
 `;

@@ -46,4 +46,5 @@ const Label = styled('label')`
   align-items: center;
   gap: ${space(1)};
   margin-bottom: 0;
+  cursor: pointer;
 `;
