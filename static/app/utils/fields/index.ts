@@ -2242,7 +2242,7 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     valueType: FieldValueType.INTEGER,
   },
   [ReplayFieldKey.COUNT_SCREENS]: {
-    desc: t('Number of screens visited within the replay'),
+    desc: t('Number of screens visited within the replay. Alias of count_urls.'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
@@ -2294,12 +2294,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     valueType: FieldValueType.BOOLEAN,
   },
   [ReplayFieldKey.SCREEN]: {
-    desc: t('A screen visited within the replay'),
+    desc: t('A screen visited within the replay. Alias of url.'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.SCREENS]: {
-    desc: t('List of screens that were visited within the replay'),
+    desc: t('List of screens that were visited within the replay. Alias of urls.'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
