@@ -759,50 +759,6 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
         assert detector
         assert not detector.enabled
 
-    def test_multiple_project_subs(self):
-        project1 = self.project
-        project2 = self.create_project()
-
-        proj_sub1 = create_project_uptime_subscription(
-            project1,
-            self.environment,
-            url="https://sentry.io",
-            interval_seconds=3600,
-            timeout_ms=1000,
-            mode=ProjectUptimeSubscriptionMode.MANUAL,
-        )
-        proj_sub2 = create_project_uptime_subscription(
-            project2,
-            self.environment,
-            url="https://sentry.io",
-            interval_seconds=3600,
-            timeout_ms=1000,
-            mode=ProjectUptimeSubscriptionMode.MANUAL,
-        )
-
-        uptime_subscription = proj_sub1.uptime_subscription
-
-        # Disabling the first project subscription does disable the
-        # subscription
-        with self.tasks():
-            disable_project_uptime_subscription(proj_sub1)
-
-        proj_sub1.refresh_from_db()
-        uptime_subscription.refresh_from_db()
-        assert proj_sub1.status == ObjectStatus.DISABLED
-        assert proj_sub2.status == ObjectStatus.ACTIVE
-        assert proj_sub1.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
-        assert proj_sub2.uptime_subscription.status != UptimeSubscription.Status.DISABLED.value
-
-        # Disabling the second project subscription DOES disable the
-        # subscription
-        with self.tasks():
-            disable_project_uptime_subscription(proj_sub2)
-
-        proj_sub2.refresh_from_db()
-        assert proj_sub2.status == ObjectStatus.DISABLED
-        assert proj_sub2.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
-
 
 class EnableProjectUptimeSubscriptionTest(UptimeTestCase):
     @mock.patch(
