@@ -1,14 +1,10 @@
 from unittest.mock import ANY, patch
 
-# from django.http import HttpResponse
 from rest_framework.response import Response
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
-
-# from django.urls import reverse
-
 
 pytestmark = [requires_snuba]
 
@@ -67,3 +63,22 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
             organization=self.org,
             user=ANY,
         )
+
+    def test_endpoint_without_trace_slug(self):
+        response = self.client.post(self.url, format="json")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Missing traceSlug parameter"}
+
+    @patch("sentry.api.endpoints.organization_trace_summary.OrganizationTraceEndpoint")
+    def test_endpoint_with_error_response(self, mock_trace_endpoint_class):
+        mock_trace_endpoint_class.return_value.get.side_effect = Exception("Test exception")
+        response = self.client.post(self.url, data={"traceSlug": self.trace_id}, format="json")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Error fetching trace"}
+
+    @patch("sentry.api.endpoints.organization_trace_summary.get_trace_summary")
+    def test_endpoint_with_missing_trace_tree(self, mock_organization_trace_endpoint):
+        mock_organization_trace_endpoint.return_value.get.return_value = Response([], status=200)
+        response = self.client.post(self.url, data={"traceSlug": self.trace_id}, format="json")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Missing trace_tree data"}

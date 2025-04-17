@@ -53,7 +53,8 @@ class OrganizationTraceSummaryEndpoint(OrganizationEndpoint):
         try:
             trace_endpoint = OrganizationTraceEndpoint()
             trace_response = trace_endpoint.get(request, organization, trace_id)
-            trace_tree = trace_response.data
+            if hasattr(trace_response, "data"):
+                trace_tree = trace_response.data
         except Exception:
             return Response({"detail": "Error fetching trace"}, status=400)
 
