@@ -7,11 +7,7 @@ import type {SliderProps} from './index';
 
 const passthrough = (n: number | '') => n;
 
-export function Slider({
-  formatLabel = passthrough,
-  ref,
-  ...props
-}: SliderProps & {ref?: React.Ref<HTMLInputElement>}) {
+export function Slider({formatLabel = passthrough, ref, ...props}: SliderProps) {
   const step = toNumber(props.step ?? -1);
   const {value, min, max} = resolveMinMaxValue(props);
   const [valueAsNumber, setValueAsNumber] = useState(value);
@@ -38,7 +34,10 @@ export function Slider({
         ref={ref}
         type="range"
         {...props}
-        onChange={e => setValueAsNumber(e.currentTarget.valueAsNumber)}
+        onChange={e => {
+          setValueAsNumber(e.currentTarget.valueAsNumber);
+          props.onChange?.(e);
+        }}
       />
       {props.disabled ? null : (
         <SliderOutput htmlFor={props.id}>

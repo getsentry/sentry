@@ -9,15 +9,11 @@ export interface SliderProps
   defaultValue?: number;
   /** Optional callback to format the label */
   formatLabel?: (value: number | '') => number | string;
+  ref?: React.Ref<HTMLInputElement>;
   value?: number | '';
 }
 
-export function LegacySlider({
-  ref,
-  ...props
-}: SliderProps & {
-  ref?: React.Ref<HTMLInputElement>;
-}) {
+export function LegacySlider({ref, ...props}: SliderProps) {
   return <StyledSlider ref={ref} type="range" {...props} />;
 }
 
