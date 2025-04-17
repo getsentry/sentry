@@ -36,10 +36,6 @@ const EXCLUDED_TAGS: string[] = [
   FieldKey.PLATFORM,
 ];
 
-const EXCLUDED_SUGGESTIONS: string[] = [
-  FeedbackFieldKey.MESSAGE, // Suggestions are too polluted by issue platform error messages.
-];
-
 const getFeedbackFieldDefinition = (key: string) => getFieldDefinition(key, 'feedback');
 
 function getHasFieldValues(supportedTags: TagCollection): string[] {
@@ -91,6 +87,19 @@ function getFeedbackFilterKeys(
           ];
         }
 
+        if (key === FieldKey.HAS) {
+          return [
+            key,
+            {
+              key,
+              name: key,
+              ...fieldDefinition,
+              predefined: true,
+              values: getHasFieldValues(supportedTags),
+            },
+          ];
+        }
+
         if (key === FieldKey.IS) {
           return [
             key,
@@ -104,7 +113,7 @@ function getFeedbackFilterKeys(
           ];
         }
 
-        if (key === FieldKey.HAS) {
+        if (key === FeedbackFieldKey.MESSAGE) {
           return [
             key,
             {
@@ -112,7 +121,7 @@ function getFeedbackFilterKeys(
               name: key,
               ...fieldDefinition,
               predefined: true,
-              values: getHasFieldValues(supportedTags),
+              values: [], // message tag suggestions are not relevant to user feedback.
             },
           ];
         }
@@ -216,10 +225,6 @@ export default function FeedbackSearch() {
       if (isAggregateField(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't
-        return Promise.resolve([]);
-      }
-
-      if (EXCLUDED_SUGGESTIONS.includes(tag.key)) {
         return Promise.resolve([]);
       }
 
