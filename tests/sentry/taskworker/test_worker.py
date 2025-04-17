@@ -16,7 +16,12 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 from sentry_sdk.crons import MonitorStatus
 
 from sentry.taskworker.state import current_task
-from sentry.taskworker.worker import ProcessingResult, TaskWorker, child_worker
+from sentry.taskworker.worker import (
+    ProcessingDeadlineExceeded,
+    ProcessingResult,
+    TaskWorker,
+    child_worker,
+)
 from sentry.testutils.cases import TestCase
 from sentry.utils.redis import redis_clusters
 
@@ -459,18 +464,18 @@ def test_child_worker_terminate_task(mock_capture: mock.Mock) -> None:
     )
 
     todo.put(sleepy)
-    with pytest.raises(SystemExit):
-        child_worker(
-            todo,
-            processed,
-            shutdown,
-            max_task_count=1,
-            processing_pool_name="test",
-            process_type="fork",
-        )
+    child_worker(
+        todo,
+        processed,
+        shutdown,
+        max_task_count=1,
+        processing_pool_name="test",
+        process_type="fork",
+    )
 
     assert todo.empty()
     result = processed.get(block=False)
     assert result.task_id == sleepy.id
     assert result.status == TASK_ACTIVATION_STATUS_FAILURE
     assert mock_capture.call_count == 1
+    assert type(mock_capture.call_args.args[0]) is ProcessingDeadlineExceeded
