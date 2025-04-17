@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {flattie} from 'flattie';
 
@@ -32,18 +32,21 @@ const FREQUENCY_OPTIONS = [
   {value: '43200', label: t('30 days')},
 ];
 
-const model = new FormModel({initialData: {...flattie(initialState), frequency: '1440'}});
-
 export default function AutomationForm() {
   const title = useDocumentTitle();
   const {state, actions} = useAutomationBuilderReducer();
+  const [model] = useState(() => new FormModel());
 
   useEffect(() => {
     model.setValue('name', title);
-  }, [title]);
+  }, [title, model]);
 
   return (
-    <Form hideFooter model={model}>
+    <Form
+      hideFooter
+      model={model}
+      initialData={{...flattie(initialState), frequency: '1440'}}
+    >
       <AutomationBuilderContext.Provider value={{state, actions}}>
         <Flex column gap={space(1.5)} style={{padding: space(2)}}>
           <SectionBody>

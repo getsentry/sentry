@@ -19,9 +19,9 @@ interface RuleNodeListProps {
 }
 
 // TODO: only show data conditions that are returned by the API
-const options = Object.entries(dataConditionNodesMap).map(([value, node]) => ({
-  value,
-  label: node.label,
+const options = Array.from(dataConditionNodesMap, ([key, value]) => ({
+  value: key,
+  label: value.label,
 }));
 
 export default function RuleNodeList({

@@ -36,27 +36,40 @@ type DataConditionNode = {
   dataCondition?: React.ReactNode;
 };
 
-export const dataConditionNodesMap: Partial<
-  Record<DataConditionType, DataConditionNode>
-> = {
-  [DataConditionType.FIRST_SEEN_EVENT]: {
-    label: t('A new issue is created'),
-  },
-  [DataConditionType.REGRESSION_EVENT]: {
-    label: t('A resolved issue becomes unresolved'),
-  },
-  [DataConditionType.REAPPEARED_EVENT]: {
-    label: t('An issue escalates'),
-  },
-  [DataConditionType.AGE_COMPARISON]: {
-    label: t('Compare the age of an issue'),
-    dataCondition: <AgeComparisonNode />,
-  },
-  [DataConditionType.ISSUE_OCCURRENCES]: {
-    label: t('Issue frequency'),
-    dataCondition: <IssueOccurrencesNode />,
-  },
-};
+export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNode>([
+  [
+    DataConditionType.FIRST_SEEN_EVENT,
+    {
+      label: t('A new issue is created'),
+    },
+  ],
+  [
+    DataConditionType.REGRESSION_EVENT,
+    {
+      label: t('A resolved issue becomes unresolved'),
+    },
+  ],
+  [
+    DataConditionType.REAPPEARED_EVENT,
+    {
+      label: t('An issue escalates'),
+    },
+  ],
+  [
+    DataConditionType.AGE_COMPARISON,
+    {
+      label: t('Compare the age of an issue'),
+      dataCondition: <AgeComparisonNode />,
+    },
+  ],
+  [
+    DataConditionType.ISSUE_OCCURRENCES,
+    {
+      label: t('Issue frequency'),
+      dataCondition: <IssueOccurrencesNode />,
+    },
+  ],
+]);
 
 export const InlineNumberInput = styled(NumberField)`
   padding: 0;

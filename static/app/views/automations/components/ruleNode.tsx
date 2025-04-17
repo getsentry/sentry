@@ -20,7 +20,7 @@ interface RuleNodeProps {
 
 function Node() {
   const {condition} = useDataConditionNodeContext();
-  const node = dataConditionNodesMap[condition.comparison_type];
+  const node = dataConditionNodesMap.get(condition.comparison_type);
 
   const Component = node?.dataCondition;
   return Component ? Component : node?.label;

@@ -7,11 +7,98 @@ import {
   type DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 
+export function useAutomationBuilderReducer() {
+  const reducer: Reducer<AutomationBuilderState, AutomationBuilderAction> = useCallback(
+    (state, action, formModel?: FormModel): AutomationBuilderState => {
+      switch (action.type) {
+        case 'ADD_WHEN_CONDITION':
+          return addWhenCondition(state, action);
+        case 'REMOVE_WHEN_CONDITION':
+          return removeWhenCondition(state, action, formModel);
+        case 'UPDATE_WHEN_CONDITION':
+          return updateWhenCondition(state, action);
+        case 'UPDATE_WHEN_LOGIC_TYPE':
+          return updateWhenLogicType(state, action);
+        case 'ADD_IF':
+          return addIf(state, action);
+        case 'REMOVE_IF':
+          return removeIf(state, action, formModel);
+        case 'ADD_IF_CONDITION':
+          return addIfCondition(state, action);
+        case 'REMOVE_IF_CONDITION':
+          return removeIfCondition(state, action, formModel);
+        case 'UPDATE_IF_CONDITION':
+          return updateIfCondition(state, action);
+        case 'UPDATE_IF_LOGIC_TYPE':
+          return updateIfLogicType(state, action);
+        default:
+          return state;
+      }
+    },
+    []
+  );
+
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  const actions: AutomationActions = {
+    addWhenCondition: useCallback(
+      (conditionType: DataConditionType) =>
+        dispatch({type: 'ADD_WHEN_CONDITION', conditionType}),
+      [dispatch]
+    ),
+    removeWhenCondition: useCallback(
+      (index: number) => dispatch({type: 'REMOVE_WHEN_CONDITION', index}),
+      [dispatch]
+    ),
+    updateWhenCondition: useCallback(
+      (index: number, comparison: Record<string, any>) =>
+        dispatch({type: 'UPDATE_WHEN_CONDITION', index, comparison}),
+      [dispatch]
+    ),
+    updateWhenLogicType: useCallback(
+      (logicType: DataConditionGroupLogicType) =>
+        dispatch({type: 'UPDATE_WHEN_LOGIC_TYPE', logicType}),
+      [dispatch]
+    ),
+    addIf: useCallback(() => dispatch({type: 'ADD_IF'}), [dispatch]),
+    removeIf: useCallback(
+      (groupIndex: number) => dispatch({type: 'REMOVE_IF', groupIndex}),
+      [dispatch]
+    ),
+    addIfCondition: useCallback(
+      (groupIndex: number, conditionType: DataConditionType) =>
+        dispatch({type: 'ADD_IF_CONDITION', groupIndex, conditionType}),
+      [dispatch]
+    ),
+    removeIfCondition: useCallback(
+      (groupIndex: number, conditionIndex: number) =>
+        dispatch({type: 'REMOVE_IF_CONDITION', groupIndex, conditionIndex}),
+      [dispatch]
+    ),
+    updateIfCondition: useCallback(
+      (groupIndex: number, conditionIndex: number, comparison: Record<string, any>) =>
+        dispatch({type: 'UPDATE_IF_CONDITION', groupIndex, conditionIndex, comparison}),
+      [dispatch]
+    ),
+    updateIfLogicType: useCallback(
+      (groupIndex: number, logicType: DataConditionGroupLogicType) =>
+        dispatch({type: 'UPDATE_IF_LOGIC_TYPE', groupIndex, logicType}),
+      [dispatch]
+    ),
+  };
+
+  return {state, actions};
+}
+
 export interface AutomationBuilderState {
   actionFilters: DataConditionGroup[];
   triggers: DataConditionGroup;
 }
 
+// The action types and interfaces below need to be manually kept in sync.
+// Any changes to action types must be reflected in both:
+// 1. The individual action type definitions
+// 2. The AutomationActions interface
 export interface AutomationActions {
   addIf: () => void;
   addIfCondition: (groupIndex: number, conditionType: DataConditionType) => void;
@@ -319,87 +406,4 @@ function updateIfLogicType(
       i === groupIndex ? {...group, logicType} : group
     ),
   };
-}
-
-export function useAutomationBuilderReducer() {
-  const reducer: Reducer<AutomationBuilderState, AutomationBuilderAction> = useCallback(
-    (state, action, formModel?: FormModel): AutomationBuilderState => {
-      switch (action.type) {
-        case 'ADD_WHEN_CONDITION':
-          return addWhenCondition(state, action);
-        case 'REMOVE_WHEN_CONDITION':
-          return removeWhenCondition(state, action, formModel);
-        case 'UPDATE_WHEN_CONDITION':
-          return updateWhenCondition(state, action);
-        case 'UPDATE_WHEN_LOGIC_TYPE':
-          return updateWhenLogicType(state, action);
-        case 'ADD_IF':
-          return addIf(state, action);
-        case 'REMOVE_IF':
-          return removeIf(state, action, formModel);
-        case 'ADD_IF_CONDITION':
-          return addIfCondition(state, action);
-        case 'REMOVE_IF_CONDITION':
-          return removeIfCondition(state, action, formModel);
-        case 'UPDATE_IF_CONDITION':
-          return updateIfCondition(state, action);
-        case 'UPDATE_IF_LOGIC_TYPE':
-          return updateIfLogicType(state, action);
-        default:
-          return state;
-      }
-    },
-    []
-  );
-
-  const [state, dispatch] = useReducer(reducer, initialState);
-
-  const actions: AutomationActions = {
-    addWhenCondition: useCallback(
-      (conditionType: DataConditionType) =>
-        dispatch({type: 'ADD_WHEN_CONDITION', conditionType}),
-      [dispatch]
-    ),
-    removeWhenCondition: useCallback(
-      (index: number) => dispatch({type: 'REMOVE_WHEN_CONDITION', index}),
-      [dispatch]
-    ),
-    updateWhenCondition: useCallback(
-      (index: number, comparison: Record<string, any>) =>
-        dispatch({type: 'UPDATE_WHEN_CONDITION', index, comparison}),
-      [dispatch]
-    ),
-    updateWhenLogicType: useCallback(
-      (logicType: DataConditionGroupLogicType) =>
-        dispatch({type: 'UPDATE_WHEN_LOGIC_TYPE', logicType}),
-      [dispatch]
-    ),
-    addIf: useCallback(() => dispatch({type: 'ADD_IF'}), [dispatch]),
-    removeIf: useCallback(
-      (groupIndex: number) => dispatch({type: 'REMOVE_IF', groupIndex}),
-      [dispatch]
-    ),
-    addIfCondition: useCallback(
-      (groupIndex: number, conditionType: DataConditionType) =>
-        dispatch({type: 'ADD_IF_CONDITION', groupIndex, conditionType}),
-      [dispatch]
-    ),
-    removeIfCondition: useCallback(
-      (groupIndex: number, conditionIndex: number) =>
-        dispatch({type: 'REMOVE_IF_CONDITION', groupIndex, conditionIndex}),
-      [dispatch]
-    ),
-    updateIfCondition: useCallback(
-      (groupIndex: number, conditionIndex: number, comparison: Record<string, any>) =>
-        dispatch({type: 'UPDATE_IF_CONDITION', groupIndex, conditionIndex, comparison}),
-      [dispatch]
-    ),
-    updateIfLogicType: useCallback(
-      (groupIndex: number, logicType: DataConditionGroupLogicType) =>
-        dispatch({type: 'UPDATE_IF_LOGIC_TYPE', groupIndex, logicType}),
-      [dispatch]
-    ),
-  };
-
-  return {state, actions};
 }
