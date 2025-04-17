@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {
   ItemType,
   type SearchGroup,
@@ -14,34 +16,38 @@ export default function useAssignedValues(): SearchGroup[] {
   const {teams} = useLegacyStore(TeamStore);
   const {members} = useLegacyStore(MemberListStore);
 
-  const userTeams = teams.filter(team => team.isMember).map(team => `#${team.slug}`);
-  const usernames: string[] = members.map(getUsername);
-  const nonMemberTeams = teams
-    .filter(team => !team.isMember)
-    .map(team => `#${team.slug}`);
+  const assignedValues: SearchGroup[] = useMemo(() => {
+    const userTeams = teams.filter(team => team.isMember).map(team => `#${team.slug}`);
+    const usernames: string[] = members.map(getUsername);
+    const nonMemberTeams = teams
+      .filter(team => !team.isMember)
+      .map(team => `#${team.slug}`);
 
-  const suggestedAssignees: string[] = ['me', 'my_teams', 'none', ...userTeams];
+    const suggestedAssignees: string[] = ['me', 'my_teams', 'none', ...userTeams];
 
-  return [
-    {
-      title: t('Suggested Values'),
-      type: 'header',
-      icon: <IconStar size="xs" />,
-      children: suggestedAssignees.map(convertToSearchItem),
-    },
-    {
-      title: t('All Values'),
-      type: 'header',
-      icon: <IconUser size="xs" />,
-      children: [
-        ...usernames.map(convertToSearchItem),
-        ...nonMemberTeams.map(convertToSearchItem),
-      ],
-    },
-  ];
+    return [
+      {
+        title: t('Suggested Values'),
+        type: 'header',
+        icon: <IconStar size="xs" />,
+        children: suggestedAssignees.map(convertToSearchItem),
+      },
+      {
+        title: t('All Values'),
+        type: 'header',
+        icon: <IconUser size="xs" />,
+        children: [
+          ...usernames.map(convertToSearchItem),
+          ...nonMemberTeams.map(convertToSearchItem),
+        ],
+      },
+    ];
+  }, [teams, members]);
+
+  return assignedValues;
 }
 
-const getUsername = ({isManaged, username, email}: User) => {
+export const getUsername = ({isManaged, username, email}: User) => {
   const uuidPattern = /[0-9a-f]{32}$/;
   // Users created via SAML receive unique UUID usernames. Use
   // their email in these cases, instead.
