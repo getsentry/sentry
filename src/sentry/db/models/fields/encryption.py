@@ -1,31 +1,39 @@
-from cryptography.fernet import Fernet
-from django.conf import settings
+import tink
 from django.db import models
+from tink import aead, cleartext_keyset_handle, tink_config
 
 __all__ = ("EncryptedStringField",)
 
 
-def _get_encryption_key():
-    """
-    Returns a Fernet-compatible 32 byte url-safe base64-encoded key.
-    The input key from settings must be a 32-byte url-safe base64-encoded string.
-    """
-    key = settings.SENTRY_DB_ENCRYPTION_KEY
-    if isinstance(key, str):
-        # If the key is a string, encode it to bytes, as Fernet expects bytes
-        return key.encode("utf-8")
+def init_tink():
+    """Initialize Tink and register all AEAD key types."""
+    try:
+        tink_config.register()
+    except Exception:
+        pass
 
-    return key
+
+def _get_keyset_handle():
+    """ """
+    init_tink()  # TODO: this needs to be done once per process
+    # keyset_path = settings.get("KEYSET_PATH", "/tmp/keyset.key")
+    keyset_path = "/tmp/keyset.key"
+    with open(keyset_path, "rb") as keyset_file:
+        keyset_data = keyset_file.read()
+        keyset_handle = cleartext_keyset_handle.read(tink.BinaryKeysetReader(keyset_data))
+    return keyset_handle
 
 
 def _encrypt_value(value: str) -> bytes:
-    encryption_key = _get_encryption_key()
-    return Fernet(encryption_key).encrypt(value.encode("utf-8"))
+    keyset_handle = _get_keyset_handle()
+    aead_primitive = keyset_handle.primitive(aead.Aead)
+    return aead_primitive.encrypt(value.encode("utf-8"), b"")
 
 
 def _decrypt_value(value: bytes) -> str:
-    decryption_key = _get_encryption_key()
-    return Fernet(decryption_key).decrypt(value).decode("utf-8")
+    keyset_handle = _get_keyset_handle()
+    aead_primitive = keyset_handle.primitive(aead.Aead)
+    return aead_primitive.decrypt(value, b"").decode("utf-8")
 
 
 class EncryptedStringField(models.BinaryField):
