@@ -30,7 +30,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 def delete_group_list(
     request: Request,
     project: Project,
-    group_list: list[Group],
+    group_list: Sequence[Group],
     delete_type: Literal["delete", "discard"],
 ) -> None:
     """Deletes a list of groups which belong to a single project.
@@ -43,12 +43,11 @@ def delete_group_list(
     if not group_list:
         return
 
-    # deterministic sort for sanity, and for very large deletions we'll
-    # delete the "smaller" groups first
-    group_list.sort(key=lambda g: (g.times_seen, g.id))
     group_ids = []
     error_group_found = False
-    for g in group_list:
+    # deterministic sort for sanity, and for very large deletions we'll
+    # delete the "smaller" groups first
+    for g in sorted(group_list, key=lambda g: (g.times_seen, g.id)):
         group_ids.append(g.id)
         if g.issue_category == GroupCategory.ERROR:
             error_group_found = True
@@ -58,12 +57,21 @@ def delete_group_list(
     if not error_group_found:
         countdown = 0
 
+    # When is the transaction_id useful?
+    transaction_id = uuid4().hex
+    delete_logger.info(
+        "object.delete.begins",
+        extra={"organization_id": project.organization_id, "transaction_id": transaction_id},
+    )
+
+    # XXX: Where do we create activity for this?
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
     ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
 
+    create_audit_entries(request, project, group_list, delete_type, transaction_id)
+
     eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
-    transaction_id = uuid4().hex
 
     # Tell seer to delete grouping records for these groups
     call_delete_seer_grouping_records_by_hash(group_ids)
@@ -85,6 +93,14 @@ def delete_group_list(
         countdown=countdown,
     )
 
+
+def create_audit_entries(
+    request: Request,
+    project: Project,
+    group_list: Sequence[Group],
+    delete_type: Literal["delete", "discard"],
+    transaction_id: str,
+) -> None:
     for group in group_list:
         create_audit_entry(
             request=request,
