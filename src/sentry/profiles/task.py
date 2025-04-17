@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import io
-from concurrent import futures
 from copy import deepcopy
 from datetime import datetime, timezone
 from operator import itemgetter
@@ -201,7 +200,10 @@ def process_profile_task(
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
-    if features.has("organizations:continuous-profiling-vroomrs-processing", project):
+    if (
+        features.has("organizations:continuous-profiling-vroomrs-processing", project)
+        and "profiler_id" in profile
+    ):
         if not _process_vroomrs_profile(profile, project):
             return
     else:
@@ -1206,7 +1208,7 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
             # todo (improvement): check the feasibility of passing the profile
             # dict directly to the PyO3 module to avoid json serialization/deserialization
             with sentry_sdk.start_span(op="json.dumps"):
-                json_profile = json.dumps(profile).encode("utf-8")
+                json_profile = json.dumps(profile)
             with sentry_sdk.start_span(op="json.unmarshal"):
                 chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
             chunk.normalize()
@@ -1217,8 +1219,7 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
             with sentry_sdk.start_span(op="processing", name="send chunk to kafka"):
                 payload = build_chunk_kafka_message(chunk)
                 topic = ArroyoTopic(get_topic_definition(Topic.PROFILE_CHUNKS)["real_topic_name"])
-                f = profile_chunks_producer.produce(topic, payload)
-                futures.wait(f)
+                profile_chunks_producer.produce(topic, payload)
             with sentry_sdk.start_span(op="processing", name="extract functions metrics"):
                 functions = chunk.extract_functions_metrics(
                     min_depth=1, filter_system_frames=True, max_unique_functions=100
@@ -1227,8 +1228,8 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
                 topic = ArroyoTopic(
                     get_topic_definition(Topic.PROFILES_CALL_TREE)["real_topic_name"]
                 )
-                f = profile_functions_producer.produce(topic, payload)
-                futures.wait(f)
+                profile_functions_producer.produce(topic, payload)
+            return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
             metrics.incr(
@@ -1248,7 +1249,7 @@ def build_chunk_kafka_message(chunk: vroomrs.ProfileChunk) -> KafkaPayload:
         "platform": chunk.get_platform(),
         "profiler_id": chunk.get_profiler_id(),
         "project_id": chunk.get_project_id(),
-        "received": chunk.get_received(),
+        "received": int(chunk.get_received()),
         "release": chunk.get_release(),
         "retention_days": chunk.get_retention_days(),
         "sdk_name": chunk.sdk_name(),
@@ -1275,14 +1276,15 @@ def build_chunk_functions_kafka_message(
             for f in functions
         ],
         "profile_id": chunk.get_profiler_id(),
-        "platform": chunk.et_platform(),
+        "platform": chunk.get_platform(),
         "project_id": chunk.get_project_id(),
-        "received": chunk.get_received(),
+        "received": int(chunk.get_received()),
         "release": chunk.get_release(),
         "retention_days": chunk.get_retention_days(),
         "timestamp": int(chunk.start_timestamp()),
         "start_timestamp": chunk.start_timestamp(),
         "end_timestamp": chunk.end_timestamp(),
+        "transaction_name": "",
         "profiling_type": "continuous",
         "materialization_version": 1,
     }
