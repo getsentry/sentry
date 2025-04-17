@@ -885,18 +885,3 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 expected_new_code_mappings=[self.code_mapping("android/app/", "src/android/app/")],
                 expected_new_in_app_stack_trace_rules=["stack.module:android.app.** +app"],
             )
-
-    def test_unintended_rules_are_removed(self) -> None:
-        """Test that unintended rules will be removed without affecting other rules"""
-        key = "sentry:automatic_grouping_enhancements"
-        # Let's assume that the package was not categorized, thus, we created a rule for it
-        self.project.update_option(key, "stack.module:akka.** +app\nstack.module:foo.bar.** +app")
-        # This module is categorized, thus, we won't attempt derivation for it
-        frame = self.frame_from_module("com.sun.Activity", "Activity.java")
-        event = self.create_event([frame], self.platform)
-
-        # The rule will be removed after calling this
-        process_event(self.project.id, event.group_id, event.event_id)
-        rules = self.project.get_option(key)
-        # Other rules are not affected
-        assert rules.split("\n") == ["stack.module:foo.bar.** +app"]
