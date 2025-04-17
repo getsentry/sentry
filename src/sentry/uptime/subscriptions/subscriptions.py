@@ -346,7 +346,7 @@ def disable_project_uptime_subscription(uptime_monitor: ProjectUptimeSubscriptio
     if detector := get_detector(uptime_monitor.uptime_subscription):
         detector.update(enabled=False)
 
-    quotas.backend.disable_seat(DataCategory.UPTIME, uptime_monitor)
+    quotas.backend.remove_seat(DataCategory.UPTIME, uptime_monitor)
 
     # Are there any other project subscriptions associated to the subscription
     # that are NOT disabled?
@@ -405,7 +405,7 @@ def enable_project_uptime_subscription(
 
 def delete_project_uptime_subscription(subscription: ProjectUptimeSubscription):
     uptime_subscription = subscription.uptime_subscription
-    quotas.backend.disable_seat(DataCategory.UPTIME, subscription)
+    quotas.backend.remove_seat(DataCategory.UPTIME, subscription)
     subscription.delete()
     if detector := get_detector(uptime_subscription):
         RegionScheduledDeletion.schedule(detector, days=0)

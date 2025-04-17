@@ -557,8 +557,8 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
 
 
 class DeleteProjectUptimeSubscriptionTest(UptimeTestCase):
-    @mock.patch("sentry.quotas.backend.disable_seat")
-    def test_other_subscriptions(self, mock_disable_seat):
+    @mock.patch("sentry.quotas.backend.remove_seat")
+    def test_other_subscriptions(self, mock_remove_seat):
         other_project = self.create_project()
         proj_sub = create_project_uptime_subscription(
             self.project,
@@ -592,10 +592,10 @@ class DeleteProjectUptimeSubscriptionTest(UptimeTestCase):
             detector.refresh_from_db()
 
         assert UptimeSubscription.objects.filter(id=other_sub.uptime_subscription_id).exists()
-        mock_disable_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
+        mock_remove_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
 
-    @mock.patch("sentry.quotas.backend.disable_seat")
-    def test_single_subscriptions(self, mock_disable_seat):
+    @mock.patch("sentry.quotas.backend.remove_seat")
+    def test_single_subscriptions(self, mock_remove_seat):
         proj_sub = create_project_uptime_subscription(
             self.project,
             self.environment,
@@ -612,7 +612,7 @@ class DeleteProjectUptimeSubscriptionTest(UptimeTestCase):
 
         with pytest.raises(UptimeSubscription.DoesNotExist):
             proj_sub.uptime_subscription.refresh_from_db()
-        mock_disable_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
+        mock_remove_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
 
 
 class RemoveUptimeSubscriptionIfUnusedTest(UptimeTestCase):
@@ -695,8 +695,8 @@ class GetAutoMonitoredSubscriptionsForProjectTest(UptimeTestCase):
 
 
 class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
-    @mock.patch("sentry.quotas.backend.disable_seat")
-    def test(self, mock_disable_seat):
+    @mock.patch("sentry.quotas.backend.remove_seat")
+    def test(self, mock_remove_seat):
         proj_sub = create_project_uptime_subscription(
             self.project,
             self.environment,
@@ -712,14 +712,14 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
         proj_sub.refresh_from_db()
         assert proj_sub.status == ObjectStatus.DISABLED
         assert proj_sub.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
-        mock_disable_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
+        mock_remove_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
 
         detector = get_detector(proj_sub.uptime_subscription)
         assert detector
         assert not detector.enabled
 
-    @mock.patch("sentry.quotas.backend.disable_seat")
-    def test_disable_failed(self, mock_disable_seat):
+    @mock.patch("sentry.quotas.backend.remove_seat")
+    def test_disable_failed(self, mock_remove_seat):
         with (
             self.tasks(),
             self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()),
@@ -753,7 +753,7 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
         assert proj_sub.status == ObjectStatus.DISABLED
         assert proj_sub.uptime_status == UptimeStatus.OK
         assert proj_sub.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
-        mock_disable_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
+        mock_remove_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
 
         detector = get_detector(proj_sub.uptime_subscription)
         assert detector
