@@ -17,8 +17,8 @@ import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {SchemaHintsPageParams} from 'sentry/views/explore/components/schemaHintsList';
-import {addFilterToQuery} from 'sentry/views/explore/components/schemaHintsList';
+import type {SchemaHintsPageParams} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {addFilterToQuery} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 
 type SchemaHintsDrawerProps = SchemaHintsPageParams & {
   hints: Tag[];

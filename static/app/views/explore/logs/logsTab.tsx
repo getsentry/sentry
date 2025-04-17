@@ -19,8 +19,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {ExploreCharts} from 'sentry/views/explore/charts';
 import SchemaHintsList, {
   SchemaHintsSection,
-} from 'sentry/views/explore/components/schemaHintsList';
-import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
+} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
