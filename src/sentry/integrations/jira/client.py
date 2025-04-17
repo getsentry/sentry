@@ -123,12 +123,12 @@ class JiraCloudClient(ApiClient):
     def update_comment(self, issue_key, comment_id, comment):
         return self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment})
 
-    def get_projects_paginated(self, params: dict[str, str | Any] | None = None):
+    def get_projects_paginated(self, params: dict[str, Any] | None = None):
         response = self.get(self.PROJECTS_PAGINATED_URL, params=params)
         return response
 
-    # deprecated - please use paginated one above
     def get_projects_list(self):
+        """deprecated - please use paginated projects endpoint"""
         return self.get_cached(self.PROJECT_URL)
 
     def get_project_key_for_id(self, project_id) -> str:

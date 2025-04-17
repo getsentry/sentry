@@ -84,17 +84,19 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             )
             users = [{"value": user_id, "label": display} for user_id, display in user_tuples]
             return Response(users)
-        if features.has("organizations:jira-paginated-projects", organization, actor=request.user):
-            if field == "project":
-                try:
-                    response = jira_client.get_projects_paginated(params={"query": query})
-                    projects = [
-                        {"label": f"{p["key"]} - {p["name"]}", "value": p["id"]}
-                        for p in response.get("values", [])
-                    ]
-                except (ApiUnauthorized, ApiError):
-                    return Response({"detail": "Unable to fetch projects from Jira"}, status=400)
-                return Response(projects)
+
+        if field == "project" and features.has(
+            "organizations:jira-paginated-projects", organization, actor=request.user
+        ):
+            try:
+                response = jira_client.get_projects_paginated(params={"query": query})
+                projects = [
+                    {"label": f"{p["key"]} - {p["name"]}", "value": p["id"]}
+                    for p in response.get("values", [])
+                ]
+            except (ApiUnauthorized, ApiError):
+                return Response({"detail": "Unable to fetch projects from Jira"}, status=400)
+            return Response(projects)
 
         try:
             response = jira_client.get_field_autocomplete(name=field, value=query)
