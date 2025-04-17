@@ -110,7 +110,9 @@ def test_get_demo_org_demo_mode_disabled():
 @django_db_all
 def test_get_demo_org_demo_mode_enabled():
     org = Factories.create_organization(id=1)
-    with patch("sentry.demo_mode.utils.Organization.objects.get", return_value=org) as mock_org_get:
+    with patch(
+        "sentry.demo_mode.utils.organization_service.get_org_by_id", return_value=org
+    ) as mock_org_get:
         assert get_demo_org() == org
         mock_org_get.assert_called_once_with(id=1)
 
