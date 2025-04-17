@@ -467,7 +467,7 @@ function computeConfidence(
   });
 }
 
-function computeTotals(
+export function computeTotals(
   visualizes: Visualize[],
   data: ReturnType<typeof useSortedTimeSeries>['data'],
   isTopN: boolean

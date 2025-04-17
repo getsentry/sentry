@@ -1,6 +1,8 @@
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useExploreVisualizes} from 'sentry/views/explore/contexts/pageParamsContext';
+import {computeTotals} from 'sentry/views/explore/hooks/useAnalytics';
 
 // Bypass the preflight request if the time range is less than 7 days
 const SMALL_TIME_RANGE_THRESHOLD = getDiffInMinutes({period: '7d'});
@@ -44,6 +46,8 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
 }
 
 interface QueryOptions {
+  isTimeseries?: boolean;
+  isTopN?: boolean;
   queryMode?: QueryMode;
   withholdBestEffort?: boolean;
 }
@@ -70,6 +74,7 @@ export function useProgressiveQuery<
 } {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const visualizes = useExploreVisualizes();
   const canUseProgressiveLoading = organization.features.includes(
     'visibility-explore-progressive-loading'
   );
@@ -120,6 +125,28 @@ export function useProgressiveQuery<
   }
 
   if (bestEffortRequest.result.isFetched) {
+    if (queryOptions?.isTimeseries) {
+      const bestEffortSampleCount = computeTotals(
+        visualizes,
+        bestEffortRequest.result.data,
+        queryOptions?.isTopN ?? false
+      ).reduce((sum, count) => sum + count, 0);
+      const preflightSampleCount = computeTotals(
+        visualizes,
+        preflightRequest.result.data,
+        queryOptions?.isTopN ?? false
+      ).reduce((sum, count) => sum + count, 0);
+
+      if (preflightSampleCount > bestEffortSampleCount) {
+        // Continue to show the preflight results if they have more samples
+        // than best effort
+        return {
+          ...preflightRequest,
+          samplingMode: SAMPLING_MODE.BEST_EFFORT,
+        };
+      }
+    }
+
     return {
       ...bestEffortRequest,
       samplingMode: SAMPLING_MODE.BEST_EFFORT,

@@ -34,9 +34,15 @@ export function useMultiQueryTimeseries({
   enabled,
   index,
 }: UseMultiQueryTimeseriesOptions) {
+  const queries = useReadQueriesFromLocation();
+  const queryParts = queries[index]!;
+  const groupBys = queryParts.groupBys;
+  const mode = getQueryMode(groupBys);
+
   return useProgressiveQuery<typeof useMultiQueryTimeseriesImpl>({
     queryHookImplementation: useMultiQueryTimeseriesImpl,
     queryHookArgs: {enabled, index},
+    queryOptions: {isTimeseries: true, isTopN: mode === Mode.AGGREGATE},
   });
 }
 

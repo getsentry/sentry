@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import isEqual from 'lodash/isEqual';
 
+import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -39,9 +40,12 @@ export const useExploreTimeseries = ({
   enabled: boolean;
   query: string;
 }) => {
+  const topEvents = useTopEvents();
+  const isTopN = defined(topEvents) && topEvents > 0;
   return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
     queryHookImplementation: useExploreTimeseriesImpl,
     queryHookArgs: {query, enabled},
+    queryOptions: {isTopN, isTimeseries: true},
   });
 };
 
