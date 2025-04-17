@@ -65,7 +65,7 @@ function renderFrameworkModalMockRequests({
   const experimentalprojectCreationMockRequest = MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/experimental/projects/`,
     method: 'POST',
-    body: {slug: 'testProj', team_slug: 'testTeam'},
+    body: {slug: 'testProj', team: {slug: 'testTeam'}},
   });
 
   return {projectCreationMockRequest, experimentalprojectCreationMockRequest};
