@@ -13,7 +13,7 @@ function TraceLoading() {
     // Dont flash the animation on load because it's annoying
     <LoadingContainer animate={false}>
       <NoMarginIndicator size={24}>
-        <div>{t('Assembling the trace')}</div>
+        <div>{t('Assembling')}</div>
       </NoMarginIndicator>
     </LoadingContainer>
   );
@@ -26,7 +26,7 @@ function TraceError() {
   return (
     <LoadingContainer animate error>
       <div>
-        {t('Woof. We failed to load your trace. If you need to yell at someone, ')}
+        {t('Oof. We failed to load your trace. If you need to yell at someone, ')}
       </div>
       <div>
         {feedback ? (
@@ -52,7 +52,7 @@ function TraceEmpty() {
   // minute buffer to account for this.
   const message =
     timestamp && new Date(timestamp * 1000) >= new Date(Date.now() - TEN_MINUTES_IN_MS)
-      ? t("We're still processing this trace. Please try refreshing after a minute")
+      ? t('Still processing. Grab a drink, come back and refresh yourself and the page')
       : t("This trace is so empty, even tumbleweeds don't roll here");
 
   return (
