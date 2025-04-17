@@ -12,7 +12,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useParams} from 'sentry/utils/useParams';
-import DistributionSearchInput from 'sentry/views/issueDetails/groupDistributions/distributionSearchInput';
+import GroupDistributionsSearchInput from 'sentry/views/issueDetails/groupDistributions/groupDistributionsSearchInput';
 import HeaderTitle from 'sentry/views/issueDetails/groupDistributions/headerTitle';
 import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
@@ -50,32 +50,48 @@ export default function Flags({group, organization, setTab}: Props) {
   const [sortBy, setSortBy] = useState<SortBy>(SortBy.ALPHABETICAL);
   const [orderBy, setOrderBy] = useState<OrderBy>(OrderBy.A_TO_Z);
 
-  const orderByOptions = [
-    {
-      label: t('High to Low'),
-      value: OrderBy.HIGH_TO_LOW,
-      hidden: !enableSuspectFlags,
-    },
-    {
-      label: t('A-Z'),
-      value: OrderBy.A_TO_Z,
-    },
-    {
-      label: t('Z-A'),
-      value: OrderBy.Z_TO_A,
-    },
-  ];
-  const sortByOptions = [
-    {
-      label: t('Suspiciousness'),
-      value: SortBy.SUSPICION,
-      hidden: !enableSuspectFlags,
-    },
-    {
-      label: t('Alphabetical'),
-      value: SortBy.ALPHABETICAL,
-    },
-  ];
+  const sortByOptions = enableSuspectFlags
+    ? [
+        {
+          label: t('Suspiciousness'),
+          value: SortBy.SUSPICION,
+        },
+        {
+          label: t('Alphabetical'),
+          value: SortBy.ALPHABETICAL,
+        },
+      ]
+    : [
+        {
+          label: t('Alphabetical'),
+          value: SortBy.ALPHABETICAL,
+        },
+      ];
+  const orderByOptions = enableSuspectFlags
+    ? [
+        {
+          label: t('High to Low'),
+          value: OrderBy.HIGH_TO_LOW,
+        },
+        {
+          label: t('A-Z'),
+          value: OrderBy.A_TO_Z,
+        },
+        {
+          label: t('Z-A'),
+          value: OrderBy.Z_TO_A,
+        },
+      ]
+    : [
+        {
+          label: t('A-Z'),
+          value: OrderBy.A_TO_Z,
+        },
+        {
+          label: t('Z-A'),
+          value: OrderBy.Z_TO_A,
+        },
+      ];
 
   return (
     <Fragment>
@@ -88,7 +104,7 @@ export default function Flags({group, organization, setTab}: Props) {
 
         {tagKey ? null : (
           <ButtonBar gap={1}>
-            <DistributionSearchInput
+            <GroupDistributionsSearchInput
               includeFeatureFlagsTab
               search={search}
               onChange={value => {

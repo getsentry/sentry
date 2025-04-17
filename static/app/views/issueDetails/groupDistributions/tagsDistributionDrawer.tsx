@@ -10,7 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useParams} from 'sentry/utils/useParams';
-import DistributionSearchInput from 'sentry/views/issueDetails/groupDistributions/distributionSearchInput';
+import GroupDistributionsSearchInput from 'sentry/views/issueDetails/groupDistributions/groupDistributionsSearchInput';
 import HeaderTitle from 'sentry/views/issueDetails/groupDistributions/headerTitle';
 import TagExportDropdown from 'sentry/views/issueDetails/groupDistributions/tagExportDropdown';
 import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
@@ -57,7 +57,7 @@ export default function TagsDistributionDrawer({
           />
         ) : (
           <ButtonBar gap={1}>
-            <DistributionSearchInput
+            <GroupDistributionsSearchInput
               includeFeatureFlagsTab={includeFeatureFlagsTab}
               search={search}
               onChange={value => {
