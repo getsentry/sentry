@@ -193,9 +193,6 @@ function EAPBackendOverviewPage() {
   const showOnboarding = onboardingProject !== undefined;
 
   const doubleChartRowCharts = [
-    PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS,
-    PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
-    PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
     PerformanceWidgetSetting.SLOW_DB_OPS,
     PerformanceWidgetSetting.MOST_RELATED_ISSUES,
@@ -216,6 +213,15 @@ function EAPBackendOverviewPage() {
   );
 
   const sharedProps = {eventView, location, organization, withStaticFilters};
+
+  // Free tier does not have access to modules
+  if (organization.features.includes('insights-initial-modules')) {
+    doubleChartRowCharts.unshift(
+      PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
+    );
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES);
+  }
 
   const getFreeTextFromQuery = (query: string) => {
     const conditions = new MutableSearch(query);
