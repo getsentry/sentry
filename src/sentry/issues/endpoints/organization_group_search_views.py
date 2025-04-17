@@ -41,6 +41,8 @@ SORT_MAP = {
     "-visited": "-groupsearchviewlastvisited__last_visited",
     "name": "name",
     "-name": "-name",
+    "created": "date_added",
+    "-created": "-date_added",
 }
 
 
@@ -49,9 +51,10 @@ class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
         choices=("me", "others"),
         required=False,
     )
-    sort = serializers.ChoiceField(
-        choices=list(SORT_MAP.keys()),
+    sort = serializers.ListField(
+        child=serializers.ChoiceField(choices=list(SORT_MAP.keys())),
         required=False,
+        default=["-visited"],
     )
     query = serializers.CharField(required=False)
 
@@ -101,7 +104,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 )
 
         createdBy = serializer.validated_data.get("createdBy", "me")
-        sort = SORT_MAP[serializer.validated_data.get("sort", "-visited")]
+        sorts = [SORT_MAP[sort] for sort in serializer.validated_data["sort"]]
         query = serializer.validated_data.get("query")
         base_queryset = (
             GroupSearchView.objects.filter(organization=organization)
@@ -120,7 +123,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 )
                 .prefetch_related("projects")
                 .annotate(popularity=Count("groupsearchviewstarred"))
-                .order_by(sort)
+                .order_by(*sorts)
             )
             non_starred_query = (
                 base_queryset.filter(
@@ -129,7 +132,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 .exclude(id__in=starred_view_ids)
                 .prefetch_related("projects")
                 .annotate(popularity=Count("groupsearchviewstarred"))
-                .order_by(sort)
+                .order_by(*sorts)
             )
         elif createdBy == "others":
             starred_query = (
@@ -140,7 +143,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 .exclude(user_id=request.user.id)
                 .prefetch_related("projects")
                 .annotate(popularity=Count("groupsearchviewstarred"))
-                .order_by(sort)
+                .order_by(*sorts)
             )
             non_starred_query = (
                 base_queryset.filter(
@@ -150,7 +153,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 .exclude(id__in=starred_view_ids)
                 .prefetch_related("projects")
                 .annotate(popularity=Count("groupsearchviewstarred"))
-                .order_by(sort)
+                .order_by(*sorts)
             )
 
         return self.paginate(
