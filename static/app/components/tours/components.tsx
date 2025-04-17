@@ -17,8 +17,6 @@ import {
 import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -350,7 +348,6 @@ interface TourGuideProps extends Omit<HTMLAttributes<HTMLElement>, 'title' | 'id
     'aria-expanded': React.AriaAttributes['aria-expanded'];
     children: React.ReactNode;
     ref: React.RefAttributes<HTMLElement>['ref'];
-    prefersDarkMode?: boolean;
   }>;
 }
 
@@ -369,8 +366,6 @@ export function TourGuide({
   offset,
   margin,
 }: TourGuideProps) {
-  const config = useLegacyStore(ConfigStore);
-  const prefersDarkMode = config.theme === 'dark';
   const theme = useTheme();
 
   const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
@@ -423,7 +418,7 @@ export function TourGuide({
                       `,
                     }}
                   >
-                    <TourBody ref={scrollToElement} prefersDarkMode={prefersDarkMode}>
+                    <TourBody ref={scrollToElement}>
                       {isTopRowVisible && (
                         <TopRow>
                           <div>{countText}</div>
@@ -458,7 +453,7 @@ function scrollToElement(element: HTMLDivElement | null) {
 }
 
 /* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
-const TourBody = styled('div')<{prefersDarkMode: boolean}>`
+const TourBody = styled('div')`
   display: flex;
   flex-direction: column;
   background: ${p => p.theme.tour.background};
