@@ -99,6 +99,14 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
         ):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=403)
 
+        if invited_member.partnership_restricted:
+            return Response(
+                {
+                    "detail": "This member is managed by an active partnership and cannot be modified until the end of the partnership."
+                },
+                status=403,
+            )
+
         allowed_roles = get_allowed_org_roles(request, organization)
         validator = OrganizationMemberInviteRequestValidator(
             data=request.data,
