@@ -1,62 +1,42 @@
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
+import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
-import type {WebVitalsScoreBreakdown} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
+import {WebVitalsWeightList} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalWeightList';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
-import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useDefaultWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/utils/useDefaultQuery';
 import {InsightsTimeSeriesWidget} from 'sentry/views/insights/common/components/insightsTimeSeriesWidget';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {
   type DiscoverSeries,
   useMetricsSeries,
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 
-import {WebVitalsWeightList} from './webVitalWeightList';
-
-type Props = {
-  browserTypes?: BrowserType[];
-  subregions?: SubregionCode[];
-  transaction?: string;
-};
-
-export function formatTimeSeriesResultsToChartData(
-  data: WebVitalsScoreBreakdown,
-  segmentColors: string[],
-  order: WebVitals[] = ORDER
-): Series[] {
-  return order.map((webVital, index) => {
-    const series = data[webVital];
-    const color = segmentColors[index];
-    return {
-      seriesName: webVital.toUpperCase(),
-      data: series.map(({name, value}) => ({
-        name,
-        value: Math.round(value),
-      })),
-      color,
-    };
+export function PerformanceScoreBreakdownChartWidget(props: LoadableChartWidgetProps) {
+  const {
+    transaction,
+    [SpanIndexedField.BROWSER_NAME]: browserTypes,
+    [SpanIndexedField.USER_GEO_SUBREGION]: subregions,
+  } = useLocationQuery({
+    fields: {
+      [SpanIndexedField.BROWSER_NAME]: decodeBrowserTypes,
+      [SpanIndexedField.USER_GEO_SUBREGION]: decodeList,
+      transaction: decodeList,
+    },
   });
-}
-
-export function PerformanceScoreBreakdownChart({
-  transaction,
-  browserTypes,
-  subregions,
-}: Props) {
   const theme = useTheme();
   const segmentColors = theme.chart.getColorPalette(3).slice(0, 5);
   const defaultQuery = useDefaultWebVitalsQuery();
-
   const search = new MutableSearch(`${defaultQuery} has:measurements.score.total`);
 
-  if (transaction) {
-    search.addFilterValue('transaction', transaction);
+  if (transaction.length && transaction[0]) {
+    search.addFilterValue('transaction', transaction[0]);
   }
 
   if (subregions) {
@@ -84,7 +64,8 @@ export function PerformanceScoreBreakdownChart({
       ],
       transformAliasToInputFormat: true,
     },
-    'api.performance.browser.web-vitals.timeseries-scores2'
+    'api.performance.browser.web-vitals.timeseries-scores2',
+    props.pageFilters
   );
 
   const webVitalsThatHaveData: WebVitals[] = vitalScoresData
@@ -127,20 +108,14 @@ export function PerformanceScoreBreakdownChart({
     : [];
 
   return (
-    <ChartContainer>
-      <InsightsTimeSeriesWidget
-        title={t('Score Breakdown')}
-        height="100%"
-        visualizationType="area"
-        isLoading={areVitalScoresLoading}
-        error={vitalScoresError}
-        series={allSeries}
-        description={<WebVitalsWeightList weights={weights} />}
-      />
-    </ChartContainer>
+    <InsightsTimeSeriesWidget
+      title={t('Score Breakdown')}
+      height="100%"
+      visualizationType="area"
+      isLoading={areVitalScoresLoading}
+      error={vitalScoresError}
+      series={allSeries}
+      description={<WebVitalsWeightList weights={weights} />}
+    />
   );
 }
-
-const ChartContainer = styled('div')`
-  flex: 1 1 0%;
-`;

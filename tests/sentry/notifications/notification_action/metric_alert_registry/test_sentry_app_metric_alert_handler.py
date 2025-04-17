@@ -115,6 +115,7 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
             open_period_identifier=self.group_event.group.id,
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CRITICAL,
+            title=self.group_event.group.title,
             metric_value=123.45,
             group=self.group_event.group,
         )
