@@ -1,19 +1,23 @@
+import type {Dispatch, SetStateAction} from 'react';
 import {useRef, useState} from 'react';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {
   EventDrawerBody,
   EventDrawerContainer,
   EventDrawerHeader,
   EventNavigator,
+  SearchInput,
 } from 'sentry/components/events/eventDrawer';
+import {IconSearch} from 'sentry/icons/iconSearch';
+import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import DistributionSearchInput from 'sentry/views/issueDetails/groupDistributions/distributionSearchInput';
 import GroupDistributionCrumbs from 'sentry/views/issueDetails/groupDistributions/groupDistributionCrumbs';
 import HeaderTitle from 'sentry/views/issueDetails/groupDistributions/headerTitle';
 import TagExportDropdown from 'sentry/views/issueDetails/groupDistributions/tagExportDropdown';
@@ -25,6 +29,36 @@ import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagD
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import TagDrawerContent from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
+
+function DistributionSearchInput({
+  includeFeatureFlagsTab,
+  search,
+  onChange,
+}: {
+  includeFeatureFlagsTab: boolean;
+  onChange: Dispatch<SetStateAction<string>>;
+  search: string;
+}) {
+  return (
+    <InputGroup>
+      <SearchInput
+        size="xs"
+        value={search}
+        onChange={e => {
+          onChange(e.target.value);
+        }}
+        aria-label={
+          includeFeatureFlagsTab
+            ? t('Search All Tags & Feature Flags')
+            : t('Search All Tags')
+        }
+      />
+      <InputGroup.TrailingItems disablePointerEvents>
+        <IconSearch size="xs" />
+      </InputGroup.TrailingItems>
+    </InputGroup>
+  );
+}
 
 /**
  * Shared tags and feature flags distributions drawer, used by streamlined issue details UI.
