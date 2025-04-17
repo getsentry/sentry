@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -10,6 +11,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -17,38 +19,27 @@ import {
   canUseMetricsData,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
-import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {
-  FrontendOverviewTable,
-  isAValidSort,
-  type ValidSort,
-} from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {OldFrontendOverviewPage} from 'sentry/views/insights/pages/frontend/oldFrontendOverviewPage';
 import {
-  DEFAULT_SORT,
   FRONTEND_LANDING_TITLE,
   FRONTEND_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
-import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {
   generateFrontendOtherPerformanceEventView,
   USER_MISERY_TOOLTIP,
@@ -60,6 +51,7 @@ import {
 import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
+import Table from 'sentry/views/performance/table';
 import {
   getTransactionSearchQuery,
   ProjectPerformanceType,
@@ -86,31 +78,36 @@ export const FRONTEND_COLUMN_TITLES = [
   {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
-function EAPOverviewPage() {
+export function OldFrontendOverviewPage() {
   useOverviewPageTrackPageload();
+  const theme = useTheme();
+
   const organization = useOrganization();
   const location = useLocation();
+  const {setPageError} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
+  const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateFrontendOtherPerformanceEventView(
     location,
-    withStaticFilters,
-    true
+    withStaticFilters
   );
   const searchBarEventView = eventView.clone();
 
   const sharedProps = {eventView, location, organization, withStaticFilters};
 
+  const segmentOp = 'transaction.op';
+
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
     {field: 'team_key_transaction'},
     {field: 'transaction'},
-    {field: 'span.op'},
+    {field: segmentOp},
     {field: 'project'},
     {field: 'tpm()'},
     {field: 'p50(transaction.duration)'},
@@ -133,7 +130,7 @@ function EAPOverviewPage() {
   const existingQuery = new MutableSearch(eventView.query);
   // TODO - this query is getting complicated, once were on EAP, we should consider moving this to the backend
   existingQuery.addOp('(');
-  existingQuery.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addDisjunctionFilterValues(segmentOp, OVERVIEW_PAGE_ALLOWED_OPS);
   // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
   if (selectedFrontendProjects.length > 0) {
     existingQuery.addOp('OR');
@@ -143,7 +140,7 @@ function EAPOverviewPage() {
     );
   }
   existingQuery.addOp(')');
-  existingQuery.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addFilterValues(`!${segmentOp}`, BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
@@ -202,36 +199,6 @@ function EAPOverviewPage() {
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
-  const sorts: [ValidSort, ValidSort] = [
-    {
-      field: 'is_starred_transaction' satisfies EAPSpanProperty,
-      kind: 'desc',
-    },
-    decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
-  ];
-
-  existingQuery.addFilterValue('is_transaction', 'true');
-
-  const response = useEAPSpans(
-    {
-      search: existingQuery,
-      sorts,
-      fields: [
-        'is_starred_transaction',
-        'transaction',
-        'span.op',
-        'project',
-        'epm()',
-        'p50(span.duration)',
-        'p95(span.duration)',
-        'failure_rate()',
-        'time_spent_percentage(span.duration)',
-        'sum(span.duration)',
-      ],
-    },
-    'api.performance.landing-table'
-  );
-
   return (
     <Feature
       features="performance-view"
@@ -273,7 +240,20 @@ function EAPOverviewPage() {
                     eventView={doubleChartRowEventView}
                   />
                   <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-                  <FrontendOverviewTable response={response} sort={sorts[1]} />
+                  <TeamKeyTransactionManager.Provider
+                    organization={organization}
+                    teams={teams}
+                    selectedTeams={['myteams']}
+                    selectedProjects={eventView.project.map(String)}
+                  >
+                    <Table
+                      theme={theme}
+                      projects={projects}
+                      columnTitles={FRONTEND_COLUMN_TITLES}
+                      setError={setPageError}
+                      {...sharedProps}
+                    />
+                  </TeamKeyTransactionManager.Provider>
                 </PerformanceDisplayProvider>
               )}
 
@@ -291,18 +271,6 @@ function EAPOverviewPage() {
   );
 }
 
-function FrontendOverviewPageWithProviders() {
-  const useEap = useInsightsEap();
-
-  return (
-    <DomainOverviewPageProviders>
-      {useEap ? <EAPOverviewPage /> : <OldFrontendOverviewPage />}
-    </DomainOverviewPageProviders>
-  );
-}
-
 const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
   flex: 2;
 `;
-
-export default FrontendOverviewPageWithProviders;
