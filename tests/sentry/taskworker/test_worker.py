@@ -293,8 +293,7 @@ def test_child_worker_complete(mock_capture_checkin) -> None:
 
 
 @pytest.mark.django_db
-@mock.patch("sentry.taskworker.worker.child_worker_init")
-def test_child_worker_retry_task(mock_init) -> None:
+def test_child_worker_retry_task() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
     shutdown = Event()
