@@ -2,6 +2,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry import options
 from sentry.models.organization import Organization
+from sentry.organizations.services.organization import organization_service
 from sentry.users.models.user import User
 
 READONLY_SCOPES = frozenset(
@@ -48,7 +49,9 @@ def get_demo_org():
 
     org_id = demo_orgs[0]
 
-    return Organization.objects.get(id=org_id)
+    return organization_service.get_org_by_id(
+        id=org_id,
+    )
 
 
 def get_demo_user():
