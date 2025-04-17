@@ -76,16 +76,17 @@ export default storyBook('Slider', (story, APIReference) => {
   });
 
   story('Controlled', () => {
-    const [value, setValue] = useState(25);
+    const [value, setValue] = useState(2);
     return (
       <Fragment>
         <p>
-          Pass `value` and `onChange` to fully control the <JSXNode name="Slider" />{' '}
-          component.
+          Pass <JSXProperty name="value" value="value" /> and{' '}
+          <JSXProperty name="onChange" value="setValue" /> to fully control the{' '}
+          <JSXNode name="Slider" /> component.
         </p>
         <Label>
           Controlled slider
-          <Slider value={value} onChange={setValue} />
+          <Slider value={value} onChange={v => setValue(v > 50 ? 50 : v)} />
         </Label>
       </Fragment>
     );

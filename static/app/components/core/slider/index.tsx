@@ -4,18 +4,29 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import {Slider as ChonkSlider} from './index.chonk';
 
-export interface SliderProps
+interface BaseProps
   extends Omit<
     React.InputHTMLAttributes<HTMLInputElement>,
-    'type' | 'value' | 'onChange'
+    'type' | 'value' | 'onChange' | 'defaultValue'
   > {
   defaultValue?: number;
   /** Optional callback to format the label */
   formatLabel?: (value: number | '') => number | string;
-  onChange?: (value: number, event: React.ChangeEvent<HTMLInputElement>) => void;
   ref?: React.Ref<HTMLInputElement>;
-  value?: number | '';
 }
+
+interface ControlledProps extends BaseProps {
+  onChange: (value: number, event: React.ChangeEvent<HTMLInputElement>) => void;
+  value: number | '';
+}
+
+interface UncontrolledProps extends BaseProps {
+  defaultValue?: number;
+  onChange?: never;
+  value?: never;
+}
+
+export type SliderProps = ControlledProps | UncontrolledProps;
 
 export function LegacySlider({ref, ...props}: SliderProps) {
   return (

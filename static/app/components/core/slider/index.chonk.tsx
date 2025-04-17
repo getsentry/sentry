@@ -9,18 +9,18 @@ const passthrough = (n: number | '') => n;
 
 export function Slider({formatLabel = passthrough, ref, ...props}: SliderProps) {
   const step = toNumber(props.step ?? -1);
-  const {value, min, max} = resolveMinMaxValue(props);
-  const [valueAsNumber, setValueAsNumber] = useState(value);
+  const {value: resolvedValue, min, max} = resolveMinMaxValue(props);
+  const [valueAsNumber, setValueAsNumber] = useState(resolvedValue);
 
-  const filledSteps = step === -1 ? -1 : valueAsNumber / step;
-  const progress = getProgress(valueAsNumber, min, max);
+  const value = props.onChange ? resolvedValue : valueAsNumber;
+
+  const filledSteps = step === -1 ? -1 : value / step;
+  const progress = getProgress(value, min, max);
 
   return (
     <SliderContainer
       aria-disabled={props.disabled}
-      style={
-        {'--p': `${progress.toFixed(0)}%`, '--steps': `${valueAsNumber}`} as CSSProperties
-      }
+      style={{'--p': `${progress.toFixed(0)}%`, '--steps': `${value}`} as CSSProperties}
     >
       {props.step ? (
         <SliderTicks
@@ -42,7 +42,7 @@ export function Slider({formatLabel = passthrough, ref, ...props}: SliderProps) 
       />
       {props.disabled ? null : (
         <SliderOutput htmlFor={props.id}>
-          <SliderLabel>{formatLabel(valueAsNumber)}</SliderLabel>
+          <SliderLabel>{formatLabel(value)}</SliderLabel>
         </SliderOutput>
       )}
     </SliderContainer>
