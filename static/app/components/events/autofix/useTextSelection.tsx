@@ -77,11 +77,11 @@ export function useTextSelection(containerRef: React.RefObject<HTMLElement | nul
   );
 
   useEffect(() => {
-    document.addEventListener('click', handleClick);
+    document.addEventListener('click', handleClick, true);
     document.addEventListener('mousedown', clearSelection);
 
     return () => {
-      document.removeEventListener('click', handleClick);
+      document.removeEventListener('click', handleClick, true);
       document.removeEventListener('mousedown', clearSelection);
     };
   }, [handleClick, clearSelection]);
