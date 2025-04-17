@@ -20,12 +20,22 @@ import {Toolbar} from 'sentry/views/insights/pages/platform/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 
-export function RequestsWidget({query}: {query?: string}) {
+export function TrafficWidget({
+  title,
+  trafficSeriesName,
+  baseQuery,
+  query,
+}: {
+  title: string;
+  trafficSeriesName: string;
+  baseQuery?: string;
+  query?: string;
+}) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({granularity: 'spans-low'});
   const theme = useTheme();
 
-  const fullQuery = `span.op:http.server ${query}`.trim();
+  const fullQuery = `${baseQuery} ${query}`.trim();
 
   const {data, isLoading, error} = useApiQuery<MultiSeriesEventsStats>(
     [
@@ -72,7 +82,7 @@ export function RequestsWidget({query}: {query?: string}) {
   const plottables = useMemo(() => {
     return [
       new Bars(statsToSeries(data, 'count(span.duration)'), {
-        alias: t('Requests'),
+        alias: trafficSeriesName,
         color: theme.gray200,
       }),
       new Line(statsToSeries(data, 'trace_status_rate(internal_error)'), {
@@ -80,7 +90,7 @@ export function RequestsWidget({query}: {query?: string}) {
         color: theme.error,
       }),
     ];
-  }, [data, statsToSeries, theme.error, theme.gray200]);
+  }, [data, statsToSeries, theme.error, theme.gray200, trafficSeriesName]);
 
   const isEmpty = useMemo(
     () =>
@@ -105,7 +115,7 @@ export function RequestsWidget({query}: {query?: string}) {
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Requests')} />}
+      Title={<Widget.WidgetTitle title={title} />}
       Visualization={visualization}
       Actions={
         organization.features.includes('visibility-explore-view') &&

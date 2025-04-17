@@ -2,6 +2,7 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -10,10 +11,10 @@ import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesW
 import {JobsWidget} from 'sentry/views/insights/pages/platform/laravel/jobsWidget';
 import {PathsTable} from 'sentry/views/insights/pages/platform/laravel/pathsTable';
 import {QueriesWidget} from 'sentry/views/insights/pages/platform/laravel/queriesWidget';
-import {RequestsWidget} from 'sentry/views/insights/pages/platform/laravel/requestsWidget';
 import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
+import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 export function LaravelOverviewPage() {
@@ -32,7 +33,12 @@ export function LaravelOverviewPage() {
     <PlatformLandingPageLayout headerTitle={BACKEND_LANDING_TITLE}>
       <WidgetGrid>
         <RequestsContainer>
-          <RequestsWidget query={query} />
+          <TrafficWidget
+            title={t('Requests')}
+            trafficSeriesName={t('Requests')}
+            baseQuery={'span.op:http.server'}
+            query={query}
+          />
         </RequestsContainer>
         <IssuesContainer>
           <IssuesWidget query={query} />
