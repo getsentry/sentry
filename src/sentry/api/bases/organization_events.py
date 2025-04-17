@@ -31,7 +31,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.search.eap.constants import VALID_GRANULARITIES, SAMPLING_MODE_MAP
+from sentry.search.eap.constants import SAMPLING_MODE_MAP, VALID_GRANULARITIES
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
