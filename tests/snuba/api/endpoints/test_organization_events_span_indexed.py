@@ -2686,6 +2686,29 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             "http_response_rate(2)": None,
         }
 
+    def test_http_response_rate_missing_status_code(self):
+        self.store_spans(
+            [
+                self.create_span({"sentry_tags": {}}, start_ts=self.ten_mins_ago),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "http_response_rate(5)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["http_response_rate(5)"] == 0.0
+        assert meta["dataset"] == self.dataset
+
     def test_http_response_rate_invalid_param(self):
         self.store_spans(
             [
@@ -3597,7 +3620,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
         assert response.status_code == 200, response.content
 
-    @pytest.mark.xfail(reason="RPC returns None if a value is missing instead of 0")
     def test_total_opportunity_score_missing_data(self):
         self.store_spans(
             [
