@@ -143,10 +143,7 @@ const StyledSlider = chonkStyled('input')`
       0 0 0 10px transparent;
 
     &:focus-visible {
-      outline: none;
-      box-shadow:
-        0 0 0 8px ${p => p.theme.background},
-        0 0 0 10px ${p => p.theme.focusBorder};
+      ${p => p.theme.focusRing};
     }
 
     &[disabled] {
