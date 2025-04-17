@@ -8,14 +8,11 @@ from datetime import timedelta
 from typing import Any
 from urllib.parse import urlparse
 
-from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneAPICallsExperimentalGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.utils.performance_issues.detectors.utils import get_total_span_duration
-from sentry.utils.performance_issues.performance_problem import PerformanceProblem
-
-from ..base import (
+from sentry.utils.performance_issues.base import (
     DetectorType,
     PerformanceDetector,
     fingerprint_http_spans,
@@ -25,12 +22,14 @@ from ..base import (
     parameterize_url,
     parameterize_url_with_result,
 )
-from ..types import PerformanceProblemsMap, Span
+from sentry.utils.performance_issues.detectors.utils import get_total_span_duration
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from sentry.utils.performance_issues.types import PerformanceProblemsMap, Span
 
 logger = logging.getLogger(__name__)
 
 
-class DummyNPlusOneAPICallsDetector(PerformanceDetector):
+class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
     """
     Detect parallel network calls to the same endpoint.
 
@@ -54,7 +53,7 @@ class DummyNPlusOneAPICallsDetector(PerformanceDetector):
         self.spans: list[Span] = []
 
     def visit_span(self, span: Span) -> None:
-        if not DummyNPlusOneAPICallsDetector.is_span_eligible(span):
+        if not NPlusOneAPICallsExperimentalDetector.is_span_eligible(span):
             return
 
         op = span.get("op", None)
@@ -171,7 +170,7 @@ class DummyNPlusOneAPICallsDetector(PerformanceDetector):
             fingerprint=fingerprint,
             op=last_span["op"],
             desc=problem_description,
-            type=PerformanceNPlusOneAPICallsGroupType,
+            type=PerformanceNPlusOneAPICallsExperimentalGroupType,
             cause_span_ids=[],
             parent_span_ids=[last_span.get("parent_span_id", None)],
             offender_span_ids=offender_span_ids,
@@ -243,7 +242,7 @@ class DummyNPlusOneAPICallsDetector(PerformanceDetector):
 
         fingerprint = fingerprint_http_spans([self.spans[0]])
 
-        return f"1-{PerformanceNPlusOneAPICallsGroupType.type_id}-{fingerprint}"
+        return f"1-{PerformanceNPlusOneAPICallsExperimentalGroupType.type_id}-{fingerprint}"
 
     def _spans_are_concurrent(self, span_a: Span, span_b: Span) -> bool:
         span_a_start: int = span_a.get("start_timestamp", 0) or 0
