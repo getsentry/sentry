@@ -28,7 +28,6 @@ from sentry.incidents.endpoints.serializers.incident import (
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleThresholdType,
-    AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import (
@@ -45,6 +44,7 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.integrations.types import ExternalProviders
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
@@ -271,6 +271,18 @@ class EmailActionHandler(ActionHandler):
         incident_status: IncidentStatus,
         notification_uuid: str | None = None,
     ) -> None:
+        alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
+            incident.alert_rule, None, AlertRuleSerializer()
+        )
+        incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
+            incident, None, DetailedIncidentSerializer()
+        )
+        metric_issue_context = MetricIssueContext.from_legacy_models(
+            incident=incident,
+            new_status=incident_status,
+        )
+        open_period_context = OpenPeriodContext.from_incident(incident)
+        alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
         targets = [
             (user_id, email) for user_id, email in self.get_targets(action, incident, project)
         ]
@@ -279,10 +291,14 @@ class EmailActionHandler(ActionHandler):
             user = users[index]
             email_context = generate_incident_trigger_email_context(
                 project=project,
-                incident=incident,
-                alert_rule_trigger=action.alert_rule_trigger,
+                organization=incident.organization,
+                metric_issue_context=metric_issue_context,
+                alert_rule_serialized_response=alert_rule_serialized_response,
+                incident_serialized_response=incident_serialized_response,
+                alert_context=alert_context,
+                open_period_context=open_period_context,
                 trigger_status=trigger_status,
-                incident_status=incident_status,
+                trigger_threshold=action.alert_rule_trigger.alert_threshold,
                 user=user,
                 notification_uuid=notification_uuid,
             )
@@ -469,19 +485,21 @@ def format_duration(minutes):
 
 def generate_incident_trigger_email_context(
     project: Project,
-    incident: Incident,
-    alert_rule_trigger: AlertRuleTrigger,
+    organization: Organization,
+    alert_rule_serialized_response: AlertRuleSerializerResponse,
+    incident_serialized_response: DetailedIncidentSerializerResponse,
+    metric_issue_context: MetricIssueContext,
+    alert_context: AlertContext,
+    open_period_context: OpenPeriodContext,
     trigger_status: TriggerStatus,
-    incident_status: IncidentStatus,
+    trigger_threshold: float,
     user: User | RpcUser | None = None,
     notification_uuid: str | None = None,
 ):
-    trigger = alert_rule_trigger
-    alert_rule = trigger.alert_rule
-    snuba_query = alert_rule.snuba_query
+    snuba_query = metric_issue_context.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
-    is_threshold_type_above = alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
-    subscription = incident.subscription
+    is_threshold_type_above = alert_context.threshold_type == AlertRuleThresholdType.ABOVE
+    subscription = metric_issue_context.subscription
     alert_link_params = {
         "referrer": "metric_alert_email",
     }
@@ -491,44 +509,36 @@ def generate_incident_trigger_email_context(
     show_greater_than_string = is_active == is_threshold_type_above
     environment_string = snuba_query.environment.name if snuba_query.environment else "All"
 
-    aggregate = alert_rule.snuba_query.aggregate
+    aggregate = snuba_query.aggregate
     if is_mri_field(aggregate):
         aggregate = format_mri_field(aggregate)
     elif CRASH_RATE_ALERT_AGGREGATE_ALIAS in aggregate:
         aggregate = aggregate.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
 
     threshold: None | str | float = None
-    if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-        threshold_prefix_string = alert_rule.detection_type.title()
-        threshold = f"({alert_rule.sensitivity} responsiveness)"
+    if alert_context.detection_type == AlertRuleDetectionType.DYNAMIC:
+        threshold_prefix_string = alert_context.detection_type.title()
+        threshold = f"({alert_context.sensitivity} responsiveness)"
         alert_link_params["type"] = "anomaly_detection"
     else:
         threshold_prefix_string = ">" if show_greater_than_string else "<"
-        threshold = trigger.alert_threshold if is_active else alert_rule.resolve_threshold
+        threshold = trigger_threshold if is_active else alert_context.resolve_threshold
         if threshold is None:
             # Setting this to trigger threshold because in the case of a resolve if no resolve
             # threshold is specified this will be None. Since we add a comparison sign to the
             # string it makes sense to set this to the trigger alert threshold if no threshold is
             # specified
-            threshold = trigger.alert_threshold
+            threshold = trigger_threshold
 
     chart_url = None
-    if features.has("organizations:metric-alert-chartcuterie", incident.organization):
+    if features.has("organizations:metric-alert-chartcuterie", organization):
         try:
-            alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
-                incident.alert_rule, None, AlertRuleSerializer()
-            )
-            incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
-                incident, None, DetailedIncidentSerializer()
-            )
-            open_period_context = OpenPeriodContext.from_incident(incident)
-
             chart_url = build_metric_alert_chart(
-                organization=incident.organization,
+                organization=organization,
                 alert_rule_serialized_response=alert_rule_serialized_response,
                 selected_incident_serialized=incident_serialized_response,
                 snuba_query=snuba_query,
-                alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+                alert_context=alert_context,
                 open_period_context=open_period_context,
                 size=ChartSize({"width": 600, "height": 200}),
                 subscription=subscription,
@@ -544,7 +554,6 @@ def generate_incident_trigger_email_context(
         if options and options[0].value is not None:
             tz = options[0].value
 
-    organization = incident.organization
     if notification_uuid:
         alert_link_params["notification_uuid"] = notification_uuid
 
@@ -553,7 +562,7 @@ def generate_incident_trigger_email_context(
             "sentry-metric-alert",
             kwargs={
                 "organization_slug": organization.slug,
-                "incident_id": incident.identifier,
+                "incident_id": metric_issue_context.open_period_identifier,
             },
         ),
         query=urlencode(alert_link_params),
@@ -567,20 +576,20 @@ def generate_incident_trigger_email_context(
     return {
         "link": alert_link,
         "project_slug": project.slug,
-        "incident_name": incident.title,
+        "incident_name": metric_issue_context.title,
         "environment": environment_string,
         "time_window": format_duration(snuba_query.time_window / 60),
-        "triggered_at": incident.date_added,
+        "triggered_at": open_period_context.date_started,
         "aggregate": aggregate,
         "query": query_str,
         "threshold": threshold,
         # if alert threshold and threshold type is above then show '>'
         # if resolve threshold and threshold type is *BELOW* then show '>'
         "threshold_prefix_string": threshold_prefix_string,
-        "status": INCIDENT_STATUS[incident_status],
-        "status_key": INCIDENT_STATUS[incident_status].lower(),
-        "is_critical": incident_status == IncidentStatus.CRITICAL,
-        "is_warning": incident_status == IncidentStatus.WARNING,
+        "status": INCIDENT_STATUS[metric_issue_context.new_status],
+        "status_key": INCIDENT_STATUS[metric_issue_context.new_status].lower(),
+        "is_critical": metric_issue_context.new_status == IncidentStatus.CRITICAL,
+        "is_warning": metric_issue_context.new_status == IncidentStatus.WARNING,
         "unsubscribe_link": None,
         "chart_url": chart_url,
         "timezone": tz,
