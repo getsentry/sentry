@@ -73,7 +73,7 @@ const CHART_PALETTE_LIGHT = [
     '#67C800',
     '#00A9D2',
   ],
-];
+] as const;
 
 const CHART_PALETTE_DARK = [
   ['#7A60FB'],
@@ -129,21 +129,30 @@ const CHART_PALETTE_DARK = [
     '#67C800',
     '#0CACD4',
   ],
-];
+] as const;
 
 type ChartColorPalette = typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
+type ColorLength = (typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK)['length'];
 
 // eslint-disable-next-line @typescript-eslint/no-restricted-types
-type Tuple<N extends number, A extends unknown[] = []> = A['length'] extends N
+type TupleOf<N extends number, A extends unknown[] = []> = A['length'] extends N
   ? A
-  : Tuple<N, [...A, string]>;
+  : TupleOf<N, [...A, A['length']]>;
 
-/**
- * Type for the chart color palette getter function that returns a tuple of colors
- * with the specified length.
- */
-type GetChartColorPalette = <Length extends number>(length: Length) => Tuple<Length>;
+type ValidLengthArgument = TupleOf<ColorLength>[number];
 
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
+type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
+  infer _First,
+  ...infer Rest,
+]
+  ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
+    Record<A['length'], Rest extends [] ? never : Rest[0]> &
+      NextTuple<Rest, [...A, unknown]>
+  : Record<number, unknown>;
+
+type NextMap = NextTuple<TupleOf<ColorLength>>;
+type Next<R extends ValidLengthArgument> = NextMap[R];
 /**
  * Returns the color palette for a given number of series.
  * If length argument is statically analyzable, the return type will be narrowed
@@ -154,14 +163,16 @@ type GetChartColorPalette = <Length extends number>(length: Length) => Tuple<Len
  */
 function makeChartColorPalette<T extends ChartColorPalette>(
   palette: T
-): GetChartColorPalette {
-  return function makeGetChartColorPalette<Length extends number>(
-    length: Length
-  ): Tuple<Length> {
+): <Length extends ValidLengthArgument>(
+  length: Length | number
+) => Exclude<ChartColorPalette[Next<Length>], undefined> {
+  return function getChartColorPalette<Length extends ValidLengthArgument>(
+    length: Length | number
+  ): Exclude<ChartColorPalette[Next<Length>], undefined> {
     // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
     // the palette is not sparse, but we should probably add a runtime check here as well.
     const index = Math.max(0, Math.min(palette.length - 1, length + 1));
-    return palette[index] as Tuple<Length>;
+    return palette[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
   };
 }
 
@@ -909,7 +920,11 @@ const darkTokens = generateChonkTokens(darkColors);
 const lightAliases = generateAliases(lightTokens, lightColors);
 const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
 
-interface ChonkTheme extends Omit<SentryTheme, 'isChonk'> {
+interface ChonkTheme extends Omit<SentryTheme, 'isChonk' | 'chart'> {
+  chart: {
+    colors: typeof CHART_PALETTE_LIGHT | typeof CHART_PALETTE_DARK;
+    getColorPalette: ReturnType<typeof makeChartColorPalette>;
+  };
   colors: typeof lightColors & {
     background: ReturnType<typeof generateChonkTokens>['background'];
     border: ReturnType<typeof generateChonkTokens>['border'];
@@ -1203,7 +1218,9 @@ export function useChonkTheme(): ChonkTheme {
   return theme;
 }
 
-function assertChonkTheme(theme: Theme): asserts theme is ChonkTheme {
+function assertChonkTheme(
+  theme: Theme | DO_NOT_USE_ChonkTheme
+): asserts theme is ChonkTheme {
   if (!theme.isChonk) {
     throw new Error('A chonk component may only be called inside a chonk theme context');
   }

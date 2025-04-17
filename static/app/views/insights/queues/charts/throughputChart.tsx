@@ -34,6 +34,7 @@ export function ThroughputChart({error, destination, referrer}: Props) {
     referrer,
   });
 
+  const colors = theme.chart.getColorPalette(2);
   return (
     <InsightsLineChartWidget
       title={t('Published vs Processed')}
@@ -41,14 +42,14 @@ export function ThroughputChart({error, destination, referrer}: Props) {
         renameDiscoverSeries(
           {
             ...publishData['epm()'],
-            color: theme.chart.colors[2][1],
+            color: colors[1],
           },
           'epm() span.op:queue.publish'
         ),
         renameDiscoverSeries(
           {
             ...processData['epm()'],
-            color: theme.chart.colors[2][2],
+            color: colors[2],
           },
           'epm() span.op:queue.process'
         ),

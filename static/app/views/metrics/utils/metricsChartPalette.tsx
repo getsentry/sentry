@@ -12,7 +12,7 @@ export function createChartPalette(
   // We use Math.max to avoid numbers < -1 as then `theme.chart.getColorPalette` returns undefined (not typesafe because of array access and casting)
   const chartColors =
     theme.chart.getColorPalette(Math.max(uniqueSeriesNames.length - 2, -1)) ??
-    theme.chart.colors[theme.chart.colors.length - 1];
+    theme.chart.getColorPalette(theme.chart.colors.length - 1);
 
   return uniqueSeriesNames.reduce(
     (palette, seriesName, i) => {

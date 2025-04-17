@@ -237,15 +237,12 @@ const getLetterIndex = (letter: string): number => {
   return index === -1 ? 0 : index;
 };
 
-export const makeBarColors = (theme: Theme) => {
-  const colors = theme.chart.getColorPalette(4);
-  return {
-    default: colors[0],
-    transaction: colors[1],
-    http: colors[2],
-    db: colors[3],
-  };
-};
+export const makeBarColors = (theme: Theme) => ({
+  default: theme.chart.colors[17][4],
+  transaction: theme.chart.colors[17][8],
+  http: theme.chart.colors[17][10],
+  db: theme.chart.colors[17][17],
+});
 
 export const pickBarColor = (input: string | undefined, theme: Theme): string => {
   // We pick the color for span bars using the first three letters of the op name.
@@ -253,7 +250,8 @@ export const pickBarColor = (input: string | undefined, theme: Theme): string =>
   const barColors = makeBarColors(theme);
 
   if (!input || input.length < 3) {
-    return theme.chart.getColorPalette(17)[3];
+    const colors = theme.chart.getColorPalette(17);
+    return colors[4]!;
   }
 
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -262,7 +260,10 @@ export const pickBarColor = (input: string | undefined, theme: Theme): string =>
     return barColors[input];
   }
 
-  const colorsAsArray = theme.chart.getColorPalette(17);
+  const colorsAsArray = Object.keys(theme.chart.colors[17]).map(
+    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+    key => theme.chart.colors[17][key]
+  );
 
   const letterIndex1 = getLetterIndex(input[0]!);
   const letterIndex2 = getLetterIndex(input[1]!);
@@ -271,7 +272,7 @@ export const pickBarColor = (input: string | undefined, theme: Theme): string =>
 
   return colorsAsArray[
     (letterIndex1 + letterIndex2 + letterIndex3 + letterIndex4) % colorsAsArray.length
-  ]!;
+  ];
 };
 
 export const lightenBarColor = (

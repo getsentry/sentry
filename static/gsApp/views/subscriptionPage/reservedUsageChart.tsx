@@ -690,7 +690,7 @@ function ReservedUsageChart({
                 barMinHeight: 1,
                 stack: 'usage',
                 legendHoverLink: false,
-                color: theme.chart.colors[5][0],
+                color: theme.chart.getColorPalette(5)[0],
               }),
               barSeries({
                 name: displayBudgetName(subscription.planDetails, {title: true}),
@@ -698,7 +698,7 @@ function ReservedUsageChart({
                 barMinHeight: 1,
                 stack: 'usage',
                 legendHoverLink: false,
-                color: theme.chart.colors[5][1],
+                color: theme.chart.getColorPalette(5)[1],
               }),
             ]
           : []),

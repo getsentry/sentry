@@ -67,9 +67,10 @@ export function DurationWidget({query}: {query?: string}) {
   );
 
   const plottables = useMemo(() => {
+    const colors = theme.chart.getColorPalette(2);
     return [
-      getTimeSeries('avg(span.duration)', theme.chart.colors[1][0]),
-      getTimeSeries('p95(span.duration)', theme.chart.colors[1][1]),
+      getTimeSeries('avg(span.duration)', colors[0]),
+      getTimeSeries('p95(span.duration)', colors[1]),
     ]
       .filter(series => !!series)
       .map(ts => new Line(convertSeriesToTimeseries(ts)));
