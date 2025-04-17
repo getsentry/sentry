@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
 import PlatformIcon from 'sentry/components/replays/platformIcon';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {Tooltip} from 'sentry/components/tooltip';
 
 export default function BrowserOSIcons({
   showBrowser = true,

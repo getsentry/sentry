@@ -1,16 +1,15 @@
 import {Fragment, useMemo, useRef} from 'react';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {GridResizer} from 'sentry/components/gridEditable/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {fieldAlignment, prettifyTagKey} from 'sentry/utils/discover/fields';
-import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {
   Table,
   TableBody,
@@ -33,11 +32,10 @@ import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansT
 import {FieldRenderer} from './fieldRenderer';
 
 interface SpansTableProps {
-  isProgressivelyLoading: boolean;
   spansTableResult: SpansTableResult;
 }
 
-export function SpansTable({spansTableResult, isProgressivelyLoading}: SpansTableProps) {
+export function SpansTable({spansTableResult}: SpansTableProps) {
   const fields = useExploreFields();
   const sortBys = useExploreSortBys();
   const setSortBys = useSetExploreSortBys();
@@ -93,7 +91,6 @@ export function SpansTable({spansTableResult, isProgressivelyLoading}: SpansTabl
                     <Tooltip showOnlyOnOverflow title={label}>
                       {label}
                     </Tooltip>
-                    {i === 0 && getProgressiveLoadingIndicator(isProgressivelyLoading)}
                     {defined(direction) && (
                       <IconArrow
                         size="xs"

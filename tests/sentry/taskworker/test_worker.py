@@ -97,7 +97,9 @@ class TestTaskWorker(TestCase):
         assert example_tasks.at_most_once_task
 
     def test_fetch_task(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=100)
+        taskworker = TaskWorker(
+            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=100, process_type="fork"
+        )
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = SIMPLE_TASK
 
@@ -108,7 +110,9 @@ class TestTaskWorker(TestCase):
         assert task.id == SIMPLE_TASK.id
 
     def test_fetch_no_task(self) -> None:
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=100)
+        taskworker = TaskWorker(
+            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=100, process_type="fork"
+        )
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = None
             task = taskworker.fetch_task()
@@ -118,13 +122,16 @@ class TestTaskWorker(TestCase):
 
     def test_run_once_no_next_task(self) -> None:
         max_runtime = 5
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1)
+        taskworker = TaskWorker(
+            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+        )
         with mock.patch.object(taskworker, "client") as mock_client:
             mock_client.get_task.return_value = SIMPLE_TASK
             # No next_task returned
             mock_client.update_task.return_value = None
 
             taskworker.start_result_thread()
+            taskworker.start_spawn_children_thread()
             start = time.time()
             while True:
                 taskworker.run_once()
@@ -144,7 +151,9 @@ class TestTaskWorker(TestCase):
         # Cover the scenario where update_task returns the next task which should
         # be processed.
         max_runtime = 5
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1)
+        taskworker = TaskWorker(
+            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+        )
         with mock.patch.object(taskworker, "client") as mock_client:
 
             def update_task_response(*args, **kwargs):
@@ -155,6 +164,7 @@ class TestTaskWorker(TestCase):
             mock_client.update_task.side_effect = update_task_response
             mock_client.get_task.return_value = SIMPLE_TASK
             taskworker.start_result_thread()
+            taskworker.start_spawn_children_thread()
 
             # Run until two tasks have been processed
             start = time.time()
@@ -177,7 +187,9 @@ class TestTaskWorker(TestCase):
         # Cover the scenario where update_task fails a few times in a row
         # We should retain the result until RPC succeeds.
         max_runtime = 5
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1)
+        taskworker = TaskWorker(
+            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+        )
         with mock.patch.object(taskworker, "client") as mock_client:
 
             def update_task_response(*args, **kwargs):
@@ -198,6 +210,7 @@ class TestTaskWorker(TestCase):
             mock_client.update_task.side_effect = update_task_response
             mock_client.get_task.side_effect = get_task_response
             taskworker.start_result_thread()
+            taskworker.start_spawn_children_thread()
 
             # Run until the update has 'completed'
             start = time.time()
@@ -217,7 +230,9 @@ class TestTaskWorker(TestCase):
         # Run a task that uses retry_task() helper
         # to raise and catch a NoRetriesRemainingError
         max_runtime = 5
-        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1)
+        taskworker = TaskWorker(
+            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+        )
         with mock.patch.object(taskworker, "client") as mock_client:
 
             def update_task_response(*args, **kwargs):
@@ -226,6 +241,7 @@ class TestTaskWorker(TestCase):
             mock_client.update_task.side_effect = update_task_response
             mock_client.get_task.return_value = RETRY_STATE_TASK
             taskworker.start_result_thread()
+            taskworker.start_spawn_children_thread()
 
             # Run until two tasks have been processed
             start = time.time()
@@ -260,7 +276,14 @@ def test_child_worker_complete(mock_capture_checkin) -> None:
     shutdown = Event()
 
     todo.put(SIMPLE_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=1, processing_pool_name="test")
+    child_worker(
+        todo,
+        processed,
+        shutdown,
+        max_task_count=1,
+        processing_pool_name="test",
+        process_type="fork",
+    )
 
     assert todo.empty()
     result = processed.get()
@@ -276,7 +299,14 @@ def test_child_worker_retry_task() -> None:
     shutdown = Event()
 
     todo.put(RETRY_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=1, processing_pool_name="test")
+    child_worker(
+        todo,
+        processed,
+        shutdown,
+        max_task_count=1,
+        processing_pool_name="test",
+        process_type="fork",
+    )
 
     assert todo.empty()
     result = processed.get()
@@ -291,7 +321,14 @@ def test_child_worker_failure_task() -> None:
     shutdown = Event()
 
     todo.put(FAIL_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=1, processing_pool_name="test")
+    child_worker(
+        todo,
+        processed,
+        shutdown,
+        max_task_count=1,
+        processing_pool_name="test",
+        process_type="fork",
+    )
 
     assert todo.empty()
     result = processed.get()
@@ -307,7 +344,14 @@ def test_child_worker_shutdown() -> None:
     shutdown.set()
 
     todo.put(SIMPLE_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=1, processing_pool_name="test")
+    child_worker(
+        todo,
+        processed,
+        shutdown,
+        max_task_count=1,
+        processing_pool_name="test",
+        process_type="fork",
+    )
 
     # When shutdown has been set, the child should not process more tasks.
     assert todo.qsize() == 1
@@ -322,7 +366,14 @@ def test_child_worker_unknown_task() -> None:
 
     todo.put(UNDEFINED_TASK)
     todo.put(SIMPLE_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=1, processing_pool_name="test")
+    child_worker(
+        todo,
+        processed,
+        shutdown,
+        max_task_count=1,
+        processing_pool_name="test",
+        process_type="fork",
+    )
 
     result = processed.get()
     assert result.task_id == UNDEFINED_TASK.id
@@ -342,7 +393,14 @@ def test_child_worker_at_most_once() -> None:
     todo.put(AT_MOST_ONCE_TASK)
     todo.put(AT_MOST_ONCE_TASK)
     todo.put(SIMPLE_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=2, processing_pool_name="test")
+    child_worker(
+        todo,
+        processed,
+        shutdown,
+        max_task_count=2,
+        processing_pool_name="test",
+        process_type="fork",
+    )
 
     assert todo.empty()
     result = processed.get(block=False)
@@ -362,7 +420,14 @@ def test_child_worker_record_checkin(mock_capture_checkin: mock.Mock) -> None:
     shutdown = Event()
 
     todo.put(SCHEDULED_TASK)
-    child_worker(todo, processed, shutdown, max_task_count=1, processing_pool_name="test")
+    child_worker(
+        todo,
+        processed,
+        shutdown,
+        max_task_count=1,
+        processing_pool_name="test",
+        process_type="fork",
+    )
 
     assert todo.empty()
     result = processed.get()
@@ -379,9 +444,8 @@ def test_child_worker_record_checkin(mock_capture_checkin: mock.Mock) -> None:
 
 
 @pytest.mark.django_db
-@mock.patch("sentry.taskworker.worker.sys.exit")
 @mock.patch("sentry.taskworker.worker.sentry_sdk.capture_exception")
-def test_child_worker_terminate_task(mock_exit: mock.Mock, mock_capture: mock.Mock) -> None:
+def test_child_worker_terminate_task(mock_capture: mock.Mock) -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
     shutdown = Event()
@@ -395,12 +459,18 @@ def test_child_worker_terminate_task(mock_exit: mock.Mock, mock_capture: mock.Mo
     )
 
     todo.put(sleepy)
-    child_worker(todo, processed, shutdown, max_task_count=1, processing_pool_name="test")
+    with pytest.raises(SystemExit):
+        child_worker(
+            todo,
+            processed,
+            shutdown,
+            max_task_count=1,
+            processing_pool_name="test",
+            process_type="fork",
+        )
 
     assert todo.empty()
     result = processed.get(block=False)
     assert result.task_id == sleepy.id
     assert result.status == TASK_ACTIVATION_STATUS_FAILURE
-
-    assert mock_exit.call_count == 1
     assert mock_capture.call_count == 1

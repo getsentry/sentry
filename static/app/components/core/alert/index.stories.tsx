@@ -83,7 +83,7 @@ export default storyBook('Alert', (story, APIReference) => {
     );
   });
 
-  story('Without icon and custom trailing items', () => {
+  story('Without icon and trailing items', () => {
     return (
       <Fragment>
         <p>
@@ -93,6 +93,16 @@ export default storyBook('Alert', (story, APIReference) => {
         </p>
         <Alert.Container>
           <Alert type="info" showIcon={false} trailingItems={<IconStar />}>
+            This alert has no icon and a custom trailing item.
+          </Alert>
+        </Alert.Container>
+
+        <Alert.Container>
+          <Alert
+            type="success"
+            showIcon={false}
+            trailingItems={<Button>Click me</Button>}
+          >
             This alert has no icon and a custom trailing item.
           </Alert>
         </Alert.Container>

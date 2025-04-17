@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconCircledNumber} from 'sentry/components/iconCircledNumber';
-import {Tooltip} from 'sentry/components/tooltip';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';

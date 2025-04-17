@@ -2,7 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
@@ -22,7 +22,10 @@ import decodeSubregions from 'sentry/views/insights/browser/resources/utils/quer
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
-import type {NonDefaultSpanSampleFields} from 'sentry/views/insights/common/queries/useSpanSamples';
+import type {
+  NonDefaultSpanSampleFields,
+  SpanSample,
+} from 'sentry/views/insights/common/queries/useSpanSamples';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
@@ -129,15 +132,42 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
     ];
   }
 
+  const handleClickSample = useCallback(
+    (span: SpanSample) => {
+      router.push(
+        generateLinkToEventInTraceView({
+          targetId: span['transaction.span_id'],
+          projectSlug: span.project,
+          spanId: span.span_id,
+          location,
+          organization,
+          traceSlug: span.trace,
+          timestamp: span.timestamp,
+        })
+      );
+    },
+    [organization, location, router]
+  );
+
+  const handleMouseOverSample = useCallback(
+    (sample: SpanSample) => debounceSetHighlightedSpanId(sample.span_id),
+    [debounceSetHighlightedSpanId]
+  );
+
+  const handleMouseLeaveSample = useCallback(
+    () => debounceSetHighlightedSpanId(undefined),
+    [debounceSetHighlightedSpanId]
+  );
+
   return (
     <PageAlertProvider>
-      <DrawerHeader>
+      <EventDrawerHeader>
         <SampleDrawerHeaderTransaction
           project={project}
           transaction={transactionName}
           transactionMethod={transactionMethod}
         />
-      </DrawerHeader>
+      </EventDrawerHeader>
 
       <SampleDrawerBody>
         <PageAlert />
@@ -155,21 +185,9 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
           transactionMethod={transactionMethod}
           subregions={subregions}
           additionalFields={additionalFields}
-          onClickSample={span => {
-            router.push(
-              generateLinkToEventInTraceView({
-                eventId: span['transaction.id'],
-                projectSlug: span.project,
-                spanId: span.span_id,
-                location,
-                organization,
-                traceSlug: span.trace,
-                timestamp: span.timestamp,
-              })
-            );
-          }}
-          onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}
-          onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
+          onClickSample={handleClickSample}
+          onMouseOverSample={handleMouseOverSample}
+          onMouseLeaveSample={handleMouseLeaveSample}
           spanSearch={spanSearch}
           highlightedSpanId={highlightedSpanId}
         />

@@ -1,4 +1,6 @@
 import {useCallback, useRef, useState} from 'react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -23,7 +25,7 @@ import {
   makeAutofixQueryKey,
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
-import {Timeline} from 'sentry/components/timeline';
+import {Timeline, type TimelineItemProps} from 'sentry/components/timeline';
 import {
   IconAdd,
   IconChevron,
@@ -39,7 +41,7 @@ import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
-import type {Color} from 'sentry/utils/theme';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import useApi from 'sentry/utils/useApi';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
@@ -71,7 +73,7 @@ export function useSelectSolution({groupId, runId}: {groupId: string; runId: str
         queryClient,
         makeAutofixQueryKey(groupId),
         data => {
-          if (!data || !data.autofix) {
+          if (!data?.autofix) {
             return data;
           }
 
@@ -222,6 +224,7 @@ function SolutionEventList({
   stepIndex = 0,
   retainInsightCardIndex = null,
 }: SolutionEventListProps) {
+  const theme = useTheme();
   // Track which events are expanded
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
 
@@ -323,7 +326,7 @@ function SolutionEventList({
             }
             isActive={isActive}
             icon={getEventIcon(event.timeline_item_type)}
-            colorConfig={getEventColor(isActive, isSelected)}
+            colorConfig={getEventColor(theme, isActive, isSelected)}
           >
             {event.code_snippet_and_analysis && (
               <AnimatePresence>
@@ -378,17 +381,30 @@ function getEventIcon(eventType: string) {
   }
 }
 
-interface ColorConfig {
-  icon: Color;
-  iconBorder: Color;
-  title: Color;
-}
-
-function getEventColor(isActive?: boolean, isSelected?: boolean): ColorConfig {
+function getEventColor(
+  theme: Theme,
+  isActive?: boolean,
+  isSelected?: boolean
+): TimelineItemProps['colorConfig'] {
+  if (isChonkTheme(theme)) {
+    return {
+      title: theme.colors.content.primary,
+      icon: isSelected
+        ? isActive
+          ? theme.green400
+          : theme.colors.content.primary
+        : theme.colors.content.muted,
+      iconBorder: isSelected
+        ? isActive
+          ? theme.green400
+          : theme.colors.content.primary
+        : theme.colors.content.muted,
+    };
+  }
   return {
-    title: isActive && isSelected ? 'gray400' : 'gray400',
-    icon: isSelected ? (isActive ? 'green400' : 'gray400') : 'gray200',
-    iconBorder: isSelected ? (isActive ? 'green400' : 'gray400') : 'gray200',
+    title: theme.gray400,
+    icon: isSelected ? (isActive ? theme.green400 : theme.gray400) : theme.gray200,
+    iconBorder: isSelected ? (isActive ? theme.green400 : theme.gray400) : theme.gray200,
   };
 }
 
@@ -618,7 +634,7 @@ function AutofixSolutionDisplay({
                   : null
               }
               isAgentComment
-              blockName={t('Solution')}
+              blockName={t('Autofix is uncertain of the solution...')}
             />
           )}
         </AnimatePresence>

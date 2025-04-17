@@ -4,8 +4,8 @@ import debounce from 'lodash/debounce';
 
 import type {Client} from 'sentry/api';
 import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import IdBadge from 'sentry/components/idBadge';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import type {Member, Organization} from 'sentry/types/organization';

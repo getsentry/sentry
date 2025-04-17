@@ -6,8 +6,8 @@ import type {LocationDescriptor} from 'history';
 
 import {Badge} from 'sentry/components/core/badge';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';

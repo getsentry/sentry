@@ -280,9 +280,12 @@ def get_seer_similar_issues(
     }
     event.data.pop("stacktrace_string", None)
 
-    seer_request_metric_tags = {"hybrid_fingerprint": event_has_hybrid_fingerprint}
+    seer_request_metric_tags = {"platform": event.platform or "unknown"}
 
-    seer_results = get_similarity_data_from_seer(request_data, seer_request_metric_tags)
+    seer_results = get_similarity_data_from_seer(
+        request_data,
+        {**seer_request_metric_tags, "hybrid_fingerprint": event_has_hybrid_fingerprint},
+    )
 
     # All of these will get overridden if we find a usable match
     matching_seer_result = None  # JSON of result data
@@ -322,6 +325,32 @@ def get_seer_similar_issues(
                 stacktrace_distance = seer_result.stacktrace_distance
                 seer_match_status = "match_found"
                 break
+
+    # If Seer sent back matches, that means it didn't store the incoming event's data in its
+    # database. But if we then weren't able to use any of the matches Seer sent back, we do actually
+    # want a Seer record to be created, so that future events with this fingerprint have something
+    # with which to match.
+    if seer_match_status == "no_matches_usable" and options.get(
+        "seer.similarity.ingest.store_hybrid_fingerprint_non_matches"
+    ):
+        request_data = {
+            **request_data,
+            "referrer": "ingest_follow_up",
+            # By asking Seer to find zero matches, we can trick it into thinking there aren't
+            # any, thereby forcing it to create the record
+            "k": 0,
+            # Turn off re-ranking to speed up the process of finding nothing
+            "use_reranking": False,
+        }
+
+        # TODO: Temporary log to prove things are working as they should. This should come in a pair
+        # with the `get_similarity_data_from_seer.ingest_follow_up` log in `similar_issues.py`,
+        # which should show that no matches are returned.
+        logger.info("get_seer_similar_issues.follow_up_seer_request", extra={"hash": event_hash})
+
+        # We only want this for the side effect, and we know it'll return no matches, so we don't
+        # bother to capture the return value.
+        get_similarity_data_from_seer(request_data, seer_request_metric_tags)
 
     is_hybrid_fingerprint_case = (
         event_has_hybrid_fingerprint

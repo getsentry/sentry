@@ -973,7 +973,10 @@ const chonkDarkColorMapping: ColorMapping = {
   red100: darkColors.red100,
 };
 
-const lightAliases = generateAliases(generateChonkTokens(lightColors), lightColors);
+const lightTokens = generateChonkTokens(lightColors);
+const darkTokens = generateChonkTokens(darkColors);
+
+const lightAliases = generateAliases(lightTokens, lightColors);
 const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
 
 interface ChonkTheme extends Omit<SentryTheme, 'isChonk'> {
@@ -990,6 +993,7 @@ interface ChonkTheme extends Omit<SentryTheme, 'isChonk'> {
   radius: typeof radius;
 
   space: typeof space;
+  tokens: typeof lightTokens;
 }
 
 // Redeclare as we dont want to use the deprecation
@@ -1008,9 +1012,12 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   ...lightAliases,
   ...lightShadows,
 
+  tokens: lightTokens,
+
   inverted: {
     ...chonkDarkColorMapping,
     ...darkAliases,
+    tokens: darkTokens,
   },
 
   space,
@@ -1043,7 +1050,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
 
   prismVariables: generateThemePrismVariables(
     prismLight,
-    lightAliases.backgroundSecondary
+    lightAliases.backgroundTertiary
   ),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
@@ -1082,10 +1089,12 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   ...chonkDarkColorMapping,
   ...darkAliases,
   ...darkShadows,
+  tokens: darkTokens,
 
   inverted: {
     ...chonkDarkColorMapping,
     ...darkAliases,
+    tokens: lightTokens,
   },
 
   space,
@@ -1116,10 +1125,10 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
     getColorPalette: getChartColorPalette,
   },
 
-  prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
+  prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundTertiary),
   prismDarkVariables: generateThemePrismVariables(
     prismDark,
-    darkAliases.backgroundElevated
+    darkAliases.backgroundTertiary
   ),
 
   stacktraceActiveBackground: darkTheme.stacktraceActiveBackground,

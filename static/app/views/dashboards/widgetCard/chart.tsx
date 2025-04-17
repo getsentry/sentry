@@ -85,6 +85,7 @@ type WidgetCardChartProps = Pick<
   confidence?: Confidence;
   expandNumbers?: boolean;
   isMobile?: boolean;
+  isSampled?: boolean | null;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: string;
   noPadding?: boolean;
@@ -281,6 +282,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       confidence,
       showConfidenceWarning,
       sampleCount,
+      isSampled,
     } = this.props;
 
     if (errorMessage) {
@@ -552,6 +554,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                           confidence={confidence}
                           sampleCount={sampleCount}
                           topEvents={topEventsCountExcludingOther}
+                          isSampled={isSampled}
                         />
                       )}
                     </ChartWrapper>
