@@ -74,7 +74,8 @@ function SegmentedIssueViewSaveButton({
         items={[
           {
             key: 'reset',
-            label: t('Discard unsaved changes'),
+            label: t('Reset'),
+            disabled: !hasUnsavedChanges,
             onAction: () => {
               trackAnalytics('issue_views.reset.clicked', {organization});
               discardUnsavedChanges();

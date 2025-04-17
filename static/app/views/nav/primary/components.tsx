@@ -3,11 +3,11 @@ import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -77,6 +77,7 @@ export function SidebarMenu({
   label,
   forceLabel,
 }: SidebarItemDropdownProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {layout} = useNavContext();
 
@@ -98,7 +99,9 @@ export function SidebarMenu({
               }}
               isMobile={layout === NavLayout.MOBILE}
             >
-              <InteractionStateLayer hasSelectedBackground={isOpen} />
+              {theme.isChonk ? null : (
+                <InteractionStateLayer hasSelectedBackground={isOpen} />
+              )}
               {children}
               {showLabel ? label : null}
             </NavButton>
@@ -117,6 +120,7 @@ export function SidebarLink({
   analyticsKey,
   label,
 }: SidebarItemLinkProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
@@ -135,7 +139,7 @@ export function SidebarLink({
       >
         {layout === NavLayout.MOBILE ? (
           <Fragment>
-            <InteractionStateLayer />
+            {theme.isChonk ? null : <InteractionStateLayer />}
             {children}
             {label}
           </Fragment>

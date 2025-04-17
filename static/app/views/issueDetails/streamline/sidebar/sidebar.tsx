@@ -19,6 +19,7 @@ import {
   IssueDetailsTour,
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 import {DetectorSection} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueSidebarList';
@@ -34,6 +35,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   const theme = useTheme();
   const activeUser = useUser();
   const organization = useOrganization();
+  const {isSidebarOpen} = useIssueDetails();
 
   const {userParticipants, teamParticipants, viewers} = useMemo(() => {
     return {
@@ -50,6 +52,11 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const isBottomSidebar = useMedia(`(max-width: ${theme.breakpoints.large})`);
+  const shouldDisplaySidebar = isSidebarOpen || isBottomSidebar;
+
+  if (!shouldDisplaySidebar) {
+    return null;
+  }
 
   return (
     <SharedTourElement<IssueDetailsTour>

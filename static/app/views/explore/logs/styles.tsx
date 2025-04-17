@@ -105,6 +105,8 @@ export const DetailsWrapper = styled('div')`
   flex-direction: column;
   white-space: nowrap;
   grid-column: 1 / -1;
+  border-top: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.border};
   z-index: ${2 /* place above the grid resizing lines */};
 `;
 

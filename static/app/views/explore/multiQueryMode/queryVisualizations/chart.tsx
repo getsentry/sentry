@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconGraph} from 'sentry/icons/iconGraph';
@@ -26,10 +26,10 @@ import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
-import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
-import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
+import {WidgetExtrapolationFooter} from 'sentry/views/explore/charts/widgetExtrapolationFooter';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
 import {DEFAULT_TOP_EVENTS} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import {
@@ -49,7 +49,7 @@ export interface MultiQueryChartProps {
   mode: Mode;
   query: ReadableExploreQueryParts;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
-  isProgressivelyLoading?: boolean;
+  samplingMode?: SamplingMode;
 }
 
 export const EXPLORE_CHART_GROUP = 'multi-query-charts_group';
@@ -60,7 +60,7 @@ export function MultiQueryModeChart({
   mode,
   timeseriesResult,
   canUsePreviousResults,
-  isProgressivelyLoading,
+  samplingMode,
 }: MultiQueryChartProps) {
   const theme = useTheme();
 
@@ -133,7 +133,10 @@ export function MultiQueryModeChart({
   ]);
 
   const {data, error, loading} = getSeries();
-  const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(data, isTopN);
+  const {sampleCount, isSampled, dataScanned} = determineSeriesSampleCountAndIsSampled(
+    data,
+    isTopN
+  );
 
   const visualizationType =
     queryParts.chartType === ChartType.LINE
@@ -169,9 +172,20 @@ export function MultiQueryModeChart({
         key={index}
         height={CHART_HEIGHT}
         Title={Title}
-        TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
         Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
         revealActions="always"
+        Footer={
+          organization.features.includes('visibility-explore-progressive-loading') && (
+            <WidgetExtrapolationFooter
+              samplingMode={undefined}
+              sampleCount={0}
+              isSampled={null}
+              confidence={undefined}
+              topEvents={undefined}
+              dataScanned={undefined}
+            />
+          )
+        }
       />
     );
   }
@@ -259,7 +273,6 @@ export function MultiQueryModeChart({
       key={index}
       height={CHART_HEIGHT}
       Title={Title}
-      TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
       Actions={[
         <Tooltip
           key="visualization"
@@ -324,11 +337,13 @@ export function MultiQueryModeChart({
         />
       }
       Footer={
-        <ConfidenceFooter
+        <WidgetExtrapolationFooter
           sampleCount={sampleCount}
-          confidence={confidence}
           isSampled={isSampled}
+          confidence={confidence}
           topEvents={isTopN ? numSeries : undefined}
+          dataScanned={dataScanned}
+          samplingMode={samplingMode}
         />
       }
     />

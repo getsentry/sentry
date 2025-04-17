@@ -108,12 +108,6 @@ repos:
       # additional_dependencies does not install a flattened dependency tree which is needed by,
       # for example, our eslint setup.
 
-      - id: biome
-        name: biome (javascript, typescript, json)
-        language: system
-        files: \.(jsx?|tsx?|css)$
-        entry: ./node_modules/.bin/biome check --log-level=error --write --files-ignore-unknown=true --no-errors-on-unmatched
-
       - id: eslint
         name: eslint
         language: system
@@ -129,7 +123,6 @@ repos:
       - id: prettier
         name: prettier (yaml, markdown, ts, tsx, js, jsx, css)
         language: system
-        # TODO: Remove tsx and jsx when Biome supports styled CSS formatting.
         types_or: [yaml, markdown, ts, tsx, javascript, jsx, css]
         entry: ./node_modules/.bin/prettier --log-level=error --write
         # https://pre-commit.com/#regular-expressions

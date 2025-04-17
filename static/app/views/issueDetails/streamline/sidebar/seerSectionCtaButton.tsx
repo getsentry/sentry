@@ -203,7 +203,7 @@ export function SeerSectionCtaButton({
       {getButtonText()}
       <ChevronContainer>
         {isAutofixInProgress ? (
-          <StyledLoadingIndicator mini size={14} />
+          <StyledLoadingIndicator size={14} />
         ) : (
           <IconChevron direction="right" size="xs" />
         )}
@@ -231,7 +231,7 @@ const ChevronContainer = styled('div')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: relative;
-  top: 5px;
+  margin-left: ${space(1)};
   color: ${p => p.theme.pink400};
 
   .loading-indicator {

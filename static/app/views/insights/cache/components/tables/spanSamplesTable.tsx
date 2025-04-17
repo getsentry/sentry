@@ -22,7 +22,7 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 
 type DataRowKeys =
   | SpanIndexedField.PROJECT
-  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.TRANSACTION_SPAN_ID
   | SpanIndexedField.TRACE
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_ID
@@ -132,7 +132,7 @@ function renderBodyCell(
         projectSlug={row.project}
         traceId={row.trace}
         timestamp={row.timestamp}
-        transactionId={row[SpanIndexedField.TRANSACTION_ID]}
+        transactionSpanId={row[SpanIndexedField.TRANSACTION_SPAN_ID]}
         spanId={row[SpanIndexedField.SPAN_ID]}
         source={TraceViewSources.CACHES_MODULE}
         location={location}

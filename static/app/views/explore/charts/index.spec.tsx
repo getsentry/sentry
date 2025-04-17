@@ -4,6 +4,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {ExploreCharts} from 'sentry/views/explore/charts';
+import {defaultVisualizes} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 describe('ExploreCharts', () => {
   it('renders the progressive loading indicator when the widget is progressively loading', async () => {
@@ -27,7 +29,8 @@ describe('ExploreCharts', () => {
         confidences={[]}
         query={''}
         timeseriesResult={mockTimeseriesResult}
-        isProgressivelyLoading
+        visualizes={defaultVisualizes()}
+        setVisualizes={() => {}}
       />,
       {
         organization: OrganizationFixture({
@@ -46,7 +49,9 @@ describe('ExploreCharts', () => {
         confidences={[]}
         query={''}
         timeseriesResult={mockTimeseriesResult}
-        isProgressivelyLoading={false}
+        visualizes={defaultVisualizes()}
+        setVisualizes={() => {}}
+        samplingMode={SAMPLING_MODE.BEST_EFFORT}
       />
     );
 

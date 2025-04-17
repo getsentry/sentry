@@ -10,11 +10,11 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {ControlProps} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import NewBooleanField from 'sentry/components/forms/fields/booleanField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {Tooltip} from 'sentry/components/tooltip';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -145,8 +145,7 @@ function AllocationForm({
     if (
       targetId &&
       !initializedData &&
-      allocatedTargetIds[AllocationTargetTypes.PROJECT] &&
-      allocatedTargetIds[AllocationTargetTypes.PROJECT].includes(targetId)
+      allocatedTargetIds[AllocationTargetTypes.PROJECT]?.includes(targetId)
     ) {
       setTargetId(undefined);
       setAllocationVolume(0);

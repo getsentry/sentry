@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
 
@@ -16,6 +17,7 @@ from sentry.integrations.source_code_management.issues import SourceCodeIssueInt
 from sentry.models.activity import Activity
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.silo.base import all_silo_function
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
@@ -24,13 +26,17 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
-class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
+class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
     description = "Integrate Azure DevOps work items by linking a project."
     slug = "vsts"
     conf_key = slug
 
     issue_fields = frozenset(["id", "title", "url"])
     done_categories = frozenset(["Resolved", "Completed", "Closed"])
+
+    @property
+    def instance(self) -> str:
+        raise NotImplementedError
 
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project", "work_item_type"]
@@ -113,8 +119,8 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: RpcUser | None, **kwargs: Any
-    ) -> Sequence[Mapping[str, Any]]:
+        self, group: Group | None, user: RpcUser | User, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         kwargs["link_referrer"] = "vsts_integration"
         fields = []
         if group:
@@ -349,6 +355,8 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
         # VSTS uses markdown or xml
         # https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/bots/bots-text-formats
         user = user_service.get_user(user_id=user_id)
+        if user is None:
+            return comment_text
         attribution = f"{user.name} wrote:\n\n"
         quoted_comment = f"{attribution}<blockquote>{comment_text}</blockquote>"
         return quoted_comment

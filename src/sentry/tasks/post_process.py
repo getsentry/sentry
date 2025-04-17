@@ -1296,6 +1296,13 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         logger.info("post_process.process_error_ignored", extra={"exception": e})
     except Exception as e:
         logger.exception("post_process.process_error", extra={"exception": e})
+    logger.info(
+        "post_process.plugin_success",
+        extra={
+            "project_id": event.project_id,
+            "plugin_slug": plugin_slug,
+        },
+    )
 
 
 def feedback_filter_decorator(func):

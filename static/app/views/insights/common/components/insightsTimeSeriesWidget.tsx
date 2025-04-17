@@ -14,6 +14,7 @@ import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
+import type {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {
   TimeSeriesWidgetVisualization,
   type TimeSeriesWidgetVisualizationProps,
@@ -46,6 +47,7 @@ export interface InsightsTimeSeriesWidgetProps
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
+  samples?: Samples;
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   stacked?: boolean;
 }
@@ -81,6 +83,10 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       });
     }),
   };
+
+  if (props.samples) {
+    visualizationProps.plottables.push(props.samples);
+  }
 
   const Title = props.interactiveTitle ? (
     props.interactiveTitle()

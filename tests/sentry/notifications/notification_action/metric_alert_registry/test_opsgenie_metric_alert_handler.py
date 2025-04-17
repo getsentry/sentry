@@ -13,9 +13,7 @@ from sentry.notifications.notification_action.metric_alert_registry import (
     OpsgenieMetricAlertHandler,
 )
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
-from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
@@ -24,28 +22,14 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
 @apply_feature_flag_on_cls("organizations:issue-open-periods")
 class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self):
-        super().setUp()
+        self.create_models()
         self.action = self.create_action(
             type=Action.Type.OPSGENIE,
             integration_id=1234567890,
             config={"target_identifier": "team123", "target_type": ActionTarget.SPECIFIC},
             data={"priority": "P1"},
         )
-        self.snuba_query = self.create_snuba_query()
 
-        self.group, self.event, self.group_event = self.create_group_event(
-            occurrence=self.create_issue_occurrence(
-                initial_issue_priority=PriorityLevel.HIGH.value,
-                level="error",
-                evidence_data={
-                    "snuba_query_id": self.snuba_query.id,
-                    "metric_value": 123.45,
-                },
-            ),
-        )
-        self.event_data = WorkflowEventData(
-            event=self.group_event, workflow_env=self.workflow.environment
-        )
         self.handler = OpsgenieMetricAlertHandler()
 
     @mock.patch(
@@ -126,6 +110,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
 
         self.assert_open_period_context(
             open_period_context,
+            id=self.open_period.id,
             date_started=self.group_event.group.first_seen,
             date_closed=None,
         )
