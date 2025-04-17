@@ -617,6 +617,35 @@ class TestPythonDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
 class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "java"
 
+    def test_marked_in_app_already(self) -> None:
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},
+            # The developer may have marked the frame as in-app in the SDK
+            frames=[self.frame_from_module("com.example.foo.Bar", "Bar.kt", in_app=True)],
+            platform=self.platform,
+            expected_new_code_mappings=[self.code_mapping("com/example/", "src/com/example/")],
+            expected_new_in_app_stack_trace_rules=[
+                "stack.module:com.example.** +app",
+            ],
+        )
+
+    def test_marked_in_app_and_code_mapping_already_exists(self) -> None:
+        # The developer may have already created the code mapping and repository
+        self.create_repo_and_code_mapping("REPO1", "com/example/", "src/com/example/")
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},
+            # The developer may have marked the frame as in-app in the SDK
+            frames=[self.frame_from_module("com.example.foo.Bar", "Bar.kt", in_app=True)],
+            platform=self.platform,
+            # We're not expecting to create anything new
+            expected_new_code_mappings=[],
+            # The in-app rule will still be created
+            expected_new_in_app_stack_trace_rules=[
+                "stack.module:com.example.** +app",
+            ],
+        )
+        assert RepositoryProjectPathConfig.objects.count() == 1
+
     def test_short_packages(self) -> None:
         self._process_and_assert_configuration_changes(
             repo_trees={
