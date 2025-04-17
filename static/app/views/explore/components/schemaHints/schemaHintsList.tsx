@@ -26,15 +26,13 @@ import {
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
+import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHints/schemaHintsDrawer';
 import {
   getSchemaHintsListOrder,
   removeHiddenKeys,
   SchemaHintsSources,
   USER_IDENTIFIER_KEY,
-} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
-import type {LogPageParamsUpdate} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import type {WritablePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
+} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {SpanIndexedField} from 'sentry/views/insights/types';
@@ -51,8 +49,6 @@ interface SchemaHintsListProps extends SchemaHintsPageParams {
 
 export interface SchemaHintsPageParams {
   exploreQuery: string;
-  setPageParams: (pageParams: WritablePageParams | LogPageParamsUpdate) => void;
-  tableColumns: string[];
 }
 
 const seeFullListTag: Tag = {
@@ -101,8 +97,6 @@ function SchemaHintsList({
   numberTags,
   stringTags,
   isLoading,
-  tableColumns,
-  setPageParams,
   source = SchemaHintsSources.EXPLORE,
 }: SchemaHintsListProps) {
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
@@ -110,6 +104,13 @@ function SchemaHintsList({
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen} = useDrawer();
   const {dispatch, query} = useSearchQueryBuilder();
+
+  // Create a ref to hold the latest query for the drawer
+  const queryRef = useRef(query);
+  // Keep the ref up to date
+  useEffect(() => {
+    queryRef.current = query;
+  }, [query]);
 
   const functionTags = useMemo(() => {
     return getFunctionTags(supportedAggregates);
@@ -245,9 +246,8 @@ function SchemaHintsList({
               <SchemaHintsDrawer
                 hints={filterTagsSorted}
                 exploreQuery={query}
-                tableColumns={tableColumns}
-                setPageParams={setPageParams}
                 searchBarDispatch={dispatch}
+                queryRef={queryRef}
               />
             ),
             {
@@ -293,14 +293,7 @@ function SchemaHintsList({
         FieldValueType.BOOLEAN;
       addFilterToQuery(newSearchQuery, hint, isBoolean);
 
-      const newTableColumns = tableColumns.includes(hint.key)
-        ? tableColumns
-        : [...tableColumns, hint.key];
       const newQuery = newSearchQuery.formatString();
-
-      setPageParams({
-        fields: newTableColumns,
-      });
 
       dispatch({
         type: 'UPDATE_QUERY',
@@ -319,8 +312,6 @@ function SchemaHintsList({
     },
     [
       query,
-      tableColumns,
-      setPageParams,
       dispatch,
       organization,
       isDrawerOpen,

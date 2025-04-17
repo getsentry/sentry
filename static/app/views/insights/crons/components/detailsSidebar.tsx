@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Text from 'sentry/components/text';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCopy} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

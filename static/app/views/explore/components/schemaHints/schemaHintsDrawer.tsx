@@ -4,10 +4,10 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Tag as Badge} from 'sentry/components/core/badge/tag';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,38 +17,25 @@ import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {SchemaHintsPageParams} from 'sentry/views/explore/components/schemaHintsList';
-import {addFilterToQuery} from 'sentry/views/explore/components/schemaHintsList';
+import type {SchemaHintsPageParams} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {addFilterToQuery} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 
 type SchemaHintsDrawerProps = SchemaHintsPageParams & {
   hints: Tag[];
+  queryRef: React.RefObject<string>;
   searchBarDispatch: React.Dispatch<QueryBuilderActions>;
 };
 
-function SchemaHintsDrawer({
-  hints,
-  exploreQuery,
-  tableColumns,
-  setPageParams,
-  searchBarDispatch,
-}: SchemaHintsDrawerProps) {
+function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDrawerProps) {
   const organization = useOrganization();
   const [searchQuery, setSearchQuery] = useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const [currentQuery, setCurrentQuery] = useState(exploreQuery);
-  const [currentTableColumns, setCurrentTableColumns] = useState(tableColumns);
+  const [currentQuery, setCurrentQuery] = useState(queryRef.current);
 
-  const handleQueryAndTableColumnsChange = useCallback(
-    (newQuery: MutableSearch, newTableColumns: string[]) => {
-      setCurrentQuery(newQuery.formatString());
-      setCurrentTableColumns(newTableColumns);
-      setPageParams({
-        fields: newTableColumns,
-      });
-    },
-    [setPageParams]
-  );
+  const handleQueryChange = useCallback((newQuery: MutableSearch) => {
+    setCurrentQuery(newQuery.formatString());
+  }, []);
 
   const selectedFilterKeys = useMemo(() => {
     const filterQuery = new MutableSearch(currentQuery);
@@ -101,7 +88,7 @@ function SchemaHintsDrawer({
 
   const handleCheckboxChange = useCallback(
     (hint: Tag) => {
-      const filterQuery = new MutableSearch(currentQuery);
+      const filterQuery = new MutableSearch(queryRef.current);
       if (
         filterQuery
           .getFilterKeys()
@@ -119,11 +106,7 @@ function SchemaHintsDrawer({
         );
       }
 
-      const newTableColumns = currentTableColumns.includes(hint.key)
-        ? currentTableColumns
-        : [...currentTableColumns, hint.key];
-
-      handleQueryAndTableColumnsChange(filterQuery, newTableColumns);
+      handleQueryChange(filterQuery);
       searchBarDispatch({
         type: 'UPDATE_QUERY',
         query: filterQuery.formatString(),
@@ -138,13 +121,7 @@ function SchemaHintsDrawer({
         organization,
       });
     },
-    [
-      currentQuery,
-      currentTableColumns,
-      handleQueryAndTableColumnsChange,
-      organization,
-      searchBarDispatch,
-    ]
+    [handleQueryChange, organization, queryRef, searchBarDispatch]
   );
 
   const noAttributesMessage = (

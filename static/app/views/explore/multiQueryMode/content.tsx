@@ -116,7 +116,10 @@ function Content() {
             <DatePageFilter
               defaultPeriod={defaultPeriod}
               maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
+              relativeOptions={({arbitraryOptions}) => ({
+                ...arbitraryOptions,
+                ...relativeOptions,
+              })}
             />
           </StyledPageFilterBar>
           <DropdownMenu
@@ -125,7 +128,7 @@ function Content() {
                 ? [
                     {
                       key: 'update-query',
-                      label: <span>{t('Existing Query')}</span>,
+                      label: t('Existing Query'),
                       onAction: async () => {
                         try {
                           addLoadingMessage(t('Updating query...'));
@@ -146,7 +149,7 @@ function Content() {
                 : []),
               {
                 key: 'save-query',
-                label: <span>{t('A New Query')}</span>,
+                label: t('A New Query'),
                 onAction: () => {
                   openSaveQueryModal({
                     organization,

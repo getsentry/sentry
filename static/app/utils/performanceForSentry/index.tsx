@@ -163,7 +163,7 @@ export function VisuallyCompleteWithData({
 
   const isVCDSet = useRef(false);
 
-  if (isVCDSet && hasData && performance && performance.mark && !disabled) {
+  if (isVCDSet && hasData && performance?.mark && !disabled) {
     performance.mark(`${id}-${VCD_START}`);
     isVCDSet.current = true;
   }

@@ -213,11 +213,7 @@ export function EventDetailsContent({
               lowerText.includes('langchain'))
           );
         }) ? (
-        <LazyLoad
-          LazyComponent={LLMMonitoringSection}
-          event={event}
-          organization={organization}
-        />
+        <LazyLoad LazyComponent={LLMMonitoringSection} event={event} />
       ) : null}
       {!hasStreamlinedUI && group.issueCategory === IssueCategory.UPTIME && (
         <UptimeDataSection event={event} project={project} group={group} />
