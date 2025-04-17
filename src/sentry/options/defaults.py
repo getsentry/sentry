@@ -2454,6 +2454,12 @@ register(
 # END: SDK Crash Detection
 
 register(
+    "issues.auto_source_code_config.update_code_mapping_if_needed",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     # Lists the shared resource ids we want to account usage for.
     "shared_resources_accounting_enabled",
     default=[],
