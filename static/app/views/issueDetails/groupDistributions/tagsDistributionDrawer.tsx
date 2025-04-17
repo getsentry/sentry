@@ -2,8 +2,8 @@ import {Fragment, useState} from 'react';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {EventDrawerBody, EventNavigator} from 'sentry/components/events/eventDrawer';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
