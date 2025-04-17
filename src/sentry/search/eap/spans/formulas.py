@@ -244,8 +244,15 @@ def complex_function(args: ResolvedArguments, settings: ResolverSettings):
     return Column.BinaryFormula(
         default_value_double=1.0,
         left=Column(formula=simple_division([a, b], settings)),
-        op=Column.BinaryFormula.OP_MULTIPLY,
-        right=Column(formula=simple_division([c, d], settings)),
+        op=Column.BinaryFormula.OP_ADD,
+        right=Column(
+            formula=Column.BinaryFormula(
+                left=Column(key=c),
+                op=Column.BinaryFormula.OP_ADD,
+                right=Column(key=d),
+                default_value_double=1.0,
+            )
+        ),
     )
 
 

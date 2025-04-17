@@ -4269,6 +4269,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                     {
                         "measurements": {
                             "score.ratio.lcp": {"value": 5.0},
+                            "score.ratio.ttfb": {"value": 1.0},
                         }
                     },
                     start_ts=self.ten_mins_ago,
