@@ -4,6 +4,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.integrations.example.integration import AliasedIntegrationProvider, ExampleIntegration
+from sentry.integrations.mixins.issues import IssueSyncIntegration as IssueSyncIntegrationBase
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
@@ -522,7 +523,6 @@ class IssueSyncIntegrationWebhookTest(TestCase):
         )
 
         self.installation = self.integration.get_installation(self.group.organization.id)
-        assert isinstance(self.installation, ExampleIntegration)
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.analytics.record")
@@ -532,6 +532,7 @@ class IssueSyncIntegrationWebhookTest(TestCase):
     ):
         # Run the sync
         with self.feature("organizations:integrations-issue-sync"), self.tasks():
+            assert isinstance(self.installation, IssueSyncIntegrationBase)
             self.installation.sync_status_inbound(
                 self.external_issue.key,
                 {"project_id": "APP", "status": {"id": "12345", "category": "done"}},
@@ -565,6 +566,7 @@ class IssueSyncIntegrationWebhookTest(TestCase):
     def test_status_sync_inbound_unresolve_webhook_and_sends_to_sentry_app(self, mock_safe_urlopen):
         # Run the sync
         with self.feature("organizations:integrations-issue-sync"), self.tasks():
+            assert isinstance(self.installation, IssueSyncIntegrationBase)
             self.installation.sync_status_inbound(
                 self.external_issue.key,
                 {"project_id": "APP", "status": {"id": "12345", "category": "in_progress"}},
