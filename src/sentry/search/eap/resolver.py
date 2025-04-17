@@ -154,23 +154,18 @@ class SearchResolver:
         if not isinstance(resolved_column.proto_definition, AttributeKey):
             return None
 
-        # TODO: replace this with an IN condition when the RPC supports it
-        filters = [
-            TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=resolved_column.proto_definition,
-                    op=ComparisonFilter.OP_EQUALS,
-                    value=AttributeValue(val_str=environment.name),
-                )
-            )
-            for environment in self.params.environments
-            if environment is not None
-        ]
+        envs = [env.name for env in self.params.environments if env is not None]
 
-        if not filters:
+        if not envs:
             return None
 
-        return TraceItemFilter(or_filter=OrFilter(filters=filters))
+        return TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=resolved_column.proto_definition,
+                op=ComparisonFilter.OP_IN,
+                value=AttributeValue(val_str_array=StrArray(values=envs)),
+            )
+        )
 
     def __resolve_query(
         self, querystring: str | None
