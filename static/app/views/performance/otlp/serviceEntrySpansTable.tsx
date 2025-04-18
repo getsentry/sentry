@@ -13,7 +13,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {IconPlay, IconProfiling} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -25,9 +25,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   type EAPSpanResponse,
   ModuleName,
@@ -106,12 +108,14 @@ const COLUMN_ORDER: Column[] = [
 
 const PAGINATION_CURSOR_SIZE = 'xs';
 const CURSOR_NAME = 'serviceEntrySpansCursor';
+const FULL_PAGE_MODE_LIMIT = 50;
 
 type Props = {
   eventView: EventView;
   handleDropdownChange: (k: string) => void;
   totalValues: Record<string, number> | null;
   transactionName: string;
+  fullPageMode?: boolean;
   showViewSampledEventsButton?: boolean;
   supportsInvestigationRule?: boolean;
 };
@@ -121,6 +125,7 @@ export function ServiceEntrySpansTable({
   handleDropdownChange,
   totalValues,
   transactionName,
+  fullPageMode,
   supportsInvestigationRule,
   showViewSampledEventsButton,
 }: Props) {
@@ -133,10 +138,11 @@ export function ServiceEntrySpansTable({
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
   const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
   const spanCategory = decodeScalar(location.query?.[SpanIndexedField.SPAN_CATEGORY]);
+  const {selection} = usePageFilters();
   const {selected, options} = getOTelTransactionsListSort(location, spanCategory);
 
   const p95 = totalValues?.['p95()'] ?? 0;
-  const eventViewQuery = new MutableSearch(eventView.query);
+  const eventViewQuery = new MutableSearch('');
   if (selected.value === TransactionFilterOptions.SLOW && p95) {
     eventViewQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
   }
@@ -153,7 +159,29 @@ export function ServiceEntrySpansTable({
     transactionName,
     p95,
     selected,
+    limit: fullPageMode ? FULL_PAGE_MODE_LIMIT : undefined,
   });
+
+  const countQuery = new MutableSearch(eventViewQuery.formatString());
+  countQuery.addFilterValue('is_transaction', '1');
+  countQuery.addFilterValue('transaction', transactionName);
+  const {data: numEvents, error: numEventsError} = useEAPSpans(
+    {
+      search: countQuery,
+      fields: ['count()'],
+      enabled: fullPageMode,
+      pageFilters: selection,
+    },
+    'api.performance.service-entry-spans-table-count'
+  );
+
+  const paginationCaption = tct(
+    'Showing [pageEventsCount] of [totalEventsCount] events',
+    {
+      pageEventsCount: FULL_PAGE_MODE_LIMIT.toLocaleString(),
+      totalEventsCount: numEvents[0]?.['count()']?.toLocaleString() ?? '...',
+    }
+  );
 
   const consolidatedData = tableData?.map(row => {
     const user =
@@ -192,12 +220,14 @@ export function ServiceEntrySpansTable({
   return (
     <Fragment>
       <Header>
-        <CompactSelect
-          triggerProps={{prefix: t('Filter'), size: 'xs'}}
-          value={selected.value}
-          options={options}
-          onChange={opt => handleDropdownChange(opt.value)}
-        />
+        {!fullPageMode && (
+          <CompactSelect
+            triggerProps={{prefix: t('Filter'), size: 'xs'}}
+            value={selected.value}
+            options={options}
+            onChange={opt => handleDropdownChange(opt.value)}
+          />
+        )}
         <HeaderButtonWrapper>
           {supportsInvestigationRule && (
             <InvestigationRuleWrapper>
@@ -218,11 +248,13 @@ export function ServiceEntrySpansTable({
             </Button>
           )}
         </HeaderButtonWrapper>
-        <CustomPagination
-          pageLinks={pageLinks}
-          onCursor={handleCursor}
-          isLoading={isLoading}
-        />
+        {!fullPageMode && (
+          <CustomPagination
+            pageLinks={pageLinks}
+            onCursor={handleCursor}
+            isLoading={isLoading}
+          />
+        )}
       </Header>
 
       <GridEditable
@@ -240,6 +272,14 @@ export function ServiceEntrySpansTable({
             renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
         }}
       />
+      {fullPageMode && (
+        <Pagination
+          pageLinks={pageLinks}
+          onCursor={handleCursor}
+          size="md"
+          caption={numEventsError ? undefined : paginationCaption}
+        />
+      )}
     </Fragment>
   );
 }
