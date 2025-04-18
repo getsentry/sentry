@@ -32,8 +32,15 @@ def save_feedback_event(event_data: Mapping[str, Any], project_id: int):
         # Shim to UserReport
         feedback_context = fixed_event_data["contexts"]["feedback"]
         associated_event_id = feedback_context.get("associated_event_id")
+
         if associated_event_id:
             project = Project.objects.get_from_cache(id=project_id)
+            timestamp = fixed_event_data["timestamp"]
+            start_time = (
+                datetime.fromtimestamp(timestamp, tz=UTC)
+                if isinstance(timestamp, float)
+                else datetime.fromisoformat(timestamp)
+            )
             save_userreport(
                 project,
                 {
@@ -42,12 +49,12 @@ def save_feedback_event(event_data: Mapping[str, Any], project_id: int):
                     # XXX(aliu): including environment ensures the update_user_reports task
                     # will not shim the report back to feedback.
                     "environment_id": fixed_event_data.get("environment", "production"),
-                    "name": feedback_context["name"],
-                    "email": feedback_context["contact_email"],
+                    "name": feedback_context.get("name", ""),
+                    "email": feedback_context.get("contact_email", ""),
                     "comments": feedback_context["message"],
                 },
                 FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
-                start_time=datetime.fromtimestamp(fixed_event_data["timestamp"], UTC),
+                start_time=start_time,
             )
             metrics.incr("feedback.shim_to_userreport.success")
 
