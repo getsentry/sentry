@@ -563,6 +563,7 @@ class IssueSyncIntegrationWebhookTest(TestCase):
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @with_feature("organizations:issue-open-periods")
+    @with_feature("organizations:webhooks-unresolved")
     def test_status_sync_inbound_unresolve_webhook_and_sends_to_sentry_app(self, mock_safe_urlopen):
         # Run the sync
         with self.feature("organizations:integrations-issue-sync"), self.tasks():
