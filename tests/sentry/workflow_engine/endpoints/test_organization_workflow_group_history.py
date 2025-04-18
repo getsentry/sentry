@@ -14,7 +14,7 @@ pytestmark = [requires_snuba]
 
 
 @freeze_time()
-class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
+class WorkflowGroupHistoryEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-workflow-group-history"
 
     def setUp(self):
