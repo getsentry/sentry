@@ -27,6 +27,8 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         self, group_key: DetectorGroupKey, value: int, new_status: PriorityLevel
     ) -> tuple[IssueOccurrence, dict[str, Any]]:
         # Returning a placeholder for now, this may require us passing more info
+        old_status_dict = self.get_state_data([group_key])
+        old_status = PriorityLevel(old_status_dict[group_key].status)
 
         occurrence = IssueOccurrence(
             id=str(uuid4()),
@@ -36,7 +38,11 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
             issue_title="Some Issue",
             subtitle="Some subtitle",
             resource_id=None,
-            evidence_data={"detector_id": self.detector.id, "value": value},
+            evidence_data={
+                "detector_id": self.detector.id,
+                "value": value,
+                "previous_status": old_status,
+            },
             evidence_display=[],
             type=MetricAlertFire,
             detection_time=datetime.now(UTC),
