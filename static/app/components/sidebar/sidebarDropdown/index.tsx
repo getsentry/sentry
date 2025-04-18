@@ -214,7 +214,7 @@ const OrgOrUserName = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeLarge};
   line-height: 1.2;
   font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => (isChonkTheme(p.theme) ? p.theme.black : p.theme.white)};
+  color: ${p => (isChonkTheme(p.theme) ? p.theme.textColor : p.theme.white)};
   text-shadow: ${p =>
     isChonkTheme(p.theme) ? 'none' : '0 0 6px rgba(255, 255, 255, 0)'};
   transition: 0.15s text-shadow linear;
@@ -241,7 +241,7 @@ const SidebarDropdownActor = styled('button')`
         isChonkTheme(p.theme) ? 'none' : '0 0 6px rgba(255, 255, 255, 0.1)'};
     }
     ${UserNameOrEmail} {
-      color: ${p => (isChonkTheme(p.theme) ? p.theme.black : p.theme.white)};
+      color: ${p => (isChonkTheme(p.theme) ? p.theme.textColor : p.theme.white)};
     }
   }
 `;
