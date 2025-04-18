@@ -38,6 +38,7 @@ type ParamKeys =
   | 'tagKey'
   | 'teamId'
   | 'traceSlug'
+  | 'userId'
   | 'viewId'
   | 'widgetIndex';
 
