@@ -143,7 +143,7 @@ export type IntervalPeriod = ReturnType<typeof getInterval>;
 /**
  * Represents a pinned page filter sentinel value
  */
-export type PinnedPageFilter = 'projects' | 'environments' | 'datetime';
+export type PinnedPageFilter = 'projects' | 'environments' | 'datetime' | 'integratedOrg';
 
 export type PageFilters = {
   /**
@@ -159,6 +159,10 @@ export type PageFilters = {
    * Currently selected environment names
    */
   environments: string[];
+  /**
+   * Currently selected Integrated Organization
+   */
+  integratedOrg: string | null;
   /**
    * Currently selected Project IDs
    */

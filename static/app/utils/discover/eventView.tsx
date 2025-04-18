@@ -253,6 +253,12 @@ export const decodeProjects = (location: Location): number[] => {
   return toArray(value).map(i => parseInt(i, 10));
 };
 
+const decodeIntegratedOrg = (location: Location): string => {
+  return location.query?.integratedOrg
+    ? (decodeScalar(location.query.integratedOrg) ?? '')
+    : '';
+};
+
 const queryStringFromSavedQuery = (saved: NewQuery | SavedQuery): string => {
   if (saved.query) {
     return saved.query || '';
@@ -271,6 +277,7 @@ export type EventViewOptions = {
   environment: readonly string[];
   fields: readonly Field[];
   id: string | undefined;
+  integratedOrg: string;
   name: string | undefined;
   project: readonly number[];
   query: string;
@@ -296,6 +303,7 @@ class EventView {
   query: string;
   team: ReadonlyArray<'myteams' | number>;
   project: readonly number[];
+  integratedOrg: string;
   start: string | undefined;
   end: string | undefined;
   statsPeriod: string | undefined;
@@ -351,6 +359,7 @@ class EventView {
     this.query = typeof props.query === 'string' ? props.query : '';
     this.team = team;
     this.project = project;
+    this.integratedOrg = props.integratedOrg;
     this.start = props.start;
     this.end = props.end;
     this.statsPeriod = props.statsPeriod;
@@ -379,6 +388,7 @@ class EventView {
       query: decodeQuery(location),
       team: decodeTeams(location),
       project: decodeProjects(location),
+      integratedOrg: decodeIntegratedOrg(location),
       start: decodeScalar(start),
       end: decodeScalar(end),
       statsPeriod: decodeScalar(statsPeriod),
@@ -482,6 +492,7 @@ class EventView {
       additionalConditions: new MutableSearch([]),
       dataset: saved.dataset,
       multiSort: saved.multiSort,
+      integratedOrg: saved.integratedOrg ?? '',
     });
   }
 
@@ -534,6 +545,7 @@ class EventView {
           TOP_N
         ).toString(),
         interval: decodeScalar(location.query.interval) || saved.interval,
+        integratedOrg: decodeIntegratedOrg(location),
         createdBy: saved.createdBy,
         expired: saved.expired,
         additionalConditions: new MutableSearch([]),
@@ -658,6 +670,7 @@ class EventView {
         // assumed to be UTC
         utc: true,
       },
+      integratedOrg: this.integratedOrg,
     };
   }
 
@@ -721,6 +734,7 @@ class EventView {
       display: this.display,
       topEvents: this.topEvents,
       interval: this.interval,
+      integratedOrg: this.integratedOrg,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
@@ -820,6 +834,7 @@ class EventView {
       createdBy: this.createdBy,
       additionalConditions: this.additionalConditions.copy(),
       multiSort: this.multiSort,
+      integratedOrg: this.integratedOrg,
     });
   }
 

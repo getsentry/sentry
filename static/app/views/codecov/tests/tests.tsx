@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {DatePicker} from 'sentry/components/codecov/datePicker/datePicker';
+import {IntegratedOrgPicker} from 'sentry/components/codecov/integratedOrgPicker/integratedOrgPicker';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {space} from 'sentry/styles/space';
@@ -21,6 +22,7 @@ export default function TestsPage() {
       >
         <PageFilterBar condensed>
           <DatePicker />
+          <IntegratedOrgPicker />
         </PageFilterBar>
       </PageFiltersContainer>
     </LayoutGap>

@@ -267,6 +267,7 @@ export interface NewQuery {
   environment?: readonly string[];
   expired?: boolean;
   id?: string;
+  integratedOrg?: string;
   interval?: string;
   multiSort?: boolean;
   orderby?: string | string[];
