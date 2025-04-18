@@ -258,10 +258,9 @@ export const decodeProjects = (location: Location): number[] => {
 };
 
 const decodeIntegratedOrg = (location: Location): string => {
-  if (!location.query || !location.query.integratedOrg) {
-    return '';
-  }
-  return decodeScalar(location.query.integratedOrg) ?? '';
+  return location.query?.integratedOrg
+    ? (decodeScalar(location.query.integratedOrg) ?? '')
+    : '';
 };
 
 const queryStringFromSavedQuery = (saved: NewQuery | SavedQuery): string => {
