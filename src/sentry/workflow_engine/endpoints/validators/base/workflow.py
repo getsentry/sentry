@@ -12,6 +12,8 @@ from sentry.workflow_engine.endpoints.validators.base import (
 )
 from sentry.workflow_engine.endpoints.validators.utils import validate_json_schema
 from sentry.workflow_engine.models import (
+    Action,
+    DataConditionGroup,
     DataConditionGroupAction,
     Workflow,
     WorkflowDataConditionGroup,
@@ -25,9 +27,9 @@ class WorkflowValidator(CamelSnakeSerializer):
     name = serializers.CharField(required=True, max_length=256)
     enabled = serializers.BooleanField(required=False, default=True)
     config = serializers.JSONField(required=False)
+    environment_id = serializers.IntegerField(required=False)
     triggers = BaseDataConditionGroupValidator(required=False)
     action_filters = serializers.ListField(required=False)
-    environment_id = serializers.IntegerField(required=False)
 
     def _split_action_and_condition_group(
         self, action_filter: dict[str, Any]
@@ -53,13 +55,73 @@ class WorkflowValidator(CamelSnakeSerializer):
 
         return value
 
+    def update_or_create_actions(self, actions_data):
+        actions: list[Action] = []
+        validator = BaseActionValidator(context=self.context)
+
+        for action in actions_data:
+            if action.get("id") is None:
+                result = validator.create(action)
+            else:
+                action_instance = Action.objects.get(id=action["id"])
+                result = validator.update(action_instance, action)
+
+            actions.append(result)
+
+        return actions
+
+    def update_or_create_data_condition_group(
+        self, condition_group_data: dict[str, Any]
+    ) -> DataConditionGroup:
+        validator = BaseDataConditionGroupValidator(context=self.context)
+        actions: list = []
+
+        if condition_group_data.get("actions") is not None:
+            actions, condition_group_data = self._split_action_and_condition_group(
+                condition_group_data
+            )
+
+        if condition_group_data.get("id") is None:
+            result = validator.create(condition_group_data)
+        else:
+            condition_group = DataConditionGroup.objects.get(id=condition_group_data["id"])
+            result = validator.update(condition_group, condition_group_data)
+
+        if actions:
+            self.update_or_create_actions(actions)
+
+        return result
+
     def update(self, instance: Workflow, validated_data: dict[str, Any]) -> Workflow:
         with transaction.atomic(router.db_for_write(Workflow)):
+            # Update the workflow triggers
+            triggers = validated_data.pop("triggers", None)
+            if triggers:
+                # Ensure any conditions that were removed in the UI are removed from the DB
+                if triggers.get("id") is not None:
+                    condition_ids = [condition.get("id") for condition in triggers]
+                    print(condition_ids)
+                    # instance.when_condition_group.conditions.exclude(id__in=condition_ids).delete()
+
+                self.update_or_create_data_condition_group(triggers)
+
+            # Update the actions & dcg
+            action_filters = validated_data.pop("action_filters", None)
+            if action_filters:
+                for action_filter in action_filters:
+                    actions, condition_group = self._split_action_and_condition_group(action_filter)
+
+                    if condition_group.get("id") is not None:
+                        # TODO - remove any data condition groups not in the request
+                        # TODO - figure out if this needs to happen with actions too
+                        pass
+
+                    self.update_or_create_data_condition_group(condition_group)
+                    self.update_or_create_actions(actions)
+
             # Update the workflow
-            # update the triggers
-            # update the actions & dcg
-            pass
-        pass
+            instance.update(**validated_data)
+            return instance
 
     def create(self, validated_value: dict[str, Any]) -> Workflow:
         condition_group_validator = BaseDataConditionGroupValidator(context=self.context)

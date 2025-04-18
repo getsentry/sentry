@@ -93,7 +93,7 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationEndpoint):
         )
 
         validator.is_valid(raise_exception=True)
-        workflow.update(**validator.validated_data)
+        validator.update(workflow, validator.validated_data)
 
         create_audit_entry(
             request=request,

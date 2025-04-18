@@ -1,6 +1,7 @@
 from unittest import mock
 
 from sentry.testutils.cases import TestCase
+from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import Action, Condition, DataConditionGroupAction
 from tests.sentry.workflow_engine.test_base import MockActionHandler
@@ -225,3 +226,82 @@ class TestWorkflowValidatorCreate(TestCase):
         # check the action / condition group
         assert action_group.action.type == Action.Type.SLACK
         assert action_group.condition_group.logic_type == "any"
+
+
+class TestWorkflowValidatorUpdate(TestCase):
+    def setUp(self):
+        self.context = {
+            "organization": self.organization,
+            "request": self.make_request(),
+        }
+
+        self.action_filters = [
+            {
+                "actions": [
+                    {
+                        "type": Action.Type.SLACK,
+                        "config": {
+                            "target_identifier": "foo",
+                            "target_display": "bar",
+                            "target_type": 0,
+                        },
+                        "data": {},
+                        "integrationId": 1,
+                    }
+                ],
+                "logicType": "any",
+                "conditions": [],
+                "organizationId": self.organization.id,
+            }
+        ]
+
+        self.valid_data = {
+            "name": "test",
+            "enabled": True,
+            "actionFilters": self.action_filters,
+            "config": {
+                "frequency": 30,
+            },
+            "triggers": {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.EQUAL,
+                        "comparison": 1,
+                        "condition_result": True,
+                    },
+                ],
+            },
+        }
+
+        validator = WorkflowValidator(
+            data=self.valid_data,
+            context=self.context,
+        )
+
+        validator.is_valid(raise_exception=True)
+        self.workflow = validator.create(validator.validated_data)
+
+    def test_update_property(self):
+        self.valid_data["name"] = "Update Test"
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+
+        assert validator.is_valid() is True
+        workflow = validator.update(self.workflow, validator.validated_data)
+
+        assert workflow.id == self.workflow.id
+        assert workflow.name == "Update Test"
+
+    def test_update_triggers(self):
+        serializer = WorkflowSerializer()
+        attrs = serializer.get_attrs([self.workflow], self.user)
+        self.valid_data = serializer.serialize(self.workflow, attrs[self.workflow], self.user)
+
+        # Fix broken serializers
+        self.valid_data["name"] = "Update Test"
+
+        import pdb
+        pdb.set_trace()
+
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
