@@ -149,19 +149,13 @@ class AlertRuleNotification(ProjectNotification):
         }
 
     def get_image_url(self) -> str | None:
-        if features.has(
-            "organizations:email-performance-regression-image", self.group.organization
-        ):
-            image_builder = IssueAlertImageBuilder(
-                group=self.group, provider=ExternalProviderEnum.EMAIL
-            )
-            return image_builder.get_image_url()
-        return None
+        image_builder = IssueAlertImageBuilder(
+            group=self.group, provider=ExternalProviderEnum.EMAIL
+        )
+        return image_builder.get_image_url()
 
     def is_new_design(self) -> bool:
-        return features.has(
-            "organizations:email-performance-regression-image", self.group.organization
-        ) and self.group.issue_type in [
+        return self.group.issue_type in [
             PerformanceP95EndpointRegressionGroupType,
             ProfileFunctionRegressionType,
         ]
