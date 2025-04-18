@@ -97,7 +97,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             threshold_type=None,
             detection_type=None,
             comparison_delta=None,
-            alert_threshold=None,
+            alert_threshold=1.0,
         )
 
         self.assert_metric_issue_context(
