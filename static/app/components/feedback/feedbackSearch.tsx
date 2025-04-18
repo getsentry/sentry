@@ -36,6 +36,14 @@ const EXCLUDED_TAGS: string[] = [
   FieldKey.PLATFORM,
 ];
 
+// Skip suggestions for these fields since their values are well-known.
+const PREDEFINED_FIELDS: string[] = [
+  FieldKey.ASSIGNED,
+  FieldKey.HAS,
+  FieldKey.IS,
+  FieldKey.MESSAGE,
+];
+
 const getFeedbackFieldDefinition = (key: string) => getFieldDefinition(key, 'feedback');
 
 function getHasFieldValues(supportedTags: TagCollection): string[] {
@@ -45,7 +53,7 @@ function getHasFieldValues(supportedTags: TagCollection): string[] {
 
   // Ensure suggested fields are included.
   const feedbackFieldKeys = FEEDBACK_FIELDS.map(String).filter(
-    key => key !== FieldKey.ASSIGNED && key !== FieldKey.HAS && key !== FieldKey.IS
+    key => !PREDEFINED_FIELDS.includes(key)
   );
 
   return union(customTagKeys, feedbackFieldKeys).sort();
