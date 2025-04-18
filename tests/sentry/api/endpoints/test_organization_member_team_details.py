@@ -935,9 +935,11 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             scopes=["org:write"],
         )
         self.install = self.create_sentry_app_installation(
-            organization=self.org, slug=self.sentry_app.slug, user=user
+            organization=self.org, slug=self.sentry_app.slug, user=self.admin
         )
-        self.api_token = self.create_internal_integration_token(install=self.install, user=user)
+        self.api_token = self.create_internal_integration_token(
+            install=self.install, user=self.admin
+        )
         resp = self.get_response(
             self.org.slug,
             member.id,
@@ -961,9 +963,11 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             scopes=["member:write"],
         )
         self.install = self.create_sentry_app_installation(
-            organization=self.org, slug=self.sentry_app.slug, user=user
+            organization=self.org, slug=self.sentry_app.slug, user=self.admin
         )
-        self.api_token = self.create_internal_integration_token(install=self.install, user=user)
+        self.api_token = self.create_internal_integration_token(
+            install=self.install, user=self.admin
+        )
 
         resp = self.get_response(
             self.org.slug,
@@ -988,9 +992,11 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             scopes=["team:write"],
         )
         self.install = self.create_sentry_app_installation(
-            organization=self.org, slug=self.sentry_app.slug, user=user
+            organization=self.org, slug=self.sentry_app.slug, user=self.admin
         )
-        self.api_token = self.create_internal_integration_token(install=self.install, user=user)
+        self.api_token = self.create_internal_integration_token(
+            install=self.install, user=self.admin
+        )
 
         resp = self.get_response(
             self.org.slug,
@@ -1015,9 +1021,11 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             scopes=["org:read"],
         )
         self.install = self.create_sentry_app_installation(
-            organization=self.org, slug=self.sentry_app.slug, user=user
+            organization=self.org, slug=self.sentry_app.slug, user=self.admin
         )
-        self.api_token = self.create_internal_integration_token(install=self.install, user=user)
+        self.api_token = self.create_internal_integration_token(
+            install=self.install, user=self.admin
+        )
 
         resp = self.get_response(
             self.org.slug,
@@ -1044,9 +1052,11 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             scopes=["member:read"],
         )
         self.install = self.create_sentry_app_installation(
-            organization=self.org, slug=self.sentry_app.slug, user=user
+            organization=self.org, slug=self.sentry_app.slug, user=self.admin
         )
-        self.api_token = self.create_internal_integration_token(install=self.install, user=user)
+        self.api_token = self.create_internal_integration_token(
+            install=self.install, user=self.admin
+        )
 
         resp = self.get_response(
             self.org.slug,
