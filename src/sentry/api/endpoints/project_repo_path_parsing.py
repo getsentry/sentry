@@ -49,7 +49,11 @@ class PathMappingSerializer(CamelSnakeSerializer):
 
         def integration_match(integration: RpcIntegration):
             installation = integration.get_installation(self.org_id)
-            return installation.source_url_matches(source_url)
+            # Check if the installation has the source_url_matches method
+            if hasattr(installation, "source_url_matches"):
+                return installation.source_url_matches(source_url)
+            # Fallback to a basic check if the method doesn't exist
+            return False
 
         def repo_match(repo: Repository):
             return repo.url is not None and source_url.startswith(repo.url)
@@ -115,6 +119,7 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
 
         repo = serializer.repo
         integration = serializer.integration
+        assert integration is not None  # This helps with typing
         installation = integration.get_installation(project.organization_id)
 
         branch = installation.extract_branch_from_source_url(repo, source_url)
@@ -124,7 +129,7 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         return self.respond(
             {
                 "integrationId": integration.id,
-                "repositoryId": repo.id,
+                "repositoryId": repo.id if repo else None,
                 "provider": integration.provider,
                 "stackRoot": stack_root,
                 "sourceRoot": source_root,
