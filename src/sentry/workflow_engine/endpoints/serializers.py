@@ -351,6 +351,7 @@ class WorkflowSerializer(Serializer):
     def serialize(self, obj: Workflow, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
         return {
             "id": str(obj.id),
+            "name": str(obj.name),
             "organizationId": str(obj.organization_id),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
