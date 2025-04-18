@@ -1,3 +1,4 @@
+import calendar
 from unittest.mock import patch
 
 from django.utils import timezone
@@ -71,7 +72,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             feature=feature,
             organization_id=self.organization.id,
             project_id=0,
-            data={"dismissed_ts": timezone.now()},
+            data={"dismissed_ts": calendar.timegm(timezone.now().utctimetuple())},
         )
 
         self.login_as(user=self.user)
@@ -97,7 +98,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             feature=feature,
             organization_id=self.organization.id,
             project_id=0,
-            data={"dismissed_ts": timezone.now()},
+            data={"dismissed_ts": calendar.timegm(timezone.now().utctimetuple())},
         )
 
         self.login_as(user=self.user)
