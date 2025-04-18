@@ -83,7 +83,10 @@ def save_userreport(
         report["event_id"] = report["event_id"].lower()
         report["project_id"] = project.id
 
-        event = eventstore.backend.get_event_by_id(project.id, report["event_id"])
+        # Use the associated event to validate and update the report.
+        event: Event | GroupEvent | None = eventstore.backend.get_event_by_id(
+            project.id, report["event_id"]
+        )
 
         euser = find_event_user(event)
 
@@ -99,6 +102,7 @@ def save_userreport(
             report["environment_id"] = event.get_environment().id
             report["group_id"] = event.group_id
 
+        # Save the report.
         try:
             with atomic_transaction(using=router.db_for_write(UserReport)):
                 report_instance = UserReport.objects.create(**report)
@@ -136,6 +140,7 @@ def save_userreport(
             if report_instance.group_id:
                 report_instance.notify()
 
+        # Additionally processing if save is successful.
         user_feedback_received.send_robust(project=project, sender=save_userreport)
 
         logger.info(
@@ -150,12 +155,13 @@ def save_userreport(
             "user_report.create_user_report.saved",
             tags={"has_event": bool(event), "referrer": source.value},
         )
-        if event:
+        if event and source.value in FeedbackCreationSource.old_feedback_category_values():
             logger.info(
                 "ingest.user_report.shim_to_feedback",
                 extra={"project_id": project.id, "event_id": report["event_id"]},
             )
             shim_to_feedback(report, event, project, source)
+            # XXX(aliu): the update_user_reports task will still try to shim the report after a period, unless group_id or environment is set.
 
         return report_instance
 

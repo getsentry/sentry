@@ -283,7 +283,15 @@ def should_filter_feedback(
     return False, None
 
 
-def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource):
+def create_feedback_issue(
+    event: dict[str, Any], project_id: int, source: FeedbackCreationSource
+) -> dict[str, Any] | None:
+    """
+    Produces a feedback issue occurrence to kafka for issues processing. Applies filters, spam filters, and event validation.
+
+    Returns the formatted event data that was sent to issue platform.
+    """
+
     metrics.incr(
         "feedback.create_feedback_issue.entered",
         tags={
@@ -306,7 +314,7 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
             category=DataCategory.USER_REPORT_V2,
             quantity=1,
         )
-        return
+        return None
 
     feedback_message = event["contexts"]["feedback"]["message"]
 
@@ -416,6 +424,8 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         category=DataCategory.USER_REPORT_V2,
         quantity=1,
     )
+
+    return event_fixed
 
 
 def auto_ignore_spam_feedbacks(project, issue_fingerprint):
