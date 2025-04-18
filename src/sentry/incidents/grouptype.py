@@ -47,6 +47,9 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
     ) -> dict[DetectorGroupKey, int]:
         return {None: data_packet.packet["values"]["value"]}
 
+    def can_process_data_packet(self, group_key: DetectorGroupKey) -> bool:
+        return True
+
 
 # Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something
 # like these when we're sending issues as alerts
