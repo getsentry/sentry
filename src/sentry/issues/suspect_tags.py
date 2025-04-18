@@ -4,7 +4,7 @@ from typing import NamedTuple
 import sentry_sdk
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
-from sentry.seer.workflows.compare import KeyedValueCount, keyed_kl_score
+from sentry.seer.workflows.compare import KeyedValueCount, keyed_rrf_score
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -36,11 +36,11 @@ def get_suspect_tag_scores(
 
     return [
         Score(key=key, score=score)
-        for key, score in keyed_kl_score(
-            a=baseline,
-            b=outliers,
-            total_a=baseline_count,
-            total_b=outliers_count,
+        for key, score in keyed_rrf_score(
+            baseline,
+            outliers,
+            total_baseline=baseline_count,
+            total_outliers=outliers_count,
         )
     ]
 
