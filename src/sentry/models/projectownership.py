@@ -15,10 +15,10 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.issues.ownership.grammar import Matcher, Rule, load_schema, resolve_actors
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
-from sentry.ownership.grammar import Matcher, Rule, load_schema, resolve_actors
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.utils import metrics
