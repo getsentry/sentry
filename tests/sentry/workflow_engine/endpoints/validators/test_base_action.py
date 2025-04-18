@@ -84,3 +84,15 @@ class TestBaseActionValidator(TestCase):
 
         result = validator.is_valid()
         assert result is False
+
+    def test_validate_integration_id__required(self, mock_action_handler_get):
+        self.valid_data.pop("integrationId")
+
+        validator = MockActionValidator(
+            data={
+                **self.valid_data,
+            },
+        )
+
+        result = validator.is_valid()
+        assert result is True
