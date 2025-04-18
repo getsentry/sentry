@@ -10,6 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.integrations.api.bases.integration import IntegrationEndpoint
+from sentry.integrations.jira.integration import JiraProjectMapping
 from sentry.integrations.models.integration import Integration
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
@@ -94,7 +95,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
                 return Response({"detail": "Unable to fetch projects from Jira"}, status=400)
 
             projects = [
-                {"label": f"{p["key"]} - {p["name"]}", "value": p["id"]}
+                JiraProjectMapping(label=f"{p["key"]} - {p["name"]}", value=p["id"])
                 for p in response.get("values", [])
             ]
 
