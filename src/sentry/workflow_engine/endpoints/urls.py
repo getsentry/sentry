@@ -1,5 +1,9 @@
 from django.urls import re_path
 
+from sentry.workflow_engine.endpoints.organization_workflow_group_history import (
+    OrganizationWorkflowGroupHistoryEndpoint,
+)
+
 from .organization_available_action_index import OrganizationAvailableActionIndexEndpoint
 from .organization_data_condition_index import OrganizationDataConditionIndexEndpoint
 from .organization_detector_types import OrganizationDetectorTypeIndexEndpoint
@@ -44,6 +48,11 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^\/]+)/workflows/(?P<workflow_id>[^\/]+)/$",
         OrganizationWorkflowDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-workflow-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/workflows/(?P<workflow_id>[^\/]+)/fire-history$",
+        OrganizationWorkflowGroupHistoryEndpoint.as_view(),
+        name="sentry-api-0-organization-workflow-group-history",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/data-conditions/$",
