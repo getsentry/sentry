@@ -116,18 +116,18 @@ class TestDetectorSerializer(TestCase):
                 "conditions": [
                     {
                         "id": str(condition.id),
-                        "condition": Condition.GREATER.value,
+                        "type": Condition.GREATER.value,
                         "comparison": 100,
-                        "result": DetectorPriorityLevel.HIGH.value,
+                        "conditionResult": DetectorPriorityLevel.HIGH.value,
                     }
                 ],
                 "actions": [
                     {
                         "id": str(action.id),
                         "type": "email",
-                        "data": "{}",
+                        "data": {},
                         "integration_id": None,
-                        "config": '{"target_type":1,"target_identifier":"123"}',
+                        "config": {"target_type": 1, "target_identifier": "123"},
                     }
                 ],
             },
@@ -244,18 +244,18 @@ class TestDataConditionGroupSerializer(TestCase):
             "conditions": [
                 {
                     "id": str(condition.id),
-                    "condition": "gt",
+                    "type": "gt",
                     "comparison": 100,
-                    "result": DetectorPriorityLevel.HIGH,
+                    "conditionResult": DetectorPriorityLevel.HIGH,
                 }
             ],
             "actions": [
                 {
                     "id": str(action.id),
                     "type": "email",
-                    "data": "{}",
+                    "data": {},
                     "integration_id": None,
-                    "config": '{"target_type":1,"target_identifier":"123"}',
+                    "config": {"target_type": 1, "target_identifier": "123"},
                 }
             ],
         }
@@ -283,9 +283,9 @@ class TestActionSerializer(TestCase):
         assert result == {
             "id": str(action.id),
             "type": "plugin",
-            "data": "{}",
+            "data": {},
             "integration_id": None,
-            "config": "{}",
+            "config": {},
         }
 
     def test_serialize_with_integration(self):
@@ -305,9 +305,9 @@ class TestActionSerializer(TestCase):
         assert result == {
             "id": str(action.id),
             "type": "opsgenie",
-            "data": '{"priority":"P1"}',
+            "data": {"priority": "P1"},
             "integration_id": self.integration.id,
-            "config": '{"target_type":0,"target_identifier":"123"}',
+            "config": {"target_type": 0, "target_identifier": "123"},
         }
 
     def test_serialize_with_integration_and_config(self):
@@ -328,9 +328,13 @@ class TestActionSerializer(TestCase):
         assert result2 == {
             "id": str(action2.id),
             "type": "slack",
-            "data": '{"tags":"bar"}',
+            "data": {"tags": "bar"},
             "integration_id": self.integration.id,
-            "config": '{"target_type":0,"target_display":"freddy frog","target_identifier":"123-id"}',
+            "config": {
+                "target_type": 0,
+                "target_display": "freddy frog",
+                "target_identifier": "123-id",
+            },
         }
 
 
@@ -416,9 +420,9 @@ class TestWorkflowSerializer(TestCase):
                 "conditions": [
                     {
                         "id": str(trigger_condition.id),
-                        "condition": "first_seen_event",
+                        "type": "first_seen_event",
                         "comparison": True,
-                        "result": True,
+                        "conditionResult": True,
                     }
                 ],
                 "actions": [],
@@ -431,18 +435,18 @@ class TestWorkflowSerializer(TestCase):
                     "conditions": [
                         {
                             "id": str(condition.id),
-                            "condition": "gt",
+                            "type": "gt",
                             "comparison": 100,
-                            "result": DetectorPriorityLevel.HIGH.value,
+                            "conditionResult": DetectorPriorityLevel.HIGH.value,
                         }
                     ],
                     "actions": [
                         {
                             "id": str(action.id),
                             "type": "email",
-                            "data": "{}",
+                            "data": {},
                             "integration_id": None,
-                            "config": '{"target_type":1,"target_identifier":"123"}',
+                            "config": {"target_type": 1, "target_identifier": "123"},
                         }
                     ],
                 },

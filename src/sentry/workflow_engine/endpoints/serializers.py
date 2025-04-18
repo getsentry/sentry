@@ -6,7 +6,6 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.options.project_option import ProjectOption
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
-from sentry.utils import json
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,
@@ -26,8 +25,8 @@ class ActionSerializerResponse(TypedDict):
     id: str
     type: str
     integration_id: int | None
-    data: str
-    config: str
+    data: dict
+    config: dict
 
 
 @register(Action)
@@ -37,8 +36,8 @@ class ActionSerializer(Serializer):
             "id": str(obj.id),
             "type": obj.type,
             "integration_id": obj.integration_id,
-            "data": json.dumps(obj.data),
-            "config": json.dumps(obj.config),
+            "data": obj.data,
+            "config": obj.config,
         }
 
 
@@ -162,9 +161,9 @@ class DataConditionSerializer(Serializer):
     def serialize(self, obj: DataCondition, *args, **kwargs) -> dict[str, Any]:
         return {
             "id": str(obj.id),
-            "condition": obj.type,
+            "type": obj.type,
             "comparison": obj.comparison,
-            "result": obj.condition_result,
+            "conditionResult": obj.condition_result,
         }
 
 
