@@ -2698,6 +2698,55 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             metrics_logged = [call.args[0] for call in mock_metrics_incr.mock_calls]
             assert "grouping.in_app_frame_mix" not in metrics_logged
 
+    def test_chained_exception_handling(self) -> None:
+        concurrent_exception: dict[str, Any] = {
+            "type": "ConcurrentModificationException",
+            "module": "java.util",
+            "stacktrace": {"frames": [{"module": "java.lang.Thread", "abs_path": "Thread.java"}]},
+        }
+        runtime_exception: dict[str, Any] = {
+            "type": "RuntimeException",
+            "value": "An error occurred while executing doInBackground()",
+            "module": "java.lang",
+            "stacktrace": {"frames": [{"module": "java.lang.Thread", "abs_path": "Thread.java"}]},
+            "mechanism": {"type": "UncaughtExceptionHandler", "handled": False},
+        }
+        sdk7_event = EventManager(
+            make_event(
+                platform="java",
+                exception={
+                    "values": [
+                        concurrent_exception,
+                        runtime_exception,
+                    ]
+                },
+            )
+        ).save(self.project.id)
+        assert sdk7_event.group is not None
+        assert sdk7_event.data.get("main_exception_id") is None
+
+        # In SDK 8 we have exception_ids
+        concurrent_exception["mechanism"] = {"type": "chained", "exception_id": 1, "parent_id": 0}
+        runtime_exception["mechanism"] = {
+            "type": "UncaughtExceptionHandler",
+            "handled": False,
+            "exception_id": 0,
+        }
+        sdk8_event = EventManager(
+            make_event(
+                platform="java",
+                exception={
+                    "values": [
+                        concurrent_exception,
+                        runtime_exception,
+                    ]
+                },
+            )
+        ).save(self.project.id)
+        assert sdk8_event.group is not None
+        # This is what our customer is seeing
+        assert sdk8_event.group.id == sdk7_event.group.id
+
 
 class ReleaseIssueTest(TestCase):
     def setUp(self) -> None:
