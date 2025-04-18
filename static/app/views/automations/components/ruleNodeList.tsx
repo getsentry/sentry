@@ -11,6 +11,7 @@ import RuleNode from 'sentry/views/automations/components/ruleNode';
 
 interface RuleNodeListProps {
   conditions: NewDataCondition[];
+  dataConditionTypes: DataConditionType[];
   group: string;
   onAddRow: (type: DataConditionType) => void;
   onDeleteRow: (id: number) => void;
@@ -18,13 +19,8 @@ interface RuleNodeListProps {
   updateCondition: (index: number, condition: Record<string, any>) => void;
 }
 
-// TODO: only show data conditions that are returned by the API
-const options = Array.from(dataConditionNodesMap, ([key, value]) => ({
-  value: key,
-  label: value.label,
-}));
-
 export default function RuleNodeList({
+  dataConditionTypes,
   group,
   placeholder,
   conditions,
@@ -32,6 +28,10 @@ export default function RuleNodeList({
   onDeleteRow,
   updateCondition,
 }: RuleNodeListProps) {
+  const options = Array.from(dataConditionNodesMap.entries())
+    .map(([value, {label}]) => ({value, label}))
+    .filter(({value}) => dataConditionTypes.includes(value));
+
   return (
     <Fragment>
       {conditions.map((condition, i) => (
