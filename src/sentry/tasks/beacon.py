@@ -68,7 +68,7 @@ def get_events_24h() -> int:
     end = timezone.now()
     sum_events = 0
     for organization_id in organization_ids:
-        events_per_org_24h = tsdb.backend.get_sums(
+        events_per_org_24h = tsdb.backend.get_timeseries_sums(
             model=TSDBModel.organization_total_received,
             keys=[organization_id],
             start=end - timedelta(hours=24),
