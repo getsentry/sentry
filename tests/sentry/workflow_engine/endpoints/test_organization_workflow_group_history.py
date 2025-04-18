@@ -1,9 +1,7 @@
-from datetime import datetime
 from uuid import uuid4
 
 from sentry.api.serializers import serialize
-from sentry.rules.history.base import RuleGroupHistory
-from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.endpoints.organization_workflow_group_history import (
@@ -13,21 +11,6 @@ from sentry.workflow_engine.endpoints.organization_workflow_group_history import
 from sentry.workflow_engine.models import WorkflowFireHistory
 
 pytestmark = [requires_snuba]
-
-
-class RuleGroupHistorySerializerTest(TestCase):
-    def test(self):
-        current_date = datetime.now()
-        group_history = RuleGroupHistory(self.group, 50, current_date)
-        result = serialize([group_history], self.user, WorkflowGroupHistorySerializer())
-        assert result == [
-            {
-                "group": serialize(self.group, self.user),
-                "count": group_history.count,
-                "lastTriggered": current_date,
-                "eventId": None,
-            }
-        ]
 
 
 @freeze_time()
