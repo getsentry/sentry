@@ -23,6 +23,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -213,8 +214,9 @@ const OrgOrUserName = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeLarge};
   line-height: 1.2;
   font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.white};
-  text-shadow: 0 0 6px rgba(255, 255, 255, 0);
+  color: ${p => (isChonkTheme(p.theme) ? p.theme.black : p.theme.white)};
+  text-shadow: ${p =>
+    isChonkTheme(p.theme) ? 'none' : '0 0 6px rgba(255, 255, 255, 0)'};
   transition: 0.15s text-shadow linear;
 `;
 
@@ -235,10 +237,11 @@ const SidebarDropdownActor = styled('button')`
 
   &:hover {
     ${OrgOrUserName} {
-      text-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
+      text-shadow: ${p =>
+        isChonkTheme(p.theme) ? 'none' : '0 0 6px rgba(255, 255, 255, 0.1)'};
     }
     ${UserNameOrEmail} {
-      color: ${p => p.theme.white};
+      color: ${p => (isChonkTheme(p.theme) ? p.theme.black : p.theme.white)};
     }
   }
 `;
@@ -246,7 +249,7 @@ const SidebarDropdownActor = styled('button')`
 const AvatarStyles = (p: {collapsed: boolean; theme: Theme}) => css`
   margin: ${space(0.25)} 0;
   margin-right: ${p.collapsed ? '0' : space(1.5)};
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
+  box-shadow: ${isChonkTheme(p.theme) ? 'none' : '0 2px 0 rgba(0, 0, 0, 0.08)'};
   border-radius: 6px; /* Fixes background bleeding on corners */
 
   @media (max-width: ${p.theme.breakpoints.medium}) {
