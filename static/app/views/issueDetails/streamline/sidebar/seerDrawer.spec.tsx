@@ -6,20 +6,13 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
 import {SeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 
 describe('SeerDrawer', () => {
   const organization = OrganizationFixture({
-    genAIConsent: true,
     hideAiFeatures: false,
     features: ['gen-ai-features'],
   });
@@ -107,7 +100,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {ok: true},
       },
@@ -131,37 +123,6 @@ describe('SeerDrawer', () => {
     });
   });
 
-  it('renders consent state if not consented', async () => {
-    MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
-      body: {
-        genAIConsent: {ok: false},
-        integration: {ok: false},
-        githubWriteIntegration: {ok: false},
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
-
-    expect(screen.getByText('Autofix')).toBeInTheDocument();
-
-    expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
-  });
-
   it('renders initial state with Start Autofix button', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
@@ -172,13 +133,7 @@ describe('SeerDrawer', () => {
       organization,
     });
 
-    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    expect(screen.getByText('Autofix')).toBeInTheDocument();
+    expect(await screen.findByText('Autofix')).toBeInTheDocument();
 
     // Verify the Start Autofix button is available
     const startButton = screen.getByRole('button', {name: 'Start Autofix'});
@@ -189,7 +144,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: false},
         githubWriteIntegration: {ok: false},
       },
@@ -203,11 +157,7 @@ describe('SeerDrawer', () => {
       organization,
     });
 
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
+    expect(await screen.findByText('Set Up the GitHub Integration')).toBeInTheDocument();
     expect(screen.getByText('Set Up Now')).toBeInTheDocument();
 
     const startButton = screen.getByRole('button', {name: 'Start Autofix'});
@@ -230,43 +180,10 @@ describe('SeerDrawer', () => {
       organization,
     });
 
-    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    const startButton = screen.getByRole('button', {name: 'Start Autofix'});
+    const startButton = await screen.findByRole('button', {name: 'Start Autofix'});
     await userEvent.click(startButton);
 
     expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
-  });
-
-  it('hides ButtonBarWrapper when AI consent is needed', async () => {
-    MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
-      body: {
-        genAIConsent: {ok: false},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    // AutofixFeedback component should not be rendered when consent is needed
-    expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Start Over'})).not.toBeInTheDocument();
   });
 
   it('shows ButtonBarWrapper but hides Start Over button when hasAutofix is false', async () => {
@@ -274,7 +191,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {ok: true},
       },
@@ -298,12 +214,8 @@ describe('SeerDrawer', () => {
       organization,
     });
 
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
     // The feedback button should be visible, but not the Start Over button
-    expect(screen.getByTestId('autofix-button-bar')).toBeInTheDocument();
+    expect(await screen.findByTestId('autofix-button-bar')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Start Over'})).not.toBeInTheDocument();
 
     // Restore the original implementation
@@ -315,7 +227,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {ok: true},
       },
@@ -329,12 +240,8 @@ describe('SeerDrawer', () => {
       organization,
     });
 
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
     // Both buttons should be visible, but Start Over should be disabled
-    expect(screen.getByTestId('autofix-button-bar')).toBeInTheDocument();
+    expect(await screen.findByTestId('autofix-button-bar')).toBeInTheDocument();
     const startOverButton = screen.getByRole('button', {name: 'Start Over'});
     expect(startOverButton).toBeInTheDocument();
     expect(startOverButton).toBeDisabled();
@@ -345,7 +252,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {ok: true},
       },
@@ -359,12 +265,8 @@ describe('SeerDrawer', () => {
       organization,
     });
 
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
     // Both buttons should be visible, and Start Over should be enabled
-    expect(screen.getByTestId('autofix-button-bar')).toBeInTheDocument();
+    expect(await screen.findByTestId('autofix-button-bar')).toBeInTheDocument();
     const startOverButton = screen.getByRole('button', {name: 'Start Over'});
     expect(startOverButton).toBeInTheDocument();
     expect(startOverButton).toBeEnabled();
@@ -423,7 +325,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: false},
         githubWriteIntegration: {ok: false, repos: []},
       },
@@ -441,13 +342,7 @@ describe('SeerDrawer', () => {
       organization,
     });
 
-    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    expect(screen.getByText('Autofix')).toBeInTheDocument();
+    expect(await screen.findByText('Autofix')).toBeInTheDocument();
 
     // Since "Install the GitHub Integration" text isn't found, let's check for
     // the "Set Up the GitHub Integration" text which is what the component is actually showing
@@ -459,7 +354,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {ok: true},
       },
@@ -473,9 +367,7 @@ describe('SeerDrawer', () => {
       organization,
     });
 
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
+    expect(await screen.findByText('Autofix')).toBeInTheDocument();
 
     // We don't expect to see any notice about repositories since all are readable
     expect(screen.queryByText(/Autofix can't access/)).not.toBeInTheDocument();
@@ -485,7 +377,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {ok: true},
       },
@@ -499,11 +390,7 @@ describe('SeerDrawer', () => {
       organization,
     });
 
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    expect(screen.getByText(/Autofix can't access the/)).toBeInTheDocument();
+    expect(await screen.findByText(/Autofix can't access the/)).toBeInTheDocument();
     expect(screen.getByText('org/repo')).toBeInTheDocument();
     expect(screen.getByText(/GitHub integration/)).toBeInTheDocument();
   });
@@ -512,7 +399,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {ok: true},
       },
@@ -526,11 +412,7 @@ describe('SeerDrawer', () => {
       organization,
     });
 
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    expect(screen.getByText(/Autofix can't access the/)).toBeInTheDocument();
+    expect(await screen.findByText(/Autofix can't access the/)).toBeInTheDocument();
     expect(screen.getByText('org/gitlab-repo')).toBeInTheDocument();
     expect(
       screen.getByText(/It currently only supports GitHub repositories/)

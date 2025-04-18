@@ -67,7 +67,6 @@ describe('AutofixChanges', () => {
       url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {},
       },
@@ -120,7 +119,6 @@ describe('AutofixChanges', () => {
       url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {
           repos: [{ok: false, owner: 'owner', name: 'hello-world', id: 100}],
@@ -171,7 +169,6 @@ describe('AutofixChanges', () => {
       url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {
           repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
@@ -227,7 +224,6 @@ describe('AutofixChanges', () => {
       url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {
           repos: [{ok: false, owner: 'owner', name: 'hello-world', id: 100}],

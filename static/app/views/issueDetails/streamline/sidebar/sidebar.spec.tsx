@@ -53,10 +53,15 @@ describe('StreamlinedSidebar', function () {
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/setup/',
       body: {
-        genAIConsent: {ok: false},
         integration: {ok: true},
         githubWriteIntegration: {ok: true},
       },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+      method: 'POST',
+      body: {whatsWrong: 'Test summary'},
     });
 
     MockApiClient.addMockResponse({

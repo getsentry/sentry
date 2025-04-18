@@ -58,7 +58,6 @@ export function OrganizationFixture( params: Partial<Organization> = {}): Organi
     defaultRole: '',
     enhancedPrivacy: false,
     eventsMemberAdmin: false,
-    genAIConsent: false,
     githubNudgeInvite: false,
     githubOpenPRBot: false,
     githubPRBot: false,

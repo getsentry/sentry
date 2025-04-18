@@ -8,7 +8,6 @@ describe('AutofixSetupWriteAccessModal', function () {
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/setup/?check_write_access=true',
       body: {
-        genAIConsent: {ok: false},
         integration: {ok: true},
         githubWriteIntegration: {
           ok: false,
@@ -58,7 +57,6 @@ describe('AutofixSetupWriteAccessModal', function () {
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/setup/?check_write_access=true',
       body: {
-        genAIConsent: {ok: false},
         integration: {ok: true},
         githubWriteIntegration: {
           ok: true,

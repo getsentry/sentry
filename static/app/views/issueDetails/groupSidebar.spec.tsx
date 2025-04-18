@@ -87,7 +87,6 @@ describe('GroupSidebar', function () {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/autofix/setup/`,
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {ok: true},
       },

@@ -100,9 +100,7 @@ export default function SeerSection({
   const aiConfig = useAiConfig(group, project);
   const issueTypeConfig = getConfigForIssueType(group, project);
   const showCtaButton =
-    aiConfig.needsGenAIConsent ||
-    aiConfig.hasAutofix ||
-    (aiConfig.hasSummary && aiConfig.hasResources);
+    aiConfig.hasAutofix || (aiConfig.hasSummary && aiConfig.hasResources);
 
   const titleComponent = (
     <HeaderContainer>
@@ -130,11 +128,7 @@ export default function SeerSection({
       preventCollapse={!hasStreamlinedUI}
     >
       <SeerSectionContainer>
-        {aiConfig.needsGenAIConsent ? (
-          <Summary>
-            {t('Explore potential root causes and solutions with Autofix.')}
-          </Summary>
-        ) : aiConfig.hasAutofix || aiConfig.hasSummary ? (
+        {aiConfig.hasAutofix || aiConfig.hasSummary ? (
           <SeerSectionContent group={group} project={project} event={event} />
         ) : issueTypeConfig.resources ? (
           <ResourcesWrapper isExpanded={hasStreamlinedUI ? true : isExpanded}>
