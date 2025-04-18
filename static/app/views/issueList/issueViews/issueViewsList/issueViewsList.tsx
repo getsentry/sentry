@@ -213,6 +213,11 @@ export default function IssueViewsList() {
               priority="primary"
               icon={<IconAdd />}
               size="sm"
+              onClick={() => {
+                trackAnalytics('issue_views.table.create_view_clicked', {
+                  organization,
+                });
+              }}
             >
               {t('Create View')}
             </LinkButton>
