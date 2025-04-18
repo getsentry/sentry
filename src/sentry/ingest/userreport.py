@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import random
 from datetime import datetime, timedelta
-from typing import NotRequired, TypedDict
 
 from django.db import IntegrityError, router
 from django.utils import timezone
@@ -11,6 +10,7 @@ from django.utils import timezone
 from sentry import eventstore, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.usecases.create_feedback import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
     FeedbackCreationSource,
@@ -31,15 +31,6 @@ logger = logging.getLogger(__name__)
 
 class Conflict(Exception):
     pass
-
-
-class UserReportDict(TypedDict):
-    event_id: str
-    project_id: int
-    comments: str
-    name: NotRequired[str]
-    email: NotRequired[str]
-    environment_id: NotRequired[str]
 
 
 def save_userreport(
@@ -110,7 +101,8 @@ def save_userreport(
                 raise Conflict("Feedback for this event cannot be modified.")
 
             report["environment_id"] = event.get_environment().id
-            report["group_id"] = event.group_id
+            if event.group_id:
+                report["group_id"] = event.group_id
 
         # Save the report.
         try:

@@ -4,7 +4,7 @@ import logging
 import random
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Any
 from uuid import uuid4
 
 import jsonschema
@@ -12,6 +12,7 @@ import jsonschema
 from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -450,16 +451,8 @@ def auto_ignore_spam_feedbacks(project, issue_fingerprint):
 ###########
 
 
-class UserReportShimDict(TypedDict):
-    name: str
-    email: str
-    comments: str
-    event_id: str
-    level: str
-
-
 def shim_to_feedback(
-    report: UserReportShimDict,
+    report: UserReportDict,
     event: Event | GroupEvent,
     project: Project,
     source: FeedbackCreationSource,
@@ -490,7 +483,7 @@ def shim_to_feedback(
             "contexts": {
                 "feedback": {
                     "name": report.get("name", ""),
-                    "contact_email": report["email"],
+                    "contact_email": report.get("email", ""),
                     "message": report["comments"],
                 },
             },
