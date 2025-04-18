@@ -1,4 +1,6 @@
 import useOrganization from 'sentry/utils/useOrganization';
+import {useExploreVisualizes} from 'sentry/views/explore/contexts/pageParamsContext';
+import {computeTotals} from 'sentry/views/explore/hooks/useAnalytics';
 
 export const SAMPLING_MODE = {
   PREFLIGHT: 'PREFLIGHT',
@@ -39,6 +41,8 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
 }
 
 interface QueryOptions {
+  isTimeseries?: boolean;
+  isTopN?: boolean;
   queryMode?: QueryMode;
   withholdBestEffort?: boolean;
 }
@@ -64,6 +68,7 @@ export function useProgressiveQuery<
   samplingMode?: SamplingMode;
 } {
   const organization = useOrganization();
+  const visualizes = useExploreVisualizes();
   const canUseProgressiveLoading = organization.features.includes(
     'visibility-explore-progressive-loading'
   );
@@ -104,6 +109,28 @@ export function useProgressiveQuery<
   }
 
   if (bestEffortRequest.result.isFetched) {
+    if (queryOptions?.isTimeseries) {
+      const bestEffortSampleCount = computeTotals(
+        visualizes,
+        bestEffortRequest.result.data,
+        queryOptions?.isTopN ?? false
+      ).reduce((sum, count) => sum + count, 0);
+      const preflightSampleCount = computeTotals(
+        visualizes,
+        preflightRequest.result.data,
+        queryOptions?.isTopN ?? false
+      ).reduce((sum, count) => sum + count, 0);
+
+      if (preflightSampleCount > bestEffortSampleCount) {
+        // Continue to show the preflight results if they have more samples
+        // than best effort
+        return {
+          ...preflightRequest,
+          samplingMode: SAMPLING_MODE.BEST_EFFORT,
+        };
+      }
+    }
+
     return {
       ...bestEffortRequest,
       samplingMode: SAMPLING_MODE.BEST_EFFORT,
