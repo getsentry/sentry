@@ -33,11 +33,12 @@ from sentry.uptime.detectors.tasks import (
     schedule_detections,
     set_failed_url,
 )
-from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
+from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.uptime.subscriptions.subscriptions import (
     get_auto_monitored_subscriptions_for_project,
     is_url_auto_monitored_for_project,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 
 
 @freeze_time()

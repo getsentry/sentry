@@ -24,13 +24,14 @@ from sentry.uptime.detectors.ranking import (
     should_detect_for_organization,
     should_detect_for_project,
 )
-from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
+from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.uptime.subscriptions.subscriptions import (
     create_project_uptime_subscription,
     delete_project_uptime_subscription,
     get_auto_monitored_subscriptions_for_project,
     is_url_auto_monitored_for_project,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text

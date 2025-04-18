@@ -21,12 +21,7 @@ from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_producer import get_partition_keys
-from sentry.uptime.models import (
-    ProjectUptimeSubscriptionMode,
-    UptimeStatus,
-    UptimeSubscription,
-    UptimeSubscriptionRegion,
-)
+from sentry.uptime.models import UptimeStatus, UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.subscriptions.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
@@ -38,6 +33,7 @@ from sentry.uptime.subscriptions.tasks import (
     update_remote_uptime_subscription,
     uptime_subscription_to_check_config,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils import redis
 
 pytestmark = [requires_kafka]

@@ -19,7 +19,6 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.issue_platform import create_issue_platform_occurrence
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
@@ -42,6 +41,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     update_project_uptime_subscription,
     update_uptime_subscription,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils.outcomes import Outcome
 from sentry.workflow_engine.models.detector import Detector
 
