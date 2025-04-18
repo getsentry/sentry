@@ -33,7 +33,7 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         item_list: Sequence[DataCondition],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> defaultdict[str, list[dict[str, Any]]]:
+    ) -> defaultdict[DataCondition, dict[str, list[str]]]:
         detector_triggers = {item.id: item for item in item_list}
         detector_trigger_ids = [dc.id for dc in item_list]
 
