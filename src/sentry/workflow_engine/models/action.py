@@ -52,6 +52,10 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         PLUGIN = "plugin"
         WEBHOOK = "webhook"
 
+        # this is a special type of action that fires the appropriate actions when a
+        # metric issue's priority de-escalates
+        RESOLUTION_ACTION = "resolution_action"
+
     # The type field is used to denote the type of action we want to trigger
     type = models.TextField(choices=[(t.value, t.value) for t in Type])
     data = models.JSONField(default=dict)
