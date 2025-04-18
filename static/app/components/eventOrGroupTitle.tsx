@@ -32,6 +32,8 @@ function EventOrGroupTitle({
           issueCategory={data.issueCategory}
           groupingCurrentLevel={data.metadata?.current_level}
           query={query}
+          issueType={'issueType' in data ? data.issueType : undefined}
+          project={'project' in data ? data.project : undefined}
         >
           <Title data-issue-title-primary>{titleLabel}</Title>
         </GroupPreviewTooltip>

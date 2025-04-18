@@ -93,14 +93,14 @@ function ExploreTablesTabbed(props: ExploreTablesProps) {
     <Fragment>
       <SamplesTableHeader>
         <Tabs value={tab} onChange={setTab}>
-          <TabList hideBorder>
-            <TabList.Item key={Tab.SPAN}>{t('Spans')}</TabList.Item>
-            <TabList.Item key={Tab.TRACE}>{t('Traces')}</TabList.Item>
+          <TabList hideBorder variant="floating">
+            <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
+            <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
             <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
           </TabList>
         </Tabs>
         {tab === Tab.SPAN ? (
-          <Button onClick={openColumnEditor} icon={<IconTable />}>
+          <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
             {t('Edit Table')}
           </Button>
         ) : (
@@ -111,7 +111,7 @@ function ExploreTablesTabbed(props: ExploreTablesProps) {
                 : t('Use the Group By and Visualize controls to change table columns')
             }
           >
-            <Button disabled onClick={openColumnEditor} icon={<IconTable />}>
+            <Button disabled onClick={openColumnEditor} icon={<IconTable />} size="sm">
               {t('Edit Table')}
             </Button>
           </Tooltip>
