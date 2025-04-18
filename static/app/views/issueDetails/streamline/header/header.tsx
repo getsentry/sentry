@@ -138,13 +138,13 @@ export default function StreamlinedGroupHeader({
           <StatTitle>
             {issueTypeConfig.eventAndUserCounts.enabled &&
               (userCount === 0 ? (
-                t('Users')
+                t('Users (90d)')
               ) : (
                 <StatLink
                   to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
                   aria-label={t('View affected users')}
                 >
-                  {t('Users')}
+                  {t('Users (90d)')}
                 </StatLink>
               ))}
           </StatTitle>
@@ -157,7 +157,7 @@ export default function StreamlinedGroupHeader({
           {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>
               <StatCount value={eventCount} aria-label={t('Event count')} />
-              <StatCount value={userCount} aria-label={t('User count')} />
+              <StatCount value={userCount} aria-label={t('User count - 90 days')} />
             </Fragment>
           )}
           <Flex gap={space(1)} align="center">
