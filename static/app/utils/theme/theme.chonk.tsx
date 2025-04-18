@@ -1142,11 +1142,11 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   },
 
   sidebar: {
-    background: lightAliases.background,
+    background: darkAliases.background,
     scrollbarThumbColor: '#A0A0A0',
     scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
-    gradient: `none`,
-    border: 'transparent',
+    gradient: darkAliases.background,
+    border: darkAliases.border,
     superuser: '#880808',
   },
 };
