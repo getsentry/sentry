@@ -23,4 +23,5 @@ export type PageFiltersState = {
   project: number[] | null;
   start: Date | null;
   utc: boolean | null;
+  repository?: string | null;
 };
