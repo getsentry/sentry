@@ -283,7 +283,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         use_rpc = (
             request.GET.get("useRpc", "0") == "1" and dataset == spans_eap
         ) or dataset == ourlogs
-        sampling_mode = request.GET.get("sampling")
         transform_alias_to_input_format = (
             request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
         )
@@ -314,7 +313,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             auto_fields=False,
                             use_aggregate_conditions=True,
                         ),
-                        sampling_mode=sampling_mode,
+                        sampling_mode=snuba_params.sampling_mode,
                     )
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
@@ -353,7 +352,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         auto_fields=False,
                         use_aggregate_conditions=True,
                     ),
-                    sampling_mode=sampling_mode,
+                    sampling_mode=snuba_params.sampling_mode,
                     comparison_delta=comparison_delta,
                 )
 

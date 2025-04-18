@@ -7,7 +7,7 @@ import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {Button} from 'sentry/components/core/button';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
@@ -20,9 +20,9 @@ import {
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
-  DEFAULT_VISUALIZATION_AGGREGATE,
   DEFAULT_VISUALIZATION_FIELD,
   MAX_VISUALIZES,
+  updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -200,7 +200,10 @@ function VisualizeDropdown({
     ],
     []
   );
-  const defaultFieldOptions: Array<SelectOption<string>> = useVisualizeFields({yAxes});
+  const defaultFieldOptions: Array<SelectOption<string>> = useVisualizeFields({
+    yAxes,
+    yAxis,
+  });
   const fieldOptions = lockOptions ? countFieldOptions : defaultFieldOptions;
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
@@ -225,10 +228,11 @@ function VisualizeDropdown({
   const setChartAggregate = useCallback(
     ({value}: SelectOption<SelectKey>) => {
       const newVisualizes = visualizes.slice();
-      newVisualizes[group]!.yAxes[index] =
-        value === DEFAULT_VISUALIZATION_AGGREGATE
-          ? DEFAULT_VISUALIZATION
-          : `${value}(${parsedVisualize.arguments[0]})`;
+      newVisualizes[group]!.yAxes[index] = updateVisualizeAggregate({
+        newAggregate: value as string,
+        oldAggregate: parsedVisualize.name,
+        oldArgument: parsedVisualize.arguments[0]!,
+      });
       setVisualizes(newVisualizes);
     },
     [group, index, parsedVisualize, setVisualizes, visualizes]
@@ -310,7 +314,7 @@ function VisualizeEquation({
     return visualizes.flatMap(visualize => visualize.yAxes);
   }, [visualizes]);
 
-  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({yAxes});
+  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({yAxes, yAxis});
 
   const functionArguments = useMemo(() => {
     return fieldOptions.map(o => {

@@ -9,6 +9,7 @@ import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Flex} from 'sentry/components/container/flex';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Alert} from 'sentry/components/core/alert';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
@@ -520,10 +521,10 @@ export function SourceMapsDebuggerModal({
               'An image says more than a thousand words. Below you can see a comparison of how a bad and a good stack trace look like:'
             )}
           </p>
-          <Fragment>
+          <div>
             <ContentSliderDiff.Header>
-              <ContentSliderDiff.BeforeLabel />
-              <ContentSliderDiff.AfterLabel />
+              <Flex align="center">{t('Without Source Maps')}</Flex>
+              <Flex align="center">{t('With Source Maps')}</Flex>
             </ContentSliderDiff.Header>
             <ContentSliderDiff.Body
               before={
@@ -534,7 +535,7 @@ export function SourceMapsDebuggerModal({
               }
               minHeight="300px"
             />
-          </Fragment>
+          </div>
         </DebuggerSection>
         <DebuggerSection title={t('Troubleshooting Your Source Maps')}>
           {metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (

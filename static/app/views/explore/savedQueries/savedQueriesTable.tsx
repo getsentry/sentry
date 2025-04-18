@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -111,20 +111,24 @@ export function SavedQueriesTable({
     });
   };
 
-  const debouncedOnClick = debounce(
-    (id, starred) => {
-      if (starred) {
-        addLoadingMessage(t('Unstarring query...'));
-        starQueryHandler(id, false);
-        addSuccessMessage(t('Query unstarred'));
-      } else {
-        addLoadingMessage(t('Starring query...'));
-        starQueryHandler(id, true);
-        addSuccessMessage(t('Query starred'));
-      }
-    },
-    1000,
-    {leading: true}
+  const debouncedOnClick = useMemo(
+    () =>
+      debounce(
+        (id, starred) => {
+          if (starred) {
+            addLoadingMessage(t('Unstarring query...'));
+            starQueryHandler(id, false);
+            addSuccessMessage(t('Query unstarred'));
+          } else {
+            addLoadingMessage(t('Starring query...'));
+            starQueryHandler(id, true);
+            addSuccessMessage(t('Query starred'));
+          }
+        },
+        1000,
+        {leading: true}
+      ),
+    [starQueryHandler]
   );
 
   return (

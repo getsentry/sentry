@@ -13,7 +13,8 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.models.group import Group, GroupStatus, get_open_periods_for_group
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action, Detector
@@ -26,15 +27,23 @@ class AlertContext:
     threshold_type: AlertRuleThresholdType | None
     detection_type: AlertRuleDetectionType
     comparison_delta: int | None
+    sensitivity: str | None
+    resolve_threshold: float | None
+    alert_threshold: float | None
 
     @classmethod
-    def from_alert_rule_incident(cls, alert_rule: AlertRule) -> AlertContext:
+    def from_alert_rule_incident(
+        cls, alert_rule: AlertRule, alert_rule_threshold: float | None = None
+    ) -> AlertContext:
         return cls(
             name=alert_rule.name,
             action_identifier_id=alert_rule.id,
             threshold_type=AlertRuleThresholdType(alert_rule.threshold_type),
             detection_type=AlertRuleDetectionType(alert_rule.detection_type),
             comparison_delta=alert_rule.comparison_delta,
+            sensitivity=alert_rule.sensitivity,
+            alert_threshold=alert_rule_threshold,
+            resolve_threshold=alert_rule.resolve_threshold,
         )
 
     @classmethod
@@ -51,6 +60,10 @@ class AlertContext:
             threshold_type=threshold_type,
             detection_type=detector.config.get("detection_type"),
             comparison_delta=detector.config.get("comparison_delta"),
+            # TODO(iamrajjoshi): Add sensitivity, alert_threshold, resolve_threshold
+            sensitivity=None,
+            resolve_threshold=None,
+            alert_threshold=None,
         )
 
 
@@ -75,6 +88,7 @@ class NotificationContext:
             target_identifier=action.target_identifier,
             target_display=action.target_display,
             sentry_app_config=action.sentry_app_config,
+            sentry_app_id=str(action.sentry_app_id) if action.sentry_app_id else None,
         )
 
     @classmethod
@@ -82,10 +96,11 @@ class NotificationContext:
         if action.type == Action.Type.SENTRY_APP:
             return cls(
                 id=action.id,
-                integration_id=action.integration_id,
-                target_display=action.config.get("target_display"),
+                integration_id=None,
+                target_display=None,
+                target_identifier=None,
                 sentry_app_config=action.data.get("settings"),
-                sentry_app_id=action.data.get("target_identifier"),
+                sentry_app_id=action.config.get("target_identifier"),
                 # For Sentry Apps, we use `sentry_app_config` and don't pass `data`
             )
         elif action.type == Action.Type.OPSGENIE or action.type == Action.Type.PAGERDUTY:
@@ -110,6 +125,7 @@ class NotificationContext:
 class MetricIssueContext:
     id: int
     open_period_identifier: int  # Used for link building
+    title: str
     snuba_query: SnubaQuery
     new_status: IncidentStatus
     subscription: QuerySubscription | None
@@ -164,6 +180,7 @@ class MetricIssueContext:
             new_status=cls._get_new_status(group, occurrence),
             metric_value=cls._get_metric_value(occurrence),
             group=group,
+            title=group.title,
         )
 
     @classmethod
@@ -181,6 +198,7 @@ class MetricIssueContext:
             new_status=new_status,
             metric_value=metric_value,
             group=None,
+            title=incident.title,
         )
 
 
@@ -193,20 +211,21 @@ class OpenPeriodContext:
 
     date_started: datetime
     date_closed: datetime | None
+    id: int
 
     @classmethod
     def from_incident(cls, incident: Incident) -> OpenPeriodContext:
         return cls(
-            date_started=incident.date_added,
-            date_closed=incident.date_closed,
+            date_started=incident.date_added, date_closed=incident.date_closed, id=incident.id
         )
 
     @classmethod
     def from_group(cls, group: Group) -> OpenPeriodContext:
-        open_periods = get_open_periods_for_group(group, limit=1)
-        if len(open_periods) == 0:
+        open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        if open_period is None:
             raise ValueError("No open periods found for group")
         return cls(
-            date_started=open_periods[0].start,
-            date_closed=open_periods[0].end,
+            date_started=open_period.date_started,
+            date_closed=open_period.date_ended,
+            id=open_period.id,
         )

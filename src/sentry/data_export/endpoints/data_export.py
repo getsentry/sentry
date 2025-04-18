@@ -6,8 +6,9 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
+from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.discover.arithmetic import categorize_columns
@@ -135,7 +136,7 @@ class DataExportQuerySerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
+class DataExportEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -183,7 +184,7 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         # Get environment_id and limit if available
         try:
-            environment_id = self._get_environment_id_from_request(request, organization.id)
+            environment_id = get_environment_id(request, organization.id)
         except Environment.DoesNotExist as error:
             return Response(error, status=400)
         limit = request.data.get("limit")

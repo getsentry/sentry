@@ -2,6 +2,7 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from sentry.notifications.types import AssigneeTargetType
 from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.match import MatchType
@@ -66,9 +67,10 @@ def create_event_attribute_data_condition(
 ) -> DataConditionKwargs:
     comparison = {
         "match": data["match"],
-        "value": data["value"],
         "attribute": data["attribute"],
     }
+    if comparison["match"] not in {MatchType.IS_SET, MatchType.NOT_SET}:
+        comparison["value"] = data["value"]
 
     return DataConditionKwargs(
         type=Condition.EVENT_ATTRIBUTE,
@@ -164,8 +166,10 @@ def create_assigned_to_data_condition(
 ) -> DataConditionKwargs:
     comparison = {
         "target_type": data["targetType"],
-        "target_identifier": data["targetIdentifier"],
     }
+
+    if data["targetType"] != AssigneeTargetType.UNASSIGNED:
+        comparison["target_identifier"] = data["targetIdentifier"]
 
     return DataConditionKwargs(
         type=Condition.ASSIGNED_TO,

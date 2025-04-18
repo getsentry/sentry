@@ -137,6 +137,21 @@ class TestEventAttributeCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
+        payload = {
+            "id": EventAttributeCondition.id,
+            "match": MatchType.IS_SET,
+            "attribute": "platform",
+        }
+        dc = self.translate_to_data_condition(payload, dcg)
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "match": MatchType.IS_SET,
+            "attribute": "platform",
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
     def test_dual_write_filter(self):
         self.payload["id"] = EventAttributeFilter.id
         dcg = self.create_data_condition_group()
@@ -188,6 +203,16 @@ class TestEventAttributeCondition(ConditionTestCase):
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "attribute": "platform", "value": 2000, "extra": "extra"}
         )
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update(
+            {"match": MatchType.IS_SET, "attribute": "platform", "value": 2000}
+        )
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update({"match": MatchType.EQUAL, "attribute": "asdf", "value": 2000})
         with pytest.raises(ValidationError):
             self.dc.save()
 

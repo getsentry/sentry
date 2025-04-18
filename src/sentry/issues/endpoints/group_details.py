@@ -11,9 +11,9 @@ from rest_framework.response import Response
 from sentry import features, tagstore, tsdb
 from sentry.api import client
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
-from sentry.api.helpers.environments import get_environments
+from sentry.api.helpers.environments import get_environment_func, get_environments
 from sentry.api.helpers.group_index import (
     delete_group_list,
     get_first_last_release,
@@ -59,7 +59,7 @@ def get_group_global_count(group: Group) -> str:
 
 
 @region_silo_endpoint
-class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
+class GroupDetailsEndpoint(GroupEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
@@ -359,7 +359,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         try:
             discard = request.data.get("discard")
             project = group.project
-            search_fn = functools.partial(prep_search, self, request, project)
+            search_fn = functools.partial(prep_search, request, project)
             response = update_groups_with_search_fn(
                 request, [group.id], [project], project.organization_id, search_fn
             )
@@ -381,9 +381,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 group,
                 request.user,
                 GroupSerializer(
-                    environment_func=self._get_environment_func(
-                        request, group.project.organization_id
-                    )
+                    environment_func=get_environment_func(request, group.project.organization_id)
                 ),
             )
             return Response(serialized, status=response.status_code)
