@@ -5,7 +5,6 @@ import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
@@ -17,6 +16,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -368,7 +368,13 @@ class ReleaseIssues extends Component<Props, State> {
     return (
       <Fragment>
         <ControlsWrapper>
-          <GuideAnchor target="release_states">
+          <DemoTourElement
+            id={DemoTourStep.RELEASES_STATES}
+            title={t('New and regressed issues')}
+            description={t(
+              `Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.`
+            )}
+          >
             <SegmentedControl
               aria-label={t('Issue type')}
               size="xs"
@@ -387,7 +393,7 @@ class ReleaseIssues extends Component<Props, State> {
                 </SegmentedControl.Item>
               ))}
             </SegmentedControl>
-          </GuideAnchor>
+          </DemoTourElement>
 
           <OpenInButtonBar gap={1}>
             <LinkButton to={this.getIssuesUrl()} size="xs">

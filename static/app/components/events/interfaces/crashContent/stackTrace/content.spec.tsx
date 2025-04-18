@@ -163,7 +163,7 @@ describe('StackTrace', function () {
   });
 
   it('if frames are omitted, renders omitted frames', function () {
-    const newData = {
+    const newData: StacktraceType = {
       ...data,
       framesOmitted: [0, 3],
     };
@@ -171,7 +171,7 @@ describe('StackTrace', function () {
     render(<StackTraceContent {...defaultProps} data={newData} event={event} />);
 
     const omittedFrames = screen.getByText(
-      'Frames 0 until 3 were omitted and not available.'
+      'Frames 0 to 3 were omitted and not available.'
     );
     expect(omittedFrames).toBeInTheDocument();
   });

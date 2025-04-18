@@ -55,7 +55,7 @@ export function ActivityFeedFixture(params: Partial<Activity> = {}): Activity {
         stacktraceOrder: -1,
         timezone: 'America/Los_Angeles',
         prefersIssueDetailsStreamlinedUI: false,
-        prefersSpecializedProjectOverview: {},
+        prefersNextjsInsightsOverview: false,
         prefersStackedNavigation: false,
         prefersChonkUI: false,
         quickStartDisplay: {},

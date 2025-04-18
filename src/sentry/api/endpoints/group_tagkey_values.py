@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry import analytics, tagstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
@@ -25,7 +25,7 @@ from sentry.tagstore.types import TagValueSerializerResponse
 
 @extend_schema(tags=["Events"])
 @region_silo_endpoint
-class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
+class GroupTagKeyValuesEndpoint(GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

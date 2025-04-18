@@ -6,22 +6,15 @@ import partition from 'lodash/partition';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {useUpdateOnboardingTasks} from 'sentry/actionCreators/onboardingTasks';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
-import {Tooltip} from 'sentry/components/tooltip';
-import {
-  IconCheckmark,
-  IconChevron,
-  IconClose,
-  IconNot,
-  IconSupport,
-  IconSync,
-} from 'sentry/icons';
+import {IconCheckmark, IconChevron, IconClose, IconNot, IconSupport} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
@@ -29,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {DemoTour, useDemoTours} from 'sentry/utils/demoMode/demoTours';
 import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -102,8 +96,8 @@ function TaskCard({
 }
 
 interface TaskStatusIconProps {
-  status: 'complete' | 'inProgress' | 'skipped' | 'pending';
   progress?: number;
+  status?: 'complete' | 'inProgress' | 'skipped';
   tooltipText?: string;
 }
 
@@ -129,15 +123,6 @@ function TaskStatusIcon({status, tooltipText, progress}: TaskStatusIconProps) {
           data-test-id="task-status-icon-skipped"
           css={css`
             color: ${theme.disabled};
-            height: ${theme.fontSizeLarge};
-            width: ${theme.fontSizeLarge};
-          `}
-        />
-      ) : status === 'pending' ? (
-        <IconSync
-          data-test-id="task-status-icon-pending"
-          css={css`
-            color: ${theme.pink400};
             height: ${theme.fontSizeLarge};
             width: ${theme.fontSizeLarge};
           `}
@@ -255,9 +240,11 @@ interface TaskProps {
 
 function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
   const organization = useOrganization();
-  const updateOnboardingTasks = useUpdateOnboardingTasks();
+  const mutateOnboardingTasks = useMutateOnboardingTasks();
   const router = useRouter();
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
+
+  const tours = useDemoTours();
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -271,7 +258,15 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       e.stopPropagation();
 
       if (isDemoModeActive()) {
-        DemoWalkthroughStore.activateGuideAnchor(task.task);
+        if (task.task === OnboardingTaskKey.PERFORMANCE_GUIDE) {
+          tours?.[DemoTour.PERFORMANCE]?.startTour();
+        } else if (task.task === OnboardingTaskKey.RELEASE_GUIDE) {
+          tours?.[DemoTour.RELEASES]?.startTour();
+        } else if (task.task === OnboardingTaskKey.ISSUE_GUIDE) {
+          tours?.[DemoTour.ISSUES]?.startTour();
+        } else {
+          DemoWalkthroughStore.activateGuideAnchor(task.task);
+        }
       }
 
       if (task.actionType === 'external') {
@@ -293,7 +288,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       }
       hidePanel();
     },
-    [task, organization, router, hidePanel]
+    [task, organization, router, hidePanel, tours]
   );
 
   const handleMarkSkipped = useCallback(() => {
@@ -311,27 +306,25 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       action: 'skipped',
     });
 
-    updateOnboardingTasks.mutate([
+    mutateOnboardingTasks.mutate([
       {
         task: task.task,
         status: 'skipped',
         completionSeen: true,
       },
     ]);
-  }, [task, organization, updateOnboardingTasks]);
+  }, [task, organization, mutateOnboardingTasks]);
 
   const iconTooltipText = useMemo(() => {
     switch (task.status) {
       case 'complete':
         return t('Task completed');
-      case 'pending':
-        return task.pendingTitle ?? t('Task in progress\u2026');
       case 'skipped':
         return t('Task skipped');
       default:
         return undefined;
     }
-  }, [task.status, task.pendingTitle]);
+  }, [task.status]);
 
   return (
     <TaskWrapper
@@ -360,7 +353,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
             ? undefined
             : handleClick
         }
-        icon={<TaskStatusIcon status={task.status} tooltipText={iconTooltipText} />}
+        icon={<TaskStatusIcon status={task?.status} tooltipText={iconTooltipText} />}
         description={task.description}
         title={<strong>{task.title}</strong>}
         actions={
@@ -416,7 +409,7 @@ function ExpandedTaskGroup({
   hidePanel,
   taskKeyForWaitingIndicator,
 }: ExpandedTaskGroupProps) {
-  const updateOnboardingTasks = useUpdateOnboardingTasks();
+  const mutateOnboardingTasks = useMutateOnboardingTasks();
 
   const markCompletionTimeout = useRef<number | undefined>(undefined);
 
@@ -437,9 +430,9 @@ function ExpandedTaskGroup({
         updateDemoWalkthroughTask(unseenDoneTask);
       }
     } else {
-      updateOnboardingTasks.mutate(unseenDoneTasks);
+      mutateOnboardingTasks.mutate(unseenDoneTasks);
     }
-  }, [updateOnboardingTasks, sortedTasks]);
+  }, [mutateOnboardingTasks, sortedTasks]);
 
   const markSeenOnOpen = useCallback(
     async function () {

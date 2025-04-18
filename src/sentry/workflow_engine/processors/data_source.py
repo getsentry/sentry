@@ -43,9 +43,14 @@ def process_data_sources(
                 len(detectors),
                 tags={"query_type": query_type},
             )
+
+            logger.info(
+                "workflow_engine.process_data_sources detectors",
+                extra={"detectors": detectors, "source_id": packet.source_id},
+            )
         else:
             logger.warning(
-                "No detectors found",
+                "workflow_engine.process_data_sources no detectors",
                 extra={"source_id": packet.source_id, "query_type": query_type},
             )
             metrics.incr(

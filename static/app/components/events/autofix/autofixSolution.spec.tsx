@@ -30,7 +30,7 @@ describe('AutofixSolution', () => {
     groupId: '123',
     runId: 'run-123',
     solutionSelected: false,
-  };
+  } satisfies React.ComponentProps<typeof AutofixSolution>;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

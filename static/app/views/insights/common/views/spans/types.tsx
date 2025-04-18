@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
-import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
+import type {SpanMetricsField, SubregionCode} from 'sentry/views/insights/types';
 
 export type ModuleFilters = {
   [SpanMetricsField.SPAN_ACTION]?: string;

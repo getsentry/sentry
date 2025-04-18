@@ -13,8 +13,6 @@ from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH, UseCa
 
 logger = logging.getLogger(__name__)
 
-from collections.abc import Mapping
-
 
 class BaseIndexer(Model):
     string = models.CharField(max_length=MAX_INDEXED_COLUMN_LENGTH)
@@ -59,9 +57,7 @@ class PerfStringIndexer(BaseIndexer):
         ]
 
 
-IndexerTable = type[BaseIndexer]
-
-TABLE_MAPPING: Mapping[UseCaseKey, IndexerTable] = {
+TABLE_MAPPING: dict[UseCaseKey, type[BaseIndexer]] = {
     UseCaseKey.RELEASE_HEALTH: StringIndexer,
     UseCaseKey.PERFORMANCE: PerfStringIndexer,
 }

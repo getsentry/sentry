@@ -6,9 +6,9 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import type {LocationDescriptor} from 'history';
 
+import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
-import {Tooltip, type TooltipProps} from 'sentry/components/tooltip';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import HookStore from 'sentry/stores/hookStore';
@@ -120,6 +120,10 @@ export interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonE
   /**
    * @deprecated Use LinkButton instead
    */
+  preventScrollReset?: boolean;
+  /**
+   * @deprecated Use LinkButton instead
+   */
   replace?: boolean;
   /**
    * Similar to `href`, but for internal links within the app.
@@ -153,6 +157,7 @@ interface ToLinkButtonProps extends BaseLinkButtonProps {
    */
   to: string | LocationDescriptor;
   external?: never;
+  preventScrollReset?: boolean;
   replace?: boolean;
 }
 
@@ -203,6 +208,7 @@ function BaseButton({
   size = 'md',
   to,
   replace,
+  preventScrollReset,
   busy,
   href,
   title,
@@ -291,6 +297,7 @@ function BaseButton({
         to={disabled ? undefined : to}
         href={disabled ? undefined : href}
         replace={replace}
+        preventScrollReset={preventScrollReset}
         size={size}
         priority={priority}
         borderless={borderless}
@@ -347,6 +354,7 @@ export const StyledButton = styled(
     external,
     to,
     replace,
+    preventScrollReset,
     href,
     disabled,
     ref: forwardRefAlt,
@@ -365,6 +373,7 @@ export const StyledButton = styled(
           ref={ref as React.Ref<HTMLAnchorElement>}
           to={to}
           replace={replace}
+          preventScrollReset={preventScrollReset}
           disabled={disabled}
         />
       );
@@ -396,6 +405,7 @@ export const StyledButton = styled(
       prop === 'forwardRef' ||
       prop === 'external' ||
       prop === 'replace' ||
+      prop === 'preventScrollReset' ||
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<ButtonProps>`

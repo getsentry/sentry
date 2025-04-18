@@ -143,10 +143,6 @@ type Props = {
   userTeamIds: string[];
   loadingProjects?: boolean;
   onChangeTitle?: (data: string) => void;
-  /**
-   * A callback triggered when the rule is saved successfully
-   */
-  onSaveSuccess?: () => void;
 } & RouteComponentProps<RouteParams>;
 
 type State = DeprecatedAsyncComponent['state'] & {
@@ -456,9 +452,8 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   };
 
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
-    const {organization, router, onSaveSuccess} = this.props;
+    const {organization, router} = this.props;
     const {project} = this.state;
-    onSaveSuccess?.();
 
     metric.endSpan({name: 'saveAlertRule'});
 
@@ -1024,8 +1019,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         []),
     ];
 
-    const environment =
-      !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
+    const environment = rule?.environment ? rule.environment : ALL_ENVIRONMENTS_KEY;
 
     return (
       <FormField
@@ -1172,8 +1166,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     } = this.state;
     const {actions, filters, conditions, frequency} = rule || {};
 
-    const environment =
-      !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
+    const environment = rule?.environment ? rule.environment : ALL_ENVIRONMENTS_KEY;
 
     const canCreateAlert = hasEveryAccess(['alerts:write'], {organization, project});
     const disabled = loading || !(canCreateAlert || isActiveSuperuser());

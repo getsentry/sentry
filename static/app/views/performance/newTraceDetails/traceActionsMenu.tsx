@@ -38,7 +38,7 @@ function TraceActionsMenu({
   const organization = useOrganization();
   const {projects} = useProjects();
   const navigate = useNavigate();
-  const hasDrawerAction = organization.features.includes('trace-drawer-action');
+  const hasExploreEnabled = organization.features.includes('visibility-explore-view');
 
   if (!hasTraceNewUi) {
     return null;
@@ -53,13 +53,13 @@ function TraceActionsMenu({
       items={[
         {
           key: 'open_trace_events',
-          label: hasDrawerAction
+          label: hasExploreEnabled
             ? t('Open Events in Explore')
             : t('Open Events in Discover'),
           onAction: () => {
             let target;
 
-            if (hasDrawerAction) {
+            if (hasExploreEnabled) {
               const key = 'trace';
               const value = traceSlug ?? '';
 

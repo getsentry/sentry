@@ -1,11 +1,10 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
@@ -20,6 +19,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
@@ -74,14 +74,6 @@ export function SpanSamplesContainer({
       ? undefined
       : decodeScalar(location.query[searchQueryKey]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debounceSetHighlightedSpanId = useCallback(
-    debounce(id => {
-      setHighlightedSpanId(id);
-    }, 10),
-    []
-  );
-
   const spanSearch = new MutableSearch(searchQuery ?? '');
   if (additionalFilters) {
     Object.entries(additionalFilters).forEach(([key, value]) => {
@@ -134,6 +126,32 @@ export function SpanSamplesContainer({
     );
   };
 
+  const handleClickSample = useCallback(
+    (span: SpanSample) => {
+      navigate(
+        generateLinkToEventInTraceView({
+          targetId: span['transaction.span_id'],
+          projectSlug: span.project,
+          spanId: span.span_id,
+          location,
+          organization,
+          traceSlug: span.trace,
+          timestamp: span.timestamp,
+          view,
+          source: TraceViewSources.APP_STARTS_MODULE,
+        })
+      );
+    },
+    [organization, location, navigate, view]
+  );
+
+  const handleMouseOverSample = useCallback(
+    (sample: SpanSample) => setHighlightedSpanId(sample.span_id),
+    []
+  );
+
+  const handleMouseLeaveSample = useCallback(() => setHighlightedSpanId(undefined), []);
+
   return (
     <Fragment>
       <PaddedTitle>
@@ -179,23 +197,9 @@ export function SpanSamplesContainer({
         groupId={groupId}
         transactionName={transactionName}
         transactionMethod={transactionMethod}
-        onClickSample={span => {
-          navigate(
-            generateLinkToEventInTraceView({
-              eventId: span['transaction.id'],
-              projectSlug: span.project,
-              spanId: span.span_id,
-              location,
-              organization,
-              traceSlug: span.trace,
-              timestamp: span.timestamp,
-              view,
-              source: TraceViewSources.APP_STARTS_MODULE,
-            })
-          );
-        }}
-        onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}
-        onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
+        onClickSample={handleClickSample}
+        onMouseOverSample={handleMouseOverSample}
+        onMouseLeaveSample={handleMouseLeaveSample}
         highlightedSpanId={highlightedSpanId}
         release={release}
         platform={isProjectCrossPlatform ? selectedPlatform : undefined}

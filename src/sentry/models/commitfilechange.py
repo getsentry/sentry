@@ -17,6 +17,9 @@ from sentry.db.models.manager.base import BaseManager
 COMMIT_FILE_CHANGE_TYPES = frozenset(("A", "D", "M"))
 
 
+__all__ = ("CommitFileChange",)
+
+
 class CommitFileChangeManager(BaseManager["CommitFileChange"]):
     def get_count_for_commits(self, commits: Iterable[Any]) -> int:
         return int(self.filter(commit__in=commits).values("filename").distinct().count())
