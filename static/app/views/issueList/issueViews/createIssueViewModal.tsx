@@ -27,7 +27,7 @@ interface CreateIssueViewModalProps
     Partial<
       Pick<
         GroupSearchView,
-        'query' | 'querySort' | 'projects' | 'environments' | 'timeFilters'
+        'name' | 'query' | 'querySort' | 'projects' | 'environments' | 'timeFilters'
       >
     > {}
 
@@ -53,6 +53,7 @@ export function CreateIssueViewModal({
   projects: incomingProjects,
   environments: incomingEnvironments,
   timeFilters: incomingTimeFilters,
+  name: incomingName,
 }: CreateIssueViewModalProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -88,7 +89,7 @@ export function CreateIssueViewModal({
   };
 
   const initialData = {
-    name: '',
+    name: incomingName ?? '',
     query: incomingQuery ?? 'is:unresolved',
     querySort: incomingQuerySort ?? IssueSortOptions.DATE,
     projects: incomingProjects ?? [],

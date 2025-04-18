@@ -1,10 +1,10 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -31,7 +31,6 @@ import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/compon
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
-import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
 import {MessageSpanSamplesTable} from 'sentry/views/insights/queues/components/tables/messageSpanSamplesTable';
 import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQueuesMetricsQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
@@ -71,10 +70,8 @@ export function MessageSpanSamplesPanel() {
 
   const organization = useOrganization();
 
-  const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
-    undefined,
-    [],
-    SAMPLE_HOVER_DEBOUNCE
+  const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
+    undefined
   );
 
   // `detailKey` controls whether the panel is open. If all required properties are available, concat them to make a key, otherwise set to `undefined` and hide the panel
@@ -253,7 +250,7 @@ export function MessageSpanSamplesPanel() {
 
   return (
     <PageAlertProvider>
-      <DrawerHeader>
+      <EventDrawerHeader>
         <SampleDrawerHeaderTransaction
           project={project}
           transaction={query.transaction}
@@ -261,7 +258,7 @@ export function MessageSpanSamplesPanel() {
             messageActorType === MessageActorType.PRODUCER ? t('Producer') : t('Consumer')
           }
         />
-      </DrawerHeader>
+      </EventDrawerHeader>
 
       <SampleDrawerBody>
         <ModuleLayout.Layout>
@@ -432,8 +429,6 @@ function ConsumerMetricsRibbon({
     </ReadoutRibbon>
   );
 }
-
-const SAMPLE_HOVER_DEBOUNCE = 10;
 
 const TRACE_STATUS_SELECT_OPTIONS = [
   {

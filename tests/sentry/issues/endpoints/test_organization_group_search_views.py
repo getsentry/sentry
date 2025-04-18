@@ -1214,25 +1214,27 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         )
         view_2 = self.create_view(user=self.user_1, last_visited=timezone.now() - timedelta(days=1))
         view_3 = self.create_view(user=self.user_1, last_visited=timezone.now() - timedelta(days=2))
+        view_4 = self.create_view(user=self.user_1, last_visited=None)
 
         response = self.client.get(self.url, {"createdBy": "me"})
         assert response.status_code == 200
-        assert len(response.data) == 3
+        assert len(response.data) == 4
         # =============   Starred views   =============
         assert response.data[0]["id"] == str(view_1.id), response.data[0]["starred"]
         # ============= Non-starred views =============
         assert response.data[1]["id"] == str(view_2.id), not response.data[1]["starred"]
         assert response.data[2]["id"] == str(view_3.id), not response.data[2]["starred"]
-
+        assert response.data[3]["id"] == str(view_4.id), not response.data[3]["starred"]
         response = self.client.get(self.url, {"createdBy": "me", "sort": "visited"})
 
         assert response.status_code == 200
-        assert len(response.data) == 3
+        assert len(response.data) == 4
         # =============   Starred views   =============
         assert response.data[0]["id"] == str(view_1.id), response.data[0]["starred"]
         # ============= Non-starred views =============
-        assert response.data[1]["id"] == str(view_3.id), not response.data[1]["starred"]
-        assert response.data[2]["id"] == str(view_2.id), not response.data[2]["starred"]
+        assert response.data[1]["id"] == str(view_4.id), not response.data[1]["starred"]
+        assert response.data[2]["id"] == str(view_3.id), not response.data[2]["starred"]
+        assert response.data[3]["id"] == str(view_2.id), not response.data[3]["starred"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -1415,3 +1417,64 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         assert response.data[0]["id"] == str(view_3.id), response.data[0]["starred"]
         # ============= Non-starred views =============
         # None
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_created_by_me_sort_by_created(self) -> None:
+        self.login_as(user=self.user_1)
+
+        view_1 = self.create_view(user=self.user_1, name="View 1")
+        view_2 = self.create_view(user=self.user_1, name="View 2")
+        view_3 = self.create_view(user=self.user_1, name="View 3")
+
+        response = self.client.get(self.url, {"createdBy": "me", "sort": "created"})
+        assert response.status_code == 200
+        assert len(response.data) == 3
+        assert response.data[0]["id"] == str(view_1.id)
+        assert response.data[1]["id"] == str(view_2.id)
+        assert response.data[2]["id"] == str(view_3.id)
+
+        response = self.client.get(self.url, {"createdBy": "me", "sort": "-created"})
+        assert response.status_code == 200
+        assert len(response.data) == 3
+        assert response.data[0]["id"] == str(view_3.id)
+        assert response.data[1]["id"] == str(view_2.id)
+        assert response.data[2]["id"] == str(view_1.id)
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_multiple_sort_options(self) -> None:
+        self.login_as(user=self.user_1)
+
+        view_1 = self.create_view(
+            user=self.user_1, name="View A", last_visited=timezone.now() - timedelta(days=4)
+        )
+        view_2 = self.create_view(
+            user=self.user_1, name="View A", last_visited=timezone.now() - timedelta(days=1)
+        )
+        view_3 = self.create_view(
+            user=self.user_1, name="View B", last_visited=timezone.now() - timedelta(days=2)
+        )
+        view_4 = self.create_view(
+            user=self.user_1, name="View B", last_visited=timezone.now() - timedelta(days=3)
+        )
+
+        # Can sort by first name asc, then last_visited desc
+
+        response = self.client.get(self.url, {"createdBy": "me", "sort": ["name", "-visited"]})
+        assert response.status_code == 200
+        assert len(response.data) == 4
+        assert response.data[0]["id"] == str(view_2.id)
+        assert response.data[1]["id"] == str(view_1.id)
+        assert response.data[2]["id"] == str(view_3.id)
+        assert response.data[3]["id"] == str(view_4.id)
+
+        # Can sort by first name asc, then last_visited asc
+
+        response = self.client.get(self.url, {"createdBy": "me", "sort": ["name", "visited"]})
+        assert response.status_code == 200
+        assert len(response.data) == 4
+        assert response.data[0]["id"] == str(view_1.id)
+        assert response.data[1]["id"] == str(view_2.id)
+        assert response.data[2]["id"] == str(view_4.id)
+        assert response.data[3]["id"] == str(view_3.id)

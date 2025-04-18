@@ -1,3 +1,4 @@
+import enum
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -118,3 +119,12 @@ class EapCheckEntry:
     incident_status: IncidentStatus
     environment: str
     region: str
+
+
+class ProjectUptimeSubscriptionMode(enum.IntEnum):
+    # Manually created by a user
+    MANUAL = 1
+    # Auto-detected by our system and in the onboarding stage
+    AUTO_DETECTED_ONBOARDING = 2
+    # Auto-detected by our system and actively monitoring
+    AUTO_DETECTED_ACTIVE = 3
