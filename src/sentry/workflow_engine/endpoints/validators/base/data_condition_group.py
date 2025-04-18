@@ -21,6 +21,12 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
 
         return conditions
 
+    def update(
+        self, instance: DataConditionGroup,
+        validated_data: dict[str, Any],
+    ) -> DataConditionGroup:
+        pass
+
     def create(self, validated_data: dict[str, Any]) -> DataConditionGroup:
         with transaction.atomic(router.db_for_write(DataConditionGroup)):
             condition_group = DataConditionGroup.objects.create(
