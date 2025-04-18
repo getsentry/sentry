@@ -13,7 +13,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -110,6 +110,7 @@ class BaseGroupResponseOptional(TypedDict, total=False):
     userCount: int
     firstSeen: datetime
     lastSeen: datetime
+    lifetime: dict[str, Any]
 
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
@@ -363,6 +364,8 @@ class GroupSerializerBase(Serializer, ABC):
             group_dict["isUnhandled"] = attrs["is_unhandled"]
         if is_seen_stats(attrs):
             group_dict.update(self._convert_seen_stats(attrs))
+        if "lifetime" in attrs and attrs["lifetime"]:
+            group_dict["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
         return group_dict
 
     @abstractmethod
@@ -1012,7 +1015,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
     def _seen_stats_error(
         self, error_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
-        return self._parse_seen_stats_results(
+        result = self._parse_seen_stats_results(
             self._execute_error_seen_stats_query(
                 item_list=error_issue_list,
                 start=self.start,
@@ -1024,11 +1027,24 @@ class GroupSerializerSnuba(GroupSerializerBase):
             bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )
+        if features.has(
+            "organizations:issue-details-lifetime-stats", error_issue_list[0].project.organization
+        ):
+            lifetime_result = self._parse_seen_stats_results(
+                self._execute_error_seen_stats_query(
+                    item_list=error_issue_list,
+                ),
+                error_issue_list,
+                False,
+            )
+            for item in error_issue_list:
+                result[item].update({"lifetime": lifetime_result.get(item, {})})
+        return result
 
     def _seen_stats_generic(
         self, generic_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
-        return self._parse_seen_stats_results(
+        result = self._parse_seen_stats_results(
             self._execute_generic_seen_stats_query(
                 item_list=generic_issue_list,
                 start=self.start,
@@ -1040,6 +1056,19 @@ class GroupSerializerSnuba(GroupSerializerBase):
             bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )
+        if features.has(
+            "organizations:issue-details-lifetime-stats", generic_issue_list[0].project.organization
+        ):
+            lifetime_result = self._parse_seen_stats_results(
+                self._execute_generic_seen_stats_query(
+                    item_list=generic_issue_list,
+                ),
+                generic_issue_list,
+                False,
+            )
+            for item in generic_issue_list:
+                result[item].update({"lifetime": lifetime_result.get(item, {})})
+        return result
 
     @staticmethod
     def _execute_error_seen_stats_query(
