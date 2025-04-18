@@ -10,7 +10,6 @@ import {
   type NewDataCondition,
 } from 'sentry/types/workflowEngine/dataConditions';
 import AgeComparisonNode from 'sentry/views/automations/components/actionFilters/ageComparison';
-import {AssignedToNode} from 'sentry/views/automations/components/actionFilters/assignedTo';
 import EventAttributeNode from 'sentry/views/automations/components/actionFilters/eventAttribute';
 import IssueOccurrencesNode from 'sentry/views/automations/components/actionFilters/issueOccurrences';
 import LatestAdoptedReleaseNode from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
@@ -72,13 +71,6 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Issue frequency'),
       dataCondition: <IssueOccurrencesNode />,
-    },
-  ],
-  [
-    DataConditionType.ASSIGNED_TO,
-    {
-      label: t('Issue assignment'),
-      dataCondition: <AssignedToNode />,
     },
   ],
   [
