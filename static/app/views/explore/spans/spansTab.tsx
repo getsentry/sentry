@@ -24,17 +24,19 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
 } from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreCharts} from 'sentry/views/explore/charts';
 import SchemaHintsList, {
   SchemaHintsSection,
-} from 'sentry/views/explore/components/schemaHintsList';
-import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
+} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   PageParamsProvider,
   useExploreDataset,
@@ -44,7 +46,6 @@ import {
   useExploreQuery,
   useExploreVisualizes,
   useSetExplorePageParams,
-  useSetExploreQuery,
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -91,14 +92,13 @@ export function SpansTabContentImpl({
   const mode = useExploreMode();
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
+  const fields = useExploreFields();
   const [samplesTab, setSamplesTab] = useTab();
 
   const {tags: numberTags, isLoading: numberTagsLoading} = useSpanTags('number');
   const {tags: stringTags, isLoading: stringTagsLoading} = useSpanTags('string');
 
   const query = useExploreQuery();
-  const setQuery = useSetExploreQuery();
-  const fields = useExploreFields();
   const setExplorePageParams = useSetExplorePageParams();
 
   const id = useExploreId();
@@ -202,13 +202,23 @@ export function SpansTabContentImpl({
     (queryType === 'samples'
       ? false // Samples mode won't show the progressive loading spinner
       : queryType === 'aggregate'
-        ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+        ? // Only show the progressive spinner after the preflight query has been run
+          aggregatesTableResult.samplingMode === SAMPLING_MODE.PREFLIGHT &&
+          aggregatesTableResult.result.isFetched
         : false);
 
   const eapSpanSearchQueryBuilderProps = {
     projects: selection.projects,
     initialQuery: query,
-    onSearch: setQuery,
+    onSearch: (newQuery: string) => {
+      const newFields = new MutableSearch(newQuery)
+        .getFilterKeys()
+        .map(key => (key.startsWith('!') ? key.slice(1) : key));
+      setExplorePageParams({
+        query: newQuery,
+        fields: [...new Set([...fields, ...newFields])],
+      });
+    },
     searchSource: 'explore',
     getFilterTokenWarning:
       mode === Mode.SAMPLES
@@ -271,8 +281,6 @@ export function SpansTabContentImpl({
                   isLoading={numberTagsLoading || stringTagsLoading}
                   exploreQuery={query}
                   source={SchemaHintsSources.EXPLORE}
-                  tableColumns={fields}
-                  setPageParams={setExplorePageParams}
                 />
               </StyledSchemaHintsSection>
             </Feature>
@@ -313,6 +321,7 @@ export function SpansTabContentImpl({
                 visualizes={visualizes}
                 setVisualizes={setVisualizes}
                 samplingMode={timeseriesSamplingMode}
+                dataset={DiscoverDatasets.SPANS_EAP}
               />
               <ExploreTables
                 aggregatesTableResult={aggregatesTableResult}
@@ -448,7 +457,6 @@ const FilterSection = styled('div')`
 
 const SideSection = styled('aside')<{withToolbar: boolean}>`
   position: relative;
-  z-index: 0;
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     ${p =>
       p.withToolbar
@@ -472,7 +480,6 @@ const SideSection = styled('aside')<{withToolbar: boolean}>`
 
 const MainContent = styled('section')`
   position: relative;
-  z-index: 1;
   max-width: 100%;
   background: ${p => p.theme.background};
 `;

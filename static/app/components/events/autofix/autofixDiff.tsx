@@ -662,7 +662,7 @@ export function AutofixDiff({
   previousInsightCount,
   isExpandable = true,
 }: AutofixDiffProps) {
-  if (!diff || !diff.length) {
+  if (!diff?.length) {
     return null;
   }
 

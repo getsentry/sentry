@@ -8,7 +8,7 @@ from sentry.utils.dates import parse_stats_period, validate_interval
 
 
 class VisualizeSerializer(serializers.Serializer):
-    chartType = serializers.IntegerField()
+    chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField())
 
 

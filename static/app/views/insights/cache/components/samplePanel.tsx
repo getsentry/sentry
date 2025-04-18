@@ -1,9 +1,9 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -17,8 +17,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
+import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {CacheHitMissChart} from 'sentry/views/insights/cache/components/charts/hitMissChart';
-import {TransactionDurationChart} from 'sentry/views/insights/cache/components/charts/transactionDurationChart';
+import {TransactionDurationChartWithSamples} from 'sentry/views/insights/cache/components/charts/transactionDurationChartWithSamples';
 import {SpanSamplesTable} from 'sentry/views/insights/cache/components/tables/spanSamplesTable';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
 import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
@@ -35,13 +37,11 @@ import {
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {findSampleFromDataPoint} from 'sentry/views/insights/common/utils/findDataPoint';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
 import {
   MetricsFields,
   type MetricsQueryFilters,
@@ -71,10 +71,8 @@ export function CacheSamplePanel() {
     },
   });
 
-  const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
-    undefined,
-    [],
-    10
+  const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
+    undefined
   );
 
   // @ts-expect-error TS(7006): Parameter 'newStatusClass' implicitly has an 'any'... Remove this comment to see the full error message
@@ -198,7 +196,9 @@ export function CacheSamplePanel() {
     refetch: refetchCacheMisses,
   } = useIndexedCacheSpans('false', cacheMissSamplesLimit);
 
-  const cacheSamples = [...(cacheHitSamples || []), ...(cacheMissSamples || [])];
+  const cacheSamples = useMemo(() => {
+    return [...(cacheHitSamples || []), ...(cacheMissSamples || [])];
+  }, [cacheHitSamples, cacheMissSamples]);
 
   const transactionIds = cacheSamples?.map(span => span[transactionIdField]) || [];
   const search = useEap
@@ -218,14 +218,18 @@ export function CacheSamplePanel() {
     Referrer.SAMPLES_CACHE_SPAN_SAMPLES
   );
 
-  const transactionDurationsMap = keyBy(transactionData, 'id');
-
-  const spansWithDuration =
-    cacheSamples?.map(span => ({
+  const spansWithDuration = useMemo(() => {
+    const transactionDurationsMap = keyBy(transactionData, 'id');
+    return cacheSamples.map(span => ({
       ...span,
       'transaction.duration':
         transactionDurationsMap[span[transactionIdField]]?.['span.duration']!,
-    })) || [];
+    }));
+  }, [cacheSamples, transactionData, transactionIdField]);
+
+  const spanSamplesById = useMemo(() => {
+    return keyBy(spansWithDuration, 'id');
+  }, [spansWithDuration]);
 
   const {projects} = useProjects();
   const project = projects.find(p => query.project === p.id);
@@ -245,14 +249,57 @@ export function CacheSamplePanel() {
     refetchCacheMisses();
   };
 
+  const avg =
+    transactionDurationData?.[0]?.[`avg(${MetricsFields.TRANSACTION_DURATION})`] ?? 0;
+
+  const samplesPlottable = useMemo(() => {
+    // Create a `TabularData` object from multiple datasets. This requires
+    // setting the meta manually. A little annoying, but the meta is simple.
+    const sampleData = {
+      data: spansWithDuration,
+      meta: {
+        fields: {'span.duration': 'duration'},
+        units: {'span.duration': DurationUnit.MILLISECOND},
+      },
+    } satisfies TabularData;
+
+    return new Samples(sampleData, {
+      attributeName: 'transaction.duration',
+      baselineValue: avg,
+      baselineLabel: t('Average'),
+      onHighlight: sample => {
+        setHighlightedSpanId(sample.id);
+      },
+      onDownplay: () => {
+        setHighlightedSpanId(undefined);
+      },
+    });
+  }, [avg, spansWithDuration, setHighlightedSpanId]);
+
+  useEffect(() => {
+    if (highlightedSpanId) {
+      const spanSample = spanSamplesById[highlightedSpanId]!;
+      samplesPlottable.highlight(spanSample);
+    }
+
+    return () => {
+      if (!highlightedSpanId) {
+        return;
+      }
+
+      const spanSample = spanSamplesById[highlightedSpanId]!;
+      samplesPlottable?.downplay(spanSample);
+    };
+  }, [samplesPlottable, spanSamplesById, highlightedSpanId]);
+
   return (
     <PageAlertProvider>
-      <DrawerHeader>
+      <EventDrawerHeader>
         <SampleDrawerHeaderTransaction
           project={project}
           transaction={query.transaction}
         />
-      </DrawerHeader>
+      </EventDrawerHeader>
 
       <SampleDrawerBody>
         <ModuleLayout.Layout>
@@ -323,30 +370,7 @@ export function CacheSamplePanel() {
             />
           </ModuleLayout.Half>
           <ModuleLayout.Half>
-            <TransactionDurationChart
-              samples={spansWithDuration}
-              averageTransactionDuration={
-                transactionDurationData?.[0]?.[
-                  `avg(${MetricsFields.TRANSACTION_DURATION})`
-                ]!
-              }
-              highlightedSpanId={highlightedSpanId}
-              onHighlight={highlights => {
-                const firstHighlight = highlights[0];
-
-                if (!firstHighlight || !firstHighlight.dataPoint) {
-                  setHighlightedSpanId(undefined);
-                  return;
-                }
-
-                const sample = findSampleFromDataPoint<(typeof spansWithDuration)[0]>(
-                  firstHighlight.dataPoint,
-                  spansWithDuration,
-                  'transaction.duration'
-                );
-                setHighlightedSpanId(sample?.span_id);
-              }}
-            />
+            <TransactionDurationChartWithSamples samples={samplesPlottable} />
           </ModuleLayout.Half>
 
           <ModuleLayout.Full>

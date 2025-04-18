@@ -283,7 +283,15 @@ def should_filter_feedback(
     return False, None
 
 
-def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource):
+def create_feedback_issue(
+    event: dict[str, Any], project_id: int, source: FeedbackCreationSource
+) -> dict[str, Any] | None:
+    """
+    Produces a feedback issue occurrence to kafka for issues processing. Applies filters, spam filters, and event validation.
+
+    Returns the formatted event data that was sent to issue platform.
+    """
+
     metrics.incr(
         "feedback.create_feedback_issue.entered",
         tags={
@@ -306,7 +314,7 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
             category=DataCategory.USER_REPORT_V2,
             quantity=1,
         )
-        return
+        return None
 
     feedback_message = event["contexts"]["feedback"]["message"]
 
@@ -366,6 +374,14 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     if user_email and "user.email" not in event_fixed["tags"]:
         event_fixed["tags"]["user.email"] = user_email
 
+    # add the associated_event_id and has_linked_error to tags
+    associated_event_id = get_path(event_data, "contexts", "feedback", "associated_event_id")
+    if associated_event_id:
+        event_fixed["tags"]["associated_event_id"] = associated_event_id
+        event_fixed["tags"]["has_linked_error"] = "true"
+    else:
+        event_fixed["tags"]["has_linked_error"] = "false"
+
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)
 
@@ -408,6 +424,8 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         category=DataCategory.USER_REPORT_V2,
         quantity=1,
     )
+
+    return event_fixed
 
 
 def auto_ignore_spam_feedbacks(project, issue_fingerprint):

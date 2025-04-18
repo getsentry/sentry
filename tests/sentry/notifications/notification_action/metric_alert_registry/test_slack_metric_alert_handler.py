@@ -12,7 +12,7 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import SlackMetricAlertHandler
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
     get_alert_rule_serializer,
-    get_incident_serializer,
+    get_detailed_incident_serializer,
 )
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import Action
@@ -67,7 +67,7 @@ class TestSlackMetricAlertHandler(MetricAlertHandlerBase):
             organization=self.detector.project.organization,
             notification_uuid=notification_uuid,
             alert_rule_serialized_response=get_alert_rule_serializer(self.detector),
-            incident_serialized_response=get_incident_serializer(self.open_period),
+            incident_serialized_response=get_detailed_incident_serializer(self.open_period),
         )
 
     @mock.patch(
@@ -103,6 +103,7 @@ class TestSlackMetricAlertHandler(MetricAlertHandlerBase):
             threshold_type=None,
             detection_type=None,
             comparison_delta=None,
+            alert_threshold=None,
         )
 
         self.assert_metric_issue_context(
@@ -112,6 +113,7 @@ class TestSlackMetricAlertHandler(MetricAlertHandlerBase):
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
             group=self.group_event.group,
+            title=self.group_event.group.title,
         )
 
         self.assert_open_period_context(

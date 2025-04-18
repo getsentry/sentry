@@ -1,6 +1,6 @@
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import UserDetails from 'admin/views/userDetails';
@@ -43,9 +43,11 @@ describe('User Details', function () {
 
   describe('page rendering', function () {
     it('renders correct sections', async function () {
-      const {router, routerProps} = initializeOrg();
+      const router = RouterFixture({
+        params: {userId: mockUser.id},
+      });
 
-      render(<UserDetails {...routerProps} params={{userId: mockUser.id}} />, {
+      render(<UserDetails />, {
         router,
       });
 
@@ -55,9 +57,11 @@ describe('User Details', function () {
     });
 
     it('renders correct dropdown options for active account', async function () {
-      const {router, routerProps} = initializeOrg();
+      const router = RouterFixture({
+        params: {userId: mockUser.id},
+      });
 
-      render(<UserDetails {...routerProps} params={{userId: mockUser.id}} />, {
+      render(<UserDetails />, {
         router,
       });
 
@@ -69,9 +73,11 @@ describe('User Details', function () {
     });
 
     it('renders correct UserOverview', async function () {
-      const {router, routerProps} = initializeOrg();
+      const router = RouterFixture({
+        params: {userId: mockUser.id},
+      });
 
-      render(<UserDetails {...routerProps} params={{userId: mockUser.id}} />, {
+      render(<UserDetails />, {
         router,
       });
 

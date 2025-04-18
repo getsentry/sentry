@@ -248,7 +248,6 @@ export type EAPSpanResponse = {
       | `${Property}(${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
-    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG]: string;
   };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;
@@ -269,7 +268,6 @@ export enum SpanIndexedField {
   SPAN_ID = 'span_id',
   SPAN_ACTION = 'span.action',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
-  SPAN_AI_PIPELINE_GROUP_TAG = 'ai_pipeline_group',
   SDK_NAME = 'sdk.name',
   SDK_VERSION = 'sdk.version',
   TRACE = 'trace',
