@@ -9,10 +9,7 @@ from django.core import mail
 
 from sentry.api.serializers import serialize
 from sentry.conf.types.kafka_definition import Topic
-from sentry.incidents.action_handlers import (
-    EmailActionHandler,
-    generate_incident_trigger_email_context,
-)
+from sentry.incidents.action_handlers import build_message, generate_incident_trigger_email_context
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
 from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import (
@@ -160,11 +157,10 @@ class HandleSnubaQueryUpdateTest(TestCase):
             assert active_incident().exists()
 
         assert len(mail.outbox) == 1
-        handler = EmailActionHandler()
         incident_activity = IncidentActivity.objects.filter(
             incident=active_incident().get()
         ).order_by("-id")[0]
-        message_builder = handler.build_message(
+        message_builder = build_message(
             generate_incident_trigger_email_context(
                 project=self.project,
                 organization=self.project.organization,
