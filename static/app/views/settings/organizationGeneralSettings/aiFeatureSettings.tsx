@@ -18,14 +18,11 @@ export const makeHideAiFeaturesField = (organization: Organization): FieldObject
     name: 'hideAiFeatures',
     type: 'boolean',
     label: t('Enable Seer Features'),
-    help: tct(
-      'Enables [docs:Seer features] including issue summary, autofix, and LLM-assisted search.',
-      {
-        docs: (
-          <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/sentry-ai/" />
-        ),
-      }
-    ),
+    help: tct('Enables [docs:features] powered by the Seer agent.', {
+      docs: (
+        <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/sentry-ai/" />
+      ),
+    }),
     defaultValue: defaultEnableSeerFeaturesValue(organization),
     disabled: ({access}) => isDeRegion || !access.has('org:write'),
     getValue: value => {
