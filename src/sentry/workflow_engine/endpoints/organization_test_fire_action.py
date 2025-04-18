@@ -5,12 +5,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.status import (
-    HTTP_400_BAD_REQUEST,
-    HTTP_401_UNAUTHORIZED,
-    HTTP_404_NOT_FOUND,
-    HTTP_500_INTERNAL_SERVER_ERROR,
-)
+from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -32,18 +27,12 @@ from sentry.workflow_engine.types import WorkflowEventData
 logger = logging.getLogger(__name__)
 
 
-class TestActionValidator(BaseActionValidator):
-    class Meta:
-        model = Action
-        fields = ["data", "config", "type", "integration_id"]
-
-
 class TestActionsValidator(CamelSnakeSerializer):
     actions = serializers.ListField(required=True)
 
     def validate_actions(self, value):
         for action in value:
-            TestActionValidator(data=action).is_valid(raise_exception=True)
+            BaseActionValidator(data=action).is_valid(raise_exception=True)
         return value
 
 
@@ -108,9 +97,10 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
 
         test_event = get_test_notification_event_data(project)
         if test_event is None:
+            # This can happen if the user is rate limited
             return Response(
                 {"detail": "No test event was generated"},
-                status=HTTP_500_INTERNAL_SERVER_ERROR,
+                status=HTTP_400_BAD_REQUEST,
             )
 
         workflow_id = -1
