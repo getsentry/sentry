@@ -36,6 +36,7 @@ class GroupCategory(IntEnum):
     FEEDBACK = 6
     UPTIME = 7
     METRIC_ALERT = 8
+    TEST_NOTIFICATION = 9
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
