@@ -90,12 +90,14 @@ class JiraSearchEndpoint(IntegrationEndpoint):
         ):
             try:
                 response = jira_client.get_projects_paginated(params={"query": query})
-                projects = [
-                    {"label": f"{p["key"]} - {p["name"]}", "value": p["id"]}
-                    for p in response.get("values", [])
-                ]
             except (ApiUnauthorized, ApiError):
                 return Response({"detail": "Unable to fetch projects from Jira"}, status=400)
+
+            projects = [
+                {"label": f"{p["key"]} - {p["name"]}", "value": p["id"]}
+                for p in response.get("values", [])
+            ]
+
             return Response(projects)
 
         try:
