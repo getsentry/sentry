@@ -11,7 +11,17 @@ def delete_metric_alert_fire_detectors(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
     Detector = apps.get_model("workflow_engine", "Detector")
-    Detector.objects.filter(type="metric_alert_fire").delete()
+    DetectorWorkflow = apps.get_model("workflow_engine", "DetectorWorkflow")
+    Workflow = apps.get_model("workflow_engine", "Workflow")
+
+    detectors = Detector.objects.filter(type="metric_alert_fire")
+    workflow_ids = DetectorWorkflow.objects.filter(detector__in=detectors).values_list(
+        "workflow__id", flat=True
+    )
+    workflows = Workflow.objects.filter(id__in=workflow_ids)
+
+    workflows.delete()
+    detectors.delete()
 
 
 class Migration(CheckedMigration):
