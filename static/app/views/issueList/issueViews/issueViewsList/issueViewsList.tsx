@@ -171,7 +171,7 @@ function SortDropdown() {
         });
         navigate({
           pathname: location.pathname,
-          query: {sort: newSort.value},
+          query: {...location.query, sort: newSort.value},
         });
       }}
       options={[
