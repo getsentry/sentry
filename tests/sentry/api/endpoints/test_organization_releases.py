@@ -1833,7 +1833,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             url, data={"version": "1.2.1", "projects": [project.slug, "banana"]}
         )
         assert response.status_code == 400
-        assert b"Invalid project ids or slugs" in response.content
+        assert b"Invalid project" in response.content
 
     def test_project_permissions(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1880,7 +1880,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
 
         assert response.status_code == 400
-        assert b"Invalid project ids or slugs" in response.content
+        assert b"Insufficient access to project" in response.content
 
         response = self.client.post(url, data={"version": "1.2.1", "projects": [project1.slug]})
 
@@ -2065,6 +2065,8 @@ class OrganizationReleaseCreateTest(APITestCase):
             },
             HTTP_AUTHORIZATION=f"Bearer {api_token.token}",
         )
+
+        assert response.status_code == 201, response.data
 
         mock_fetch_commits.apply_async.assert_called_with(
             kwargs={
@@ -2540,6 +2542,9 @@ class ReleaseSerializerWithProjectsTest(TestCase):
             {"commit": "b" * 40, "previousCommit": "", "repository": self.repo2_name},
         ]
         self.projects = ["project_slug", "project2_slug"]
+        for slug in self.projects:
+            self.create_project(organization=self.organization, name=slug)
+        self.access = access.OrganizationGlobalAccess(self.organization, ["project:releases"])
 
     def test_simple(self):
         serializer = ReleaseSerializerWithProjects(
@@ -2554,7 +2559,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
                 "refs": self.refs,
                 "projects": self.projects,
             },
-            context={"organization": self.organization},
+            context={"organization": self.organization, "access": self.access},
         )
 
         assert serializer.is_valid(), serializer.errors
@@ -2583,36 +2588,38 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         assert result["commits"] == self.commits
         assert result["headCommits"] == self.headCommits
         assert result["refs"] == self.refs
-        assert result["projects"] == self.projects
+        for project in result["projects"]:
+            assert project.slug in self.projects
 
     def test_fields_not_required(self):
         serializer = ReleaseSerializerWithProjects(
             data={"version": self.version, "projects": self.projects},
-            context={"organization": self.organization},
+            context={"organization": self.organization, "access": self.access},
         )
         assert serializer.is_valid()
         result = serializer.validated_data
         assert result["version"] == self.version
-        assert result["projects"] == self.projects
+        for project in result["projects"]:
+            assert project.slug in self.projects
 
     def test_do_not_allow_null_commits(self):
         serializer = ReleaseSerializerWithProjects(
             data={"version": self.version, "projects": self.projects, "commits": None},
-            context={"organization": self.organization},
+            context={"organization": self.organization, "access": self.access},
         )
         assert not serializer.is_valid()
 
     def test_do_not_allow_null_head_commits(self):
         serializer = ReleaseSerializerWithProjects(
             data={"version": self.version, "projects": self.projects, "headCommits": None},
-            context={"organization": self.organization},
+            context={"organization": self.organization, "access": self.access},
         )
         assert not serializer.is_valid()
 
     def test_do_not_allow_null_refs(self):
         serializer = ReleaseSerializerWithProjects(
             data={"version": self.version, "projects": self.projects, "refs": None},
-            context={"organization": self.organization},
+            context={"organization": self.organization, "access": self.access},
         )
         assert not serializer.is_valid()
 
@@ -2623,7 +2630,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
                 "projects": self.projects,
                 "ref": "a" * MAX_VERSION_LENGTH,
             },
-            context={"organization": self.organization},
+            context={"organization": self.organization, "access": self.access},
         )
         assert serializer.is_valid()
         serializer = ReleaseSerializerWithProjects(
@@ -2632,18 +2639,19 @@ class ReleaseSerializerWithProjectsTest(TestCase):
                 "projects": self.projects,
                 "ref": "a" * (MAX_VERSION_LENGTH + 1),
             },
-            context={"organization": self.organization},
+            context={"organization": self.organization, "access": self.access},
         )
         assert not serializer.is_valid()
 
     def test_version_limited_by_max_version_length(self):
         serializer = ReleaseSerializerWithProjects(
-            data={"version": "a" * MAX_VERSION_LENGTH, "projects": self.projects}
+            data={"version": "a" * MAX_VERSION_LENGTH, "projects": self.projects},
+            context={"organization": self.organization, "access": self.access},
         )
         assert serializer.is_valid()
         serializer = ReleaseSerializerWithProjects(
             data={"version": "a" * (MAX_VERSION_LENGTH + 1), "projects": self.projects},
-            context={"organization": self.organization},
+            context={"organization": self.organization, "access": self.access},
         )
         assert not serializer.is_valid()
 
@@ -2651,35 +2659,38 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         for char in BAD_RELEASE_CHARS:
             serializer = ReleaseSerializerWithProjects(
                 data={"version": char, "projects": self.projects},
-                context={"organization": self.organization},
+                context={"organization": self.organization, "access": self.access},
             )
             assert not serializer.is_valid()
 
     def test_version_does_not_allow_current_dir_path(self):
-        serializer = ReleaseSerializerWithProjects(data={"version": ".", "projects": self.projects})
+        serializer = ReleaseSerializerWithProjects(
+            data={"version": ".", "projects": self.projects},
+            context={"organization": self.organization, "access": self.access},
+        )
         assert not serializer.is_valid()
         serializer = ReleaseSerializerWithProjects(
             data={"version": "..", "projects": self.projects},
-            context={"organization": self.organization},
+            context={"organization": self.organization, "access": self.access},
         )
         assert not serializer.is_valid()
 
     def test_version_does_not_allow_null_or_empty_value(self):
         serializer = ReleaseSerializerWithProjects(
             data={"version": None, "projects": self.projects},
-            context={"organization": self.organization},
+            context={"organization": self.organization, "access": self.access},
         )
         assert not serializer.is_valid()
         serializer = ReleaseSerializerWithProjects(
             data={"version": "", "projects": self.projects},
-            context={"organization": self.organization},
+            context={"organization": self.organization, "access": self.access},
         )
         assert not serializer.is_valid()
 
     def test_version_cannot_be_latest(self):
         serializer = ReleaseSerializerWithProjects(
             data={"version": "Latest", "projects": self.projects},
-            context={"organization": self.organization},
+            context={"organization": self.organization, "access": self.access},
         )
         assert not serializer.is_valid()
 

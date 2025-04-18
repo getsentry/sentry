@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 from django.db import IntegrityError
 from django.db.models import F, Q
+from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -24,7 +25,18 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseWithVersionSerializer,
 )
+from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.api.utils import get_auth_api_token_type
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.organization_examples import OrganizationExamples
+from sentry.apidocs.parameters import GlobalParams, ReleaseParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
@@ -153,12 +165,23 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
     return queryset
 
 
+@extend_schema_serializer(exclude_fields=["owner", "headCommits"])
 class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
-    projects = ListField()
-    headCommits = ListField(
-        child=ReleaseHeadCommitSerializerDeprecated(), required=False, allow_null=False
+    projects = ListField(
+        child=ProjectField(scope="project:releases", id_allowed=True),
+        help_text="The list of project IDs or slugs associated with the release.",
     )
-    refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
+    headCommits = ListField(
+        child=ReleaseHeadCommitSerializerDeprecated(),
+        required=False,
+        allow_null=False,  # DEPRECATED
+    )
+    refs = ListField(
+        child=ReleaseHeadCommitSerializer(),
+        required=False,
+        allow_null=False,
+        help_text="""An optional way to indicate the start and end commits for each repository included in a release. Head commits must include parameters ``repository`` and ``commit`` (the HEAD SHA). They can optionally include ``previousCommit`` (the SHA of the HEAD of the previous release), which should be specified if this is the first time you've sent commit data.""",
+    )
 
 
 def debounce_update_release_health_data(organization, project_ids: list[int]):
@@ -227,11 +250,12 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
     cache.set_many(dict(zip(should_update.values(), [True] * len(should_update))), 60)
 
 
+@extend_schema(tags=["Releases"])
 @region_silo_endpoint
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     SESSION_SORTS = frozenset(
         [
@@ -253,15 +277,35 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             include_all_accessible=False,
         )
 
+    @extend_schema(
+        operation_id="List an Organization's Releases",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.STATS_PERIOD,
+            ReleaseParams.PROJECT_ID,
+            ReleaseParams.ENVIRONMENT,
+            ReleaseParams.SUMMARY_STATS_PERIOD,
+            ReleaseParams.HEALTH_STATS_PERIOD,
+            VisibilityParams.QUERY,
+            ReleaseParams.STATUS_FILTER,
+            ReleaseParams.SORT,
+            ReleaseParams.HEALTH,
+            ReleaseParams.ADOPTION_STAGES,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrgReleasesGetResponse", list[ReleaseSerializerResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=OrganizationExamples.GET_ORGANIZATION_RELEASES,
+    )
     def get(self, request: Request, organization) -> Response:
         """
-        List an Organization's Releases
-        ```````````````````````````````
         Return a list of releases for a given organization.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization
-        :qparam string query: this parameter can be used to create a
-                              "starts with" filter for the version.
         """
         query = request.GET.get("query")
         with_health = request.GET.get("health") == "1"
@@ -429,52 +473,33 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             **paginator_kwargs,
         )
 
+    @extend_schema(
+        operation_id="Create or Update a Release for an Organization",
+        request=ReleaseSerializerWithProjects,
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+        ],
+        responses={
+            201: inline_sentry_response_serializer(
+                "OrgReleasesPostResponse", ReleaseSerializerResponse
+            ),
+            208: inline_sentry_response_serializer(
+                "OrgReleasesPostResponse", ReleaseSerializerResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=OrganizationExamples.RELEASE_DETAILS,
+    )
     def post(self, request: Request, organization) -> Response:
         """
-        Create a New Release for an Organization
-        ````````````````````````````````````````
-        Create a new release for the given Organization.  Releases are used by
-        Sentry to improve its error reporting abilities by correlating
-        first seen events with the release that might have introduced the
-        problem.
-        Releases are also necessary for sourcemaps and other debug features
-        that require manual upload for functioning well.
-
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          release belongs to.
-        :param string version: a version identifier for this release. Can
-                               be a version number, a commit hash etc. It cannot contain certain
-                               whitespace characters (`\\r`, `\\n`, `\\f`, `\\x0c`, `\\t`) or any
-                               slashes (`\\`, `/`). The version names `.`, `..` and `latest` are also
-                               reserved, and cannot be used.
-        :param string ref: an optional commit reference.  This is useful if
-                           a tagged version has been provided.
-        :param url url: a URL that points to the release.  This can be the
-                        path to an online interface to the sourcecode
-                        for instance.
-        :param array projects: a list of project ids or slugs that are involved in
-                               this release
-        :param datetime dateReleased: an optional date that indicates when
-                                      the release went live.  If not provided
-                                      the current time is assumed.
-        :param array commits: an optional list of commit data to be associated
-                              with the release. Commits must include parameters
-                              ``id`` (the sha of the commit), and can optionally
-                              include ``repository``, ``message``, ``patch_set``,
-                              ``author_name``, ``author_email``, and ``timestamp``.
-                              See [release without integration example](/workflow/releases/).
-        :param array refs: an optional way to indicate the start and end commits
-                           for each repository included in a release. Head commits
-                           must include parameters ``repository`` and ``commit``
-                           (the HEAD sha). They can optionally include ``previousCommit``
-                           (the sha of the HEAD of the previous release), which should
-                           be specified if this is the first time you've sent commit data.
-                           ``commit`` may contain a range in the form of ``previousCommit..commit``
-        :auth: required
+        Create a new release for the organization. If the release already exists, this endpoint can be used to update the status of the existing release.
         """
         bind_organization_context(organization)
         serializer = ReleaseSerializerWithProjects(
-            data=request.data, context={"organization": organization}
+            data=request.data, context={"organization": organization, "access": request.access}
         )
 
         scope = Scope.get_isolation_scope()
@@ -487,14 +512,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             projects_from_request = self.get_projects(request, organization)
             allowed_projects = {}
             for project in projects_from_request:
-                allowed_projects[project.slug] = project
                 allowed_projects[project.id] = project
 
             projects = []
-            for id_or_slug in result["projects"]:
-                if id_or_slug not in allowed_projects:
+            for project in result["projects"]:
+                if project.id not in allowed_projects:
                     return Response({"projects": ["Invalid project ids or slugs"]}, status=400)
-                projects.append(allowed_projects[id_or_slug])
+                projects.append(allowed_projects[project.id])
 
             new_status = result.get("status")
             owner_id: int | None = None
