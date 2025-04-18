@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 from unittest import mock
 
@@ -7,7 +7,11 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.abstract import Abstract
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult, DetectorHandler
+from sentry.workflow_engine.handlers.detector import (
+    DetectorEvaluationResult,
+    DetectorHandler,
+    DetectorOccurrence,
+)
 from sentry.workflow_engine.handlers.detector.stateful import StatefulDetectorHandler
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.data_condition import Condition
@@ -18,35 +22,19 @@ from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 def build_mock_occurrence_and_event(
     handler: StatefulDetectorHandler,
     group_key: DetectorGroupKey,
-    value: int,
     new_status: PriorityLevel,
-) -> tuple[IssueOccurrence, dict[str, Any]]:
+) -> tuple[DetectorOccurrence, dict[str, Any]]:
     assert handler.detector.group_type is not None
-    occurrence = IssueOccurrence(
-        id="eb4b0acffadb4d098d48cb14165ab578",
-        project_id=handler.detector.project_id,
-        event_id="43878ab4419f4ab181f6379ac376d5aa",
-        fingerprint=handler.build_fingerprint(group_key),
-        issue_title="Some Issue",
-        subtitle="Some subtitle",
-        resource_id=None,
-        evidence_data={},
-        evidence_display=[],
-        type=handler.detector.group_type,
-        detection_time=datetime.now(timezone.utc),
-        level="error",
-        culprit="Some culprit",
-        initial_issue_priority=new_status.value,
+    return (
+        DetectorOccurrence(
+            issue_title="Some Issue",
+            subtitle="Some subtitle",
+            type=handler.detector.group_type,
+            level="error",
+            culprit="Some culprit",
+        ),
+        {},
     )
-    event_data = {
-        "timestamp": occurrence.detection_time,
-        "project_id": occurrence.project_id,
-        "event_id": occurrence.event_id,
-        "platform": "python",
-        "received": occurrence.detection_time,
-        "tags": {},
-    }
-    return occurrence, event_data
 
 
 def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessage):
@@ -69,9 +57,9 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict]):
         return data_packet.packet.get("group_vals", {})
 
     def build_occurrence_and_event_data(
-        self, group_key: DetectorGroupKey, value: int, new_status: PriorityLevel
-    ) -> tuple[IssueOccurrence, dict[str, Any]]:
-        return build_mock_occurrence_and_event(self, group_key, value, new_status)
+        self, group_key: DetectorGroupKey, new_status: PriorityLevel
+    ) -> tuple[DetectorOccurrence, dict[str, Any]]:
+        return build_mock_occurrence_and_event(self, group_key, new_status)
 
 
 class BaseDetectorHandlerTest(BaseGroupTypeTest):
@@ -83,6 +71,10 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             StatusChangeMessage, "__eq__", status_change_comparator
         )
         self.sm_comp_patcher.__enter__()
+        # Set up UUID mocking at the base class level
+        self.uuid_patcher = mock.patch("sentry.workflow_engine.handlers.detector.stateful.uuid4")
+        self.mock_uuid4 = self.uuid_patcher.start()
+        self.mock_uuid4.return_value = self.get_mock_uuid()
         project_id = self.project.id
 
         class NoHandlerGroupType(GroupType):
@@ -142,7 +134,8 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
     def tearDown(self):
         super().tearDown()
-        self.sm_comp_patcher.__exit__(None, None, None)
+        self.uuid_patcher.stop()
+        self.sm_comp_patcher.stop()
 
     def create_detector_and_conditions(self, type: str | None = None):
         if type is None:
@@ -181,3 +174,41 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             assert handler.state_updates.get(group_key) == (active, priority)
         else:
             assert group_key not in handler.state_updates
+
+    def detector_to_issue_occurrence(
+        self,
+        detector_occurrence: DetectorOccurrence,
+        detector: Detector,
+        group_key: DetectorGroupKey,
+        value: int,
+        priority: DetectorPriorityLevel,
+        detection_time: datetime,
+        occurrence_id: str,
+    ) -> tuple[IssueOccurrence, dict[str, Any]]:
+        fingerprint = [f"{detector.id}{':' + group_key if group_key is not None else ''}"]
+        evidence_data = {
+            **detector_occurrence.evidence_data,
+            "detector_id": detector.id,
+            "value": value,
+        }
+        issue_occurrence = detector_occurrence.to_issue_occurrence(
+            occurrence_id=occurrence_id,
+            project_id=detector.project_id,
+            status=priority,
+            detection_time=detection_time,
+            additional_evidence_data=evidence_data,
+            fingerprint=fingerprint,
+        )
+        event_data: dict[str, Any] = {}
+        if hasattr(detector_occurrence, "event_data"):
+            event_data = (
+                detector_occurrence.event_data.copy() if detector_occurrence.event_data else {}
+            )
+
+        event_data["timestamp"] = detection_time
+        event_data["project_id"] = detector.project_id
+        event_data["event_id"] = occurrence_id
+        event_data.setdefault("platform", "python")
+        event_data.setdefault("received", detection_time)
+        event_data.setdefault("tags", {})
+        return issue_occurrence, event_data
