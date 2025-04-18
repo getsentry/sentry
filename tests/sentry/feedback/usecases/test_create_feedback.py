@@ -74,7 +74,10 @@ def create_dummy_response(*args, **kwargs):
     )
 
 
-def mock_feedback_event(project_id: int, dt: datetime):
+def mock_feedback_event(project_id: int, dt: datetime | None = None):
+    if dt is None:
+        dt = datetime.now(UTC)
+
     return {
         "project_id": project_id,
         "request": {
@@ -773,7 +776,7 @@ def test_create_feedback_adds_associated_event_id(
 @django_db_all
 def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka):
     """We want to surface these tags in the UI. We also use user.email for alert conditions."""
-    event = mock_feedback_event(default_project.id, datetime.now(UTC))
+    event = mock_feedback_event(default_project.id)
     event["user"]["email"] = "josh.ferge@sentry.io"
     event["contexts"]["feedback"]["contact_email"] = "andrew@sentry.io"
     event["contexts"]["trace"] = {"trace_id": "abc123"}
@@ -818,7 +821,7 @@ def test_create_feedback_tags_no_associated_event_id(
 
 @django_db_all
 def test_create_feedback_tags_skips_if_empty(default_project, mock_produce_occurrence_to_kafka):
-    event = mock_feedback_event(default_project.id, datetime.now(UTC))
+    event = mock_feedback_event(default_project.id)
     event["user"].pop("email", None)
     event["contexts"]["feedback"].pop("contact_email", None)
     create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
@@ -848,7 +851,7 @@ def test_create_feedback_filters_large_message(
     monkeypatch.setattr("sentry.llm.usecases.complete_prompt", mock_complete_prompt)
 
     with Feature(features), set_sentry_option("feedback.message.max-size", 4096):
-        event = mock_feedback_event(default_project.id, datetime.now(UTC))
+        event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "a" * 7007
         create_feedback_issue(
             event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
@@ -861,7 +864,7 @@ def test_create_feedback_filters_large_message(
 @django_db_all
 def test_create_feedback_evidence_has_source(default_project, mock_produce_occurrence_to_kafka):
     """We need this evidence field in post process, to determine if we should send alerts."""
-    event = mock_feedback_event(default_project.id, datetime.now(UTC))
+    event = mock_feedback_event(default_project.id)
     source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
     create_feedback_issue(event, default_project.id, source)
 
@@ -879,7 +882,7 @@ def test_create_feedback_evidence_has_spam(
     default_project.update_option("sentry:feedback_ai_spam_detection", True)
 
     with Feature({"organizations:user-feedback-spam-filter-ingest": True}):
-        event = mock_feedback_event(default_project.id, datetime.now(UTC))
+        event = mock_feedback_event(default_project.id)
         source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         create_feedback_issue(event, default_project.id, source)
 
