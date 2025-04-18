@@ -508,6 +508,7 @@ export type MetricsNumberFields =
   | MetricsFields.INP
   | MetricsFields.CLS
   | MetricsFields.TTFB
+  | MetricsFields.TTFB
   | MetricsFields.APP_START_COLD
   | MetricsFields.APP_START_WARM
   | MetricsFields.TIME_TO_INITIAL_DISPLAY
