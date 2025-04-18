@@ -19,6 +19,7 @@ type StoredObject = {
   projects: number[];
   start: string | null;
   utc: 'true' | null;
+  repository?: string | null;
 };
 
 /**
@@ -50,6 +51,10 @@ export function setPageFiltersStorage(
   const environments = updateFilters.has('environments')
     ? selection.environments
     : (currentStoredState?.environment ?? []);
+
+  const repository = updateFilters.has('repository')
+    ? selection.repository
+    : (currentStoredState?.repository ?? null);
 
   const shouldUpdateDatetime = updateFilters.has('datetime');
 
@@ -85,6 +90,7 @@ export function setPageFiltersStorage(
     period,
     utc,
     pinnedFilters: Array.from(pinnedFilters),
+    repository,
   };
 
   const localStorageKey = makeLocalStorageKey(
@@ -124,7 +130,8 @@ export function getPageFilterStorage(orgSlug: string, storageNamespace = '') {
     return null;
   }
 
-  const {projects, environments, start, end, period, utc, pinnedFilters} = decoded;
+  const {projects, environments, start, end, period, utc, pinnedFilters, repository} =
+    decoded;
 
   const state = getStateFromQuery(
     {
@@ -134,6 +141,7 @@ export function getPageFilterStorage(orgSlug: string, storageNamespace = '') {
       end,
       period,
       utc,
+      repository,
     },
     {allowAbsoluteDatetime: true}
   );

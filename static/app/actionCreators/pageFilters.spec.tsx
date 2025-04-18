@@ -124,6 +124,7 @@ describe('PageFilters ActionCreators', function () {
         expect.objectContaining({
           environments: [],
           projects: [],
+          repository: null,
         }),
         new Set(['projects']),
         false
@@ -275,6 +276,7 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {
           project: '1',
+          repository: 'repo-from-query',
         },
         memberProjects: projects,
         nonMemberProjects: [],
@@ -292,6 +294,7 @@ describe('PageFilters ActionCreators', function () {
           },
           projects: [1],
           environments: [],
+          repository: 'repo-from-query',
         },
         new Set(),
         true
@@ -301,6 +304,7 @@ describe('PageFilters ActionCreators', function () {
           query: {
             environment: [],
             project: ['1'],
+            repository: 'repo-from-query',
           },
         })
       );
@@ -327,6 +331,7 @@ describe('PageFilters ActionCreators', function () {
           },
           projects: [-1],
           environments: [],
+          repository: null,
         },
         new Set(),
         true
@@ -355,6 +360,7 @@ describe('PageFilters ActionCreators', function () {
           },
           projects: [1],
           environments: [],
+          repository: null,
         },
         new Set(),
         true
@@ -373,6 +379,7 @@ describe('PageFilters ActionCreators', function () {
             end: null,
             period: '14d',
             utc: null,
+            repository: null,
           },
           pinnedFilters: new Set(),
         });
@@ -405,6 +412,7 @@ describe('PageFilters ActionCreators', function () {
             end: null,
             period: '7d',
             utc: null,
+            repository: null,
           },
           pinnedFilters: new Set(['environments', 'datetime', 'projects']),
         });
@@ -696,6 +704,7 @@ describe('PageFilters ActionCreators', function () {
             end: null,
             period: '14d',
             utc: null,
+            repository: null,
           },
           pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         });

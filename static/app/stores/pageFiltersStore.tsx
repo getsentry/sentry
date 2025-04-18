@@ -80,6 +80,7 @@ interface PageFiltersStoreDefinition extends StrictStoreDefinition<PageFiltersSt
   updateEnvironments(environments: string[] | null): void;
   updatePersistence(shouldPersist: boolean): void;
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
+  updateRepository(repository: PageFilters['repository']): void;
 }
 
 const storeConfig: PageFiltersStoreDefinition = {
@@ -137,6 +138,21 @@ const storeConfig: PageFiltersStoreDefinition = {
 
   updateDesyncedFilters(filters: Set<PinnedPageFilter>) {
     this.state = {...this.state, desyncedFilters: filters};
+    this.trigger(this.getState());
+  },
+
+  updateRepository(repository = '') {
+    if (!repository || valueIsEqual(this.state.selection.repository, repository)) {
+      return;
+    }
+
+    this.state = {
+      ...this.state,
+      selection: {
+        ...this.state.selection,
+        repository,
+      },
+    };
     this.trigger(this.getState());
   },
 
