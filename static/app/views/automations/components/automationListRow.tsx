@@ -3,46 +3,27 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/container/flex';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {
-  type Action,
-  ActionCell,
-} from 'sentry/components/workflowEngine/gridCell/actionCell';
+import {ProjectList} from 'sentry/components/projectList';
+import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connectionCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
-import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {space} from 'sentry/styles/space';
-import type {AvatarProject} from 'sentry/types/project';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {useAutomationActions} from 'sentry/views/automations/hooks/utils';
 
-export type Automation = {
-  actions: Action[];
-  id: string;
-  link: string;
-  monitorIds: string[];
-  name: string;
-  project: AvatarProject;
-  details?: string[];
-  disabled?: boolean;
-  lastTriggered?: Date;
-};
-
-type AutomationListRowProps = Automation & {
+interface AutomationListRowProps {
+  automation: Automation;
   handleSelect: (id: string, checked: boolean) => void;
   selected: boolean;
-};
+}
 
 export function AutomationListRow({
-  actions,
-  id,
-  lastTriggered,
-  link,
-  monitorIds,
-  name,
-  project,
-  details,
+  automation,
   handleSelect,
   selected,
-  disabled,
 }: AutomationListRowProps) {
+  const actions = useAutomationActions(automation);
+  const {id, name, disabled, lastTriggered, detectorIds = []} = automation;
   return (
     <RowWrapper disabled={disabled}>
       <InteractionStateLayer />
@@ -54,13 +35,7 @@ export function AutomationListRow({
           }}
         />
         <CellWrapper>
-          <StyledTitleCell
-            name={name}
-            project={project}
-            link={link}
-            details={details}
-            disabled={disabled}
-          />
+          <TitleCell href={`/issues/automations/${id}`}>{name}</TitleCell>
         </CellWrapper>
       </Flex>
       <CellWrapper className="last-triggered">
@@ -69,8 +44,11 @@ export function AutomationListRow({
       <CellWrapper className="action">
         <ActionCell actions={actions} disabled={disabled} />
       </CellWrapper>
+      <CellWrapper className="projects">
+        <ProjectList projectSlugs={[]} />
+      </CellWrapper>
       <CellWrapper className="connected-monitors">
-        <ConnectionCell ids={monitorIds} type="detector" disabled={disabled} />
+        <ConnectionCell ids={detectorIds} type="detector" disabled={disabled} />
       </CellWrapper>
     </RowWrapper>
   );
@@ -89,9 +67,16 @@ const CellWrapper = styled(Flex)`
   white-space: nowrap;
 `;
 
-const StyledTitleCell = styled(TitleCell)`
+const TitleCell = styled('a')`
   padding: ${space(2)};
   margin: -${space(2)};
+  color: ${p => p.theme.textColor};
+
+  &:hover,
+  &:active {
+    text-decoration: underline;
+    color: ${p => p.theme.textColor};
+  }
 `;
 
 const RowWrapper = styled('div')<{disabled?: boolean}>`
@@ -145,6 +130,6 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 3fr 1fr 1fr 1fr;
+    grid-template-columns: 3fr 1fr 1fr 1fr 1fr;
   }
 `;

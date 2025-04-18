@@ -25,7 +25,11 @@ const columns = defineColumns<MonitorsData>({
   name: {
     Header: () => t('Name'),
     Cell: ({value}) => (
-      <TitleCell name={value.name} project={value.project} link={value.link} />
+      <TitleCell
+        name={value.name}
+        projectId={value.project.id as string}
+        link={value.link}
+      />
     ),
     width: '4fr',
   },

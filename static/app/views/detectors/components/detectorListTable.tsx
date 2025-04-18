@@ -36,17 +36,21 @@ function DetectorListTable({detectors}: DetectorListTableProps) {
           isSelectAllChecked={isSelectAllChecked}
           toggleSelectAll={toggleSelectAll}
         />
+        <Flex className="type">
+          <HeaderDivider />
+          <Heading>{t('Type')}</Heading>
+        </Flex>
         <Flex className="issue">
           <HeaderDivider />
-          <Heading>{t('Issue')}</Heading>
+          <Heading>{t('Last Issue')}</Heading>
         </Flex>
-        <Flex className="open-issues">
+        <Flex className="creator">
           <HeaderDivider />
-          <Heading>{t('Open Issues')}</Heading>
+          <Heading>{t('Creator')}</Heading>
         </Flex>
         <Flex className="connected-automations">
           <HeaderDivider />
-          <Heading>{t('Connected Automations')}</Heading>
+          <Heading>{t('Automations')}</Heading>
         </Flex>
       </StyledPanelHeader>
       <PanelBody>
@@ -82,6 +86,7 @@ const StyledPanelHeader = styled(PanelHeader)`
   min-height: 40px;
   align-items: center;
   display: grid;
+  text-transform: none;
 
   .open-issues,
   .last-issue,
@@ -114,7 +119,7 @@ const StyledPanelHeader = styled(PanelHeader)`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 3fr 1fr 0.75fr 1fr;
+    grid-template-columns: 3fr 80px 150px 80px 1fr;
   }
 `;
 

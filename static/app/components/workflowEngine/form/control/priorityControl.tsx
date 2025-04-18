@@ -76,6 +76,7 @@ export default function PriorityControl({
               flexibleControlStateSize
               size="sm"
               suffix="s"
+              placeholder="0"
               // empty string required to keep this as a controlled input
               value={thresholds[PriorityLevel.MEDIUM] ?? ''}
               onChange={threshold => setMediumThreshold(Number(threshold))}
@@ -96,6 +97,7 @@ export default function PriorityControl({
               flexibleControlStateSize
               size="sm"
               suffix="s"
+              placeholder="0"
               // empty string required to keep this as a controlled input
               value={thresholds[PriorityLevel.HIGH] ?? ''}
               onChange={threshold => setHighThreshold(Number(threshold))}

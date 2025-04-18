@@ -2,10 +2,7 @@ import {Fragment} from 'react';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
-import {
-  type Action,
-  ActionCell,
-} from 'sentry/components/workflowEngine/gridCell/actionCell';
+import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {
   ConnectionCell,
   type ConnectionCellProps,
@@ -25,9 +22,10 @@ import {
   type UserCellProps,
 } from 'sentry/components/workflowEngine/gridCell/userCell';
 import storyBook from 'sentry/stories/storyBook';
+import {ActionType} from 'sentry/types/workflowEngine/actions';
 
 type ExampleAutomation = {
-  action: Action[];
+  action: ActionType[];
   creator: UserCellProps['user'];
   linkedItems: ConnectionCellProps;
   openIssues: number;
@@ -41,69 +39,44 @@ export default storyBook('Grid Cell Components', story => {
     {
       title: {
         name: 'Slack suggested assignees',
-        project: {slug: 'sentry', platform: 'python'},
+        projectId: '1',
         link: '/issues/monitors/1',
       },
-      action: ['slack'],
+      action: [ActionType.SLACK],
       timeAgo: new Date(),
       linkedItems: {
         ids: ['abc123'],
         type: 'workflow',
       },
       openIssues: 3,
-      creator: {
-        id: '1',
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        avatar: {
-          avatarType: 'gravatar',
-          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
-          avatarUrl: 'https://sentry.io/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/',
-        },
-        ip_address: '127.0.0.1',
-        username: 'john.doe',
-      },
-      type: 'trace',
+      creator: '1',
+      type: 'uptime',
     },
     {
       title: {
         name: 'Send Discord notification',
-        project: {
-          slug: 'javascript',
-          platform: 'javascript',
-        },
+        projectId: '1',
         details: ['transaction.duration', '2s warn, 2.5s critical threshold'],
         link: '/issues/monitors/2',
       },
-      action: ['discord'],
+      action: [ActionType.DISCORD],
       timeAgo: new Date(Date.now() - 2 * 60 * 60 * 1000),
       linkedItems: {
         ids: ['abc123', 'def456', 'ghi789'],
         type: 'detector',
       },
       openIssues: 1,
-      creator: {
-        id: '1',
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        avatar: {
-          avatarType: 'gravatar',
-          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
-          avatarUrl: 'https://sentry.io/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/',
-        },
-        ip_address: '127.0.0.1',
-        username: 'john.doe',
-      },
+      creator: '1',
       type: 'metric',
     },
     {
       title: {
         name: 'Email suggested assignees',
-        project: {slug: 'javascript', platform: 'javascript'},
+        projectId: '1',
         details: ['Every hour'],
         link: '/issues/monitors/3',
       },
-      action: ['email'],
+      action: [ActionType.EMAIL],
       timeAgo: new Date(Date.now() - 25 * 60 * 60 * 1000),
       linkedItems: {
         ids: ['abc123', 'def456'],
@@ -116,13 +89,13 @@ export default storyBook('Grid Cell Components', story => {
     {
       title: {
         name: 'Send notification',
-        project: {slug: 'android', platform: 'android'},
+        projectId: '1',
         link: '/issues/monitors/4',
         disabled: true,
       },
-      action: ['slack', 'discord', 'email'],
+      action: [ActionType.SLACK, ActionType.DISCORD, ActionType.EMAIL],
       creator: 'sentry',
-      type: 'errors',
+      type: 'uptime',
       timeAgo: null,
       linkedItems: {
         ids: [],
@@ -172,7 +145,7 @@ export default storyBook('Grid Cell Components', story => {
           <TitleCell
             link={dataRow.title.link}
             name={dataRow.title.name}
-            project={dataRow.title.project}
+            projectId={dataRow.title.projectId}
             details={dataRow.title.details}
             disabled={dataRow.title.disabled}
           />

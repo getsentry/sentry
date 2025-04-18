@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -10,16 +11,16 @@ import {
 } from 'sentry/components/workflowEngine/useBulkActions';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  type Automation,
-  AutomationListRow,
-} from 'sentry/views/automations/components/automationListRow';
+import {AutomationListRow} from 'sentry/views/automations/components/automationListRow';
+import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 
-type AutomationListTableProps = {
-  automations: Automation[];
-};
+// type AutomationListTableProps = {
+//   automations: Automation[];
+// };
 
-function AutomationListTable({automations}: AutomationListTableProps) {
+function AutomationListTable() {
+  const {data: automations = [], isLoading} = useAutomationsQuery();
+
   const {
     selectedRows,
     handleSelect,
@@ -46,26 +47,23 @@ function AutomationListTable({automations}: AutomationListTableProps) {
           <HeaderDivider />
           <Heading>{t('Action')}</Heading>
         </Flex>
+        <Flex className="projects">
+          <HeaderDivider />
+          <Heading>{t('Projects')}</Heading>
+        </Flex>
         <Flex className="connected-monitors">
           <HeaderDivider />
-          <Heading>{t('Connected Monitors')}</Heading>
+          <Heading>{t('Monitors')}</Heading>
         </Flex>
       </StyledPanelHeader>
       <PanelBody>
+        {isLoading ? <LoadingIndicator /> : null}
         {automations.map(automation => (
           <AutomationListRow
             key={automation.id}
-            actions={automation.actions}
-            id={automation.id}
-            lastTriggered={automation.lastTriggered}
-            link={automation.link}
-            monitorIds={automation.monitorIds}
-            name={automation.name}
-            project={automation.project}
-            details={automation.details}
+            automation={automation}
             handleSelect={handleSelect}
             selected={selectedRows.includes(automation.id)}
-            disabled={automation.disabled}
           />
         ))}
       </PanelBody>
@@ -92,6 +90,7 @@ const StyledPanelHeader = styled(PanelHeader)`
   min-height: 40px;
   align-items: center;
   display: grid;
+  text-transform: none;
 
   .last-triggered,
   .action,
@@ -124,7 +123,7 @@ const StyledPanelHeader = styled(PanelHeader)`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 3fr 1fr 1fr 1fr;
+    grid-template-columns: 3fr 1fr 1fr 1fr 1fr;
   }
 `;
 

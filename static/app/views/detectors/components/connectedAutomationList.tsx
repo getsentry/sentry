@@ -3,13 +3,18 @@ import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
-import type {Automation} from 'sentry/views/automations/components/automationListRow';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {useAutomationActions} from 'sentry/views/automations/hooks/utils';
 
 const columns = defineColumns<Automation>({
   name: {
     Header: () => t('Name'),
     Cell: ({value, row}) => (
-      <TitleCell name={value} link={row.link} project={row.project} />
+      <TitleCell
+        name={value}
+        link={`/automations/${row.id}/`}
+        projectId={row.detectorIds[0]}
+      />
     ),
     width: 'minmax(0, 3fr)',
   },
@@ -17,9 +22,12 @@ const columns = defineColumns<Automation>({
     Header: () => t('Last Triggered'),
     Cell: ({value}) => <TimeAgoCell date={value} />,
   },
-  actions: {
+  actionFilters: {
     Header: () => t('Actions'),
-    Cell: ({value}) => <ActionCell actions={value} />,
+    Cell: ({row}) => {
+      const actions = useAutomationActions(row);
+      return <ActionCell actions={actions} />;
+    },
   },
 });
 

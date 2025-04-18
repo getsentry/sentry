@@ -11,7 +11,6 @@ import {TypeCell} from 'sentry/components/workflowEngine/gridCell/typeCell';
 import {UserCell} from 'sentry/components/workflowEngine/gridCell/userCell';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import type {AvatarProject} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 
 interface DetectorListRowProps {
@@ -21,15 +20,11 @@ interface DetectorListRowProps {
 }
 
 export function DetectorListRow({
-  detector: {workflowIds, id, name, disabled},
+  detector: {workflowIds, createdBy, id, projectId, name, disabled, type},
   handleSelect,
   selected,
 }: DetectorListRowProps) {
   const link = `/issues/monitors/${id}/`;
-  const project: AvatarProject = {
-    slug: name,
-    platform: 'javascript-astro',
-  };
   const issues: Group[] = [];
   return (
     <RowWrapper disabled={disabled}>
@@ -44,7 +39,7 @@ export function DetectorListRow({
         <CellWrapper>
           <StyledTitleCell
             name={name}
-            project={project}
+            projectId={projectId}
             link={link}
             disabled={disabled}
           />
@@ -52,7 +47,7 @@ export function DetectorListRow({
         <StyledGraphCell />
       </Flex>
       <CellWrapper className="type">
-        <TypeCell type="errors" />
+        <TypeCell type={type} />
       </CellWrapper>
       <CellWrapper className="last-issue">
         <StyledIssueCell
@@ -61,7 +56,7 @@ export function DetectorListRow({
         />
       </CellWrapper>
       <CellWrapper className="creator">
-        <UserCell user="sentry" />
+        <UserCell user={createdBy ?? 'sentry'} />
       </CellWrapper>
       <CellWrapper className="connected-automations">
         <ConnectionCell ids={workflowIds} type="workflow" disabled={disabled} />
@@ -146,6 +141,6 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 3fr 1fr 0.75fr 1fr;
+    grid-template-columns: 3fr 80px 150px 80px 1fr;
   }
 `;
