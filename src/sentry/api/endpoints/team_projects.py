@@ -258,4 +258,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
             if project_is_seer_eligible(project):
                 project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
-        return Response(serialize(project, request.user), status=201)
+        return Response(
+            serialize(project, request.user, ProjectSummarySerializer(collapse=["unusedFeatures"])),
+            status=201,
+        )
