@@ -1,8 +1,9 @@
 from typing import NotRequired, TypedDict
 
 
-# Use for weak type checking of user report data. Keys correspond to fields of the UserReport model.
 class UserReportDict(TypedDict):
+    """Use for weak type checking of user report data. Keys correspond to fields of the UserReport model."""
+
     event_id: str
     comments: str
     # required for the model, but functions usually infer this from an explicit Project argument.
