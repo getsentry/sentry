@@ -90,7 +90,7 @@ export const WIDGET_DEFINITIONS: ({
   theme: Theme;
 }) => {
   const useEap = useInsightsEap();
-  const WIDGET_PALETTE = theme.chart.colors[10];
+  const WIDGET_PALETTE = theme.chart.getColorPalette(10);
 
   const durationField = useEap ? 'span.duration' : 'transaction.duration';
 

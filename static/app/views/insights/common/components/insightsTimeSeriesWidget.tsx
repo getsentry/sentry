@@ -182,16 +182,19 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   );
 }
 
-const COMMON_COLORS = (theme: Theme): Record<string, string> => ({
-  'epm()': THROUGHPUT_COLOR(theme),
-  'count()': COUNT_COLOR(theme),
-  'avg(span.self_time)': AVG_COLOR(theme),
-  'http_response_rate(3)': HTTP_RESPONSE_3XX_COLOR,
-  'http_response_rate(4)': HTTP_RESPONSE_4XX_COLOR,
-  'http_response_rate(5)': HTTP_RESPONSE_5XX_COLOR,
-  'avg(messaging.message.receive.latency)': theme.chart.colors[2][1],
-  'avg(span.duration)': theme.chart.colors[2][2],
-});
+const COMMON_COLORS = (theme: Theme): Record<string, string> => {
+  const colors = theme.chart.getColorPalette(2);
+  return {
+    'epm()': THROUGHPUT_COLOR(theme),
+    'count()': COUNT_COLOR(theme),
+    'avg(span.self_time)': AVG_COLOR(theme),
+    'http_response_rate(3)': HTTP_RESPONSE_3XX_COLOR,
+    'http_response_rate(4)': HTTP_RESPONSE_4XX_COLOR,
+    'http_response_rate(5)': HTTP_RESPONSE_5XX_COLOR,
+    'avg(messaging.message.receive.latency)': colors[1],
+    'avg(span.duration)': colors[2],
+  };
+};
 
 const ChartContainer = styled('div')<{height?: string | number}>`
   min-height: 220px;

@@ -35,8 +35,8 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
     : subscription.planDetails?.price;
 
   const COLORS = {
-    prepaid: theme.chart.colors[5][0],
-    ondemand: theme.chart.colors[5][1],
+    prepaid: theme.chart.getColorPalette(5)[0],
+    ondemand: theme.chart.getColorPalette(5)[1],
   } as const;
 
   if (!intervalPrice || !shouldSeeSpendVisibility(subscription)) {

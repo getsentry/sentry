@@ -1,6 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
+import type {Theme} from '@emotion/react';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 
 import {loadPreferencesState} from 'sentry/actionCreators/preferences';
@@ -35,8 +36,8 @@ export function ThemeAndStyleProvider({children}: Props) {
   const theme = useThemeSwitcher();
 
   return (
-    <ThemeProvider theme={theme}>
-      <GlobalStyles isDark={config.theme === 'dark'} theme={theme} />
+    <ThemeProvider theme={theme as Theme}>
+      <GlobalStyles isDark={config.theme === 'dark'} theme={theme as Theme} />
       <CacheProvider value={cache}>{children}</CacheProvider>
       {createPortal(
         <Fragment>

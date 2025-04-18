@@ -305,7 +305,8 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
             } as SeriesDataUnit;
           }) ?? [];
 
-        const color = isPrimary ? theme.chart.colors[3][0] : theme.chart.colors[3][1];
+        const colors = theme.chart.getColorPalette(3);
+        const color = isPrimary ? colors[0] : colors[1];
         transformedReleaseSeries[release] = {
           seriesName: formatVersion(label, true),
           color,
