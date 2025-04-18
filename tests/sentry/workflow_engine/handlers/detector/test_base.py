@@ -61,6 +61,9 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict]):
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
         return build_mock_occurrence_and_event(self, group_key, new_status)
 
+    def can_process_data_packet(self, group_key: DetectorGroupKey) -> bool:
+        return True
+
 
 class BaseDetectorHandlerTest(BaseGroupTypeTest):
     __test__ = Abstract(__module__, __qualname__)

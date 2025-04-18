@@ -130,6 +130,10 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             )
         return results
 
+    @abc.abstractmethod
+    def can_process_data_packet(self, data_packet: DataPacket) -> bool:
+        pass
+
     def evaluate(
         self, data_packet: DataPacket[T]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
@@ -138,10 +142,13 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         There will be one result for each group key result in the packet, unless the
         evaluation is skipped due to various rules.
         """
+        results = {}
+        if not self.can_process_data_packet(data_packet):
+            return results
+
         dedupe_value = self.get_dedupe_value(data_packet)
         group_values = self.get_group_key_values(data_packet)
         all_state_data = self.get_state_data(list(group_values.keys()))
-        results = {}
         for group_key, group_value in group_values.items():
             result = self.evaluate_group_key_value(
                 group_key, group_value, all_state_data[group_key], dedupe_value
