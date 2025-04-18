@@ -13,7 +13,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
     AlertRuleThresholdType,
 )
-from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -25,6 +25,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -43,8 +44,10 @@ class TestHandler(BaseMetricAlertHandler):
         alert_context: AlertContext,
         metric_issue_context: MetricIssueContext,
         open_period_context: OpenPeriodContext,
-        organization: Organization,
+        trigger_status: TriggerStatus,
         notification_uuid: str,
+        organization: Organization,
+        project: Project,
     ) -> None:
         pass
 
@@ -117,6 +120,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         target_display: str | None = None,
         sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None,
         sentry_app_id: str | None = None,
+        target_type: ActionTarget | None = None,
     ):
         assert asdict(notification_context) == {
             "id": notification_context.id,
@@ -125,6 +129,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "target_display": target_display,
             "sentry_app_config": sentry_app_config,
             "sentry_app_id": sentry_app_id,
+            "target_type": target_type,
         }
 
     def assert_alert_context(
@@ -391,6 +396,8 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 alert_context=mock.MagicMock(),
                 metric_issue_context=mock.MagicMock(),
                 open_period_context=mock.MagicMock(),
+                trigger_status=TriggerStatus.ACTIVE,
                 organization=mock.MagicMock(),
+                project=mock.MagicMock(),
                 notification_uuid="test-uuid",
             )
