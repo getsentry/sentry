@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import {unreachable} from 'sentry/utils/unreachable';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -21,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
+import type {GroupSearchViewBackendSortOption} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {
   makeFetchGroupSearchViewsKey,
   useFetchGroupSearchViews,
@@ -37,9 +39,29 @@ type IssueViewSectionProps = {
   limit: number;
 };
 
+// We expose a few simplified sort options which are mapped to multiple
+// backend sorts to provide the best results.
+function getEndpointSort(
+  sort: GroupSearchViewSort = GroupSearchViewSort.POPULARITY
+): GroupSearchViewBackendSortOption[] {
+  switch (sort) {
+    case GroupSearchViewSort.POPULARITY:
+      return ['-popularity', '-visited', '-created'];
+    case GroupSearchViewSort.NAME_ASC:
+      return ['name', '-visited', '-created'];
+    case GroupSearchViewSort.NAME_DESC:
+      return ['-name', '-visited', '-created'];
+    case GroupSearchViewSort.VIEWED:
+      return ['-visited', '-popularity', '-created'];
+    default:
+      unreachable(sort);
+      return [];
+  }
+}
+
 function useIssueViewSort(): GroupSearchViewSort {
   const location = useLocation();
-  const sort = location.query.sort ?? GroupSearchViewSort.POPULARITY_DESC;
+  const sort = location.query.sort ?? GroupSearchViewSort.POPULARITY;
 
   return sort as GroupSearchViewSort;
 }
@@ -55,6 +77,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
       ? location.query[cursorQueryParam]
       : undefined;
   const queryClient = useQueryClient();
+  const endpointSort = getEndpointSort(sort);
 
   const {
     data: views = [],
@@ -66,7 +89,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
       orgSlug: organization.slug,
       createdBy,
       limit,
-      sort,
+      sort: endpointSort,
       cursor,
       query,
     },
@@ -78,7 +101,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
     createdBy,
     limit,
     cursor,
-    sort,
+    sort: endpointSort,
     query,
   });
 
@@ -153,12 +176,12 @@ function SortDropdown() {
       }}
       options={[
         {
-          label: t('Recently Viewed'),
-          value: GroupSearchViewSort.VISITED_DESC,
+          label: t('Most Starred'),
+          value: GroupSearchViewSort.POPULARITY,
         },
         {
-          label: t('Most Starred'),
-          value: GroupSearchViewSort.POPULARITY_DESC,
+          label: t('Recently Viewed'),
+          value: GroupSearchViewSort.VIEWED,
         },
         {
           label: t('Name (A-Z)'),
