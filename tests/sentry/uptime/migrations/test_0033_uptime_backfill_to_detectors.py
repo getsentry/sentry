@@ -2,7 +2,6 @@ from sentry.testutils.cases import TestMigrations
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription, get_detector
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 
-
 DATA_SOURCE_UPTIME_SUBSCRIPTION = "uptime_subscription"
 
 
