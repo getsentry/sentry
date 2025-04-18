@@ -17,7 +17,7 @@ export default function NewViewPage(props: Props) {
       <IssueListContainer>
         <PageFiltersContainer skipLoadLastUsed disablePersistence skipInitializeUrlParams>
           <NoProjectMessage organization={organization}>
-            <IssueListOverview {...props} />
+            <IssueListOverview {...props} shouldFetchOnMount={false} initialQuery="" />
           </NoProjectMessage>
         </PageFiltersContainer>
       </IssueListContainer>

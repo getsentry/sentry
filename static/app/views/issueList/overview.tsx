@@ -49,7 +49,6 @@ import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
-import {isNewViewPage} from 'sentry/views/issueList/issueViews/utils';
 import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
 import LeftNavViewsHeader from 'sentry/views/issueList/leftNavViewsHeader';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
@@ -80,10 +79,14 @@ const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 const MAX_ISSUES_COUNT = 100;
 
-type Props = RouteComponentProps<
-  Record<PropertyKey, string | undefined>,
-  {searchId?: string}
->;
+interface Props
+  extends RouteComponentProps<
+    Record<PropertyKey, string | undefined>,
+    {searchId?: string}
+  > {
+  initialQuery?: string;
+  shouldFetchOnMount?: boolean;
+}
 
 interface EndpointParams extends Partial<PageFilters['datetime']> {
   environment: string[];
@@ -154,7 +157,11 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
   return pageInt;
 };
 
-function IssueListOverview({router}: Props) {
+function IssueListOverview({
+  router,
+  initialQuery = DEFAULT_QUERY,
+  shouldFetchOnMount = true,
+}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -227,13 +234,9 @@ function IssueListOverview({router}: Props) {
         return decodeScalar(query, '');
       }
 
-      if (isNewViewPage(location.pathname)) {
-        return '';
-      }
-
-      return DEFAULT_QUERY;
+      return initialQuery;
     },
-    [organization.features, location.pathname]
+    [organization.features, initialQuery]
   );
 
   const getSortFromSavedSearchOrLocation = useCallback(
@@ -646,8 +649,7 @@ function IssueListOverview({router}: Props) {
 
   // Fetch data on mount if necessary
   useEffect(() => {
-    // New view page begins shows an empty state before making a request
-    if (isNewViewPage(location.pathname)) {
+    if (!shouldFetchOnMount) {
       setIssuesLoading(false);
       return;
     }

@@ -1483,15 +1483,20 @@ describe('IssueList', function () {
         },
       });
 
-      const {router: testRouter} = render(<IssueListOverview {...routerProps} />, {
-        enableRouterMocks: false,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/issues/views/new/',
+      const {router: testRouter} = render(
+        <IssueListOverview {...routerProps} initialQuery="" shouldFetchOnMount={false} />,
+        {
+          enableRouterMocks: false,
+          initialRouterConfig: {
+            ...initialRouterConfig,
+            location: {
+              ...initialRouterConfig.location,
+              pathname: '/organizations/org-slug/issues/views/new/',
+              query: {},
+            },
           },
-          route: '/organizations/:orgId/issues/views/new/',
-        },
-      });
+        }
+      );
 
       await screen.findByText('Suggested Queries');
       expect(fetchDataMock).not.toHaveBeenCalled();
