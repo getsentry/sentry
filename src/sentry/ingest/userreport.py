@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from datetime import datetime, timedelta
+from typing import NotRequired, TypedDict
 
 from django.db import IntegrityError, router
 from django.utils import timezone
@@ -32,9 +33,18 @@ class Conflict(Exception):
     pass
 
 
+class UserReportDict(TypedDict):
+    event_id: str
+    project_id: int
+    comments: str
+    name: NotRequired[str]
+    email: NotRequired[str]
+    environment_id: NotRequired[str]
+
+
 def save_userreport(
     project: Project,
-    report,
+    report: UserReportDict,
     source: FeedbackCreationSource,
     start_time: datetime | None = None,
 ) -> UserReport | None:
@@ -126,7 +136,7 @@ def save_userreport(
 
             existing_report.update(
                 name=report.get("name", ""),
-                email=report["email"],
+                email=report.get("email", ""),
                 comments=report["comments"],
             )
             report_instance = existing_report

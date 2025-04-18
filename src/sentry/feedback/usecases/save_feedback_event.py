@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
@@ -42,12 +42,12 @@ def save_feedback_event(event_data: Mapping[str, Any], project_id: int):
                     # XXX(aliu): including environment ensures the update_user_reports task
                     # will not shim the report back to feedback.
                     "environment_id": fixed_event_data.get("environment", "production"),
-                    "name": feedback_context["name"],
-                    "email": feedback_context["contact_email"],
+                    "name": feedback_context.get("name", ""),
+                    "email": feedback_context.get("contact_email", ""),
                     "comments": feedback_context["message"],
                 },
                 FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
-                start_time=datetime.fromtimestamp(fixed_event_data["timestamp"], UTC),
+                start_time=datetime.fromisoformat(fixed_event_data["timestamp"]),
             )
             metrics.incr("feedback.shim_to_userreport.success")
 

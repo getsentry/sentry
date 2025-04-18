@@ -100,8 +100,10 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     """
     The issue platform has slightly different requirements than ingest for event schema,
     so we need to massage the data a bit.
+    * event["timestamp"] is converted to a UTC ISO string.
     * event["tags"] is coerced to a dict.
-    * If event["user"]["email"] is missing we try to set using the feedback context.
+    * If user or replay context is missing we try to set it using the feedback context.
+    * level defaults to "info" and environment defaults to "production".
 
     Returns:
         A dict[str, Any] conforming to sentry.issues.json_schemas.EVENT_PAYLOAD_SCHEMA.
@@ -135,22 +137,19 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     ret_event["request"] = event_data.get("request", {})
 
     ret_event["user"] = event_data.get("user", {})
+    if "name" in ret_event["user"]:
+        del ret_event["user"]["name"]
 
-    if event_data.get("dist") is not None:
-        del event_data["dist"]
-    if event_data.get("user", {}).get("name") is not None:
-        del event_data["user"]["name"]
-    if event_data.get("user", {}).get("isStaff") is not None:
-        del event_data["user"]["isStaff"]
+    if "isStaff" in ret_event["user"]:
+        del ret_event["user"]["isStaff"]
 
-    if event_data.get("user", {}).get("id") is not None:
-        event_data["user"]["id"] = str(event_data["user"]["id"])
+    if "id" in ret_event["user"]:
+        ret_event["user"]["id"] = str(ret_event["user"]["id"])
 
     # If no user email was provided specify the contact-email as the user-email.
     feedback_obj = event_data.get("contexts", {}).get("feedback", {})
-    contact_email = feedback_obj.get("contact_email")
-    if not ret_event["user"].get("email", ""):
-        ret_event["user"]["email"] = contact_email
+    if "email" not in ret_event["user"]:
+        ret_event["user"]["email"] = feedback_obj.get("contact_email", "")
 
     # Force `tags` to be a dict if it's initially a list,
     # since we can't guarantee its type here.
