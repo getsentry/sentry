@@ -13,7 +13,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -1027,15 +1027,18 @@ class GroupSerializerSnuba(GroupSerializerBase):
             bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )
-        lifetime_result = self._parse_seen_stats_results(
-            self._execute_error_seen_stats_query(
-                item_list=error_issue_list,
-            ),
-            error_issue_list,
-            False,
-        )
-        for item in error_issue_list:
-            result[item].update({"lifetime": lifetime_result.get(item, {})})
+        if features.has(
+            "organizations:issue-details-lifetime-stats", error_issue_list[0].project.organization
+        ):
+            lifetime_result = self._parse_seen_stats_results(
+                self._execute_error_seen_stats_query(
+                    item_list=error_issue_list,
+                ),
+                error_issue_list,
+                False,
+            )
+            for item in error_issue_list:
+                result[item].update({"lifetime": lifetime_result.get(item, {})})
         return result
 
     def _seen_stats_generic(
@@ -1053,15 +1056,18 @@ class GroupSerializerSnuba(GroupSerializerBase):
             bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )
-        lifetime_result = self._parse_seen_stats_results(
-            self._execute_generic_seen_stats_query(
-                item_list=generic_issue_list,
-            ),
-            generic_issue_list,
-            False,
-        )
-        for item in generic_issue_list:
-            result[item].update({"lifetime": lifetime_result.get(item, {})})
+        if features.has(
+            "organizations:issue-details-lifetime-stats", generic_issue_list[0].project.organization
+        ):
+            lifetime_result = self._parse_seen_stats_results(
+                self._execute_generic_seen_stats_query(
+                    item_list=generic_issue_list,
+                ),
+                generic_issue_list,
+                False,
+            )
+            for item in generic_issue_list:
+                result[item].update({"lifetime": lifetime_result.get(item, {})})
         return result
 
     @staticmethod

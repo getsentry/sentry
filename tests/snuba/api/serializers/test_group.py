@@ -18,6 +18,7 @@ from sentry.notifications.types import NotificationSettingsOptionEnum
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import PriorityLevel
 from sentry.users.models.user_option import UserOption
@@ -354,6 +355,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         result = serialize(group, serializer=GroupSerializerSnuba())
         assert not result["isSubscribed"]
 
+    @with_feature("organizations:issue-details-lifetime-stats")
     def test_seen_stats(self):
         environment = self.create_environment(project=self.project)
         environment2 = self.create_environment(project=self.project)

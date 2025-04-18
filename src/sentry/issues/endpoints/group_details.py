@@ -270,11 +270,12 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
-                    "count": get_group_global_count(group),
                 }
             )
-
-            data["lifetime"]["count"] = get_group_global_count(group)
+            if features.has("organizations:issue-details-lifetime-stats", group.organization):
+                data["lifetime"]["count"] = get_group_global_count(group)
+            else:
+                data.update({"count": get_group_global_count(group)})
 
             participants = user_service.serialize_many(
                 filter={"user_ids": GroupSubscriptionManager.get_participating_user_ids(group)},
