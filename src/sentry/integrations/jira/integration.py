@@ -23,12 +23,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.jira.models.create_issue_metadata import JiraIssueTypeMetadata
 from sentry.integrations.jira.tasks import migrate_issues
-from sentry.integrations.mixins.issues import (
-    MAX_CHAR,
-    BaseFormFieldConfig,
-    IssueSyncIntegration,
-    ResolveSyncAction,
-)
+from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
@@ -131,15 +126,6 @@ MAX_PER_PROJECT_QUERIES = 10
 class JiraProjectMapping(TypedDict):
     value: str
     label: str
-
-
-class SelectFormFieldConfig(BaseFormFieldConfig, total=False):
-    choices: list[tuple[str, str]]
-    updatesForm: bool
-
-
-class AsyncSelectFormFieldConfig(SelectFormFieldConfig):
-    url: str
 
 
 class JiraIntegration(IssueSyncIntegration):
@@ -842,41 +828,33 @@ class JiraIntegration(IssueSyncIntegration):
             if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
-        projects_form_field = SelectFormFieldConfig(
-            name="project",
-            label="Jira Project",
-            choices=[(p["id"], f"{p["key"]} - {p["name"]}") for p in jira_projects],
-            default=meta["id"],
-            type="select",
-            updatesForm=True,
-            required=True,
-        )
-
+        projects_form_field = {
+            "name": "project",
+            "label": "Jira Project",
+            "choices": [(p["id"], f"{p["key"]} - {p["name"]}") for p in jira_projects],
+            "default": meta["id"],
+            "type": "select",
+            "updatesForm": True,
+            "required": True,
+        }
         if features.has("organizations:jira-paginated-projects", group.organization, actor=user):
-            paginated_projects_url = self.search_url(group.organization.slug)
-            projects_form_field = AsyncSelectFormFieldConfig(
-                name="project",
-                label="Jira Project",
-                choices=[(p["id"], f"{p["key"]} - {p["name"]}") for p in jira_projects],
-                default=meta["id"],
-                type="select",
-                updatesForm=True,
-                required=True,
-                url=paginated_projects_url,
+            paginated_projects_url = reverse(
+                "sentry-extensions-jira-search", args=[self.organization.slug, self.model.id]
             )
+            projects_form_field["url"] = paginated_projects_url
 
         fields = [
             projects_form_field,
             *fields,
-            SelectFormFieldConfig(
-                name="issuetype",
-                label="Issue Type",
-                choices=issue_type_choices,
-                default=issue_type or issue_type_meta["id"],
-                type="select",
-                updatesForm=True,
-                required=bool(issue_type_choices),
-            ),
+            {
+                "name": "issuetype",
+                "label": "Issue Type",
+                "default": issue_type or issue_type_meta["id"],
+                "type": "select",
+                "choices": issue_type_choices,
+                "updatesForm": True,
+                "required": bool(issue_type_choices),  # required if we have any type choices
+            },
         ]
 
         # title is renamed to summary before sending to Jira
