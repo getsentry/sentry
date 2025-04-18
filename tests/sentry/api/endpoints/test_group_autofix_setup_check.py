@@ -1,6 +1,9 @@
 from unittest.mock import patch
 
+from django.utils import timezone
+
 from sentry.api.endpoints.group_autofix_setup_check import get_repos_and_access
+from sentry.models.promptsactivity import PromptsActivity
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -51,6 +54,60 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
                 "reason": None,
             },
             "githubWriteIntegration": None,
+            "setupAcknowledgement": {
+                "orgHasAcknowledged": False,
+                "userHasAcknowledged": False,
+            },
+        }
+
+    def test_current_user_acknowledged_setup(self):
+        """
+        Test when the current user has acknowledged the setup.
+        """
+        group = self.create_group()
+        feature = "seer_autofix_setup_acknowledged"
+        PromptsActivity.objects.create(
+            user_id=self.user.id,
+            feature=feature,
+            organization_id=self.organization.id,
+            project_id=0,
+            data={"dismissed_ts": timezone.now()},
+        )
+
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["setupAcknowledgement"] == {
+            "orgHasAcknowledged": True,
+            "userHasAcknowledged": True,
+        }
+
+    def test_org_acknowledged_not_user(self):
+        """
+        Test when another user in the org has acknowledged, but not the requesting user.
+        """
+        group = self.create_group()
+        other_user = self.create_user()
+        self.create_member(user=other_user, organization=self.organization, role="member")
+        feature = "seer_autofix_setup_acknowledged"
+        PromptsActivity.objects.create(
+            user_id=other_user.id,
+            feature=feature,
+            organization_id=self.organization.id,
+            project_id=0,
+            data={"dismissed_ts": timezone.now()},
+        )
+
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["setupAcknowledgement"] == {
+            "orgHasAcknowledged": True,
+            "userHasAcknowledged": False,
         }
 
     @patch(
@@ -95,6 +152,10 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
                         "ok": True,
                     }
                 ],
+            },
+            "setupAcknowledgement": {
+                "orgHasAcknowledged": False,
+                "userHasAcknowledged": False,
             },
         }
 
