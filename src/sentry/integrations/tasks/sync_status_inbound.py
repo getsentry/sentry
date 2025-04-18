@@ -15,6 +15,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
+from sentry.signals import issue_resolved, issue_unresolved
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.taskworker.config import TaskworkerConfig
@@ -22,6 +23,8 @@ from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
 
@@ -204,15 +207,16 @@ def sync_status_inbound(
 ) -> None:
     from sentry.integrations.mixins import ResolveSyncAction
 
-    integration = integration_service.get_integration(
-        integration_id=integration_id, status=ObjectStatus.ACTIVE
-    )
+    integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
         raise Integration.DoesNotExist
+    elif integration.status != ObjectStatus.ACTIVE:
+        return
 
-    organizations = Organization.objects.filter(id=organization_id)
+    organization = Organization.objects.get(id=organization_id)
+
     affected_groups = list(
-        Group.objects.get_groups_by_external_issue(integration, organizations, issue_key)
+        Group.objects.get_groups_by_external_issue(integration, [organization], issue_key)
     )
     if not affected_groups:
         return
@@ -234,6 +238,8 @@ def sync_status_inbound(
         "provider_key": provider.key,
         "integration_id": integration_id,
     }
+    default_user_id, default_user = _get_default_user_info(organization=organization)
+
     if action == ResolveSyncAction.RESOLVE:
         # Check if the group was recently resolved and we should skip the request
         # Avoid resolving the group in-app and then re-resolving via the integration webhook
@@ -270,15 +276,19 @@ def sync_status_inbound(
                 if not created:
                     resolution.update(datetime=django_timezone.now(), **resolution_params)
 
-            try:
-                default_user_id = str(organizations[0].get_default_owner().id)
-            except IndexError:
-                logger.exception("Error getting default user")
-                default_user_id = "<unknown>"
+            issue_resolved.send_robust(
+                organization_id=organization_id,
+                user=default_user,
+                group=group,
+                project=group.project,
+                resolution_type=provider.key,
+                sender=f"resolved_with_{provider.key}",
+            )
+
             analytics.record(
                 "issue.resolved",
                 project_id=group.project.id,
-                default_user_id=default_user_id,
+                default_user_id=str(default_user_id),
                 organization_id=organization_id,
                 group_id=group.id,
                 resolution_type="with_third_party_app",
@@ -286,6 +296,7 @@ def sync_status_inbound(
                 issue_type=group.issue_type.slug,
                 issue_category=group.issue_category.name.lower(),
             )
+
     elif action == ResolveSyncAction.UNRESOLVE:
         Group.objects.update_group_status(
             groups=affected_groups,
@@ -294,3 +305,25 @@ def sync_status_inbound(
             activity_type=ActivityType.SET_UNRESOLVED,
             activity_data=activity_data,
         )
+
+        for group in affected_groups:
+            issue_unresolved.send_robust(
+                project=group.project,
+                user=default_user,
+                group=group,
+                transition_type=provider.key,
+                sender=f"unresolved_with_{provider.key}",
+            )
+
+
+def _get_default_user_info(organization: Organization) -> tuple[int, RpcUser]:
+    try:
+        default_user_id = organization.default_owner_id
+    except IndexError:
+        logger.exception("Error getting default user")
+        default_user_id = "<unknown>"
+
+    default_user = user_service.get_user(default_user_id)
+    assert default_user is not None, "unable to fetch user"
+
+    return (default_user_id, default_user)
