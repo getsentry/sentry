@@ -10,7 +10,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
     dataset = "ourlogs"
 
     def do_request(self, query, features=None, **kwargs):
-        query["useRpc"] = "1"
         return super().do_request(query, features, **kwargs)
 
     def setUp(self):
