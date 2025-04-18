@@ -224,10 +224,14 @@ def build_metric_alert_chart(
             "end": timezone.now().strftime(TIME_FORMAT),
         }
 
+    # Force dynamic alerts to display the past 14 days of data
     if alert_context.detection_type == AlertRuleDetectionType.DYNAMIC:
-        time_period["start"] = (open_period_context.date_started - timedelta(days=14)).strftime(
-            TIME_FORMAT
-        )
+        end_dt = datetime.strptime(time_period["end"], TIME_FORMAT)
+        start_dt = end_dt - timedelta(days=14)
+        time_period = {
+            "start": start_dt.strftime(TIME_FORMAT),
+            "end": time_period["end"],
+        }
 
     chart_data = {
         "rule": alert_rule_serialized_response,
