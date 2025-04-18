@@ -1,8 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
@@ -68,14 +67,6 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
   );
 
   transactionRoute ??= `/${getTransactionSummaryBaseUrl(organization, view, true)}`;
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debounceSetHighlightedSpanId = useCallback(
-    debounce(id => {
-      setHighlightedSpanId(id);
-    }, 10),
-    []
-  );
 
   const {selection} = usePageFilters();
   const location = useLocation();
@@ -150,24 +141,21 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
   );
 
   const handleMouseOverSample = useCallback(
-    (sample: SpanSample) => debounceSetHighlightedSpanId(sample.span_id),
-    [debounceSetHighlightedSpanId]
+    (sample: SpanSample) => setHighlightedSpanId(sample.span_id),
+    []
   );
 
-  const handleMouseLeaveSample = useCallback(
-    () => debounceSetHighlightedSpanId(undefined),
-    [debounceSetHighlightedSpanId]
-  );
+  const handleMouseLeaveSample = useCallback(() => setHighlightedSpanId(undefined), []);
 
   return (
     <PageAlertProvider>
-      <DrawerHeader>
+      <EventDrawerHeader>
         <SampleDrawerHeaderTransaction
           project={project}
           transaction={transactionName}
           transactionMethod={transactionMethod}
         />
-      </DrawerHeader>
+      </EventDrawerHeader>
 
       <SampleDrawerBody>
         <PageAlert />

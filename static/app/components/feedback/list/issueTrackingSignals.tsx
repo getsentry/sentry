@@ -1,3 +1,4 @@
+import {Tooltip} from 'sentry/components/core/tooltip';
 import useExternalIssueDataFeedback from 'sentry/components/feedback/list/useHasLinkedIssues';
 import type {
   IntegrationComponent,
@@ -5,7 +6,6 @@ import type {
   PluginIssueComponent,
   SentryAppIssueComponent,
 } from 'sentry/components/group/externalIssuesList/types';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

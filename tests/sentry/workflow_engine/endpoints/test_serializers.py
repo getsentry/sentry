@@ -346,6 +346,7 @@ class TestWorkflowSerializer(TestCase):
 
         assert result == {
             "id": str(workflow.id),
+            "name": str(workflow.name),
             "organizationId": str(self.organization.id),
             "config": {},
             "dateCreated": workflow.date_added,
@@ -403,6 +404,7 @@ class TestWorkflowSerializer(TestCase):
 
         assert result == {
             "id": str(workflow.id),
+            "name": str(workflow.name),
             "organizationId": str(self.organization.id),
             "config": {},
             "dateCreated": workflow.date_added,

@@ -108,6 +108,7 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
             threshold_type=None,
             detection_type=None,
             comparison_delta=None,
+            alert_threshold=None,
         )
 
         self.assert_metric_issue_context(
@@ -115,6 +116,7 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
             open_period_identifier=self.group_event.group.id,
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CRITICAL,
+            title=self.group_event.group.title,
             metric_value=123.45,
             group=self.group_event.group,
         )

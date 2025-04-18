@@ -179,6 +179,7 @@ export function LogsTabContent({
                 setVisualizes={setVisualizes}
                 // TODO: we do not support log alerts nor adding to dashboards yet
                 hideContextMenu
+                dataset={DiscoverDatasets.OURLOGS}
               />
             </LogsItemContainer>
           </Feature>

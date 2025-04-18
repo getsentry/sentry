@@ -103,6 +103,7 @@ class TestSlackMetricAlertHandler(MetricAlertHandlerBase):
             threshold_type=None,
             detection_type=None,
             comparison_delta=None,
+            alert_threshold=None,
         )
 
         self.assert_metric_issue_context(
@@ -112,6 +113,7 @@ class TestSlackMetricAlertHandler(MetricAlertHandlerBase):
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
             group=self.group_event.group,
+            title=self.group_event.group.title,
         )
 
         self.assert_open_period_context(
