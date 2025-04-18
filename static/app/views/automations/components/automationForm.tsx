@@ -18,6 +18,7 @@ import {
   initialAutomationBuilderState,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
+import type {MonitorsData} from 'sentry/views/automations/components/connectedMonitorsList';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
 
 const FREQUENCY_OPTIONS = [
@@ -50,8 +51,10 @@ export default function AutomationForm() {
       <AutomationBuilderContext.Provider value={{state, actions}}>
         <Flex column gap={space(1.5)} style={{padding: space(2)}}>
           <SectionBody>
-            <Heading>{t('Connect Monitors')}</Heading>
-            <StyledConnectedMonitorsList monitors={[]} />
+            <Heading>{t('Connected Monitors')}</Heading>
+            <TableWrapper>
+              <StyledConnectedMonitorsList monitors={data} />
+            </TableWrapper>
             <ButtonWrapper justify="space-between">
               <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
               <Button icon={<IconEdit />}>{t('Edit Monitors')}</Button>
@@ -93,6 +96,11 @@ const Heading = styled('h2')`
 
 const StyledConnectedMonitorsList = styled(ConnectedMonitorsList)`
   margin: ${space(2)} 0;
+  padding: ${space(2)} 0;
+`;
+
+const TableWrapper = styled('div')`
+  padding-bottom: ${space(2)};
 `;
 
 const ButtonWrapper = styled(Flex)`
