@@ -15,7 +15,6 @@ from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 
 # This testcase needs to be an APITestCase because all of the logic to resolve
@@ -46,7 +45,6 @@ class TestIssueWorkflowNotifications(APITestCase):
         data.update(_data or {})
         self.client.put(self.url, data=data, format="json")
 
-    @with_feature("organizations:webhooks-unresolved")
     def test_notify_after_regress(self, delay):
         # First we need to resolve the issue
         self.update_issue({})
@@ -69,7 +67,6 @@ class TestIssueWorkflowNotifications(APITestCase):
         )
         assert delay.call_count == 2
 
-    @with_feature("organizations:webhooks-unresolved")
     def test_notify_after_bulk_ongoing(self, delay):
         # First we need to have an ignored issue
         self.update_issue({"status": "ignored", "substatus": "archived_until_escalating"})
@@ -87,7 +84,6 @@ class TestIssueWorkflowNotifications(APITestCase):
         )
         assert delay.call_count == 2
 
-    @with_feature("organizations:webhooks-unresolved")
     def test_notify_after_escalating(self, delay):
         # First we need to have an ignored issue
         self.update_issue({"status": "ignored", "substatus": "archived_until_escalating"})
