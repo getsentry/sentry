@@ -192,12 +192,12 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             "value": value,
         }
         issue_occurrence = detector_occurrence.to_issue_occurrence(
-            occurrence_id,
-            detector.project_id,
-            priority,
-            detection_time,
-            evidence_data,
-            fingerprint,
+            occurrence_id=occurrence_id,
+            project_id=detector.project_id,
+            status=priority,
+            detection_time=detection_time,
+            additional_evidence_data=evidence_data,
+            fingerprint=fingerprint,
         )
         event_data: dict[str, Any] = {}
         if hasattr(detector_occurrence, "event_data"):

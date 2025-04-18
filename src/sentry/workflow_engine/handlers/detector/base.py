@@ -31,6 +31,7 @@ class DetectorOccurrence:
 
     def to_issue_occurrence(
         self,
+        *,
         occurrence_id: str,
         project_id: int,
         status: DetectorPriorityLevel,
