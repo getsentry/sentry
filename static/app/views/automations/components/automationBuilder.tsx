@@ -6,10 +6,16 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
+import {
+  FILTER_DATA_CONDITION_TYPES,
+  FILTER_MATCH_OPTIONS,
+} from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import RuleNodeList from 'sentry/views/automations/components/ruleNodeList';
-import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
+import {
+  TRIGGER_DATA_CONDITION_TYPES,
+  TRIGGER_MATCH_OPTIONS,
+} from 'sentry/views/automations/components/triggers/constants';
 
 export default function AutomationBuilder() {
   const {state, actions} = useAutomationBuilderContext();
@@ -48,6 +54,8 @@ export default function AutomationBuilder() {
         </StepLead>
       </Step>
       <RuleNodeList
+        // TODO: replace constant dataConditionTypes with DataConditions API response
+        dataConditionTypes={TRIGGER_DATA_CONDITION_TYPES}
         placeholder={t('Select a trigger...')}
         conditions={state.triggers.conditions}
         group="triggers"
@@ -128,6 +136,8 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
             />
           </Flex>
           <RuleNodeList
+            // TODO: replace constant dataConditionTypes with DataConditions API response
+            dataConditionTypes={FILTER_DATA_CONDITION_TYPES}
             placeholder={t('Filter by...')}
             group={`actionFilters.${groupIndex}`}
             conditions={actionFilterBlock?.conditions || []}
