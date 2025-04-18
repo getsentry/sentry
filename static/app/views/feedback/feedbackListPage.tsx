@@ -9,6 +9,7 @@ import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
 import FeedbackWhatsNewBanner from 'sentry/components/feedback/feedbackWhatsNewBanner';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
+import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
 import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
 import useHaveSelectedProjectsSetupFeedback, {
   useHaveSelectedProjectsSetupNewFeedback,
@@ -44,6 +45,7 @@ export default function FeedbackListPage() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
   const prefersStackedNav = usePrefersStackedNav();
+  const feedbackSummary = useFeedbackSummary();
 
   const selectedProjects = projects.projects.filter(p =>
     pageFilters.selection.projects.includes(Number(p.id))
@@ -84,7 +86,7 @@ export default function FeedbackListPage() {
                 {hasSetupOneFeedback || hasSlug ? (
                   <Fragment>
                     <Container style={{gridArea: 'list'}}>
-                      <FeedbackList />
+                      <FeedbackList feedbackSummary={feedbackSummary} />
                     </Container>
                     <SearchContainer>
                       <FeedbackSearch />
