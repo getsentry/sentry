@@ -22,7 +22,7 @@ class PerformanceProblem:
     # We can't make it required until we stop loading these from nodestore via EventPerformanceProblem,
     # since there's legacy data in there that won't have these fields.
     # So until we disable transaction based perf issues we'll need to keep this optional.
-    evidence_data: Mapping[str, Any] | None
+    evidence_data: dict[str, Any] | None
     # User-friendly evidence to be displayed directly
     evidence_display: Sequence[IssueEvidence]
 
