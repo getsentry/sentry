@@ -28,10 +28,9 @@ export default function RuleNodeList({
   onDeleteRow,
   updateCondition,
 }: RuleNodeListProps) {
-  const options = Array.from(dataConditionNodesMap, ([key, value]) => ({
-    value: key,
-    label: value.label,
-  })).filter(option => dataConditionTypes.includes(option.value));
+  const options = Array.from(dataConditionNodesMap.entries())
+    .map(([value, {label}]) => ({value, label}))
+    .filter(({value}) => dataConditionTypes.includes(value));
 
   return (
     <Fragment>
