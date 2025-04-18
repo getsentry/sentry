@@ -228,15 +228,16 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
         }
 
 
-def get_org_from_uptime_monitor(uptime_monitor: ProjectUptimeSubscription) -> tuple[Organization]:
-    return (uptime_monitor.project.organization,)
+def get_org_from_detector(detector: Detector) -> tuple[Organization]:
+    return (detector.project.organization,)
 
 
-@cache_func_for_models([(ProjectUptimeSubscription, get_org_from_uptime_monitor)])
+@cache_func_for_models([(Detector, get_org_from_detector)])
 def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
-    return ProjectUptimeSubscription.objects.filter(
+    return Detector.objects.filter(
+        type=UptimeDomainCheckFailure.slug,
         project__organization=organization,
-        mode__in=[
+        config__mode__in=[
             ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
             ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         ],
@@ -332,6 +333,15 @@ def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
         return Detector.objects.get(data_sources=data_source)
     except (DataSource.DoesNotExist, Detector.DoesNotExist):
         return None
+
+
+def get_project_subscription(detector: Detector) -> ProjectUptimeSubscription:
+    """
+    Given a detector get the matching project subscription
+    """
+    data_source = detector.data_sources.first()
+    assert data_source
+    return ProjectUptimeSubscription.objects.get(uptime_subscription__id=data_source.source_id)
 
 
 def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscription) -> Detector:

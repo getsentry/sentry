@@ -22,8 +22,8 @@ from sentry.uptime.endpoints.serializers import (
     ProjectUptimeSubscriptionSerializerResponse,
 )
 from sentry.uptime.endpoints.validators import UptimeMonitorValidator
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
-from sentry.uptime.subscriptions.subscriptions import delete_project_uptime_subscription
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription, get_detector
+from sentry.uptime.subscriptions.subscriptions import delete_uptime_detector
 from sentry.utils.audit import create_audit_entry
 
 
@@ -122,9 +122,11 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
         """
         Delete an uptime monitor.
         """
+        detector = get_detector(uptime_subscription.uptime_subscription)
+        assert detector
         uptime_subscription_id = uptime_subscription.id
         audit_log_data = uptime_subscription.get_audit_log_data()
-        delete_project_uptime_subscription(uptime_subscription)
+        delete_uptime_detector(detector)
         create_audit_entry(
             request=request,
             organization=project.organization,

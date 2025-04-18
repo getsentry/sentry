@@ -4,7 +4,6 @@ from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import (
     UptimeSubscriptionDataSourceHandler,
-    create_detector_from_project_subscription,
     get_active_auto_monitor_count_for_org,
     get_detector,
     get_top_hosting_provider_names,
@@ -117,9 +116,10 @@ class GetDetectorTest(UptimeTestCase):
 class CreateDetectorTest(UptimeTestCase):
     def test_simple(self):
         monitor = self.create_project_uptime_subscription()
-        detector = create_detector_from_project_subscription(monitor)
+        detector = get_detector(monitor.uptime_subscription)
 
         assert get_detector(monitor.uptime_subscription) == detector
+        assert detector
         assert detector.name == monitor.name
         assert detector.owner_user_id == monitor.owner_user_id
         assert detector.owner_team == monitor.owner_team
