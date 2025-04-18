@@ -43,7 +43,7 @@ The number of previous days from now to find issues and events.
 This number is global so that fetching issues and events is consistent.
 """
 
-STACKFRAME_COUNT = 4
+STACKFRAME_COUNT = 20
 """
 The number of stack frames to check for function name and file name matches.
 """
