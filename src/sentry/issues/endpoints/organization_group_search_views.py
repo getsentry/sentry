@@ -1,6 +1,6 @@
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
-from django.db.models import Count, Q
+from django.db.models import Count, F, Q
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -37,8 +37,8 @@ class MemberPermission(OrganizationPermission):
 SORT_MAP = {
     "popularity": "popularity",
     "-popularity": "-popularity",
-    "visited": "groupsearchviewlastvisited__last_visited",
-    "-visited": "-groupsearchviewlastvisited__last_visited",
+    "visited": F("groupsearchviewlastvisited__last_visited").asc(nulls_first=True),
+    "-visited": F("groupsearchviewlastvisited__last_visited").desc(nulls_last=True),
     "name": "name",
     "-name": "-name",
     "created": "date_added",
