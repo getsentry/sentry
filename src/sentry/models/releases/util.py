@@ -61,7 +61,7 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         self,
         organization_id: int,
         operator: str,
-        build: str,
+        build: str | Sequence[str],
         project_ids: Sequence[int] | None = None,
         negated: bool = False,
     ) -> Self:
@@ -81,13 +81,40 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
                 )
             )
 
-        if build.isdecimal() and validate_bigint(int(build)):
-            qs = getattr(qs, query_func)(**{f"build_number__{operator}": int(build)})
-        else:
-            if not build or build.endswith("*"):
-                qs = getattr(qs, query_func)(build_code__startswith=build[:-1])
+        # Convert single string to list to simplify logic
+        builds = [build] if isinstance(build, str) else build
+
+        if operator == "in":
+            build_numbers = []
+            build_codes = []
+            for b in builds:
+                if isinstance(b, str) and b.isdecimal() and validate_bigint(int(b)):
+                    build_numbers.append(int(b))
+                else:
+                    build_codes.append(b)
+            if build_numbers:
+                qs = qs.filter(build_number__in=build_numbers)
+            if build_codes:
+                qs = qs.filter(build_code__in=build_codes)
+            return qs
+
+        build_number_filters = Q()
+        build_code_filters = Q()
+        for b in builds:
+            if isinstance(b, str) and b.isdecimal() and validate_bigint(int(b)):
+                build_number_filters |= Q(**{f"build_number__{operator}": int(b)})
             else:
-                qs = getattr(qs, query_func)(build_code=build)
+                if not b or (isinstance(b, str) and b.endswith("*")):
+                    build_code_filters |= Q(
+                        build_code__startswith=b[:-1] if isinstance(b, str) else ""
+                    )
+                else:
+                    build_code_filters |= Q(build_code=b)
+
+        if build_number_filters:
+            qs = getattr(qs, query_func)(build_number_filters)
+        if build_code_filters:
+            qs = getattr(qs, query_func)(build_code_filters)
 
         return qs
 
