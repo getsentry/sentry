@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
@@ -32,8 +32,15 @@ def save_feedback_event(event_data: Mapping[str, Any], project_id: int):
         # Shim to UserReport
         feedback_context = fixed_event_data["contexts"]["feedback"]
         associated_event_id = feedback_context.get("associated_event_id")
+
         if associated_event_id:
             project = Project.objects.get_from_cache(id=project_id)
+            timestamp = fixed_event_data["timestamp"]
+            start_time = (
+                datetime.fromtimestamp(timestamp, tz=UTC)
+                if isinstance(timestamp, float)
+                else datetime.fromisoformat(timestamp)
+            )
             save_userreport(
                 project,
                 {
@@ -47,7 +54,7 @@ def save_feedback_event(event_data: Mapping[str, Any], project_id: int):
                     "comments": feedback_context["message"],
                 },
                 FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
-                start_time=datetime.fromisoformat(fixed_event_data["timestamp"]),
+                start_time=start_time,
             )
             metrics.incr("feedback.shim_to_userreport.success")
 
