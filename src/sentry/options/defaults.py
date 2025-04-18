@@ -613,12 +613,6 @@ register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DIS
 
 # Github Enterprise Integration
 register(
-    "github-enterprise-app.alert-rule-action",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "github-enterprise-app.allowed-hosts-legacy-webhooks",
     type=Sequence,
     default=[],
@@ -2968,10 +2962,6 @@ register(
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "ecosystem:enable_integration_form_error_raise", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 
