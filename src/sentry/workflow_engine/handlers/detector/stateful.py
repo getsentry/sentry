@@ -220,12 +220,12 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
                     "value": value,
                 }
                 result = detector_occurrence.to_issue_occurrence(
-                    str(uuid4()),
-                    self.detector.project_id,
-                    new_status,
-                    datetime.now(UTC),
-                    evidence_data,
-                    self.build_fingerprint(group_key),
+                    occurrence_id=str(uuid4()),
+                    project_id=self.detector.project_id,
+                    status=new_status,
+                    detection_time=datetime.now(UTC),
+                    additional_evidence_data=evidence_data,
+                    fingerprint=self.build_fingerprint(group_key),
                 )
                 event_data["timestamp"] = result.detection_time
                 event_data["project_id"] = result.project_id
