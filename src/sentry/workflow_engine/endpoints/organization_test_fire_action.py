@@ -5,7 +5,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND
+from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -90,7 +90,7 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
         if not project:
             return Response(
                 {"detail": "No projects found for this organization that the user has access to"},
-                status=HTTP_404_NOT_FOUND,
+                status=HTTP_400_BAD_REQUEST,
             )
 
         action_exceptions = []
