@@ -53,15 +53,15 @@ def get_test_notification_event_data(project) -> GroupEvent | None:
         project_id=project.id,
         event_id=uuid4().hex,
         fingerprint=[md5(str(uuid4()).encode("utf-8")).hexdigest()],
-        issue_title="Some Issue",
-        subtitle="Some subtitle",
+        issue_title="Test Issue",
+        subtitle="Test issue created to test a notification related action",
         resource_id=None,
         evidence_data={},
         evidence_display=[],
         type=SendTestNotification,
         detection_time=datetime.now(UTC),
         level="error",
-        culprit="Some culprit",
+        culprit="Test notification",
     )
 
     # Load mock data
