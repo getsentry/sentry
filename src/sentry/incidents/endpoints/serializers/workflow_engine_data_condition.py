@@ -18,8 +18,10 @@ from sentry.workflow_engine.models import (
     AlertRuleDetector,
     DataCondition,
     DataConditionAlertRuleTrigger,
+    DataConditionGroup,
     DataConditionGroupAction,
     Detector,
+    DetectorWorkflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -32,27 +34,25 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> defaultdict[str, list[dict[str, Any]]]:
-        data_conditions = {item.id: item for item in item_list}
-        data_condition_ids = [dc.id for dc in item_list]
+        detector_triggers = {item.id: item for item in item_list}
+        detector_trigger_ids = [dc.id for dc in item_list]
 
-        action_filter_data_condition_groups = (
-            DataCondition.objects.filter(
-                comparison__in=[item.condition_result for item in item_list],
-                condition_result=True,
-                type=Condition.ISSUE_PRIORITY_EQUALS,
-            )
-            .exclude(
-                condition_group__in=Subquery(
-                    Detector.objects.filter(
-                        workflow_condition_group__in=[
-                            data_condition.condition_group
-                            for data_condition in data_conditions.values()
-                        ]
-                    ).values("workflow_condition_group")
-                )
-            )
-            .values_list("condition_group", flat=True)
+        # below, we go from detector trigger to action filter
+        detectors = Detector.objects.filter(
+            workflow_condition_group__in=[
+                detector_trigger.condition_group for detector_trigger in detector_triggers.values()
+            ]
+        ).values_list("id", flat=True)
+        workflows = DetectorWorkflow.objects.filter(detector__in=detectors).values_list(
+            "id", flat=True
         )
+        workflow_dcgs = DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow__in=workflows
+        )
+        action_filter_data_condition_groups = DataCondition.objects.filter(
+            comparison__in=[item.condition_result for item in item_list],
+            condition_group__in=workflow_dcgs,
+        ).values_list("condition_group", flat=True)
 
         action_filter_data_condition_group_action_ids = DataConditionGroupAction.objects.filter(
             condition_group_id__in=Subquery(action_filter_data_condition_groups)
@@ -66,12 +66,12 @@ class WorkflowEngineDataConditionSerializer(Serializer):
             list(actions), user, WorkflowEngineActionSerializer(), **kwargs
         )
         result: DefaultDict[DataCondition, dict[str, list[str]]] = defaultdict(dict)
-        for data_condition in data_conditions:
-            result[data_conditions[data_condition]]["actions"] = []
+        for data_condition in detector_triggers:
+            result[detector_triggers[data_condition]]["actions"] = []
 
         for action in serialized_actions:
             # in practice we only ever have 1 data condition in the item list at a time, but we may have multiple actions
-            result[data_conditions[data_condition_ids[0]]]["actions"].append(action)
+            result[detector_triggers[detector_trigger_ids[0]]]["actions"].append(action)
 
         return result
 
@@ -85,24 +85,6 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         # XXX: we are assuming that the obj/DataCondition is a detector trigger
         detector = Detector.objects.get(workflow_condition_group=obj.condition_group)
 
-        if obj.condition_result == DetectorPriorityLevel.LOW:
-            resolve_comparison = obj.comparison
-        else:
-            critical_detector_trigger = DataCondition.objects.get(
-                condition_group=obj.condition_group, condition_result=DetectorPriorityLevel.HIGH
-            )
-            resolve_comparison = critical_detector_trigger.comparison
-
-        resolve_trigger_data_condition = DataCondition.objects.get(
-            condition_group=obj.condition_group,
-            comparison=resolve_comparison,
-            condition_result=DetectorPriorityLevel.OK,
-            type=(
-                Condition.GREATER_OR_EQUAL
-                if obj.type == Condition.LESS_OR_EQUAL
-                else Condition.LESS_OR_EQUAL
-            ),
-        )
         alert_rule_trigger_id = DataConditionAlertRuleTrigger.objects.values_list(
             "alert_rule_trigger_id", flat=True
         ).get(data_condition=obj)
@@ -117,7 +99,7 @@ class WorkflowEngineDataConditionSerializer(Serializer):
             ),
             "thresholdType": (
                 AlertRuleThresholdType.ABOVE.value
-                if resolve_trigger_data_condition.type == Condition.LESS_OR_EQUAL
+                if obj.type == Condition.GREATER
                 else AlertRuleThresholdType.BELOW.value
             ),
             "alertThreshold": translate_data_condition_type(
@@ -126,9 +108,9 @@ class WorkflowEngineDataConditionSerializer(Serializer):
                 obj.comparison,
             ),
             "resolveThreshold": (
-                AlertRuleThresholdType.ABOVE
-                if resolve_trigger_data_condition.type == Condition.GREATER_OR_EQUAL
-                else AlertRuleThresholdType.BELOW
+                AlertRuleThresholdType.BELOW
+                if obj.type == Condition.GREATER
+                else AlertRuleThresholdType.ABOVE
             ),
             "dateCreated": obj.date_added,
             "actions": attrs.get("actions", []),
