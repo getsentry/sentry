@@ -49,6 +49,7 @@ import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
+import {isNewViewPage} from 'sentry/views/issueList/issueViews/utils';
 import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
 import LeftNavViewsHeader from 'sentry/views/issueList/leftNavViewsHeader';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
@@ -170,6 +171,7 @@ function IssueListOverview({router}: Props) {
   const [queryMaxCount, setQueryMaxCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [issuesLoading, setIssuesLoading] = useState(true);
+  const [issuesSuccessfullyLoaded, setIssuesSuccessfullyLoaded] = useState(false);
   const [memberList, setMemberList] = useState<ReturnType<typeof indexMembersByProject>>(
     {}
   );
@@ -225,9 +227,13 @@ function IssueListOverview({router}: Props) {
         return decodeScalar(query, '');
       }
 
+      if (isNewViewPage(location.pathname)) {
+        return '';
+      }
+
       return DEFAULT_QUERY;
     },
-    [organization.features]
+    [organization.features, location.pathname]
   );
 
   const getSortFromSavedSearchOrLocation = useCallback(
@@ -360,6 +366,7 @@ function IssueListOverview({router}: Props) {
     }
 
     setIssuesLoading(false);
+    setIssuesSuccessfullyLoaded(true);
     setQueryCount(cache.queryCount);
     setQueryMaxCount(cache.queryMaxCount);
     setPageLinks(cache.pageLinks);
@@ -562,6 +569,7 @@ function IssueListOverview({router}: Props) {
 
           setError(null);
           setIssuesLoading(false);
+          setIssuesSuccessfullyLoaded(true);
           setQueryCount(newQueryCount);
           setQueryMaxCount(newQueryMaxCount);
           setPageLinks(newPageLinks === null ? '' : newPageLinks);
@@ -587,6 +595,7 @@ function IssueListOverview({router}: Props) {
 
           setError(parseApiError(err));
           setIssuesLoading(false);
+          setIssuesSuccessfullyLoaded(false);
         },
         complete: () => {
           resumePolling();
@@ -637,6 +646,12 @@ function IssueListOverview({router}: Props) {
 
   // Fetch data on mount if necessary
   useEffect(() => {
+    // New view page begins shows an empty state before making a request
+    if (isNewViewPage(location.pathname)) {
+      setIssuesLoading(false);
+      return;
+    }
+
     const loadedFromCache = loadFromCache();
     if (!loadedFromCache) {
       // It's possible the projects query parameter is not yet ready and this
@@ -1125,6 +1140,7 @@ function IssueListOverview({router}: Props) {
               organizationSavedSearches={savedSearches?.filter(
                 search => search.visibility === 'organization'
               )}
+              issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
             />
           </StyledMain>
           <SavedIssueSearches
