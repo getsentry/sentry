@@ -102,8 +102,8 @@ class OrganizationMemberInviteRequestValidatorTest(TestCase):
             "email": ["There is an existing invite request for test@gmail.com"]
         }
 
-    @with_feature({"organizations:team-roles": False})
-    def test_deprecated_org_role_without_flag(self):
+    @with_feature("organizations:team-roles")
+    def test_deprecated_org_role_with_flag(self):
         context = {
             "organization": self.organization,
             "allowed_roles": [roles.get("admin"), roles.get("member")],
@@ -119,8 +119,8 @@ class OrganizationMemberInviteRequestValidatorTest(TestCase):
             ]
         }
 
-    @with_feature("organizations:team-roles")
-    def test_deprecated_org_role_with_flag(self):
+    @with_feature({"organizations:team-roles": False})
+    def test_deprecated_org_role_without_flag(self):
         context = {
             "organization": self.organization,
             "allowed_roles": [roles.get("admin"), roles.get("member")],

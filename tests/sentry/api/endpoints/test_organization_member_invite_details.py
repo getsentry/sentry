@@ -102,7 +102,7 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         )
 
     @with_feature("organizations:team-roles")
-    def can_update_from_retired_role_with_flag(self):
+    def test_can_update_from_retired_role_with_flag(self):
         invite = self.create_member_invite(
             organization=self.organization,
             email="pistachio@croissant.com",
@@ -113,8 +113,8 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         invite.refresh_from_db()
         assert invite.role == "member"
 
-    @with_feature({"organizations:team-roles", False})
-    def can_update_from_retired_role_without_flag(self):
+    @with_feature({"organizations:team-roles": False})
+    def test_can_update_from_retired_role_without_flag(self):
         invite = self.create_member_invite(
             organization=self.organization,
             email="pistachio@croissant.com",
@@ -125,8 +125,8 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         invite.refresh_from_db()
         assert invite.role == "member"
 
-    @with_feature({"organizations:team-roles", False})
-    def can_update_to_retired_role_without_flag(self):
+    @with_feature({"organizations:team-roles": False})
+    def test_can_update_to_retired_role_without_flag(self):
         invite = self.create_member_invite(
             organization=self.organization,
             email="pistachio@croissant.com",
@@ -138,7 +138,7 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         assert invite.role == "admin"
 
     @with_feature("organizations:team-roles")
-    def cannot_update_to_retired_role_with_flag(self):
+    def test_cannot_update_to_retired_role_with_flag(self):
         invite = self.create_member_invite(
             organization=self.organization,
             email="pistachio@croissant.com",
