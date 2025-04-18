@@ -70,7 +70,13 @@ export function DANGEROUS_SET_REACT_ROUTER_6_HISTORY(router: Router) {
   // functions to keep things working
   const compat6BrowserHistory: History = {
     push: to => router.navigate(locationDescriptorToTo(to)),
-    replace: to => router.navigate(locationDescriptorToTo(to), {replace: true}),
+    replace: to =>
+      router.navigate(locationDescriptorToTo(to), {
+        replace: true,
+        // Note that useNavigate replace does not automatically prevent scroll reset
+        // Here we're replicating the behavior of react router 3
+        preventScrollReset: true,
+      }),
     go: n => router.navigate(n),
     goBack: () => router.navigate(-1),
     goForward: () => router.navigate(1),
