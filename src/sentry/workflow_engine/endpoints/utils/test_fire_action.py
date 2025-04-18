@@ -1,8 +1,17 @@
 import logging
+from datetime import UTC, datetime
+from hashlib import md5
+from uuid import uuid4
 
 import sentry_sdk
 
+from sentry.event_manager import set_tag
+from sentry.eventstore.models import GroupEvent
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
+from sentry.notifications.notification_action.grouptype import SendTestNotification
 from sentry.shared_integrations.exceptions import IntegrationFormError
+from sentry.utils.samples import load_data
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.types import WorkflowEventData
 
@@ -35,3 +44,43 @@ def test_fire_action(
             action_exceptions.append(f"An unexpected error occurred. Error ID: '{error_id}'")
 
     return action_exceptions
+
+
+def get_test_notification_event_data(project) -> GroupEvent | None:
+
+    occurrence = IssueOccurrence(
+        id=uuid4().hex,
+        project_id=project.id,
+        event_id=uuid4().hex,
+        fingerprint=[md5(str(uuid4()).encode("utf-8")).hexdigest()],
+        issue_title="Some Issue",
+        subtitle="Some subtitle",
+        resource_id=None,
+        evidence_data={},
+        evidence_display=[],
+        type=SendTestNotification,
+        detection_time=datetime.now(UTC),
+        level="error",
+        culprit="Some culprit",
+    )
+
+    # Load mock data
+    event_data = load_data(
+        platform=project.platform,
+        default="javascript",
+        event_id=occurrence.event_id,
+    )
+
+    # Setting this tag shows the sample event banner in the UI
+    set_tag(event_data, "sample_event", "yes")
+
+    event_data["project_id"] = occurrence.project_id
+
+    occurrence, group_info = process_event_and_issue_occurrence(occurrence.to_dict(), event_data)
+    if group_info is None:
+        return None
+
+    generic_group = group_info.group
+    group_event = generic_group.get_latest_event()
+
+    return group_event

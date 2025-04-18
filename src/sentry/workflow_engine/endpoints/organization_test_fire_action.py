@@ -5,7 +5,12 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
+from rest_framework.status import (
+    HTTP_400_BAD_REQUEST,
+    HTTP_401_UNAUTHORIZED,
+    HTTP_404_NOT_FOUND,
+    HTTP_500_INTERNAL_SERVER_ERROR,
+)
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -14,9 +19,12 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
+from sentry.constants import ObjectStatus
 from sentry.models.project import Project
-from sentry.utils.samples import create_sample_event
-from sentry.workflow_engine.endpoints.utils.test_fire_action import test_fire_action
+from sentry.workflow_engine.endpoints.utils.test_fire_action import (
+    get_test_notification_event_data,
+    test_fire_action,
+)
 from sentry.workflow_engine.endpoints.validators.base.action import BaseActionValidator
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.types import WorkflowEventData
@@ -24,7 +32,7 @@ from sentry.workflow_engine.types import WorkflowEventData
 logger = logging.getLogger(__name__)
 
 
-class TestActionValidator(BaseActionValidator[Action]):
+class TestActionValidator(BaseActionValidator):
     class Meta:
         model = Action
         fields = ["data", "config", "type", "integration_id"]
@@ -75,20 +83,35 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
 
         data = serializer.validated_data
 
-        # Get the first project associated with the organization
+        if not request.user.is_authenticated:
+            return Response(status=HTTP_401_UNAUTHORIZED)
+
+        # Get the alphabetically first project associated with the organization
         # This is because we don't have a project when test firing actions
-        project = Project.objects.filter(organization=organization).first()
+        project = (
+            Project.objects.filter(
+                organization=organization,
+                teams__organizationmember__user_id=request.user.id,
+                status=ObjectStatus.ACTIVE,
+            )
+            .order_by("name")
+            .first()
+        )
+
         if not project:
             return Response(
-                {"detail": "No projects found for this organization"},
+                {"detail": "No projects found for this organization that the user has access to"},
                 status=HTTP_404_NOT_FOUND,
             )
 
         action_exceptions = []
 
-        test_event = create_sample_event(
-            project, platform=project.platform, default="javascript", tagged=True
-        )
+        test_event = get_test_notification_event_data(project)
+        if test_event is None:
+            return Response(
+                {"detail": "No test event was generated"},
+                status=HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         workflow_id = -1
         workflow_event_data = WorkflowEventData(
