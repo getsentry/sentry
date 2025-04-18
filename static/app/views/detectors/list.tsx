@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+// import moment from 'moment-timezone';
 import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -14,10 +15,15 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
+// import { ActionType } from 'sentry/types/workflowEngine/actions';
+// import { DataConditionGroupLogicType } from 'sentry/types/workflowEngine/dataConditions';
+// import type { Detector } from 'sentry/types/workflowEngine/detectors';
+import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
+  const {data: detectors} = useDetectorsQuery('11276');
 
   return (
     <SentryDocumentTitle title={t('Monitors')} noSuffix>
@@ -25,7 +31,7 @@ export default function DetectorsList() {
         <ActionsProvider actions={<Actions />}>
           <ListLayout>
             <TableHeader />
-            <DetectorListTable detectors={[]} />
+            <DetectorListTable detectors={detectors ?? []} />
           </ListLayout>
         </ActionsProvider>
       </PageFiltersContainer>

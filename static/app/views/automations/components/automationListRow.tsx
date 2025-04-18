@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/container/flex';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {ProjectList} from 'sentry/components/projectList';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connectionCell';
@@ -18,7 +19,7 @@ type AutomationListRowProps = {
   automation: Automation;
   handleSelect: (id: string, checked: boolean) => void;
   selected: boolean;
-};
+}
 
 export function AutomationListRow({
   automation,
@@ -50,6 +51,9 @@ export function AutomationListRow({
       </CellWrapper>
       <CellWrapper className="action">
         <ActionCell actions={actions} disabled={disabled} />
+      </CellWrapper>
+      <CellWrapper className="projects">
+        <ProjectList projectSlugs={[]} />
       </CellWrapper>
       <CellWrapper className="connected-monitors">
         <ConnectionCell ids={detectorIds} type="detector" disabled={disabled} />
