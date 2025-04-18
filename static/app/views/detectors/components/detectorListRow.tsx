@@ -20,7 +20,7 @@ interface DetectorListRowProps {
 }
 
 export function DetectorListRow({
-  detector: {workflowIds, id, name, disabled, projectId},
+  detector: {workflowIds, createdBy, id, projectId, name, disabled, type},
   handleSelect,
   selected,
 }: DetectorListRowProps) {
@@ -47,7 +47,7 @@ export function DetectorListRow({
         <StyledGraphCell />
       </Flex>
       <CellWrapper className="type">
-        <TypeCell type="errors" />
+        <TypeCell type={type} />
       </CellWrapper>
       <CellWrapper className="last-issue">
         <StyledIssueCell
@@ -56,7 +56,7 @@ export function DetectorListRow({
         />
       </CellWrapper>
       <CellWrapper className="creator">
-        <UserCell user="sentry" />
+        <UserCell user={createdBy ?? 'sentry'} />
       </CellWrapper>
       <CellWrapper className="connected-automations">
         <ConnectionCell ids={workflowIds} type="workflow" disabled={disabled} />
@@ -141,6 +141,6 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 3fr 1fr 0.75fr 1fr;
+    grid-template-columns: 3fr 80px 150px 80px 1fr;
   }
 `;

@@ -35,7 +35,7 @@ function HistoryAndConnectedMonitors() {
 
 function Details() {
   return (
-    <div>
+    <Flex column gap={space(3)}>
       <Flex column gap={space(1)}>
         <SectionHeading>{t('Last Triggered')}</SectionHeading>
         <span>
@@ -75,7 +75,7 @@ function Details() {
           <KeyValueTableRow keyName={t('Team')} value="Platform" />
         </KeyValueTable>
       </Flex>
-    </div>
+    </Flex>
   );
 }
 
@@ -83,7 +83,7 @@ export default function AutomationDetail() {
   useWorkflowEngineFeatureGate({redirect: true});
 
   return (
-    <SentryDocumentTitle title={t('Automation')} noSuffix>
+    <SentryDocumentTitle title={t('My Automation')} noSuffix>
       <BreadcrumbsProvider crumb={{label: t('Automations'), to: '/issues/automations'}}>
         <ActionsProvider actions={<Actions />}>
           <DetailLayout>

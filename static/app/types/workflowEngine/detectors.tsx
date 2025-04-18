@@ -4,11 +4,12 @@ import type {
 } from 'sentry/types/workflowEngine/dataConditions';
 
 export type DetectorType =
-  | 'metric'
+  | 'crons'
   | 'errors'
+  | 'metric'
   | 'performance'
-  | 'trace'
   | 'replay'
+  | 'trace'
   | 'uptime';
 
 interface NewDetector {
