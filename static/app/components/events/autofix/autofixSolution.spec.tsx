@@ -301,12 +301,9 @@ describe('AutofixSolution', () => {
     const timelineItem = screen.getByTestId('autofix-solution-timeline-item-0');
     expect(timelineItem).toBeInTheDocument();
 
-    // Hover over the timeline item to reveal buttons
-    await userEvent.hover(timelineItem);
-
     // Find and click the toggle button for deselecting the item
     const toggleButton = within(timelineItem).getByRole('button', {
-      name: 'Deselect item',
+      name: 'Remove from plan',
     });
     expect(toggleButton).toBeInTheDocument();
     await userEvent.click(toggleButton);
@@ -478,11 +475,10 @@ describe('AutofixSolution', () => {
     ) as HTMLElement;
     expect(timelineItem).not.toBeNull();
 
-    // Hover over the timeline item
-    await userEvent.hover(timelineItem);
-
-    // Find the delete button - there should be only one button within the hovered item
-    const deleteButton = within(timelineItem).getByRole('button');
+    // Find the delete button using the updated aria-label
+    const deleteButton = within(timelineItem).getByRole('button', {
+      name: 'Remove from plan',
+    });
     expect(deleteButton).toBeInTheDocument();
 
     // Click the delete button

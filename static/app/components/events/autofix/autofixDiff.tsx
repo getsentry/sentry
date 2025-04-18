@@ -896,6 +896,8 @@ const RemovedLine = styled('div')`
   background-color: ${DIFF_COLORS.removedRow};
   color: ${p => p.theme.textColor};
   padding: ${space(0.25)} ${space(0.5)};
+  white-space: pre-wrap;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const StyledTextArea = styled(TextArea)`
