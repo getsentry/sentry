@@ -124,9 +124,9 @@ class BaseGuideAnchor extends Component<Props, State> {
     this.props.onStepComplete?.(e);
     this.props.onFinish?.(e);
 
-    const {currentGuide, orgId, orgSlug, org} = this.state;
+    const {currentGuide, orgId} = this.state;
     if (currentGuide) {
-      recordFinish(currentGuide.guide, orgId, orgSlug, org);
+      recordFinish(currentGuide.guide, orgId);
     }
     closeGuide();
   };

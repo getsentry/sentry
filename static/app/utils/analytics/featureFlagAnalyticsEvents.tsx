@@ -3,7 +3,7 @@ import type {PlatformKey} from 'sentry/types/project';
 
 export type FeatureFlagEventParameters = {
   'flags.cta_dismissed': {surface: string; type: string};
-  'flags.cta_rendered': {area: string};
+  'flags.cta_rendered': {surface: string};
   'flags.drawer_details_rendered': {
     numLogs: number;
   };

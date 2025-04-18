@@ -4073,26 +4073,17 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.login_as(user=self.user)
 
-        # Test statement timeout when option is disabled (default)
         mock_query.side_effect = TimeoutError()
         response = self.get_response()
-        assert response.status_code == 500  # Should propagate original error
+        assert response.status_code == 429
+        assert (
+            response.data["detail"]
+            == "Query timeout. Please try with a smaller date range or fewer conditions."
+        )
 
-        # Test statement timeout when option is enabled
-        with override_options({"api.postgres-query-timeout-error-handling.enabled": True}):
-            mock_query.side_effect = TimeoutError()
-            response = self.get_response()
-            assert response.status_code == 429
-            assert (
-                response.data["detail"]
-                == "Query timeout. Please try with a smaller date range or fewer conditions."
-            )
-
-        # Test user cancellation - should return 500 regardless of feature flag
-        with override_options({"api.postgres-query-timeout-error-handling.enabled": True}):
-            mock_query.side_effect = UserCancelError()
-            response = self.get_response()
-            assert response.status_code == 500
+        mock_query.side_effect = UserCancelError()
+        response = self.get_response()
+        assert response.status_code == 500
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):

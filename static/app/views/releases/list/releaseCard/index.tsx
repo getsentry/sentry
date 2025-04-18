@@ -5,17 +5,16 @@ import type {Location} from 'history';
 import partition from 'lodash/partition';
 import moment from 'moment-timezone';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Collapsible from 'sentry/components/collapsible';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tct, tn} from 'sentry/locale';
@@ -23,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {useUser} from 'sentry/utils/useUser';
 import useFinalizeRelease from 'sentry/views/releases/components/useFinalizeRelease';
 import type {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
@@ -129,14 +129,19 @@ function ReleaseCard({
               query: {project: getReleaseProjectId(release, selection)},
             }}
           >
-            <GuideAnchor
+            <DemoTourElement
+              id={DemoTourStep.RELEASES_DETAILS}
               disabled={!isTopRelease || projectsToShow.length > 1}
-              target="release_version"
+              title={t('Release-specific trends')}
+              description={t(
+                'Select the latest release to review new and regressed issues, and business critical metrics like crash rate, and user adoption.'
+              )}
+              position="bottom-start"
             >
               <VersionWrapper>
                 <StyledVersion version={version} tooltipRawVersion anchor={false} />
               </VersionWrapper>
-            </GuideAnchor>
+            </DemoTourElement>
           </GlobalSelectionLink>
           {commitCount > 0 && (
             <ReleaseCardCommits release={release} withHeading={false} />

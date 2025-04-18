@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -13,7 +14,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -93,6 +93,8 @@ type Props = {
   transactionName: string;
 };
 
+export const SERVICE_ENTRY_SPANS_CURSOR_NAME = 'serviceEntrySpansCursor';
+
 function OTelSummaryContentInner({
   eventView,
   location,
@@ -129,7 +131,11 @@ function OTelSummaryContentInner({
   function handleTransactionsListSortChange(value: string) {
     const target = {
       pathname: location.pathname,
-      query: {...location.query, showTransactions: value, transactionCursor: undefined},
+      query: {
+        ...location.query,
+        showTransactions: value,
+        [SERVICE_ENTRY_SPANS_CURSOR_NAME]: undefined,
+      },
     };
 
     navigate(target);
@@ -251,7 +257,7 @@ function OTelSummaryContentInner({
           <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
         </FilterActions>
         <EAPChartsWidgetContainer>
-          <EAPChartsWidget transactionName={transactionName} />
+          <EAPChartsWidget transactionName={transactionName} query={query} />
         </EAPChartsWidgetContainer>
 
         <PerformanceAtScaleContextProvider>

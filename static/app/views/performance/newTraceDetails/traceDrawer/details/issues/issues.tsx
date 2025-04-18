@@ -309,10 +309,10 @@ export function IssueList({issues, node, organization}: IssueListProps) {
   }, [node, node.errors.size]);
 
   const uniqueOccurences = useMemo(() => {
-    const unique: TraceTree.TraceOccurence[] = [];
+    const unique: TraceTree.TraceOccurrence[] = [];
     const seenIssues: Set<number> = new Set();
 
-    for (const issue of node.occurences) {
+    for (const issue of node.occurrences) {
       if (seenIssues.has(issue.issue_id)) {
         continue;
       }
@@ -323,7 +323,7 @@ export function IssueList({issues, node, organization}: IssueListProps) {
     return unique;
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [node, node.occurences.size]);
+  }, [node, node.occurrences.size]);
 
   const uniqueIssues = useMemo(() => {
     return [...uniqueOccurences, ...uniqueErrorIssues.sort(sortIssuesByLevel)];
@@ -384,7 +384,7 @@ function IssueListHeader({
 }: {
   errorIssues: TraceTree.TraceErrorIssue[];
   node: TraceTreeNode<TraceTree.NodeValue>;
-  occurences: TraceTree.TraceOccurence[];
+  occurences: TraceTree.TraceOccurrence[];
 }) {
   const [singular, plural] = useMemo((): [string, string] => {
     const label = [t('Issue'), t('Issues')] as [string, string];

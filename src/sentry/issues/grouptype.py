@@ -6,7 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import IntEnum, StrEnum
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.apps import apps
@@ -18,12 +18,11 @@ from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
+from sentry.workflow_engine.types import DetectorSettings
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
-    from sentry.workflow_engine.handlers.detector import DetectorHandler
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +49,12 @@ DEFAULT_IGNORE_LIMIT: int = 3
 DEFAULT_EXPIRY_TIME: timedelta = timedelta(hours=24)
 
 
+class InvalidGroupTypeError(ValueError):
+    def __init__(self, group_type_id: int) -> None:
+        super().__init__(f"No group type with the id {group_type_id} is registered.")
+        self.group_type_id = group_type_id
+
+
 @dataclass()
 class GroupTypeRegistry:
     _registry: dict[int, type[GroupType]] = field(default_factory=dict)
@@ -74,13 +79,7 @@ class GroupTypeRegistry:
         with sentry_sdk.start_span(op="GroupTypeRegistry.get_visible") as span:
             released = [gt for gt in self.all() if gt.released]
             feature_to_grouptype = {
-                (
-                    gt.build_visible_feature_name()
-                    if not gt.use_flagpole_for_all_features
-                    else gt.build_visible_flagpole_feature_name()
-                ): gt
-                for gt in self.all()
-                if not gt.released
+                gt.build_visible_feature_name(): gt for gt in self.all() if not gt.released
             }
             batch_features = features.batch_has(
                 list(feature_to_grouptype.keys()), actor=actor, organization=organization
@@ -113,7 +112,7 @@ class GroupTypeRegistry:
 
     def get_by_type_id(self, id_: int) -> type[GroupType]:
         if id_ not in self._registry:
-            raise ValueError(f"No group type with the id {id_} is registered.")
+            raise InvalidGroupTypeError(id_)
         return self._registry[id_]
 
 
@@ -176,14 +175,10 @@ class GroupType:
     # Quota around many of these issue types can be created per project in a given time window
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
     notification_config: NotificationConfig = NotificationConfig()
-    detector_handler: type[DetectorHandler] | None = None
-    detector_validator: type[BaseDetectorTypeValidator] | None = None
+    detector_settings: DetectorSettings | None = None
     # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
     # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
     enable_status_change_workflow_notifications: bool = True
-    detector_config_schema: ClassVar[dict[str, Any]] = {}
-    # Temporary setting so that we can slowly migrate all perf issues to use flagpole for all feature flags
-    use_flagpole_for_all_features = False
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -191,17 +186,8 @@ class GroupType:
 
         if not cls.released:
             features.add(cls.build_visible_feature_name(), OrganizationFeature, True)
-            features.add(cls.build_ingest_feature_name(), OrganizationFeature)
-            features.add(cls.build_post_process_group_feature_name(), OrganizationFeature)
-
-            # XXX: Temporary shim here. We can't use the existing feature flag names, because they're auto defined
-            # as being option backed. So options automator isn't able to validate them and fails. We'll instead
-            # move to new flag names
-            features.add(cls.build_visible_flagpole_feature_name(), OrganizationFeature, True)
-            features.add(cls.build_ingest_flagpole_feature_name(), OrganizationFeature, True)
-            features.add(
-                cls.build_post_process_group_flagpole_feature_name(), OrganizationFeature, True
-            )
+            features.add(cls.build_ingest_feature_name(), OrganizationFeature, True)
+            features.add(cls.build_post_process_group_feature_name(), OrganizationFeature, True)
 
     def __post_init__(self) -> None:
         valid_categories = [category.value for category in GroupCategory]
@@ -213,25 +199,14 @@ class GroupType:
         if cls.released:
             return True
 
-        flag_name = (
-            cls.build_ingest_feature_name()
-            if not cls.use_flagpole_for_all_features
-            else cls.build_ingest_flagpole_feature_name()
-        )
-        return features.has(flag_name, organization)
+        return features.has(cls.build_ingest_feature_name(), organization)
 
     @classmethod
     def allow_post_process_group(cls, organization: Organization) -> bool:
         if cls.released:
             return True
 
-        flag_name = (
-            cls.build_post_process_group_feature_name()
-            if not cls.use_flagpole_for_all_features
-            else cls.build_post_process_group_flagpole_feature_name()
-        )
-
-        return features.has(flag_name, organization)
+        return features.has(cls.build_post_process_group_feature_name(), organization)
 
     @classmethod
     def should_detect_escalation(cls) -> bool:
@@ -245,33 +220,20 @@ class GroupType:
         return cls.slug.replace("_", "-")
 
     @classmethod
-    def build_base_feature_name(cls, prefix: str = "") -> str:
-        return f"organizations:{prefix}{cls.build_feature_name_slug()}"
+    def build_base_feature_name(cls) -> str:
+        return f"organizations:issue-{cls.build_feature_name_slug()}"
 
     @classmethod
     def build_visible_feature_name(cls) -> str:
         return f"{cls.build_base_feature_name()}-visible"
 
     @classmethod
-    def build_visible_flagpole_feature_name(cls) -> str:
-        # We'll rename this too so that all the feature names are consistent
-        return f"{cls.build_base_feature_name("issue-")}-visible"
-
-    @classmethod
     def build_ingest_feature_name(cls) -> str:
         return f"{cls.build_base_feature_name()}-ingest"
 
     @classmethod
-    def build_ingest_flagpole_feature_name(cls) -> str:
-        return f"{cls.build_base_feature_name("issue-")}-ingest"
-
-    @classmethod
     def build_post_process_group_feature_name(cls) -> str:
         return f"{cls.build_base_feature_name()}-post-process-group"
-
-    @classmethod
-    def build_post_process_group_flagpole_feature_name(cls) -> str:
-        return f"{cls.build_base_feature_name("issue-")}-post-process-group"
 
 
 def get_all_group_type_ids() -> set[int]:
@@ -322,6 +284,7 @@ class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, 
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
     released = True
+    use_flagpole_for_all_features = True
 
 
 @dataclass(frozen=True)
@@ -593,7 +556,6 @@ class MetricIssuePOC(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
-    use_flagpole_for_all_features = True
 
 
 def should_create_group(

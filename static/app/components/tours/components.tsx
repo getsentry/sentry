@@ -17,8 +17,6 @@ import {
 import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -184,6 +182,9 @@ export interface TourElementProps<T extends TourEnumType>
    * The actions to display in the tour element.
    */
   actions?: React.ReactNode;
+  /**
+   * A margin to create between the tour element and the border.
+   */
   margin?: number;
   /**
    * The position of the tour element.
@@ -343,7 +344,11 @@ interface TourGuideProps extends Omit<HTMLAttributes<HTMLElement>, 'title' | 'id
   stepCount?: number;
   stepTotal?: number;
   title?: React.ReactNode;
-  wrapperComponent?: React.ElementType;
+  wrapperComponent?: React.ComponentType<{
+    'aria-expanded': React.AriaAttributes['aria-expanded'];
+    children: React.ReactNode;
+    ref: React.RefAttributes<HTMLElement>['ref'];
+  }>;
 }
 
 export function TourGuide({
@@ -361,8 +366,6 @@ export function TourGuide({
   offset,
   margin,
 }: TourGuideProps) {
-  const config = useLegacyStore(ConfigStore);
-  const prefersDarkMode = config.theme === 'dark';
   const theme = useTheme();
 
   const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
@@ -415,7 +418,7 @@ export function TourGuide({
                       `,
                     }}
                   >
-                    <TourBody ref={scrollToElement} prefersDarkMode={prefersDarkMode}>
+                    <TourBody ref={scrollToElement}>
                       {isTopRowVisible && (
                         <TopRow>
                           <div>{countText}</div>
@@ -450,7 +453,7 @@ function scrollToElement(element: HTMLDivElement | null) {
 }
 
 /* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
-const TourBody = styled('div')<{prefersDarkMode: boolean}>`
+const TourBody = styled('div')`
   display: flex;
   flex-direction: column;
   background: ${p => p.theme.tour.background};
@@ -547,7 +550,7 @@ const BlurWindow = styled('div')`
   backdrop-filter: blur(3px);
 `;
 
-export const TourTriggerWrapper = styled('div')<{margin?: CSSProperties['margin']}>`
+const TourTriggerWrapper = styled('div')<{margin?: CSSProperties['margin']}>`
   &[aria-expanded='true'] {
     position: relative;
     z-index: ${p => p.theme.zIndex.tour.element};
@@ -561,7 +564,7 @@ export const TourTriggerWrapper = styled('div')<{margin?: CSSProperties['margin'
       inset: 0;
       border-radius: ${p => p.theme.borderRadius};
       box-shadow: inset 0 0 0 3px ${p => p.theme.tour.background};
-      margin: ${p => p.margin};
+      ${p => defined(p.margin) && `margin: ${p.margin};`}
     }
   }
 `;

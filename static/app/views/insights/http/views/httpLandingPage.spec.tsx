@@ -7,6 +7,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {HTTPLandingPage} from 'sentry/views/insights/http/views/httpLandingPage';
 
 jest.mock('sentry/utils/useLocation');
@@ -42,15 +43,7 @@ describe('HTTPLandingPage', function () {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue({
-    pathname: '/insights/backend/http/',
-    search: '',
-    query: {statsPeriod: '10d', 'span.domain': 'git', project: '1'},
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
-  });
+  const useLocationMock = jest.mocked(useLocation);
 
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
@@ -62,6 +55,16 @@ describe('HTTPLandingPage', function () {
 
   beforeEach(function () {
     jest.clearAllMocks();
+
+    useLocationMock.mockReturnValue({
+      pathname: '/insights/backend/http/',
+      search: '',
+      query: {statsPeriod: '10d', 'span.domain': 'git', project: '1'},
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
 
     ProjectsStore.loadInitialData([
       ProjectFixture({
@@ -432,5 +435,55 @@ describe('HTTPLandingPage', function () {
     expect(screen.getByRole('cell', {name: '0.38%'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '333.54ms'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '1.35wk'})).toBeInTheDocument();
+  });
+
+  it('sorts with query params', async function () {
+    useLocationMock.mockReturnValue({
+      pathname: '/insights/backend/http/',
+      search: '',
+      query: {
+        statsPeriod: '10d',
+        'span.domain': 'git',
+        project: '1',
+        [QueryParameterNames.DOMAINS_SORT]: '-avg(span.self_time)',
+      },
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
+
+    render(<HTTPLandingPage />, {organization});
+
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    expect(spanListRequestMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'spansMetrics',
+          environment: [],
+          field: [
+            'project',
+            'project.id',
+            'span.domain',
+            'epm()',
+            'http_response_rate(3)',
+            'http_response_rate(4)',
+            'http_response_rate(5)',
+            'avg(span.self_time)',
+            'sum(span.self_time)',
+            'time_spent_percentage()',
+          ],
+          per_page: 10,
+          project: [],
+          query: 'span.module:http span.op:http.client span.domain:*git*',
+          referrer: 'api.performance.http.landing-domains-list',
+          sort: '-avg(span.self_time)',
+          statsPeriod: '10d',
+        },
+      })
+    );
   });
 });

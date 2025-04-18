@@ -1,8 +1,10 @@
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,18 +19,18 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
+import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
-import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
-import {DurationChartWithSamples} from 'sentry/views/insights/http/components/charts/durationChartWithSamples';
+import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
-import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
 import {MessageSpanSamplesTable} from 'sentry/views/insights/queues/components/tables/messageSpanSamplesTable';
 import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQueuesMetricsQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
@@ -68,10 +70,8 @@ export function MessageSpanSamplesPanel() {
 
   const organization = useOrganization();
 
-  const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
-    undefined,
-    [],
-    SAMPLE_HOVER_DEBOUNCE
+  const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
+    undefined
   );
 
   // `detailKey` controls whether the panel is open. If all required properties are available, concat them to make a key, otherwise set to `undefined` and hide the panel
@@ -170,6 +170,7 @@ export function MessageSpanSamplesPanel() {
       search: timeseriesFilters,
       yAxis: [`avg(span.duration)`],
       enabled: isPanelOpen,
+      transformAliasToInputFormat: true,
     },
     'api.performance.queues.avg-duration-chart'
   );
@@ -187,8 +188,8 @@ export function MessageSpanSamplesPanel() {
     max: durationAxisMax,
     enabled: isPanelOpen && durationAxisMax > 0,
     fields: [
+      SpanIndexedField.ID,
       SpanIndexedField.TRACE,
-      SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
       SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
@@ -199,20 +200,9 @@ export function MessageSpanSamplesPanel() {
     ],
   });
 
-  const durationSamplesData = spanSamplesData?.data ?? [];
-
-  const sampledSpanDataSeries = useSampleScatterPlotSeries(
-    durationSamplesData,
-    transactionMetrics?.[0]?.['avg(span.duration)'],
-    highlightedSpanId,
-    'span.duration'
-  );
-
-  const findSampleFromDataPoint = (dataPoint: {name: string | number; value: number}) => {
-    return durationSamplesData.find(
-      s => s.timestamp === dataPoint.name && s['span.duration'] === dataPoint.value
-    );
-  };
+  const spanSamplesById = useMemo(() => {
+    return keyBy(spanSamplesData?.data ?? [], 'id');
+  }, [spanSamplesData]);
 
   const handleSearch = (newSpanSearchQuery: string) => {
     navigate({
@@ -224,9 +214,43 @@ export function MessageSpanSamplesPanel() {
     });
   };
 
+  const samplesPlottable = useMemo(() => {
+    if (!spanSamplesData) {
+      return undefined;
+    }
+
+    return new Samples(spanSamplesData as TabularData, {
+      attributeName: 'span.self_time',
+      baselineValue: avg,
+      baselineLabel: t('Average'),
+      onHighlight: sample => {
+        setHighlightedSpanId(sample.id);
+      },
+      onDownplay: () => {
+        setHighlightedSpanId(undefined);
+      },
+    });
+  }, [avg, spanSamplesData, setHighlightedSpanId]);
+
+  useEffect(() => {
+    if (highlightedSpanId && samplesPlottable) {
+      const spanSample = spanSamplesById[highlightedSpanId]!;
+      samplesPlottable.highlight(spanSample);
+    }
+
+    return () => {
+      if (!highlightedSpanId) {
+        return;
+      }
+
+      const spanSample = spanSamplesById[highlightedSpanId]!;
+      samplesPlottable?.downplay(spanSample);
+    };
+  }, [samplesPlottable, spanSamplesById, highlightedSpanId]);
+
   return (
     <PageAlertProvider>
-      <DrawerHeader>
+      <EventDrawerHeader>
         <SampleDrawerHeaderTransaction
           project={project}
           transaction={query.transaction}
@@ -234,7 +258,7 @@ export function MessageSpanSamplesPanel() {
             messageActorType === MessageActorType.PRODUCER ? t('Producer') : t('Consumer')
           }
         />
-      </DrawerHeader>
+      </EventDrawerHeader>
 
       <SampleDrawerBody>
         <ModuleLayout.Layout>
@@ -279,27 +303,13 @@ export function MessageSpanSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <DurationChartWithSamples
-              series={[
-                {
-                  ...durationData[`avg(span.duration)`],
-                  markLine: AverageValueMarkLine({value: avg}),
-                },
-              ]}
-              scatterPlot={sampledSpanDataSeries}
-              onHighlight={highlights => {
-                const firstHighlight = highlights[0];
-
-                if (!firstHighlight || !firstHighlight.dataPoint) {
-                  setHighlightedSpanId(undefined);
-                  return;
-                }
-
-                const sample = findSampleFromDataPoint(firstHighlight.dataPoint);
-                setHighlightedSpanId(sample?.span_id);
-              }}
+            <InsightsLineChartWidget
+              showLegend="never"
+              title={getDurationChartTitle('queue')}
               isLoading={isDurationDataFetching}
               error={durationError}
+              series={[durationData[`avg(span.duration)`]]}
+              samples={samplesPlottable}
             />
           </ModuleLayout.Full>
 
@@ -315,7 +325,7 @@ export function MessageSpanSamplesPanel() {
 
           <ModuleLayout.Full>
             <MessageSpanSamplesTable
-              data={durationSamplesData}
+              data={spanSamplesData?.data ?? []}
               isLoading={isDurationDataFetching || isDurationSamplesDataFetching}
               highlightedSpanId={highlightedSpanId}
               onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
@@ -419,8 +429,6 @@ function ConsumerMetricsRibbon({
     </ReadoutRibbon>
   );
 }
-
-const SAMPLE_HOVER_DEBOUNCE = 10;
 
 const TRACE_STATUS_SELECT_OPTIONS = [
   {

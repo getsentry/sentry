@@ -3,19 +3,17 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Confidence, NewQuery} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import EventView from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -24,15 +22,11 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
+import {WidgetExtrapolationFooter} from 'sentry/views/explore/charts/widgetExtrapolationFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
-import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
-import {
-  useExploreDataset,
-  useExploreVisualizes,
-  useSetExploreVisualizes,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {
@@ -40,14 +34,17 @@ import {
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
   confidences: Confidence[];
+  dataset: DiscoverDatasets;
   query: string;
+  setVisualizes: (visualizes: Visualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
-  isProgressivelyLoading?: boolean;
+  visualizes: Visualize[];
+  hideContextMenu?: boolean;
+  samplingMode?: SamplingMode;
 }
 
 export const EXPLORE_CHART_TYPE_OPTIONS = [
@@ -72,12 +69,14 @@ export function ExploreCharts({
   confidences,
   query,
   timeseriesResult,
-  isProgressivelyLoading,
+  visualizes,
+  setVisualizes,
+  hideContextMenu,
+  samplingMode,
+  dataset,
 }: ExploreChartsProps) {
   const theme = useTheme();
-  const dataset = useExploreDataset();
-  const visualizes = useExploreVisualizes();
-  const setVisualizes = useSetExploreVisualizes();
+  const organization = useOrganization();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const topEvents = useTopEvents();
   const isTopN = defined(topEvents) && topEvents > 0;
@@ -143,10 +142,8 @@ export function ExploreCharts({
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 
-      const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(
-        data,
-        isTopN
-      );
+      const {sampleCount, isSampled, dataScanned} =
+        determineSeriesSampleCountAndIsSampled(data, isTopN);
 
       return {
         chartIcon: <IconGraph type={chartIcon} />,
@@ -160,6 +157,7 @@ export function ExploreCharts({
         confidence: confidences[index],
         sampleCount,
         isSampled,
+        dataScanned,
       };
     });
   }, [confidences, getSeries, visualizes, isTopN]);
@@ -202,7 +200,21 @@ export function ExploreCharts({
                 Title={Title}
                 Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
                 revealActions="always"
-                TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
+                Footer={
+                  organization.features.includes(
+                    'visibility-explore-progressive-loading'
+                  ) && (
+                    <WidgetExtrapolationFooter
+                      samplingMode={undefined}
+                      sampleCount={0}
+                      isSampled={null}
+                      confidence={undefined}
+                      topEvents={undefined}
+                      dataScanned={undefined}
+                      dataset={dataset}
+                    />
+                  )
+                }
               />
             );
           }
@@ -246,7 +258,6 @@ export function ExploreCharts({
               key={index}
               height={CHART_HEIGHT}
               Title={Title}
-              TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
               Actions={[
                 <Tooltip
                   key="visualization"
@@ -282,13 +293,19 @@ export function ExploreCharts({
                     options={intervalOptions}
                   />
                 </Tooltip>,
-                <ChartContextMenu
-                  key="context"
-                  visualizeYAxes={chartInfo.yAxes}
-                  query={query}
-                  interval={interval}
-                  visualizeIndex={index}
-                />,
+                [
+                  ...(hideContextMenu
+                    ? []
+                    : [
+                        <ChartContextMenu
+                          key="context"
+                          visualizeYAxes={chartInfo.yAxes}
+                          query={query}
+                          interval={interval}
+                          visualizeIndex={index}
+                        />,
+                      ]),
+                ],
               ]}
               revealActions="always"
               Visualization={
@@ -307,16 +324,17 @@ export function ExploreCharts({
                 />
               }
               Footer={
-                dataset === DiscoverDatasets.SPANS_EAP_RPC && (
-                  <ConfidenceFooter
-                    sampleCount={chartInfo.sampleCount}
-                    isSampled={chartInfo.isSampled}
-                    confidence={chartInfo.confidence}
-                    topEvents={
-                      topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
-                    }
-                  />
-                )
+                <WidgetExtrapolationFooter
+                  sampleCount={chartInfo.sampleCount}
+                  isSampled={chartInfo.isSampled}
+                  confidence={chartInfo.confidence}
+                  topEvents={
+                    topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
+                  }
+                  dataScanned={chartInfo.dataScanned}
+                  samplingMode={samplingMode}
+                  dataset={dataset}
+                />
               }
             />
           );
@@ -324,48 +342,6 @@ export function ExploreCharts({
       </WidgetSyncContextProvider>
     </ChartList>
   );
-}
-
-export function useExtrapolationMeta({
-  dataset,
-  query,
-  isAllowedSelection,
-}: {
-  dataset: DiscoverDatasets;
-  query: string;
-  isAllowedSelection?: boolean;
-}) {
-  const {selection} = usePageFilters();
-
-  const extrapolationMetaEventView = useMemo(() => {
-    const search = new MutableSearch(query);
-
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    search.addFilterValues('!transaction.span_id', ['00']);
-
-    const discoverQuery: NewQuery = {
-      id: undefined,
-      name: 'Explore - Extrapolation Meta',
-      fields: ['count_sample()', 'min(sampling_rate)'],
-      query: search.formatString(),
-      version: 2,
-      dataset,
-    };
-
-    return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, query, selection]);
-
-  return useSpansQuery({
-    eventView: extrapolationMetaEventView,
-    initialData: [],
-    referrer: 'api.explore.spans-extrapolation-meta',
-    enabled:
-      (defined(isAllowedSelection) ? isAllowedSelection : true) &&
-      dataset === DiscoverDatasets.SPANS_EAP_RPC,
-    trackResponseAnalytics: false,
-  });
 }
 
 const ChartList = styled('div')`
