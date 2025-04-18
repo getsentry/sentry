@@ -34,6 +34,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
+    ApiError,
     ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiRetryError,
@@ -374,6 +375,15 @@ class CommitContextIntegration(ABC):
                 logger_event,
                 extra={"new_comment": pr_comment is None, "pr_key": pr_key, "repo": repo.name},
             )
+
+    @abstractmethod
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        """
+        Handle errors from the create_or_update_comment method.
+
+        Returns True if the error was handled, False otherwise.
+        """
+        raise NotImplementedError
 
 
 class CommitContextClient(ABC):

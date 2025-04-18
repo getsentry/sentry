@@ -26,7 +26,7 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.github.constants import RATE_LIMITED_MESSAGE
+from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -289,6 +289,26 @@ class GitHubIntegration(
         resp = self.get_client().search_issues(query)
         assert isinstance(resp, dict)
         return resp
+
+    # CommitContextIntegration methods
+
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        if api_error.json:
+            if ISSUE_LOCKED_ERROR_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "issue_locked_error"},
+                )
+                return True
+
+            elif RATE_LIMITED_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "rate_limited_error"},
+                )
+                return True
+
+        return False
 
 
 class GitHubIntegrationProvider(IntegrationProvider):

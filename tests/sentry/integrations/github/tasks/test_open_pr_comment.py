@@ -1035,9 +1035,11 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
     @patch("sentry.analytics.record")
     @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
+    @patch("sentry.integrations.github.integration.metrics")
     @responses.activate
     def test_comment_workflow_api_error(
         self,
+        mock_integration_metrics,
         mock_metrics,
         mock_analytics,
         _,
@@ -1083,7 +1085,9 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         with pytest.raises(ApiError):
             open_pr_comment_workflow(self.pr.id)
-            mock_metrics.incr.assert_called_with("github.open_pr_comment.api_error")
+        mock_metrics.incr.assert_called_with(
+            "github.open_pr_comment.error", tags={"type": "api_error"}
+        )
 
         pr_2 = PullRequest.objects.create(
             organization_id=self.organization.id,
@@ -1093,7 +1097,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         # does not raise ApiError for locked issue
         open_pr_comment_workflow(pr_2.id)
-        mock_metrics.incr.assert_called_with(
+        mock_integration_metrics.incr.assert_called_with(
             "github.open_pr_comment.error", tags={"type": "issue_locked_error"}
         )
 
@@ -1106,7 +1110,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         # does not raise ApiError for rate limited error
         open_pr_comment_workflow(pr_3.id)
 
-        mock_metrics.incr.assert_called_with(
+        mock_integration_metrics.incr.assert_called_with(
             "github.open_pr_comment.error", tags={"type": "rate_limited_error"}
         )
         assert not mock_analytics.called

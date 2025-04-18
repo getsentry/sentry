@@ -11,7 +11,7 @@ from snuba_sdk import Request as SnubaRequest
 
 from sentry import features
 from sentry.constants import ObjectStatus
-from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
+from sentry.integrations.github.constants import RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.utils import PullRequestIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
@@ -249,20 +249,10 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     except ApiError as e:
         cache.delete(cache_key)
 
-        if e.json:
-            if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
-                metrics.incr(
-                    MERGED_PR_METRICS_BASE.format(integration="github", key="error"),
-                    tags={"type": "issue_locked_error"},
-                )
-                return
-
-            elif RATE_LIMITED_MESSAGE in e.json.get("message", ""):
-                metrics.incr(
-                    MERGED_PR_METRICS_BASE.format(integration="github", key="error"),
-                    tags={"type": "rate_limited_error"},
-                )
-                return
+        if installation.on_create_or_update_comment_error(
+            api_error=e, metrics_base=MERGED_PR_METRICS_BASE
+        ):
+            return
 
         metrics.incr(
             MERGED_PR_METRICS_BASE.format(integration="github", key="error"),
