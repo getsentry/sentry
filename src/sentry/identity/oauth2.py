@@ -244,8 +244,8 @@ def record_event(event: IntegrationPipelineViewType, provider: str):
 
 
 class OAuth2LoginView(PipelineView):
-    authorize_url: str | None = None
-    client_id: str | None = None
+    authorize_url = None
+    client_id = None
     scope = ""
 
     def __init__(self, authorize_url=None, client_id=None, scope=None, *args, **kwargs):
@@ -294,9 +294,9 @@ class OAuth2LoginView(PipelineView):
 
 
 class OAuth2CallbackView(PipelineView):
-    access_token_url: str | None = None
-    client_id: str | None = None
-    client_secret: str | None = None
+    access_token_url = None
+    client_id = None
+    client_secret = None
 
     def __init__(self, access_token_url=None, client_id=None, client_secret=None, *args, **kwargs):
         super().__init__(*args, **kwargs)

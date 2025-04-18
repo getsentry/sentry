@@ -27,6 +27,13 @@ pytestmark = [requires_snuba]
 
 class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     rule_cls = JiraCreateTicketAction
+    mock_jira = None
+    broken_mock_jira = None
+
+    def get_client(self):
+        if not self.mock_jira:
+            self.mock_jira = MockJira()
+        return self.mock_jira
 
     def setUp(self):
         super().setUp()
@@ -96,8 +103,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_ticket_rules(self, mock_record_event):
         with mock.patch(
-            "sentry.integrations.jira.integration.JiraIntegration.get_client",
-            return_value=MockJira(),
+            "sentry.integrations.jira.integration.JiraIntegration.get_client", self.get_client
         ):
             response = self.configure_valid_alert_rule()
 
@@ -133,8 +139,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         mock_create_issue.side_effect = raise_api_error
         with mock.patch(
-            "sentry.integrations.jira.integration.JiraIntegration.get_client",
-            return_value=MockJira(),
+            "sentry.integrations.jira.integration.JiraIntegration.get_client", self.get_client
         ):
             response = self.configure_valid_alert_rule()
 
@@ -199,8 +204,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         mock_create_issue.side_effect = raise_api_error_with_payload
         with mock.patch(
-            "sentry.integrations.jira.integration.JiraIntegration.get_client",
-            return_value=MockJira(),
+            "sentry.integrations.jira.integration.JiraIntegration.get_client", self.get_client
         ):
             response = self.configure_valid_alert_rule()
 
@@ -223,8 +227,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         self, mock_get_create_meta_for_project, mock_record_event
     ):
         with mock.patch(
-            "sentry.integrations.jira.integration.JiraIntegration.get_client",
-            return_value=MockJira(),
+            "sentry.integrations.jira.integration.JiraIntegration.get_client", self.get_client
         ):
             response = self.configure_valid_alert_rule()
 
