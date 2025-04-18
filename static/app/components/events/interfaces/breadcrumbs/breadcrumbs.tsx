@@ -1,5 +1,5 @@
 import type React from 'react';
-import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {ListProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
 import type {ListRowRenderer} from 'react-virtualized/dist/es/List';
@@ -28,8 +28,6 @@ import {Breadcrumb} from './breadcrumb';
 
 const PANEL_MIN_HEIGHT = 200;
 export const PANEL_INITIAL_HEIGHT = 400;
-
-const noop = () => void 0;
 
 const cache = new CellMeasurerCache({
   fixedWidth: true,
@@ -158,17 +156,17 @@ function Breadcrumbs({
     }
   }, []);
 
-  const {
-    size: containerSize,
-    isHeld,
-    onMouseDown,
-    onDoubleClick,
-  } = useResizableDrawer({
+  const [size, setSize] = useState(PANEL_INITIAL_HEIGHT);
+  const {isHeld, onMouseDown} = useResizableDrawer({
     direction: 'down',
-    onResize: noop,
+    onResize: s => setSize(s),
     initialSize: PANEL_INITIAL_HEIGHT,
     min: PANEL_MIN_HEIGHT,
   });
+
+  const onDoubleClick = useCallback(() => {
+    setSize(PANEL_INITIAL_HEIGHT);
+  }, []);
 
   const panelHeaders: PanelTableProps['headers'] = useMemo(() => {
     return [
@@ -208,7 +206,7 @@ function Breadcrumbs({
             <VirtualizedList
               ref={listRef}
               deferredMeasurementCache={cache}
-              height={containerSize}
+              height={size}
               overscanRowCount={5}
               organization={organization}
               rowCount={breadcrumbs.length}

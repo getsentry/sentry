@@ -43,16 +43,16 @@ export function DifferentialFlamegraphLayout(props: DifferentialFlamegraphLayout
       ? MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[0]
       : MIN_FLAMEGRAPH_DRAWER_DIMENSIONS[1];
 
-    const onResize = (newSize: number, maybeOldSize: number | undefined) => {
+    const onResize = (newSize: number) => {
       if (!flamegraphDrawerRef.current) {
         return;
       }
 
       if (isSidebarLayout) {
-        flamegraphDrawerRef.current.style.width = `${maybeOldSize ?? newSize}px`;
+        flamegraphDrawerRef.current.style.width = `${newSize}px`;
         flamegraphDrawerRef.current.style.height = `100%`;
       } else {
-        flamegraphDrawerRef.current.style.height = `${maybeOldSize ?? newSize}px`;
+        flamegraphDrawerRef.current.style.height = `${newSize}px`;
         flamegraphDrawerRef.current.style.width = `100%`;
       }
     };
@@ -66,7 +66,11 @@ export function DifferentialFlamegraphLayout(props: DifferentialFlamegraphLayout
     };
   }, [layout]);
 
-  const {onMouseDown, onDoubleClick} = useResizableDrawer(resizableOptions);
+  const {onMouseDown} = useResizableDrawer(resizableOptions);
+
+  const onDoubleClick = useCallback(() => {
+    resizableOptions.onResize?.(resizableOptions.initialSize, true);
+  }, [resizableOptions]);
 
   const onOpenMinimap = useCallback(
     () =>
