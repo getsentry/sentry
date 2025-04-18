@@ -17,6 +17,7 @@ import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useFetchInfiniteListData from 'sentry/utils/api/useFetchInfiniteListData';
@@ -40,8 +41,33 @@ function NoFeedback({title, subtitle}: {subtitle: string; title: string}) {
   );
 }
 
-export default function FeedbackList() {
+interface FeedbackListProps {
+  feedbackSummary: {
+    error: Error | null;
+    keySentiments: Array<{
+      type: 'positive' | 'negative' | 'neutral';
+      value: string;
+    }>;
+    loading: boolean;
+    summary: string | null;
+  };
+}
+
+export default function FeedbackList({feedbackSummary}: FeedbackListProps) {
   const {listQueryKey} = useFeedbackQueryKeys();
+  const {summary, keySentiments} = feedbackSummary;
+
+  const getSentimentIcon = (type: string) => {
+    switch (type) {
+      case 'positive':
+        return <IconHappy color="green400" />;
+      case 'negative':
+        return <IconSad color="red400" />;
+      default:
+        return <IconMeh color="yellow400" />;
+    }
+  };
+
   const {
     isFetchingNextPage,
     isFetchingPreviousPage,
@@ -95,6 +121,18 @@ export default function FeedbackList() {
 
   return (
     <Fragment>
+      <Summary>
+        <SummaryHeader>{t('Feedback Summary')}</SummaryHeader>
+        <div>{summary}</div>
+        <div>
+          {keySentiments.map(sentiment => (
+            <Sentiment key={sentiment.value}>
+              {getSentimentIcon(sentiment.type)}
+              {sentiment.value}
+            </Sentiment>
+          ))}
+        </div>
+      </Summary>
       <FeedbackListHeader {...checkboxState} />
       <FeedbackListItems>
         <InfiniteLoader
@@ -151,6 +189,24 @@ export default function FeedbackList() {
     </Fragment>
   );
 }
+
+const SummaryHeader = styled('div')`
+  font-weight: bold;
+`;
+
+const Summary = styled('div')`
+  padding: ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+`;
+
+const Sentiment = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
 
 const FeedbackListItems = styled('div')`
   display: grid;
