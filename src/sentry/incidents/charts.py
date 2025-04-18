@@ -224,6 +224,11 @@ def build_metric_alert_chart(
             "end": timezone.now().strftime(TIME_FORMAT),
         }
 
+    if alert_context.detection_type == AlertRuleDetectionType.DYNAMIC:
+        time_period["start"] = (open_period_context.date_started - timedelta(days=14)).strftime(
+            TIME_FORMAT
+        )
+
     chart_data = {
         "rule": alert_rule_serialized_response,
         "selectedIncident": selected_incident_serialized,
