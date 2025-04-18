@@ -376,6 +376,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             comparison_delta=None,
             sensitivity=None,
             resolve_threshold=None,
+            alert_threshold=1.0,
         )
         self.assert_metric_issue_context(
             metric_issue_context,
