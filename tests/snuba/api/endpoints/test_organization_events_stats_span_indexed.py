@@ -1899,3 +1899,50 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         rows = response.data["foo"]["data"][0:6]
         for expected, result in zip([0, 1, 0], rows):
             assert result[1][0]["count"] == expected
+
+    def test_small_invalid_timerange(self):
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(seconds=10),
+                "interval": "15s",
+                "query": "",
+                "yAxis": ["count()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert "for periods of at least" in response.data["detail"]
+
+    def test_small_valid_timerange(self):
+        # Each of these denotes how many events to create in each bucket
+        event_counts = [6, 3]
+        spans = []
+        for offset, count in enumerate(event_counts):
+            spans.extend(
+                [
+                    self.create_span(
+                        {"description": "foo", "sentry_tags": {"status": "success"}},
+                        start_ts=self.day_ago + timedelta(seconds=offset * 15 + 1),
+                    )
+                    for _ in range(count)
+                ]
+            )
+        self.store_spans(spans, is_eap=self.is_eap)
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(seconds=30),
+                "interval": "15s",
+                "query": "",
+                "yAxis": ["count()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        count_rows = response.data["data"]
+        for test in zip(event_counts, count_rows):
+            assert test[1][1][0]["count"] == test[0]
