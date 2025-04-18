@@ -21,7 +21,10 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.seer.fetch_issues.more_parsing import patch_parsers_more
+from sentry.seer.fetch_issues.more_parsing import (
+    patch_parsers_more,
+    simple_function_name_conditions,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
@@ -40,7 +43,7 @@ The number of previous days from now to find issues and events.
 This number is global so that fetching issues and events is consistent.
 """
 
-STACKFRAME_COUNT = 20
+STACKFRAME_COUNT = 4
 """
 The number of stack frames to check for function name and file name matches.
 """
@@ -90,13 +93,6 @@ def _get_issues_for_file(
     if not projects:
         return []
 
-    # Gets the appropriate parser for formatting the snuba query given the file extension.
-    # The extension is never replaced in reverse codemapping.
-    file_extension = sentry_filenames[0].split(".")[-1]
-    if file_extension not in patch_parsers_more:
-        return []
-    language_parser = patch_parsers_more[file_extension]
-
     # Fetch an initial, candidate set of groups.
     group_ids: list[int] = list(
         Group.objects.filter(
@@ -109,7 +105,6 @@ def _get_issues_for_file(
         .values_list("id", flat=True)
     )[:MAX_RECENT_ISSUES]
     project_ids = [project.id for project in projects]
-    multi_if = language_parser.generate_multi_if(function_names)
 
     # Fetch the latest event for each group, along with some other event data we'll need for
     # filtering by function names and file names.
@@ -163,7 +158,6 @@ def _get_issues_for_file(
                 Column("group_id"),
                 Column("event_id"),
                 Column("title"),
-                Function("multiIf", multi_if, "function_name"),
             ]
         )
         .set_where(
@@ -182,9 +176,7 @@ def _get_issues_for_file(
                                     Op.IN,
                                     sentry_filenames,
                                 ),
-                                language_parser.generate_function_name_conditions(
-                                    function_names, stackframe_idx
-                                ),
+                                simple_function_name_conditions(function_names, stackframe_idx),
                             ],
                         )
                         for stackframe_idx in range(-STACKFRAME_COUNT, 0)  # first n frames
@@ -235,15 +227,11 @@ def _add_event_details(
     serialized_events: list[EventSerializerResponse] = serialize(
         events, serializer=EventSerializer()
     )
-    group_id_to_group_dict = {
-        group_dict["group_id"]: group_dict for group_dict in issues_result_set
-    }
     return [
         {  # Structured like seer.automation.models.IssueDetails
             "id": int(event_dict["groupID"]),
             "title": event_dict["title"],
             "events": [event_dict],
-            "function_name": group_id_to_group_dict[int(event_dict["groupID"])]["function_name"],
         }
         for event_dict in serialized_events
         if event_dict["groupID"] is not None
