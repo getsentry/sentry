@@ -14,8 +14,10 @@ import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadg
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import Link from 'sentry/components/links/link';
 import {TourElement} from 'sentry/components/tours/components';
+import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -63,6 +65,11 @@ export default function StreamlinedGroupHeader({
 
   const {sort: _sort, ...query} = location.query;
   const {count: eventCount, userCount} = group;
+  const useGetMaxRetentionDays =
+    HookStore.get('react-hook:use-get-max-retention-days')[0] ??
+    (() => MAX_PICKABLE_DAYS);
+  const maxRetentionDays = useGetMaxRetentionDays();
+  const userCountPeriod = maxRetentionDays ? `(${maxRetentionDays}d)` : '(30d)';
   const {title: primaryTitle, subtitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const isComplete = group.status === 'resolved' || group.status === 'ignored';
@@ -138,13 +145,13 @@ export default function StreamlinedGroupHeader({
           <StatTitle>
             {issueTypeConfig.eventAndUserCounts.enabled &&
               (userCount === 0 ? (
-                t('Users (90d)')
+                t('Users %s', userCountPeriod)
               ) : (
                 <StatLink
                   to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
                   aria-label={t('View affected users')}
                 >
-                  {t('Users (90d)')}
+                  {t('Users %s', userCountPeriod)}
                 </StatLink>
               ))}
           </StatTitle>
@@ -157,7 +164,7 @@ export default function StreamlinedGroupHeader({
           {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>
               <StatCount value={eventCount} aria-label={t('Event count')} />
-              <StatCount value={userCount} aria-label={t('User count - 90 days')} />
+              <StatCount value={userCount} aria-label={t('User count')} />
             </Fragment>
           )}
           <Flex gap={space(1)} align="center">
