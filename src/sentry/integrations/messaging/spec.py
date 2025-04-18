@@ -229,7 +229,11 @@ class MessagingActionHandler(DefaultActionHandler):
         )
         if success:
             self.record_alert_sent_analytics(
-                action, incident, project, action.target_identifier, notification_uuid
+                organization_id=incident.organization.id,
+                project_id=project.id,
+                alert_id=incident.alert_rule.id,
+                external_id=action.target_identifier,
+                notification_uuid=notification_uuid,
             )
 
 

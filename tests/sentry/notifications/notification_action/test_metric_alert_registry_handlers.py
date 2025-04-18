@@ -137,6 +137,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         comparison_delta: int | None = None,
         sensitivity: AlertRuleSensitivity | None = None,
         resolve_threshold: float | None = None,
+        alert_threshold: float | None = None,
     ):
         assert asdict(alert_context) == {
             "name": name,
@@ -146,6 +147,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "comparison_delta": comparison_delta,
             "sensitivity": sensitivity,
             "resolve_threshold": resolve_threshold,
+            "alert_threshold": alert_threshold,
         }
 
     def assert_metric_issue_context(

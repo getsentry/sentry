@@ -103,6 +103,7 @@ class TestSlackMetricAlertHandler(MetricAlertHandlerBase):
             threshold_type=None,
             detection_type=None,
             comparison_delta=None,
+            alert_threshold=None,
         )
 
         self.assert_metric_issue_context(
