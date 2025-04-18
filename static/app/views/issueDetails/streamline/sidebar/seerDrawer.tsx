@@ -21,7 +21,6 @@ import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -131,11 +130,6 @@ interface SeerDrawerProps {
   project: Project;
 }
 
-const AiSetupDataConsent = HookOrDefault({
-  hookName: 'component:ai-setup-data-consent',
-  defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
-});
-
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const organization = useOrganization();
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
@@ -238,42 +232,36 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             size="sm"
           />
         </Header>
-        {!aiConfig.needsGenAIConsent && (
-          <ButtonBarWrapper data-test-id="autofix-button-bar">
-            <ButtonBar gap={1}>
-              <Feature features={['organizations:autofix-seer-preferences']}>
-                <AutofixPreferenceDropdown project={project} />
-              </Feature>
-              <AutofixFeedback />
-              {aiConfig.hasAutofix && (
-                <Button
-                  size="xs"
-                  onClick={reset}
-                  title={
-                    autofixData?.created_at
-                      ? `Last run at ${autofixData.created_at.split('T')[0]}`
-                      : null
-                  }
-                  disabled={!autofixData}
-                >
-                  {t('Start Over')}
-                </Button>
-              )}
-            </ButtonBar>
-          </ButtonBarWrapper>
-        )}
+        <ButtonBarWrapper data-test-id="autofix-button-bar">
+          <ButtonBar gap={1}>
+            <Feature features={['organizations:autofix-seer-preferences']}>
+              <AutofixPreferenceDropdown project={project} />
+            </Feature>
+            <AutofixFeedback />
+            {aiConfig.hasAutofix && (
+              <Button
+                size="xs"
+                onClick={reset}
+                title={
+                  autofixData?.created_at
+                    ? `Last run at ${autofixData.created_at.split('T')[0]}`
+                    : null
+                }
+                disabled={!autofixData}
+              >
+                {t('Start Over')}
+              </Button>
+            )}
+          </ButtonBar>
+        </ButtonBarWrapper>
       </SeerDrawerNavigator>
 
-      {!aiConfig.isAutofixSetupLoading && !aiConfig.needsGenAIConsent && autofixData && (
+      {!aiConfig.isAutofixSetupLoading && autofixData && (
         <AutofixProgressBar autofixData={autofixData} />
       )}
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
-          <div data-test-id="ai-setup-loading-indicator">
-            <LoadingIndicator />
-          </div>
-        ) : aiConfig.needsGenAIConsent ? (
-          <AiSetupDataConsent groupId={group.id} />
+          <LoadingIndicator />
         ) : (
           <Fragment>
             <SeerNotices

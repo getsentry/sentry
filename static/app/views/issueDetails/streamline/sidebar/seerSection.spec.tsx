@@ -26,7 +26,6 @@ describe('SeerSection', () => {
   let mockGroup!: ReturnType<typeof GroupFixture>;
   const mockProject = ProjectFixture();
   const organization = OrganizationFixture({
-    genAIConsent: true,
     hideAiFeatures: false,
     features: ['gen-ai-features'],
   });
@@ -38,7 +37,6 @@ describe('SeerSection', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {ok: true},
       },
@@ -70,7 +68,6 @@ describe('SeerSection', () => {
   it('renders resources section when AI features are disabled', () => {
     const customOrganization = OrganizationFixture({
       hideAiFeatures: true,
-      genAIConsent: false,
       features: ['gen-ai-features'],
     });
 
@@ -98,42 +95,10 @@ describe('SeerSection', () => {
   });
 
   describe('Seer button text', () => {
-    it('shows "Set Up Autofix" when AI needs setup', async () => {
-      const customOrganization = OrganizationFixture({
-        genAIConsent: false,
-        hideAiFeatures: false,
-        features: ['gen-ai-features'],
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/issues/${mockGroup.id}/autofix/setup/`,
-        body: {
-          genAIConsent: {ok: false},
-          integration: {ok: false},
-          githubWriteIntegration: {ok: false},
-        },
-      });
-
-      render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
-        organization: customOrganization,
-      });
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      });
-
-      expect(
-        screen.getByText('Explore potential root causes and solutions with Autofix.')
-      ).toBeInTheDocument();
-
-      expect(screen.getByRole('button', {name: 'Set Up Autofix'})).toBeInTheDocument();
-    });
-
     it('shows "Find Root Cause" even when autofix needs setup', async () => {
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
         body: {
-          genAIConsent: {ok: true},
           integration: {ok: false},
           githubWriteIntegration: {ok: false},
         },
@@ -148,11 +113,9 @@ describe('SeerSection', () => {
         organization,
       });
 
-      await waitFor(() => {
-        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      });
-
-      expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Find Root Cause'})
+      ).toBeInTheDocument();
     });
 
     it('shows "Find Root Cause" when autofix is available', async () => {
@@ -160,7 +123,6 @@ describe('SeerSection', () => {
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
         body: {
-          genAIConsent: {ok: true},
           integration: {ok: true},
           githubWriteIntegration: {ok: true},
         },
@@ -181,7 +143,7 @@ describe('SeerSection', () => {
       });
     });
 
-    it('shows resource link when available', () => {
+    it('shows resource link when available', async () => {
       const disabledIssueSummaryGroup: Group = {
         ...mockGroup,
         issueCategory: IssueCategory.PERFORMANCE,
@@ -195,7 +157,6 @@ describe('SeerSection', () => {
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
         body: {
-          genAIConsent: {ok: true},
           integration: {ok: true},
           githubWriteIntegration: {ok: true},
         },
@@ -211,11 +172,11 @@ describe('SeerSection', () => {
       );
 
       expect(
-        screen.getByRole('button', {name: 'How to fix ChunkLoadErrors'})
+        await screen.findByRole('button', {name: 'How to fix ChunkLoadErrors'})
       ).toBeInTheDocument();
     });
 
-    it('does not show CTA button when region is de', () => {
+    it('does not show CTA button when region is de', async () => {
       jest.mock('sentry/utils/regions');
       jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
         name: 'de',
@@ -226,7 +187,6 @@ describe('SeerSection', () => {
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
         body: {
-          genAIConsent: {ok: true},
           integration: {ok: true},
           githubWriteIntegration: {ok: true},
         },
@@ -242,7 +202,7 @@ describe('SeerSection', () => {
         organization,
       });
 
-      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+      expect(await screen.findByText('Seer')).toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Set Up Autofix'})
       ).not.toBeInTheDocument();

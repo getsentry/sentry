@@ -25,7 +25,6 @@ interface Props {
     hasResources: boolean;
     hasSummary: boolean;
     isAutofixSetupLoading: boolean;
-    needsGenAIConsent: boolean;
   };
   event: Event;
   group: Group;
@@ -122,9 +121,7 @@ export function SeerSectionCtaButton({
   }, []);
 
   const showCtaButton =
-    aiConfig.needsGenAIConsent ||
-    aiConfig.hasAutofix ||
-    (aiConfig.hasSummary && aiConfig.hasResources);
+    aiConfig.hasAutofix || (aiConfig.hasSummary && aiConfig.hasResources);
   const isButtonLoading = aiConfig.isAutofixSetupLoading || isAutofixPending;
 
   const lastStep = autofixData?.steps?.[autofixData.steps.length - 1];
@@ -137,10 +134,6 @@ export function SeerSectionCtaButton({
     autofixData?.steps?.some(step => step.type === type);
 
   const getButtonText = () => {
-    if (aiConfig.needsGenAIConsent) {
-      return t('Set Up Autofix');
-    }
-
     if (!aiConfig.hasAutofix) {
       return t('Open Resources');
     }

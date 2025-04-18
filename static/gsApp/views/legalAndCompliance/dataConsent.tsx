@@ -42,27 +42,6 @@ const formGroups: JsonFormObject[] = [
                   "You don't have access to manage these billing and subscription details."
                 ),
       },
-      {
-        name: 'genAIConsent',
-        type: 'boolean',
-        label: t('Use of identifying data for generative AI features'),
-        help: tct(
-          'Toggle on to let Sentry send relevant stack trace and code from your linked repositories to third-party AI subprocessors, as disclosed in our [subprocessorLink:subprocessor list]. It will not be used to train any machine learning or large language models. [learnMorelink].',
-          {
-            subprocessorLink: (
-              <ExternalLink href="https://sentry.io/legal/subprocessors/" />
-            ),
-            learnMorelink: (
-              <StyledExternalLink href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features">
-                {t(`Learn more`)}
-              </StyledExternalLink>
-            ),
-          }
-        ),
-        visible: ({isUsRegion}) => isUsRegion,
-        disabled: ({isGenAiButtonDisabled}) => isGenAiButtonDisabled,
-        disabledReason: ({genAiButtonMessage}) => genAiButtonMessage,
-      },
     ],
   },
 ];

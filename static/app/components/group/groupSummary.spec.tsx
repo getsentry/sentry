@@ -12,7 +12,6 @@ describe('GroupSummary', function () {
   const mockGroup = GroupFixture();
   const mockProject = ProjectFixture();
   const organization = OrganizationFixture({
-    genAIConsent: true,
     hideAiFeatures: false,
     features: ['gen-ai-features'],
   });
@@ -57,7 +56,6 @@ describe('GroupSummary', function () {
       url: `/issues/${mockGroup.id}/autofix/setup/`,
       method: 'GET',
       body: {
-        genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {
           repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],

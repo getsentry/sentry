@@ -323,9 +323,6 @@ const mockGroupApis = (
       integration: {
         ok: true,
       },
-      genAIConsent: {
-        ok: true,
-      },
       githubWriteIntegration: {
         ok: true,
       },

@@ -89,7 +89,6 @@ describe('GroupDetailsLayout', () => {
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/setup/',
       body: {
-        genAIConsent: {ok: false},
         integration: {ok: true},
         githubWriteIntegration: {ok: true},
       },

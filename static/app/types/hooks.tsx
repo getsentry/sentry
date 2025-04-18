@@ -68,9 +68,6 @@ export type RouteHooks = {
  * Component specific hooks for DateRange and SelectorItems
  * These components have plan specific overrides in getsentry
  */
-type AiSetupDataConsentProps = {
-  groupId: string;
-};
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
@@ -176,7 +173,6 @@ export type MembershipSettingsProps = {
  * Component wrapping hooks
  */
 export type ComponentHooks = {
-  'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:continuous-profiling-beta-banner': () => React.ComponentType<ContinuousProfilingBetaAlertBannerProps>;
