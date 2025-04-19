@@ -7,7 +7,7 @@ from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo.base import SiloMode
@@ -73,7 +73,7 @@ class ProjectDetectorDetailsBaseTest(APITestCase):
         self.detector = self.create_detector(
             project_id=self.project.id,
             name="Test Detector",
-            type=MetricAlertFire.slug,
+            type=MetricIssue.slug,
             workflow_condition_group=self.data_condition_group,
         )
         self.data_source_detector = self.create_data_source_detector(
@@ -104,7 +104,7 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
             "id": self.detector.id,
             "projectId": self.project.id,
             "name": "Updated Detector",
-            "detectorType": MetricAlertFire.slug,
+            "detectorType": MetricIssue.slug,
             "dateCreated": self.detector.date_added,
             "dateUpdated": timezone.now(),
             "dataSource": {
@@ -136,7 +136,7 @@ class ProjectDetectorDetailsPutTest(ProjectDetectorDetailsBaseTest):
 
     def assert_detector_updated(self, detector):
         assert detector.name == "Updated Detector"
-        assert detector.type == MetricAlertFire.slug
+        assert detector.type == MetricIssue.slug
         assert detector.project_id == self.project.id
 
     def assert_condition_group_updated(self, condition_group):
