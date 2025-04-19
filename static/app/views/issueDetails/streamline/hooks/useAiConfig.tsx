@@ -25,19 +25,22 @@ export const useAiConfig = (group: Group, project: Project) => {
   const isAutofixEnabled = issueTypeConfig.autofix;
   const hasResources = !!issueTypeConfig.resources;
 
-  const hasGenAIConsent = autofixSetupData?.genAIConsent.ok ?? organization.genAIConsent;
+  const hasGenAIAcknowledgement =
+    autofixSetupData?.setupAcknowledgement.orgHasAcknowledged;
 
-  const hasSummary = hasGenAIConsent && isSummaryEnabled && areAiFeaturesAllowed;
+  const hasSummary = hasGenAIAcknowledgement && isSummaryEnabled && areAiFeaturesAllowed;
   const hasAutofix = isAutofixEnabled && areAiFeaturesAllowed && !isSampleError;
   const hasGithubIntegration = autofixSetupData?.integration.ok;
 
-  const needsGenAIConsent =
-    !hasGenAIConsent && (isSummaryEnabled || isAutofixEnabled) && areAiFeaturesAllowed;
+  const needsGenAiAcknowledgement =
+    !autofixSetupData?.setupAcknowledgement.userHasAcknowledged &&
+    (isSummaryEnabled || isAutofixEnabled) &&
+    areAiFeaturesAllowed;
 
   return {
     hasSummary,
     hasAutofix,
-    needsGenAIConsent,
+    needsGenAiAcknowledgement,
     hasResources,
     isAutofixSetupLoading,
     areAiFeaturesAllowed,
