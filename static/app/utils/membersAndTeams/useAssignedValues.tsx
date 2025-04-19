@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {User} from 'sentry/types/user';
+import {getUsername} from 'sentry/utils/membersAndTeams/userUtils';
 
 export default function useAssignedValues(): SearchGroup[] {
   const {teams} = useLegacyStore(TeamStore);
@@ -46,16 +46,6 @@ export default function useAssignedValues(): SearchGroup[] {
 
   return assignedValues;
 }
-
-export const getUsername = ({isManaged, username, email}: User) => {
-  const uuidPattern = /[0-9a-f]{32}$/;
-  // Users created via SAML receive unique UUID usernames. Use
-  // their email in these cases, instead.
-  if (username && uuidPattern.test(username)) {
-    return email;
-  }
-  return !isManaged && username ? username : email;
-};
 
 const convertToSearchItem = (value: string) => {
   const escapedValue = escapeTagValue(value);

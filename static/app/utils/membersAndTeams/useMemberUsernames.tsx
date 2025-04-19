@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {getUsername} from 'sentry/views/issueList/utils/useAssignedValues';
+import {getUsername} from 'sentry/utils/membersAndTeams/userUtils';
 
 export default function useMemberUsernames() {
   const {members} = useLegacyStore(MemberListStore);

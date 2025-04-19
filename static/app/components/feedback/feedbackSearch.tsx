@@ -18,6 +18,7 @@ import {
   getFieldDefinition,
   IsFieldValues,
 } from 'sentry/utils/fields';
+import useAssignedValues from 'sentry/utils/membersAndTeams/useAssignedValues';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -25,7 +26,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import useAssignedValues from 'sentry/views/issueList/utils/useAssignedValues';
 
 const EXCLUDED_TAGS: string[] = [
   // These are found in issue platform and redundant (= __.name, ex os.name)

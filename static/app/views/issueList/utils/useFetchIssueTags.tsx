@@ -24,10 +24,10 @@ import {
   ISSUE_FIELDS,
   ISSUE_PROPERTY_FIELDS,
 } from 'sentry/utils/fields';
+import useAssignedValues from 'sentry/utils/membersAndTeams/useAssignedValues';
+import useMemberUsernames from 'sentry/utils/membersAndTeams/useMemberUsernames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import useAssignedValues from 'sentry/views/issueList/utils/useAssignedValues';
 import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
-import useMemberUsernames from 'sentry/views/issueList/utils/useMemberUsernames';
 
 type UseFetchIssueTagsParams = {
   org: Organization;
