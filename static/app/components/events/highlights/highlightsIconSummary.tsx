@@ -56,8 +56,8 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   const shouldDisplayDevice =
     isMobilePlatform(projectPlatform) || isNativePlatform(projectPlatform);
 
-  // Errors thrown on the backend of a Meta-Framework (e.g. Next.js) also include the client context
-  const isMetaFrameworkBackendIssue =
+  // Events from the backend of a Meta-Framework (e.g. Next.js) also include the client context
+  const isMetaFrameworkBackendEvent =
     Object.keys(event.contexts).includes('client_os') &&
     Object.keys(event.contexts).includes('os');
 
@@ -81,8 +81,8 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
     }))
     .filter((item, _index, array) => {
       if (
-        // Hide client information in backend issues (always prefer `os` over `client_os`)
-        isMetaFrameworkBackendIssue &&
+        // Hide client information in backend events (always prefer `os` over `client_os`)
+        isMetaFrameworkBackendEvent &&
         (item.contextType === 'browser' || item.alias === 'client_os')
       ) {
         return false;
