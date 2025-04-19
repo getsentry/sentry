@@ -19,6 +19,7 @@ import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -275,7 +276,7 @@ const SidebarAccordionExpandButton = styled(Button)<{sidebarCollapsed?: boolean}
   &:hover,
   a:hover &,
   a[active] & {
-    color: ${p => p.theme.white};
+    color: ${p => (isChonkTheme(p.theme) ? p.theme.colors.blue400 : p.theme.white)};
   }
 
   ${p => p.sidebarCollapsed && `display: none;`}

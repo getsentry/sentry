@@ -1,5 +1,5 @@
 import {Fragment, isValidElement, useCallback, useContext, useMemo} from 'react';
-import type {Theme} from '@emotion/react';
+import {type Theme, useTheme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -16,6 +16,7 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -151,6 +152,7 @@ function SidebarItem({
   badgeTitle,
   ...props
 }: SidebarItemProps) {
+  const theme = useTheme();
   const {setExpandedItemId, shouldAccordionFloat} = useContext(ExpandedContext);
   const router = useRouter();
   // label might be wrapped in a guideAnchor
@@ -242,6 +244,7 @@ function SidebarItem({
       <SidebarNavigationItemHook id={id}>
         {({additionalContent}) => (
           <StyledSidebarItem
+            theme={theme}
             {...props}
             id={`sidebar-item-${id}`}
             isInFloatingAccordion={isInFloatingAccordion}
@@ -371,10 +374,10 @@ const getActiveStyle = ({
   theme,
   isInFloatingAccordion,
 }: {
+  theme: Theme;
   active?: string;
   hasNewNav?: boolean;
   isInFloatingAccordion?: boolean;
-  theme?: Theme;
 }) => {
   if (!active) {
     return '';
@@ -384,21 +387,23 @@ const getActiveStyle = ({
       &:active,
       &:focus,
       &:hover {
-        color: ${theme?.gray400};
+        color: ${isChonkTheme(theme) ? theme.subText : theme.gray400};
       }
     `;
   }
   return css`
-    color: ${theme?.white};
+    color: ${isChonkTheme(theme) ? theme.colors.blue400 : theme.white};
 
     &:active,
     &:focus,
     &:hover {
-      color: ${theme?.white};
+      color: ${isChonkTheme(theme) ? theme.colors.blue400 : theme.white};
     }
 
     &:before {
-      background-color: ${theme?.active};
+      background-color: ${!!theme && isChonkTheme(theme)
+        ? theme.colors.chonk.blue400
+        : theme.active};
     }
   `;
 };
@@ -407,12 +412,17 @@ const StyledSidebarItem = styled(Link, {
   shouldForwardProp: p =>
     !['isInFloatingAccordion', 'hasNewNav', 'index', 'organization'].includes(p),
 })`
+  color: ${p =>
+    isChonkTheme(p.theme)
+      ? p.theme.subText
+      : p.isInFloatingAccordion
+        ? p.theme.gray400
+        : 'inherit'};
+  height: ${p => (p.isInFloatingAccordion ? '35px' : p.hasNewNav ? '40px' : '30px')};
   display: flex;
-  color: ${p => (p.isInFloatingAccordion ? p.theme.gray400 : 'inherit')};
   position: relative;
   cursor: pointer;
   font-size: 15px;
-  height: ${p => (p.isInFloatingAccordion ? '35px' : p.hasNewNav ? '40px' : '30px')};
   flex-shrink: 0;
   border-radius: ${p => p.theme.borderRadius};
   transition: none;
@@ -458,11 +468,11 @@ const StyledSidebarItem = styled(Link, {
       if (p.isInFloatingAccordion) {
         return css`
           background-color: ${p.theme.hover};
-          color: ${p.theme.gray400};
+          color: ${isChonkTheme(p.theme) ? p.theme.subText : p.theme.gray400};
         `;
       }
       return css`
-        color: ${p.theme.white};
+        color: ${isChonkTheme(p.theme) ? p.theme.colors.chonk.blue400 : p.theme.white};
       `;
     }}
   }
@@ -483,10 +493,10 @@ const SidebarItemWrapper = styled('div')<{collapsed?: boolean; hasNewNav?: boole
   display: flex;
   align-items: center;
   justify-content: center;
-  ${p => p.hasNewNav && 'flex-direction: column;'}
   width: 100%;
-
+  ${p => p.hasNewNav && 'flex-direction: column;'}
   ${p => !p.collapsed && `padding-right: ${space(1)};`}
+
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     padding-right: 0;
   }
@@ -541,26 +551,27 @@ const getCollapsedBadgeStyle = ({collapsed, theme}: any) => {
   }
 
   return css`
+    background: ${theme.red300};
     text-indent: -99999em;
     position: absolute;
     right: 0;
     top: 1px;
-    background: ${theme.red300};
     width: 11px;
     height: 11px;
     border-radius: 11px;
     line-height: 11px;
-    box-shadow: 0 3px 3px #2f2936;
+    box-shadow: ${theme.isChonk ? 'none' : '0 3px 3px #2f2936'};
   `;
 };
 
 // @ts-expect-error TS(7031): Binding element '_' implicitly has an 'any' type.
 const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} />)`
+  color: ${p => p.theme.white};
+  background: ${p =>
+    isChonkTheme(p.theme) ? p.theme.colors.chonk.red400 : p.theme.red300};
   display: block;
   text-align: center;
-  color: ${p => p.theme.white};
   font-size: 12px;
-  background: ${p => p.theme.red300};
   width: 22px;
   height: 22px;
   border-radius: 22px;
@@ -576,6 +587,6 @@ const CollapsedFeatureBadge = styled(FeatureBadge)`
 `;
 
 const StyledInteractionStateLayer = styled(InteractionStateLayer)`
-  height: ${16 * 2 + 40}px;
+  height: 72px;
   width: 70px;
 `;
