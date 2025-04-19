@@ -18,6 +18,10 @@ export type AutofixSetupResponse = {
     ok: boolean;
     reason: string | null;
   };
+  setupAcknowledgement: {
+    orgHasAcknowledged: boolean;
+    userHasAcknowledged: boolean;
+  };
   githubWriteIntegration?: {
     ok: boolean;
     repos: AutofixSetupRepoDefinition[];
