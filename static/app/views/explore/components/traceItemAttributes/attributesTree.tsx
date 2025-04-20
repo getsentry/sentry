@@ -55,18 +55,23 @@ type AttributeItem = {
   value: string | number | null;
 };
 
-export type AttributesFieldRenderProps = {
+export type AttributesFieldRendererProps<RendererExtra extends RenderFunctionBaggage> = {
+  extra: RendererExtra;
   item: AttributeItem;
   basicRendered?: React.ReactNode;
   meta?: EventsMetaType;
 };
 
-interface AttributesFieldRender {
-  renderExtra: RenderFunctionBaggage;
-  renderers?: Record<string, (props: AttributesFieldRenderProps) => React.ReactNode>;
+interface AttributesFieldRender<RendererExtra extends RenderFunctionBaggage> {
+  rendererExtra: RendererExtra;
+  renderers?: Record<
+    string,
+    (props: AttributesFieldRendererProps<RendererExtra>) => React.ReactNode
+  >;
 }
 
-interface AttributesTreeProps extends AttributesFieldRender {
+interface AttributesTreeProps<RendererExtra extends RenderFunctionBaggage>
+  extends AttributesFieldRender<RendererExtra> {
   attributes: TraceItemResponseAttribute[];
   config?: AttributesTreeRowConfig;
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string;
@@ -74,7 +79,8 @@ interface AttributesTreeProps extends AttributesFieldRender {
   hiddenAttributes?: string[];
 }
 
-interface AttributesTreeColumnsProps extends AttributesTreeProps {
+interface AttributesTreeColumnsProps<RendererExtra extends RenderFunctionBaggage>
+  extends AttributesTreeProps<RendererExtra> {
   columnCount: number;
 }
 
@@ -87,7 +93,8 @@ interface AttributesTreeRowConfig {
   disableRichValue?: boolean;
 }
 
-interface AttributesTreeRowProps extends AttributesFieldRender {
+interface AttributesTreeRowProps<RendererExtra extends RenderFunctionBaggage>
+  extends AttributesFieldRender<RendererExtra> {
   attributeKey: string;
   content: AttributesTreeContent;
   config?: AttributesTreeRowConfig;
@@ -149,33 +156,33 @@ function addToAttributeTree(
 /**
  * Function to recursively create a flat list of all rows to be rendered for a given AttributeTree
  * @param props The props for rendering the root of the AttributeTree
- * @returns A list of LogFieldsTreeRow components to be rendered in this tree
+ * @returns A list of TreeRow components to be rendered in this tree
  */
-function getAttributesTreeRows({
+function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
   attributeKey,
   content,
   spacerCount = 0,
   uniqueKey,
   renderers = {},
-  renderExtra,
+  rendererExtra,
   isLast = false,
   config = {},
   getCustomActions,
-}: AttributesTreeRowProps &
-  AttributesFieldRender & {
+}: AttributesTreeRowProps<RendererExtra> &
+  AttributesFieldRender<RendererExtra> & {
     uniqueKey: string;
   }): React.ReactNode[] {
   const subtreeAttributes = Object.keys(content.subtree);
   const subtreeRows = subtreeAttributes.reduce(
     (rows: React.ReactNode[], attribute, i) => {
-      const branchRows = getAttributesTreeRows({
+      const branchRows = getAttributesTreeRows<RendererExtra>({
         attributeKey: attribute,
         content: content.subtree[attribute]!,
         spacerCount: spacerCount + 1,
         isLast: i === subtreeAttributes.length - 1,
         uniqueKey: `${uniqueKey}-${i}`,
         renderers,
-        renderExtra,
+        rendererExtra,
       });
       return rows.concat(branchRows);
     },
@@ -189,7 +196,7 @@ function getAttributesTreeRows({
       spacerCount={spacerCount}
       data-test-id="attribute-tree-row"
       renderers={renderers}
-      renderExtra={renderExtra}
+      rendererExtra={rendererExtra}
       isLast={isLast}
       config={config}
       getCustomActions={getCustomActions}
@@ -199,19 +206,19 @@ function getAttributesTreeRows({
 }
 
 /**
- * Component to render proportional columns for log fields. The columns will not separate
+ * Component to render proportional columns for attributes. The columns will not separate
  * branch attributes from their roots, and attempt to be as evenly distributed as possible.
  */
-function AttributesTreeColumns({
+function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
   attributes,
   columnCount,
   hiddenAttributes = [],
   renderers = {},
-  renderExtra,
+  rendererExtra: renderExtra,
   config = {},
   getCustomActions,
   getAdjustedAttributeKey,
-}: AttributesTreeColumnsProps) {
+}: AttributesTreeColumnsProps<RendererExtra>) {
   const assembledColumns = useMemo(() => {
     if (!attributes) {
       return [];
@@ -238,13 +245,13 @@ function AttributesTreeColumns({
         content,
         uniqueKey: `${i}`,
         renderers,
-        renderExtra,
+        rendererExtra: renderExtra,
         config,
         getCustomActions,
       })
     );
 
-    // Get the total number of LogFieldsTreeRow components to be rendered, and a goal size for each column
+    // Get the total number of TreeRow components to be rendered, and a goal size for each column
     const attributeTreeRowTotal = attributeTreeRowGroups.reduce(
       (sum, group) => sum + group.length,
       0
@@ -293,21 +300,23 @@ function AttributesTreeColumns({
   return <Fragment>{assembledColumns}</Fragment>;
 }
 
-export function AttributesTree(props: AttributesTreeProps) {
+export function AttributesTree<RendererExtra extends RenderFunctionBaggage>(
+  props: AttributesTreeProps<RendererExtra>
+) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
   return (
     <TreeContainer
       ref={containerRef}
       columnCount={columnCount}
-      data-test-id="log-fields-tree"
+      data-test-id="fields-tree"
     >
       <AttributesTreeColumns columnCount={columnCount} {...props} />
     </TreeContainer>
   );
 }
 
-function AttributesTreeRow({
+function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
   content,
   attributeKey,
   spacerCount = 0,
@@ -315,7 +324,7 @@ function AttributesTreeRow({
   config = {},
   getCustomActions,
   ...props
-}: AttributesTreeRowProps) {
+}: AttributesTreeRowProps<RendererExtra>) {
   const theme = useTheme();
   const originalAttribute = content.originalAttribute;
   const hasErrors = false; // No error handling in this simplified version
@@ -362,11 +371,11 @@ function AttributesTreeRow({
       </TreeKeyTrunk>
       <TreeValueTrunk>
         <TreeValue hasErrors={hasErrors}>
-          <LogFieldsTreeValue
+          <AttributesTreeValue
             config={config}
             content={content}
             renderers={props.renderers}
-            renderExtra={props.renderExtra}
+            rendererExtra={props.rendererExtra}
             theme={theme}
           />
         </TreeValue>
@@ -431,16 +440,16 @@ function AttributesTreeRowDropdown({
   );
 }
 
-function LogFieldsTreeValue({
+function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
   config,
   content,
   renderers = {},
-  renderExtra,
+  rendererExtra: renderExtra,
   theme,
 }: {
   content: AttributesTreeContent;
   config?: AttributesTreeRowConfig;
-} & AttributesFieldRender & {theme: Theme}) {
+} & AttributesFieldRender<RendererExtra> & {theme: Theme}) {
   const {originalAttribute} = content;
   if (!originalAttribute) {
     return null;
@@ -465,6 +474,7 @@ function LogFieldsTreeValue({
     return renderer({
       item: getAttributeItem(attributeKey, content.value),
       basicRendered,
+      extra: renderExtra,
     });
   }
 

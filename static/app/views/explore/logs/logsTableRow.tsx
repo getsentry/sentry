@@ -24,7 +24,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {HiddenLogDetailFields} from 'sentry/views/explore/logs/constants';
 import {
-  getLogAttributesRendererMap,
+  LogAttributesRendererMap,
   LogBodyRenderer,
   LogFieldRenderer,
   SeverityCircleRenderer,
@@ -129,11 +129,17 @@ export function LogRowContent({
     location,
     organization,
     tableResultLogRow: dataRow,
+    theme,
   };
 
   return (
     <Fragment>
-      <LogTableRow onPointerUp={onPointerUp} onTouchEnd={onPointerUp} {...hoverProps}>
+      <LogTableRow
+        data-test-id="log-table-row"
+        onPointerUp={onPointerUp}
+        onTouchEnd={onPointerUp}
+        {...hoverProps}
+      >
         <LogsTableBodyFirstCell key={'first'}>
           <LogFirstCellContent>
             <StyledChevronButton
@@ -240,14 +246,6 @@ function LogRowDetails({
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
 
-  const renderers = getLogAttributesRendererMap({
-    highlightTerms,
-    logColors,
-    location,
-    organization,
-    tableResultLogRow: dataRow,
-  });
-
   if (missingLogId) {
     return (
       <DetailsWrapper>
@@ -274,6 +272,7 @@ function LogRowDetails({
                     location,
                     organization,
                     tableResultLogRow: dataRow,
+                    theme,
                   },
                 })}
               </DetailsBody>
@@ -283,10 +282,13 @@ function LogRowDetails({
                   hiddenAttributes={HiddenLogDetailFields}
                   getCustomActions={getActions}
                   getAdjustedAttributeKey={adjustAliases}
-                  renderers={renderers}
-                  renderExtra={{
+                  renderers={LogAttributesRendererMap}
+                  rendererExtra={{
+                    highlightTerms,
+                    logColors,
                     location,
                     organization,
+                    tableResultLogRow: dataRow,
                     theme,
                   }}
                 />

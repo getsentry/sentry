@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
-import type {Location} from 'history';
 
 import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {AttributesFieldRenderProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {
+  getFieldRenderer,
+  type RenderFunctionBaggage,
+} from 'sentry/utils/discover/fieldRenderers';
+import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {stripLogParamsFromLocation} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   AlignedCellContent,
@@ -37,15 +37,11 @@ import {
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-interface LogFieldRendererProps extends AttributesFieldRenderProps {
-  extra: RendererExtra;
-}
+interface LogFieldRendererProps extends AttributesFieldRendererProps<RendererExtra> {}
 
-interface RendererExtra {
+interface RendererExtra extends RenderFunctionBaggage {
   highlightTerms: string[];
-  location: Location;
   logColors: ReturnType<typeof getLogColors>;
-  organization: Organization;
   tableResultLogRow: OurLogsResponseItem;
   align?: 'left' | 'center' | 'right';
   useFullSeverityText?: boolean;
@@ -150,7 +146,6 @@ function isLogRowItem(item: LogRowItem | LogAttributeItem): item is LogRowItem {
 }
 
 export function LogFieldRenderer(props: LogFieldRendererProps) {
-  const theme = useTheme();
   const type = props.meta?.fields?.[props.item.fieldKey];
   const adjustedFieldKey =
     fullFieldToExistingField[props.item.fieldKey] ?? props.item.fieldKey;
@@ -167,11 +162,10 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
   const basicRenderer = getFieldRenderer(adjustedFieldKey, props.meta ?? {}, false);
   const basicRendered = basicRenderer(
     {...props, [adjustedFieldKey]: adjustedValue},
-    {...props.extra, theme}
+    {...props.extra, theme: props.extra.theme}
   );
 
-  const renderers = getLogAttributesRendererMap(props.extra);
-  const customRenderer = renderers[props.item.fieldKey];
+  const customRenderer = LogAttributesRendererMap[props.item.fieldKey];
 
   const align = logsFieldAlignment(adjustedFieldKey, type);
 
@@ -186,24 +180,17 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
   );
 }
 
-export function getLogAttributesRendererMap(
-  extra: RendererExtra
-): Record<OurLogFieldKey, (props: AttributesFieldRenderProps) => React.ReactNode> {
-  return {
-    [OurLogKnownFieldKey.TIMESTAMP]: props => {
-      return TimestampRenderer({...props, extra});
-    },
-    [OurLogKnownFieldKey.SEVERITY_TEXT]: props => {
-      return SeverityTextRenderer({...props, extra});
-    },
-    [OurLogKnownFieldKey.MESSAGE]: props => {
-      return LogBodyRenderer({...props, extra});
-    },
-    [OurLogKnownFieldKey.TRACE_ID]: props => {
-      return TraceIDRenderer({...props, extra});
-    },
-  };
-}
+export const LogAttributesRendererMap: Record<
+  OurLogFieldKey,
+  (props: LogFieldRendererProps) => React.ReactNode
+> = {
+  [OurLogKnownFieldKey.TIMESTAMP]: props => {
+    return TimestampRenderer(props);
+  },
+  [OurLogKnownFieldKey.SEVERITY_TEXT]: SeverityTextRenderer,
+  [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
+  [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
+};
 
 const fullFieldToExistingField: Record<OurLogFieldKey, string> = {
   [OurLogKnownFieldKey.TRACE_ID]: 'trace',
