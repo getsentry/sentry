@@ -88,6 +88,8 @@ function AutofixInsightCard({
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const {mutate: updateInsight} = useUpdateInsightCard({groupId, runId});
+  const [displayedInsightTitle, setDisplayedInsightTitle] = useState('');
+  const titleIndexRef = useRef(0);
 
   const toggleExpand = () => {
     setExpanded(oldState => !oldState);
@@ -116,6 +118,31 @@ function AutofixInsightCard({
   };
 
   const insightCardAboveIndex = index - 1 >= 0 ? index - 1 : null;
+
+  // Typing animation for new insight
+  useEffect(() => {
+    if (!isNewInsight) {
+      setDisplayedInsightTitle(insight.insight);
+      titleIndexRef.current = insight.insight.length;
+      return () => {};
+    }
+
+    setDisplayedInsightTitle('');
+    titleIndexRef.current = 0;
+
+    const intervalId = window.setInterval(() => {
+      if (titleIndexRef.current < insight.insight.length) {
+        setDisplayedInsightTitle(insight.insight.slice(0, titleIndexRef.current + 1));
+        titleIndexRef.current++;
+      } else {
+        window.clearInterval(intervalId);
+      }
+    }, 15);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [insight.insight, isNewInsight]);
 
   return (
     <ContentWrapper>
@@ -178,7 +205,7 @@ function AutofixInsightCard({
                 >
                   <MiniHeader
                     dangerouslySetInnerHTML={{
-                      __html: singleLineRenderer(insight.insight),
+                      __html: singleLineRenderer(displayedInsightTitle),
                     }}
                   />
                 </AutofixHighlightWrapper>
@@ -572,16 +599,16 @@ const InsightContainer = styled(motion.div)`
     animation: fadeFromActive 0.8s ease-in-out;
     @keyframes fadeFromActive {
       from {
-        background-color: ${p => p.theme.active};
-        border-color: ${p => p.theme.active};
-        scale: 0.8;
+        background-color: ${p => p.theme.purple400};
+        border-color: ${p => p.theme.purple400};
+        transform: scaleY(0.2);
         height: 0;
         opacity: 0;
       }
       to {
         background-color: ${p => p.theme.background};
         border-color: ${p => p.theme.innerBorder};
-        scale: 1;
+        transform: scaleY(1);
         height: auto;
         opacity: 1;
       }

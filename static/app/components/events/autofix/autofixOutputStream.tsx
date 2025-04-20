@@ -50,7 +50,8 @@ export function AutofixOutputStream({
   const [message, setMessage] = useState('');
   const seerIconRef = useRef<HTMLDivElement>(null);
 
-  const previousText = useRef('');
+  const accumulatedTextRef = useRef('');
+  const previousStreamPropRef = useRef('');
   const previousActiveLog = useRef('');
   const currentIndexRef = useRef(0);
   const activeLogIndexRef = useRef(0);
@@ -82,26 +83,57 @@ export function AutofixOutputStream({
   // Animation for stream text
   useEffect(() => {
     const newText = stream;
+    const previousStream = previousStreamPropRef.current;
+    const separator = '\n\n==========\n\n';
 
-    if (!newText.startsWith(displayedText)) {
-      previousText.current = newText;
-      currentIndexRef.current = 0;
-      setDisplayedText('');
+    const currentSegmentDisplayed = displayedText.slice(
+      accumulatedTextRef.current.length
+    );
+    const isReset =
+      newText !== previousStream && !newText.startsWith(currentSegmentDisplayed);
+
+    if (isReset) {
+      if (displayedText === previousStream) {
+        accumulatedTextRef.current = displayedText + separator;
+        currentIndexRef.current = accumulatedTextRef.current.length;
+      } else {
+        const fullPreviousTextWithSeparator = previousStream + separator;
+        setDisplayedText(fullPreviousTextWithSeparator);
+        accumulatedTextRef.current = fullPreviousTextWithSeparator;
+        currentIndexRef.current = fullPreviousTextWithSeparator.length;
+      }
     }
 
-    const interval = window.setInterval(() => {
-      if (currentIndexRef.current < newText.length) {
-        setDisplayedText(newText.slice(0, currentIndexRef.current + 1));
-        currentIndexRef.current++;
-      } else {
-        window.clearInterval(interval);
+    previousStreamPropRef.current = newText;
+
+    const combinedText = accumulatedTextRef.current + newText;
+
+    if (currentIndexRef.current > combinedText.length) {
+      currentIndexRef.current = combinedText.length;
+      if (displayedText !== combinedText) {
+        setDisplayedText(combinedText);
       }
-    }, 5);
+    }
+
+    let intervalId: number | undefined;
+    if (currentIndexRef.current < combinedText.length) {
+      intervalId = window.setInterval(() => {
+        if (currentIndexRef.current < combinedText.length) {
+          setDisplayedText(combinedText.slice(0, currentIndexRef.current + 1));
+          currentIndexRef.current++;
+        } else {
+          window.clearInterval(intervalId);
+          intervalId = undefined;
+        }
+      }, 1);
+    }
 
     return () => {
-      window.clearInterval(interval);
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
     };
-  }, [displayedText, stream]);
+  }, [stream, displayedText]);
 
   // Animation for active log
   useEffect(() => {
@@ -120,7 +152,7 @@ export function AutofixOutputStream({
       } else {
         window.clearInterval(interval);
       }
-    }, 15);
+    }, 10);
 
     return () => {
       window.clearInterval(interval);
@@ -259,7 +291,7 @@ const StreamContent = styled('div')`
   white-space: pre-wrap;
   word-break: break-word;
   color: ${p => p.theme.subText};
-  max-height: 50vh;
+  max-height: 35vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column-reverse;
