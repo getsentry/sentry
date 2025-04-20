@@ -1130,3 +1130,26 @@ def test_convert_schema_to_rules_text() -> None:
         )
         == "path:*.js #frontend m@robenolt.com\nurl:http://google.com/* #backend\npath:src/sentry/* david@sentry.io\ntags.foo:bar tagperson@sentry.io\ntags.foo:bar baz tagperson@sentry.io\nmodule:foo.bar #workflow\nmodule:foo bar meow@sentry.io\n"
     )
+
+
+def test_matcher_test_dot_prefix_removal() -> None:
+    """
+    Test that ./ prefix removal only happens for codeowners matcher type.
+    """
+    data = {
+        "stacktrace": {
+            "frames": [
+                {"filename": "./foo/file.py", "abs_path": "./usr/local/src/foo/file.py"},
+                {"filename": "bar/file.py", "abs_path": "/usr/local/src/bar/file.py"},
+            ]
+        }
+    }
+    munged_data = Matcher.munge_if_needed(data)
+
+    # Test that ./ prefix IS removed for codeowners matcher
+    assert Matcher("codeowners", "foo/*.py").test(data, munged_data)
+    assert not Matcher("codeowners", "./foo/*.py").test(data, munged_data)
+
+    # Test that non-./ paths are unaffected
+    assert Matcher("path", "bar/*.py").test(data, munged_data)
+    assert Matcher("codeowners", "bar/*.py").test(data, munged_data)

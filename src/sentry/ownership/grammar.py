@@ -128,7 +128,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
     @staticmethod
     def munge_if_needed(
-        data: Mapping[str, Any]
+        data: Mapping[str, Any],
     ) -> tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
         keys = ["filename", "abs_path"]
         platform = data.get("platform")
@@ -141,6 +141,17 @@ class Matcher(namedtuple("Matcher", "type pattern")):
                 frames = munged[1]
 
         return frames, keys
+
+    def sanitize_path_for_codeowners(self, frames):
+        """Remove ./ prefix from frame paths for consistent matching in codeowners rules"""
+        sanitized_frames = []
+        for frame in frames:
+            sanitized_frame = frame.copy()
+            for key in ["munged_filename", "filename", "abs_path"]:
+                if key in sanitized_frame and sanitized_frame[key].startswith("./"):
+                    sanitized_frame[key] = sanitized_frame[key][2:]
+            sanitized_frames.append(sanitized_frame)
+        return sanitized_frames
 
     def test(
         self,
@@ -156,8 +167,10 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         elif self.type.startswith("tags."):
             return self.test_tag(data)
         elif self.type == CODEOWNERS:
+            sanitized_frames = self.sanitize_path_for_codeowners(munged_data[0])
             return self.test_frames(
-                *munged_data,
+                sanitized_frames,
+                munged_data[1],
                 # Codeowners has a slightly different syntax compared to issue owners
                 # As such we need to match it using gitignore logic.
                 # See syntax documentation here:
