@@ -8,7 +8,7 @@ import sentry_sdk
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.constants import RATE_LIMITED_MESSAGE
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.source_code_management.commit_context import run_pr_comment_workflow
+from sentry.integrations.source_code_management.tasks import pr_comment_workflow
 from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
@@ -30,7 +30,9 @@ logger = logging.getLogger(__name__)
     ),
 )
 def github_comment_workflow(pullrequest_id: int, project_id: int):
-    run_pr_comment_workflow(integration_name="github", pr_id=pullrequest_id, project_id=project_id)
+    # TODO(jianyuan): Using `sentry.integrations.source_code_management.tasks.pr_comment_workflow` now.
+    # Keep this task temporarily to avoid breaking changes.
+    pr_comment_workflow(pr_id=pullrequest_id, project_id=project_id)
 
 
 @instrumented_task(

@@ -336,11 +336,6 @@ class GitHubPRCommentWorkflow(PRCommentWorkflow):
     referrer = Referrer.GITHUB_PR_COMMENT_BOT
     referrer_id = GITHUB_PR_BOT_REFERRER
 
-    def queue_task(self, pr: PullRequest, project_id: int) -> None:
-        from sentry.integrations.github.tasks.pr_comment import github_comment_workflow
-
-        github_comment_workflow.delay(pullrequest_id=pr.id, project_id=project_id)
-
     @staticmethod
     def format_comment_subtitle(subtitle: str) -> str:
         return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
