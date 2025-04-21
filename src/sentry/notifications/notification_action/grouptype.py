@@ -10,15 +10,15 @@ from sentry.ratelimits.sliding_windows import Quota
 
 @dataclass(frozen=True)
 class SendTestNotification(GroupType):
-    type_id = 9888
-    slug = "send_test_notification"
+    type_id = 9001
+    slug = "send-test-notification"
     description = "Send test notification"
     category = GroupCategory.TEST_NOTIFICATION.value
     released = False
     in_default_search = False
-    enable_auto_resolve = False
+    enable_auto_resolve = True
     enable_escalation_detection = False
-    enable_status_change_workflow_notifications = False
+    enable_status_change_workflow_notifications = True
     creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
 
     @classmethod
