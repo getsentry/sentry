@@ -31,7 +31,9 @@ export function IssuesSecondaryNav() {
             {t('Feedback')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        <IssueViewNavItems sectionRef={sectionRef} baseUrl={baseUrl} />
+        {organization.features.includes('issue-stream-custom-views') && (
+          <IssueViewNavItems sectionRef={sectionRef} baseUrl={baseUrl} />
+        )}
         <ConfigureSection baseUrl={baseUrl} />
       </SecondaryNav.Body>
     </SecondaryNav>
