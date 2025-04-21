@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {
   AutoSizer,
@@ -10,11 +10,13 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
+import useSentimentKeyword from 'sentry/components/feedback/list/useSentimentKeyword';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconHappy, IconMeh, IconSad} from 'sentry/icons';
@@ -22,6 +24,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useFetchInfiniteListData from 'sentry/utils/api/useFetchInfiniteListData';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 // Ensure this object is created once as it is an input to
@@ -55,7 +59,37 @@ interface FeedbackListProps {
 
 export default function FeedbackList({feedbackSummary}: FeedbackListProps) {
   const {listQueryKey} = useFeedbackQueryKeys();
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const {summary, keySentiments} = feedbackSummary;
+  const [selectedSentiment, setSelectedSentiment] = useState<string | null>(null);
+  // keyword used for search when a sentiment is selected
+  const {keyword} = useSentimentKeyword({sentiment: selectedSentiment});
+
+  const prevKeywordRef = useRef(keyword);
+  const prevSelectedSentimentRef = useRef(selectedSentiment);
+  const locationRef = useRef({pathname: location.pathname, query: location.query});
+
+  useEffect(() => {
+    locationRef.current = {pathname: location.pathname, query: location.query};
+  }, [location]);
+
+  useEffect(() => {
+    if (
+      keyword &&
+      selectedSentiment &&
+      (prevSelectedSentimentRef.current !== selectedSentiment ||
+        prevKeywordRef.current !== keyword)
+    ) {
+      prevSelectedSentimentRef.current = selectedSentiment;
+      prevKeywordRef.current = keyword;
+      navigate({
+        pathname: locationRef.current.pathname,
+        query: {...locationRef.current.query, query: keyword},
+      });
+    }
+  }, [keyword, selectedSentiment, navigate]);
 
   const getSentimentIcon = (type: string) => {
     switch (type) {
@@ -65,6 +99,17 @@ export default function FeedbackList({feedbackSummary}: FeedbackListProps) {
         return <IconSad color="red400" />;
       default:
         return <IconMeh color="yellow400" />;
+    }
+  };
+
+  const getSentimentType = (type: string) => {
+    switch (type) {
+      case 'positive':
+        return 'success';
+      case 'negative':
+        return 'error';
+      default:
+        return 'warning';
     }
   };
 
@@ -124,14 +169,21 @@ export default function FeedbackList({feedbackSummary}: FeedbackListProps) {
       <Summary>
         <SummaryHeader>{t('Feedback Summary')}</SummaryHeader>
         <div>{summary}</div>
-        <div>
+        <KeySentiments>
           {keySentiments.map(sentiment => (
-            <Sentiment key={sentiment.value}>
-              {getSentimentIcon(sentiment.type)}
+            <SentimentTag
+              key={sentiment.value}
+              icon={getSentimentIcon(sentiment.type)}
+              type={getSentimentType(sentiment.type)}
+              onClick={e => {
+                const targetSentiment = (e.target as HTMLElement).textContent ?? '';
+                setSelectedSentiment(targetSentiment);
+              }}
+            >
               {sentiment.value}
-            </Sentiment>
+            </SentimentTag>
           ))}
-        </div>
+        </KeySentiments>
       </Summary>
       <FeedbackListHeader {...checkboxState} />
       <FeedbackListItems>
@@ -202,10 +254,16 @@ const Summary = styled('div')`
   gap: ${space(2)};
 `;
 
-const Sentiment = styled('div')`
+const KeySentiments = styled('div')`
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: ${space(1)};
+  align-items: flex-start;
+`;
+
+const SentimentTag = styled(Tag)`
+  cursor: pointer;
+  max-width: 100%;
 `;
 
 const FeedbackListItems = styled('div')`
