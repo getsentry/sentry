@@ -5,6 +5,8 @@ import random
 import uuid
 from datetime import datetime, timedelta
 
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import IntegrityError, router
 from django.utils import timezone
 
@@ -224,6 +226,11 @@ def should_filter_user_report(
     max_name_length = UserReport._meta.get_field("name").max_length
     if max_name_length and len(name) > max_name_length:
         return True, "too_large.name", "Name Too Large"
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return True, "invalid_email", "Invalid Email"
 
     max_email_length = UserReport._meta.get_field("email").max_length
     if max_email_length and len(email) > max_email_length:
