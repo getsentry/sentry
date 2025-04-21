@@ -26,10 +26,16 @@ def _mock_event(project_id: int, environment: str):
 
 
 @django_db_all
-def test_unreal_unattended_message_with_option(set_sentry_option):
+def test_should_filter_unreal_unattended_message_with_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", True):
         should_filter, tag, reason = should_filter_user_report(
-            UNREAL_FEEDBACK_UNATTENDED_MESSAGE, 1
+            {
+                "name": "",
+                "email": "",
+                "comments": UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
+                "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
+            },
+            1,
         )
         assert should_filter is True
         assert tag is not None
@@ -37,10 +43,16 @@ def test_unreal_unattended_message_with_option(set_sentry_option):
 
 
 @django_db_all
-def test_unreal_unattended_message_without_option(set_sentry_option):
+def test_should_not_filter_unreal_unattended_message_without_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", False):
         should_filter, tag, reason = should_filter_user_report(
-            UNREAL_FEEDBACK_UNATTENDED_MESSAGE, 1
+            {
+                "name": "",
+                "email": "",
+                "comments": UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
+                "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
+            },
+            1,
         )
         assert should_filter is False
         assert tag is None
@@ -48,18 +60,34 @@ def test_unreal_unattended_message_without_option(set_sentry_option):
 
 
 @django_db_all
-def test_empty_message_with_option(set_sentry_option):
+def test_should_filter_empty_message_with_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", True):
-        should_filter, tag, reason = should_filter_user_report("", 1)
+        should_filter, tag, reason = should_filter_user_report(
+            {
+                "name": "",
+                "email": "",
+                "comments": "",
+                "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
+            },
+            1,
+        )
         assert should_filter is True
         assert tag is not None
         assert reason is not None
 
 
 @django_db_all
-def test_empty_message_without_option(set_sentry_option):
+def test_should_not_filter_empty_message_without_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", False):
-        should_filter, tag, reason = should_filter_user_report("", 1)
+        should_filter, tag, reason = should_filter_user_report(
+            {
+                "name": "",
+                "email": "",
+                "comments": "",
+                "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
+            },
+            1,
+        )
         assert should_filter is False
         assert tag is None
         assert reason is None
@@ -75,7 +103,7 @@ def test_save_user_report_returns_instance(default_project, monkeypatch):
     # Mocking dependencies and setting up test data
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr(
-        "sentry.ingest.userreport.should_filter_user_report", Mock(return_value=(False, None))
+        "sentry.ingest.userreport.should_filter_user_report", Mock(return_value=(False, None, None))
     )
     monkeypatch.setattr(
         "sentry.eventstore.backend.get_event_by_id", lambda project_id, event_id: None
@@ -142,7 +170,8 @@ def test_save_user_report_filters_large_message(default_project, monkeypatch):
 def test_save_user_report_shims_if_event_found(default_project, monkeypatch):
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr(
-        "sentry.ingest.userreport.should_filter_user_report", Mock(return_value=(False, None))
+        "sentry.ingest.userreport.should_filter_user_report",
+        Mock(return_value=(False, None, None)),
     )
 
     event = _mock_event(default_project.id, "prod")
@@ -173,7 +202,8 @@ def test_save_user_report_does_not_shim_if_event_found_but_source_is_new_feedbac
     # Exact same setup as test_save_user_report_shims_if_event_found
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr(
-        "sentry.ingest.userreport.should_filter_user_report", Mock(return_value=(False, None))
+        "sentry.ingest.userreport.should_filter_user_report",
+        Mock(return_value=(False, None, None)),
     )
 
     event = _mock_event(default_project.id, "prod")

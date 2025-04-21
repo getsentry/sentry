@@ -61,7 +61,7 @@ def save_userreport(
         report["comments"] = report["comments"].strip()
 
         should_filter, reason_tag, filter_reason = should_filter_user_report(
-            report["comments"], project.id, source=source
+            report, project.id, source=source
         )
         if should_filter:
             metrics.incr(
@@ -179,7 +179,7 @@ def find_event_user(event: Event | GroupEvent | None) -> EventUser | None:
 
 
 def should_filter_user_report(
-    comments: str,
+    report: UserReportDict,
     project_id: int,
     source: FeedbackCreationSource = FeedbackCreationSource.USER_REPORT_ENVELOPE,
 ) -> tuple[bool, str | None, str | None]:
@@ -187,6 +187,12 @@ def should_filter_user_report(
     We don't care about empty user reports, or ones that
     the unreal SDKs send.
     """
+    for field in ["name", "email", "comments", "event_id"]:
+        if field not in report:
+            return True, "missing_required_field", "Missing required field"
+
+    comments = report["comments"]
+
     if options.get("feedback.filter_garbage_messages"):  # Filter kill-switch.
         if not comments:
             return True, "empty", "Empty Feedback Messsage"
@@ -216,6 +222,6 @@ def should_filter_user_report(
                     "feedback_message": comments[:100],
                 },
             )
-        return True, "Too Large"
+        return True, "too_large.message", "Message Too Large"
 
-    return False, None
+    return False, None, None
