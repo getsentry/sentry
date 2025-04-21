@@ -18,6 +18,7 @@ import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetail
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceViewLogsSection} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
+import {TraceSummarySection} from 'sentry/views/performance/newTraceDetails/traceSummary';
 
 type Props = {
   onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
@@ -89,6 +90,12 @@ export function TraceContextPanel({tree, rootEvent, onScrollToNode}: Props) {
           <TraceViewLogsSection />
         </ContextRow>
       </Feature>
+      {/* <Feature features={['single-trace-summary']}> */}
+      <ContextRow>
+        <TraceSummarySection />
+        {/* traceId={rootEvent.data?.contexts.trace?.trace_id} />  */}
+      </ContextRow>
+      {/* </Feature> */}
     </Container>
   );
 }
