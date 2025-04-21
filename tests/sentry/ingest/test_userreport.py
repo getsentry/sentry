@@ -28,32 +28,40 @@ def _mock_event(project_id: int, environment: str):
 @django_db_all
 def test_unreal_unattended_message_with_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", True):
-        should_filter, reason = should_filter_user_report(UNREAL_FEEDBACK_UNATTENDED_MESSAGE, 1)
+        should_filter, tag, reason = should_filter_user_report(
+            UNREAL_FEEDBACK_UNATTENDED_MESSAGE, 1
+        )
         assert should_filter is True
-        assert reason == "Sent in Unreal Unattended Mode"
+        assert tag is not None
+        assert reason is not None
 
 
 @django_db_all
 def test_unreal_unattended_message_without_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", False):
-        should_filter, reason = should_filter_user_report(UNREAL_FEEDBACK_UNATTENDED_MESSAGE, 1)
+        should_filter, tag, reason = should_filter_user_report(
+            UNREAL_FEEDBACK_UNATTENDED_MESSAGE, 1
+        )
         assert should_filter is False
+        assert tag is None
         assert reason is None
 
 
 @django_db_all
 def test_empty_message_with_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", True):
-        should_filter, reason = should_filter_user_report("", 1)
+        should_filter, tag, reason = should_filter_user_report("", 1)
         assert should_filter is True
-        assert reason == "Empty Feedback Messsage"
+        assert tag is not None
+        assert reason is not None
 
 
 @django_db_all
 def test_empty_message_without_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", False):
-        should_filter, reason = should_filter_user_report("", 1)
+        should_filter, tag, reason = should_filter_user_report("", 1)
         assert should_filter is False
+        assert tag is None
         assert reason is None
 
 

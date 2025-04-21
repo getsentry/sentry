@@ -60,10 +60,14 @@ def save_userreport(
 
         report["comments"] = report["comments"].strip()
 
-        should_filter, filter_reason = should_filter_user_report(
+        should_filter, reason_tag, filter_reason = should_filter_user_report(
             report["comments"], project.id, source=source
         )
         if should_filter:
+            metrics.incr(
+                "user_report.create_user_report.filtered",
+                tags={"reason": reason_tag, "referrer": source.value},
+            )
             track_outcome(
                 org_id=project.organization_id,
                 project_id=project.id,
@@ -178,25 +182,17 @@ def should_filter_user_report(
     comments: str,
     project_id: int,
     source: FeedbackCreationSource = FeedbackCreationSource.USER_REPORT_ENVELOPE,
-) -> tuple[bool, str | None]:
+) -> tuple[bool, str | None, str | None]:
     """
     We don't care about empty user reports, or ones that
     the unreal SDKs send.
     """
     if options.get("feedback.filter_garbage_messages"):  # Filter kill-switch.
         if not comments:
-            metrics.incr(
-                "user_report.create_user_report.filtered",
-                tags={"reason": "empty", "referrer": source.value},
-            )
-            return True, "Empty Feedback Messsage"
+            return True, "empty", "Empty Feedback Messsage"
 
         if comments == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
-            metrics.incr(
-                "user_report.create_user_report.filtered",
-                tags={"reason": "unreal.unattended", "referrer": source.value},
-            )
-            return True, "Sent in Unreal Unattended Mode"
+            return True, "unreal.unattended", "Sent in Unreal Unattended Mode"
 
     # Always filter large messages (attempting to save will raise Postgres error).
     max_comment_length = UserReport._meta.get_field("comments").max_length
