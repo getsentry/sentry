@@ -309,7 +309,7 @@ def migrate_metric_data_conditions(
     action_filter = DataCondition.objects.create(
         comparison=PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH),
         condition_result=True,
-        type=Condition.ISSUE_PRIORITY_EQUALS,
+        type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
         condition_group=data_condition_group,
     )
     return detector_trigger, action_filter

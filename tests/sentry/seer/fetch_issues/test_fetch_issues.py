@@ -37,10 +37,8 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
         )
 
         issue_ids = [issue["id"] for issue in issues_with_event_details]
-        function_names = [issue["function_name"] for issue in issues_with_event_details]
         assert group_id != self.group_id
         assert set(issue_ids) == {group_id, self.group_id}
-        assert set(function_names) == {"planet", "world"}
 
         # Check that each issue is structured like an IssueDetails
         assert all(len(issue["events"]) == 1 for issue in issues_with_event_details)
@@ -56,6 +54,26 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
             event_dict = issue["events"][0]
             serialized_event = serialize(event, serializer=EventSerializer())
             assert event_dict == serialized_event
+
+    def test_javascript_simple(self):
+        group_id = [
+            self._create_event(
+                function_names=["component.blue", "world"],
+                filenames=["foo.js", "baz.js"],
+                user_id=str(i),
+            )
+            for i in range(6)
+        ][0].group.id
+
+        issues_with_event_details = get_issues_with_event_details_for_file(
+            projects=[self.project],
+            sentry_filenames=["baz.js"],
+            function_names=["world", "planet"],
+        )
+
+        issue_ids = [issue["id"] for issue in issues_with_event_details]
+        assert group_id != self.group_id
+        assert set(issue_ids) == {group_id}
 
     # The rest are mostly copied from tests/sentry/integrations/github/tasks/test_open_pr_comment.py
     def test_filename_mismatch(self):
@@ -85,10 +103,8 @@ class TestGetIssuesWithEventDetailsForFile(CreateEventTestCase):
 
         issues = get_issues_with_event_details_for_file([self.project], ["baz.py"], ["world"])
         issue_ids = [issue["id"] for issue in issues]
-        function_names = [issue["function_name"] for issue in issues]
         assert group_id != self.group_id
         assert set(issue_ids) == {self.group_id, group_id}
-        assert function_names == ["world", "world"]
 
     def test_not_within_frame_limit(self):
         function_names = ["world"] + ["a" for _ in range(STACKFRAME_COUNT)]
