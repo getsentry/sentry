@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from rest_framework.request import Request
@@ -11,6 +12,7 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
 from sentry.issues.suspect_flags import get_suspect_flag_scores
 from sentry.models.group import Group
+from sentry.utils import metrics
 
 
 @region_silo_endpoint
@@ -40,19 +42,38 @@ class OrganizationGroupSuspectFlagsEndpoint(GroupEndpoint):
             start = start.replace(minute=(start.minute // 5) * 5, second=0, microsecond=0)
             end = end.replace(minute=(end.minute // 5) * 5, second=0, microsecond=0)
 
-        return Response(
-            {
-                "data": [
-                    {"flag": flag, "score": score, "baseline_percent": baseline_percent}
-                    for flag, score, baseline_percent in get_suspect_flag_scores(
-                        organization_id,
-                        project_id,
-                        start,
-                        end,
-                        environments,
-                        group_id,
-                    )
-                ]
-            },
-            status=200,
-        )
+        response_data = {
+            "data": [
+                {"flag": flag, "score": score, "baseline_percent": baseline_percent}
+                for flag, score, baseline_percent in get_suspect_flag_scores(
+                    organization_id,
+                    project_id,
+                    start,
+                    end,
+                    environments,
+                    group_id,
+                )
+            ]
+        }
+
+        # A sum of all the scores is kept to give us a gross understanding on the range of scores
+        # typically seen.
+        total_score = sum(i["score"] for i in response_data["data"])
+        metrics.distribution("flags.suspect.total_score", total_score)
+
+        # Interesting scores are logged for deeper inspection.
+        if response_data["data"] and response_data["data"][0]["score"] >= 1:
+            metrics.distribution("flags.suspect.max_score", response_data["data"][0]["score"])
+            logging.info(
+                "sentry.replays.slow_click",
+                extra={
+                    "event_type": "flag_score_log",
+                    "org_id": group.organization.id,
+                    "project_id": group.project.id,
+                    "flag": response_data["data"][0]["flag"],
+                    "score": response_data["data"][0]["score"],
+                    "issue_id": group.id,
+                },
+            )
+
+        return Response(response_data, status=200)
