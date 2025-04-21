@@ -13,17 +13,20 @@ import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 
 import {useChonkPrompt} from './useChonkPrompt';
 
-export function ChonkOptInBanner(props: {collapsed: boolean}) {
+export function ChonkOptInBanner(props: {collapsed: boolean | 'never'}) {
   const chonkPrompt = useChonkPrompt();
   const config = useLegacyStore(ConfigStore);
   const {mutate: mutateUserOptions} = useMutateUserOptions();
 
-  if (props.collapsed || !chonkPrompt.showbannerPrompt) {
+  if (props.collapsed === true || !chonkPrompt.showbannerPrompt) {
     return null;
   }
 
   return (
-    <TranslucentBackgroundPanel isDarkMode={config.theme === 'dark'}>
+    <TranslucentBackgroundPanel
+      isDarkMode={config.theme === 'dark'}
+      position={props.collapsed === 'never' ? 'absolute' : 'relative'}
+    >
       <Title>{t('Sentry has a new look')}</Title>
       <Description>
         {t(`We've updated Sentry with a fresh new look, try it out by opting in below.`)}
@@ -52,7 +55,14 @@ export function ChonkOptInBanner(props: {collapsed: boolean}) {
   );
 }
 
-const TranslucentBackgroundPanel = styled(Panel)<{isDarkMode: boolean}>`
+const TranslucentBackgroundPanel = styled(Panel)<{
+  isDarkMode: boolean;
+  position: 'absolute' | 'relative';
+}>`
+  /* 186px is the same width as what we render in the legacy nav */
+  width: ${p => (p.position === 'absolute' ? '186px' : undefined)};
+  /* 66px is the same left offset that we need to render due to collapsed nav */
+  left: ${p => (p.position === 'absolute' ? '66px' : undefined)};
   position: relative;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
