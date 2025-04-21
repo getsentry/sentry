@@ -7,6 +7,7 @@ import requests
 from django.conf import settings
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -102,7 +103,11 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         Checks if we are able to run Autofix on the given group.
         """
         org: Organization = request.organization
-        has_gen_ai_consent = org.get_option("sentry:gen_ai_consent_v2024_11_14", False)
+        has_gen_ai_consent = org.get_option(
+            "sentry:gen_ai_consent_v2024_11_14", False
+        ) or features.has(
+            "organizations:gen-ai-consent-bypass", group.organization, actor=request.user
+        )
 
         integration_check = None
         # This check is to skip using the GitHub integration for Autofix in s4s.
