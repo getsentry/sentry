@@ -1,8 +1,5 @@
-__all__ = ["Feature", "with_feature", "apply_feature_flag_on_cls"]
-
-import functools
 import logging
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Generator, Iterable, Mapping, Sequence
 from contextlib import contextmanager
 from unittest.mock import patch
 
@@ -20,11 +17,14 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
 )
 
+__all__ = ("Feature", "with_feature", "apply_feature_flag_on_cls")
+
+
 logger = logging.getLogger(__name__)
 
 
 @contextmanager
-def Feature(names: str | Sequence[str] | dict[str, bool]) -> Generator[None]:
+def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
     """
     Control whether a feature is enabled.
 
@@ -141,16 +141,7 @@ def Feature(names: str | Sequence[str] | dict[str, bool]) -> Generator[None]:
             yield
 
 
-def with_feature(feature):
-    def decorator(func):
-        def wrapped(self, *args, **kwargs):
-            with Feature(feature):
-                return func(self, *args, **kwargs)
-
-        functools.update_wrapper(wrapped, func)
-        return wrapped
-
-    return decorator
+with_feature = Feature
 
 
 def apply_feature_flag_on_cls(feature_flag):
