@@ -189,7 +189,8 @@ def validate_user_report(
 
     Reformatting: strips whitespace from comments and dashes from event_id.
 
-    Returns a tuple of (should_filter, metrics_reason, outcomes_reason).
+    Returns a tuple of (should_filter, metrics_reason, outcomes_reason). XXX: ensure metrics and outcome reasons have bounded cardinality.
+
     At the moment we do not raise validation errors.
     """
     for field in ["name", "email", "comments", "event_id"]:
