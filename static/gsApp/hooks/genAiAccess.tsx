@@ -15,7 +15,6 @@ export function useGenAiConsentButtonAccess({
   const organization = useOrganization();
 
   const regionData = getRegionDataFromOrganization(organization);
-  const isUsRegion = regionData?.name === 'us';
 
   const isTouchCustomer = subscription.type === BillingType.INVOICED;
   const hasMsaUpdated =
@@ -28,14 +27,13 @@ export function useGenAiConsentButtonAccess({
   const fieldsToExport = {
     hasBillingAccess,
     isTouchCustomerAndNeedsMsaUpdate,
-    isUsRegion,
     hasMsaUpdated,
     isSuperuser: user?.isSuperuser,
   };
 
   const conditions = [
     {
-      check: !isUsRegion,
+      check: regionData?.name && !['us', 'sentry4sentry'].includes(regionData.name),
       message: t('This feature is not available in your region.'),
     },
     {
