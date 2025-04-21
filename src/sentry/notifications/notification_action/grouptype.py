@@ -11,7 +11,7 @@ from sentry.ratelimits.sliding_windows import Quota
 @dataclass(frozen=True)
 class SendTestNotification(GroupType):
     type_id = 9888
-    slug = "send-test-notification"
+    slug = "send_test_notification"
     description = "Send test notification"
     category = GroupCategory.TEST_NOTIFICATION.value
     released = False
