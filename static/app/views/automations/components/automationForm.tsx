@@ -19,6 +19,7 @@ import {
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
+import {useConnectedMonitors} from 'sentry/views/automations/components/editConnectedMonitors';
 
 const FREQUENCY_OPTIONS = [
   {value: '5', label: t('5 minutes')},
@@ -41,6 +42,11 @@ export default function AutomationForm() {
     model.setValue('name', title);
   }, [title, model]);
 
+  const {monitors, connectedMonitorIds, toggleConnected} = useConnectedMonitors();
+  const connectedMonitors = monitors.filter(monitor =>
+    connectedMonitorIds.has(monitor.id)
+  );
+
   return (
     <Form
       hideFooter
@@ -51,7 +57,13 @@ export default function AutomationForm() {
         <Flex column gap={space(1.5)} style={{padding: space(2)}}>
           <SectionBody>
             <Heading>{t('Connect Monitors')}</Heading>
-            <StyledConnectedMonitorsList monitors={[]} />
+            <ConnectedMonitorsWrapper>
+              <ConnectedMonitorsList
+                monitors={connectedMonitors}
+                connectedMonitorIds={connectedMonitorIds}
+                toggleConnected={toggleConnected}
+              />
+            </ConnectedMonitorsWrapper>
             <ButtonWrapper justify="space-between">
               <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
               <Button icon={<IconEdit />}>{t('Edit Monitors')}</Button>
@@ -91,8 +103,8 @@ const Heading = styled('h2')`
   margin-bottom: ${space(1.5)};
 `;
 
-const StyledConnectedMonitorsList = styled(ConnectedMonitorsList)`
-  margin: ${space(2)} 0;
+const ConnectedMonitorsWrapper = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 const ButtonWrapper = styled(Flex)`
