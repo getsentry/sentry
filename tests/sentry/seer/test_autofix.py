@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
 import orjson
@@ -1272,6 +1272,8 @@ class TestCallAutofix(TestCase):
         group.id = 101112
         group.title = "Test Group"
         group.qualified_short_id = "TEST-123"
+        now = datetime.now()
+        group.first_seen = now
 
         # Test data
         repos = [{"name": "test-repo"}]
@@ -1309,6 +1311,7 @@ class TestCallAutofix(TestCase):
         assert body["issue"]["id"] == 101112
         assert body["issue"]["title"] == "Test Group"
         assert body["issue"]["short_id"] == "TEST-123"
+        assert body["issue"]["first_seen"] == now.isoformat()
         assert body["issue"]["events"] == [serialized_event]
         assert body["profile"] == profile
         assert body["trace_tree"] == trace_tree
