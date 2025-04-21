@@ -3,9 +3,9 @@ from typing import Any
 
 from sentry.platform_example.notification_provider import NotificationProvider, ProviderTarget
 from sentry.platform_example.notification_renderer import NotificationRenderer
-from sentry.platform_example.notification_target import NotificationType
+from sentry.platform_example.notification_types import NotificationType
 from sentry.platform_example.registry import ProviderRegistry
-from sentry.platform_example.template.template_base import NotificationTemplate, TemplateData
+from sentry.platform_example.template_base import NotificationTemplate, TemplateData
 
 
 # Example Provider
@@ -70,6 +70,7 @@ class SlackNotificationRenderer(NotificationRenderer[SlackBlockKitData]):
         notification_content: TemplateData,
         notification_template: NotificationTemplate,
     ) -> SlackBlockKitData:
+
         return SlackBlockKitData(
             blocks=[],
         )

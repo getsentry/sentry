@@ -1,17 +1,11 @@
 import abc
 from dataclasses import dataclass
-from enum import StrEnum
 from typing import Generic, TypeVar
 
 from sentry.platform_example.notification_renderer import NotificationRenderer
-from sentry.platform_example.notification_target import NotificationType
+from sentry.platform_example.notification_types import NotificationType, ProviderResourceType
 
 RendererReturnTypeT = TypeVar("RendererReturnTypeT")
-
-
-class ProviderResourceType(StrEnum):
-    IdentityLink = "identity_link"
-    Channel = "channel"
 
 
 @dataclass

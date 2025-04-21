@@ -1,25 +1,8 @@
 from dataclasses import dataclass
-from enum import StrEnum
 
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.platform_example.notification_provider import ProviderResourceType
+from sentry.platform_example.notification_types import ProviderResourceType
 from sentry.users.models.user import User
-
-
-class NotificationType(StrEnum):
-    WeeklyDigests = "weekly_digests"
-    Workflows = "workflows"
-    IssueAlert = "issue_alert"
-    SpikeProtection = "spike_protection"
-    OrganizationEmailBlast = "organization_email_blast"
-    # Billing concerns
-    BillingEmail = "billing_email"
-    ...
-
-    @staticmethod
-    def get_choices() -> list[tuple[str, str]]:
-        return [(choice.value, choice.name) for choice in NotificationType]
-
 
 # Target Types
 type NotificationTarget = NotificationIntegrationTarget | NotificationUserTarget

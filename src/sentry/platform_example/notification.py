@@ -6,22 +6,21 @@ from typing import Generic
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models.base import Model
 from sentry.platform_example.notification_provider import ProviderTarget
 from sentry.platform_example.notification_target import (
     NotificationIntegrationTarget,
     NotificationTarget,
-    NotificationType,
     NotificationUserTarget,
 )
+from sentry.platform_example.notification_types import NotificationType
 from sentry.platform_example.registry import ProviderRegistry
-from sentry.platform_example.template.template_base import (
-    NotificationTemplate,
-    NotificationTemplateDataT,
-)
+from sentry.platform_example.template_base import NotificationTemplate, NotificationTemplateDataT
 
 
 class Notification(Model):
+    __relocation_scope__ = RelocationScope.Excluded
     thread_id = models.CharField(null=False, max_length=128)
     batch_id = models.UUIDField(null=False, default=uuid.uuid4)
     source = models.CharField(null=False, choices=NotificationType.get_choices(), max_length=30)
