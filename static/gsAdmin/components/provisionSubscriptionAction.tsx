@@ -108,7 +108,6 @@ type Props = {
   onSuccess: () => void;
   orgId: string;
   subscription: Subscription;
-  canProvisionDsPlan?: boolean; // TODO(DS Spans): remove once we need to provision DS plans
 };
 
 type ModalProps = ModalRenderProps & Props;
@@ -186,7 +185,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   }
 
   initializeState() {
-    const {subscription, billingConfig, canProvisionDsPlan = false} = this.props;
+    const {subscription, billingConfig} = this.props;
 
     const provisionablePlans = billingConfig
       ? billingConfig.planList.reduce(
@@ -198,8 +197,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 plan.id === 'mm2_b') &&
               !plan.id.endsWith('_ac') &&
               !plan.id.endsWith('_auf') &&
-              !isTrialPlan(plan.id) &&
-              (isAm3DsPlan(plan.id) ? canProvisionDsPlan : true)
+              !isTrialPlan(plan.id)
             ) {
               acc[plan.id] = plan;
             }
@@ -1053,10 +1051,7 @@ const StyledDollarsAndCentsField = styled(DollarsAndCentsField)`
 
 const Modal = withApi(ProvisionSubscriptionModal);
 
-type Options = Pick<
-  Props,
-  'orgId' | 'subscription' | 'onSuccess' | 'canProvisionDsPlan' | 'billingConfig'
->;
+type Options = Pick<Props, 'orgId' | 'subscription' | 'onSuccess' | 'billingConfig'>;
 
 const triggerProvisionSubscription = (opts: Options) =>
   openModal(deps => <Modal {...deps} {...opts} />, {modalCss});
