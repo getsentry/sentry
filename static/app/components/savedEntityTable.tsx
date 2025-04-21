@@ -314,25 +314,6 @@ SavedEntityTable.CellTextContent = function CellTextContent({
   return <OverflowEllipsis>{children}</OverflowEllipsis>;
 };
 
-SavedEntityTable.CellActions = function CellActions({items}: {items: MenuItemProps[]}) {
-  return (
-    <DropdownMenu
-      items={items}
-      size="sm"
-      trigger={triggerProps => (
-        <Button
-          {...triggerProps}
-          icon={<IconEllipsis direction="down" size="sm" />}
-          aria-label={t('More view options')}
-          size="sm"
-          borderless
-        />
-      )}
-      position="bottom-end"
-    />
-  );
-};
-
 const LoadingCell = styled(SavedEntityTable.Cell)`
   grid-column: 1/-1;
 `;
