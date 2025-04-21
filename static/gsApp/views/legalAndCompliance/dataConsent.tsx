@@ -59,7 +59,6 @@ const formGroups: JsonFormObject[] = [
             ),
           }
         ),
-        visible: ({isUsRegion}) => isUsRegion,
         disabled: ({isGenAiButtonDisabled}) => isGenAiButtonDisabled,
         disabledReason: ({genAiButtonMessage}) => genAiButtonMessage,
       },

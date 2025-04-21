@@ -19,7 +19,6 @@ function DataConsentForm({subscription}: {subscription: Subscription}) {
   const {
     isDisabled: isGenAiButtonDisabled,
     message: genAiButtonMessage,
-    isUsRegion,
     hasBillingAccess,
     isSuperuser,
     isTouchCustomerAndNeedsMsaUpdate,
@@ -64,7 +63,6 @@ function DataConsentForm({subscription}: {subscription: Subscription}) {
         additionalFieldProps={{
           isGenAiButtonDisabled,
           genAiButtonMessage,
-          isUsRegion,
           hasBillingAccess,
           isSuperuser,
           isTouchCustomerAndNeedsMsaUpdate,
