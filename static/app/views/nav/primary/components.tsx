@@ -2,7 +2,7 @@ import {Fragment, type MouseEventHandler} from 'react';
 import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -419,6 +419,7 @@ const ChonkNavButton = styled(Button, {
 })<{isMobile: boolean}>`
   display: flex;
   align-items: center;
+  gap: ${space(1)};
 
   /* On mobile, the buttons are full width and have a gap between the icon and label */
   justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
@@ -426,13 +427,9 @@ const ChonkNavButton = styled(Button, {
   width: ${p => (p.isMobile ? '100%' : '44px')};
   padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : undefined)};
 
-  ${ButtonLabel} {
-    gap: ${space(1)};
-
-    /* Disable interactionstatelayer hover */
-    [data-isl] {
-      display: none;
-    }
+  /* Disable interactionstatelayer hover */
+  [data-isl] {
+    display: none;
   }
 `;
 
