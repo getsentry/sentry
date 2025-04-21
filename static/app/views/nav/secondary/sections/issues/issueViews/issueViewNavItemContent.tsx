@@ -86,8 +86,6 @@ export function IssueViewNavItemContent({
 
   const {startInteraction, endInteraction, isInteractingRef} = useNavContext();
 
-  const scrollPosition = window.scrollY || document.documentElement.scrollTop;
-
   return (
     <StyledReorderItem
       as="div"
@@ -111,7 +109,7 @@ export function IssueViewNavItemContent({
       // upon scrolling down on the page and triggering a page navigation.
       // See: https://github.com/motiondivision/motion/issues/2006
       style={{
-        ...(isDragging || scrollPosition === 0
+        ...(isDragging
           ? {}
           : {
               originY: '0px',
