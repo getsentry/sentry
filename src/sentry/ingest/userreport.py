@@ -61,7 +61,7 @@ def save_userreport(
             )
             return None
 
-        should_filter, reason_tag, filter_reason = should_filter_user_report(
+        should_filter, reason_tag, filter_reason = validate_user_report(
             report, project.id, source=source
         )
         if should_filter:
@@ -179,14 +179,18 @@ def find_event_user(event: Event | GroupEvent | None) -> EventUser | None:
     return EventUser.from_event(event)
 
 
-def should_filter_user_report(
+def validate_user_report(
     report: UserReportDict,
     project_id: int,
     source: FeedbackCreationSource = FeedbackCreationSource.USER_REPORT_ENVELOPE,
 ) -> tuple[bool, str | None, str | None]:
     """
-    We don't care about empty user reports, or ones that
-    the unreal SDKs send.
+    Validates required fields, field lengths, and garbage messages. Also checks email format and that event_id is a UUID.
+
+    Reformatting: strips whitespace from comments and dashes from event_id.
+
+    Returns a tuple of (should_filter, metrics_reason, outcomes_reason).
+    At the moment we do not raise validation errors.
     """
     for field in ["name", "email", "comments", "event_id"]:
         if field not in report:

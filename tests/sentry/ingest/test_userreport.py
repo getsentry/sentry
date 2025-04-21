@@ -8,7 +8,7 @@ from sentry.feedback.usecases.create_feedback import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
     FeedbackCreationSource,
 )
-from sentry.ingest.userreport import save_userreport, should_filter_user_report
+from sentry.ingest.userreport import save_userreport, validate_user_report
 from sentry.models.userreport import UserReport
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -29,7 +29,7 @@ def _mock_event(project_id: int, environment: str):
 @django_db_all
 def test_should_filter_unreal_unattended_message_with_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", True):
-        should_filter, tag, reason = should_filter_user_report(
+        should_filter, tag, reason = validate_user_report(
             {
                 "name": "",
                 "email": "",
@@ -46,7 +46,7 @@ def test_should_filter_unreal_unattended_message_with_option(set_sentry_option):
 @django_db_all
 def test_should_not_filter_unreal_unattended_message_without_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", False):
-        should_filter, tag, reason = should_filter_user_report(
+        should_filter, tag, reason = validate_user_report(
             {
                 "name": "",
                 "email": "",
@@ -63,7 +63,7 @@ def test_should_not_filter_unreal_unattended_message_without_option(set_sentry_o
 @django_db_all
 def test_should_filter_empty_message_with_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", True):
-        should_filter, tag, reason = should_filter_user_report(
+        should_filter, tag, reason = validate_user_report(
             {
                 "name": "",
                 "email": "",
@@ -80,7 +80,7 @@ def test_should_filter_empty_message_with_option(set_sentry_option):
 @django_db_all
 def test_should_not_filter_empty_message_without_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", False):
-        should_filter, tag, reason = should_filter_user_report(
+        should_filter, tag, reason = validate_user_report(
             {
                 "name": "",
                 "email": "",
