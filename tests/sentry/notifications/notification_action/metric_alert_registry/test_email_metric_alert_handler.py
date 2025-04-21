@@ -9,33 +9,37 @@ from sentry.incidents.typings.metric_detector import (
     OpenPeriodContext,
 )
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.notifications.notification_action.metric_alert_registry import (
-    OpsgenieMetricAlertHandler,
+from sentry.notifications.notification_action.metric_alert_registry import EmailMetricAlertHandler
+from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
+    get_alert_rule_serializer,
+    get_detailed_incident_serializer,
 )
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import Action
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
 
 
-@apply_feature_flag_on_cls("organizations:issue-open-periods")
-class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
+class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self):
         self.create_models()
         self.action = self.create_action(
-            type=Action.Type.OPSGENIE,
-            integration_id=1234567890,
-            config={"target_identifier": "team123", "target_type": ActionTarget.SPECIFIC},
-            data={"priority": "P1"},
+            type=Action.Type.EMAIL,
+            integration_id=None,
+            config={
+                "target_identifier": str(self.user.id),
+                "target_type": ActionTarget.USER,
+            },
         )
 
-        self.handler = OpsgenieMetricAlertHandler()
+        self.handler = EmailMetricAlertHandler()
 
     @mock.patch(
-        "sentry.notifications.notification_action.metric_alert_registry.handlers.opsgenie_metric_alert_handler.send_incident_alert_notification"
+        "sentry.notifications.notification_action.metric_alert_registry.handlers.email_metric_alert_handler.email_users"
     )
-    def test_send_alert(self, mock_send_incident_alert_notification):
+    @freeze_time("2021-01-01 00:00:00")
+    def test_send_alert(self, mock_email_users):
         notification_context = NotificationContext.from_action_model(self.action)
         assert self.group_event.occurrence is not None
         alert_context = AlertContext.from_workflow_engine_models(
@@ -56,17 +60,22 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             notification_uuid=notification_uuid,
         )
 
-        mock_send_incident_alert_notification.assert_called_once_with(
-            notification_context=notification_context,
-            alert_context=alert_context,
+        mock_email_users.assert_called_once_with(
             metric_issue_context=metric_issue_context,
-            organization=self.detector.project.organization,
+            open_period_context=open_period_context,
+            alert_context=alert_context,
+            alert_rule_serialized_response=get_alert_rule_serializer(self.detector),
+            incident_serialized_response=get_detailed_incident_serializer(self.open_period),
+            trigger_status=TriggerStatus.ACTIVE,
+            targets=[(self.user.id, self.user.email)],
+            project=self.detector.project,
             notification_uuid=notification_uuid,
         )
 
     @mock.patch(
-        "sentry.notifications.notification_action.metric_alert_registry.OpsgenieMetricAlertHandler.send_alert"
+        "sentry.notifications.notification_action.metric_alert_registry.EmailMetricAlertHandler.send_alert"
     )
+    @freeze_time("2021-01-01 00:00:00")
     def test_invoke_legacy_registry(self, mock_send_alert):
         self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
 
@@ -80,15 +89,13 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             notification_uuid,
         ) = self.unpack_kwargs(mock_send_alert)
 
-        assert isinstance(notification_context, NotificationContext)
-        assert isinstance(alert_context, AlertContext)
-        assert isinstance(metric_issue_context, MetricIssueContext)
         self.assert_notification_context(
             notification_context,
-            integration_id=1234567890,
-            target_identifier="team123",
+            integration_id=None,
+            target_identifier=str(self.user.id),
             target_display=None,
-            sentry_app_config={"priority": "P1"},
+            target_type=ActionTarget.USER,
+            sentry_app_config=None,
             sentry_app_id=None,
         )
 
@@ -99,6 +106,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             threshold_type=None,
             detection_type=None,
             comparison_delta=None,
+            # TODO(iamrajjoshi): change this once we have the evidence_data contract
             alert_threshold=1.0,
         )
 

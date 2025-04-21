@@ -1,3 +1,4 @@
+from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -6,6 +7,7 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
     get_alert_rule_serializer,
     get_detailed_incident_serializer,
@@ -24,8 +26,10 @@ class DiscordMetricAlertHandler(BaseMetricAlertHandler):
         alert_context: AlertContext,
         metric_issue_context: MetricIssueContext,
         open_period_context: OpenPeriodContext,
-        organization: Organization,
+        trigger_status: TriggerStatus,
         notification_uuid: str,
+        organization: Organization,
+        project: Project,
     ) -> None:
 
         from sentry.integrations.discord.actions.metric_alert import (
