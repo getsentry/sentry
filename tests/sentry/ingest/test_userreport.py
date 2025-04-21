@@ -21,23 +21,27 @@ def _mock_event(project_id: int, environment: str):
     )
 
 
+@pytest.fixture
+def mock_report_dict() -> UserReportDict:
+    return {
+        "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
+        "name": "Test User",
+        "email": "test@example.com",
+        "comments": "hello",
+    }
+
+
 #################################
 # validator tests
 #################################
 
 
 @django_db_all
-@pytest.mark.parametrize("field", ["name", "email", "comments", "event_id"])
-def test_validator_should_filter_missing_required_field(field):
-    report: UserReportDict = {
-        "name": "andrew",
-        "email": "andrew@example.com",
-        "comments": "hello",
-        "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
-    }
-    del report[field]  # type: ignore[misc]
+@pytest.mark.parametrize("field", ["comments", "event_id"])
+def test_validator_should_filter_missing_required_field(field, mock_report_dict):
+    del mock_report_dict[field]  # type: ignore[misc]
 
-    should_filter, tag, reason = validate_user_report(report, 1)
+    should_filter, tag, reason = validate_user_report(mock_report_dict, 1)
     assert should_filter is True
     assert tag is not None
     assert reason is not None
@@ -193,7 +197,7 @@ def test_validator_strips_comments_whitespace():
 
 
 @django_db_all
-def test_save_user_report_returns_instance(default_project, monkeypatch):
+def test_save_user_report_returns_instance(default_project, monkeypatch, mock_report_dict):
     # Mocking dependencies and setting up test data
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr(
@@ -203,41 +207,48 @@ def test_save_user_report_returns_instance(default_project, monkeypatch):
         "sentry.eventstore.backend.get_event_by_id", lambda project_id, event_id: None
     )
 
-    # Test data
-    report: UserReportDict = {
-        "event_id": "123456",
-        "name": "Test User",
-        "email": "test@example.com",
-        "comments": "This is a test feedback",
-        "project_id": default_project.id,
-    }
+    result = save_userreport(
+        default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE
+    )
 
-    # Call the function
-    result = save_userreport(default_project, report, FeedbackCreationSource.USER_REPORT_ENVELOPE)
-
-    # Assert the result is an instance of UserReport
     assert isinstance(result, UserReport)
 
 
 @django_db_all
 def test_save_user_report_denylist(default_project, monkeypatch):
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: True)
-    report: UserReportDict = {
-        "event_id": "123456",
-        "name": "Test User",
-        "email": "test@example.com",
-        "comments": "This is a test feedback",
-        "project_id": default_project.id,
-    }
-
-    result = save_userreport(default_project, report, FeedbackCreationSource.USER_REPORT_ENVELOPE)
+    monkeypatch.setattr(
+        "sentry.ingest.userreport.validate_user_report", Mock(return_value=(False, None, None))
+    )
+    result = save_userreport(
+        default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE
+    )
 
     assert result is None
 
 
 @django_db_all
-@pytest.mark.parametrize("field", ["name", "email", "comments", "event_id"])
-def test_save_user_report_filters_missing_fields(default_project, monkeypatch, field):
+@pytest.mark.parametrize("field", ["comments", "event_id"])
+def test_save_user_report_filters_missing_required_field(
+    default_project, monkeypatch, mock_report_dict, field
+):
+    # Mocking dependencies and setting up test data
+    monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
+    monkeypatch.setattr(
+        "sentry.eventstore.backend.get_event_by_id", lambda project_id, event_id: None
+    )
+
+    del mock_report_dict[field]  # type: ignore[misc]
+
+    result = save_userreport(
+        default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE
+    )
+    assert result is None
+    assert UserReport.objects.count() == 0
+
+
+@django_db_all
+def test_save_user_report_missing_name_and_email(default_project, monkeypatch):
     # Mocking dependencies and setting up test data
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr(
@@ -245,22 +256,24 @@ def test_save_user_report_filters_missing_fields(default_project, monkeypatch, f
     )
 
     report: UserReportDict = {
-        "event_id": "123456",
-        "name": "Test User",
-        "email": "test@example.com",
+        "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
         "comments": "hello",
         "project_id": default_project.id,
     }
-    del report[field]  # type: ignore[misc]
 
     result = save_userreport(default_project, report, FeedbackCreationSource.USER_REPORT_ENVELOPE)
-    assert result is None
-    assert UserReport.objects.count() == 0
+    assert isinstance(result, UserReport)
+    assert UserReport.objects.count() == 1
+    assert result == UserReport.objects.get()
+    assert result.name == ""
+    assert result.email == ""
 
 
 @django_db_all
 @pytest.mark.parametrize("field", ["name", "email", "comments"])
-def test_save_user_report_filters_too_large_fields(default_project, monkeypatch, field):
+def test_save_user_report_filters_too_large_fields(
+    default_project, monkeypatch, mock_report_dict, field
+):
     # Mocking dependencies and setting up test data
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr(
@@ -271,22 +284,17 @@ def test_save_user_report_filters_too_large_fields(default_project, monkeypatch,
     if not max_length:
         assert False, f"Missing max_length for UserReport {field} field!"
 
-    report: UserReportDict = {
-        "event_id": "123456",
-        "name": "Test User",
-        "email": "test@example.com",
-        "comments": "hello",
-        "project_id": default_project.id,
-    }
-    report[field] = "a" * (max_length + 1)  # type: ignore[literal-required]
+    mock_report_dict[field] = "a" * (max_length + 1)  # type: ignore[literal-required]
 
-    result = save_userreport(default_project, report, FeedbackCreationSource.USER_REPORT_ENVELOPE)
+    result = save_userreport(
+        default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE
+    )
     assert result is None
     assert UserReport.objects.count() == 0
 
 
 @django_db_all
-def test_save_user_report_shims_if_event_found(default_project, monkeypatch):
+def test_save_user_report_shims_if_event_found(default_project, monkeypatch, mock_report_dict):
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr(
         "sentry.ingest.userreport.validate_user_report",
@@ -303,11 +311,8 @@ def test_save_user_report_shims_if_event_found(default_project, monkeypatch):
     monkeypatch.setattr("sentry.ingest.userreport.shim_to_feedback", mock_shim_to_feedback)
 
     report: UserReportDict = {
+        **mock_report_dict,
         "event_id": event.event_id,
-        "name": "Test User",
-        "email": "test@example.com",
-        "comments": "This is a test feedback",
-        "project_id": default_project.id,
     }
 
     save_userreport(default_project, report, FeedbackCreationSource.USER_REPORT_ENVELOPE)
@@ -316,7 +321,7 @@ def test_save_user_report_shims_if_event_found(default_project, monkeypatch):
 
 @django_db_all
 def test_save_user_report_does_not_shim_if_event_found_but_source_is_new_feedback(
-    default_project, monkeypatch
+    default_project, monkeypatch, mock_report_dict
 ):
     # Exact same setup as test_save_user_report_shims_if_event_found
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
@@ -333,19 +338,10 @@ def test_save_user_report_does_not_shim_if_event_found_but_source_is_new_feedbac
 
     mock_shim_to_feedback = Mock()
     monkeypatch.setattr("sentry.ingest.userreport.shim_to_feedback", mock_shim_to_feedback)
-
-    report: UserReportDict = {
-        "event_id": event.event_id,
-        "name": "Test User",
-        "email": "test@example.com",
-        "comments": "This is a test feedback",
-        "project_id": default_project.id,
-    }
-
     # Source is new feedback, so no shim
     save_userreport(
         default_project,
-        report,
+        mock_report_dict,
         FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
     )
     assert mock_shim_to_feedback.call_count == 0

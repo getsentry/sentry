@@ -193,15 +193,16 @@ def validate_user_report(
 
     At the moment we do not raise validation errors.
     """
-    for field in ["name", "email", "comments", "event_id"]:
-        if field not in report:
-            return True, "missing_required_field", "Missing required field"
+    if "comments" not in report:
+        return True, "missing_comments", "Missing comments"
+    if "event_id" not in report:
+        return True, "missing_event_id", "Missing event_id"
 
     report["comments"] = report["comments"].strip()
 
     name, email, comments = (
-        report["name"],
-        report["email"],
+        report.get("name", ""),
+        report.get("email", ""),
         report["comments"],
     )
 
