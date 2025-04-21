@@ -28,27 +28,6 @@ class GetRelocationPublicKeyTest(APITestCase):
         )
 
     @override_options({"relocation.enabled": True})
-    def test_good_superuser_when_feature_enabled(self, fake_kms_client: mock.Mock):
-        superuser = self.create_user("superuser", is_superuser=True, is_active=True)
-        self.login_as(user=superuser, superuser=True)
-        self.mock_kms_client(fake_kms_client)
-        response = self.get_success_response(status_code=200)
-
-        assert response.status_code == 200
-        assert response.data["public_key"].encode() == self.pub_key_pem
-        assert fake_kms_client.return_value.get_public_key.call_count == 1
-
-    def test_good_superuser_when_feature_disabled(self, fake_kms_client: mock.Mock):
-        superuser = self.create_user("superuser", is_superuser=True, is_active=True)
-        self.login_as(user=superuser, superuser=True)
-        self.mock_kms_client(fake_kms_client)
-        response = self.get_success_response(status_code=200)
-
-        assert response.status_code == 200
-        assert response.data["public_key"].encode() == self.pub_key_pem
-        assert fake_kms_client.return_value.get_public_key.call_count == 1
-
-    @override_options({"relocation.enabled": True})
     def test_good_staff_when_feature_enabled(self, fake_kms_client: mock.Mock):
         staff = self.create_user("staff", is_staff=True, is_active=True)
         self.login_as(user=staff, staff=True)
@@ -102,14 +81,6 @@ class GetRelocationPublicKeyTest(APITestCase):
     def test_bad_no_auth(self, fake_kms_client: mock.Mock):
         self.mock_kms_client(fake_kms_client)
         self.get_error_response(status_code=401)
-
-        assert fake_kms_client.return_value.get_public_key.call_count == 0
-
-    def test_bad_superuser_missing_cookie_when_feature_disabled(self, fake_kms_client: mock.Mock):
-        superuser = self.create_user("superuser", is_superuser=True, is_active=True)
-        self.login_as(user=superuser, staff=False)
-        self.mock_kms_client(fake_kms_client)
-        self.get_error_response(status_code=400)
 
         assert fake_kms_client.return_value.get_public_key.call_count == 0
 

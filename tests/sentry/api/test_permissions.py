@@ -33,17 +33,6 @@ class PermissionsTest(DRFPermissionTestCase):
         # With active staff
         assert self.superuser_staff_flagged_permission.has_permission(self.staff_request, APIView())
 
-    def test_superuser_or_staff_feature_flagged_permission_inactive_option(self):
-        # With active staff
-        assert not self.superuser_staff_flagged_permission.has_permission(
-            self.staff_request, APIView()
-        )
-
-        # With active superuser
-        assert self.superuser_staff_flagged_permission.has_permission(
-            self.superuser_request, APIView()
-        )
-
 
 class IsAuthenticatedPermissionsTest(DRFPermissionTestCase):
     user_permission = SentryIsAuthenticated()

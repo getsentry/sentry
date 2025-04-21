@@ -48,11 +48,10 @@ class RetryRelocationTest(APITestCase):
         self.owner = self.create_user(
             email="owner", is_superuser=False, is_staff=True, is_active=True
         )
-        self.superuser = self.create_user(is_superuser=True)
         self.staff_user = self.create_user(is_staff=True)
         self.relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
-            creator_id=self.superuser.id,
+            creator_id=self.staff_user.id,
             owner_id=self.owner.id,
             status=Relocation.Status.FAILURE.value,
             step=Relocation.Step.PREPROCESSING.value,
@@ -173,7 +172,7 @@ class RetryRelocationTest(APITestCase):
     def test_good_superuser_when_feature_disabled(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
     ):
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
         file_count = File.objects.count()
@@ -181,9 +180,9 @@ class RetryRelocationTest(APITestCase):
         response = self.get_success_response(self.relocation.uuid, status_code=201)
 
         assert response.data["uuid"] != self.relocation.uuid
-        assert response.data["creator"]["id"] == str(self.superuser.id)
-        assert response.data["creator"]["email"] == str(self.superuser.email)
-        assert response.data["creator"]["username"] == str(self.superuser.username)
+        assert response.data["creator"]["id"] == str(self.staff_user.id)
+        assert response.data["creator"]["email"] == str(self.staff_user.email)
+        assert response.data["creator"]["username"] == str(self.staff_user.username)
         assert response.data["owner"]["id"] == str(self.owner.id)
         assert response.data["owner"]["email"] == str(self.owner.email)
         assert response.data["owner"]["username"] == str(self.owner.username)
@@ -314,7 +313,7 @@ class RetryRelocationTest(APITestCase):
     def test_bad_superuser_owner_not_found(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
     ):
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         with assume_test_silo_mode(SiloMode.CONTROL):
             User.objects.filter(id=self.owner.id).delete()
 
@@ -371,7 +370,7 @@ class RetryRelocationTest(APITestCase):
             self.login_as(user=self.owner, superuser=False)
             Relocation.objects.create(
                 date_added=TEST_DATE_ADDED,
-                creator_id=self.superuser.id,
+                creator_id=self.staff_user.id,
                 owner_id=self.owner.id,
                 status=stat.value,
                 step=Relocation.Step.PREPROCESSING.value,
