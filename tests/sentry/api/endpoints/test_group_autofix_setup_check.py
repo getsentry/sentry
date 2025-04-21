@@ -1,6 +1,7 @@
 import calendar
 from unittest.mock import patch
 
+import orjson
 from django.utils import timezone
 
 from sentry.api.endpoints.group_autofix_setup_check import get_repos_and_access
@@ -72,7 +73,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             feature=feature,
             organization_id=self.organization.id,
             project_id=0,
-            data={"dismissed_ts": calendar.timegm(timezone.now().utctimetuple())},
+            data=orjson.dumps({"dismissed_ts": calendar.timegm(timezone.now().utctimetuple())}),
         )
 
         self.login_as(user=self.user)
@@ -98,7 +99,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             feature=feature,
             organization_id=self.organization.id,
             project_id=0,
-            data={"dismissed_ts": calendar.timegm(timezone.now().utctimetuple())},
+            data=orjson.dumps({"dismissed_ts": calendar.timegm(timezone.now().utctimetuple())}),
         )
 
         self.login_as(user=self.user)
