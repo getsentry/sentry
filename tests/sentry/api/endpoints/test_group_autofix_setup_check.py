@@ -73,7 +73,9 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             feature=feature,
             organization_id=self.organization.id,
             project_id=0,
-            data=orjson.dumps({"dismissed_ts": calendar.timegm(timezone.now().utctimetuple())}),
+            data=orjson.dumps(
+                {"dismissed_ts": calendar.timegm(timezone.now().utctimetuple())}
+            ).decode("utf-8"),
         )
 
         self.login_as(user=self.user)
@@ -99,7 +101,9 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             feature=feature,
             organization_id=self.organization.id,
             project_id=0,
-            data=orjson.dumps({"dismissed_ts": calendar.timegm(timezone.now().utctimetuple())}),
+            data=orjson.dumps(
+                {"dismissed_ts": calendar.timegm(timezone.now().utctimetuple())}
+            ).decode("utf-8"),
         )
 
         self.login_as(user=self.user)
