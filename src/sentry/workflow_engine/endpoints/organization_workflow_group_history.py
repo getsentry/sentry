@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping, Sequence
-from dataclasses import dataclass
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, TypedDict, cast
+from typing import TypedDict, cast
 
 from django.db.models import Count, Max, OuterRef, Subquery
 from drf_spectacular.utils import extend_schema
@@ -15,8 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import Serializer, serialize
-from sentry.api.serializers.models.group import BaseGroupSerializerResponse
+from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, WorkflowParams
@@ -27,15 +25,11 @@ from sentry.utils.cursors import Cursor, CursorResult
 from sentry.workflow_engine.endpoints.organization_workflow_index import (
     OrganizationWorkflowEndpoint,
 )
+from sentry.workflow_engine.endpoints.serializers import (
+    WorkflowGroupHistory,
+    WorkflowGroupHistorySerializer,
+)
 from sentry.workflow_engine.models import Workflow, WorkflowFireHistory
-
-
-@dataclass(frozen=True)
-class WorkflowGroupHistory:
-    group: Group
-    count: int
-    last_triggered: datetime
-    event_id: str
 
 
 class _Result(TypedDict):
@@ -84,35 +78,6 @@ def fetch_workflow_groups_paginated(
             qs, order_by=("-count", "-last_triggered"), on_results=convert_results
         ).get_result(per_page, cursor),
     )
-
-
-class WorkflowFireHistoryResponse(TypedDict):
-    group: BaseGroupSerializerResponse
-    count: int
-    lastTriggered: datetime
-    eventId: str
-
-
-class WorkflowGroupHistorySerializer(Serializer):
-    def get_attrs(
-        self, item_list: Sequence[WorkflowFireHistory], user: Any, **kwargs: Any
-    ) -> MutableMapping[Any, Any]:
-        serialized_groups = {
-            g["id"]: g for g in serialize([item.group for item in item_list], user)
-        }
-        return {
-            history: {"group": serialized_groups[str(history.group.id)]} for history in item_list
-        }
-
-    def serialize(
-        self, obj: WorkflowGroupHistory, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> WorkflowFireHistoryResponse:
-        return {
-            "group": attrs["group"],
-            "count": obj.count,
-            "lastTriggered": obj.last_triggered,
-            "eventId": obj.event_id,
-        }
 
 
 @region_silo_endpoint
