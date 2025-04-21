@@ -229,14 +229,15 @@ def save_issue_from_occurrence(
             open_period = (
                 GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
             )
-            highest_seen_severity = open_period.data.get("highest_seen_severity", None)
-            if highest_seen_severity is None:
-                highest_seen_severity = group.priority
-            else:
-                highest_seen_severity = max(highest_seen_severity, group.priority)
-            open_period.update(
-                data={**open_period.data, "highest_seen_severity": highest_seen_severity}
-            )
+            if open_period is not None:
+                highest_seen_severity = open_period.data.get("highest_seen_severity", None)
+                if highest_seen_severity is None:
+                    highest_seen_severity = group.priority
+                else:
+                    highest_seen_severity = max(highest_seen_severity, group.priority)
+                open_period.update(
+                    data={**open_period.data, "highest_seen_severity": highest_seen_severity}
+                )
             is_regression = False
             span.set_tag("save_issue_from_occurrence.outcome", "new_group")
             metric_tags["save_issue_from_occurrence.outcome"] = "new_group"
