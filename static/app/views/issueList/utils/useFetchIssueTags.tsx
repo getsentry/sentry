@@ -5,12 +5,6 @@ import {
   ItemType,
   type SearchGroup,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
-import {escapeTagValue} from 'sentry/components/deprecatedSmartSearchBar/utils';
-import {IconStar, IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
-import TeamStore from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {
   getIssueTitleFromType,
   IssueCategory,
@@ -20,7 +14,6 @@ import {
   VISIBLE_ISSUE_TYPES,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import {escapeIssueTagKey} from 'sentry/utils';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {
@@ -31,6 +24,8 @@ import {
   ISSUE_FIELDS,
   ISSUE_PROPERTY_FIELDS,
 } from 'sentry/utils/fields';
+import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
+import useMemberUsernames from 'sentry/utils/membersAndTeams/useMemberUsernames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
@@ -96,9 +91,6 @@ export const useFetchIssueTags = ({
   includeFeatureFlags = false,
   ...statsPeriodParams
 }: UseFetchIssueTagsParams) => {
-  const {teams} = useLegacyStore(TeamStore);
-  const {members} = useLegacyStore(MemberListStore);
-
   const eventsTagsQuery = useFetchOrganizationTags(
     {
       orgSlug: org.slug,
@@ -139,33 +131,10 @@ export const useFetchIssueTags = ({
     {}
   );
 
+  const assignedValues = useAssignedSearchValues();
+  const usernames = useMemberUsernames();
+
   const allTags = useMemo(() => {
-    const userTeams = teams.filter(team => team.isMember).map(team => `#${team.slug}`);
-    const usernames: string[] = members.map(getUsername);
-    const nonMemberTeams = teams
-      .filter(team => !team.isMember)
-      .map(team => `#${team.slug}`);
-
-    const suggestedAssignees: string[] = ['me', 'my_teams', 'none', ...userTeams];
-
-    const assignedValues: SearchGroup[] | string[] = [
-      {
-        title: t('Suggested Values'),
-        type: 'header',
-        icon: <IconStar size="xs" />,
-        children: suggestedAssignees.map(convertToSearchItem),
-      },
-      {
-        title: t('All Values'),
-        type: 'header',
-        icon: <IconUser size="xs" />,
-        children: [
-          ...usernames.map(convertToSearchItem),
-          ...nonMemberTeams.map(convertToSearchItem),
-        ],
-      },
-    ];
-
     const eventsTags: Tag[] = eventsTagsQuery.data || [];
     const issuePlatformTags: Tag[] = issuePlatformTagsQuery.data || [];
     const featureFlagTags: Tag[] = featureFlagTagsQuery.data || [];
@@ -221,8 +190,8 @@ export const useFetchIssueTags = ({
     eventsTagsQuery.data,
     issuePlatformTagsQuery.data,
     featureFlagTagsQuery.data,
-    members,
-    teams,
+    usernames,
+    assignedValues,
   ]);
 
   return {
@@ -377,22 +346,3 @@ function builtInIssuesFields(
     ...semverFields,
   };
 }
-
-const getUsername = ({isManaged, username, email}: User) => {
-  const uuidPattern = /[0-9a-f]{32}$/;
-  // Users created via SAML receive unique UUID usernames. Use
-  // their email in these cases, instead.
-  if (username && uuidPattern.test(username)) {
-    return email;
-  }
-  return !isManaged && username ? username : email;
-};
-
-const convertToSearchItem = (value: string) => {
-  const escapedValue = escapeTagValue(value);
-  return {
-    value: escapedValue,
-    desc: value,
-    type: ItemType.TAG_VALUE,
-  };
-};
