@@ -19,6 +19,7 @@ DEFAULT_PROMPTS = {
     "quick_trace_missing": {"required_fields": ["organization_id", "project_id"]},
     "releases": {"required_fields": ["organization_id", "project_id"]},
     "sdk_updates": {"required_fields": ["organization_id"]},
+    "seer_autofix_setup_acknowledged": {"required_fields": ["organization_id"]},
     "stacked_navigation_banner": {"required_fields": ["organization_id"]},
     "stacked_navigation_help_menu": {"required_fields": ["organization_id"]},
     "stacktrace_link": {"required_fields": ["organization_id", "project_id"]},
