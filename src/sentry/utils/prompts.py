@@ -3,7 +3,7 @@ from sentry.models.promptsactivity import PromptsActivity
 DEFAULT_PROMPTS = {
     "alert_stream": {"required_fields": ["organization_id"]},
     "chonk_ui_dot_indicator": {"required_fields": ["organization_id"]},
-    "chonk_ui_tooltip": {"required_fields": ["organization_id"]},
+    "chonk_ui_banner": {"required_fields": ["organization_id"]},
     "code_owners": {"required_fields": ["organization_id", "project_id"]},
     "data_consent_banner": {"required_fields": ["organization_id"]},
     "data_consent_priority": {"required_fields": ["organization_id"]},
