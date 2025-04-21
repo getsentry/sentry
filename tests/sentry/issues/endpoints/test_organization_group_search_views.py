@@ -76,11 +76,11 @@ class GroupSearchViewAPITestCase(APITestCase):
                 view=view,
             )
         if last_visited:
-            GroupSearchViewLastVisited.objects.create(
-                user_id=user.id,
+            GroupSearchViewLastVisited.objects.create_or_update(
+                user_id=self.user.id,
                 organization=self.organization,
                 group_search_view=view,
-                last_visited=last_visited,
+                values={"last_visited": last_visited},
             )
         return view
 
@@ -1214,27 +1214,43 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         )
         view_2 = self.create_view(user=self.user_1, last_visited=timezone.now() - timedelta(days=1))
         view_3 = self.create_view(user=self.user_1, last_visited=timezone.now() - timedelta(days=2))
-        view_4 = self.create_view(user=self.user_1, last_visited=None)
+
+        # View 4 not visited
+        view_4 = self.create_view(user=self.user_1)
+
+        # View 5 only visited by user 2
+        view_5 = self.create_view(user=self.user_1)
+        GroupSearchViewLastVisited.objects.create(
+            organization=self.organization,
+            user_id=self.user_2.id,
+            group_search_view=view_5,
+            last_visited=timezone.now() - timedelta(days=1),
+        )
 
         response = self.client.get(self.url, {"createdBy": "me"})
         assert response.status_code == 200
-        assert len(response.data) == 4
+        assert len(response.data) == 5
         # =============   Starred views   =============
         assert response.data[0]["id"] == str(view_1.id), response.data[0]["starred"]
         # ============= Non-starred views =============
+        # 2 and 3 visisted by user so will show up at the top
         assert response.data[1]["id"] == str(view_2.id), not response.data[1]["starred"]
         assert response.data[2]["id"] == str(view_3.id), not response.data[2]["starred"]
         assert response.data[3]["id"] == str(view_4.id), not response.data[3]["starred"]
+        assert response.data[4]["id"] == str(view_5.id), not response.data[4]["starred"]
+
         response = self.client.get(self.url, {"createdBy": "me", "sort": "visited"})
 
         assert response.status_code == 200
-        assert len(response.data) == 4
+        assert len(response.data) == 5
         # =============   Starred views   =============
         assert response.data[0]["id"] == str(view_1.id), response.data[0]["starred"]
         # ============= Non-starred views =============
+        # 4 and 5 not visisted by user so will show up at the top
         assert response.data[1]["id"] == str(view_4.id), not response.data[1]["starred"]
-        assert response.data[2]["id"] == str(view_3.id), not response.data[2]["starred"]
-        assert response.data[3]["id"] == str(view_2.id), not response.data[3]["starred"]
+        assert response.data[2]["id"] == str(view_5.id), not response.data[2]["starred"]
+        assert response.data[3]["id"] == str(view_3.id), not response.data[3]["starred"]
+        assert response.data[4]["id"] == str(view_2.id), not response.data[4]["starred"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -1298,7 +1314,7 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
             organization=self.organization,
             view=view_1,
         )
-        # sort by last_visited desc by default
+        # sort by visited desc by default
         response = self.client.get(self.url, {"createdBy": "others"})
         assert response.status_code == 200
         assert len(response.data) == 3
@@ -1443,7 +1459,7 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    def test_multiple_sort_options(self) -> None:
+    def test_created_by_me_multiple_sort(self) -> None:
         self.login_as(user=self.user_1)
 
         view_1 = self.create_view(
