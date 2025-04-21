@@ -11,6 +11,7 @@ import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixH
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
 import {IconChevron, IconClose, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -88,8 +89,11 @@ function AutofixInsightCard({
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const {mutate: updateInsight} = useUpdateInsightCard({groupId, runId});
-  const [displayedInsightTitle, setDisplayedInsightTitle] = useState('');
-  const titleIndexRef = useRef(0);
+  const displayedInsightTitle = useTypingAnimation({
+    text: insight.insight,
+    enabled: !!isNewInsight,
+    speed: 70,
+  });
 
   const toggleExpand = () => {
     setExpanded(oldState => !oldState);
@@ -118,31 +122,6 @@ function AutofixInsightCard({
   };
 
   const insightCardAboveIndex = index - 1 >= 0 ? index - 1 : null;
-
-  // Typing animation for new insight
-  useEffect(() => {
-    if (!isNewInsight) {
-      setDisplayedInsightTitle(insight.insight);
-      titleIndexRef.current = insight.insight.length;
-      return () => {};
-    }
-
-    setDisplayedInsightTitle('');
-    titleIndexRef.current = 0;
-
-    const intervalId = window.setInterval(() => {
-      if (titleIndexRef.current < insight.insight.length) {
-        setDisplayedInsightTitle(insight.insight.slice(0, titleIndexRef.current + 1));
-        titleIndexRef.current++;
-      } else {
-        window.clearInterval(intervalId);
-      }
-    }, 15);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [insight.insight, isNewInsight]);
 
   return (
     <ContentWrapper>

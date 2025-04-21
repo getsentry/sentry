@@ -9,6 +9,7 @@ import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEffect';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -46,17 +47,20 @@ export function AutofixOutputStream({
   const queryClient = useQueryClient();
 
   const [displayedText, setDisplayedText] = useState('');
-  const [displayedActiveLog, setDisplayedActiveLog] = useState('');
   const [message, setMessage] = useState('');
   const seerIconRef = useRef<HTMLDivElement>(null);
 
   const accumulatedTextRef = useRef('');
   const previousStreamPropRef = useRef('');
-  const previousActiveLog = useRef('');
   const currentIndexRef = useRef(0);
-  const activeLogIndexRef = useRef(0);
 
   const isInitializingRun = activeLog === 'Ingesting Sentry data...';
+
+  const displayedActiveLog = useTypingAnimation({
+    text: activeLog,
+    speed: 100,
+    enabled: !!activeLog,
+  });
 
   const {mutate: send} = useMutation({
     mutationFn: (params: {message: string}) => {
@@ -134,30 +138,6 @@ export function AutofixOutputStream({
       }
     };
   }, [stream, displayedText]);
-
-  // Animation for active log
-  useEffect(() => {
-    const newActiveLog = activeLog;
-
-    if (!newActiveLog.startsWith(displayedActiveLog)) {
-      previousActiveLog.current = newActiveLog;
-      activeLogIndexRef.current = 0;
-      setDisplayedActiveLog('');
-    }
-
-    const interval = window.setInterval(() => {
-      if (activeLogIndexRef.current < newActiveLog.length) {
-        setDisplayedActiveLog(newActiveLog.slice(0, activeLogIndexRef.current + 1));
-        activeLogIndexRef.current++;
-      } else {
-        window.clearInterval(interval);
-      }
-    }, 10);
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [displayedActiveLog, activeLog]);
 
   const handleSend = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
