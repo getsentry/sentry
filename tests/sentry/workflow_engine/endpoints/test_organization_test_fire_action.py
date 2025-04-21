@@ -200,7 +200,7 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         ]
 
         response = self.get_error_response(self.organization.slug, actions=action_data)
-        assert response.status_code == 404
+        assert response.status_code == 400
         assert response.data == {
             "detail": "No projects found for this organization that the user has access to"
         }
