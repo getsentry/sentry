@@ -9,13 +9,21 @@ export function useChonkPrompt() {
 
   const tooltipPrompt = usePrompt({
     organization,
+<<<<<<< HEAD
     feature: 'chonk-ui-tooltip',
+=======
+    feature: 'chonk_ui_banner',
+>>>>>>> 4153a154687 (chonk: add nav prompts)
     options: {enabled: hasChonkUI},
   });
 
   const dotIndicatorPrompt = usePrompt({
     organization,
+<<<<<<< HEAD
     feature: 'chonk-ui-dot-indicator',
+=======
+    feature: 'chonk_ui_dot_indicator',
+>>>>>>> 4153a154687 (chonk: add nav prompts)
     options: {enabled: hasChonkUI},
   });
 

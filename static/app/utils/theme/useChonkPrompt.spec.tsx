@@ -71,7 +71,11 @@ describe('useChonkPrompt', () => {
       '/organizations/org-slug/prompts-activity/',
       expect.objectContaining({
         data: expect.objectContaining({
+<<<<<<< HEAD
           feature: 'chonk-ui-tooltip',
+=======
+          feature: 'chonk_ui_banner',
+>>>>>>> 4153a154687 (chonk: add nav prompts)
           status: 'dismissed',
         }),
       })
@@ -105,7 +109,11 @@ describe('useChonkPrompt', () => {
       '/organizations/org-slug/prompts-activity/',
       expect.objectContaining({
         data: expect.objectContaining({
+<<<<<<< HEAD
           feature: 'chonk-ui-dot-indicator',
+=======
+          feature: 'chonk_ui_dot_indicator',
+>>>>>>> 4153a154687 (chonk: add nav prompts)
           status: 'dismissed',
         }),
       })
