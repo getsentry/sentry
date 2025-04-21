@@ -260,7 +260,7 @@ def test_save_user_report_filters_missing_fields(default_project, monkeypatch, f
 
 @django_db_all
 @pytest.mark.parametrize("field", ["name", "email", "comments"])
-def test_save_user_report_filters_large_fields(default_project, monkeypatch, field):
+def test_save_user_report_filters_too_large_fields(default_project, monkeypatch, field):
     # Mocking dependencies and setting up test data
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr(
@@ -278,7 +278,7 @@ def test_save_user_report_filters_large_fields(default_project, monkeypatch, fie
         "comments": "hello",
         "project_id": default_project.id,
     }
-    report[field] = "a" * (max_length + 31)
+    report[field] = "a" * (max_length + 1)
 
     result = save_userreport(default_project, report, FeedbackCreationSource.USER_REPORT_ENVELOPE)
     assert result is None
