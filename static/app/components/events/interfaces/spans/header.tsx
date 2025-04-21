@@ -435,11 +435,7 @@ class TraceViewHeader extends Component<PropType, State> {
     const handleStartWindowSelection = (event: React.MouseEvent<HTMLDivElement>) => {
       const target = event.target;
 
-      if (
-        target instanceof Element &&
-        target.getAttribute &&
-        target.getAttribute('data-ignore')
-      ) {
+      if (target instanceof Element && target.getAttribute?.('data-ignore')) {
         // ignore this event if we need to
         return;
       }

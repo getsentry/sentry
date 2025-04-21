@@ -5,14 +5,16 @@ import styled from '@emotion/styled';
 import starImage from 'sentry-images/spot/banner-star.svg';
 
 import Feature from 'sentry/components/acl/feature';
-import {SeerIcon, SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
+import {SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
+import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
+import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import AutofixPreferenceDropdown from 'sentry/components/events/autofix/preferences/autofixPreferenceDropdown';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
@@ -20,7 +22,10 @@ import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -29,6 +34,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
@@ -131,6 +137,7 @@ const AiSetupDataConsent = HookOrDefault({
 });
 
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
+  const organization = useOrganization();
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
   const aiConfig = useAiConfig(group, project);
 
@@ -192,7 +199,6 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       </SeerDrawerHeader>
       <SeerDrawerNavigator>
         <Header>
-          <SeerIcon size="lg" />
           {t('Autofix')}
           <StyledFeatureBadge
             type="beta"
@@ -203,6 +209,33 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
               ),
               isHoverable: true,
             }}
+          />
+          <QuestionTooltip
+            isHoverable
+            title={
+              <Flex column gap={space(1)}>
+                <div>
+                  {tct(
+                    'Seer models are powered by generative Al. Per our [dataDocs:data usage policies], Sentry does not use your data to train Seer models or share your data with other customers without your express consent.',
+                    {
+                      dataDocs: (
+                        <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/sentry-ai/#data-processing" />
+                      ),
+                    }
+                  )}
+                </div>
+                <div>
+                  {tct('Seer can be turned off in [settingsDocs:Settings].', {
+                    settingsDocs: (
+                      <Link
+                        to={`/settings/${organization.slug}/general-settings/#hideAiFeatures`}
+                      />
+                    ),
+                  })}
+                </div>
+              </Flex>
+            }
+            size="sm"
           />
         </Header>
         {!aiConfig.needsGenAIConsent && (
@@ -231,14 +264,9 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         )}
       </SeerDrawerNavigator>
 
-      {!aiConfig.isAutofixSetupLoading && !aiConfig.needsGenAIConsent && (
-        <SeerNotices
-          groupId={group.id}
-          hasGithubIntegration={aiConfig.hasGithubIntegration}
-          project={project}
-        />
+      {!aiConfig.isAutofixSetupLoading && !aiConfig.needsGenAIConsent && autofixData && (
+        <AutofixProgressBar autofixData={autofixData} />
       )}
-
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
@@ -248,6 +276,11 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           <AiSetupDataConsent groupId={group.id} />
         ) : (
           <Fragment>
+            <SeerNotices
+              groupId={group.id}
+              hasGithubIntegration={aiConfig.hasGithubIntegration}
+              project={project}
+            />
             {aiConfig.hasSummary && (
               <StyledCard>
                 <GroupSummary group={group} event={event} project={project} />
@@ -434,7 +467,7 @@ const StyledFeatureBadge = styled(FeatureBadge)`
 const SeerDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto auto 1fr;
   position: relative;
 `;
 

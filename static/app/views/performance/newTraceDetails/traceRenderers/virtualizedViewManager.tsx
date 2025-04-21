@@ -1695,15 +1695,23 @@ function getIconTimestamps(
   let min_icon_timestamp = span_space[0];
   let max_icon_timestamp = span_space[0] + span_space[1];
 
-  if (!node.errors.size && !node.occurences.size) {
+  if (!node.errors.size && !node.occurrences.size) {
     return [min_icon_timestamp, max_icon_timestamp];
   }
 
-  for (const issue of node.occurences) {
-    // Perf issues render icons at the start timestamp
-    if (typeof issue.start === 'number') {
-      min_icon_timestamp = Math.min(min_icon_timestamp, issue.start * 1e3 - icon_width);
-      max_icon_timestamp = Math.max(max_icon_timestamp, issue.start * 1e3 + icon_width);
+  for (const occurence of node.occurrences) {
+    // Occurences render icons at the start timestamp
+    const start_timestamp =
+      'start_timestamp' in occurence ? occurence.start_timestamp : occurence.start;
+    if (typeof start_timestamp === 'number') {
+      min_icon_timestamp = Math.min(
+        min_icon_timestamp,
+        start_timestamp * 1e3 - icon_width
+      );
+      max_icon_timestamp = Math.max(
+        max_icon_timestamp,
+        start_timestamp * 1e3 + icon_width
+      );
     }
   }
 

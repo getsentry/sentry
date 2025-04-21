@@ -7,13 +7,14 @@ from rest_framework.response import Response
 
 from sentry import features, options, search
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import (
     NoProjects,
     OrganizationEventsEndpointBase,
     OrganizationEventsV2EndpointBase,
 )
 from sentry.api.event_search import parse_search_query
+from sentry.api.helpers.environments import get_environment_func
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
@@ -108,7 +109,7 @@ UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
 @region_silo_endpoint
-class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, EnvironmentMixin):
+class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -162,9 +163,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
             context = serialize(
                 results,
                 request.user,
-                GroupSerializer(
-                    environment_func=self._get_environment_func(request, organization.id)
-                ),
+                GroupSerializer(environment_func=get_environment_func(request, organization.id)),
             )
 
         return Response(context)
@@ -295,7 +294,7 @@ def get_eap_span_samples(request: Request, snuba_params: SnubaParams, orderby: l
 
     selected_columns = request.GET.getlist("additionalFields", []) + [
         "project",
-        "transaction.id",
+        "transaction.span_id",
         column,
         "timestamp",
         "span_id",

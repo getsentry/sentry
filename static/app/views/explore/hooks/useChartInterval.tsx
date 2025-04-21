@@ -2,9 +2,11 @@ import {useCallback, useMemo} from 'react';
 import type {Location} from 'history';
 
 import {
+  FIVE_MINUTES,
   FORTY_EIGHT_HOURS,
   getDiffInMinutes,
   GranularityLadder,
+  ONE_HOUR,
   ONE_WEEK,
   SIX_HOURS,
   THIRTY_DAYS,
@@ -112,7 +114,9 @@ const MAXIMUM_INTERVAL = new GranularityLadder([
   [ONE_WEEK, '12h'],
   [FORTY_EIGHT_HOURS, '4h'],
   [SIX_HOURS, '1h'],
-  [0, '15m'],
+  [ONE_HOUR, '15m'],
+  [FIVE_MINUTES, '5m'],
+  [0, '1m'],
 ]);
 
 export function getIntervalOptionsForPageFilter(datetime: PageFilters['datetime']) {

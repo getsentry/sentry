@@ -6,7 +6,96 @@ from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from tests.sentry.issues.endpoints.test_organization_group_search_views import BaseGSVTestCase
+
+
+class BaseGSVTestCase(APITestCase):
+    def create_base_data(self) -> dict[str, list[GroupSearchView]]:
+        user_1 = self.user
+        self.user_2 = self.create_user()
+        self.user_3 = self.create_user()
+
+        self.create_member(organization=self.organization, user=self.user_2)
+        self.create_member(organization=self.organization, user=self.user_3)
+
+        first_custom_view_user_one = GroupSearchView.objects.create(
+            name="Custom View One",
+            organization=self.organization,
+            user_id=user_1.id,
+            query="is:unresolved",
+            query_sort="date",
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=user_1.id,
+            group_search_view=first_custom_view_user_one,
+            position=0,
+        )
+
+        # This is out of order to test that the endpoint returns the views in the correct order
+        third_custom_view_user_one = GroupSearchView.objects.create(
+            name="Custom View Three",
+            organization=self.organization,
+            user_id=user_1.id,
+            query="is:ignored",
+            query_sort="freq",
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=user_1.id,
+            group_search_view=third_custom_view_user_one,
+            position=2,
+        )
+
+        second_custom_view_user_one = GroupSearchView.objects.create(
+            name="Custom View Two",
+            organization=self.organization,
+            user_id=user_1.id,
+            query="is:resolved",
+            query_sort="new",
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=user_1.id,
+            group_search_view=second_custom_view_user_one,
+            position=1,
+        )
+
+        first_custom_view_user_two = GroupSearchView.objects.create(
+            name="Custom View One",
+            organization=self.organization,
+            user_id=self.user_2.id,
+            query="is:unresolved",
+            query_sort="date",
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=self.user_2.id,
+            group_search_view=first_custom_view_user_two,
+            position=0,
+        )
+
+        second_custom_view_user_two = GroupSearchView.objects.create(
+            name="Custom View Two",
+            organization=self.organization,
+            user_id=self.user_2.id,
+            query="is:resolved",
+            query_sort="new",
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=self.user_2.id,
+            group_search_view=second_custom_view_user_two,
+            position=1,
+        )
+
+        return {
+            "user_one_views": [
+                first_custom_view_user_one,
+                second_custom_view_user_one,
+                third_custom_view_user_one,
+            ],
+            "user_two_views": [first_custom_view_user_two, second_custom_view_user_two],
+        }
 
 
 class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):

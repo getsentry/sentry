@@ -39,6 +39,15 @@ export function ExploreSecondaryNav() {
               {t('Logs')}
             </SecondaryNav.Item>
           </Feature>
+          <Feature features="discover-basic">
+            <SecondaryNav.Item
+              to={`${baseUrl}/discover/homepage/`}
+              activeTo={`${baseUrl}/discover/`}
+              analyticsItemName="explore_discover"
+            >
+              {t('Discover')}
+            </SecondaryNav.Item>
+          </Feature>
           <Feature features="profiling">
             <SecondaryNav.Item
               to={`${baseUrl}/profiling/`}
@@ -55,15 +64,6 @@ export function ExploreSecondaryNav() {
               {t('Replays')}
             </SecondaryNav.Item>
           </Feature>
-          <Feature features="discover-basic">
-            <SecondaryNav.Item
-              to={`${baseUrl}/discover/homepage/`}
-              activeTo={`${baseUrl}/discover/`}
-              analyticsItemName="explore_discover"
-            >
-              {t('Discover')}
-            </SecondaryNav.Item>
-          </Feature>
           <SecondaryNav.Item
             to={`${baseUrl}/releases/`}
             analyticsItemName="explore_releases"
@@ -71,13 +71,11 @@ export function ExploreSecondaryNav() {
             {t('Releases')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        <Feature features="performance-saved-queries">
+        <Feature features={['performance-trace-explorer', 'performance-view']}>
           <SecondaryNav.Section title={t('Starred Queries')}>
             {starredQueries && starredQueries.length > 0 && (
               <ExploreSavedQueryNavItems queries={starredQueries} />
             )}
-          </SecondaryNav.Section>
-          <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/saved-queries/`}>
               {t('All Queries')}
             </SecondaryNav.Item>

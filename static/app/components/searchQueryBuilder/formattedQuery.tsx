@@ -121,6 +121,7 @@ export function FormattedQuery({
  * Use this one if your component is not wrapped in a `SearchQueryBuilderProvider`.
  */
 export function ProvidedFormattedQuery({
+  className,
   query,
   fieldDefinitionGetter = getFieldDefinition,
   filterKeys = EMPTY_FILTER_KEYS,
@@ -134,6 +135,7 @@ export function ProvidedFormattedQuery({
       searchSource="formatted_query"
     >
       <FormattedQuery
+        className={className}
         query={query}
         fieldDefinitionGetter={fieldDefinitionGetter}
         filterKeys={filterKeys}

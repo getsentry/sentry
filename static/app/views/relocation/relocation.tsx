@@ -431,7 +431,7 @@ const StyledStepper = styled(Stepper)`
   }
 `;
 
-const BackMotionDiv = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
+const BackMotionDiv = styled(motion.div)`
   position: absolute;
   top: 40px;
   left: 20px;

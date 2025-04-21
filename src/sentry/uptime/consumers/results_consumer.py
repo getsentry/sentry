@@ -29,7 +29,6 @@ from sentry.uptime.detectors.tasks import set_failed_url
 from sentry.uptime.issue_platform import create_issue_platform_occurrence, resolve_uptime_issue
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
@@ -46,7 +45,7 @@ from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
-from sentry.uptime.types import IncidentStatus
+from sentry.uptime.types import IncidentStatus, ProjectUptimeSubscriptionMode
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -470,7 +469,12 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         **result,
                     },
                 )
+            # TODO(epurkhiser): Dual until we're only reading the uptime_status
+            # from the uptime_subscription.
             project_subscription.update(
+                uptime_status=UptimeStatus.FAILED, uptime_status_update_date=django_timezone.now()
+            )
+            project_subscription.uptime_subscription.update(
                 uptime_status=UptimeStatus.FAILED, uptime_status_update_date=django_timezone.now()
             )
         elif (
@@ -499,7 +503,12 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         **result,
                     },
                 )
+            # TODO(epurkhiser): Dual until we're only reading the uptime_status
+            # from the uptime_subscription.
             project_subscription.update(
+                uptime_status=UptimeStatus.OK, uptime_status_update_date=django_timezone.now()
+            )
+            project_subscription.uptime_subscription.update(
                 uptime_status=UptimeStatus.OK, uptime_status_update_date=django_timezone.now()
             )
 

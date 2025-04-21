@@ -6,7 +6,6 @@ import {LazyRender} from 'sentry/components/lazyRender';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -83,9 +82,11 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
   const tableIsProgressivelyLoading =
     organization.features.includes('visibility-explore-progressive-loading') &&
     (mode === Mode.SAMPLES
-      ? spansTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+      ? false // The loading indicator is not displayed because we do not change to best effort for samples
       : mode === Mode.AGGREGATE
-        ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+        ? // The loading indicator is displayed when the aggregate table has preflight data and the query is pending
+          aggregatesTableResult.samplingMode === SAMPLING_MODE.PREFLIGHT &&
+          aggregatesTableResult.result.isFetched
         : false);
 
   return (
@@ -114,11 +115,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             query={queryParts}
             timeseriesResult={timeseriesResult}
             canUsePreviousResults={canUsePreviousResults}
-            isProgressivelyLoading={
-              organization.features.includes('visibility-explore-progressive-loading') &&
-              defined(timeseriesSamplingMode) &&
-              timeseriesSamplingMode !== SAMPLING_MODE.BEST_EFFORT
-            }
+            samplingMode={timeseriesSamplingMode}
           />
           <MultiQueryTable
             confidences={[]}

@@ -39,9 +39,12 @@ function mapActionsToCompactSelect(
         label: (
           <div>
             {action.name}
-            <StyledIconNot size="xs" />
+            {action.disabled && <StyledIconNot data-test-id="disabled-icon" size="xs" />}
           </div>
         ),
+        // This is required for compact select searching to work
+        textValue: action.name,
+        text: action.name,
         details: action.help,
         disabled: action.disabled,
         tooltip: action.disabled ? action.disabledReason : undefined,

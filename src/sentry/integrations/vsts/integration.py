@@ -130,10 +130,6 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.default_identity: RpcIdentity | None = None
-
     @property
     def integration_name(self) -> str:
         return "vsts"
@@ -141,8 +137,6 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
     def get_client(self) -> VstsApiClient:
         base_url = self.instance
         if SiloMode.get_current_mode() != SiloMode.REGION:
-            if self.default_identity is None:
-                self.default_identity = self.get_default_identity()
             self._check_domain_name(self.default_identity)
 
         if self.org_integration is None:
@@ -375,8 +369,12 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
         base_url = VstsIntegrationProvider.get_base_url(
             default_identity.data["access_token"], self.model.external_id
         )
-        self.model.metadata["domain_name"] = base_url
-        self.model.save()
+        metadata = self.model.metadata.copy()
+        metadata["domain_name"] = base_url
+        integration_service.update_integration(
+            integration_id=self.model.id,
+            metadata=metadata,
+        )
 
     @property
     def instance(self) -> str:

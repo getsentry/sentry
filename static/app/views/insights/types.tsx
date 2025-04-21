@@ -72,6 +72,18 @@ export enum SpanMetricsField {
   MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
 }
 
+// TODO: This will be the final field type for eap spans
+export enum SpanFields {
+  IS_TRANSACTION = 'is_transaction',
+  CACHE_HIT = 'cache.hit',
+  IS_STARRED_TRANSACTION = 'is_starred_transaction',
+}
+
+export type SpanBooleanFields =
+  | SpanFields.CACHE_HIT
+  | SpanFields.IS_TRANSACTION
+  | SpanFields.IS_STARRED_TRANSACTION;
+
 export type SpanNumberFields =
   | SpanMetricsField.AI_TOTAL_COST
   | SpanMetricsField.AI_TOTAL_TOKENS_USED
@@ -109,6 +121,7 @@ export type SpanStringFields =
   | 'transaction.id'
   | 'transaction.method'
   | 'release'
+  | 'request.method'
   | 'os.name'
   | 'span.status_code'
   | 'span.ai.pipeline.group'
@@ -222,6 +235,8 @@ export type EAPSpanResponse = {
   [Property in SpanNumberFields as `${Property}`]: number;
 } & {
   [Property in SpanStringArrayFields as `${Property}`]: string[];
+} & {} & {
+  [Property in SpanBooleanFields as `${Property}`]: boolean;
 } & {
   ['project']: string;
   ['project.id']: number;
@@ -233,7 +248,6 @@ export type EAPSpanResponse = {
       | `${Property}(${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
-    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG]: string;
   };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;
@@ -254,11 +268,11 @@ export enum SpanIndexedField {
   SPAN_ID = 'span_id',
   SPAN_ACTION = 'span.action',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
-  SPAN_AI_PIPELINE_GROUP_TAG = 'ai_pipeline_group',
   SDK_NAME = 'sdk.name',
   SDK_VERSION = 'sdk.version',
   TRACE = 'trace',
-  TRANSACTION_ID = 'transaction.id',
+  TRANSACTION_ID = 'transaction.id', // TODO - remove this with `useInsightsEap`
+  TRANSACTION_SPAN_ID = 'transaction.span_id',
   TRANSACTION_METHOD = 'transaction.method',
   TRANSACTION_OP = 'transaction.op',
   SPAN_DOMAIN = 'span.domain',
@@ -351,6 +365,7 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.TRACE]: string;
   [SpanIndexedField.TRANSACTION]: string;
   [SpanIndexedField.TRANSACTION_ID]: string;
+  [SpanIndexedField.TRANSACTION_SPAN_ID]: string;
   [SpanIndexedField.TRANSACTION_METHOD]: string;
   [SpanIndexedField.TRANSACTION_OP]: string;
   [SpanIndexedField.SPAN_DOMAIN]: string[];
@@ -470,6 +485,7 @@ export enum MetricsFields {
   APP_START_WARM = 'measurements.app_start_warm',
   TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
   TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
+  RELEASE = 'release',
 }
 
 export type MetricsNumberFields =
@@ -500,13 +516,12 @@ export type MetricsNumberFields =
 export type MetricsStringFields =
   | MetricsFields.TRANSACTION
   | MetricsFields.PROJECT
-  | MetricsFields.PROJECT_ID
   | MetricsFields.ID
   | MetricsFields.TRACE
   | MetricsFields.USER_DISPLAY
-  | MetricsFields.REPLAY_ID
-  | MetricsFields.TIMESTAMP
-  | MetricsFields.PROFILE_ID;
+  | MetricsFields.PROFILE_ID
+  | MetricsFields.RELEASE
+  | MetricsFields.TIMESTAMP;
 
 export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
 
@@ -520,6 +535,8 @@ export type MetricsResponse = {
   [Property in MetricsStringFields as `${Property}`]: string;
 } & {
   [Property in MetricsNumberFields as `count_web_vitals(${Property}, any)`]: string[];
+} & {
+  ['project.id']: number;
 };
 
 export enum DiscoverFields {

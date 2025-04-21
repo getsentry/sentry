@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
 import {Button} from 'sentry/components/core/button';
+import type {TooltipProps} from 'sentry/components/core/tooltip';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
-import type {Tooltip} from 'sentry/components/tooltip';
 import {IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -44,7 +44,7 @@ type RowProps = {
   /**
    * Adds an info tooltip to `name`
    */
-  tooltipTitle?: React.ComponentProps<typeof Tooltip>['title'];
+  tooltipTitle?: TooltipProps['title'];
 };
 
 function OutcomeRow({

@@ -299,7 +299,6 @@ export async function demoSignupModal(options: ModalOptions = {}) {
 }
 
 export type DemoEndModalOptions = {
-  orgSlug: string | null;
   tour: string;
 };
 
