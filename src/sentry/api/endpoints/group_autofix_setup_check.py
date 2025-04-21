@@ -17,11 +17,14 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.promptsactivity import PromptsActivity
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 
 logger = logging.getLogger(__name__)
 
 from rest_framework.request import Request
+
+feature_name = "seer_autofix_setup_acknowledged"
 
 
 def get_autofix_integration_setup_problems(
@@ -118,6 +121,23 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 "repos": repos,
             }
 
+        # Check the current user first using PromptsActivity
+        user_has_acknowledged = PromptsActivity.objects.filter(
+            user_id=request.user.id,
+            feature=feature_name,
+            organization_id=org.id,
+            project_id=0,
+        ).exists()
+
+        # If the user acknowledged, the org must have too. Otherwise, check the org.
+        org_has_acknowledged = user_has_acknowledged
+        if not user_has_acknowledged:
+            org_has_acknowledged = PromptsActivity.objects.filter(
+                feature=feature_name,
+                organization_id=org.id,
+                project_id=0,
+            ).exists()
+
         return Response(
             {
                 "genAIConsent": {
@@ -129,5 +149,9 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                     "reason": integration_check,
                 },
                 "githubWriteIntegration": write_integration_check,
+                "setupAcknowledgement": {
+                    "orgHasAcknowledged": org_has_acknowledged,
+                    "userHasAcknowledged": user_has_acknowledged,
+                },
             }
         )

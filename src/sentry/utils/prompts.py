@@ -23,6 +23,7 @@ DEFAULT_PROMPTS = {
     "issue_views_add_view_banner": {"required_fields": ["organization_id"]},
     "stacked_navigation_banner": {"required_fields": ["organization_id"]},
     "stacked_navigation_help_menu": {"required_fields": ["organization_id"]},
+    "seer_autofix_setup_acknowledged": {"required_fields": ["organization_id"]},
 }
 
 
