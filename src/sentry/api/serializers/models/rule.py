@@ -11,6 +11,7 @@ from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
@@ -317,7 +318,7 @@ class WorkflowEngineRuleSerializer(Serializer):
         self.prepare_component_fields = prepare_component_fields
         self.project_slug = project_slug
 
-    def _fetch_workflow_users(self, item_list: Sequence[Workflow]):
+    def _fetch_workflow_users(self, item_list: Sequence[Workflow]) -> dict[int, RpcUser]:
         return {
             user.id: user
             for user in user_service.get_many_by_id(
@@ -325,7 +326,9 @@ class WorkflowEngineRuleSerializer(Serializer):
             )
         }
 
-    def _fetch_workflow_projects(self, item_list: Sequence[Workflow]):
+    def _fetch_workflow_projects(
+        self, item_list: Sequence[Workflow]
+    ) -> dict[Workflow, set[Project]]:
         workflow_to_projects: dict[Workflow, set[Project]] = defaultdict(set)
         detector_workflows = DetectorWorkflow.objects.filter(
             workflow_id__in=[item.id for item in item_list]
@@ -335,7 +338,7 @@ class WorkflowEngineRuleSerializer(Serializer):
 
         return workflow_to_projects
 
-    def _fetch_workflows(self, item_list: Sequence[Workflow]):
+    def _fetch_workflows(self, item_list: Sequence[Workflow]) -> BaseQuerySet[Workflow]:
         workflow_dcg_prefetch = Prefetch(
             "workflowdataconditiongroup_set",
             queryset=WorkflowDataConditionGroup.objects.prefetch_related(
@@ -352,14 +355,18 @@ class WorkflowEngineRuleSerializer(Serializer):
         )
         return workflows
 
-    def _fetch_workflow_rule_ids(self, item_list: Sequence[Workflow]):
+    def _fetch_workflow_rule_ids(self, item_list: Sequence[Workflow]) -> dict[int, int]:
         return dict(
             AlertRuleWorkflow.objects.filter(
                 workflow_id__in=[wf.id for wf in item_list], rule_id__isnull=False
-            ).values_list("workflow_id", "rule_id")
+            ).values_list(
+                "workflow_id", "rule_id"
+            )  # type: ignore[arg-type]
         )
 
-    def _fetch_workflow_created_by(self, workflow: Workflow, users: dict[int, RpcUser]):
+    def _fetch_workflow_created_by(
+        self, workflow: Workflow, users: dict[int, RpcUser]
+    ) -> dict[str, Any] | None:
         if workflow.created_by_id is None:
             creator = None
         else:
@@ -374,7 +381,7 @@ class WorkflowEngineRuleSerializer(Serializer):
                 creator = None
         return creator
 
-    def _fetch_workflow_owner(self, workflow: Workflow):
+    def _fetch_workflow_owner(self, workflow: Workflow) -> str | None:
         actor = workflow.owner
         if actor:
             return actor.identifier
@@ -382,7 +389,7 @@ class WorkflowEngineRuleSerializer(Serializer):
 
     def _generate_rule_conditions_filters(
         self, workflow: Workflow, project: Project, workflow_dcg: WorkflowDataConditionGroup
-    ):
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         from sentry.workflow_engine.migration_helpers.rule_conditions import (
             translate_to_rule_condition_filters,
         )
@@ -412,7 +419,7 @@ class WorkflowEngineRuleSerializer(Serializer):
 
         return all_conditions, all_filters
 
-    def _fetch_workflow_last_triggered(self, item_list: Sequence[Workflow]):
+    def _fetch_workflow_last_triggered(self, item_list: Sequence[Workflow]) -> dict[int, datetime]:
         result_qs = reduce(
             lambda q1, q2: q1.union(q2),
             [
@@ -437,6 +444,10 @@ class WorkflowEngineRuleSerializer(Serializer):
         # Bulk fetch workflow -> rule ids
         workflow_rule_ids = self._fetch_workflow_rule_ids(item_list)
 
+        last_triggered_lookup: dict[int, datetime] = {}
+        if "lastTriggered" in self.expand:
+            last_triggered_lookup = self._fetch_workflow_last_triggered(item_list)
+
         # TODO: SERIALIZE ACTIONS
 
         result: dict[Workflow, dict[str, Any]] = defaultdict(dict)
@@ -455,7 +466,7 @@ class WorkflowEngineRuleSerializer(Serializer):
                 workflow.when_condition_group.logic_type if workflow.when_condition_group else None
             )
             # pick first DCG for filter_match (rules only have 1)
-            workflow_dcg = workflow.prefetched_wdcgs[0]
+            workflow_dcg = workflow.prefetched_wdcgs[0]  # type: ignore[attr-defined]
             result[workflow]["filter_match"] = workflow_dcg.condition_group.logic_type
 
             # Generate conditions and filters
@@ -466,11 +477,8 @@ class WorkflowEngineRuleSerializer(Serializer):
             result[workflow]["conditions"] = conditions
             result[workflow]["filters"] = filters
 
-        if "lastTriggered" in self.expand:
-            last_triggered_lookup = self._fetch_workflow_last_triggered(item_list)
-
-            for item in item_list:
-                result[item]["last_triggered"] = last_triggered_lookup.get(item.id, None)
+            if workflow.id in last_triggered_lookup:
+                result[workflow]["last_triggered"] = last_triggered_lookup[workflow.id]
 
         return result
 

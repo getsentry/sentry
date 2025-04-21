@@ -144,9 +144,9 @@ class WorkflowRuleSerializerTest(TestCase):
 
         # Assert following FKs are prefetched and don't make additional queries
         with CaptureQueriesContext(connections[DEFAULT_DB_ALIAS]) as queries:
-            assert workflow_with_prefetch.prefetched_wdcgs == [workflow_dcg]
+            assert workflow_with_prefetch.prefetched_wdcgs == [workflow_dcg]  # type: ignore[attr-defined]
             assert list(
-                workflow_with_prefetch.prefetched_wdcgs[0].condition_group.conditions.all()
+                workflow_with_prefetch.prefetched_wdcgs[0].condition_group.conditions.all()  # type: ignore[attr-defined]
             ) == [filter_condition]
             assert workflow_with_prefetch.when_condition_group
             assert list(workflow_with_prefetch.when_condition_group.conditions.all()) == [
