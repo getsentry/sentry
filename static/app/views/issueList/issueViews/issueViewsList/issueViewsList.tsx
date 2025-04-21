@@ -18,6 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
+import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {
   makeFetchGroupSearchViewsKey,
@@ -96,6 +97,16 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
       });
     },
   });
+  const {mutate: deleteView} = useDeleteGroupSearchView({
+    onMutate: variables => {
+      setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
+        return data?.filter(v => v.id !== variables.id);
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({queryKey: tableQueryKey});
+    },
+  });
 
   const pageLinks = getResponseHeader?.('Link');
 
@@ -108,6 +119,9 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
         isError={isError}
         handleStarView={view => {
           mutateViewStarred({id: view.id, starred: !view.starred, view});
+        }}
+        handleDeleteView={view => {
+          deleteView({id: view.id});
         }}
         hideCreatedBy={createdBy === GroupSearchViewCreatedBy.ME}
       />

@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -170,5 +171,47 @@ describe('IssueViewsList', function () {
     expect(
       await within(othersView).findByRole('button', {name: 'Star'})
     ).toBeInTheDocument();
+  });
+
+  it('can delete views', async function () {
+    const mockDeleteEndpoint = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/1/',
+      method: 'DELETE',
+    });
+
+    render(<IssueViewsList />, {organization});
+    renderGlobalModal();
+
+    expect(await screen.findByText('Foo')).toBeInTheDocument();
+
+    const tableMe = screen.getByTestId('table-me');
+    const myView = within(tableMe).getByTestId('table-me-row-0');
+    await userEvent.click(
+      within(myView).getByRole('button', {name: 'More view options'})
+    );
+    await userEvent.click(
+      within(myView).getByRole('menuitemradio', {
+        name: 'Delete',
+      })
+    );
+
+    // Query will be invalidated, need to mock the response on refetch
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/',
+      match: [MockApiClient.matchQuery({createdBy: 'me'})],
+      body: [],
+    });
+
+    // Confirm the deletion
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Delete View',
+      })
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText('Foo')).not.toBeInTheDocument();
+    });
+    expect(mockDeleteEndpoint).toHaveBeenCalled();
   });
 });
