@@ -946,7 +946,7 @@ describe('SearchQueryBuilder', function () {
 
       // Clicking it should add the filter and put focus at the end
       await userEvent.click(suggestionItem);
-      expect(screen.getByRole('row', {name: 'browser.name:Firefox'})).toBeInTheDocument();
+      expect(await screen.findByLabelText('browser.name:Firefox')).toBeInTheDocument();
       expect(getLastInput()).toHaveFocus();
     });
 
