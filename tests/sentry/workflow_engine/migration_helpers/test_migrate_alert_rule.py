@@ -180,7 +180,7 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
     data_condition = DataCondition.objects.get(
         comparison=condition_result, condition_result=True, condition_group__in=workflow_dcgs
     )
-    assert data_condition.type == Condition.ISSUE_PRIORITY_EQUALS
+    assert data_condition.type == Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL
     assert data_condition.condition_result is True
     assert WorkflowDataConditionGroup.objects.filter(
         condition_group=data_condition.condition_group
@@ -372,7 +372,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         action_filter = self.create_data_condition(
             comparison=priority,
             condition_result=True,
-            type=Condition.ISSUE_PRIORITY_EQUALS,
+            type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
             condition_group=data_condition_group,
         )
 
