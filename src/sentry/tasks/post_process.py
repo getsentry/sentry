@@ -1417,25 +1417,26 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
         event = job["event"]
         project = event.project
         user_reports_without_group = UserReport.objects.filter(
-            project_id=project.id,
-            event_id=event.event_id,
-            group_id__isnull=True,
-            environment_id__isnull=True,
+            project_id=project.id, event_id=event.event_id, group_id__isnull=True
         )
         for report in user_reports_without_group:
-            shim_to_feedback(
-                {
-                    "name": report.name,
-                    "email": report.email,
-                    "comments": report.comments,
-                    "event_id": report.event_id,
-                    "level": "error",
-                },
-                event,
-                project,
-                FeedbackCreationSource.USER_REPORT_ENVELOPE,
-            )
-            metrics.incr("event_manager.save._update_user_reports_with_event_link.shim_to_feedback")
+            if report.environment_id is None:
+                shim_to_feedback(
+                    {
+                        "name": report.name,
+                        "email": report.email,
+                        "comments": report.comments,
+                        "event_id": report.event_id,
+                        "level": "error",
+                    },
+                    event,
+                    project,
+                    FeedbackCreationSource.USER_REPORT_ENVELOPE,
+                )
+                metrics.incr(
+                    "event_manager.save._update_user_reports_with_event_link.shim_to_feedback"
+                )
+        # If environment is set, this report was already shimmed from new feedback.
 
         user_reports_updated = user_reports_without_group.update(
             group_id=group.id, environment_id=event.get_environment().id
