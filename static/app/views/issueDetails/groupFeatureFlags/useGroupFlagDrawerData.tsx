@@ -22,14 +22,14 @@ interface Props {
 }
 
 interface Response {
-  allFlagCount: number;
+  allGroupFlagCount: number;
   displayFlags: SuspectGroupTag[];
   isError: boolean;
   isPending: boolean;
   refetch: () => void;
 }
 
-export default function useFlagDrawerData({
+export default function useGroupFlagDrawerData({
   environments,
   group,
   orderBy,
@@ -54,6 +54,7 @@ export default function useFlagDrawerData({
     data: suspectScores,
     isError: isSuspectError,
     isPending: isSuspectPending,
+    refetch: refetchScores,
   } = useGroupSuspectFlagScores({
     groupId: group.id,
     environment: environments.length ? environments : undefined,
@@ -61,7 +62,7 @@ export default function useFlagDrawerData({
   });
 
   // Combine the flag and suspect data into SuspectGroupTag objects
-  const suspectFlags = useMemo(() => {
+  const allFlagsWithScores = useMemo(() => {
     const suspectScoresMap = suspectScores
       ? Object.fromEntries(suspectScores.data.map(score => [score.flag, score]))
       : {};
@@ -92,14 +93,14 @@ export default function useFlagDrawerData({
 
   const filteredFlags = useMemo(() => {
     const searchLower = search.toLowerCase();
-    return suspectFlags.filter(flag => {
+    return allFlagsWithScores.filter(flag => {
       return (
         flag.name.includes(searchLower) ||
         flag.key.includes(searchLower) ||
         tagValues[flag.key]?.includes(searchLower)
       );
     });
-  }, [suspectFlags, search, tagValues]);
+  }, [allFlagsWithScores, search, tagValues]);
 
   const displayFlags = useMemo(() => {
     if (sortBy === SortBy.ALPHABETICAL) {
@@ -115,12 +116,13 @@ export default function useFlagDrawerData({
   }, [filteredFlags, orderBy, sortBy]);
 
   return {
-    allFlagCount: suspectFlags.length,
+    allGroupFlagCount: allFlagsWithScores.length,
     displayFlags,
     isError: isSuspectEnabled ? isFlagsError || isSuspectError : isFlagsError,
     isPending: isSuspectEnabled ? isFlagsPending || isSuspectPending : isFlagsPending,
     refetch: () => {
       refetchFlags();
+      refetchScores();
     },
   };
 }

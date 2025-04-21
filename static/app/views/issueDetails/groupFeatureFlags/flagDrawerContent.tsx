@@ -12,7 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
 import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
-import useFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFlagDrawerData';
+import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFlagDrawerData';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {
   Container,
@@ -38,23 +38,21 @@ export default function FlagDrawerContent({
 }: Props) {
   const organization = useOrganization();
 
-  // If we're showing the suspect section at all
-  // const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
-
-  const {displayFlags, allFlagCount, isPending, isError, refetch} = useFlagDrawerData({
-    environments,
-    group,
-    orderBy,
-    search,
-    sortBy,
-  });
+  const {displayFlags, allGroupFlagCount, isPending, isError, refetch} =
+    useGroupFlagDrawerData({
+      environments,
+      group,
+      orderBy,
+      search,
+      sortBy,
+    });
 
   // CTA logic
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === group.project.slug)!;
 
   const showCTA =
-    allFlagCount === 0 &&
+    allGroupFlagCount === 0 &&
     project &&
     !project.hasFlags &&
     featureFlagOnboardingPlatforms.includes(project.platform ?? 'other');
@@ -63,10 +61,10 @@ export default function FlagDrawerContent({
     if (!isPending && !isError && !showCTA) {
       trackAnalytics('flags.drawer_rendered', {
         organization,
-        numFlags: allFlagCount,
+        numFlags: allGroupFlagCount,
       });
     }
-  }, [organization, allFlagCount, isPending, isError, showCTA]);
+  }, [organization, allGroupFlagCount, isPending, isError, showCTA]);
 
   return isPending ? (
     <LoadingIndicator />
@@ -77,7 +75,7 @@ export default function FlagDrawerContent({
     />
   ) : showCTA ? (
     <FlagDrawerCTA projectPlatform={project.platform} />
-  ) : allFlagCount === 0 ? (
+  ) : allGroupFlagCount === 0 ? (
     <StyledEmptyStateWarning withIcon>
       {t('No feature flags were found for this issue')}
     </StyledEmptyStateWarning>
