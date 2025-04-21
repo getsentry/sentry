@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconGraph} from 'sentry/icons/iconGraph';
@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -183,6 +184,7 @@ export function MultiQueryModeChart({
               confidence={undefined}
               topEvents={undefined}
               dataScanned={undefined}
+              dataset={DiscoverDatasets.SPANS_EAP}
             />
           )
         }
@@ -344,6 +346,7 @@ export function MultiQueryModeChart({
           topEvents={isTopN ? numSeries : undefined}
           dataScanned={dataScanned}
           samplingMode={samplingMode}
+          dataset={DiscoverDatasets.SPANS_EAP}
         />
       }
     />
