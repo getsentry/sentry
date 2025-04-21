@@ -61,7 +61,7 @@ import {space} from 'sentry/styles/space';
 import type {Entry, EntryException, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -215,10 +215,10 @@ export function EventDetailsContent({
         }) ? (
         <LazyLoad LazyComponent={LLMMonitoringSection} event={event} />
       ) : null}
-      {!hasStreamlinedUI && group.issueCategory === IssueCategory.UPTIME && (
+      {!hasStreamlinedUI && group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
         <UptimeDataSection event={event} project={project} group={group} />
       )}
-      {!hasStreamlinedUI && group.issueCategory === IssueCategory.CRON && (
+      {!hasStreamlinedUI && group.issueType === IssueType.MONITOR_CHECK_IN_FAILURE && (
         <CronTimelineSection
           event={event}
           organization={organization}
