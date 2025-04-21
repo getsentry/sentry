@@ -217,7 +217,7 @@ def test_validator_strips_comments_whitespace():
 
 
 @django_db_all
-def test_save_user_report_returns_instance(
+def test_save_user_report_basic(
     default_project, skip_denylist, skip_filters, skip_eventstore, mock_report_dict
 ):
     result = save_userreport(
@@ -225,6 +225,13 @@ def test_save_user_report_returns_instance(
     )
 
     assert isinstance(result, UserReport)
+    assert UserReport.objects.count() == 1
+    assert result == UserReport.objects.get()
+    assert result.name == mock_report_dict["name"]
+    assert result.email == mock_report_dict["email"]
+    assert result.comments == mock_report_dict["comments"]
+    assert result.event_id == mock_report_dict["event_id"]
+    assert result.project_id == default_project.id
 
 
 @django_db_all
