@@ -1,3 +1,4 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -52,11 +53,11 @@ describe('StreamlinedSidebar', function () {
 
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/setup/',
-      body: {
+      body: AutofixSetupFixture({
         genAIConsent: {ok: false},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
 
     MockApiClient.addMockResponse({

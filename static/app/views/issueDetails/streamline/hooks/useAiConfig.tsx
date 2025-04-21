@@ -6,7 +6,20 @@ import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
-export const useAiConfig = (group: Group, project: Project) => {
+interface AiConfigResult {
+  areAiFeaturesAllowed: boolean;
+  hasAutofix: boolean;
+  hasGithubIntegration: boolean;
+  hasResources: boolean;
+  hasSummary: boolean;
+  isAutofixSetupLoading: boolean;
+  /**
+   * Nobody in the org has acknowledged seer for the first time.
+   */
+  needsGenAiAcknowledgement: boolean;
+}
+
+export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
   const organization = useOrganization();
   const {data: autofixSetupData, isPending: isAutofixSetupLoading} = useAutofixSetup({
     groupId: group.id,
@@ -28,9 +41,11 @@ export const useAiConfig = (group: Group, project: Project) => {
   const hasGenAIAcknowledgement =
     autofixSetupData?.setupAcknowledgement.orgHasAcknowledged;
 
-  const hasSummary = hasGenAIAcknowledgement && isSummaryEnabled && areAiFeaturesAllowed;
+  const hasSummary = Boolean(
+    hasGenAIAcknowledgement && isSummaryEnabled && areAiFeaturesAllowed
+  );
   const hasAutofix = isAutofixEnabled && areAiFeaturesAllowed && !isSampleError;
-  const hasGithubIntegration = autofixSetupData?.integration.ok;
+  const hasGithubIntegration = !!autofixSetupData?.integration.ok;
 
   const needsGenAiAcknowledgement =
     !autofixSetupData?.setupAcknowledgement.userHasAcknowledged &&

@@ -1,3 +1,4 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -37,11 +38,11 @@ describe('SeerSection', () => {
 
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
-      body: {
+      body: AutofixSetupFixture({
         genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
 
     MockApiClient.addMockResponse({
@@ -107,11 +108,11 @@ describe('SeerSection', () => {
 
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
-        body: {
+        body: AutofixSetupFixture({
           genAIConsent: {ok: false},
-          integration: {ok: false},
-          githubWriteIntegration: {ok: false},
-        },
+          integration: {ok: false, reason: null},
+          githubWriteIntegration: {ok: false, repos: []},
+        }),
       });
 
       render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
@@ -132,11 +133,11 @@ describe('SeerSection', () => {
     it('shows "Find Root Cause" even when autofix needs setup', async () => {
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
-        body: {
+        body: AutofixSetupFixture({
           genAIConsent: {ok: true},
-          integration: {ok: false},
-          githubWriteIntegration: {ok: false},
-        },
+          integration: {ok: false, reason: null},
+          githubWriteIntegration: {ok: false, repos: []},
+        }),
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
@@ -159,11 +160,11 @@ describe('SeerSection', () => {
       // Mock successful autofix setup but disable resources
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
-        body: {
+        body: AutofixSetupFixture({
           genAIConsent: {ok: true},
-          integration: {ok: true},
-          githubWriteIntegration: {ok: true},
-        },
+          integration: {ok: true, reason: null},
+          githubWriteIntegration: {ok: true, repos: []},
+        }),
       });
 
       MockApiClient.addMockResponse({
@@ -194,11 +195,11 @@ describe('SeerSection', () => {
       // Mock config with autofix disabled
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
-        body: {
+        body: AutofixSetupFixture({
           genAIConsent: {ok: true},
-          integration: {ok: true},
-          githubWriteIntegration: {ok: true},
-        },
+          integration: {ok: true, reason: null},
+          githubWriteIntegration: {ok: true, repos: []},
+        }),
       });
 
       render(
@@ -225,11 +226,11 @@ describe('SeerSection', () => {
 
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
-        body: {
+        body: AutofixSetupFixture({
           genAIConsent: {ok: true},
-          integration: {ok: true},
-          githubWriteIntegration: {ok: true},
-        },
+          integration: {ok: true, reason: null},
+          githubWriteIntegration: {ok: true, repos: []},
+        }),
       });
 
       MockApiClient.addMockResponse({

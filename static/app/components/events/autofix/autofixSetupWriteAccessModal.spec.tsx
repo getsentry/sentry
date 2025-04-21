@@ -1,3 +1,5 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
+
 import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -7,9 +9,9 @@ describe('AutofixSetupWriteAccessModal', function () {
   it('displays help text when repos are not all installed', async function () {
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/setup/?check_write_access=true',
-      body: {
+      body: AutofixSetupFixture({
         genAIConsent: {ok: false},
-        integration: {ok: true},
+        integration: {ok: true, reason: null},
         githubWriteIntegration: {
           ok: false,
           repos: [
@@ -17,19 +19,17 @@ describe('AutofixSetupWriteAccessModal', function () {
               provider: 'integrations:github',
               owner: 'getsentry',
               name: 'sentry',
-              external_id: '123',
               ok: true,
             },
             {
               provider: 'integrations:github',
               owner: 'getsentry',
               name: 'seer',
-              external_id: '235',
               ok: false,
             },
           ],
         },
-      },
+      }),
     });
 
     const closeModal = jest.fn();
@@ -57,9 +57,9 @@ describe('AutofixSetupWriteAccessModal', function () {
   it('displays success text when installed repos for github app text', async function () {
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/setup/?check_write_access=true',
-      body: {
+      body: AutofixSetupFixture({
         genAIConsent: {ok: false},
-        integration: {ok: true},
+        integration: {ok: true, reason: null},
         githubWriteIntegration: {
           ok: true,
           repos: [
@@ -67,19 +67,17 @@ describe('AutofixSetupWriteAccessModal', function () {
               provider: 'integrations:github',
               owner: 'getsentry',
               name: 'sentry',
-              external_id: '123',
               ok: true,
             },
             {
               provider: 'integrations:github',
               owner: 'getsentry',
               name: 'seer',
-              external_id: '235',
               ok: true,
             },
           ],
         },
-      },
+      }),
     });
 
     const closeModal = jest.fn();

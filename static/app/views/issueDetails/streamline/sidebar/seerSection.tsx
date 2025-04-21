@@ -100,7 +100,7 @@ export default function SeerSection({
   const aiConfig = useAiConfig(group, project);
   const issueTypeConfig = getConfigForIssueType(group, project);
   const showCtaButton =
-    aiConfig.needsGenAIConsent ||
+    aiConfig.needsGenAiAcknowledgement ||
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
 
@@ -130,7 +130,7 @@ export default function SeerSection({
       preventCollapse={!hasStreamlinedUI}
     >
       <SeerSectionContainer>
-        {aiConfig.needsGenAIConsent ? (
+        {aiConfig.needsGenAiAcknowledgement ? (
           <Summary>
             {t('Explore potential root causes and solutions with Autofix.')}
           </Summary>

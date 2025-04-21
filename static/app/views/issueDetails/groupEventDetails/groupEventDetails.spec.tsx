@@ -1,3 +1,4 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
@@ -319,17 +320,19 @@ const mockGroupApis = (
   MockApiClient.addMockResponse({
     url: `/issues/${group.id}/autofix/setup/`,
     method: 'GET',
-    body: {
+    body: AutofixSetupFixture({
       integration: {
         ok: true,
+        reason: null,
       },
       genAIConsent: {
         ok: true,
       },
       githubWriteIntegration: {
         ok: true,
+        repos: [],
       },
-    },
+    }),
   });
   MockApiClient.addMockResponse({
     url: `/issues/${group.id}/autofix/`,

@@ -1,4 +1,5 @@
 import {AutofixDataFixture} from 'sentry-fixture/autofixData';
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
 import {EventFixture} from 'sentry-fixture/event';
 import {FrameFixture} from 'sentry-fixture/frame';
@@ -106,11 +107,11 @@ describe('SeerDrawer', () => {
 
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
-      body: {
+      body: AutofixSetupFixture({
         genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
@@ -134,11 +135,11 @@ describe('SeerDrawer', () => {
   it('renders consent state if not consented', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
-      body: {
+      body: AutofixSetupFixture({
         genAIConsent: {ok: false},
-        integration: {ok: false},
-        githubWriteIntegration: {ok: false},
-      },
+        integration: {ok: false, reason: null},
+        githubWriteIntegration: {ok: false, repos: []},
+      }),
     });
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
@@ -188,11 +189,11 @@ describe('SeerDrawer', () => {
   it('renders GitHub integration setup notice when missing GitHub integration', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
-      body: {
+      body: AutofixSetupFixture({
         genAIConsent: {ok: true},
-        integration: {ok: false},
-        githubWriteIntegration: {ok: false},
-      },
+        integration: {ok: false, reason: null},
+        githubWriteIntegration: {ok: false, repos: []},
+      }),
     });
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
@@ -245,11 +246,11 @@ describe('SeerDrawer', () => {
   it('hides ButtonBarWrapper when AI consent is needed', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
-      body: {
+      body: AutofixSetupFixture({
         genAIConsent: {ok: false},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
@@ -273,11 +274,11 @@ describe('SeerDrawer', () => {
     // Mock AI consent as okay but no autofix capability
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
-      body: {
+      body: AutofixSetupFixture({
         genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
@@ -314,11 +315,11 @@ describe('SeerDrawer', () => {
     // Mock everything as ready for autofix but no data
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
-      body: {
+      body: AutofixSetupFixture({
         genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
@@ -344,11 +345,11 @@ describe('SeerDrawer', () => {
     // Mock everything as ready with existing autofix data
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
-      body: {
+      body: AutofixSetupFixture({
         genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
@@ -422,11 +423,11 @@ describe('SeerDrawer', () => {
   it('shows setup instructions when GitHub integration setup is needed', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
-      body: {
+      body: AutofixSetupFixture({
         genAIConsent: {ok: true},
-        integration: {ok: false},
+        integration: {ok: false, reason: null},
         githubWriteIntegration: {ok: false, repos: []},
-      },
+      }),
     });
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
@@ -458,11 +459,11 @@ describe('SeerDrawer', () => {
   it('does not render SeerNotices when all repositories are readable', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
-      body: {
+      body: AutofixSetupFixture({
         genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
@@ -484,11 +485,11 @@ describe('SeerDrawer', () => {
   it('renders warning for unreadable GitHub repository', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
-      body: {
+      body: AutofixSetupFixture({
         genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
@@ -511,11 +512,11 @@ describe('SeerDrawer', () => {
   it('renders warning for unreadable non-GitHub repository', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
-      body: {
+      body: AutofixSetupFixture({
         genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
