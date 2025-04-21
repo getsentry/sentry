@@ -8,6 +8,7 @@ from typing import Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
+from django.db.models import QuerySet
 from django.urls import reverse
 from django.utils.functional import classproperty
 from django.utils.translation import gettext as _
@@ -368,7 +369,7 @@ class JiraIntegration(IssueSyncIntegration):
         if org_integration is not None:
             self.org_integration = org_integration
 
-    def _filter_active_projects(self, project_mappings: Sequence[IntegrationExternalProject]):
+    def _filter_active_projects(self, project_mappings: QuerySet[IntegrationExternalProject]):
         project_ids_set = {p["id"] for p in self.get_client().get_projects_list()}
 
         return [pm for pm in project_mappings if pm.external_id in project_ids_set]
@@ -381,7 +382,7 @@ class JiraIntegration(IssueSyncIntegration):
         sync_status_forward = {}
 
         if features.has("organizations:jira-per-project-statuses", self.organization):
-            project_mappings = self._filter_active_projects(list(project_mappings))
+            project_mappings = self._filter_active_projects(project_mappings)
 
         for pm in project_mappings:
             sync_status_forward[pm.external_id] = {
@@ -646,23 +647,7 @@ class JiraIntegration(IssueSyncIntegration):
             or schema["type"] == "issuelink"
         ):
             fieldtype = "select"
-
-            organization_context = organization_service.get_organization_by_id(
-                id=self.organization_id, include_projects=False, include_teams=False
-            )
-
-            if group is not None:
-                organization = group.organization
-            else:
-                organization_context = organization_service.get_organization_by_id(
-                    id=self.organization_id, include_projects=False, include_teams=False
-                )
-                assert (
-                    organization_context is not None
-                ), "cannot get organization from a null organization context"
-                organization = organization_context.organization
-
-            fkwargs["url"] = self.search_url(organization.slug)
+            fkwargs["url"] = self.search_url(self.organization.slug)
             fkwargs["choices"] = []
         elif schema["type"] in ["timetracking"]:
             # TODO: Implement timetracking (currently unsupported altogether)
@@ -808,7 +793,7 @@ class JiraIntegration(IssueSyncIntegration):
             jira_projects = (
                 client.get_projects_paginated({"maxResults": MAX_PER_PROJECT_QUERIES})["values"]
                 if features.has(
-                    "organizations:jira-paginated-projects", group.project.organization, actor=user
+                    "organizations:jira-paginated-projects", self.organization, actor=user
                 )
                 else client.get_projects_list()
             )
@@ -853,9 +838,7 @@ class JiraIntegration(IssueSyncIntegration):
             "updatesForm": True,
             "required": True,
         }
-        if features.has(
-            "organizations:jira-paginated-projects", group.project.organization, actor=user
-        ):
+        if features.has("organizations:jira-paginated-projects", self.organization, actor=user):
             paginated_projects_url = reverse(
                 "sentry-extensions-jira-search", args=[self.organization.slug, self.model.id]
             )
