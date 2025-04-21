@@ -5,10 +5,12 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.integrations.api.bases.integration import IntegrationEndpoint
+from sentry.integrations.jira.integration import JiraProjectMapping
 from sentry.integrations.models.integration import Integration
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
@@ -83,6 +85,21 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             )
             users = [{"value": user_id, "label": display} for user_id, display in user_tuples]
             return Response(users)
+
+        if field == "project" and features.has(
+            "organizations:jira-paginated-projects", organization, actor=request.user
+        ):
+            try:
+                response = jira_client.get_projects_paginated(params={"query": query})
+            except (ApiUnauthorized, ApiError):
+                return Response({"detail": "Unable to fetch projects from Jira"}, status=400)
+
+            projects = [
+                JiraProjectMapping(label=f"{p["key"]} - {p["name"]}", value=p["id"])
+                for p in response.get("values", [])
+            ]
+
+            return Response(projects)
 
         try:
             response = jira_client.get_field_autocomplete(name=field, value=query)
