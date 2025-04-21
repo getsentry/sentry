@@ -2203,6 +2203,10 @@ function buildRoutes() {
           () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
         )}
       />
+      <Route
+        path="views/new/"
+        component={make(() => import('sentry/views/issueList/newViewPage'))}
+      />
       <Route path="views/:viewId/" component={errorHandler(OverviewWrapper)} />
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
 
