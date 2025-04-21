@@ -2,7 +2,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export type SuspectFlagScore = {
+type SuspectFlagScore = {
   baseline_percent: number;
   flag: string;
   score: number;
