@@ -186,9 +186,7 @@ describe('IssueViewsList', function () {
 
     const tableMe = screen.getByTestId('table-me');
     const myView = within(tableMe).getByTestId('table-me-row-0');
-    await userEvent.click(
-      within(myView).getByRole('button', {name: 'More view options'})
-    );
+    await userEvent.click(within(myView).getByRole('button', {name: 'More options'}));
     await userEvent.click(
       within(myView).getByRole('menuitemradio', {
         name: 'Delete',

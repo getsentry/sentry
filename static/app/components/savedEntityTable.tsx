@@ -234,7 +234,7 @@ SavedEntityTable.CellActions = function CellActions({items}: {items: MenuItemPro
       trigger={triggerProps => (
         <Button
           {...triggerProps}
-          aria-label={t('More view options')}
+          aria-label={t('More options')}
           size="sm"
           borderless
           icon={<IconEllipsis compact />}

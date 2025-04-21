@@ -146,5 +146,5 @@ export function IssueViewsTable({
 const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: boolean}>`
   grid-template-columns:
     40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
-    auto auto auto auto;
+    auto auto auto 48px;
 `;
